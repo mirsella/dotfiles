@@ -1,0 +1,14 @@
+[Unit]
+Description=launch webssh
+
+[Service]
+Type=simple
+User=mirsella
+ExecStart=/home/mirsella/.local/bin/wssh --port=8500 --address='0.0.0.0' --sslport=4450 --ssladdress='0.0.0.0' --certfile='/etc/letsencrypt/live/mirsella.mooo.com/fullchain.pem' --keyfile='/etc/letsencrypt/live/mirsella.mooo.com/privkey.pem'
+# Restart=always
+
+[Timer]
+OnBootSec=1min
+
+[Install]
+WantedBy=multi-user.target

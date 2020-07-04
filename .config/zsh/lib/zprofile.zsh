@@ -1,4 +1,4 @@
-source $ZDOTDIR/lib/plugins.zsh # antibody bundle < plugins.txt > plugins.zsh
+source $ZDOTDIR/lib/$(hostname)/$(hostname)-plugins.zsh
 
 export HISTSIZE=100000
 export SAVEHIST=100000
@@ -36,6 +36,7 @@ local zcdc="$zcd.zwc"
 if [[ -f "$zcd"(#qN.m+1) ]]; then
       compinit -i -d "$zcd"
       { rm -f "$zcdc" && zcompile "$zcd" } &!
+      echo "$zcd is older than 1 day, recompiled"
 else
       compinit -C -d "$zcd"
       { [[ ! -f "$zcdc" || "$zcd" -nt "$zcdc" ]] && rm -f "$zcdc" && zcompile "$zcd" } &!
@@ -47,6 +48,7 @@ disable-fzf-tab
 bindkey '²' toggle-fzf-tab
 zstyle ':fzf-tab:*' continuous-trigger '/'
 zstyle ':fzf-tab:*' single-group ''
+zstyle ':fzf-tab:*' insert-space true
 zstyle ':fzf-tab:complete:cd:*' extra-opts --preview="bat -pp --color=always {}"
 FZF_TAB_COMMAND=(
     fzf

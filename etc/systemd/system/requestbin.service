@@ -1,0 +1,13 @@
+[Unit]
+Description=requestbin.com log
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python /hdd/dev/bin/requestbin
+Restart=always
+RestartSec=1800s
+
+[Install]
+WantedBy=multi-user.target

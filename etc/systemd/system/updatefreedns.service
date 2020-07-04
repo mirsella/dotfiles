@@ -1,0 +1,13 @@
+[Unit]
+Description=update mirsella.mooo.com
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=sh /hdd/dev/bin/updatefreedns
+Restart=always
+RestartSec=1800s
+
+[Install]
+WantedBy=multi-user.target
