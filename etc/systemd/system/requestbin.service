@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python /hdd/dev/bin/requestbin
+ExecStart=sh /hdd/dev/bin/requestbin
 Restart=always
 RestartSec=1800s
 
