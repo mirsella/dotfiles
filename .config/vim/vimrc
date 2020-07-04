@@ -1,0 +1,130 @@
+source ~/.config/vim/autoload/plug.vim
+call plug#begin('~/.config/vim/plugged')
+Plug 'easymotion/vim-easymotion'
+" Plug 'AlphaMycelium/pathfinder.vim'
+Plug 'morhetz/gruvbox'
+Plug 'preservim/nerdcommenter'
+Plug 'itchyny/lightline.vim'
+Plug 'luochen1990/rainbow'
+Plug 'junegunn/fzf.vim'
+Plug 'tpope/vim-surround'
+Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
+Plug 'markonm/traces.vim'
+Plug 'decayofmind/vim-lightline-functions'
+Plug 'mengelbrecht/lightline-bufferline'
+Plug 'metakirby5/codi.vim'
+Plug 'alvan/vim-closetag'
+Plug 'ryanoasis/vim-devicons'
+Plug 'ycm-core/YouCompleteMe'
+" Plug 'neoclide/coc.nvim', {'branch': 'release'}
+call plug#end()
+
+command W :execute ':silent w !sudo tee % > /dev/null' | :edit!
+map <Space> <Leader>
+map Y y$
+nnoremap <leader>O :Files<Space>
+nnoremap <leader>o :Files ~/<CR>
+nnoremap <leader>p "0p
+nnoremap <leader>P "0P
+
+map <Space><Space> <Plug>(easymotion-prefix)
+map <Leader>f <Plug>(easymotion-bd-f)
+nmap <leader>s <Plug>(easymotion-overwin-f2)
+map <Leader>l <Plug>(easymotion-bd-jk)
+map <Leader>w <Plug>(easymotion-bd-w)
+
+nnoremap <C-j> 5jzz
+nnoremap <C-k> 5kzz
+nnoremap <leader>j 20jzz
+nnoremap <leader>k 20kzz
+nnoremap <C-l> :bnext<CR>
+nnoremap <C-h> :bprev<CR>
+nmap <Leader>& <Plug>lightline#bufferline#go(1)
+nmap <Leader>é <Plug>lightline#bufferline#go(2)
+nmap <Leader>" <Plug>lightline#bufferline#go(3)
+nmap <Leader>' <Plug>lightline#bufferline#go(4)
+nmap <Leader>( <Plug>lightline#bufferline#go(5)
+nmap <Leader>- <Plug>lightline#bufferline#go(6)
+nmap <Leader>è <Plug>lightline#bufferline#go(7)
+nmap <Leader>_ <Plug>lightline#bufferline#go(8)
+nmap <Leader>ç <Plug>lightline#bufferline#go(9)
+nmap <Leader>à <Plug>lightline#bufferline#go(10)
+
+filetype plugin on
+set ignorecase
+set noerrorbells
+set hidden
+set expandtab
+set tabstop=2 softtabstop=2
+set shiftwidth=2
+set smartindent
+" set nowrap
+set noswapfile
+set wildignorecase
+set scrolloff=3
+set history=1000
+set mouse=a
+set clipboard=unnamedplus
+set lazyredraw
+set splitbelow splitright
+set incsearch
+set encoding=UTF-8
+set termguicolors
+au BufEnter * set noro
+
+" themes
+colorscheme gruvbox
+set background=dark
+highlight Normal guibg=NONE
+highlight LineNr guifg=#fcc4ff guibg=NONE
+
+" less mess
+set runtimepath+=~/.config/vim
+set undofile undodir=$XDG_DATA_HOME/vim/undo
+set viminfo+=n~/.cache/vim/viminfo
+let g:netrw_dirhistmax = 0
+
+" hybrid relative number
+set number relativenumber
+set nu rnu
+
+" remove esc time
+set timeoutlen=1000 ttimeoutlen=0
+
+" lightline
+source ~/.config/vim/lightlinerc.vim
+set laststatus=2
+set noshowmode
+function! LineCurrentOnTotal()
+  return line('.').'/'.line('$')
+endfunction
+function! ColCurrentOnTotal()
+  return col('.').'/'.col('$')
+endfunction
+
+" lightline-bufferline
+set showtabline=2
+let g:lightline#bufferline#filename_modifier = ':t'
+let g:lightline#bufferline#shorten_path = 0
+let g:lightline#bufferline#enable_devicons = 1
+let g:lightline#bufferline#clickable = 1
+let g:lightline.component_raw = {'buffers': 1}
+let g:lightline#bufferline#unnamed = '[No Name]'
+
+" nerdcommender
+let g:NERDSpaceDelims = 1
+let g:NERDCompactSexyComs = 1
+let g:NERDTrimTrailingWhitespace = 1
+let g:NERDToggleCheckAllLines = 1
+
+" raimbow parentheses
+let g:rainbow_active = 1
+
+" Hexokinase
+let g:Hexokinase_highlighters = ['foregroundfull']
+
+" codi
+let g:codi#autoclose = 1
+
+" path finder
+let g:pf_autorun_delay = -1

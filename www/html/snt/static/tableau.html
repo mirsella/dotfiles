@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>tableau</title>
+</head>
+
+<style>
+    
+body {
+    text-align:center
+}
+
+td {
+  color: white
+}
+
+
+@font-face {
+  font-family: 'Product Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Open Sans'), local('OpenSans'), url(https://fonts.gstatic.com/s/productsans/v5/HYvgU2fE2nRJvZ5JFAumwegdm0LZdjqr5-oayXSOefg.woff2) format('woff2');
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #333;
+  position: -webkit-sticky; /* Safari */
+  position: sticky;
+  top: 0;
+}
+
+li {
+    display:inline-block;
+    text-align:center
+}
+
+li a {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+li a:hover {
+  background-color: #111;
+}
+
+.active {
+  background-color: #4CAF50;
+}
+
+</style>
+
+
+
+<body bgcolor=black>
+
+	<ul style="background: #1f1f1f;">
+		<li><a href="plitice.html">plitice</a></li>
+    <li><a class="active" href="tableau.html">tableau</a></li>
+    <li><a href="sti2d.html">sti2d</a></li>
+  </ul>
+  
+
+   <br><br> 
+  <table border="1" align=center>
+    <tr>
+      <td>Nom</td>
+      <td>Prénom</td>
+      <td>Age</td>
+    </tr>
+      <td>Macaron</td>
+      <td>Manu</td>
+      <td>12</td>
+    <tr>
+      <td>Le seul et unique</td>
+      <td>Balkany</td>
+      <td>785</td>
+    </tr>
+  </table>
+  <br><br>
+
+  <table border="1" align=center>
+    <tr>
+      <td colspan="2">deuxième tableau</td>
+    </tr>
+    <tr>
+      <td rowspan="4">je fait 3 lignes</td>
+    </tr>
+    <tr>
+      <td>foo</td>
+    </tr>
+    <tr>
+      <td>bar</td>
+    </tr>
+    <tr>
+      <td>foobar</td>
+    </tr>
+  </table>
+  <br><br>
+
+</body>
+</html>
