@@ -106,6 +106,7 @@ inoremap <expr> <PageUp>   pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<PageUp>"
 
 filetype plugin on
 filetype indent on
+" set paste
 set linebreak
 set ignorecase
 set noerrorbells
@@ -158,10 +159,10 @@ source /home/mirsella/.config/vim/lightlinerc.vim
 set laststatus=2
 set noshowmode
 function! LineCurrentOnTotal()
-  return line('.').'/'.line('$')
+  " return line('.').'/'.line('$')
 endfunction
 function! ColCurrentOnTotal()
-  return col('.').'/'.col('$')
+  " return col('.').'/'.col('$')
 endfunction
 
 " lightline-bufferline
@@ -201,3 +202,16 @@ let g:yoinkIncludeNamedRegisters=1
 let g:yoinkSyncSystemClipboardOnFocus=1
 let g:yoinkSavePersistently=1
 let g:yoinkIncludeDeleteOperations=1
+
+" firenvim
+let g:firenvim_config = {
+      \ 'globalSettings': {
+      \  },
+      \ 'localSettings': {
+      \ },
+      \ }
+let fc = g:firenvim_config['localSettings']
+let fc['https?://discord\.com'] = { 'takeover': 'never', 'priority': 1 }
+let fc['https?://www.reddit\.com'] = { 'takeover': 'never', 'priority': 1 }
+let fc['https?://www.deepl\.com'] = { 'takeover': 'never', 'priority': 1 }
+let fc['.*'] = { 'takeover': 'once' }

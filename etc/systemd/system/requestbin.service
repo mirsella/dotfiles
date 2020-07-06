@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 ExecStart=sh /hdd/dev/bin/requestbin
 Restart=always
-RestartSec=1800s
+RestartSec=900s
 
 [Install]
 WantedBy=multi-user.target
