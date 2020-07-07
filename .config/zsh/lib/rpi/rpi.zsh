@@ -7,6 +7,4 @@ export BROWSER=/usr/bin/chromium
 export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
 export PATH="$PATH:/home/mirsella/.local/bin:/hdd/dev/bin"
-hash -d h=/media/hdd
-hash -d d=/media/hdd/dev
-hash -d b=/home/mirsella/.config/backupscript/
+hash -d s=/hdd

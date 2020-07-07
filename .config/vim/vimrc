@@ -21,7 +21,7 @@ Plug 'chr4/nginx.vim'
 Plug 'svermeulen/vim-yoink'
 Plug 'svermeulen/vim-cutlass'
 Plug 'svermeulen/vim-subversive'
-Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
+" Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -106,7 +106,7 @@ inoremap <expr> <PageUp>   pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<PageUp>"
 
 filetype plugin on
 filetype indent on
-" set paste
+set formatoptions -= ro
 set linebreak
 set ignorecase
 set noerrorbells
