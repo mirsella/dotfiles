@@ -8,3 +8,12 @@ export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
 export PATH="$PATH:/home/mirsella/.local/bin:/hdd/dev/bin"
 hash -d s=/hdd
+alias end='sudo pkill -f '
+alias rm='s rmtrash -rf '
+alias rmf='s /bin/rm -rf '
+alias trash-restore='s trash-restore '
+alias trash-empty='s trash-empty '
+alias trash-list='s trash-list '
+alias S='s systemctl '
+alias s='sudo -E'
+alias chownm='s chown -R $USER: '
