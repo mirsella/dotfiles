@@ -46,7 +46,7 @@
     "cp ~/.ssh/config .ssh/",
     "cp -r /etc/{nginx,fstab} etc",
     "cp -r /hdd/www .",
-    "cp /etc/systemd/system/{gitea,requestbin,updatefreedns,wssh,novnc}.service etc/systemd/system",
+    "cp /etc/systemd/system/{gitea,requestbin,updatefreedns,wssh,novnc,et}.service etc/systemd/system",
     "rsync -a --exclude-from ~/.config/backupscript/.gitignore ~/.config/{vim,wget,python,python} .config",
     "rsync -a --exclude={predator,unowhy,termux,.zcompcache} ~/.config/zsh .config/",
     "cp -r ~/.config/npm/npmrc .config/npm/",
