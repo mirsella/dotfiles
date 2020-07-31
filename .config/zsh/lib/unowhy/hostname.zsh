@@ -1,6 +1,5 @@
 alias chownm='s chown -R $USER: '
 alias end='sudo pkill -f '
-alias nvidia-settings='nvidia-settings --config="$XDG_CONFIG_HOME"/nvidia/settings'
 alias removelock='sudo rm /var/lib/pacman/db.lck'
 alias rga='rga --no-ignore --hidden -i '
 alias rmf='s /bin/rm -rf '
@@ -23,13 +22,9 @@ export LC_MEASUREMENT=en_US.UTF-8
 export LC_MONETARY=en_US.UTF-8
 export LC_NUMERIC=en_US.UTF-8
 export LC_TIME=en_US.UTF-8
-export PATH="$PATH:/run/media/mirsella/ssd/dev/bin"
+export PATH="$PATH:/home/mirsella/dev/bin/"
 export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
 export TERMINAL=/usr/bin/konsole
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
-hash -d d=/run/media/mirsella/ssd/documents/
-hash -d m=/run/media/mirsella/ssd/music/
-hash -d s=/run/media/mirsella/ssd/
 hash -d u=/run/media/mirsella
-hash -d w=/run/media/mirsella/windows/Users/mirsella/
