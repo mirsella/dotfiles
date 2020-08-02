@@ -1,0 +1,2 @@
+# su -c pkill -f termux
+su -c am force-stop com.termux

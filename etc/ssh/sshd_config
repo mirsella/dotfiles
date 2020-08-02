@@ -1,0 +1,17 @@
+# PrintMotd yes
+PasswordAuthentication yes
+Subsystem sftp /data/data/com.termux/files/usr/libexec/sftp-server
+AllowAgentForwarding yes
+AllowTcpForwarding yes
+#GatewayPorts no
+X11Forwarding yes
+#X11DisplayOffset 10
+X11UseLocalhost yes
+#PermitTTY yes
+PrintMotd no # pam does that
+#PrintLastLog yes
+TCPKeepAlive yes
+#PermitUserEnvironment no
+#Compression delayed
+ClientAliveInterval 60
+

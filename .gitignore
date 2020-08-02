@@ -1,0 +1,7 @@
+plugged
+*.log
+.zcompdump*
+.zcompdump
+*.gpg
+dotfilesgit
+config.json.bak

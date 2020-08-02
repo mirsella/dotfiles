@@ -1,0 +1,1 @@
+su -c am force-stop org.kde.kdeconnect_tp
