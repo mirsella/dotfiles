@@ -100,7 +100,7 @@
         "git checkout -q ${branch:-$(hostname)} || exit",
         "git checkout --orphan ${branch:-$(hostname)}cleared",
         "git add -A",
-        "bcommit",
+        "bcommit 'cleared commit history'",
         "git branch -D ${branch:-$(hostname)}",
         "git branch -M ${branch:-$(hostname)}cleared $(hostname)",
         "git push -f origin ${branch:-$(hostname)}"
