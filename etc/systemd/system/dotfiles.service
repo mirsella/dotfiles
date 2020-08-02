@@ -1,0 +1,11 @@
+[Unit]
+Description=git push dotfiles
+
+[Service]
+Type=oneshot
+User=mirsella
+ExecStartPre=/run/media/mirsella/ssd/dev/bin/waitfornetwork
+ExecStart=b d
+
+[Install]
+WantedBy=multi-user.target

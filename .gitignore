@@ -1,0 +1,12 @@
+plugged
+*log
+.zcomp*
+.zcompcache/
+*gpg
+ssl
+*.git
+*bak
+novnc
+id_rsa*
+*key
+*pub
