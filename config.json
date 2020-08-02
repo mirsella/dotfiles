@@ -84,8 +84,7 @@
       "d": [
         "[[ -d ${TMPDIR:-/tmp}/dotfiles ]] || git clone -q git@github.com:mirsella/dotfiles ${TMPDIR:-/tmp}/dotfiles",
         "cd ${TMPDIR:-/tmp}/dotfiles; git checkout -q ${branch:-predator}; git pull --all",
-        "cp -r .config/vim ~/.config",
-        "rsync -a --exclude=hostname.zsh .config/zsh ~/.config",
+        "cp -r .config/{zsh,vim} ~/.config",
         "for branch in {predator,rpi,termux,unowhy}; do cp -r .config/zsh/lib/$branch ~/.config/zsh/lib/; done"
       ],
       "s": [
