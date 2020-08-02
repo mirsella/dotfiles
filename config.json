@@ -92,7 +92,8 @@
         "cd ~/.config/backupscript",
         "git add -A",
         "git commit -m 'before update.s'",
-        "git pull"
+        "git fetch",
+        "git reset --hard FETCH_HEAD"
       ],
       "clearcommit": [
         "cd ~/.config/backupscript/dotfiles.git || exit",
@@ -117,7 +118,6 @@
         "mv ~/.config/backupscript/dotfiles.git ~/.cache/",
         "git clone git@github.com:mirsella/dotfiles ~/.config/backupscript/dotfiles.git"
       ]
-    },
-    "test": ["which hostname"]
+    }
 }
 
