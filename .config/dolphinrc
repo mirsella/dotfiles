@@ -50,7 +50,6 @@ Width 1600=1600
 Width 1920=1280
 Window-Maximized 750x1333=true
 Window-Maximized 853x1067=true
-Window-Maximized 900x1600=true
 
 [Notification Messages]
 ConfirmDelete=true
