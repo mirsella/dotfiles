@@ -41,7 +41,7 @@ for arg in $@; do
   esac
 done
 searchpattern=$(echo $searchpattern | sed 's/^ //; s/ $//')
-files=$(fd -I -t f -e mp3 "${searchpattern}" ~/Downloads/)
+files=$(fd -I -t f -e mp3 "${searchpattern}" /sdcard/Music)
 case $mode in 
   -ss*) 
     eval ffmpeg $mode -i ${files} ${files}.mp3
