@@ -256,7 +256,7 @@ let g:firenvim_config = {
         \ },
     \ }
 \ }
-au BufEnter www.codecademy.com_*.txt set filetype=javascript
+au BufEnter www.codecademy.com_*.txt set filetype=php
 au BufEnter github.com_*.txt set filetype=markdown
 au BufEnter reddit.com_*.txt set filetype=markdown
 
