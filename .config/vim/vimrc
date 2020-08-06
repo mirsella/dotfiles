@@ -250,19 +250,14 @@ let g:yoinkIncludeDeleteOperations=1
 
 " firenvim
 let g:firenvim_config = { 
-    \ 'globalSettings': {
+      \ 'globalSettings': {
         \ 'alt': 'all',
-    \  },
-    \ 'localSettings': {
-        \ '.*': {
-            \ 'cmdline': 'neovim',
-            \ 'priority': 0,
-            \ 'selector': 'textarea',
-            \ 'takeover': 'once',
-        \ },
-        \'https://[discord|deepl]\.com' { 'takeover': 'never', 'priority': 1 }
-    \ }
-\ }
+      \  },
+      \ 'localSettings': {
+        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'once' },
+        \ 'https://[discord|deepl]\.com': { 'takeover': 'never', 'priority': 1 }
+      \ }
+      \ }
 
 au BufEnter www.codecademy.com_*.txt set filetype=php
 au BufEnter github.com_*.txt set filetype=markdown
