@@ -63,9 +63,6 @@ searchpattern=$(echo $searchpattern | sed 's/^ //; s/ $//')
 files=$(fd -I -t f -e mp3 "${searchpattern}" /run/media/mirsella/ssd/music/)
 case $mode in 
   ffmpeg) 
-    echo +$@+
-    echo +$searchpattern+
-    echo +$files+
     ffmpeg -ss "$@" -i "${files}" "${files}.mp3"
     mv "${files}.mp3" "${files}"
     ;;
