@@ -25,6 +25,7 @@ Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
 Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
+Plug 'turbio/bracey.vim'
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -53,6 +54,7 @@ map Y y$
 nnoremap ' `
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files ~/<CR>
+nnoremap <leader>: :noh<cr>
 
 nnoremap <F1> :wa<cr>
 xnoremap <F1> :wa<cr>
@@ -265,3 +267,9 @@ au BufEnter reddit.com_*.txt set filetype=markdown
 " command line complete
 cmap <c-p> <Plug>CmdlineCompleteBackward
 cmap <c-n> <Plug>CmdlineCompleteForward
+
+" bracey
+g:bracey_browser_command = chromium
+g:bracey_refresh_on_save = 1
+g:bracey_server_allow_remote_connections = 1
+g:bracey_server_port = 8080
