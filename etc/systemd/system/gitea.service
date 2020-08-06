@@ -19,8 +19,5 @@ ExecStart=/hdd/gitea/gitea web
 Restart=always
 Environment=USER=git HOME=/home/git
 
-[Timer]
-OnBootSec
-
 [Install]
 WantedBy=multi-user.target

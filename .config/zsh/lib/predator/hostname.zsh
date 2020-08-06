@@ -33,3 +33,41 @@ hash -d m=/run/media/mirsella/ssd/music/
 hash -d s=/run/media/mirsella/ssd/
 hash -d u=/run/media/mirsella
 hash -d w=/run/media/mirsella/windows/Users/mirsella/
+alias fanm='nbfc set -f 1 -s 100 && nbfc set -f 0 -s 100'
+alias fan='nbfc set -f 1 -a && nbfc set -f 0 -a'
+
+
+functions fdm() {
+for arg in $@; do 
+  ((iteration++))
+  case $arg in
+    -d)
+      mode=delete
+      shift $iteration
+      ((iteration--))
+      ;;
+    -f)
+      shift $iteration
+      mode=ffmpeg
+      ((iteration--))
+      break
+      ;;
+    *) 
+      searchpattern="$searchpattern$arg "
+      shift $iteration
+      ((iteration--))
+      ;;
+  esac
+done
+searchpattern=$(echo $searchpattern | sed 's/^ //; s/ $//')
+files=$(fd -I -t f -e mp3 "${searchpattern}" /run/media/mirsella/ssd/music/)
+case $mode in 
+  ffmpeg) 
+    ffmpeg -ss "$@" -i "${files}" "${files}.mp3"
+    mv "${files}.mp3" "${files}"
+    ;;
+  delete) while read file; do rmtrash $file; done <<< $files;;
+  *) echo $files;;
+esac
+unset searchpattern files mode iteration
+}

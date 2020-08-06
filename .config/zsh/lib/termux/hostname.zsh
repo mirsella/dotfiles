@@ -16,20 +16,41 @@ hash -d s=/sdcard/
 hash -d m=/sdcard/Music
 hash -d r=/data/data/com.termux/files/usr
 alias v='nvim -p'
+
 functions fdm() {
-  if [[ "${@: -1}" = "d" ]]; then
-    args="${@: 1:-1}"
-    delete=1
-  else
-    args="$@"
-  fi
-  files=$(fd -I -t f -e mp3 "${args}" /sdcard/Music/)
-  if [[ -n $delete ]]; then
-    # ~r/bin/rm "${files}"
-    while read file; do ~r/bin/rm $file; done <<< $files
-      # echo files: $files
-    else
-      echo "$(echo $files | sed 's#/sdcard/Music/##')"
-  fi
-unset delete args files
+for arg in $@; do 
+  ((iteration++))
+  case $arg in
+    -d)
+      mode=delete
+      shift $iteration
+      ((iteration--))
+      ;;
+    -f)
+      shift $iteration
+      mode=ffmpeg
+      ((iteration--))
+      break
+      ;;
+    *) 
+      searchpattern="$searchpattern$arg "
+      shift $iteration
+      ((iteration--))
+      ;;
+  esac
+done
+searchpattern=$(echo $searchpattern | sed 's/^ //; s/ $//')
+files=$(fd -I -t f -e mp3 "${searchpattern}" /sdcard/Music/)
+case $mode in 
+  ffmpeg) 
+    echo +$@+
+    echo +$searchpattern+
+    echo +$files+
+    ffmpeg -ss "$@" -i "${files}" "${files}.mp3"
+    mv "${files}.mp3" "${files}"
+    ;;
+  delete) while read file; do rmtrash $file; done <<< $files;;
+  *) echo $files;;
+esac
+unset searchpattern files mode iteration
 }

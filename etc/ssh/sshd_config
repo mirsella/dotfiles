@@ -94,8 +94,8 @@ PrintLastLog yes
 TCPKeepAlive yes
 #PermitUserEnvironment no
 #Compression delayed
-ClientAliveInterval 60
-ClientAliveCountMax 1000
+# ClientAliveInterval 60
+# ClientAliveCountMax 1000
 #UseDNS no
 #PidFile /var/run/sshd.pid
 #MaxStartups 10:30:100
@@ -118,3 +118,5 @@ Subsystem	sftp	/usr/lib/openssh/sftp-server
 #	AllowTcpForwarding no
 #	PermitTTY no
 #	ForceCommand cvs server
+IPQoS cs0 cs0
+
