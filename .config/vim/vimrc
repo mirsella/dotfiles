@@ -260,8 +260,10 @@ let g:firenvim_config = {
             \ 'selector': 'textarea',
             \ 'takeover': 'once',
         \ },
+        \'https://[discord|deepl]\.com' { 'takeover': 'never', 'priority': 1 }
     \ }
 \ }
+
 au BufEnter www.codecademy.com_*.txt set filetype=php
 au BufEnter github.com_*.txt set filetype=markdown
 au BufEnter reddit.com_*.txt set filetype=markdown
