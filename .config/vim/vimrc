@@ -85,7 +85,9 @@ map <Leader>w <Plug>(easymotion-bd-w)
 nnoremap <C-j> 5jzz
 nnoremap <C-k> 5kzz
 nnoremap <C-l> :bnext<CR>
+inoremap <C-l> <esc>:bnext<CR>
 nnoremap <C-h> :bprev<CR>
+inoremap <C-h> <esc>:bprev<CR>
 nnoremap <A-h> <C-w>h
 nnoremap <A-j> <C-w>j
 nnoremap <A-k> <C-w>k
