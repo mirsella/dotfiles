@@ -12,7 +12,7 @@ _fzf_compgen_path() { command fd -t f -HIL --color=always -E .cache -E .local -E
 _fzf_compgen_dir() { command fd -t d -HIL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
 export FZF_DEFAULT_COMMAND='fd -t f -HIL --color=always -E .cache -E .local -E .git -E run -E media -E sys -E proc -E coc -E plugged '
 export FZF_DEFAULT_OPTS='--ansi --preview="bat -pp --color=always {}" '
-export VIMV_USE_RMTRASH=1
+export VIMV_RM="rmtrash -rf"
 # export GIT_COMMITTER_EMAIL=mirsella@protonmail.com
 # export GIT_AUTHOR_EMAIL=mirsella@protonmail.com
 

@@ -18,8 +18,6 @@ hash -d r=/data/data/com.termux/files/usr
 alias v='nvim -p'
 
 functions fdm() {
-iteration=0
-searchpattern=""
 for arg in $@; do 
   ((iteration++))
   case $arg in
@@ -30,25 +28,29 @@ for arg in $@; do
       ;;
     -f)
       shift $iteration
-      mode="-ss $@"
+      mode=ffmpeg
       ((iteration--))
       break
       ;;
-    *) searchpattern="$searchpattern$arg "
+    *) 
+      searchpattern="$searchpattern$arg "
       shift $iteration
       ((iteration--))
       ;;
   esac
 done
 searchpattern=$(echo $searchpattern | sed 's/^ //; s/ $//')
-files=$(fd -I -t f -e mp3 "${searchpattern}" /sdcard/Music)
+files=$(fd -I -t f -e mp3 "${searchpattern}" /sdcard/Music/)
 case $mode in 
-  -ss*) 
-    eval ffmpeg $mode -i ${files} ${files}.mp3
-    mv $files.mp3 $files
+  ffmpeg) 
+    echo +$@+
+    echo +$searchpattern+
+    echo +$files+
+    ffmpeg -ss "$@" -i "${files}" "${files}.mp3"
+    mv "${files}.mp3" "${files}"
     ;;
-    delete) while read file; do rmtrash $file; done <<< $files;;
-    *) echo $files;;
-  esac
-  unset searchpattern files mode iteration
+  delete) while read file; do rmtrash $file; done <<< $files;;
+  *) echo $files;;
+esac
+unset searchpattern files mode iteration
 }
