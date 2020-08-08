@@ -1,8 +1,9 @@
 source ~/.config/vim/autoload/plug.vim
 call plug#begin('~/.config/vim/plugged')
+" Plug 'sickill/vim-monokai'
+Plug 'morhetz/gruvbox'
 Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax' " slow down too much nvim startup
-Plug 'morhetz/gruvbox'
 Plug 'markonm/traces.vim'
 " Plug 'preservim/nerdcommenter'
 Plug 'mirsella/nerdcommenter'
@@ -25,7 +26,7 @@ Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
 Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
-Plug 'turbio/bracey.vim'
+" Plug 'turbio/bracey.vim'
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -73,7 +74,7 @@ xnoremap <F6> :vert sb
 
 map <Space><Space> <Plug>(easymotion-prefix)
 map <Leader>f <Plug>(easymotion-bd-f)
-nmap <leader>s <Plug>(easymotion-overwin-f2)
+nmap <leader>g <Plug>(easymotion-overwin-f2)
 map <Leader>l <Plug>(easymotion-bd-jk)
 map <Leader>w <Plug>(easymotion-bd-w)
 
@@ -148,6 +149,7 @@ filetype indent on
 " set nocompatible
 " set formatoptions-=ro
 autocmd FileType * set formatoptions-=ro
+set nowrap
 set linebreak
 set ignorecase
 set noerrorbells
@@ -248,18 +250,15 @@ let g:yoinkIncludeDeleteOperations=1
 
 " firenvim
 let g:firenvim_config = { 
-    \ 'globalSettings': {
+      \ 'globalSettings': {
         \ 'alt': 'all',
-    \  },
-    \ 'localSettings': {
-        \ '.*': {
-            \ 'cmdline': 'neovim',
-            \ 'priority': 0,
-            \ 'selector': 'textarea',
-            \ 'takeover': 'once',
-        \ },
-    \ }
-\ }
+      \  },
+      \ 'localSettings': {
+        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'once' },
+        \ 'https://[discord|deepl]\.com': { 'takeover': 'never', 'priority': 1 }
+      \ }
+      \ }
+
 au BufEnter www.codecademy.com_*.txt set filetype=php
 au BufEnter github.com_*.txt set filetype=markdown
 au BufEnter reddit.com_*.txt set filetype=markdown
@@ -269,7 +268,7 @@ cmap <c-p> <Plug>CmdlineCompleteBackward
 cmap <c-n> <Plug>CmdlineCompleteForward
 
 " bracey
-g:bracey_browser_command = chromium
-g:bracey_refresh_on_save = 1
-g:bracey_server_allow_remote_connections = 1
-g:bracey_server_port = 8080
+" let g:bracey_browser_command= chromium
+let g:bracey_refresh_on_save = 1
+let g:bracey_server_allow_remote_connections = 1
+let g:bracey_server_port = 8080
