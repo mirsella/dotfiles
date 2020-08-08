@@ -5,6 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+ExecStartPre=/hdd/dev/bin/waitfornetwork
 ExecStart=sh /hdd/dev/bin/requestbin
 Restart=always
 RestartSec=900s
