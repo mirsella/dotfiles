@@ -4,7 +4,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=simple
+Type=exec
 ExecStartPre=/hdd/dev/bin/waitfornetwork
 ExecStart=sh /hdd/dev/bin/requestbin
 Restart=always
