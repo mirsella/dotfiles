@@ -33,8 +33,8 @@ dateFormat=ShortFormat
 
 [KPropertiesDialog]
 Height 1080=622
-Height 900=451
-Width 1600=416
+Height 900=566
+Width 1600=526
 Width 1920=601
 
 [MainWindow]
