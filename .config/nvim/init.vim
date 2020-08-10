@@ -1,5 +1,4 @@
-source ~/.config/vim/autoload/plug.vim
-call plug#begin('~/.config/vim/plugged')
+call plug#begin('~/.config/nvim/plugged')
 " Plug 'sickill/vim-monokai'
 Plug 'morhetz/gruvbox'
 Plug 'easymotion/vim-easymotion'
@@ -186,9 +185,9 @@ highlight LineNr guifg=#f796ef guibg=NONE
 highlight CursorLineNr guifg=#f796ef guibg=NONE
 
 " less mess
-set runtimepath+=~/.config/vim
-set undofile undodir=~/.cache/vim/undo
-set viminfo+=n~/.cache/vim/viminfo
+" set runtimepath+=~/.config/vim
+set undofile undodir=~/.cache/nvim/undo
+set viminfo+=n~/.cache/nvim/viminfo
 let g:netrw_dirhistmax = 0
 
 " hybrid relative number
@@ -199,7 +198,7 @@ set nu rnu
 set timeoutlen=1000 ttimeoutlen=0
 
 " lightline
-source ~/.config/vim/lightlinerc.vim
+source ~/.config/nvim/lightlinerc.vim
 set laststatus=2
 set noshowmode
 function! LineCurrentOnTotal()
