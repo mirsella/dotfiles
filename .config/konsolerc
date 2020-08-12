@@ -2,7 +2,7 @@
 DefaultProfile=konsole.profile
 
 [Favorite Profiles]
-Favorites=dolphin.profile,Shell.profile,konsole.profile
+Favorites=konsole.profile,Shell.profile,dolphin.profile
 
 [FileDialogSize]
 Height 1080=1008
@@ -32,7 +32,6 @@ Window-Maximized 1080x1920=true
 Window-Maximized 750x1200=true
 Window-Maximized 750x1333=true
 Window-Maximized 853x1067=true
-Window-Maximized 900x1600=true
 
 [Notification Messages]
 CloseAllTabs=true
