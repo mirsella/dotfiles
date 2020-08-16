@@ -1,6 +1,7 @@
 # vi mode
 bindkey -v
 export KEYTIMEOUT=1
+bindkey "^?" backward-delete-char # Fix backspace bug when switching modes
 
 # Change cursor shape for different vi modes.
 function zle-keymap-select {
@@ -48,6 +49,5 @@ bindkey '^?' backward-delete-char # [Backspace] - delete backward
 bindkey ' ' magic-space # [Space] - do history expansion
 bindkey "^[[H" beginning-of-line # start key
 bindkey "^[[F" end-of-line # end key 
-bindkey "^?" backward-delete-char # Fix backspace bug when switching modes
-bindkey "${terminfo[kpp]}" up-line-or-history
-bindkey "${terminfo[knp]}" up-line-or-history
+bindkey "^[[A" up-line-or-history # [PageUp] - Up a line of history
+bindkey "^[[B" down-line-or-history # [PageDown] - Down a line of history
