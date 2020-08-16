@@ -49,7 +49,7 @@ case $mode in
     ffmpeg -ss "$@" -i "${files}" "${files}.mp3"
     mv "${files}.mp3" "${files}"
     ;;
-  delete) while read file; do rm $file; done <<< $files;;
+  delete) while read file; do rm -v $file; done <<< $files;;
   *) echo $files;;
 esac
 unset searchpattern files mode iteration
