@@ -6,7 +6,7 @@ Type=exec
 User=mirsella
 ExecStartPre=/run/media/mirsella/ssd/dev/bin/waitfornetwork
 ExecStart=x11vnc -display :0 -forever -ncache 10 -rfbauth /home/mirsella/.config/vnc/passwd
-Restart=always
+# Restart=always
 
 [Install]
 WantedBy=multi-user.target
