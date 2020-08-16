@@ -1,3 +1,5 @@
+alias nvidia_utils_uninstall='yay -R cuda nvtop waifu2x-ncnn-vulkan'
+alias nvidia_utils_install='yay -S cuda nvtop waifu2x-ncnn-vulkan'
 alias chownm='s chown -R $USER: '
 alias end='sudo pkill -f '
 alias nvidia-settings='nvidia-settings --config="$XDG_CONFIG_HOME"/nvidia/settings'
