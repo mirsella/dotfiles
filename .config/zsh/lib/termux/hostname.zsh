@@ -6,7 +6,8 @@ export LC_MEASUREMENT=en_US.UTF-8
 export LC_TIME=en_US.UTF-8
 export LC_NUMERIC=en_US.UTF-8
 export EDITOR=/usr/bin/nvim
-export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
+export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
+alias s='sudo '
 alias end='sudo pkill -f '
 alias rmf='rm -rf '
 alias rmf='rm -rf '
