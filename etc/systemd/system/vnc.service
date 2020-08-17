@@ -4,7 +4,7 @@ Description=vnc server
 [Service]
 Type=exec
 User=mirsella
-ExecStartPre=/run/media/mirsella/ssd/dev/bin/waitfornetwork
+ExecStartPre=/run/media/mirsella/ssd/dev/bin/waitfornetwork && sleep 180
 ExecStart=x11vnc -display :0 -forever -ncache 10 -rfbauth /home/mirsella/.config/vnc/passwd
 # Restart=always
 
