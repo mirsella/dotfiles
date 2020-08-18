@@ -19,7 +19,7 @@ Plug 'alvan/vim-closetag'
 Plug 'ryanoasis/vim-devicons'
 Plug 'mattn/emmet-vim'
 Plug 'svermeulen/vim-yoink'
-Plug 'svermeulen/vim-cutlass'
+" Plug 'svermeulen/vim-cutlass'
 Plug 'svermeulen/vim-subversive'
 Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
@@ -79,13 +79,6 @@ nmap <leader>g <Plug>(easymotion-overwin-f2)
 map <Leader>l <Plug>(easymotion-bd-jk)
 map <Leader>w <Plug>(easymotion-bd-w)
 
-" nnoremap <A-j> :m .+1<CR>==
-" nnoremap <A-k> :m .-2<CR>==
-" inoremap <A-j> <Esc>:m .+1<CR>==gi
-" inoremap <A-k> <Esc>:m .-2<CR>==gi
-" vnoremap <A-j> :m '>+1<CR>gv=gv
-" vnoremap <A-k> :m '<-2<CR>gv=gv
-
 nnoremap <C-j> 5jzz
 nnoremap <C-k> 5kzz
 nnoremap <C-l> :bnext<CR>
@@ -115,22 +108,22 @@ nmap P <plug>(YoinkPaste_P)
 nmap [y <plug>(YoinkRotateBack)
 nmap ]y <plug>(YoinkRotateForward)
 
-nnoremap <leader>c c
-xnoremap <leader>c c
-nnoremap <leader>cc cc
-nnoremap <leader>C C
+nnoremap <leader>c "_c
+xnoremap <leader>c "_c
+nnoremap <leader>cc "_cc
+nnoremap <leader>C "_C
 
-nnoremap <leader>s s
-xnoremap <leader>s s
-nnoremap <leader>S S
+nnoremap <leader>s "_s
+xnoremap <leader>s "_s
+nnoremap <leader>S "_S
 
-nnoremap <leader>d d
-xnoremap <leader>d d
-nnoremap <leader>dd dd
-nnoremap <leader>D D
+nnoremap <leader>d "_d
+xnoremap <leader>d "_d
+nnoremap <leader>dd "_dd
+nnoremap <leader>D "_D
 
-nnoremap <leader>x x
-nnoremap <leader>X X
+nnoremap <leader>x "_x
+nnoremap <leader>X "_X
 
 nmap s <plug>(SubversiveSubstitute)
 nmap ss <plug>(SubversiveSubstituteLine)
@@ -271,6 +264,8 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 " bracey
 " let g:bracey_browser_command= chromium
 let g:bracey_auto_start_browser = 1
-" let g:bracey_refresh_on_save = 1
+let g:bracey_refresh_on_save = 1
+let g:bracey_eval_on_save = 1
+let g:bracey_auto_start_server = 1
 let g:bracey_server_allow_remote_connections = 1
 let g:bracey_server_port = 8080
