@@ -33,9 +33,9 @@ dateFormat=ShortFormat
 
 [KPropertiesDialog]
 Height 1080=535
-Height 853=591
+Height 853=480
 Height 900=566
-Width 1067=601
+Width 1067=463
 Width 1600=526
 Width 1920=608
 
@@ -44,13 +44,15 @@ Height 1080=980
 Height 750=720
 Height 853=817
 Height 900=840
-State=AAAA/wAAAAD9AAAAAwAAAAAAAADAAAAC2vwCAAAAAvsAAAAWAGYAbwBsAGQAZQByAHMARABvAGMAawAAAAAA/////wAAAAIA////+wAAABQAcABsAGEAYwBlAHMARABvAGMAawEAAABOAAAC2gAAAEwA////AAAAAQAAAKwAAALa/AIAAAAB+wAAABAAaQBuAGYAbwBEAG8AYwBrAQAAAE4AAALaAAABDwD///8AAAADAAAFAAAAAKX8AQAAAAH7AAAAGAB0AGUAcgBtAGkAbgBhAGwARABvAGMAawEAAAAAAAAFAAAAAJUA////AAADhgAAAtoAAAAEAAAABAAAAAgAAAAI/AAAAAEAAAACAAAAAQAAABYAbQBhAGkAbgBUAG8AbwBsAEIAYQByAQAAAAD/////AAAAAAAAAAA=
+State=AAAA/wAAAAD9AAAAAwAAAAAAAADAAAACQ/wCAAAAAvsAAAAWAGYAbwBsAGQAZQByAHMARABvAGMAawAAAAAA/////wAAAAIA////+wAAABQAcABsAGEAYwBlAHMARABvAGMAawEAAABIAAACQwAAAEwA////AAAAAQAAAKwAAAJD/AIAAAAB+wAAABAAaQBuAGYAbwBEAG8AYwBrAQAAAEgAAAJDAAABCgD///8AAAADAAAEKwAAAKX8AQAAAAH7AAAAGAB0AGUAcgBtAGkAbgBhAGwARABvAGMAawEAAAAAAAAEKwAAAJUA////AAACsQAAAkMAAAAEAAAABAAAAAgAAAAI/AAAAAEAAAACAAAAAQAAABYAbQBhAGkAbgBUAG8AbwBsAEIAYQByAQAAAAD/////AAAAAAAAAAA=
 ToolBarsMovable=Disabled
 Width 1067=1067
 Width 1333=667
 Width 1600=1600
 Width 1920=1280
+Window-Maximized 1080x1920=true
 Window-Maximized 750x1333=true
+Window-Maximized 853x1067=true
 Window-Maximized 900x1600=true
 
 [Notification Messages]
@@ -59,7 +61,7 @@ ConfirmEmptyTrash=true
 
 [Open-with settings]
 CompletionMode=1
-History=vscodi,kate,vs,vl
+History=feh,vscodi,kate,vs,vl
 
 [PreviewSettings]
 Plugins=appimagethumbnail,audiothumbnail,blenderthumbnail,comicbookthumbnail,djvuthumbnail,ebookthumbnail,exrthumbnail,directorythumbnail,fontthumbnail,imagethumbnail,jpegthumbnail,kraorathumbnail,windowsexethumbnail,windowsimagethumbnail,opendocumentthumbnail,gsthumbnail,rawthumbnail,svgthumbnail,ffmpegthumbs

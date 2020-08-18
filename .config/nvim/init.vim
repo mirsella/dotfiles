@@ -25,7 +25,7 @@ Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
 Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
-" Plug 'turbio/bracey.vim'
+Plug 'turbio/bracey.vim'
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -49,6 +49,8 @@ call plug#end()
 command W :execute ':silent w !sudo tee % > /dev/null' | :edit!
 command -nargs=? CC :CocCommand
 command -nargs=? V :vert sb
+command B :Bracey
+command BS :BraceyStop
 map <Space> <Leader>
 map Y y$
 nnoremap ' `
@@ -268,6 +270,7 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 
 " bracey
 " let g:bracey_browser_command= chromium
-let g:bracey_refresh_on_save = 1
+let g:bracey_auto_start_browser = 1
+" let g:bracey_refresh_on_save = 1
 let g:bracey_server_allow_remote_connections = 1
 let g:bracey_server_port = 8080
