@@ -1,3 +1,4 @@
+alias yays='yay -S --noconfirm --needed '
 alias nvidia_utils_r='yay -R --needed --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
 alias nvidia_utils_s='yay -S --needed --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
 alias chownm='s chown -R $USER: '
