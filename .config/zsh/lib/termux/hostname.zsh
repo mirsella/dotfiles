@@ -10,7 +10,7 @@ export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias s='sudo '
 alias end='sudo pkill -f '
 alias rmf='rm -rf '
-alias rmf='rm -rf '
+alias rm='rmtrash -rf '
 alias chownm='chown -R $USER: '
 export XDG_RUNTIME_DIR=$PREFIX/run
 hash -d s=/sdcard/
