@@ -47,11 +47,11 @@ Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 call plug#end()
 
-command W :execute ':silent w !sudo tee % > /dev/null' | :edit!
-command -nargs=? CC :CocCommand
-command -nargs=? V :vert sb
-command B :Bracey
-command BS :BraceyStop
+command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
+command! -nargs=? CC :CocCommand
+command! -nargs=? V :vert sb
+command! B :Bracey
+command! BS :BraceyStop
 map <Space> <Leader>
 map Y y$
 nnoremap ' `
