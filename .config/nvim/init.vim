@@ -75,6 +75,11 @@ nnoremap <F5> :vsplit<cr>
 nnoremap <F6> :vert sb 
 xnoremap <F6> :vert sb 
 
+nnoremap <F7> :set wrap<cr>
+xnoremap <F7> :set wrap<cr>
+nnoremap <F8> :set nowrap<cr>
+xnoremap <F8> :set nowrap<cr>
+
 map <Space><Space> <Plug>(easymotion-prefix)
 map <Leader>f <Plug>(easymotion-bd-f)
 nmap <leader>g <Plug>(easymotion-overwin-f2)
