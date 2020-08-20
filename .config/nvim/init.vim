@@ -1,6 +1,7 @@
 call plug#begin('~/.config/nvim/plugged')
 " Plug 'sickill/vim-monokai'
 Plug 'morhetz/gruvbox'
+Plug 'chr4/nginx.vim'
 Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax' " slow down too much nvim startup
 Plug 'markonm/traces.vim'
