@@ -1,5 +1,4 @@
-source ~/.config/vim/autoload/plug.vim
-call plug#begin('~/.config/vim/plugged')
+call plug#begin('~/.config/nvim/plugged')
 " Plug 'sickill/vim-monokai'
 Plug 'morhetz/gruvbox'
 Plug 'easymotion/vim-easymotion'
@@ -20,13 +19,13 @@ Plug 'alvan/vim-closetag'
 Plug 'ryanoasis/vim-devicons'
 Plug 'mattn/emmet-vim'
 Plug 'svermeulen/vim-yoink'
-Plug 'svermeulen/vim-cutlass'
+" Plug 'svermeulen/vim-cutlass'
 Plug 'svermeulen/vim-subversive'
 Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
 Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
-" Plug 'turbio/bracey.vim'
+" Plug 'turbio/bracey.vim' " don't work because of old css parser
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -43,16 +42,20 @@ Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
+" Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
+" Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 call plug#end()
 
-command W :execute ':silent w !sudo tee % > /dev/null' | :edit!
-command -nargs=? CC :CocCommand
-command -nargs=? V :vert sb
+command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
+command! -nargs=? CC :CocCommand
+command! -nargs=? V :vert sb
+command! B :Bracey
+command! BS :BraceyStop
 map <Space> <Leader>
 map Y y$
 nnoremap ' `
+inoremap <c-o> <esc>o
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files ~/<CR>
 nnoremap <leader>: :noh<cr>
@@ -72,18 +75,16 @@ nnoremap <F5> :vsplit<cr>
 nnoremap <F6> :vert sb 
 xnoremap <F6> :vert sb 
 
+nnoremap <F7> :set wrap<cr>
+xnoremap <F7> :set wrap<cr>
+nnoremap <F8> :set nowrap<cr>
+xnoremap <F8> :set nowrap<cr>
+
 map <Space><Space> <Plug>(easymotion-prefix)
 map <Leader>f <Plug>(easymotion-bd-f)
 nmap <leader>g <Plug>(easymotion-overwin-f2)
 map <Leader>l <Plug>(easymotion-bd-jk)
 map <Leader>w <Plug>(easymotion-bd-w)
-
-" nnoremap <A-j> :m .+1<CR>==
-" nnoremap <A-k> :m .-2<CR>==
-" inoremap <A-j> <Esc>:m .+1<CR>==gi
-" inoremap <A-k> <Esc>:m .-2<CR>==gi
-" vnoremap <A-j> :m '>+1<CR>gv=gv
-" vnoremap <A-k> :m '<-2<CR>gv=gv
 
 nnoremap <C-j> 5jzz
 nnoremap <C-k> 5kzz
@@ -186,9 +187,9 @@ highlight LineNr guifg=#f796ef guibg=NONE
 highlight CursorLineNr guifg=#f796ef guibg=NONE
 
 " less mess
-set runtimepath+=~/.config/vim
-set undofile undodir=~/.cache/vim/undo
-set viminfo+=n~/.cache/vim/viminfo
+" set runtimepath+=~/.config/vim
+set undofile undodir=~/.cache/nvim/undo
+set viminfo+=n~/.cache/nvim/viminfo
 let g:netrw_dirhistmax = 0
 
 " hybrid relative number
@@ -199,7 +200,7 @@ set nu rnu
 set timeoutlen=1000 ttimeoutlen=0
 
 " lightline
-source ~/.config/vim/lightlinerc.vim
+source ~/.config/nvim/lightlinerc.vim
 set laststatus=2
 set noshowmode
 function! LineCurrentOnTotal()
@@ -269,6 +270,9 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 
 " bracey
 " let g:bracey_browser_command= chromium
+let g:bracey_auto_start_browser = 1
 let g:bracey_refresh_on_save = 1
+" let g:bracey_eval_on_save = 1
+let g:bracey_auto_start_server = 1
 let g:bracey_server_allow_remote_connections = 1
 let g:bracey_server_port = 8080

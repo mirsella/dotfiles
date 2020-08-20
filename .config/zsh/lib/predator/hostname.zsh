@@ -1,3 +1,6 @@
+alias yays='yay -S --noconfirm --needed '
+alias nvidia_utils_r='yay -R --needed --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
+alias nvidia_utils_s='yay -S --needed --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
 alias chownm='s chown -R $USER: '
 alias end='sudo pkill -f '
 alias nvidia-settings='nvidia-settings --config="$XDG_CONFIG_HOME"/nvidia/settings'
@@ -63,9 +66,9 @@ files=$(fd -I -t f -e mp3 "${searchpattern}" /run/media/mirsella/ssd/music/)
 case $mode in 
   ffmpeg) 
     ffmpeg -ss "$@" -i "${files}" "${files}.mp3"
-    mv "${files}.mp3" "${files}"
+    mv -v "${files}.mp3" "${files}"
     ;;
-  delete) while read file; do rmtrash $file; done <<< $files;;
+  delete) while read file; do rmtrash -v $file; done <<< $files;;
   *) echo $files;;
 esac
 unset searchpattern files mode iteration

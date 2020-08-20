@@ -6,10 +6,11 @@ export LC_MEASUREMENT=en_US.UTF-8
 export LC_TIME=en_US.UTF-8
 export LC_NUMERIC=en_US.UTF-8
 export EDITOR=/usr/bin/nvim
-export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
+export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
+alias s='sudo '
 alias end='sudo pkill -f '
+alias rmf='rm -rf '
 alias rm='rmtrash -rf '
-alias rmf='/bin/rm -rf '
 alias chownm='chown -R $USER: '
 export XDG_RUNTIME_DIR=$PREFIX/run
 hash -d s=/sdcard/
@@ -49,7 +50,7 @@ case $mode in
     ffmpeg -ss "$@" -i "${files}" "${files}.mp3"
     mv "${files}.mp3" "${files}"
     ;;
-  delete) while read file; do rmtrash $file; done <<< $files;;
+  delete) while read file; do rm -v $file; done <<< $files;;
   *) echo $files;;
 esac
 unset searchpattern files mode iteration

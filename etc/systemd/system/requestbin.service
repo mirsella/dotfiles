@@ -1,7 +1,5 @@
 [Unit]
 Description=requestbin.com log
-After=network-online.target
-Wants=network-online.target
 
 [Service]
 Type=exec

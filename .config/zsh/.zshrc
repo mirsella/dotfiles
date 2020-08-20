@@ -52,6 +52,7 @@ gitreclonerepo() {
   git clone $remoteurl
 }
 
+bak() { sudo cp -r "${1}" "${1}.bak" }
 alias psaux='ps aux | rg '
 alias NU='2> /dev/null ' #Silences stderr
 alias NUL='> /dev/null 2>&1 ' #Silences both stdout and stderr
@@ -78,3 +79,4 @@ alias gcp='git commit -m "gcp $(date)"; git push '
 alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
 alias fd='fd -HIL -E run -E media -E sys -E proc '
 alias trapp='trap "exit" SIGINT '
+alias watch='watch '
