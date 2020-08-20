@@ -1,6 +1,7 @@
 call plug#begin('~/.config/nvim/plugged')
 " Plug 'sickill/vim-monokai'
 Plug 'morhetz/gruvbox'
+Plug 'chr4/nginx.vim'
 Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax' " slow down too much nvim startup
 Plug 'markonm/traces.vim'
@@ -25,7 +26,7 @@ Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
 Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
-Plug 'turbio/bracey.vim'
+" Plug 'turbio/bracey.vim' " don't work because of old css parser
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -74,6 +75,11 @@ nnoremap <F5> :vsplit<cr>
 nnoremap <F5> :vsplit<cr>
 nnoremap <F6> :vert sb 
 xnoremap <F6> :vert sb 
+
+nnoremap <F7> :set wrap<cr>
+xnoremap <F7> :set wrap<cr>
+nnoremap <F8> :set nowrap<cr>
+xnoremap <F8> :set nowrap<cr>
 
 map <Space><Space> <Plug>(easymotion-prefix)
 map <Leader>f <Plug>(easymotion-bd-f)
