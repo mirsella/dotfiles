@@ -23,7 +23,7 @@ Plug 'mattn/emmet-vim'
 Plug 'svermeulen/vim-yoink'
 " Plug 'svermeulen/vim-cutlass'
 Plug 'svermeulen/vim-subversive'
-" Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
+Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
 Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
@@ -260,14 +260,9 @@ let g:firenvim_config = {
         \ 'alt': 'all',
       \  },
       \ 'localSettings': {
-        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'once' },
-        \ 'https://[discord|deepl]\.com': { 'takeover': 'never', 'priority': 1 }
+        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'never' },
       \ }
       \ }
-
-au BufEnter www.codecademy.com_*.txt set filetype=php
-au BufEnter github.com_*.txt set filetype=markdown
-au BufEnter reddit.com_*.txt set filetype=markdown
 
 " command line complete
 cmap <c-p> <Plug>CmdlineCompleteBackward
