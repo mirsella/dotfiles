@@ -22,7 +22,7 @@ Plug 'mattn/emmet-vim'
 Plug 'svermeulen/vim-yoink'
 " Plug 'svermeulen/vim-cutlass'
 Plug 'svermeulen/vim-subversive'
-Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
+" Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
 Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
