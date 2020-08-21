@@ -2,6 +2,7 @@ call plug#begin('~/.config/nvim/plugged')
 " Plug 'sickill/vim-monokai'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
+Plug 'itchyny/vim-gitbranch'
 Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax' " slow down too much nvim startup
 Plug 'markonm/traces.vim'
@@ -209,6 +210,9 @@ function! LineCurrentOnTotal()
 endfunction
 function! ColCurrentOnTotal()
   return col('.').'/'.col('$')
+endfunction
+function! GitBranch()
+  return ''.' '.gitbranch#name()
 endfunction
 
 " lightline-bufferline
