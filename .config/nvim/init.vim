@@ -2,6 +2,7 @@ call plug#begin('~/.config/nvim/plugged')
 " Plug 'sickill/vim-monokai'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
+Plug 'itchyny/vim-gitbranch'
 Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax' " slow down too much nvim startup
 Plug 'markonm/traces.vim'
@@ -210,6 +211,9 @@ endfunction
 function! ColCurrentOnTotal()
   return col('.').'/'.col('$')
 endfunction
+function! GitBranch()
+  return ''.' '.gitbranch#name()
+endfunction
 
 " lightline-bufferline
 set showtabline=2
@@ -256,14 +260,9 @@ let g:firenvim_config = {
         \ 'alt': 'all',
       \  },
       \ 'localSettings': {
-        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'once' },
-        \ 'https://[discord|deepl]\.com': { 'takeover': 'never', 'priority': 1 }
+        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'never' },
       \ }
       \ }
-
-au BufEnter www.codecademy.com_*.txt set filetype=php
-au BufEnter github.com_*.txt set filetype=markdown
-au BufEnter reddit.com_*.txt set filetype=markdown
 
 " command line complete
 cmap <c-p> <Plug>CmdlineCompleteBackward
