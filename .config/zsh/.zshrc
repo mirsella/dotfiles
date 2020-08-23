@@ -80,3 +80,4 @@ alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
 alias fd='fd -HIL -E run -E media -E sys -E proc '
 alias trapp='trap "exit" SIGINT '
 alias watch='watch '
+ortener() { curl -H "Content-Type: application/json" -d '{"url": "$2", "slug": "$1"}' https://ortener.herokuapp.com/url }
