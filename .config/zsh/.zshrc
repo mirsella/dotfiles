@@ -1,3 +1,4 @@
+source ~/.config/zsh/lib/forgit.zsh
 source ~/.config/zsh/lib/completion.zsh
 source ~/.config/zsh/lib/keybinds.zsh
 source ~/.config/zsh/lib/spectrum.zsh
