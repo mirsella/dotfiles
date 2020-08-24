@@ -1,2 +1,2 @@
-/dev/input/by-id/usb-USB_USB_Keyboard-event-kbd
+/dev/input/by-path/platform-i8042-serio-0-event-kbd
 default.json
