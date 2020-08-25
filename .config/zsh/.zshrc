@@ -70,15 +70,15 @@ alias rg='rg --no-ignore --hidden -i '
 alias rge='rg --no-ignore --hidden -e '
 alias tree='tree -Ch '
 alias gb='git branch '
-alias gch='git checkout '
+alias gh='git checkout '
 alias gp='git push '
-alias ga='git add '
-alias gc='git commit '
-alias gcm='git commit -m "gcm $(date)"'
+alias ga='git add -A '
+alias gcm="git commit -m "
+alias gc="git commit "
 alias gac='git add -A; git commit -m "gac $(date)" '
 alias gcp='git commit -m "gcp $(date)"; git push '
 alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
 alias fd='fd -HIL -E run -E media -E sys -E proc '
 alias trapp='trap "exit" SIGINT '
 alias watch='watch '
-ortener() { curl -H "Content-Type: application/json" -d '{"url": "$2", "slug": "$1"}' https://ortener.herokuapp.com/url }
+ortener() { curl -H "Content-Type: application/json" -d '{"url": "$1", "slug": "$2"}' https://ortener.herokuapp.com/url }
