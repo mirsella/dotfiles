@@ -57,7 +57,7 @@ command! BS :BraceyStop
 map <Space> <Leader>
 map Y y$
 nnoremap ' `
-inoremap <c-o> <esc>o
+" inoremap <c-o> <esc>o
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files ~/<CR>
 nnoremap <leader>: :noh<cr>
