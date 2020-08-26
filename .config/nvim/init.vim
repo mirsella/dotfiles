@@ -52,12 +52,9 @@ call plug#end()
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
 command! -nargs=? CC :CocCommand
 command! -nargs=? V :vert sb
-command! B :Bracey
-command! BS :BraceyStop
 map <Space> <Leader>
 map Y y$
 nnoremap ' `
-" inoremap <c-o> <esc>o
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files ~/<CR>
 nnoremap <leader>: :noh<cr>
@@ -151,7 +148,9 @@ filetype plugin on
 filetype indent on
 " set nocompatible
 " set formatoptions-=ro
-autocmd FileType * set formatoptions-=ro
+augroup formatoptions
+  autocmd FileType * set formatoptions-=ro
+augroup END
 set nowrap
 set linebreak
 set ignorecase
