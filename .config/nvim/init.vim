@@ -211,7 +211,11 @@ function! ColCurrentOnTotal()
   return col('.').'/'.col('$')
 endfunction
 function! GitBranch()
-  return ''.' '.gitbranch#name()
+  if (gitbranch#name() != "")
+    return ''.' '.gitbranch#name()
+  else
+    return ''
+  endif
 endfunction
 
 " lightline-bufferline

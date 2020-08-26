@@ -4,6 +4,7 @@ export SAVEHIST=100000
 export HISTFILE=~/.cache/history
 export HISTCONTROL=ignoreboth
 export PROMPT="%B%F{219}[%n@%M %~]%(!.%F{196}#%f.$) %f%b"
+# export PROMPT="%B%{%}%(4~|%-1~/.../%2~|%~)%u%b >%{%}>%B%(?.%{%}.%{%})>%{%}%b"
 export RPROMPT="%B%F{225}%*%f%b"
 export CASE_INSENSITIVE=true
 export HYPHEN_INSENSITIVE=true
