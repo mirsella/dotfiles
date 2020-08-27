@@ -54,7 +54,7 @@ gitreclonerepo() {
 }
 
 bak() { s cp -r "${1}" "${1}.bak" }
-bakm() { s mv -r "${1}" "${1}.bak" }
+bakm() { s mv "${1}" "${1}.bak" }
 alias psaux='ps aux | rg '
 alias NU='2> /dev/null ' #Silences stderr
 alias NUL='> /dev/null 2>&1 ' #Silences both stdout and stderr
