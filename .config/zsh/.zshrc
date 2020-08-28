@@ -53,7 +53,8 @@ gitreclonerepo() {
   git clone $remoteurl
 }
 
-bak() { sudo cp -r "${1}" "${1}.bak" }
+bak() { s cp -r "${1}" "${1}.bak" }
+bakm() { s mv "${1}" "${1}.bak" }
 alias psaux='ps aux | rg '
 alias NU='2> /dev/null ' #Silences stderr
 alias NUL='> /dev/null 2>&1 ' #Silences both stdout and stderr
@@ -66,7 +67,8 @@ alias ll='ls -AhXl --group-directories-first --color=auto '
 alias bat='bat -pp --color=always --theme="Monokai Extended Origin" '
 alias q='exit '
 alias dut='du -cksh '
-alias rg='rg --no-ignore --hidden -i -g "!.git"'
+# alias rg='rg --no-ignore --hidden -i -g "!.git"'
+alias rg='rg --hidden -i'
 alias rge='rg --no-ignore --hidden -e '
 alias tree='tree -Ch '
 alias gb='git branch '
@@ -78,6 +80,7 @@ alias gc="git commit "
 alias gac='git add -A; git commit -m "gac $(date)" '
 alias gcp='git commit -m "gcp $(date)"; git push '
 alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
+alias gt='git stash '
 alias fd='fd -HIL -E run -E media -E sys -E proc '
 alias trapp='trap "exit" SIGINT '
 alias watch='watch '
