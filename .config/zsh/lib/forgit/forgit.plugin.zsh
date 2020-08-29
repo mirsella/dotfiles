@@ -147,6 +147,21 @@ forgit::clean() {
     echo 'Nothing to clean.'
 }
 
+forgit::cherry::pick() {
+    local base target preview opts
+    base=$(git branch --show-current)
+    [[ -z $1 ]] && echo "Please specify target branch" && return 1
+    target="$1"
+    preview="echo {1} | xargs -I% git show --color=always % | $forgit_show_pager"
+    opts="
+        $FORGIT_FZF_DEFAULT_OPTS
+        -m -0
+    "
+    git cherry "$base" "$target" --abbrev -v | cut -d ' ' -f2- |
+        FZF_DEFAULT_OPTS="$opts" fzf --preview="$preview" | cut -d' ' -f1 |
+        xargs -I% git cherry-pick %
+}
+
 # git ignore generator
 export FORGIT_GI_REPO_REMOTE=${FORGIT_GI_REPO_REMOTE:-https://github.com/dvcs/gitignore}
 export FORGIT_GI_REPO_LOCAL=${FORGIT_GI_REPO_LOCAL:-~/.config/forgit/gi/repos/dvcs/gitignore}
@@ -227,4 +242,5 @@ if [[ -z "$FORGIT_NO_ALIASES" ]]; then
     alias "${forgit_restore:-gcf}"='forgit::restore'
     alias "${forgit_clean:-gclean}"='forgit::clean'
     alias "${forgit_stash_show:-gss}"='forgit::stash::show'
+    alias "${forgit_cherry_pick:-gcp}"='forgit::cherry::pick'
 fi
