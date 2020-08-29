@@ -67,7 +67,6 @@ alias ll='ls -AhXl --group-directories-first --color=auto '
 alias bat='bat -pp --color=always --theme="Monokai Extended Origin" '
 alias q='exit '
 alias dut='du -cksh '
-# alias rg='rg --no-ignore --hidden -i -g "!.git"'
 alias rg='rg --hidden -i'
 alias rge='rg --no-ignore --hidden -e '
 alias tree='tree -Ch '
@@ -79,6 +78,7 @@ alias gcm="git commit -m "
 alias gc="git commit "
 alias gac='git add -A; git commit -m "gac $(date)" '
 alias gcp='git commit -m "gcp $(date)"; git push '
+gmp() { git commit -m "${@}"; git push }
 alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
 alias gt='git stash '
 alias fd='fd -HIL -E run -E media -E sys -E proc '
