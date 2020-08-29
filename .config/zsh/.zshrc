@@ -79,6 +79,7 @@ alias gcm="git commit -m "
 alias gc="git commit "
 alias gac='git add -A; git commit -m "gac $(date)" '
 alias gcp='git commit -m "gcp $(date)"; git push '
+gcp() { git commit -m "${@}"; git push }
 alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
 alias gt='git stash '
 alias fd='fd -HIL -E run -E media -E sys -E proc '
