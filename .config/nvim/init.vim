@@ -4,9 +4,9 @@ Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
 Plug 'easymotion/vim-easymotion'
-Plug 'wgwoods/vim-systemd-syntax' " slow down too much nvim startup
+Plug 'wgwoods/vim-systemd-syntax' 
+Plug 'posva/vim-vue'
 Plug 'markonm/traces.vim'
-" Plug 'preservim/nerdcommenter'
 Plug 'mirsella/nerdcommenter'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
@@ -44,8 +44,8 @@ Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
+" Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
+" Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
 call plug#end()
@@ -183,6 +183,7 @@ set isfname+={,}
 
 " themes
 colorscheme gruvbox
+" colorscheme monokai
 set background=dark
 highlight Normal guibg=NONE
 highlight LineNr guifg=#f796ef guibg=NONE
