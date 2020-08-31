@@ -1,5 +1,6 @@
 [Unit]
 Description=requestbin.com log
+After=hdd.mount
 
 [Service]
 Type=exec
