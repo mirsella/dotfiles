@@ -36,7 +36,7 @@ local zcdc="$zcd.zwc"
 if [[ -f "$zcd"(#qN.m+1) ]]; then
       compinit -i -d "$zcd"
       { rm -f "$zcdc" && zcompile "$zcd" } &!
-      echo "$zcd is older than 1 day, recompiled"
+      # echo "$zcd is older than 1 day, recompiled"
 else
       compinit -C -d "$zcd"
       { [[ ! -f "$zcdc" || "$zcd" -nt "$zcdc" ]] && rm -f "$zcdc" && zcompile "$zcd" } &!
