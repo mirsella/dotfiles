@@ -2,10 +2,11 @@ call plug#begin('~/.config/nvim/plugged')
 " Plug 'sickill/vim-monokai'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
+Plug 'itchyny/vim-gitbranch'
 Plug 'easymotion/vim-easymotion'
-Plug 'wgwoods/vim-systemd-syntax' " slow down too much nvim startup
+Plug 'wgwoods/vim-systemd-syntax' 
+Plug 'posva/vim-vue'
 Plug 'markonm/traces.vim'
-" Plug 'preservim/nerdcommenter'
 Plug 'mirsella/nerdcommenter'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
@@ -20,13 +21,15 @@ Plug 'alvan/vim-closetag'
 Plug 'ryanoasis/vim-devicons'
 Plug 'mattn/emmet-vim'
 Plug 'svermeulen/vim-yoink'
-" Plug 'svermeulen/vim-cutlass'
+Plug 'svermeulen/vim-cutlass'
 Plug 'svermeulen/vim-subversive'
 Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 Plug 'psliwka/vim-smoothie'
 Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
 " Plug 'turbio/bracey.vim' " don't work because of old css parser
+Plug 'Raimondi/delimitMate'
+Plug 'nicwest/vim-camelsnek'
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -46,17 +49,15 @@ Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
+Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
 call plug#end()
 
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
 command! -nargs=? CC :CocCommand
 command! -nargs=? V :vert sb
-command! B :Bracey
-command! BS :BraceyStop
 map <Space> <Leader>
 map Y y$
 nnoremap ' `
-inoremap <c-o> <esc>o
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files ~/<CR>
 nnoremap <leader>: :noh<cr>
@@ -150,7 +151,9 @@ filetype plugin on
 filetype indent on
 " set nocompatible
 " set formatoptions-=ro
-autocmd FileType * set formatoptions-=ro
+augroup formatoptions
+  autocmd FileType * set formatoptions-=ro
+augroup END
 set nowrap
 set linebreak
 set ignorecase
@@ -182,6 +185,7 @@ set isfname+={,}
 
 " themes
 colorscheme gruvbox
+" colorscheme monokai
 set background=dark
 highlight Normal guibg=NONE
 highlight LineNr guifg=#f796ef guibg=NONE
@@ -209,6 +213,13 @@ function! LineCurrentOnTotal()
 endfunction
 function! ColCurrentOnTotal()
   return col('.').'/'.col('$')
+endfunction
+function! GitBranch()
+  if (gitbranch#name() != "")
+    return ''.' '.gitbranch#name()
+  else
+    return ''
+  endif
 endfunction
 
 " lightline-bufferline
@@ -256,14 +267,9 @@ let g:firenvim_config = {
         \ 'alt': 'all',
       \  },
       \ 'localSettings': {
-        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'once' },
-        \ 'https://[discord|deepl]\.com': { 'takeover': 'never', 'priority': 1 }
+        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'never' },
       \ }
       \ }
-
-au BufEnter www.codecademy.com_*.txt set filetype=php
-au BufEnter github.com_*.txt set filetype=markdown
-au BufEnter reddit.com_*.txt set filetype=markdown
 
 " command line complete
 cmap <c-p> <Plug>CmdlineCompleteBackward
@@ -277,3 +283,7 @@ let g:bracey_refresh_on_save = 1
 let g:bracey_auto_start_server = 1
 let g:bracey_server_allow_remote_connections = 1
 let g:bracey_server_port = 8080
+
+" fold
+set foldmethod=syntax
+set nofoldenable

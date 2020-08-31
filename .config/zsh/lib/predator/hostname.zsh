@@ -1,6 +1,6 @@
 alias yays='yay -S --noconfirm --needed '
-alias nvidia_utils_r='yay -R --needed --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
-alias nvidia_utils_s='yay -S --needed --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
+alias nvidiar='yay -R --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
+alias nvidias='yay -S --needed --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
 alias chownm='s chown -R $USER: '
 alias end='sudo pkill -f '
 alias nvidia-settings='nvidia-settings --config="$XDG_CONFIG_HOME"/nvidia/settings'
