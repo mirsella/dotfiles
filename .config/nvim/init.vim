@@ -49,7 +49,7 @@ Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
-Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile && yarn run build'}
+Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
 call plug#end()
 
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
