@@ -2,7 +2,7 @@
 DefaultProfile=konsole.profile
 
 [Favorite Profiles]
-Favorites=konsole.profile,dolphin.profile,Shell.profile
+Favorites=konsole.profile,Shell.profile,dolphin.profile
 
 [FileDialogSize]
 Height 1080=1008
@@ -17,7 +17,7 @@ ShowMenuBarByDefault=false
 ShowWindowTitleOnTitleBar=true
 
 [MainWindow]
-Height 1080=1080
+Height 1080=988
 Height 667=815
 Height 750=720
 Height 853=823
@@ -25,10 +25,10 @@ Height 900=840
 MenuBar=Disabled
 State=AAAA/wAAAAD9AAAAAAAABkAAAANIAAAABAAAAAQAAAAIAAAACPwAAAAA
 ToolBarsMovable=Disabled
-Width 1067=1067
+Width 1067=533
 Width 1333=667
 Width 1600=800
-Width 1920=1920
+Width 1920=640
 Window-Maximized 1080x1920=true
 Window-Maximized 750x1200=true
 Window-Maximized 750x1333=true
