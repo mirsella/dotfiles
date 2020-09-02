@@ -1,4 +1,4 @@
 cd /sdcard/Music
 git add -A
 git commit -m "termux widget $(date)"
-git push rpil master
+git push l master
