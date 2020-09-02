@@ -1,5 +1,6 @@
 [Unit]
 Description=launch novnc
+After=hdd.mount
 
 [Service]
 Type=simple
@@ -7,9 +8,6 @@ User=mirsella
 ExecStartPre=/hdd/dev/bin/waitfornetwork
 ExecStart=/hdd/www/novnc/utils/launch.sh --vnc 192.168.1.131:5900 --listen 4470 --ssl-only --cert /etc/letsencrypt/live/mirsella.mooo.com/cert.pem --key /etc/letsencrypt/live/mirsella.mooo.com/privkey.pem
 Restart=always
-
-[Timer]
-OnBootSec=1min
 
 [Install]
 WantedBy=multi-user.target

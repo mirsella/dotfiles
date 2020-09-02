@@ -1,6 +1,9 @@
-proc            /proc           proc    defaults          0       0
-PARTUUID=f990da7c-01  /boot           vfat    defaults          0       2
-PARTUUID=f990da7c-02  /               ext4    defaults,noatime  0       1
-UUID="1b013ccd-a90e-48d0-b35d-3d923775ebe1" /hdd ext4 defaults,noatime,nofail 0 0
-# a swapfile is not a swap partition, no line here
-#   use  dphys-swapfile swap[on|off]  for that
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a device; this may
+# be used with UUID= as a more robust way to name devices that works even if
+# disks are added and removed. See fstab(5).
+#
+# <file system>             <mount point>  <type>  <options>  <dump>  <pass>
+UUID=83e03f00-eae1-44a4-8376-5dfcbf2f0cff /              ext4    defaults,noatime 0 1
+UUID=118094a2-f8a8-4b7a-b71a-95a548b47c65 swap           swap    defaults,noatime 0 2
