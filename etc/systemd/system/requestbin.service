@@ -1,10 +1,10 @@
 [Unit]
 Description=requestbin.com log
-After=hdd.mount
+After=hdd.mount network.target
 
 [Service]
 Type=exec
-ExecStartPre=/hdd/dev/bin/waitfornetwork
+# ExecStartPre=/hdd/dev/bin/waitfornetwork
 ExecStart=sh /hdd/dev/bin/requestbin
 Restart=always
 RestartSec=900s
