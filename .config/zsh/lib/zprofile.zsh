@@ -96,5 +96,5 @@ ZSH_HIGHLIGHT_STYLES[double-quoted-argument]=fg=194
 ZSH_HIGHLIGHT_STYLES[double-quoted-argument-unclosed]=$ZSH_HIGHLIGHT_STYLES[error]
 ZSH_HIGHLIGHT_STYLES[redirection]=fg=201,bold
 ZSH_HIGHLIGHT_STYLES[assign]=fg=213,bold
-ZSH_HIGHLIGHT_STYLES[comment]=fg=213
+# ZSH_HIGHLIGHT_STYLES[comment]='fg=213,bold'
 # https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters/
