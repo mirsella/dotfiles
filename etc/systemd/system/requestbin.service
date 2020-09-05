@@ -1,6 +1,6 @@
 [Unit]
 Description=requestbin.com log
-After=hdd.mount network.target
+After=hdd.mount network-online.target
 
 [Service]
 Type=exec

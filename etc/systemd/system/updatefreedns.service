@@ -1,6 +1,6 @@
 [Unit]
 Description=update mirsella.mooo.com
-After=hdd.mount network.target
+After=hdd.mount network-online.target
 
 [Service]
 Type=simple
