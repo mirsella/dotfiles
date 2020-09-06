@@ -7,8 +7,7 @@ export LC_TIME=en_US.UTF-8
 export LC_NUMERIC=en_US.UTF-8
 export EDITOR=nvim
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\%\^\(\)\{\}\<\>}
-unalias s
-alias end='sudo pkill -f '
+alias end='pkill -f '
 alias rmf='rm -rf '
 alias rm='rmtrash -rf '
 alias chownm='chown -R $USER: '
