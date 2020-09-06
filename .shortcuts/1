@@ -1,4 +1,0 @@
-cd /sdcard/
-git add DCIM Pictures Snapchat Documents Signal
-git commit -m "termux widget $(date)"
-git push
