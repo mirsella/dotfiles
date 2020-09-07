@@ -8,7 +8,7 @@ export LC_NUMERIC=en_US.UTF-8
 export EDITOR=nvim
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\%\^\(\)\{\}\<\>}
 alias end='pkill -f '
-alias rmf='rm -rf '
+alias rmf='~/../usr/bin/rm -rf '
 alias rm='rmtrash -rf '
 alias chownm='chown -R $USER: '
 alias v='nvim -p'
