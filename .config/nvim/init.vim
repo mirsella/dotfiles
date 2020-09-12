@@ -1,4 +1,5 @@
 call plug#begin('~/.config/nvim/plugged')
+Plug 'sirver/UltiSnips'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
@@ -43,12 +44,11 @@ Plug 'neoclide/jsonc.vim'
 Plug 'neoclide/coc-html', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-java', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-json', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'neoclide/coc-pairs', {'do': 'yarn install --frozen-lockfile'}
 Plug 'marlonfan/coc-phpls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
+" Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
@@ -186,6 +186,7 @@ set completeopt=longest,menuone
 " au BufEnter * set noro
 set noro
 set isfname+={,}
+set number relativenumber
 
 " themes
 colorscheme gruvbox
@@ -200,12 +201,8 @@ set undofile undodir=~/.cache/nvim/undo
 set viminfo+=n~/.cache/nvim/viminfo
 let g:netrw_dirhistmax = 0
 
-" hybrid relative number
-set number relativenumber
-set nu rnu
-
 " remove esc time
-set timeoutlen=1000 ttimeoutlen=0
+" set timeoutlen=1000 ttimeoutlen=0
 
 " lightline
 source ~/.config/nvim/lightlinerc.vim
@@ -244,9 +241,6 @@ let g:NERDLeaderKey = 'v'
 " raimbow parentheses
 let g:rainbow_active = 1
 
-" Hexokinase
-let g:Hexokinase_highlighters = ['foregroundfull']
-
 " codi
 let g:codi#autoclose = 1
 
@@ -278,15 +272,5 @@ let g:firenvim_config = {
 cmap <c-p> <Plug>CmdlineCompleteBackward
 cmap <c-n> <Plug>CmdlineCompleteForward
 
-" bracey
-" let g:bracey_browser_command= chromium
-let g:bracey_auto_start_browser = 1
-let g:bracey_refresh_on_save = 1
-" let g:bracey_eval_on_save = 1
-let g:bracey_auto_start_server = 1
-let g:bracey_server_allow_remote_connections = 1
-let g:bracey_server_port = 8080
-
-" fold
-set foldmethod=syntax
-set nofoldenable
+" ulti snip
+let g:UltiSnipsExpandTrigger = "<c-m>"
