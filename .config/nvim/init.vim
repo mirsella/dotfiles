@@ -1,5 +1,4 @@
 call plug#begin('~/.config/nvim/plugged')
-Plug 'sirver/UltiSnips'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
@@ -10,15 +9,14 @@ Plug 'markonm/traces.vim'
 Plug 'mirsella/nerdcommenter'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
-Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+" Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
-" Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
 Plug 'norcalli/nvim-colorizer.lua'
-Plug 'machakann/vim-highlightedyank' | let g:highlightedyank_highlight_duration = 100
+Plug 'machakann/vim-highlightedyank'
 Plug 'decayofmind/vim-lightline-functions'
-Plug 'mg979/vim-visual-multi'
+" Plug 'mg979/vim-visual-multi'
 Plug 'mengelbrecht/lightline-bufferline'
 Plug 'metakirby5/codi.vim'
 Plug 'alvan/vim-closetag'
@@ -33,24 +31,26 @@ Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
 Plug 'Raimondi/delimitMate'
 Plug 'nicwest/vim-camelsnek'
+Plug 'sheerun/vim-polyglot'
+Plug 'Shougo/denite.nvim'
 
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-css', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-emmet', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'josa42/coc-go', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/jsonc.vim'
 Plug 'neoclide/coc-html', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-java', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-json', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/jsonc.vim'
 Plug 'marlonfan/coc-phpls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
 call plug#end()
@@ -272,5 +272,5 @@ let g:firenvim_config = {
 cmap <c-p> <Plug>CmdlineCompleteBackward
 cmap <c-n> <Plug>CmdlineCompleteForward
 
-" ulti snip
-let g:UltiSnipsExpandTrigger = "<c-m>"
+" highlightedyank
+let g:highlightedyank_highlight_duration = 200
