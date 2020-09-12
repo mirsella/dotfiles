@@ -1,5 +1,4 @@
 call plug#begin('~/.config/nvim/plugged')
-Plug 'sirver/UltiSnips'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
@@ -14,7 +13,6 @@ Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
-" Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
 Plug 'norcalli/nvim-colorizer.lua'
 Plug 'machakann/vim-highlightedyank' | let g:highlightedyank_highlight_duration = 100
 Plug 'decayofmind/vim-lightline-functions'
@@ -33,6 +31,7 @@ Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
 Plug 'Raimondi/delimitMate'
 Plug 'nicwest/vim-camelsnek'
+Plug 'sheerun/vim-polyglot'
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -48,7 +47,7 @@ Plug 'marlonfan/coc-phpls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
@@ -92,8 +91,8 @@ nmap <leader>g <Plug>(easymotion-overwin-f2)
 map <Leader>l <Plug>(easymotion-bd-jk)
 map <Leader>w <Plug>(easymotion-bd-w)
 
-nnoremap <silent> <C-j> :<C-U>call smoothie#downwards() <CR>
-nnoremap <silent> <C-k> :<C-U>call smoothie#upwards() <CR>
+nnoremap <C-j> 5jzz
+nnoremap <C-k> 5kzz
 nnoremap <C-l> :bnext<CR>
 inoremap <C-l> <esc>:bnext<CR>
 nnoremap <C-h> :bprev<CR>
@@ -272,8 +271,5 @@ let g:firenvim_config = {
 cmap <c-p> <Plug>CmdlineCompleteBackward
 cmap <c-n> <Plug>CmdlineCompleteForward
 
-" ulti snip
-let g:UltiSnipsExpandTrigger = "<c-m>"
-
-" vim-smoothie
-g:smoothie_no_default_mappings
+" coc ulti snip
+" let g:UltiSnipsExpandTrigger = "<c-m>"
