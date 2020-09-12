@@ -9,11 +9,14 @@ Plug 'markonm/traces.vim'
 Plug 'mirsella/nerdcommenter'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
-Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+" Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-surround'
-Plug 'rrethy/vim-hexokinase', { 'do': 'make hexokinase' }
+Plug 'tpope/vim-repeat'
+Plug 'norcalli/nvim-colorizer.lua'
+Plug 'machakann/vim-highlightedyank'
 Plug 'decayofmind/vim-lightline-functions'
+" Plug 'mg979/vim-visual-multi'
 Plug 'mengelbrecht/lightline-bufferline'
 Plug 'metakirby5/codi.vim'
 Plug 'alvan/vim-closetag'
@@ -28,8 +31,10 @@ Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
 Plug 'Raimondi/delimitMate'
 Plug 'nicwest/vim-camelsnek'
+Plug 'sheerun/vim-polyglot'
+Plug 'Shougo/denite.nvim'
 
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-css', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-emmet', {'do': 'yarn install --frozen-lockfile'}
@@ -38,14 +43,14 @@ Plug 'josa42/coc-go', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-html', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-java', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-json', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'neoclide/coc-pairs', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/jsonc.vim'
 Plug 'marlonfan/coc-phpls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
 call plug#end()
@@ -64,8 +69,8 @@ nnoremap <leader>: :noh<cr>
 nnoremap <F1> :wa<cr>
 xnoremap <F1> :wa<cr>
 inoremap <F1> <esc>:wa<cr>a
-nnoremap <F2> :w<cr>
-xnoremap <F2> :w<cr>
+nnoremap <F2> :bw<cr>
+xnoremap <F2> :bw<cr>
 nnoremap <F3> :wa <bar> :bw<cr>
 xnoremap <F3> :wa <bar> :bw<cr>
 nnoremap <F4> :Filetypes<cr>
@@ -181,6 +186,7 @@ set completeopt=longest,menuone
 " au BufEnter * set noro
 set noro
 set isfname+={,}
+set number relativenumber
 
 " themes
 colorscheme gruvbox
@@ -195,12 +201,8 @@ set undofile undodir=~/.cache/nvim/undo
 set viminfo+=n~/.cache/nvim/viminfo
 let g:netrw_dirhistmax = 0
 
-" hybrid relative number
-set number relativenumber
-set nu rnu
-
 " remove esc time
-set timeoutlen=1000 ttimeoutlen=0
+" set timeoutlen=1000 ttimeoutlen=0
 
 " lightline
 source ~/.config/nvim/lightlinerc.vim
@@ -239,9 +241,6 @@ let g:NERDLeaderKey = 'v'
 " raimbow parentheses
 let g:rainbow_active = 1
 
-" Hexokinase
-let g:Hexokinase_highlighters = ['foregroundfull']
-
 " codi
 let g:codi#autoclose = 1
 
@@ -273,15 +272,5 @@ let g:firenvim_config = {
 cmap <c-p> <Plug>CmdlineCompleteBackward
 cmap <c-n> <Plug>CmdlineCompleteForward
 
-" bracey
-" let g:bracey_browser_command= chromium
-let g:bracey_auto_start_browser = 1
-let g:bracey_refresh_on_save = 1
-" let g:bracey_eval_on_save = 1
-let g:bracey_auto_start_server = 1
-let g:bracey_server_allow_remote_connections = 1
-let g:bracey_server_port = 8080
-
-" fold
-set foldmethod=syntax
-set nofoldenable
+" highlightedyank
+let g:highlightedyank_highlight_duration = 200
