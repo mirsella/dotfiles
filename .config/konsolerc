@@ -31,6 +31,7 @@ Width 1600=800
 Width 1920=1920
 Window-Maximized 750x1200=true
 Window-Maximized 750x1333=true
+Window-Maximized 853x1067=true
 Window-Maximized 900x1600=true
 
 [Notification Messages]

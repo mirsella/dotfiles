@@ -92,8 +92,8 @@ nmap <leader>g <Plug>(easymotion-overwin-f2)
 map <Leader>l <Plug>(easymotion-bd-jk)
 map <Leader>w <Plug>(easymotion-bd-w)
 
-nnoremap <C-j> 5jzz
-nnoremap <C-k> 5kzz
+nnoremap <silent> <C-j> :<C-U>call smoothie#downwards() <CR>
+nnoremap <silent> <C-k> :<C-U>call smoothie#upwards() <CR>
 nnoremap <C-l> :bnext<CR>
 inoremap <C-l> <esc>:bnext<CR>
 nnoremap <C-h> :bprev<CR>
@@ -274,3 +274,6 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 
 " ulti snip
 let g:UltiSnipsExpandTrigger = "<c-m>"
+
+" vim-smoothie
+g:smoothie_no_default_mappings
