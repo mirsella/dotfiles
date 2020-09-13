@@ -34,9 +34,6 @@ Plug 'nicwest/vim-camelsnek'
 Plug 'sheerun/vim-polyglot'
 Plug 'numirias/semshi'
 
-Plug 'ycm-core/YouCompleteMe'
-Plug 'ternjs/tern_for_vim', { 'do' : 'npm install' }
-
 Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-css', {'do': 'yarn install --frozen-lockfile'}
