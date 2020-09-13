@@ -9,7 +9,7 @@ Plug 'markonm/traces.vim'
 Plug 'mirsella/nerdcommenter'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
-" Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
@@ -32,12 +32,16 @@ Plug 'j5shi/CommandlineComplete.vim'
 Plug 'Raimondi/delimitMate'
 Plug 'nicwest/vim-camelsnek'
 Plug 'sheerun/vim-polyglot'
-Plug 'Shougo/denite.nvim'
+Plug 'numirias/semshi'
+
+Plug 'ycm-core/YouCompleteMe'
+Plug 'ternjs/tern_for_vim', { 'do' : 'npm install' }
 
 Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-css', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-emmet', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'josa42/coc-go', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-html', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-java', {'do': 'yarn install --frozen-lockfile'}
@@ -48,9 +52,7 @@ Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
-Plug 'fannheyward/coc-styled-components', {'do': 'yarn install --frozen-lockfile'}
+" Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
@@ -115,8 +117,8 @@ nmap <Leader>ç <Plug>lightline#bufferline#go(9)
 nmap <Leader>à <Plug>lightline#bufferline#go(10)
 
 " plug yoink, cutlass & subversive
-nmap <c-n> <plug>(YoinkPostPasteSwapBack)
-nmap <c-p> <plug>(YoinkPostPasteSwapForward)
+nmap <a-n> <plug>(YoinkPostPasteSwapBack)
+nmap <a-p> <plug>(YoinkPostPasteSwapForward)
 nmap p <plug>(YoinkPaste_p)
 nmap P <plug>(YoinkPaste_P)
 nmap [y <plug>(YoinkRotateBack)
