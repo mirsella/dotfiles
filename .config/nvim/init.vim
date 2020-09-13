@@ -38,7 +38,6 @@ Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-css', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-emmet', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'josa42/coc-go', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-html', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-java', {'do': 'yarn install --frozen-lockfile'}
@@ -49,7 +48,9 @@ Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
+Plug 'fannheyward/coc-styled-components', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
