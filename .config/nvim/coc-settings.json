@@ -7,6 +7,5 @@
   "javascript.suggest.enabled": false,
   "typescript.suggestionActions.enabled": false,
   "javascript.suggestionActions.enabled": false,
-  "tailwindCSS.emmetCompletions": true,
-  "tailwindCSS.trace.server": "verbose"
+  "tailwindCSS.emmetCompletions": true
 }
