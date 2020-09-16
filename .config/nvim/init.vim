@@ -16,7 +16,7 @@ Plug 'tpope/vim-repeat'
 Plug 'norcalli/nvim-colorizer.lua'
 Plug 'machakann/vim-highlightedyank'
 Plug 'decayofmind/vim-lightline-functions'
-" Plug 'mg979/vim-visual-multi'
+Plug 'terryma/vim-multiple-cursors'
 Plug 'mengelbrecht/lightline-bufferline'
 Plug 'metakirby5/codi.vim'
 Plug 'alvan/vim-closetag'
@@ -33,12 +33,12 @@ Plug 'Raimondi/delimitMate'
 Plug 'nicwest/vim-camelsnek'
 Plug 'sheerun/vim-polyglot'
 Plug 'Shougo/denite.nvim'
+Plug 'Shougo/deoplete.nvim'
 
 Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-css', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-emmet', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'josa42/coc-go', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-html', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-java', {'do': 'yarn install --frozen-lockfile'}
@@ -49,8 +49,10 @@ Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-rls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-snippets', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
+Plug 'fannheyward/coc-styled-components', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
 call plug#end()
@@ -114,8 +116,8 @@ nmap <Leader>ç <Plug>lightline#bufferline#go(9)
 nmap <Leader>à <Plug>lightline#bufferline#go(10)
 
 " plug yoink, cutlass & subversive
-nmap <c-n> <plug>(YoinkPostPasteSwapBack)
-nmap <c-p> <plug>(YoinkPostPasteSwapForward)
+nmap <leader>n <plug>(YoinkPostPasteSwapBack)
+nmap <leader>p <plug>(YoinkPostPasteSwapForward)
 nmap p <plug>(YoinkPaste_p)
 nmap P <plug>(YoinkPaste_P)
 nmap [y <plug>(YoinkRotateBack)
