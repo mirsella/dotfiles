@@ -4,6 +4,7 @@ After=hdd.mount network-online.target
 
 [Service]
 Type=exec
+User=mirsella
 # ExecStartPre=/hdd/dev/bin/waitfornetwork
 ExecStart=sh /hdd/dev/bin/requestbin
 Restart=always
