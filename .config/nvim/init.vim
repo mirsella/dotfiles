@@ -1,4 +1,6 @@
 call plug#begin('~/.config/nvim/plugged')
+Plug 'sophacles/vim-processing'
+Plug 'voldikss/coc-cmake'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
@@ -63,6 +65,9 @@ command! -nargs=? V :vert sb
 command! FR :setlocal spell spelllang=fr
 map <Space> <Leader>
 map Y y$
+nnoremap <M-F1> <nop>
+xnoremap <M-F1> <nop>
+inoremap <M-F1> <nop>
 nnoremap ' `
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files ~/<CR>
@@ -160,6 +165,7 @@ filetype indent on
 augroup formatoptions
   autocmd FileType * set formatoptions-=ro
 augroup END
+au BufNewFile,BufRead *.html set filetype=html " html file set itself to django, weird
 set nowrap
 set linebreak
 set ignorecase
