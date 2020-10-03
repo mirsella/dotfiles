@@ -42,7 +42,7 @@ Plug 'neoclide/coc-css', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-emmet', {'do': 'yarn install --frozen-lockfile'}
 Plug 'josa42/coc-go', {'do': 'yarn install --frozen-lockfile'}
 Plug 'voldikss/coc-cmake'
-Plug 'neoclide/coc-vetur'
+Plug ''
 Plug 'neoclide/coc-html', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-java', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-json', {'do': 'yarn install --frozen-lockfile'}
@@ -75,9 +75,9 @@ nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files ~/<CR>
 nnoremap <leader>: :noh<cr>
 
-nnoremap <F1> :wa<cr>
-xnoremap <F1> :wa<cr>
-inoremap <F1> <esc>:wa<cr>a
+nnoremap <F1> :wa<cr><cr>
+xnoremap <F1> :wa<cr><cr>
+inoremap <F1> <esc>:wa<cr><cr>a
 nnoremap <F2> :bw<cr>
 xnoremap <F2> :bw<cr>
 nnoremap <F3> :wa <bar> :bw<cr>
