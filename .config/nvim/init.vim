@@ -1,5 +1,6 @@
 call plug#begin('~/.config/nvim/plugged')
 Plug 'sophacles/vim-processing'
+Plug 'posva/vim-vue'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
@@ -75,9 +76,9 @@ nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files ~/<CR>
 nnoremap <leader>: :noh<cr>
 
-nnoremap <F1> :wa<cr><cr>
-xnoremap <F1> :wa<cr><cr>
-inoremap <F1> <esc>:wa<cr><cr>a
+nnoremap <F1> :wa<cr>
+xnoremap <F1> :wa<cr>
+inoremap <F1> <esc>:wa<cr>a
 nnoremap <F2> :bw!
 xnoremap <F2> :bw!
 nnoremap <F3> :wa <bar> :bw<cr>
@@ -268,10 +269,10 @@ let g:yoinkIncludeDeleteOperations=1
 " firenvim
 let g:firenvim_config = { 
       \ 'globalSettings': {
-        \ 'alt': 'all',
+      \ 'alt': 'all',
       \  },
       \ 'localSettings': {
-        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'never' },
+      \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'never' },
       \ }
       \ }
 
@@ -281,3 +282,25 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 
 " highlightedyank
 let g:highlightedyank_highlight_duration = 200
+
+" vim-vue and nerdcommenter
+let g:vue_pre_processors = 'detect_on_enter'
+let g:ft = ''
+function! NERDCommenter_before()
+  if &ft == 'vue'
+    let g:ft = 'vue'
+    let stack = synstack(line('.'), col('.'))
+    if len(stack) > 0
+      let syn = synIDattr((stack)[0], 'name')
+      if len(syn) > 0
+        exe 'setf ' . substitute(tolower(syn), '^vue_', '', '')
+      endif
+    endif
+  endif
+endfunction
+function! NERDCommenter_after()
+  if g:ft == 'vue'
+    setf vue
+    let g:ft = ''
+  endif
+endfunction
