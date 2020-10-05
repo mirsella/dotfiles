@@ -82,7 +82,7 @@ alias gh='git checkout '
 alias ga='git add -A '
 alias gc='git commit '
 alias gp='git push '
-alias gcd='git commit -m "gcd $(date)"'
+alias gac='git commit -m "gac $(date)"'
 alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
 gm() { git commit -m "${@}" }
 gamp() { git add -A; git commit -m "${@}"; git push }
