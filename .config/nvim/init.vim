@@ -7,8 +7,10 @@ Plug 'itchyny/vim-gitbranch'
 Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax'
 Plug 'markonm/traces.vim'
-Plug 'mirsella/nerdcommenter'
-" Plug 'tyru/caw.vim'
+" Plug 'mirsella/nerdcommenter'
+" Plug 'tpope/vim-commentary'
+Plug 'tyru/caw.vim'
+Plug 'suy/vim-context-commentstring'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
 Plug 'junegunn/fzf.vim'
@@ -287,28 +289,10 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 " highlightedyank
 let g:highlightedyank_highlight_duration = 200
 
-" vim-vue for nerdcommenter
-let g:ft = ''
-function! NERDCommenter_before()
-  if &ft == 'vue'
-    let g:ft = 'vue'
-    let stack = synstack(line('.'), col('.'))
-    if len(stack) > 0
-      let syn = synIDattr((stack)[0], 'name')
-      if len(syn) > 0
-        exe 'setf ' . substitute(tolower(syn), '^vue_', '', '')
-      endif
-    endif
-  endif
-endfunction
-function! NERDCommenter_after()
-  if g:ft == 'vue'
-    setf vue
-    let g:ft = ''
-  endif
-endfunction
-
 " caw.vim
-" map gc <Plug>(caw:zeropos:comment)
-" map gu <Plug>(caw:zeropos:uncomment)
-" map gv <Plug>(caw:zeropos:toggle)
+" map gf <Plug>(caw:zeropos:comment)
+" map gv <Plug>(caw:zeropos:uncomment)
+" map gc <Plug>(caw:zeropos:toggle)
+map gf <Plug>(caw:hatpos:comment)
+map gv <Plug>(caw:hatpos:uncomment)
+map gc <Plug>(caw:hatpos:toggle)
