@@ -8,6 +8,7 @@ Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax'
 Plug 'markonm/traces.vim'
 Plug 'mirsella/nerdcommenter'
+" Plug 'tyru/caw.vim'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
 Plug 'junegunn/fzf.vim'
@@ -286,8 +287,7 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 " highlightedyank
 let g:highlightedyank_highlight_duration = 200
 
-" vim-vue and nerdcommenter
-let g:vue_pre_processors = 'detect_on_enter'
+" vim-vue for nerdcommenter
 let g:ft = ''
 function! NERDCommenter_before()
   if &ft == 'vue'
@@ -307,3 +307,8 @@ function! NERDCommenter_after()
     let g:ft = ''
   endif
 endfunction
+
+" caw.vim
+" map gc <Plug>(caw:zeropos:comment)
+" map gu <Plug>(caw:zeropos:uncomment)
+" map gv <Plug>(caw:zeropos:toggle)
