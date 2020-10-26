@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=mirsella
 # ExecStartPre=/hdd/dev/bin/waitfornetwork
-ExecStart=/home/mirsella/.local/bin/wssh --sslport=4460 --ssladdress='0.0.0.0' --certfile='/etc/letsencrypt/live/mirsella.mooo.com/fullchain.pem' --keyfile='/etc/letsencrypt/live/mirsella.mooo.com/privkey.pem'
+ExecStart=/home/mirsella/.local/bin/wssh --port=8060 --sslport=4460 --ssladdress='0.0.0.0' --certfile='/etc/letsencrypt/live/mirsella.mooo.com/fullchain.pem' --keyfile='/etc/letsencrypt/live/mirsella.mooo.com/privkey.pem'
 Restart=always
 
 [Install]
