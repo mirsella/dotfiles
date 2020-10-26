@@ -1,17 +1,19 @@
 call plug#begin('~/.config/nvim/plugged')
 Plug 'sophacles/vim-processing'
-Plug 'voldikss/coc-cmake'
+Plug 'honza/vim-snippets'
+Plug 'posva/vim-vue'
 Plug 'morhetz/gruvbox'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
 Plug 'easymotion/vim-easymotion'
-Plug 'wgwoods/vim-systemd-syntax' 
-Plug 'posva/vim-vue'
+Plug 'wgwoods/vim-systemd-syntax'
 Plug 'markonm/traces.vim'
-Plug 'mirsella/nerdcommenter'
+" Plug 'mirsella/nerdcommenter'
+" Plug 'tpope/vim-commentary'
+Plug 'tyru/caw.vim'
+Plug 'suy/vim-context-commentstring'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
-" Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
@@ -42,10 +44,11 @@ Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-css', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-emmet', {'do': 'yarn install --frozen-lockfile'}
 Plug 'josa42/coc-go', {'do': 'yarn install --frozen-lockfile'}
+Plug 'voldikss/coc-cmake', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/coc-vetur', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-html', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-java', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-json', {'do': 'yarn install --frozen-lockfile'}
-Plug 'neoclide/jsonc.vim'
 Plug 'marlonfan/coc-phpls', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-prettier', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-python', {'do': 'yarn install --frozen-lockfile'}
@@ -57,6 +60,7 @@ Plug 'neoclide/coc-tslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'fannheyward/coc-styled-components', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
 Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
+Plug 'neoclide/jsonc.vim'
 call plug#end()
 
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
@@ -65,6 +69,9 @@ command! -nargs=? V :vert sb
 command! FR :setlocal spell spelllang=fr
 map <Space> <Leader>
 map Y y$
+nnoremap d" dt"
+nnoremap d' dt'
+inoremap ² <C-o>
 nnoremap <M-F1> <nop>
 xnoremap <M-F1> <nop>
 inoremap <M-F1> <nop>
@@ -76,8 +83,8 @@ nnoremap <leader>: :noh<cr>
 nnoremap <F1> :wa<cr>
 xnoremap <F1> :wa<cr>
 inoremap <F1> <esc>:wa<cr>a
-nnoremap <F2> :bw<cr>
-xnoremap <F2> :bw<cr>
+nnoremap <F2> :bw!
+xnoremap <F2> :bw!
 nnoremap <F3> :wa <bar> :bw<cr>
 xnoremap <F3> :wa <bar> :bw<cr>
 nnoremap <F4> :Filetypes<cr>
@@ -209,18 +216,18 @@ set undofile undodir=~/.cache/nvim/undo
 set viminfo+=n~/.cache/nvim/viminfo
 let g:netrw_dirhistmax = 0
 
-" remove esc time
-" set timeoutlen=1000 ttimeoutlen=0
-
 " lightline
 source ~/.config/nvim/lightlinerc.vim
 set laststatus=2
 set noshowmode
 function! LineCurrentOnTotal()
-  return line('.').'/'.line('$')
+  return '↕'.line('.').'/'.line('$')
 endfunction
 function! ColCurrentOnTotal()
-  return col('.').'/'.col('$')
+  return '↔'.col('.').'/'.col('$')
+endfunction
+function! LineCol()
+  return '↕'.line('.').'/'.line('$').' : ↔'.col('.').'/'.col('$')
 endfunction
 function! GitBranch()
   if (gitbranch#name() != "")
@@ -269,10 +276,10 @@ let g:yoinkIncludeDeleteOperations=1
 " firenvim
 let g:firenvim_config = { 
       \ 'globalSettings': {
-        \ 'alt': 'all',
+      \ 'alt': 'all',
       \  },
       \ 'localSettings': {
-        \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'never' },
+      \ '.*': { 'cmdline': 'neovim',  'priority': 0,  'selector': 'textarea',  'takeover': 'never' },
       \ }
       \ }
 
@@ -282,3 +289,11 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 
 " highlightedyank
 let g:highlightedyank_highlight_duration = 200
+
+" caw.vim
+" map gf <Plug>(caw:zeropos:comment)
+" map gv <Plug>(caw:zeropos:uncomment)
+" map gc <Plug>(caw:zeropos:toggle)
+map gf <Plug>(caw:hatpos:comment)
+map gv <Plug>(caw:hatpos:uncomment)
+map gc <Plug>(caw:hatpos:toggle)
