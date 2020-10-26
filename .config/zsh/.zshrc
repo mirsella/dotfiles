@@ -91,6 +91,9 @@ alias fd='fd -HL -E run -E media -E sys -E proc '
 alias trapp='trap "exit" SIGINT '
 alias watch='watch '
 ortener() { curl -H "Content-Type: application/json" -d '{"url": "'$1'", "slug": "'$2'"}' https://ortener.herokuapp.com/url }
-
+notif() {
+  source ~/.config/token/telegram.token
+  curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": '$tg_id', "text": "'${@:-No message was provided}'"}' "https://api.telegram.org/bot$tg_token/sendMessage"
+}
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/forgit/forgit.plugin.zsh
