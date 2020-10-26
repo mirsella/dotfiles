@@ -2,7 +2,7 @@
 DefaultProfile=konsole.profile
 
 [Favorite Profiles]
-Favorites=dolphin.profile,Shell.profile,konsole.profile
+Favorites=Shell.profile,dolphin.profile,konsole.profile
 
 [FileDialogSize]
 Height 1080=1008
@@ -20,7 +20,7 @@ ShowWindowTitleOnTitleBar=true
 DVI-D-0 HDMI-0 Height 1024=638
 DVI-D-0 HDMI-0 Height 1080=1008
 DVI-D-0 HDMI-0 Width 1280=787
-DVI-D-0 HDMI-0 Width 1920=1920
+DVI-D-0 HDMI-0 Width 1920=960
 DVI-D-0 HDMI-0 Window-Maximized 1024x1280=true
 DVI-D-0 HDMI-0 Window-Maximized 1080x1920=true
 DVI-D-0 HDMI-0 XPosition=1280
