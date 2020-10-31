@@ -5,7 +5,7 @@
    "KEY_3": "vlc /run/media/mirsella/ssd/music/fav &",
    "KEY_4": "vlc /run/media/mirsella/ssd/music/msq &",
    "KEY_5": "vlc /run/media/mirsella/ssd/music/ &",
-   "KEY_6": "streamlink https://www.twitch.tv/monstercat audio_only &",
+   "KEY_6": "vlc '/run/media/mirsella/ssd/music/If You Need The Most Awesome Violin Music, Hear This • 'FORGOTTEN ODES' by @Eternal Eclipse-iceS6BvhuQ8.mp3' &",
    "KEY_ESC": "./closeprocess keebie &",
    "KEY_RIGHT": "xdotool key 'Super_L+Right' && xdotool key 'Super_L+Right' && xdotool key 'Super_L+Page_Up'",
    "KEY_LEFT": "xdotool key 'Super_L+Left' && xdotool key 'Super_L+Left' && xdotool key 'Super_L+Page_Up'",
