@@ -1,11 +1,11 @@
 {
-   "KEY_KP0": "playerctl play-pause &",
-   "KEY_KP1": "./closeprocess vlc &",
-   "KEY_KP2": "vlc /run/media/mirsella/ssd/music/adl &",
-   "KEY_KP3": "vlc /run/media/mirsella/ssd/music/fav &",
-   "KEY_KP4": "vlc /run/media/mirsella/ssd/music/msq &",
-   "KEY_KP5": "vlc /run/media/mirsella/ssd/music/ &",
-   "KEY_KP6": "vlc /run/media/mirsella/ssd/music/violon_epic.mp3 &",
+  "KEY_KPENTER": "playerctl play-pause &",
+   "KEY_KP0": "./closeprocess vlc &",
+   "KEY_KP1": "vlc /run/media/mirsella/ssd/music/adl &",
+   "KEY_KP2": "vlc /run/media/mirsella/ssd/music/fav &",
+   "KEY_KP3": "vlc /run/media/mirsella/ssd/music/msq &",
+   "KEY_KP4": "vlc /run/media/mirsella/ssd/music/ &",
+   "KEY_KP5": "vlc /run/media/mirsella/ssd/music/violon_epic.mp3 &",
    "KEY_ESC": "./closeprocess keebie &",
    "KEY_RIGHT": "xdotool key 'Super_L+Right' && xdotool key 'Super_L+Right' && xdotool key 'Super_L+Page_Up'",
    "KEY_LEFT": "xdotool key 'Super_L+Left' && xdotool key 'Super_L+Left' && xdotool key 'Super_L+Page_Up'",
@@ -13,5 +13,5 @@
    "KEY_DOWN": "xdotool key 'Super_L+Page_Down' &",
    "KEY_SPACE": "amixer -q set Capture nocap &",
    "KEY_RIGHTALT": "amixer -q set Capture cap &",
-   "KEY_KPENTER": "xset dpms force off &"
+   "KEY_LEFTALT": "xset dpms force off &"
 }
