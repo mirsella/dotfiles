@@ -81,7 +81,6 @@ alias gh='git checkout '
 alias ga='git add -A '
 alias gc='git commit '
 alias gp='git push '
-alias gac='git add -A; git commit -m "gcd $(date)"'
 alias gcd='git commit -m "gcd $(date)"'
 alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
 gm() { git commit -m "${@}" }
@@ -90,10 +89,12 @@ alias fd='fd -HL -E run -E media -E sys -E proc '
 alias trapp='trap "exit" SIGINT '
 alias watch='watch '
 alias update='yay -Syu --noconfirm; notif "yay finished $?"'
+alias uefireboot='systemctl reboot --firmware-setup'
 ortener() { curl -H "Content-Type: application/json" -d '{"url": "'$1'", "slug": "'$2'"}' https://ortener.herokuapp.com/url }
 notif() {
   source ~/.config/token/telegram.token
   curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": '$tg_id', "text": "'"${@:-$(history -1)}"'"}' "https://api.telegram.org/bot$tg_token/sendMessage"
 }
+alias gclipp='git clone $(clipp)'
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/forgit/forgit.plugin.zsh

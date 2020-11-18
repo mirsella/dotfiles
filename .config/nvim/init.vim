@@ -67,6 +67,7 @@ command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
 command! -nargs=? CC :CocCommand
 command! -nargs=? V :vert sb
 command! FR :setlocal spell spelllang=fr
+nnoremap gc :r !curl -s $(xclip -out -selection clipboard)<cr>
 map <Space> <Leader>
 map Y y$
 nnoremap d" dt"
@@ -291,6 +292,6 @@ cmap <c-n> <Plug>CmdlineCompleteForward
 let g:highlightedyank_highlight_duration = 200
 
 " caw.vim
-map gf <Plug>(caw:hatpos:comment)
-map gr <Plug>(caw:hatpos:uncomment)
-map gt <Plug>(caw:hatpos:toggle)
+map gr <Plug>(caw:hatpos:comment)
+map gt <Plug>(caw:hatpos:uncomment)
+" map gt <Plug>(caw:hatpos:toggle)
