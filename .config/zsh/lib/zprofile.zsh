@@ -26,6 +26,12 @@ unsetopt auto_menu # automatically use menu completion
 unsetopt hist_verify
 zstyle ':completion::complete:*' gain-privileges 1
 
+# paste url without quote
+autoload -Uz url-quote-magic
+zle -N self-insert url-quote-magic
+autoload -Uz bracketed-paste-magic
+zle -N bracketed-paste bracketed-paste-magic
+
 
 setopt extendedglob local_options
 autoload -U compinit
