@@ -11,6 +11,27 @@ export HYPHEN_INSENSITIVE=true
 export ENABLE_CORRECTION=true
 export MENU_COMPLETE=true
 
+
+_fzf_compgen_path() { command fd -t f -HL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
+_fzf_compgen_dir() { command fd -t d -HL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
+
+_zsh_system_clipboard_set=(xclip -sel $clipboard_selection -in)
+_zsh_system_clipboard_get=(xclip -sel $clipboard_selection -out)
+
+export FZF_DEFAULT_COMMAND='fd -t f -HIL --color=always -E .cache -E .local -E .git -E run -E media -E sys -E proc -E coc -E plugged '
+export FZF_DEFAULT_OPTS='--ansi --preview="bat -pp --color=always {}" '
+export VIMV_RM="rmtrash -rf"
+export FORGIT_IGNORE_PAGER='bat -l gitignore -pp --color=always --theme="Monokai Extended Origin"'
+export forgit_log=gl
+export forgit_diff=gd
+export forgit_add=gad
+export forgit_reset_head=grh
+export forgit_ignore=gi
+export forgit_restore=gcf
+export forgit_clean=gclean
+export forgit_stash_show=gss
+export forgit_cherry_pick=gcp
+
 # setopt share_history # share history between all sessions.
 setopt histappend
 setopt prompt_subst
