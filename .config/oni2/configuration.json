@@ -1,5 +1,5 @@
 {
-  "workbench.colorTheme": "LaserWave",
+  "workbench.colorTheme": "gruvbox",
   "material-icon-theme.folders.theme": "none",
   "workbench.iconTheme": "material-icon-theme",
   "editor.detectIndentation": true,
@@ -30,5 +30,5 @@
   "ui.zoom": 1.1,
   "experimental.editor.cursorSmoothCaretAnimation": "true",
   "experimental.editor.smoothScroll": "true",
-  "experimental.viml": ["source /home/mirsella/.config/oni2/vimrc"]
+  "experimental.viml": [ "source /home/mirsella/.config/oni2/vimrc" ]
 }
