@@ -1,4 +1,8 @@
 cd /sdcard/
 git add DCIM Pictures Snapchat Documents Signal
 git commit -m "termux widget $(date)"
-git push l master
+if ping -c 1 192.168.1.111; then 
+  git push tl master
+else
+  git push t master
+fi

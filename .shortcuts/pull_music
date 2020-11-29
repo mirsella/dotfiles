@@ -1,4 +1,8 @@
 cd /sdcard/Music
 git add -A
 git commit -m "termux widget $(date)"
-git pull l master
+if ping -c 1 192.168.1.111; then 
+  git push tl master
+else
+  git push t master
+fi
