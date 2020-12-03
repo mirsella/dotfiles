@@ -1,5 +1,5 @@
 cd /sdcard/
-git add DCIM Pictures Snapchat Documents Signal
+git add DCIM Pictures Snapchat Documents .rclone
 git commit -m "termux widget $(date)"
 if ping -c 1 192.168.1.111; then 
   git push tl master
