@@ -1,5 +1,5 @@
 #!/bin/sh
-echo "got : ${@}" >> /home/mirsella/wifidriverinstall.txt
+# echo "got : ${@}" >> /home/mirsella/wifidriverinstall.txt
 
 cd /home/mirsella/Documents/RTL88x2BU-Linux-Driver
 before=$(git rev-parse HEAD)
