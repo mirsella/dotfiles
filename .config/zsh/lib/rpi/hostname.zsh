@@ -22,3 +22,4 @@ export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
 export TERMINAL=/usr/bin/konsole
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
 hash -d s=/hdd
+
