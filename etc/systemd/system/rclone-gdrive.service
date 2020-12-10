@@ -5,6 +5,7 @@ After=network.target run-media-mirsella-ssd.mount
 [Service]
 Type=simple
 User=mirsella
+ExecStartPre=-rm -rf /run/media/mirsella/ssd/documents.git/gdrive
 ExecStartPre=-mkdir /run/media/mirsella/ssd/documents.git/gdrive
 ExecStart=rclone mount gdrive: /run/media/mirsella/ssd/documents.git/gdrive
 ExecStop=/bin/fusermount -u /run/media/mirsella/ssd/documents.git/gdrive
