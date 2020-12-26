@@ -41,8 +41,8 @@ gitreclonerepo() {
   git clone $remoteurl
 }
 
-bak() { s cp -r "${1}" "${1}.bak" }
-bakm() { s mv "${1}" "${1}.bak" }
+bak() { sudo -E cp -r "${1}" "${1}.bak" }
+bakm() { sudo -E mv "${1}" "${1}.bak" }
 alias psaux='ps aux | rg '
 alias NU='2> /dev/null ' #Silences stderr
 alias NUL='> /dev/null 2>&1 ' #Silences both stdout and stderr
@@ -69,7 +69,7 @@ alias gcd='git commit -m "gcd $(date)"'
 alias gacp='git add -A; git commit -m "gacp $(date)"; git push '
 gm() { git commit -m "${@}" }
 gamp() { git add -A; git commit -m "${@}"; git push }
-alias fd='fd -HL -E run -E media -E sys -E proc '
+alias fd='fd -HLI -E run -E media -E sys -E proc '
 alias trapp='trap "exit" SIGINT '
 alias watch='watch '
 alias update='yay -Syu --noconfirm; notif "yay finished $?"'
