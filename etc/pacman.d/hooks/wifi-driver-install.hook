@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Upgrade
+Type = Package
+Target = *
+
+[Action]
+Description = sudo make install the wifi driver after update
+When = PostTransaction
+Exec = /etc/pacman.d/hooks.bin/wifi-driver-install.sh
+NeedsTargets

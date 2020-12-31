@@ -13,6 +13,10 @@ untill() {
   done
   eval "$2 "
 }
+notif() {
+  source ~/.config/token/telegram.token
+  curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": '$tg_id', "text": "'"${@:-$(read a; echo $a)}"'"}' "https://api.telegram.org/bot$tg_token/sendMessage"
+}
 
 gitclearcommit() {
   branch=$(git branch | grep '\*' | sed 's/\* //')
@@ -75,10 +79,6 @@ alias watch='watch '
 alias update='yay -Syu --noconfirm; notif "yay finished $?"'
 alias uefireboot='systemctl reboot --firmware-setup'
 ortener() { curl -H "Content-Type: application/json" -d '{"url": "'$1'", "slug": "'$2'"}' https://ortener.herokuapp.com/url }
-notif() {
-  source ~/.config/token/telegram.token
-  curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": '$tg_id', "text": "'"${@:-$(history -1)}"'"}' "https://api.telegram.org/bot$tg_token/sendMessage"
-}
 alias p='pnpm'
 alias gclipp='git clone $(clipp)'
 alias msq='vlc /run/media/mirsella/ssd/music/msq &! disown'
