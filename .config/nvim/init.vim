@@ -36,7 +36,6 @@ Plug 'tpope/vim-fugitive'
 Plug 'j5shi/CommandlineComplete.vim'
 Plug 'Raimondi/delimitMate'
 Plug 'nicwest/vim-camelsnek'
-Plug 'sheerun/vim-polyglot'
 Plug 'Shougo/denite.nvim'
 Plug 'Shougo/deoplete.nvim'
 
@@ -256,9 +255,6 @@ let g:NERDTrimTrailingWhitespace = 1
 let g:NERDToggleCheckAllLines = 1
 let g:NERDLeaderKey = 'v'
 
-" raimbow parentheses
-let g:rainbow_active = 1
-
 " codi
 let g:codi#autoclose = 1
 
@@ -310,3 +306,6 @@ let ruby_fold=1               " Ruby
 let sh_fold_enabled=1         " sh
 let vimsyn_folding='af'       " Vim script
 let xml_syntax_folding=1      " XML
+
+" RainbowParentheses
+let g:rainbow_active = 1
