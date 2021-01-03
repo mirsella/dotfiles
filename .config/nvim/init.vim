@@ -4,14 +4,15 @@ Plug 'plasticboy/vim-markdown'
 Plug 'honza/vim-snippets'
 Plug 'posva/vim-vue'
 Plug 'morhetz/gruvbox'
+Plug 'luochen1990/rainbow'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
 Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax'
 Plug 'markonm/traces.vim'
-" Plug 'mirsella/nerdcommenter'
+" Plug 'mirsella/nerdcommenter' " fork support for custom nerd-leaderkey (default = c )
 " Plug 'tpope/vim-commentary'
-Plug 'tyru/caw.vim'
+Plug 'tyru/caw.vim' " only one who work with vue
 Plug 'suy/vim-context-commentstring'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
@@ -38,6 +39,8 @@ Plug 'Raimondi/delimitMate'
 Plug 'nicwest/vim-camelsnek'
 Plug 'Shougo/denite.nvim'
 Plug 'Shougo/deoplete.nvim'
+" Plug 'sheerun/vim-polyglot' " install vim-javascript which break rainbow parentheses
+Plug 'jelera/vim-javascript-syntax'
 
 Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'fannheyward/coc-xml', {'do': 'yarn install --frozen-lockfile'}
@@ -169,7 +172,7 @@ inoremap <expr> <PageUp>   pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<PageUp>"
 
 filetype plugin on
 filetype indent on
-" set nocompatible
+set nocompatible
 " set formatoptions-=ro
 augroup formatoptions
   autocmd FileType * set formatoptions-=ro
@@ -207,13 +210,14 @@ set number relativenumber
 
 " themes
 colorscheme gruvbox
-set background=dark
 highlight Normal guibg=NONE
-highlight LineNr guifg=#f796ef guibg=NONE
-highlight CursorLineNr guifg=#f796ef guibg=NONE
+highlight LineNr guifg=#7b6e63 guibg=NONE
+highlight CursorLineNr guifg=#f7bd2f guibg=NONE
+" pink ↓
+" highlight LineNr guifg=#f796ef guibg=NONE
+" highlight CursorLineNr guifg=#f796ef guibg=NONE
 
 " less mess
-" set runtimepath+=~/.config/vim
 set undofile undodir=~/.cache/nvim/undo
 set viminfo+=n~/.cache/nvim/viminfo
 let g:netrw_dirhistmax = 0
