@@ -1,6 +1,6 @@
 source $ZDOTDIR/lib/$(hostname)/plugins.zsh
-export HISTSIZE=100000
-export SAVEHIST=100000
+export HISTSIZE=1000000
+export SAVEHIST=1000000
 export HISTFILE=~/.cache/history
 export HISTCONTROL=ignoreboth
 export PROMPT="%B%F{219}[%n@%M %~]%(!.%F{196}#%f.$) %f%b"
@@ -12,14 +12,19 @@ export ENABLE_CORRECTION=true
 export MENU_COMPLETE=true
 
 
-_fzf_compgen_path() { command fd -t f -HL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
-_fzf_compgen_dir() { command fd -t d -HL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
+_fzf_compgen_path() { command fd -t f -HIL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
+_fzf_compgen_dir() { command fd -t d -HIL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
+export FZF_DEFAULT_COMMAND='fd -t f -HLI --color=always -E .cache -E .local -E .git -E run -E media -E sys -E proc -E coc -E plugged '
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_DEFAULT_OPTS='--ansi --height=100 --preview="
+if [ -d {} ]; then
+  lsd -Ah {}
+else 
+  bat -pp --color=always --theme=\"Monokai Extended Origin\" {}
+fi
+"'
+export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS"
 
-_zsh_system_clipboard_set=(xclip -sel $clipboard_selection -in)
-_zsh_system_clipboard_get=(xclip -sel $clipboard_selection -out)
-
-export FZF_DEFAULT_COMMAND='fd -t f -HIL --color=always -E .cache -E .local -E .git -E run -E media -E sys -E proc -E coc -E plugged '
-export FZF_DEFAULT_OPTS='--ansi --preview="bat -pp --color=always {}" '
 export VIMV_RM="rmtrash -rf"
 export FORGIT_IGNORE_PAGER='bat -l gitignore -pp --color=always --theme="Monokai Extended Origin"'
 export forgit_log=gl
@@ -73,23 +78,21 @@ unsetopt extendedglob local_options
 
 # fzf-tab
 disable-fzf-tab
+zstyle ':fzf-tab:*' fzf-bindings 'tab:toggle'
 bindkey '²' toggle-fzf-tab
 zstyle ':fzf-tab:*' continuous-trigger '/'
-zstyle ':fzf-tab:*' single-group ''
-zstyle ':fzf-tab:*' insert-space true
-zstyle ':fzf-tab:complete:cd:*' extra-opts --preview="bat -pp --color=always {}"
-FZF_TAB_COMMAND=(
-    fzf
-    --ansi   # Enable ANSI color support, necessary for showing groups
-    --expect='$continuous_trigger' # For continuous completion
-    '--color=hl:$(( $#headers == 0 ? 108 : 255 ))'
-    --nth=2,3 --delimiter='\x00'  # Don't search prefix
-    --layout=reverse --height='${FZF_TMUX_HEIGHT:=75%}'
-    --tiebreak=begin -m --bind=tab:down,btab:up,change:top,tab:toggle --cycle
-    '--query=$query'   # $query will be expanded to query string at runtime.
-    '--header-lines=$#headers' # $#headers will be expanded to lines of headers at runtime
-)
-zstyle ':fzf-tab:*' command $FZF_TAB_COMMAND
+zstyle ":fzf-tab:*" fzf-flags '--preview-window=right:100:wrap' '--height=100' '--ansi'
+zstyle ':fzf-tab:complete:*' fzf-preview '
+if [ -d $realpath ]; then
+ lsd -Ah $realpath
+else 
+  bat -pp --color=always --theme="Monokai Extended Origin" $realpath
+fi
+'
+
+# force clipboad to xclip for the system clipboard plugin
+_zsh_system_clipboard_set=(xclip -sel $clipboard_selection -in)
+_zsh_system_clipboard_get=(xclip -sel $clipboard_selection -out)
 
 # zsh auto notify
 export AUTO_NOTIFY_THRESHOLD=10
@@ -124,5 +127,5 @@ ZSH_HIGHLIGHT_STYLES[double-quoted-argument]=fg=194
 ZSH_HIGHLIGHT_STYLES[double-quoted-argument-unclosed]=$ZSH_HIGHLIGHT_STYLES[error]
 ZSH_HIGHLIGHT_STYLES[redirection]=fg=201,bold
 ZSH_HIGHLIGHT_STYLES[assign]=fg=213,bold
-# ZSH_HIGHLIGHT_STYLES[comment]='fg=213,bold'
+ZSH_HIGHLIGHT_STYLES[comment]='fg=240'
 # https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters/
