@@ -1,6 +1,6 @@
 alias chownm='s chown -R $USER: '
-alias removelock='sudo rm /var/lib/pacman/db.lck'
-alias end='sudo pkill -f '
+alias removelock='s rm /var/lib/pacman/db.lck'
+alias end='s pkill -f '
 alias rmf='s /bin/rm -rf '
 alias rm='s rmtrash -rf '
 alias S='s systemctl '
@@ -22,7 +22,7 @@ export PATH="$PATH:/home/mirsella/.local/bin:/hdd/dev/bin"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
 hash -d s=/hdd
 alias yays='yay -S --noconfirm --needed '
-alias rga='rga --no-ignore --hidden -i '
+alias rga='rga --no-ignore --hidden -S '
 export LC_MONETARY=en_US.UTF-8
-export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
+

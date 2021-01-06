@@ -1,8 +1,8 @@
 alias chownm='s chown -R $USER: '
 alias yays='yay -S --noconfirm --needed '
-alias end='sudo pkill -f '
-alias removelock='sudo rm /var/lib/pacman/db.lck'
-alias rga='rga --no-ignore --hidden -i '
+alias end='s pkill -f '
+alias removelock='s rm /var/lib/pacman/db.lck'
+alias rga='rga --no-ignore --hidden -S '
 alias rmf='s /bin/rm -rf '
 alias rm='s rmtrash -rf '
 alias -s html='chromium'
@@ -29,3 +29,4 @@ export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
 hash -d u=/run/media/mirsella
 hash -d w=/run/media/mirsella/68EE6279EE623F84/Users/Eleve
+

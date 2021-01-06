@@ -1,11 +1,12 @@
+alias uefireboot='systemctl reboot --firmware-setup'
 alias yays='yay -S --noconfirm --needed '
 alias nvidiar='yay -R --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
 alias nvidias='yay -S --needed --noconfirm cuda nvtop waifu2x-ncnn-vulkan'
 alias chownm='s chown -R $USER: '
-alias end='sudo pkill -f '
+alias end='s pkill -f '
 alias nvidia-settings='nvidia-settings --config="$XDG_CONFIG_HOME"/nvidia/settings'
-alias removelock='sudo rm /var/lib/pacman/db.lck'
-alias rga='rga --no-ignore --hidden -i '
+alias removelock='s rm /var/lib/pacman/db.lck'
+alias rga='rga --no-ignore --hidden -S '
 alias rmf='s /bin/rm -rf '
 alias rm='s rmtrash -rf '
 alias -s html='chromium'
@@ -75,3 +76,4 @@ case $mode in
 esac
 unset searchpattern files mode iteration
 }
+
