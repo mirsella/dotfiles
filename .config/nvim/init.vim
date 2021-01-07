@@ -76,10 +76,9 @@ map <Space> <Leader>
 map Y y$
 nnoremap d" dt"
 nnoremap d' dt'
-inoremap ² <C-o>
-nnoremap <M-F1> <nop>
-xnoremap <M-F1> <nop>
-inoremap <M-F1> <nop>
+" nnoremap <M-F1> <nop>
+" xnoremap <M-F1> <nop>
+" inoremap <M-F1> <nop>
 nnoremap ' `
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files /home/mirsella<CR>
