@@ -5,7 +5,7 @@
    "KEY_KP2": "vlc /run/media/mirsella/ssd/music/fav &",
    "KEY_KP3": "vlc /run/media/mirsella/ssd/music/msq &",
    "KEY_KP4": "vlc /run/media/mirsella/ssd/music/ &",
-   "KEY_KP5": "vlc /run/media/mirsella/ssd/music/violon_epic.mp3 &",
+   "KEY_KP5": "vlc /run/media/mirsella/ssd/music/xkito &",
    "KEY_ESC": "./closeprocess keebie &",
    "KEY_RIGHT": "xdotool key 'Super_L+Right' && xdotool key 'Super_L+Right' && xdotool key 'Super_L+Page_Up'",
    "KEY_LEFT": "xdotool key 'Super_L+Left' && xdotool key 'Super_L+Left' && xdotool key 'Super_L+Page_Up'",
