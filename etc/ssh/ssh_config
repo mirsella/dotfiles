@@ -17,12 +17,12 @@
 # list of available options, their meanings and defaults, please see the
 # ssh_config(5) man page.
 
-# Host *
+Host *
 #   ForwardAgent no
   # ForwardX11 yes
   # ForwardX11Trusted yes
   # Compression yes
-  # ServerAliveInterval 100
+  ServerAliveInterval 100
 #   PasswordAuthentication yes
 #   HostbasedAuthentication no
 #   GSSAPIAuthentication no

@@ -76,4 +76,3 @@ case $mode in
 esac
 unset searchpattern files mode iteration
 }
-
