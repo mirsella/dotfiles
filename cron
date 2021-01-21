@@ -1,1 +1,2 @@
 @reboot cd /home/mirsella/Documents/pictures/screenshots && /usr/bin/fd --changed-before 30days -x rm -rf
+@reboot shairport-sync --password=$(cat ~/.config/token/shairport.token)

@@ -221,7 +221,6 @@ highlight CursorLineNr guifg=#f7bd2f guibg=NONE
 " less mess
 set backup backupdir=~/.cache/nvim/backup
 set dir=~/.cache/nvim/swap
-set patchmode=.clean
 set undofile undodir=~/.cache/nvim/undo
 let g:netrw_dirhistmax = 0
 
