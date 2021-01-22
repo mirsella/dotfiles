@@ -89,7 +89,7 @@ X11Forwarding yes
 X11UseLocalhost yes
 #PermitTTY yes
 PrintMotd no # pam does that
-#PrintLastLog yes
+PrintLastLog yes
 TCPKeepAlive yes
 #PermitUserEnvironment no
 #Compression delayed
