@@ -79,9 +79,10 @@ map Y y$
 nnoremap U :echo " < < ===== C H E C K   C A P S   L O C K ===== > > "<CR>
 nnoremap d" dt"
 nnoremap d' dt'
-" nnoremap <M-F1> <nop>
-" xnoremap <M-F1> <nop>
-" inoremap <M-F1> <nop>
+inoremap <C-H> <C-W>
+nnoremap <M-F1> <nop>
+xnoremap <M-F1> <nop>
+inoremap <M-F1> <nop>
 nnoremap ' `
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files /home/mirsella<CR>
