@@ -70,6 +70,7 @@ call plug#end()
 
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
 command! -nargs=? CC :CocCommand
+command! -nargs=+ Zoom :set guifont=monospace:h<args>
 command! -nargs=? V :vert sb
 command! FR :setlocal spell spelllang=fr
 nnoremap gc :r !curl -s $(xclip -out -selection clipboard)<cr>
