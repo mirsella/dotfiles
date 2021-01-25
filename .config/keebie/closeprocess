@@ -2,7 +2,7 @@
 
 if [[ -f /tmp/$1 ]]; then 
     rm /tmp/$1
-    notify-send "killed $1" &
+    # notify-send "killed $1" &
     echo "killed $1" &
     pkill -f $1
 else
