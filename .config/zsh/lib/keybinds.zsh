@@ -51,4 +51,3 @@ bindkey "^[[H" beginning-of-line # start key
 bindkey "^[[F" end-of-line # end key 
 bindkey "^[[A" up-line-or-history # [PageUp] - Up a line of history
 bindkey "^[[B" down-line-or-history # [PageDown] - Down a line of history
-bindkey '^H' backward-kill-word # ctrl+ backspace delete world backward
