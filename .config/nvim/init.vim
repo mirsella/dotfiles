@@ -70,16 +70,19 @@ call plug#end()
 
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
 command! -nargs=? CC :CocCommand
+command! -nargs=+ Zoom :set guifont=monospace:h<args>
 command! -nargs=? V :vert sb
 command! FR :setlocal spell spelllang=fr
 nnoremap gc :r !curl -s $(xclip -out -selection clipboard)<cr>
 map <Space> <Leader>
 map Y y$
+nnoremap U :echo " < < ===== C H E C K   C A P S   L O C K ===== > > "<CR>
 nnoremap d" dt"
 nnoremap d' dt'
-" nnoremap <M-F1> <nop>
-" xnoremap <M-F1> <nop>
-" inoremap <M-F1> <nop>
+inoremap <C-H> <C-W>
+nnoremap <M-F1> <nop>
+xnoremap <M-F1> <nop>
+inoremap <M-F1> <nop>
 nnoremap ' `
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files /home/mirsella<CR>
@@ -218,8 +221,9 @@ highlight CursorLineNr guifg=#f7bd2f guibg=NONE
 " highlight CursorLineNr guifg=#f796ef guibg=NONE
 
 " less mess
+set backup backupdir=~/.cache/nvim/backup
+set dir=~/.cache/nvim/swap
 set undofile undodir=~/.cache/nvim/undo
-set viminfo+=n~/.cache/nvim/viminfo
 let g:netrw_dirhistmax = 0
 
 " lightline
