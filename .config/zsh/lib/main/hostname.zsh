@@ -39,6 +39,7 @@ hash -d w=/run/media/mirsella/windows/Users/mirsella/
 alias fanm='nbfc set -f 1 -s 100 && nbfc set -f 0 -s 100'
 alias fan='nbfc set -f 1 -a && nbfc set -f 0 -a'
 
+
 functions fdm() {
 for arg in $@; do 
   ((iteration++))
