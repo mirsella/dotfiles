@@ -11,6 +11,7 @@ Plug 'itchyny/vim-gitbranch'
 Plug 'easymotion/vim-easymotion'
 Plug 'wgwoods/vim-systemd-syntax'
 Plug 'markonm/traces.vim'
+Plug 'chaoren/vim-wordmotion'
 " Plug 'mirsella/nerdcommenter' " fork support for custom nerd-leaderkey (default = c )
 " Plug 'tpope/vim-commentary'
 Plug 'tyru/caw.vim' " only one who work with vue
@@ -43,6 +44,7 @@ Plug 'Shougo/deoplete.nvim'
 " Plug 'sheerun/vim-polyglot' " install vim-javascript which break rainbow parentheses
 Plug 'jelera/vim-javascript-syntax'
 
+Plug 'anott03/nvim-lspinstall'
 Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
 " Plug 'fannheyward/coc-xml', {'do': 'yarn install --frozen-lockfile'}
 Plug 'clangd/coc-clangd', {'do': 'yarn install --frozen-lockfile'}
@@ -70,16 +72,19 @@ call plug#end()
 
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
 command! -nargs=? CC :CocCommand
+command! -nargs=+ Zoom :set guifont=monospace:h<args>
 command! -nargs=? V :vert sb
 command! FR :setlocal spell spelllang=fr
 nnoremap gc :r !curl -s $(xclip -out -selection clipboard)<cr>
 map <Space> <Leader>
 map Y y$
+nnoremap U :echo " < < ===== C H E C K   C A P S   L O C K ===== > > "<CR>
 nnoremap d" dt"
 nnoremap d' dt'
-" nnoremap <M-F1> <nop>
-" xnoremap <M-F1> <nop>
-" inoremap <M-F1> <nop>
+inoremap <C-H> <C-W>
+nnoremap <M-F1> <nop>
+xnoremap <M-F1> <nop>
+inoremap <M-F1> <nop>
 nnoremap ' `
 nnoremap <leader>O :Files<Space>
 nnoremap <leader>o :Files /home/mirsella<CR>
@@ -113,6 +118,8 @@ map <Leader>w <Plug>(easymotion-bd-w)
 
 nnoremap <C-j> 5jzz
 nnoremap <C-k> 5kzz
+xnoremap <C-j> 5jzz
+xnoremap <C-k> 5kzz
 nnoremap <C-l> :bnext<CR>
 inoremap <C-l> <esc>:bnext<CR>
 nnoremap <C-h> :bprev<CR>
@@ -218,8 +225,9 @@ highlight CursorLineNr guifg=#f7bd2f guibg=NONE
 " highlight CursorLineNr guifg=#f796ef guibg=NONE
 
 " less mess
+set backup backupdir=~/.cache/nvim/backup
+set dir=~/.cache/nvim/swap
 set undofile undodir=~/.cache/nvim/undo
-set viminfo+=n~/.cache/nvim/viminfo
 let g:netrw_dirhistmax = 0
 
 " lightline
