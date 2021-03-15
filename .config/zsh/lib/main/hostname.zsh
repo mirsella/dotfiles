@@ -18,7 +18,7 @@ alias trash-empty='s trash-empty '
 alias trash-list='s trash-list '
 alias trash-restore='s trash-restore '
 alias v='s nvim -p '
-# export BROWSER=/usr/bin/chromium
+export BROWSER=/usr/bin/firefox-nightly
 export EDITOR=/usr/bin/nvim
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
@@ -38,6 +38,7 @@ hash -d u=/run/media/mirsella
 hash -d w=/run/media/mirsella/windows/Users/mirsella/
 alias fanm='nbfc set -f 1 -s 100 && nbfc set -f 0 -s 100'
 alias fan='nbfc set -f 1 -a && nbfc set -f 0 -a'
+
 
 functions fdm() {
 for arg in $@; do 
