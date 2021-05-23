@@ -204,8 +204,8 @@ set ignorecase " use \C in regex to search case sensitive
 set noerrorbells
 set hidden
 set expandtab
-set tabstop=2 softtabstop=2
-set shiftwidth=2
+set tabstop=4 softtabstop=4
+set shiftwidth=4
 set autoindent
 set smartindent
 set smarttab
