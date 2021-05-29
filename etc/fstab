@@ -7,4 +7,4 @@
 # <file system>             <mount point>  <type>  <options>  <dump>  <pass>
 UUID=83e03f00-eae1-44a4-8376-5dfcbf2f0cff /              ext4    defaults,noatime 0 1
 UUID=118094a2-f8a8-4b7a-b71a-95a548b47c65 swap           swap    defaults,noatime 0 2
-UUID="467C07D418914AF6" /hdd/external ntfs-3g rw,defaults,noatime 0 0
+UUID="8919d3d3-7b06-43cb-bd1b-c777ce146e3c" /hdd/external ext4 rw,defaults,noatime 0 0
