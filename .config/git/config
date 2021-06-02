@@ -1,0 +1,13 @@
+[user]
+	email = mirsella@protonmail.com
+	name = mirsella
+	signingkey = BB3CCE69447A6AB9
+[core]
+	worktree = /
+	excludesfile = ~/.config/.gitignore
+[advice]
+	addIgnoredFile = false
+[commit]
+	gpgsign = true
+[init]
+	defaultBranch = main
