@@ -90,7 +90,7 @@ Height 1080=1008
 Height 750=720
 Height 853=823
 Height 900=840
-State=AAAA/wAAAAD9AAAAAwAAAAAAAADqAAACi/wCAAAAAvsAAAAWAGYAbwBsAGQAZQByAHMARABvAGMAawAAAAAA/////wAAAAIA////+wAAABQAcABsAGEAYwBlAHMARABvAGMAawEAAABIAAACiwAAAEwA////AAAAAQAAAKwAAAKL/AIAAAAB+wAAABAAaQBuAGYAbwBEAG8AYwBrAQAAAEgAAAKLAAABCwD///8AAAADAAAHgAAAARr8AQAAAAH7AAAAGAB0AGUAcgBtAGkAbgBhAGwARABvAGMAawEAAAAAAAAHgAAAAJUA////AAAF3AAAAosAAAAEAAAABAAAAAgAAAAI/AAAAAEAAAACAAAAAQAAABYAbQBhAGkAbgBUAG8AbwBsAEIAYQByAQAAAAD/////AAAAAAAAAAA=
+State=AAAA/wAAAAD9AAAAAwAAAAAAAADqAAADrPwCAAAAAvsAAAAWAGYAbwBsAGQAZQByAHMARABvAGMAawAAAAAA/////wAAAAIA////+wAAABQAcABsAGEAYwBlAHMARABvAGMAawEAAABIAAADrAAAAEwA////AAAAAQAAAKwAAAOs/AIAAAAB+wAAABAAaQBuAGYAbwBEAG8AYwBrAQAAAEgAAAOsAAABCwD///8AAAADAAAHgAAAARr8AQAAAAH7AAAAGAB0AGUAcgBtAGkAbgBhAGwARABvAGMAawAAAAAAAAAHgAAAAJUA////AAAF3AAAA6wAAAAEAAAABAAAAAgAAAAI/AAAAAEAAAACAAAAAQAAABYAbQBhAGkAbgBUAG8AbwBsAEIAYQByAQAAAAD/////AAAAAAAAAAA=
 ToolBarsMovable=Disabled
 Width 1067=1067
 Width 1333=667
@@ -106,7 +106,7 @@ ConfirmEmptyTrash=true
 
 [Open-with settings]
 CompletionMode=1
-History=/usr/bin/libreoffice,feh,vscodi,kate,vs,vl
+History=libreoffice,/usr/bin/libreoffice,feh,vscodi,kate,vs,vl
 
 [PreviewSettings]
 Plugins=appimagethumbnail,audiothumbnail,blenderthumbnail,comicbookthumbnail,djvuthumbnail,ebookthumbnail,exrthumbnail,directorythumbnail,fontthumbnail,imagethumbnail,jpegthumbnail,kraorathumbnail,windowsexethumbnail,windowsimagethumbnail,opendocumentthumbnail,gsthumbnail,rawthumbnail,svgthumbnail,ffmpegthumbs
