@@ -86,3 +86,4 @@ alias msq='vlc /run/media/mirsella/ssd/music/msq &! disown'
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/forgit/forgit.plugin.zsh
 alias sshphone="ssh u0_a300@$(ip r | rg default | cut -d' ' -f3) -p 2222"
+alias vpn='s protonvpn c -f'
