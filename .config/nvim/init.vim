@@ -9,7 +9,7 @@ Plug 'morhetz/gruvbox'
 Plug 'luochen1990/rainbow'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
-Plug 'phaazon/hop.nvim'
+Plug 'phaazon/hop.nvim', { 'commit': 'e5eb06d6f3caff15f3abd35c6c21135f93fa4eb7' }
 Plug 'wgwoods/vim-systemd-syntax'
 Plug 'markonm/traces.vim'
 Plug 'chaoren/vim-wordmotion'
@@ -70,8 +70,8 @@ Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
 Plug 'fannheyward/coc-styled-components', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
-Plug 'rodrigore/coc-tailwind-intellisense', {'do': 'yarn install --frozen-lockfile'}
+Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
+" Plug 'rodrigore/coc-tailwind-intellisense', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/jsonc.vim'
 call plug#end()
 
