@@ -334,3 +334,8 @@ let xml_syntax_folding=1      " XML
 
 " RainbowParentheses
 let g:rainbow_active = 1
+
+" hop.nvim
+lua << EOF
+require('hop').setup({create_hl_autocmd = true})
+EOF
