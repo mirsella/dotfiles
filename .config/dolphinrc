@@ -38,13 +38,13 @@ detailViewIconSize=16
 
 [KPropertiesDialog]
 DVI-D-0 HDMI-0 Height 1080=500
-DVI-D-0 HDMI-0 Height 1920x1080=378
+DVI-D-0 HDMI-0 Height 1920x1080=566
 DVI-D-0 HDMI-0 Width 1920=464
-DVI-D-0 HDMI-0 Width 1920x1080=359
+DVI-D-0 HDMI-0 Width 1920x1080=526
 DVI-D-0 Height 1080=508
-DVI-D-0 Height 1920x1080=460
+DVI-D-0 Height 1920x1080=566
 DVI-D-0 Width 1920=456
-DVI-D-0 Width 1920x1080=385
+DVI-D-0 Width 1920x1080=526
 Height 1080=508
 Height 853=591
 Height 900=452
@@ -91,7 +91,7 @@ Height 750=720
 Height 853=823
 Height 900=840
 RestorePositionForNextInstance=false
-State=AAAA/wAAAAD9AAAAAwAAAAAAAADqAAADrPwCAAAAAvsAAAAWAGYAbwBsAGQAZQByAHMARABvAGMAawAAAAAA/////wAAAAIA////+wAAABQAcABsAGEAYwBlAHMARABvAGMAawEAAABIAAADrAAAAEwA////AAAAAQAAAKwAAAOs/AIAAAAB+wAAABAAaQBuAGYAbwBEAG8AYwBrAQAAAEgAAAOsAAABCwD///8AAAADAAAHgAAAARr8AQAAAAH7AAAAGAB0AGUAcgBtAGkAbgBhAGwARABvAGMAawAAAAAAAAAHgAAAAAIA////AAAF3AAAA6wAAAAEAAAABAAAAAgAAAAI/AAAAAEAAAACAAAAAQAAABYAbQBhAGkAbgBUAG8AbwBsAEIAYQByAQAAAAD/////AAAAAAAAAAA=
+State=AAAA/wAAAAD9AAAAAwAAAAAAAADeAAADrPwCAAAAAvsAAAAWAGYAbwBsAGQAZQByAHMARABvAGMAawAAAAAA/////wAAAAIA////+wAAABQAcABsAGEAYwBlAHMARABvAGMAawEAAABIAAADrAAAAEwA////AAAAAQAAASoAAAOs/AIAAAAB+wAAABAAaQBuAGYAbwBEAG8AYwBrAQAAAEgAAAOsAAABCwD///8AAAADAAAHgAAAARr8AQAAAAH7AAAAGAB0AGUAcgBtAGkAbgBhAGwARABvAGMAawAAAAAAAAAHgAAAAAIA////AAAFagAAA6wAAAAEAAAABAAAAAgAAAAI/AAAAAEAAAACAAAAAQAAABYAbQBhAGkAbgBUAG8AbwBsAEIAYQByAQAAAAD/////AAAAAAAAAAA=
 ToolBarsMovable=Disabled
 Width 1067=1067
 Width 1333=667
@@ -107,7 +107,7 @@ ConfirmEmptyTrash=true
 
 [Open-with settings]
 CompletionMode=1
-History=libreoffice,/usr/bin/libreoffice,feh,vscodi,kate,vs,vl
+History=kdenlive,libreoffice,/usr/bin/libreoffice,feh,vscodi,kate,vs,vl
 
 [PreviewSettings]
 Plugins=appimagethumbnail,audiothumbnail,blenderthumbnail,comicbookthumbnail,djvuthumbnail,ebookthumbnail,exrthumbnail,directorythumbnail,fontthumbnail,imagethumbnail,jpegthumbnail,kraorathumbnail,windowsexethumbnail,windowsimagethumbnail,opendocumentthumbnail,gsthumbnail,rawthumbnail,svgthumbnail,ffmpegthumbs
