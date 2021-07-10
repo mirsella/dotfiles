@@ -7,6 +7,11 @@ source ~/.config/zsh/lib/fzf/fzf-key-bindings.zsh
 
 clip() { xclip -in -selection clipboard < "${@:-/dev/stdin}"; }
 clipp() { xclip -out -selection clipboard; }
+winboot() {
+  WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
+  sudo grub-reboot "$WINDOWS_TITLE"
+  sudo reboot
+}
 untill() {
   until eval "$1"; do
     sleep 1
