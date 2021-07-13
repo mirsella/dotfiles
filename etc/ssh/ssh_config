@@ -18,9 +18,9 @@
 # ssh_config(5) man page.
 
 Host *
-  ForwardAgent yes
-  ForwardX11 yes
-  ForwardX11Trusted yes
+  ForwardAgent no
+  ForwardX11 no
+  ForwardX11Trusted no
 #   PasswordAuthentication yes
 #   HostbasedAuthentication no
 #   GSSAPIAuthentication no
