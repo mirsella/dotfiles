@@ -1,6 +1,6 @@
 ##
 ## Arch Linux CN community repository mirrorlist
-## Generated on 2021-05-07
+## Generated on 2021-07-01
 ##
 
 ## Our main server (Amsterdam, the Netherlands) (ipv4, ipv6, http, https)
@@ -12,16 +12,16 @@ Server = https://repo.archlinuxcn.org/$arch
 ## 北京外国语大学 (北京) (ipv4, ipv6, http, https)
 #Server = https://mirrors.bfsu.edu.cn/archlinuxcn/$arch
 
-## 腾讯云 (上海) (ipv4, https)
+## 腾讯云 (Global CDN) (ipv4, http, https)
 #Server = https://mirrors.cloud.tencent.com/archlinuxcn/$arch
 
-## 网易 (浙江杭州) (ipv4, http, https)
+## 网易 (China CDN) (ipv4, http, https)
 #Server = https://mirrors.163.com/archlinux-cn/$arch
 
 ## 阿里云 (Global CDN) (ipv4, http, https)
 #Server = https://mirrors.aliyun.com/archlinuxcn/$arch
 
-## 华为云 (China CDN) (ipv4, http, https)
+## 华为云 (Global CDN) (ipv4, http, https)
 #Server = https://repo.huaweicloud.com/archlinuxcn/$arch
 
 ## 清华大学 (北京) (ipv4, ipv6, http, https)
@@ -39,14 +39,14 @@ Server = https://repo.archlinuxcn.org/$arch
 ## 重庆大学 (重庆) (ipv4, ipv6, https)
 #Server = https://mirrors.cqu.edu.cn/archlinuxcn/$arch
 
-## 上海科技大学 (上海) (ipv4, https)
-#Server = https://mirrors-wan.geekpie.club/archlinuxcn/$arch
-
 ## SJTUG 软件源镜像服务 (上海) (ipv4, https)
 #Server = https://mirrors.sjtug.sjtu.edu.cn/archlinux-cn/$arch
 
 ## 莞工 GNU/Linux 协会 开源软件镜像站 (广东东莞) (ipv4, https)
 #Server = https://mirrors.dgut.edu.cn/archlinuxcn/$arch
+
+## NCKU CCNS (Taiwan) (ipv4, http, https)
+#Server = https://archlinux.ccns.ncku.edu.tw/archlinuxcn/$arch
 
 ## xTom (Hong Kong server) (Hong Kong) (ipv4, ipv6, http, https)
 #Server = https://mirror.xtom.com.hk/archlinuxcn/$arch
@@ -60,6 +60,8 @@ Server = https://mirror.xtom.nl/archlinuxcn/$arch
 ## xTom (Germany server) (Dueseeldorf, Germany) (ipv4, ipv6, http, https)
 Server = https://mirror.xtom.de/archlinuxcn/$arch
 
+## xTom (Estonia server) (Tallinn, Estonia) (ipv4, ipv6, http, https)
+#Server = https://mirror.xtom.ee/archlinuxcn/$arch
+
 ## Open Computing Facility, UC Berkeley (Berkeley, CA, United States) (ipv4, ipv6, http, https)
 #Server = https://mirrors.ocf.berkeley.edu/archlinuxcn/$arch
-
