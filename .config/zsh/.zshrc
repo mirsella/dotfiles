@@ -30,6 +30,12 @@ bakm() { sudo -E mv "${1}" "${1}.bak" }
 hash -d u=/run/media/mirsella
 export EDITOR='/usr/bin/nvim'
 export BROWSER='/usr/bin/xdg-open'
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export LC_MEASUREMENT=fr_FR.UTF-8
+export LC_MONETARY=fr_FR.UTF-8
+export LC_NUMERIC=fr_FR.UTF-8
+export LC_TIME=fr_FR.UTF-8
 # export PATH="$PATH:/home/mirsella/.local/bin:/hdd/dev/bin:/home/mirsella/.local/share/gem/ruby/3.0.0/bin"
 export PATH="$PATH:/home/mirsella/.local/bin:/hdd/dev/bin:/home/mirsella/.local/share/gem/bin"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
