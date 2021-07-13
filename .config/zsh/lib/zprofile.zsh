@@ -1,4 +1,4 @@
-source $ZDOTDIR/lib/$(hostname)/plugins.zsh
+source "$ZDOTDIR"/lib/$(hostname)/plugins.zsh
 export HISTSIZE=1000000
 export SAVEHIST=1000000
 export HISTFILE=~/.cache/history
