@@ -9,7 +9,7 @@ Plug 'morhetz/gruvbox'
 Plug 'luochen1990/rainbow'
 Plug 'chr4/nginx.vim'
 Plug 'itchyny/vim-gitbranch'
-Plug 'phaazon/hop.nvim'
+Plug 'phaazon/hop.nvim', { 'commit': 'e5eb06d6f3caff15f3abd35c6c21135f93fa4eb7' }
 Plug 'wgwoods/vim-systemd-syntax'
 Plug 'markonm/traces.vim'
 Plug 'chaoren/vim-wordmotion'
@@ -19,6 +19,7 @@ Plug 'suy/vim-context-commentstring'
 Plug 'itchyny/lightline.vim'
 Plug 'luochen1990/rainbow'
 Plug 'junegunn/fzf.vim'
+Plug 'mirsella/otherbufdo.nvim'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
 Plug 'norcalli/nvim-colorizer.lua'
@@ -70,8 +71,8 @@ Plug 'neoclide/coc-eslint', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-tsserver', {'do': 'yarn install --frozen-lockfile'}
 Plug 'fannheyward/coc-styled-components', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/coc-yaml', {'do': 'yarn install --frozen-lockfile'}
-" Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
-Plug 'rodrigore/coc-tailwind-intellisense', {'do': 'yarn install --frozen-lockfile'}
+Plug 'iamcco/coc-tailwindcss', {'do': 'yarn install --frozen-lockfile'}
+" Plug 'rodrigore/coc-tailwind-intellisense', {'do': 'yarn install --frozen-lockfile'}
 Plug 'neoclide/jsonc.vim'
 call plug#end()
 
@@ -204,8 +205,8 @@ set ignorecase " use \C in regex to search case sensitive
 set noerrorbells
 set hidden
 set expandtab
-set tabstop=4 softtabstop=4
-set shiftwidth=4
+set tabstop=2 softtabstop=2
+set shiftwidth=2
 set autoindent
 set smartindent
 set smarttab
@@ -334,3 +335,8 @@ let xml_syntax_folding=1      " XML
 
 " RainbowParentheses
 let g:rainbow_active = 1
+
+" hop.nvim
+lua << EOF
+require('hop').setup({create_hl_autocmd = true})
+EOF
