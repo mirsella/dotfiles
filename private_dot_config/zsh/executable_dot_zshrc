@@ -95,5 +95,6 @@ alias norm='norminette $(fd -t f -e c -e h) '
 alias ccw='cc -Wall -Wextra -Werror -g3 '
 alias antibodybundle='antibody bundle < ~/.config/zsh/lib/$(hostname)/plugins.txt > ~/.config/zsh/lib/$(hostname)/plugins.zsh && source ~/.config/zsh/.zshrc'
 alias	chezmoi-cd='pushd $(chezmoi source-path)'
+chezmoi-gamp() { chezmoi-cd && git add -A && git commit -m "${@:-$(chezmoi-gamp)}" && git push }
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
