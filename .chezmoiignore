@@ -1,0 +1,16 @@
+# vim: set ft=gitignore:
+plugged
+*log
+.zcomp*
+.zcompcache/
+*gpg
+ssl
+*.git
+*bak
+novnc
+id_rsa*
+*key
+*pub
+ssl*
+plug.vim.old
+plug.vim
