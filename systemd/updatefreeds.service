@@ -1,0 +1,13 @@
+[Unit]
+Description=update mirsella.mooo.com
+After=hdd.mount network.target
+
+[Service]
+Type=simple
+# ExecStartPre=/hdd/dev/bin/waitfornetwork
+ExecStart=sh /hdd/dev/bin/updatefreedns
+Restart=always
+RestartSec=1800s
+
+[Install]
+WantedBy=multi-user.target

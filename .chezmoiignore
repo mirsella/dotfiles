@@ -12,8 +12,6 @@ id_rsa*
 *key
 *pub
 ssl*
-plug.vim.old
-plug.vim
 
 systemd/
-*.service
+cron/
