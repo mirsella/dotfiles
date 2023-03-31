@@ -29,9 +29,9 @@ ortener() { curl -H "Content-Type: application/json" -d '{"url": "'$1'", "slug":
 hash -d u=/run/media/mirsella
 # export USER=mirsella
 export MAIL=mirsella@protonmail.com
-export EDITOR=nvim
-export DIFFPROG=nvim -d
-export BROWSER=xdg-open
+export EDITOR='nvim'
+export DIFFPROG='nvim -d'
+export BROWSER='xdg-open'
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export LC_MEASUREMENT=fr_FR.UTF-8
