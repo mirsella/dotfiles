@@ -79,21 +79,7 @@ cmp.setup({
 		documentation = cmp.config.window.bordered(),
 	},
 	mapping = cmp.mapping.preset.insert({
-		-- ['<Tab>'] = function(fallback)
-		-- 	if cmp.visible() then
-		-- 		cmp.select_next_item()
-		-- 	else
-		-- 		fallback()
-		-- 	end
-		-- end,
-		-- ['<S-Tab>'] = function(fallback)
-		-- 	if cmp.visible() then
-		-- 		cmp.select_prev_item()
-		-- 	else
-		-- 		fallback()
-		-- 	end
-		-- end,
-		['<C-p>'] = cmp.mapping.select_prev_item(),
+			['<C-p>'] = cmp.mapping.select_prev_item(),
 		['<C-n>'] = cmp.mapping.select_next_item(),
 
 		['<C-u>'] = cmp.mapping.scroll_docs(-4),
@@ -113,9 +99,9 @@ cmp.setup({
 		{ name = 'nvim_lsp_signature_help', priority = 1 },
 		{ name = 'treesitter', priority = 1 },
 		{ name = 'vsnip', priority = 1 },
-		{ name = 'buffer', priority = 1 }
-		-- }, {
-		-- 	{ name = 'buffer', priority = 1 },
+		-- { name = 'buffer', priority = 1 }
+		}, {
+			{ name = 'buffer', priority = 1 },
 	}),
 	formatting = {
 		format = lspkind.cmp_format({
@@ -125,18 +111,9 @@ cmp.setup({
 			symbol_map = { Copilot = "" }
 		})
 	},
-	completion = { completeopt = "menu,menuone,noinsert" },
-	experimental = { ghost_text = true },
+	-- completion = { completeopt = "menu,menuone,noinsert" },
+	-- experimental = { ghost_text = true },
 })
-
--- Set configuration for specific filetype.
--- cmp.setup.filetype('gitcommit', {
--- 	sources = cmp.config.sources({
--- 		{ name = 'cmp_git' }, -- You can specify the `cmp_git` source if you were installed it.
--- 	}, {
--- 		{ name = 'buffer' },
--- 	})
--- })
 
 -- Use buffer source for `/` and `?` (if you enabled `native_menu`, this won't work anymore).
 cmp.setup.cmdline({ '/', '?' }, {
