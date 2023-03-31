@@ -65,7 +65,7 @@ alias gc='git commit '
 alias gp='git push '
 alias gcd='git commit -m "gcd $(date)"'
 gm() { git commit -m "${@}" }
-gamp() { git add -A; git commit -m "${@:-$(gamp)}"; git push }
+gamp() { git add -A; git commit -m "${@:-gamp}"; git push }
 alias fd='fd -HL -E run -E media -E sys -E proc '
 alias fda='fd -I '
 alias trapp='trap "exit" SIGINT '
@@ -92,6 +92,6 @@ alias dolphinroot='pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY KDE_SESSIO
 alias ccw='cc -Wall -Wextra -Werror -g3 '
 alias antibodybundle='antibody bundle < ~/.config/zsh/lib/$(hostname)/plugins.txt > ~/.config/zsh/lib/$(hostname)/plugins.zsh && source ~/.config/zsh/.zshrc'
 alias	chezmoi-cd='pushd $(chezmoi source-path)'
-chezmoi-gamp() { chezmoi-cd && git add -A && git commit -m "${@:-$(chezmoi-gamp)}" && git push }
+chezmoi-gamp() { chezmoi-cd && git add -A && git commit -m "${@:-chezmoi-gamp}" && git push }
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
