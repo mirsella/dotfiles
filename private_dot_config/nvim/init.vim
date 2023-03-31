@@ -45,7 +45,6 @@ Plug 'neovim/nvim-lspconfig'
 Plug 'williamboman/mason-lspconfig.nvim'
 Plug 'onsails/lspkind.nvim'
 Plug 'folke/trouble.nvim'
-" Plug 'ray-x/lsp_signature.nvim'
 Plug 'hrsh7th/cmp-nvim-lsp-signature-help'
 
 Plug 'hrsh7th/vim-vsnip'

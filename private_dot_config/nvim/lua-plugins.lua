@@ -165,3 +165,10 @@ require("mason-lspconfig").setup_handlers {
 		require("rust-tools").setup {}
 	end
 }
+
+vim.api.nvim_create_augroup("bufcheck", { clear = true})
+vim.api.nvim_create_autocmd("FileType", {
+	group = "bufcheck",
+	pattern = "Trouble",
+	command = "set wrap"
+})
