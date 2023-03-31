@@ -27,18 +27,18 @@ ortener() { curl -H "Content-Type: application/json" -d '{"url": "'$1'", "slug":
 
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
 hash -d u=/run/media/mirsella
-export USER=mirsella
+# export USER=mirsella
 export MAIL=mirsella@protonmail.com
-export EDITOR='/usr/bin/nvim'
-export DIFFPROG='nvim -d'
-export BROWSER='/usr/bin/xdg-open'
+export EDITOR=nvim
+export DIFFPROG=nvim -d
+export BROWSER=xdg-open
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export LC_MEASUREMENT=fr_FR.UTF-8
 export LC_MONETARY=fr_FR.UTF-8
 export LC_NUMERIC=fr_FR.UTF-8
 export LC_TIME=fr_FR.UTF-8
-export PATH="$PATH:/home/mirsella/.local/bin:/home/mirsella/.local/share/gem/bin:/home/mirsella/.local/share/gem/ruby/3.0.0/bin:/home/mirsella/.local/share/npm/bin"
+export PATH="$PATH:/home/mirsella/.local/bin:/home/mirsella/.local/share/gem/bin:/home/mirsella/.local/share/npm/bin"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
 alias -s html='firefox'
 alias -s pdf='firefox'
