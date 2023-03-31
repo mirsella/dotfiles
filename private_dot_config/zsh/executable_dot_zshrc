@@ -23,11 +23,9 @@ notif() {
 }
 bak() { sudo -E cp -r "${1}" "${1}.bak" }
 bakm() { sudo -E mv "${1}" "${1}.bak" }
-ortener() { curl -H "Content-Type: application/json" -d '{"url": "'$1'", "slug": "'$2'"}' https://ortener.herokuapp.com/url }
 
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
 hash -d u=/run/media/mirsella
-# export USER=mirsella
 export MAIL=mirsella@protonmail.com
 export EDITOR='nvim'
 export DIFFPROG='nvim -d'
@@ -67,12 +65,12 @@ alias gc='git commit '
 alias gp='git push '
 alias gcd='git commit -m "gcd $(date)"'
 gm() { git commit -m "${@}" }
-gamp() { git add -A; git commit -m "${@:-$(date)}"; git push }
+gamp() { git add -A; git commit -m "${@:-$(gamp)}"; git push }
 alias fd='fd -HL -E run -E media -E sys -E proc '
 alias fda='fd -I '
 alias trapp='trap "exit" SIGINT '
 alias watch='watch '
-alias update='paru -Syu --noconfirm; notif "yay finished $?"'
+alias update='paru -Syu --noconfirm; notif "paru on $(hostname) finished $?"'
 alias chownm='s chown -R $USER: '
 alias S='sudo systemctl '
 alias s='sudo -E '
@@ -91,7 +89,6 @@ alias rga='rga --no-ignore --hidden -S '
 alias adbconnectipr='adb connect $(ip r | rg default | head -n 1 | cut -d" " -f3) '
 alias kdesend='kdeconnect-cli -d $(kdeconnect-cli --list-devices | rg  "phone" | rg -o "[a-z0-9]{16}") --share '
 alias dolphinroot='pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY KDE_SESSION_VERSION=5 KDE_FULL_SESSION=true dolphin '
-alias norm='norminette $(fd -t f -e c -e h) '
 alias ccw='cc -Wall -Wextra -Werror -g3 '
 alias antibodybundle='antibody bundle < ~/.config/zsh/lib/$(hostname)/plugins.txt > ~/.config/zsh/lib/$(hostname)/plugins.zsh && source ~/.config/zsh/.zshrc'
 alias	chezmoi-cd='pushd $(chezmoi source-path)'
