@@ -34,7 +34,7 @@ require('bufferline').setup {
 	options = {
 		hover = {
 			enabled = true,
-			delay = 100,
+			delay = 0,
 			reveal = {'close'}
 		},
 		numbers = 'buffer_id',
