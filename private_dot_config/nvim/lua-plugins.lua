@@ -60,9 +60,9 @@ require('bufferline').setup {
 -- Set up nvim-cmp.
 require("cmp_git").setup()
 require("copilot_cmp").setup {
-	-- formatters = {
-	-- 	insert_text = require("copilot_cmp.format").remove_existing
-	-- },
+	formatters = {
+		insert_text = require("copilot_cmp.format").remove_existing
+	},
 }
 local cmp = require('cmp')
 local lspkind = require('lspkind')
