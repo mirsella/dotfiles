@@ -86,7 +86,7 @@ cmp.setup({
 		['<C-d>'] = cmp.mapping.scroll_docs(4),
 
 		['<C-e>'] = cmp.mapping.abort(),
-		-- ['<C-y>'] = cmp.mapping.confirm({select = true, behavior = cmp.ConfirmBehavior.Replace}),
+		['<C-y>'] = cmp.mapping.confirm({select = true, behavior = cmp.ConfirmBehavior.Replace}),
 		-- ['<CR>'] = cmp.mapping.confirm({select = false,	behavior = cmp.ConfirmBehavior.Replace}),
 		['<CR>'] = cmp.mapping.confirm({select = true,	behavior = cmp.ConfirmBehavior.Replace}),
 
