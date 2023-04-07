@@ -62,7 +62,8 @@ autoload -Uz bracketed-paste-magic
 zle -N bracketed-paste bracketed-paste-magic
 
 
-setopt extendedglob local_options
+setopt extended_glob
+# setopt extendedglob local_options
 autoload -U compinit
 local zcd=${ZDOTDIR:-$HOME}/.zcompdump
 local zcdc="$zcd.zwc"
@@ -76,7 +77,7 @@ else
       compinit -C -d "$zcd"
       { [[ ! -f "$zcdc" || "$zcd" -nt "$zcdc" ]] && rm -f "$zcdc" && zcompile "$zcd" } &!
 fi
-unsetopt extendedglob local_options
+# unsetopt extendedglob local_options
 
 
 # fzf-tab
