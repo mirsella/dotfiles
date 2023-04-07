@@ -26,7 +26,7 @@ bakm() { sudo -E mv "${1}" "${1}.bak" }
 
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
 hash -d u=/run/media/mirsella
-export MAIL=mirsella@protonmail.com
+export MAIL='mirsella@protonmail.com'
 export EDITOR='nvim'
 export DIFFPROG='nvim -d'
 export BROWSER='xdg-open'
@@ -64,8 +64,8 @@ alias gt='git stash '
 alias gc='git commit '
 alias gp='git push '
 alias gcd='git commit -m "gcd $(date)"'
-gm() { git commit -m "${@}" }
-gamp() { git add -A; git commit -m "${@:-gamp}"; git push }
+gm() { git commit -m "$*" }
+gamp() { git add -A; git commit -m "${*:-gamp}"; git push }
 alias fd='fd -HL -E run -E media -E sys -E proc '
 alias fda='fd -I '
 alias trapp='trap "exit" SIGINT '

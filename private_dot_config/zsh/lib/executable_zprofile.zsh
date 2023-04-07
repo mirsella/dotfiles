@@ -42,7 +42,7 @@ export forgit_cherry_pick=gcp
 
 setopt share_history # share history between all sessions.
 setopt histappend
-setopt prompt_subst
+# setopt prompt_subst
 setopt auto_cd # cd by typing directory name if it's not a command
 setopt correct_all # autocorrect commands
 setopt correct # autocorrect commands
@@ -51,6 +51,7 @@ setopt always_to_end
 setopt interactive_comments
 setopt long_list_jobs
 setopt complete_in_word
+setopt extendedglob nomatch # allow extended globbing and if no match found is use it as a literal string. ex: git show HEAD^
 unsetopt auto_menu # automatically use menu completion
 unsetopt hist_verify
 zstyle ':completion::complete:*' gain-privileges 1
@@ -62,8 +63,7 @@ autoload -Uz bracketed-paste-magic
 zle -N bracketed-paste bracketed-paste-magic
 
 
-setopt extended_glob
-# setopt extendedglob local_options
+setopt extendedglob local_options
 autoload -U compinit
 local zcd=${ZDOTDIR:-$HOME}/.zcompdump
 local zcdc="$zcd.zwc"
@@ -77,7 +77,7 @@ else
       compinit -C -d "$zcd"
       { [[ ! -f "$zcdc" || "$zcd" -nt "$zcdc" ]] && rm -f "$zcdc" && zcompile "$zcd" } &!
 fi
-# unsetopt extendedglob local_options
+unsetopt extendedglob local_options
 
 
 # fzf-tab
