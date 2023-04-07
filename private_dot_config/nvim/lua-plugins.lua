@@ -3,8 +3,11 @@ require('hop').setup()
 require('nvim-web-devicons').setup()
 require('lualine').setup()
 require('colorizer').setup()
-require("trouble").setup()
 require("telescope").setup()
+
+require("trouble").setup {
+	width = 0,
+}
 
 require("copilot").setup({
 	suggestion = {
@@ -167,9 +170,9 @@ require("mason-lspconfig").setup_handlers {
 	end
 }
 
-vim.api.nvim_create_augroup("bufcheck", { clear = true})
-vim.api.nvim_create_autocmd("FileType", {
-	group = "bufcheck",
-	pattern = "Trouble",
-	command = "set wrap"
-})
+-- vim.api.nvim_create_augroup("bufcheck", { clear = true})
+-- vim.api.nvim_create_autocmd("FileType", {
+-- 	group = "bufcheck",
+-- 	pattern = "Trouble",
+-- 	command = "set wrap"
+-- })
