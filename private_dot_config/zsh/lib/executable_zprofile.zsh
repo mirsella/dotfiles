@@ -51,7 +51,8 @@ setopt always_to_end
 setopt interactive_comments
 setopt long_list_jobs
 setopt complete_in_word
-setopt extendedglob nomatch # allow extended globbing and if no match found is use it as a literal string. ex: git show HEAD^
+setopt extendedglob
+setopt nomatch # allow extended globbing and if no match found is use it as a literal string. ex: git show HEAD^
 unsetopt auto_menu # automatically use menu completion
 unsetopt hist_verify
 zstyle ':completion::complete:*' gain-privileges 1
