@@ -3,9 +3,10 @@ require('hop').setup()
 require('nvim-web-devicons').setup()
 require('lualine').setup()
 require('colorizer').setup()
-require("telescope").setup()
+require('telescope').setup()
+require('cloak').setup()
 
-require("trouble").setup {
+require("trouble").setup{
 	width = 0,
 }
 
@@ -24,12 +25,13 @@ require('nvim-treesitter.configs').setup {
 	context_commentstring = {
 		enable = true
 	},
-	ensure_installed = { "c", "cpp", "lua", "vim", "vue", "typescript", "javascript", "json", "html", "css", "bash", "python", "rust", "java", "regex" },
+	-- ensure_installed = { "c", "cpp", "lua", "vim", "vue", "typescript", "javascript", "json", "html", "css", "bash", "python", "rust", "java", "regex" },
 	-- Automatically install missing parsers when entering buffer
 	-- Recommendation: set to false if you don't have `tree-sitter` CLI installed locally
 	auto_install = true,
-	indent = {
-		-- enable = true,
+	highlight = {
+		enable = true,
+		additional_vim_regex_highlighting = false,
 	},
 }
 
@@ -69,7 +71,7 @@ require("copilot_cmp").setup {
 }
 local cmp = require('cmp')
 local lspkind = require('lspkind')
-vim.opt.completeopt = {'menu', 'menuone', 'noselect'}
+local cmp_select = {behavior = cmp.SelectBehavior.Select}
 cmp.setup({
 	snippet = {
 		-- REQUIRED - you must specify a snippet engine
@@ -82,16 +84,13 @@ cmp.setup({
 		documentation = cmp.config.window.bordered(),
 	},
 	mapping = cmp.mapping.preset.insert({
-			['<C-p>'] = cmp.mapping.select_prev_item(),
-		['<C-n>'] = cmp.mapping.select_next_item(),
-
 		['<C-u>'] = cmp.mapping.scroll_docs(-4),
 		['<C-d>'] = cmp.mapping.scroll_docs(4),
-
+		['<C-p>'] = cmp.mapping.select_prev_item(cmp_select),
+		['<C-n>'] = cmp.mapping.select_next_item(cmp_select),
 		['<C-e>'] = cmp.mapping.abort(),
-		['<C-y>'] = cmp.mapping.confirm({select = true, behavior = cmp.ConfirmBehavior.Replace}),
-		-- ['<CR>'] = cmp.mapping.confirm({select = false,	behavior = cmp.ConfirmBehavior.Replace}),
-		['<CR>'] = cmp.mapping.confirm({select = true,	behavior = cmp.ConfirmBehavior.Replace}),
+		['<C-y>'] = cmp.mapping.confirm({ select = true }),
+		["<C-Space>"] = cmp.mapping.complete(),
 
 	}),
 	sources = cmp.config.sources({
@@ -104,8 +103,8 @@ cmp.setup({
 		{ name = 'treesitter', priority = 1 },
 		{ name = 'vsnip', priority = 1 },
 		-- { name = 'buffer', priority = 1 }
-		}, {
-			{ name = 'buffer', priority = 1 },
+	}, {
+		{ name = 'buffer', priority = 1 },
 	}),
 	formatting = {
 		format = lspkind.cmp_format({
@@ -133,8 +132,8 @@ cmp.setup.cmdline(':', {
 	mapping = cmp.mapping.preset.cmdline(),
 	sources = cmp.config.sources({
 		{ name = 'path' }
-		}, {
-			{ name = 'cmdline' }
+	}, {
+		{ name = 'cmdline' }
 	})
 })
 
@@ -142,8 +141,8 @@ cmp.setup.cmdline(':', {
 require('nvim-autopairs').setup()
 local cmp_autopairs = require('nvim-autopairs.completion.cmp')
 cmp.event:on(
-	'confirm_done',
-	cmp_autopairs.on_confirm_done()
+'confirm_done',
+cmp_autopairs.on_confirm_done()
 )
 
 -- Set up lspconfig.
@@ -176,3 +175,15 @@ require("mason-lspconfig").setup_handlers {
 -- 	pattern = "Trouble",
 -- 	command = "set wrap"
 -- })
+
+local opts = {buffer = bufnr, remap = false}
+vim.keymap.set("n", "gd", function() vim.lsp.buf.definition() end, opts)
+vim.keymap.set("n", "K", function() vim.lsp.buf.hover() end, opts)
+vim.keymap.set("n", "<leader>vws", function() vim.lsp.buf.workspace_symbol() end, opts)
+vim.keymap.set("n", "<leader>vd", function() vim.diagnostic.open_float() end, opts)
+vim.keymap.set("n", "[d", function() vim.diagnostic.goto_next() end, opts)
+vim.keymap.set("n", "]d", function() vim.diagnostic.goto_prev() end, opts)
+vim.keymap.set("n", "<leader>vca", function() vim.lsp.buf.code_action() end, opts)
+vim.keymap.set("n", "<leader>vrr", function() vim.lsp.buf.references() end, opts)
+vim.keymap.set("n", "<leader>vrn", function() vim.lsp.buf.rename() end, opts)
+vim.keymap.set("i", "<C-h>", function() vim.lsp.buf.signature_help() end, opts)

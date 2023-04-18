@@ -8,6 +8,7 @@ Plug 'zbirenbaum/copilot.lua'
 Plug 'nathom/filetype.nvim'
 Plug 'vim-scripts/argtextobj.vim'
 Plug 'gruvbox-community/gruvbox'
+Plug 'rose-pine/neovim'
 " Plug 'tanvirtin/monokai.nvim'
 Plug 'nvim-lualine/lualine.nvim'
 Plug 'akinsho/bufferline.nvim'
@@ -39,6 +40,8 @@ Plug 'simrat39/rust-tools.nvim'
 Plug 'windwp/nvim-autopairs'
 Plug 'lewis6991/impatient.nvim'
 Plug 'leafOfTree/vim-vue-plugin'
+Plug 'laytan/cloak.nvim'
+Plug 'Eandrju/cellular-automaton.nvim'
 
 Plug 'williamboman/mason.nvim'
 Plug 'neovim/nvim-lspconfig'
@@ -62,7 +65,6 @@ Plug 'hrsh7th/nvim-cmp'
 call plug#end()
 
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
-command! -nargs=? V :vert sb
 command! Cdfile :lcd %:p:h
 map <Space> <Leader>
 inoremap kj <Esc>
@@ -150,38 +152,37 @@ nmap ss <plug>(SubversiveSubstituteLine)
 nmap S <plug>(SubversiveSubstituteToEndOfLine)
 
 " filetype plugin indent on
-set nocompatible
 set formatoptions-=cro " don't insert comment leader after o or O
+" set guicursor = ""
 set smartindent
 set noexpandtab
 set shiftwidth=4
 set tabstop=4
+set	softtabstop=4
 set nowrap
 set linebreak
 set ignorecase " use \C in regex to search case sensitive
 set noerrorbells
 set hidden
-set noswapfile
+" set noswapfile
 set wildignorecase
-set scrolloff=3
+set scrolloff=8
 set history=1000
 set mouse=a
 set clipboard=unnamedplus
 set lazyredraw
+set updatetime=50
 set splitbelow splitright
 set incsearch
 set termguicolors
 set mousemoveevent
-" set updatetime=300
-" set shortmess+=c
-" set completeopt=longest,menuone
-" au BufEnter * set noro
-set noro
-set isfname+={,}
+set completeopt=menu,menuone,preview,noselect
 set number relativenumber
 
+
 " themes
-colorscheme gruvbox
+" colorscheme gruvbox
+colorscheme rose-pine
 " highlight Normal guibg=NONE
 " highlight LineNr guifg=#7b6e63 guibg=NONE
 " highlight CursorLineNr guifg=#f7bd2f guibg=NONE
