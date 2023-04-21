@@ -93,5 +93,7 @@ alias ccw='cc -Wall -Wextra -Werror -g3 '
 alias antibodybundle='antibody bundle < ~/.config/zsh/lib/$(hostname)/plugins.txt > ~/.config/zsh/lib/$(hostname)/plugins.zsh && source ~/.config/zsh/.zshrc'
 alias	chezmoi-cd='pushd $(chezmoi source-path)'
 chezmoi-gamp() { chezmoi-cd && git add -A && git commit -m "${@:-chezmoi-gamp}" && git push }
+alias colemak='setxkbmap us -variant colemak_dh_iso'
+alias qwerty='setxkbmap us'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
