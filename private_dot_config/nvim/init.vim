@@ -5,7 +5,7 @@ Plug 'nvim-telescope/telescope.nvim'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'mbbill/undotree'
 Plug 'zbirenbaum/copilot.lua'
-Plug 'nathom/filetype.nvim'
+" Plug 'nathom/filetype.nvim'
 Plug 'vim-scripts/argtextobj.vim'
 Plug 'gruvbox-community/gruvbox'
 Plug 'rose-pine/neovim'
@@ -224,7 +224,7 @@ set nofoldenable " disable folding at startup
 let g:rainbow_active = 1
 
 " -- Do not source the default filetype.vim for nathom/filetype.nvim
-let g:did_load_filetypes = 1
+" let g:did_load_filetypes = 1
 
 " 42
 let b:fortytwoheader_user = 'mirsella'
