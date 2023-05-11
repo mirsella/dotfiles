@@ -151,7 +151,8 @@ nmap ss <plug>(SubversiveSubstituteLine)
 nmap S <plug>(SubversiveSubstituteToEndOfLine)
 
 " filetype plugin indent on
-set formatoptions-=cro " don't insert comment leader after o or O
+" set formatoptions-=cro " don't insert comment leader after o or O
+au BufWinEnter * set formatoptions-=cro 
 " set guicursor = ""
 set smartindent
 set noexpandtab
