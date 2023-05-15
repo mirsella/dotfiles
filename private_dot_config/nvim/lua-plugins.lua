@@ -1,4 +1,3 @@
-require('impatient')
 require('hop').setup()
 require('nvim-web-devicons').setup()
 require('lualine').setup()
