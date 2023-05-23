@@ -3,6 +3,7 @@ Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}  " We recommend upda
 Plug 'pandark/42header.vim'
 Plug 'nvim-telescope/telescope.nvim'
 Plug 'nvim-lua/plenary.nvim'
+Plug 'MunifTanjim/nui.nvim'
 Plug 'mbbill/undotree'
 Plug 'zbirenbaum/copilot.lua'
 " Plug 'nathom/filetype.nvim'
