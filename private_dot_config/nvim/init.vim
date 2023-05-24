@@ -4,6 +4,7 @@ Plug 'pandark/42header.vim'
 Plug 'nvim-telescope/telescope.nvim'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'MunifTanjim/nui.nvim'
+Plug 'nvim-neo-tree/neo-tree.nvim'
 Plug 'mbbill/undotree'
 Plug 'zbirenbaum/copilot.lua'
 " Plug 'nathom/filetype.nvim'
@@ -95,10 +96,12 @@ nmap <Leader>f :HopChar1<cr>
 nmap <leader>g :HopChar2<cr>
 nmap <Leader>l :HopLine<cr>
 nmap <Leader>w :HopWord<cr>
+nmap \			:HopWord<cr>
 xmap <Leader>w :HopWord<cr>
 
 nnoremap <leader>u :UndotreeToggle<cr>
 nnoremap <leader>t :TroubleToggle<cr>
+nnoremap <leader>\ :NeotreeToggle<cr>
 nnoremap <C-j> 5jzz
 nnoremap <C-k> 5kzz
 xnoremap <C-j> 5jzz
@@ -239,16 +242,7 @@ nnoremap <leader>fb <cmd>Telescope buffers<cr>
 nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 
 " vim-vsnip
-" Expand
-imap <expr> <C-j>   vsnip#expandable()  ? '<Plug>(vsnip-expand)'         : '<C-j>'
-smap <expr> <C-j>   vsnip#expandable()  ? '<Plug>(vsnip-expand)'         : '<C-j>'
-" Expand or jump
 imap <expr> <C-l>   vsnip#available(1)  ? '<Plug>(vsnip-expand-or-jump)' : '<C-l>'
 smap <expr> <C-l>   vsnip#available(1)  ? '<Plug>(vsnip-expand-or-jump)' : '<C-l>'
-" Jump forward or backward
-imap <expr> <Tab>   vsnip#jumpable(1)   ? '<Plug>(vsnip-jump-next)'      : '<Tab>'
-smap <expr> <Tab>   vsnip#jumpable(1)   ? '<Plug>(vsnip-jump-next)'      : '<Tab>'
-imap <expr> <S-Tab> vsnip#jumpable(-1)  ? '<Plug>(vsnip-jump-prev)'      : '<S-Tab>'
-smap <expr> <S-Tab> vsnip#jumpable(-1)  ? '<Plug>(vsnip-jump-prev)'      : '<S-Tab>'
 
 luafile ~/.config/nvim/lua-plugins.lua
