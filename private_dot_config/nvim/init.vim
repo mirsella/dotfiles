@@ -101,7 +101,7 @@ xmap <Leader>w :HopWord<cr>
 
 nnoremap <leader>u :UndotreeToggle<cr>
 nnoremap <leader>t :TroubleToggle<cr>
-nnoremap <leader>\ :NeotreeToggle<cr>
+nnoremap <leader>\ :NeoTreeShowToggle<cr>
 nnoremap <C-j> 5jzz
 nnoremap <C-k> 5kzz
 xnoremap <C-j> 5jzz
