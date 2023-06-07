@@ -160,9 +160,9 @@ au BufWinEnter * set formatoptions-=cro
 " set guicursor = ""
 set smartindent
 set noexpandtab
-set shiftwidth=4
-set tabstop=4
-set	softtabstop=4
+set shiftwidth=2
+set tabstop=2
+set	softtabstop=2
 set nowrap
 set linebreak
 set ignorecase " use \C in regex to search case sensitive
