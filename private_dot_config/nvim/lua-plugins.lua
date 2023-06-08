@@ -105,9 +105,9 @@ cmp.setup({
 		{ name = 'nvim_lsp', priority = 1 },
 		{ name = 'treesitter', priority = 2 },
 		{ name = 'vsnip', priority = 1 },
-		-- { name = 'buffer', priority = 1, keyword_length = 3 },
-	}, {
 		{ name = 'buffer', priority = 1, keyword_length = 3 },
+	-- }, {
+	-- 	{ name = 'buffer', priority = 1, keyword_length = 3 },
 	}),
 	formatting = {
 		format = lspkind.cmp_format({
