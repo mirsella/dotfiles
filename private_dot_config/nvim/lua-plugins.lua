@@ -168,6 +168,22 @@ require("mason-lspconfig").setup_handlers {
 	-- For example, a handler override for the `rust_analyzer`:
 	["rust_analyzer"] = function ()
 		require("rust-tools").setup {}
+	end,
+	["lua_ls"] = function ()
+		require('lspconfig').lua_ls.setup {
+			settings = {
+				Lua = {
+					diagnostics = {
+						globals = { "vim" }
+					}
+				}
+			}
+		}
+	end,
+	["volar"] = function ()
+		require'lspconfig'.volar.setup {
+			filetypes = {'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue', 'json'}
+		}
 	end
 }
 
