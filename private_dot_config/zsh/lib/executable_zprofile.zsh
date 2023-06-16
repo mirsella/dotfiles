@@ -28,7 +28,10 @@ fi
 "'
 export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS"
 
-export VIMV_RM="rmtrash -rf"
+export ZSH_SYSTEM_CLIPBOARD_METHOD='wlp'
+
+# export VIMV_RM="rmtrash -rf"
+export VIMV_RM="trash -rf"
 export FORGIT_IGNORE_PAGER='bat -l gitignore -pp --color=always --theme="Monokai Extended Origin"'
 export forgit_log=gl
 export forgit_diff=gd
@@ -94,14 +97,6 @@ else
   bat -pp --color=always --theme="Monokai Extended Origin" $realpath
 fi
 '
-
-# force clipboad to xclip for the system clipboard plugin
-# _zsh_system_clipboard_set=(wl-copy)
-# _zsh_system_clipboard_get=(wl-paste)
-# doesn't work :
-export ZSH_SYSTEM_CLIPBOARD_USE_WL_CLIPBOARD='true'
-# _zsh_system_clipboard_set=(xclip -in -selection clipboard)
-# _zsh_system_clipboard_get=(xclip -out -selection clipboard)
 
 # zsh auto notify
 export AUTO_NOTIFY_THRESHOLD=20

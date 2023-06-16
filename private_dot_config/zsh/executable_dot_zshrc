@@ -6,20 +6,20 @@ source  ~/.config/zsh/lib/fzf/fzf-completion.zsh
 source  ~/.config/zsh/lib/fzf/fzf-key-bindings.zsh
 
 winboot() {
-  WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
-  sudo grub-reboot "$WINDOWS_TITLE"
-  sudo reboot
+	WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
+	sudo grub-reboot "$WINDOWS_TITLE"
+	sudo reboot
 }
 waitforjob() {
-  until ! jobs %${1:-1} >/dev/null 2>&1; do
-    sleep 2
-  done
+	until ! jobs %${1:-1} >/dev/null 2>&1; do
+		sleep 2
+	done
 }
 notif() {
-  [ -f ~/.config/token/telegram.token ] && source ~/.config/token/telegram.token
-  [ -f ~/Documents/gdrive/token/telegram.token ] && source ~/Documents/gdrive/token/telegram.token
-  data='{"chat_id": '$TgId', "text": "'"${@:-$(read a; echo $a)}"'"}'
-  curl -s -X POST -H 'Content-Type: application/json' -d "$data" "https://api.telegram.org/bot$TgToken/sendMessage"
+	[ -f ~/.config/token/telegram.token ] && source ~/.config/token/telegram.token
+	[ -f ~/Documents/gdrive/token/telegram.token ] && source ~/Documents/gdrive/token/telegram.token
+	data='{"chat_id": '$TgId', "text": "'"${@:-$(read a; echo $a)}"'"}'
+	curl -s -X POST -H 'Content-Type: application/json' -d "$data" "https://api.telegram.org/bot$TgToken/sendMessage"
 }
 bak() { sudo -E cp -r "${1}" "${1}.bak" }
 bakm() { sudo -E mv "${1}" "${1}.bak" }
@@ -37,7 +37,7 @@ export LC_MONETARY=fr_FR.UTF-8
 export LC_NUMERIC=fr_FR.UTF-8
 export LC_TIME=fr_FR.UTF-8
 export PATH="$PATH:/home/mirsella/.local/bin:/home/mirsella/.local/share/gem/bin:/home/mirsella/.local/share/npm/bin"
-export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>} 
+export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias -s html='firefox'
 alias -s pdf='firefox'
 alias -s odt='libreoffice'
@@ -74,9 +74,9 @@ alias update='paru -Syu --noconfirm; notif "paru on $(hostname) finished $?"'
 alias chownm='s chown -R $USER: '
 alias S='sudo systemctl '
 alias s='sudo -E '
-alias trash-empty='s trash-empty '
-alias trash-list='s trash-list '
-alias trash-restore='s trash-restore '
+# alias trash-empty='s trash-empty '
+# alias trash-list='s trash-list '
+# alias trash-restore='s trash-restore '
 alias uefireboot='systemctl reboot --firmware-setup'
 alias yarn="yarn --use-yarnrc $XDG_CONFIG_HOME/yarn/config "
 alias arduino-cli='arduino-cli --config-file $XDG_CONFIG_HOME/arduino15/arduino-cli.yaml '
@@ -89,10 +89,8 @@ alias rga='rga --no-ignore --hidden -S '
 alias adbconnectipr='adb connect $(ip r | rg default | head -n 1 | cut -d" " -f3) '
 alias kdesend='kdeconnect-cli -d $(kdeconnect-cli --list-devices | rg  "phone" | rg -o "[a-z0-9]{16}") --share '
 alias dolphinroot='pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY KDE_SESSION_VERSION=5 KDE_FULL_SESSION=true dolphin '
-alias ccw='cc -Wall -Wextra -Werror -g3 '
 alias antibodybundle='antibody bundle < ~/.config/zsh/lib/$(hostname)/plugins.txt > ~/.config/zsh/lib/$(hostname)/plugins.zsh && source ~/.config/zsh/.zshrc'
 alias	chezmoi-cd='pushd $(chezmoi source-path)'
-chezmoi-gamp() { chezmoi-cd && git add -A && git commit -m "${@:-chezmoi-gamp}" && git push }
 alias colemak='setxkbmap us -variant colemak_dh_iso'
 alias qwerty='setxkbmap us'
 alias irssi="irssi --home=$XDG_CONFIG_HOME/irssi "

@@ -1,10 +1,10 @@
 export PATH="/mnt/nfs/homes/lgillard/.local/bin:$PATH"
 alias rmf='/bin/rm -rf '
-alias rm='rmtrash -rf '
-unalias s trash-empty trash-list trash-restore
+# alias rm='rmtrash -rf '
+# unalias s trash-empty trash-list trash-restore
+alias rm='trash -rfI'
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
-alias v='nvim -p '
 clipp() { xclip -out -selection clipboard; }
 clip() { xclip -in -selection clipboard < "${@:-/dev/stdin}"; }
 # [ ! -d ~/sgoinfre/.cache ] && mkdir ~/sgoinfre/.cache

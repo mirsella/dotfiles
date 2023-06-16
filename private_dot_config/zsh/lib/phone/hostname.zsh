@@ -1,4 +1,3 @@
-unalias s trash-empty trash-list trash-restore
 alias clip='termux-clipboard-set'
 alias clipp='termux-clipboard-get'
 # export PATH="$PATH:/data/data/com.termux/files/home/.local/share/gem/ruby/3.0.0/bin"
@@ -6,7 +5,9 @@ export PATH="$PATH:/data/data/com.termux/files/home/.local/share/gem/bin:/data/d
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
 alias rmf='rm -rf '
-alias rm='rm -rf '
+# unalias s trash-empty trash-list trash-restore
+# alias rm='rm -rf '
+alias rm='trash -rfI'
 alias chownm='chown -R $USER: '
 alias v='nvim -p'
 export XDG_RUNTIME_DIR=$PREFIX/run
