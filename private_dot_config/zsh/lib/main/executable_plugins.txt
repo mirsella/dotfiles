@@ -1,3 +1,4 @@
+#!/bin/sh
 jeffreytse/zsh-vi-mode
 joshskidmore/zsh-fzf-history-search
 marlonrichert/zsh-edit
@@ -9,3 +10,4 @@ Aloxaf/fzf-tab
 zsh-users/zsh-autosuggestions
 zsh-users/zsh-completions
 zsh-users/zsh-syntax-highlighting
+# zdharma-continuum/fast-syntax-highlighting

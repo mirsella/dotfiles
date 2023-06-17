@@ -1,3 +1,5 @@
+export ZVM_INIT_MODE=sourcing
+
 source "$ZDOTDIR"/lib/$(hostname)/plugins.zsh
 export HISTSIZE=1000000
 export SAVEHIST=1000000
@@ -111,7 +113,10 @@ ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_MANUAL_REBIND=1
 # ZSH_AUTOSUGGEST_COMPLETION_IGNORE='(man)*'
 
+ZVM_INIT_MODE='sourcing'
+
 # https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters/
+declare -A ZSH_HIGHLIGHT_STYLES
 ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern)
 ZSH_HIGHLIGHT_STYLES[error]=fg=160,bold
 ZSH_HIGHLIGHT_STYLES[globbing]=fg=225,bold
