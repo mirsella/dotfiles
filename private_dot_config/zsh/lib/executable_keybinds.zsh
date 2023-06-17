@@ -1,5 +1,5 @@
 # vi mode
-bindkey -v
+# bindkey -v
 # export KEYTIMEOUT=1
 # bindkey "^?" backward-delete-char # Fix backspace bug when switching modes
 
