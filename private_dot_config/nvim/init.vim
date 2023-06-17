@@ -69,7 +69,8 @@ call plug#end()
 command! W :execute ':silent w !sudo tee % > /dev/null' | :edit!
 command! Cdfile :lcd %:p:h
 map <Space> <Leader>
-inoremap <C-t> <Esc>:wa<cr>
+inoremap <C-s> <Esc>:wa<cr>
+inoremap <C-t> <Esc>
 map Y y$
 nnoremap U :echo " < < ===== C H E C K   C A P S   L O C K ===== > > "<CR>
 inoremap <C-H> <C-W>
