@@ -1,4 +1,3 @@
-#!/bin/sh
 jeffreytse/zsh-vi-mode
 joshskidmore/zsh-fzf-history-search
 marlonrichert/zsh-edit
