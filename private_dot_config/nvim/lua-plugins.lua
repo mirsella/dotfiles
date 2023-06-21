@@ -1,7 +1,6 @@
 require('impatient')
 require('hop').setup()
 require('nvim-web-devicons').setup()
-require('lualine').setup()
 require('colorizer').setup()
 require('telescope').setup()
 require('cloak').setup()
@@ -66,6 +65,18 @@ require('bufferline').setup {
 	}
 }
 
+require('lualine').setup {
+	sections = {
+		lualine_c = {
+			{
+				'filename',
+				file_status = true, -- displays file status (readonly status, modified status)
+				path = 1 -- 0 = just filename, 1 = relative path, 2 = absolute path
+			}
+		}
+	}
+}
+
 -- Set up nvim-cmp.
 require("cmp_git").setup()
 require("copilot_cmp").setup {
@@ -106,8 +117,8 @@ cmp.setup({
 		{ name = 'treesitter', priority = 2 },
 		{ name = 'vsnip', priority = 1 },
 		{ name = 'buffer', priority = 1, keyword_length = 3 },
-	-- }, {
-	-- 	{ name = 'buffer', priority = 1, keyword_length = 3 },
+	}, {
+		{ name = 'buffer', priority = 1, keyword_length = 3 },
 	}),
 	formatting = {
 		format = lspkind.cmp_format({
