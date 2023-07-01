@@ -194,6 +194,7 @@ require("mason-lspconfig").setup_handlers {
 	["volar"] = function ()
 		require'lspconfig'.volar.setup {
 			filetypes = {'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue', 'json'}
+			-- filetypes = {'vue'}
 		}
 	end
 }
