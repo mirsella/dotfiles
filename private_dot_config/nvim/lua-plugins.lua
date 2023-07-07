@@ -117,8 +117,8 @@ cmp.setup({
 		{ name = 'treesitter', priority = 2 },
 		{ name = 'vsnip', priority = 1 },
 		{ name = 'buffer', priority = 1, keyword_length = 3 },
-	}, {
-		{ name = 'buffer', priority = 1, keyword_length = 3 },
+		}, {
+			{ name = 'buffer', priority = 1, keyword_length = 3 },
 	}),
 	formatting = {
 		format = lspkind.cmp_format({
@@ -145,8 +145,8 @@ cmp.setup.cmdline(':', {
 	mapping = cmp.mapping.preset.cmdline(),
 	sources = cmp.config.sources({
 		{ name = 'path' }
-	}, {
-		{ name = 'cmdline' }
+		}, {
+			{ name = 'cmdline' }
 	})
 })
 
@@ -154,8 +154,8 @@ cmp.setup.cmdline(':', {
 require('nvim-autopairs').setup()
 local cmp_autopairs = require('nvim-autopairs.completion.cmp')
 cmp.event:on(
-'confirm_done',
-cmp_autopairs.on_confirm_done()
+	'confirm_done',
+	cmp_autopairs.on_confirm_done()
 )
 
 -- Set up lspconfig.
@@ -178,7 +178,24 @@ require("mason-lspconfig").setup_handlers {
 	-- Next, you can provide a dedicated handler for specific servers.
 	-- For example, a handler override for the `rust_analyzer`:
 	["rust_analyzer"] = function ()
-		require("rust-tools").setup {}
+		require("rust-tools").setup {
+			server = {
+				settings = {
+					["rust-analyzer"] = {
+						-- checkOnSave = {
+						-- 	command = "clippy",
+						-- },
+						checkOnSave = {
+							allFeatures = true,
+							overrideCommand = {
+								'cargo', 'clippy', '--workspace', '--message-format=json',
+								'--all-targets', '--all-features'
+							}
+						}
+					},
+				},
+			}
+		}
 	end,
 	["lua_ls"] = function ()
 		require('lspconfig').lua_ls.setup {
