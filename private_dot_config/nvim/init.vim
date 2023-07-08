@@ -99,7 +99,7 @@ nmap <Leader>f :HopChar1<cr>
 nmap <leader>g :HopChar2<cr>
 nmap <Leader>l :HopLine<cr>
 nmap <Leader>w :HopWord<cr>
-nmap \			:HopWord<cr>
+nmap <space><space>			:HopWord<cr>
 xmap <Leader>w :HopWord<cr>
 
 nnoremap <leader>u :UndotreeToggle<cr>
