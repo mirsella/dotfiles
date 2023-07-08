@@ -2,7 +2,7 @@ export PATH="/mnt/nfs/homes/lgillard/.local/bin:$PATH"
 alias rmf='/bin/rm -rf '
 # alias rm='rmtrash -rf '
 # unalias s trash-empty trash-list trash-restore
-alias rm='trash -rfI'
+alias rm='trash -rf'
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
 clipp() { xclip -out -selection clipboard; }

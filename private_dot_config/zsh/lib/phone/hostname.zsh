@@ -7,7 +7,7 @@ bakm() { mv "${1}" "${1}.bak" }
 alias rmf='rm -rf '
 # unalias s trash-empty trash-list trash-restore
 # alias rm='rm -rf '
-alias rm='trash -rfI'
+alias rm='trash -rf'
 alias chownm='chown -R $USER: '
 alias v='nvim -p'
 export XDG_RUNTIME_DIR=$PREFIX/run
