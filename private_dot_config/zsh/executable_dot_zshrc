@@ -90,7 +90,6 @@ alias adbconnectipr='adb connect $(ip r | rg default | head -n 1 | cut -d" " -f3
 alias kdesend='kdeconnect-cli -d $(kdeconnect-cli --list-devices | rg  "phone" | rg -o "[a-z0-9]{16}") --share '
 alias dolphinroot='pkexec env DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY KDE_SESSION_VERSION=5 KDE_FULL_SESSION=true dolphin '
 alias antibodybundle='antibody bundle < ~/.config/zsh/lib/$(hostname)/plugins.txt > ~/.config/zsh/lib/$(hostname)/plugins.zsh && source ~/.config/zsh/.zshrc'
-alias	chezmoi-cd='pushd $(chezmoi source-path)'
 alias colemak='setxkbmap us -variant colemak_dh_iso'
 alias qwerty='setxkbmap us'
 alias irssi="irssi --home=$XDG_CONFIG_HOME/irssi "
