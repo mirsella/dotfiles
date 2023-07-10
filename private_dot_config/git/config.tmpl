@@ -1,7 +1,9 @@
 [user]
 	name = mirsella
 	email = mirsella@protonmail.com
-	signingkey = 031332386EA9B207
+	# signingkey = 031332386EA9B207
+	# {{ .email }}
+	signinKey = {{- dig .chezmoi.hostname "" .email }}
 [init]
 	defaultBranch = main
 [pull]

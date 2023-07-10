@@ -1,6 +1,0 @@
-#!/bin/bash
-
-
-# config hash: {{ include "private_dot_config/git/config" | sha256sum }}
-echo hello from config template
-sed -i '/signinKey/d' ~/.config/git/config
