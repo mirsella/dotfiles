@@ -1,6 +1,7 @@
 [user]
 	name = mirsella
 	email = mirsella@protonmail.com
+	signingkey = 031332386EA9B207
 [init]
 	defaultBranch = main
 [pull]
