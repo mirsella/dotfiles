@@ -110,15 +110,13 @@ cmp.setup({
 	sources = cmp.config.sources({
 		{ name = 'path', priority = 5 },
 		{ name = 'git', priority = 4 },
-		{ name = 'copilot', priority = 3 },
+		{ name = 'copilot', priority = 2 },
 		{ name = 'nvim_lsp_signature_help', priority = 2 },
 		{ name = 'nvim_lua', priority = 1 },
 		{ name = 'nvim_lsp', priority = 1 },
 		{ name = 'treesitter', priority = 2 },
 		{ name = 'vsnip', priority = 1 },
 		{ name = 'buffer', priority = 1, keyword_length = 3 },
-		}, {
-			{ name = 'buffer', priority = 1, keyword_length = 3 },
 	}),
 	formatting = {
 		format = lspkind.cmp_format({
