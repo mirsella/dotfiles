@@ -86,6 +86,15 @@ require("copilot_cmp").setup {
 }
 local cmp = require('cmp')
 local lspkind = require('lspkind')
+local mapping_cmp = cmp.mapping.preset.insert({
+		['<C-u>'] = cmp.mapping.scroll_docs(-4),
+		['<C-d>'] = cmp.mapping.scroll_docs(4),
+		['<C-p>'] = cmp.mapping.select_prev_item({behavior = cmp.SelectBehavior.Select}),
+		['<C-n>'] = cmp.mapping.select_next_item({behavior = cmp.SelectBehavior.Select}),
+		['<C-e>'] = cmp.mapping.abort(),
+		['<CR>'] = cmp.mapping.confirm({select = true,	behavior = cmp.ConfirmBehavior.Replace}),
+		["<C-Space>"] = cmp.mapping.complete(),
+})
 cmp.setup({
 	snippet = {
 		-- REQUIRED - you must specify a snippet engine
@@ -97,16 +106,7 @@ cmp.setup({
 		completion = cmp.config.window.bordered(),
 		documentation = cmp.config.window.bordered(),
 	},
-	mapping = cmp.mapping.preset.insert({
-		['<C-u>'] = cmp.mapping.scroll_docs(-4),
-		['<C-d>'] = cmp.mapping.scroll_docs(4),
-		['<C-p>'] = cmp.mapping.select_prev_item({behavior = cmp.SelectBehavior.Select}),
-		['<C-n>'] = cmp.mapping.select_next_item({behavior = cmp.SelectBehavior.Select}),
-		['<C-e>'] = cmp.mapping.abort(),
-		['<CR>'] = cmp.mapping.confirm({select = true,	behavior = cmp.ConfirmBehavior.Replace}),
-		["<C-Space>"] = cmp.mapping.complete(),
-
-	}),
+	mapping = mapping_cmp,
 	sources = cmp.config.sources({
 		{ name = 'path', priority = 5 },
 		{ name = 'git', priority = 4 },
@@ -140,7 +140,7 @@ cmp.setup.cmdline({ '/', '?' }, {
 
 -- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
 cmp.setup.cmdline(':', {
-	mapping = cmp.mapping.preset.cmdline(),
+	mapping = mapping_cmp,
 	sources = cmp.config.sources({
 		{ name = 'path' }
 		}, {
