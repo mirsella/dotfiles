@@ -164,15 +164,18 @@ nmap s <plug>(SubversiveSubstitute)
 nmap ss <plug>(SubversiveSubstituteLine)
 nmap S <plug>(SubversiveSubstituteToEndOfLine)
 
-" filetype plugin indent on
+filetype plugin indent on
 " set formatoptions-=cro " don't insert comment leader after o or O
 au BufWinEnter * set formatoptions-=cro 
 " set guicursor = ""
-set smartindent
-set noexpandtab
+set smartindent " autoindent new lines
+set autoindent " reproduce the indent of the previous line
+set cpoptions+=I " keep indentation produced by 'autoindent' if leaving the line blank
+set expandtab " replace tabs with spaces
+set shiftround " round indent to multiple of 'shiftwidth'
 set shiftwidth=2
 set tabstop=2
-" set	softtabstop=2
+set	softtabstop=0
 set nowrap
 set linebreak
 set ignorecase " use \C in regex to search case sensitive
