@@ -1,7 +1,6 @@
 export ZVM_INIT_MODE=sourcing
 
 source "${ZDOTDIR}/.antidote/antidote.zsh"
-antidote load "${ZDOTDIR}/lib/$(hostname)/plugins.txt"
 export HISTSIZE=1000000
 export SAVEHIST=1000000
 export HISTFILE="$XDG_CACHE_HOME"/zsh_history
@@ -36,15 +35,25 @@ export ZSH_SYSTEM_CLIPBOARD_METHOD='wlp'
 # export VIMV_RM="rmtrash -rf"
 export VIMV_RM="trash -rf"
 # export FORGIT_IGNORE_PAGER='bat -l gitignore -pp --color=always --theme="Monokai Extended Origin"'
-export forgit_log=gl
-export forgit_diff=gd
-export forgit_add=gad
-export forgit_reset_head=grh
-export forgit_ignore=gi
-export forgit_restore=gcf
-export forgit_clean=gclean
-export forgit_stash_show=gss
-export forgit_cherry_pick=gcp
+export FORGIT_COPY_CMD='wl-copy'
+export forgit_log=fglo
+export forgit_diff=fgd
+export forgit_add=fga
+export forgit_reset_head=fgrh
+export forgit_ignore=fgi
+export forgit_checkout_file=fgcf
+export forgit_checkout_branch=fgcb
+export forgit_branch_delete=fgbd
+export forgit_checkout_tag=fgct
+export forgit_checkout_commit=fgco
+export forgit_revert_commit=fgrc
+export forgit_clean=fgclean
+export forgit_stash_show=fgss
+export forgit_stash_push=fgsp
+export forgit_cherry_pick=fgcp
+export forgit_rebase=fgrb
+export forgit_blame=fgbl
+export forgit_fixup=fgfu
 
 setopt share_history # share history between all sessions.
 setopt histappend
@@ -70,24 +79,18 @@ autoload -Uz bracketed-paste-magic
 zle -N bracketed-paste bracketed-paste-magic
 
 autoload -Uz compinit
-for dump in "${ZDOTDIR}"/.zcompdump(N.mh+24); do
-  compinit
-done
-compinit -C
-
-# fzf-tab
-disable-fzf-tab
-zstyle ':fzf-tab:*' fzf-bindings 'tab:toggle'
-bindkey '^[OP' toggle-fzf-tab # F1 key
-zstyle ':fzf-tab:*' continuous-trigger '/'
-zstyle ":fzf-tab:*" fzf-flags '--preview-window=right:100:wrap' '--height=100' '--ansi'
-zstyle ':fzf-tab:complete:*' fzf-preview '
-if [ -d $realpath ]; then
- lsd -Ah $realpath
-else 
-  bat -pp --color=always --theme="Monokai Extended Origin" $realpath
+ZSH_COMPDUMP=${ZSH_COMPDUMP:-${ZDOTDIR}/.zcompdump}
+if [[ $ZSH_COMPDUMP(#qNmh-20) ]]; then
+  compinit -C -d "$ZSH_COMPDUMP"
+else
+  compinit -i -d "$ZSH_COMPDUMP"; touch "$ZSH_COMPDUMP"
 fi
-'
+{
+  # compile .zcompdump
+  if [[ -s "$ZSH_COMPDUMP" && (! -s "${ZSH_COMPDUMP}.zwc" || "$ZSH_COMPDUMP" -nt "${ZSH_COMPDUMP}.zwc") ]]; then
+    zcompile "$ZSH_COMPDUMP"
+  fi
+} &!
 
 # zsh auto notify
 export AUTO_NOTIFY_THRESHOLD=15
@@ -191,3 +194,20 @@ ZSH_HIGHLIGHT_STYLES[back-quoted-argument-unclosed]='fg=#FF5555'
 ZSH_HIGHLIGHT_STYLES[arg0]='fg=#F8F8F2'
 ZSH_HIGHLIGHT_STYLES[default]='fg=#F8F8F2'
 # ZSH_HIGHLIGHT_STYLES[ursor]='standout'
+
+
+antidote load "${ZDOTDIR}/lib/$(hostname)/plugins.txt"
+
+# fzf-tab
+disable-fzf-tab
+zstyle ':fzf-tab:*' fzf-bindings 'tab:toggle'
+bindkey '^[OP' toggle-fzf-tab # F1 key
+zstyle ':fzf-tab:*' continuous-trigger '/'
+zstyle ":fzf-tab:*" fzf-flags '--preview-window=right:100:wrap' '--height=100' '--ansi'
+zstyle ':fzf-tab:complete:*' fzf-preview '
+if [ -d $realpath ]; then
+  lsd -Ah $realpath
+else 
+  bat -pp --color=always --theme="Monokai Extended Origin" $realpath
+fi
+'
