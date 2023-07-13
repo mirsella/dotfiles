@@ -34,7 +34,7 @@ export ZSH_SYSTEM_CLIPBOARD_METHOD='wlp'
 
 # export VIMV_RM="rmtrash -rf"
 export VIMV_RM="trash -rf"
-export FORGIT_IGNORE_PAGER='bat -l gitignore -pp --color=always --theme="Monokai Extended Origin"'
+# export FORGIT_IGNORE_PAGER='bat -l gitignore -pp --color=always --theme="Monokai Extended Origin"'
 export forgit_log=gl
 export forgit_diff=gd
 export forgit_add=gad
@@ -68,23 +68,11 @@ zle -N self-insert url-quote-magic
 autoload -Uz bracketed-paste-magic
 zle -N bracketed-paste bracketed-paste-magic
 
-
-setopt extendedglob local_options
-autoload -U compinit
-local zcd=${ZDOTDIR:-$HOME}/.zcompdump
-local zcdc="$zcd.zwc"
-# Compile the completion dump to increase startup speed, if dump is newer or doesn't exist,
-# in the background as this is doesn't affect the current session
-if [[ -f "$zcd"(#qN.m+1) ]]; then
-      compinit -i -d "$zcd"
-      { rm -f "$zcdc" && zcompile "$zcd" } &!
-      # echo "$zcd is older than 1 day, recompiled"
-else
-      compinit -C -d "$zcd"
-      { [[ ! -f "$zcdc" || "$zcd" -nt "$zcdc" ]] && rm -f "$zcdc" && zcompile "$zcd" } &!
-fi
-unsetopt extendedglob local_options
-
+autoload -Uz compinit
+for dump in "${ZDOTDIR}"/.zcompdump(N.mh+24); do
+  compinit
+done
+compinit -C
 
 # fzf-tab
 disable-fzf-tab
