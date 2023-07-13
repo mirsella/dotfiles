@@ -12,6 +12,6 @@ id_rsa*
 *key
 *pub
 ssl*
-zsh/lib/plugins.zsh
+plugins.zsh
 cron/
 etc/

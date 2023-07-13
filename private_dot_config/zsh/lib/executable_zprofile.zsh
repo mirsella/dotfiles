@@ -1,6 +1,7 @@
 export ZVM_INIT_MODE=sourcing
 
-source "$ZDOTDIR"/lib/$(hostname)/plugins.zsh
+source "${ZDOTDIR}/.antidote/antidote.zsh"
+antidote load "${ZDOTDIR}/lib/$(hostname)/plugins.txt"
 export HISTSIZE=1000000
 export SAVEHIST=1000000
 export HISTFILE="$XDG_CACHE_HOME"/zsh_history
