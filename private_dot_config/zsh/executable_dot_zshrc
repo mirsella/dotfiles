@@ -36,7 +36,7 @@ export LC_MEASUREMENT=fr_FR.UTF-8
 export LC_MONETARY=fr_FR.UTF-8
 export LC_NUMERIC=fr_FR.UTF-8
 export LC_TIME=fr_FR.UTF-8
-export PATH="$PATH:/home/mirsella/.local/bin:/home/mirsella/.local/share/gem/bin:/home/mirsella/.local/share/npm/bin"
+export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias -s html='firefox'
 alias -s pdf='firefox'
