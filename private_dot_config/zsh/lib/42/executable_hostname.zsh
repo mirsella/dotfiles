@@ -13,7 +13,7 @@ clip() { xclip -in -selection clipboard < "${@:-/dev/stdin}"; }
 #export XDG_DATA_HOME="$HOME/sgoinfre/.local/share"
 #export XDG_STATE_HOME="$HOME/sgoinfre/.local/state"
 
-alias colemak='xkbcomp ./42_btoz.xkb $DISPLAY'
+alias colemak='xkbcomp $HOME/.config/zsh/lib/42/42_btoz.xkb $DISPLAY'
 if [ ! -f /tmp/loadcustomxkb ]; then
   touch /tmp/loadcustomxkb
   xkbcomp ./42_btoz.xkb $DISPLAY
