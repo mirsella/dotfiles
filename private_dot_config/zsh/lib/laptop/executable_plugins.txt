@@ -1,3 +1,5 @@
+zsh-users/zsh-syntax-highlighting
+wfxr/forgit
 Aloxaf/fzf-tab
 jeffreytse/zsh-vi-mode
 joshskidmore/zsh-fzf-history-search
@@ -8,5 +10,3 @@ ohmyzsh/ohmyzsh path:plugins/colored-man-pages
 mirsella/zsh-auto-notify # personal fork to add a command when sending notif
 zsh-users/zsh-autosuggestions
 zsh-users/zsh-completions
-zsh-users/zsh-syntax-highlighting
-wfxr/forgit
