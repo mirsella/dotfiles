@@ -3,6 +3,7 @@ alias rmf='/bin/rm -rf '
 # alias rm='rmtrash -rf '
 # unalias s trash-empty trash-list trash-restore
 alias rm='trash -rf'
+alias VV='echo -n z | xclip -selection clipboard'
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
 clipp() { xclip -out -selection clipboard; }
