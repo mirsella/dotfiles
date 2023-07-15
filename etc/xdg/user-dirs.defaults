@@ -1,7 +1,3 @@
-# Default settings for user directories
-#
-# The values are relative pathnames from the home directory and
-# will be translated on a per-path-element basis into the users locale
 DOCUMENTS=Documents
 DOWNLOAD=Downloads
 DESKTOP=Documents/Desktop
