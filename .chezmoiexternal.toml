@@ -8,4 +8,3 @@
   url = "https://github.com/mattmc3/antidote"
   clone.args = ["--depth=1"]
   refreshPeriod = "168h"
-  

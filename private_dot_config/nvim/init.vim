@@ -58,6 +58,7 @@ Plug 'hrsh7th/cmp-nvim-lsp'
 Plug 'hrsh7th/cmp-nvim-lua'
 Plug 'zbirenbaum/copilot-cmp'
 Plug 'hrsh7th/cmp-vsnip'
+Plug 'saadparwaiz1/cmp_luasnip'
 Plug 'hrsh7th/cmp-buffer'
 Plug 'hrsh7th/cmp-path'
 Plug 'hrsh7th/cmp-cmdline'
@@ -241,13 +242,6 @@ set nofoldenable " disable folding at startup
 " RainbowParentheses
 let g:rainbow_active = 1
 
-" -- Do not source the default filetype.vim for nathom/filetype.nvim
-" let g:did_load_filetypes = 1
-
-" 42
-let b:fortytwoheader_user = 'mirsella'
-let b:fortytwoheader_mail = 'mirsella@protonmail.com'
-
 " Find files using Telescope command-line sugar.
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
 nnoremap <leader>fg <cmd>Telescope live_grep<cr>
@@ -258,4 +252,4 @@ nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 imap <expr> <C-l>   vsnip#available(1)  ? '<Plug>(vsnip-expand-or-jump)' : '<C-l>'
 smap <expr> <C-l>   vsnip#available(1)  ? '<Plug>(vsnip-expand-or-jump)' : '<C-l>'
 
-luafile ~/.config/nvim/lua-plugins.lua
+luafile ~/.config/nvim/init_second.lua
