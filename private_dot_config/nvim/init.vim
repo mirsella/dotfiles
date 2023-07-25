@@ -52,6 +52,7 @@ Plug 'onsails/lspkind.nvim'
 Plug 'folke/trouble.nvim'
 Plug 'hrsh7th/cmp-nvim-lsp-signature-help'
 
+Plug 'chrisgrieser/cmp-nerdfont'
 Plug 'hrsh7th/vim-vsnip'
 Plug 'rafamadriz/friendly-snippets'
 Plug 'hrsh7th/cmp-nvim-lsp'
