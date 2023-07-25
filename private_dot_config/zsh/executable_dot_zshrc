@@ -1,10 +1,3 @@
-source ~/.config/zsh/lib/completion.zsh 
-source ~/.config/zsh/lib/keybinds.zsh
-source ~/.config/zsh/lib/spectrum.zsh
-source ~/.config/zsh/lib/zprofile.zsh
-source  ~/.config/zsh/lib/fzf/fzf-completion.zsh
-source  ~/.config/zsh/lib/fzf/fzf-key-bindings.zsh
-
 winboot() {
 	WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
 	sudo grub-reboot "$WINDOWS_TITLE"
@@ -21,8 +14,8 @@ notif() {
 	data='{"chat_id": '$TgId', "text": "'"${@:-$(read a; echo $a)}"'"}'
 	curl -s -X POST -H 'Content-Type: application/json' -d "$data" "https://api.telegram.org/bot$TgToken/sendMessage" | jq '[.ok, .result.text]' -c
 }
-bak() { sudo -E cp -r "${1}" "${1}.bak" }
-bakm() { sudo -E mv "${1}" "${1}.bak" }
+bak() { cp -r "${1}" "${1}.bak" }
+bakm() { mv "${1}" "${1}.bak" }
 
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
 hash -d u=/run/media/mirsella
@@ -97,3 +90,9 @@ alias irssi="irssi --home=$XDG_CONFIG_HOME/irssi "
 alias ccw='cc -Wall -Werror -Wextra -g3'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
+# source ~/.config/zsh/lib/completion.zsh 
+source ~/.config/zsh/lib/keybinds.zsh
+source ~/.config/zsh/lib/zprofile.zsh
+source  ~/.config/zsh/lib/fzf/fzf-completion.zsh
+source  ~/.config/zsh/lib/fzf/fzf-key-bindings.zsh
+

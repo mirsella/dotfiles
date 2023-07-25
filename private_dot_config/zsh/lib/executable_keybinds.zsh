@@ -38,9 +38,9 @@
 # echo -ne '\e[6 q' # Use beam shape cursor on startup.
 # precmd() { echo -ne '\e[6 q' ;} # Use beam shape cursor for each new prompt.
 
-# bindkey '^r' history-incremental-pattern-search-backward # Enable searching through history
+# # bindkey '^r' history-incremental-pattern-search-backward # Enable searching through history
 autoload edit-command-line; zle -N edit-command-line; bindkey '^v' edit-command-line # Edit line in vim buffer ctrl-v
-# autoload -U edit-command-line && zle -N edit-command-line && bindkey -M vicmd "^v" edit-command-line # Enter vim buffer from normal mode
+autoload -U edit-command-line && zle -N edit-command-line && bindkey -M vicmd "^v" edit-command-line # Enter vim buffer from normal mode
 
 # bindkey '^[[1;5C' forward-word # [Ctrl-RightArrow] - move forward one word
 # bindkey '^[[1;5D' backward-word # [Ctrl-LeftArrow] - move backward one word
