@@ -4,14 +4,6 @@ return {
 		disable = true,
 	},
 	{
-		"ggandor/flit.nvim",
-		disable = true,
-	},
-	{
-		"ggandor/leap.nvim",
-		disable = true,
-	},
-	{
 		"phaazon/hop.nvim",
 		config = function()
 			require("hop").setup()
