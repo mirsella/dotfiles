@@ -90,7 +90,7 @@ alias irssi="irssi --home=$XDG_CONFIG_HOME/irssi "
 alias ccw='cc -Wall -Werror -Wextra -g3'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
-# source ~/.config/zsh/lib/completion.zsh 
+source ~/.config/zsh/lib/completion.zsh
 source ~/.config/zsh/lib/keybinds.zsh
 source ~/.config/zsh/lib/zprofile.zsh
 source  ~/.config/zsh/lib/fzf/fzf-completion.zsh
