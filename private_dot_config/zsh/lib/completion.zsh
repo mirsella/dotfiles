@@ -73,7 +73,7 @@ if [[ $COMPLETION_WAITING_DOTS = true ]]; then
 fi
 
 # partial completion suggestions
- zstyle ':completion:*' list-suffixes zstyle ':completion:*' expand prefix suffix 
+zstyle ':completion:*' list-suffixes zstyle ':completion:*' expand prefix suffix 
 
 # automatically load bash completion functions
 autoload -U +X bashcompinit && bashcompinit
