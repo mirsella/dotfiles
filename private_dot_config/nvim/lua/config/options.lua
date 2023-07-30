@@ -3,3 +3,4 @@
 -- Add any additional options here
 
 vim.opt.pumblend = 0 -- opaque completion menu
+vim.opt.softtabstop = 2
