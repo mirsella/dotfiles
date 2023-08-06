@@ -17,9 +17,9 @@ export ENABLE_CORRECTION=true
 export MENU_COMPLETE=true
 
 
-_fzf_compgen_path() { command fd -t f -HIL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
-_fzf_compgen_dir() { command fd -t d -HIL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
-export FZF_DEFAULT_COMMAND='fd -t f -HLI --color=always -E node_modules -E .steam -E .cache -E .local -E .git -E run -E media -E sys -E proc -E coc -E plugged -E .steam'
+# _fzf_compgen_path() { command fd -t f -HIL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
+# _fzf_compgen_dir() { command fd -t d -HIL --color=always -E .cache -E .local -E .git -E run -E media -E coc -E plugged . $1 }
+export FZF_DEFAULT_COMMAND='fd -t f -HLI --color=always -E node_modules -E .steam -E .cache -E .local -E .git -E run -E media -E sys -E proc'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_DEFAULT_OPTS='--ansi --height=100 --preview="
 if [ -d {} ]; then
@@ -32,7 +32,6 @@ export FZF_CTRL_T_OPTS="$FZF_DEFAULT_OPTS"
 
 export ZSH_SYSTEM_CLIPBOARD_METHOD='wlp'
 
-# export VIMV_RM="rmtrash -rf"
 export VIMV_RM="trash -rf"
 # export FORGIT_IGNORE_PAGER='bat -l gitignore -pp --color=always --theme="Monokai Extended Origin"'
 export FORGIT_COPY_CMD='wl-copy'

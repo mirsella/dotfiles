@@ -7,21 +7,24 @@ return {
 			function()
 				require("substitute").operator()
 			end,
-			{ noremap = true, desc = "Substitute operator" },
+			noremap = true,
+			desc = "Substitute operator",
 		},
 		{
 			"gss",
 			function()
 				require("substitute").line()
 			end,
-			{ noremap = true, desc = "Substitute line" },
+			noremap = true,
+			desc = "Substitute line",
 		},
 		{
 			"gS",
 			function()
 				require("substitute").eol()
 			end,
-			{ noremap = true, desc = "Substitute to end of line" },
+			noremap = true,
+			desc = "Substitute to end of line",
 		},
 		{
 			"gs",
@@ -29,7 +32,8 @@ return {
 				require("substitute").visual()
 			end,
 			mode = { "x" },
-			{ noremap = true, desc = "Substitute visual" },
+			noremap = true,
+			desc = "Substitute visual",
 		},
 	},
 	opts = {

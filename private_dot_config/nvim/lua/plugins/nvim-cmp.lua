@@ -3,20 +3,8 @@ return {
 	event = "InsertEnter",
 	lazy = true,
 	dependencies = {
-		{
-			"petertriho/cmp-git",
-			lazy = true,
-			-- config = function()
-			-- 	require("cmp_git").setup()
-			-- end,
-		},
-		{
-			"jcdickinson/codeium.nvim",
-			lazy = true,
-			-- config = function()
-			-- 	require("codeium").setup()
-			-- end,
-		},
+		{ "petertriho/cmp-git", lazy = true },
+		{ "jcdickinson/codeium.nvim", lazy = true },
 		"nvim-lua/plenary.nvim",
 	},
 	opts = function(_, opts)
@@ -26,5 +14,19 @@ return {
 			{ name = "copilot" },
 			{ name = "codeium" },
 		}))
+		opts.window = {
+			completion = cmp.config.window.bordered(),
+			documentation = cmp.config.window.bordered(),
+		}
+		opts.formatting = {
+			format = function(_, item)
+				local icons = require("lazyvim.config").icons.kinds
+				if icons[item.kind] then
+					item.kind = icons[item.kind] .. item.kind
+				end
+				item.abbr = string.sub(item.abbr, 1, vim.api.nvim_win_get_width(0) / 3)
+				return item
+			end,
+		}
 	end,
 }
