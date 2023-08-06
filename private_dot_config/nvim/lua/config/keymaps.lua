@@ -6,4 +6,4 @@ vim.api.nvim_create_user_command("W", "w !sudo tee %", {})
 
 vim.keymap.set("n", "U", "<cmd>echo '< < ===== C H E C K   C A P S   L O C K ===== > >'<cr>")
 vim.keymap.set("i", "<c-t>", "<esc>")
-vim.keymap.set("n", "<leader>st", "<cmd>Telescope filetypes<cr>")
+vim.keymap.set("n", "<leader>sf", "<cmd>Telescope filetypes<cr>")
