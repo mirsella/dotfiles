@@ -13,6 +13,14 @@ return {
 			{ name = "git" },
 			{ name = "copilot" },
 			{ name = "codeium" },
+			{
+				name = "buffer",
+				option = {
+					get_bufnrs = function()
+						return vim.api.nvim_list_bufs()
+					end,
+				},
+			},
 		}))
 		opts.window = {
 			completion = cmp.config.window.bordered(),
