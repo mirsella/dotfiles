@@ -4,3 +4,7 @@
 
 vim.opt.pumblend = 0 -- opaque completion menu
 vim.opt.softtabstop = 2
+
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+vim.opt.foldenable = false
