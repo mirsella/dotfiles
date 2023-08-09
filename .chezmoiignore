@@ -16,3 +16,4 @@ ssl*
 *plugins.zsh
 cron/
 etc/
+*lock*
