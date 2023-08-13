@@ -4,7 +4,13 @@ return {
   lazy = true,
   dependencies = {
     { "petertriho/cmp-git", lazy = true },
-    { "jcdickinson/codeium.nvim", lazy = true },
+    {
+      "jcdickinson/codeium.nvim",
+      lazy = true,
+      config = function(_, opts)
+        require("codeium").setup(opts)
+      end,
+    },
     "nvim-lua/plenary.nvim",
   },
   opts = function(_, opts)
