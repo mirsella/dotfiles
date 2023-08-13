@@ -11,7 +11,7 @@ return {
     local cmp = require("cmp")
     opts.sources = cmp.config.sources(vim.list_extend(opts.sources, {
       { name = "git" },
-      { name = "copilot" },
+      { name = "copilot", group_index = 0 },
       { name = "codeium" },
       {
         name = "buffer",
@@ -33,6 +33,9 @@ return {
           item.kind = icons[item.kind] .. item.kind
         end
         item.abbr = string.sub(item.abbr, 1, vim.api.nvim_win_get_width(0) / 3)
+        if item.menu then
+          item.menu = string.sub(item.menu, 1, vim.api.nvim_win_get_width(0) / 3)
+        end
         return item
       end,
     }
