@@ -17,7 +17,7 @@ return {
     local cmp = require("cmp")
     opts.sources = cmp.config.sources(vim.list_extend(opts.sources, {
       { name = "git" },
-      { name = "copilot", group_index = 0 },
+      { name = "copilot", group_index = 0, priority = 100 },
       { name = "codeium" },
       {
         name = "buffer",
