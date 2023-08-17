@@ -6,7 +6,8 @@ return {
     { "petertriho/cmp-git", lazy = true },
     {
       "jcdickinson/codeium.nvim",
-      lazy = true,
+      -- lazy = true,
+      opts = {},
       config = function(_, opts)
         require("codeium").setup(opts)
       end,
@@ -18,7 +19,7 @@ return {
     opts.sources = cmp.config.sources(vim.list_extend(opts.sources, {
       { name = "git" },
       { name = "copilot", group_index = 0, priority = 100 },
-      { name = "codeium" },
+      { name = "codeium", priority = 101 },
       {
         name = "buffer",
         option = {
