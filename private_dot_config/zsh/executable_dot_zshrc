@@ -88,7 +88,7 @@ alias antidotebundle='antidote bundle < ~/.config/zsh/lib/$(hostname)/plugins.tx
 alias colemak='setxkbmap us -variant colemak_dh_iso'
 alias qwerty='setxkbmap us'
 alias irssi="irssi --home=$XDG_CONFIG_HOME/irssi "
-alias c='cargo '
+alias c='cargo'
 alias ccw='cc -Wall -Werror -Wextra -g3'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
