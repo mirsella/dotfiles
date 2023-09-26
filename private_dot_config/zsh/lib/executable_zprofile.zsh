@@ -1,5 +1,5 @@
 export ZVM_INIT_MODE=sourcing
-
+export ZVM_LINE_INIT_MODE=$ZVM_MODE_INSERT
 source "${ZDOTDIR}/.antidote/antidote.zsh"
 export HISTSIZE=1000000
 export SAVEHIST=1000000
@@ -107,8 +107,6 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_MANUAL_REBIND=1
 # ZSH_AUTOSUGGEST_COMPLETION_IGNORE='(man)*'
-
-ZVM_INIT_MODE='sourcing'
 
 # https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/docs/highlighters/
 declare -A ZSH_HIGHLIGHT_STYLES
