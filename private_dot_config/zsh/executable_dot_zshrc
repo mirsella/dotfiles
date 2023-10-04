@@ -17,6 +17,9 @@ notif() {
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
 
+[ -f ~/.config/token/openai.token ] && source ~/.config/token/openai.token
+[ -f ~/Documents/gdrive/token/openai.token ] && source ~/Documents/gdrive/token/openai.token
+
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
 hash -d u=/run/media/mirsella
 export MAIL='mirsella@protonmail.com'
