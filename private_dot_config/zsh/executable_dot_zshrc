@@ -90,10 +90,11 @@ alias antibodybundle='antibody bundle < ~/.config/zsh/lib/$(hostname)/plugins.tx
 alias antidotebundle='antidote bundle < ~/.config/zsh/lib/$(hostname)/plugins.txt > ~/.config/zsh/lib/$(hostname)/plugins.zsh && source ~/.config/zsh/.zshrc'
 alias colemak='setxkbmap us -variant colemak_dh_iso'
 alias qwerty='setxkbmap us'
-alias irssi="irssi --home=$XDG_CONFIG_HOME/irssi "
 alias c='cargo'
 alias d='docker'
 alias ccw='cc -Wall -Werror -Wextra -g3'
+alias clip='wl-copy'
+alias clipp='wl-paste'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/zprofile.zsh
