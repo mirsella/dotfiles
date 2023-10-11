@@ -1,0 +1,41 @@
+#!/bin/zsh
+
+### Clone bundle(s) and generate the static load script.
+#
+# usage: antidote bundle [-h|--help] <bundle>...
+#
+
+### Clone bundle(s) and generate the static load script.
+#function antidote-bundle {
+  # Download a bundle and prints its Zsh source line.
+  emulate -L zsh; setopt local_options $_adote_funcopts
+
+  local o_help
+  zparseopts $_adote_zparopt_flags -- h=o_help -help=h || return 1
+
+  if (( $#o_help )); then
+    antidote-help bundle
+    return
+  fi
+
+  # handle bundles as newline delimited arg strings,
+  # or as <redirected or piped| input
+  local -a bundles=()
+  if (( $# > 0 )); then
+    bundles=("${(s.\n.)${@}}")
+  elif [[ ! -t 0 ]]; then
+    local data
+    while IFS= read -r data || [[ -n "$data" ]]; do
+      bundles+=($data)
+    done
+  fi
+  (( $#bundles )) || return 1
+
+  # antidote-script also clones, but this way we can do it all at once in parallel!
+  if (( $#bundles > 1 )); then
+    source <(printf '%s\n' $bundles | __antidote_bulk_clone)
+  fi
+
+  # generate bundle script
+  source <(printf '%s\n' $bundles | __antidote_parse_bundles) | __antidote_filter_defers
+#}

@@ -1,0 +1,62 @@
+#!/bin/zsh
+
+### Update antidote and its cloned bundles.
+#
+# usage: antidote update [-h|--help]
+#
+#function antidote-update {
+  0=${(%):-%x}
+  emulate -L zsh; setopt local_options $_adote_funcopts
+
+  local o_help o_self o_bundles
+  zparseopts $_adote_zparopt_flags -- \
+    h=o_help    -help=h    \
+    s=o_self    -self=s    \
+    b=o_bundles -bundles=b ||
+    return 1
+
+  if (( $#o_help )); then
+    antidote-help update
+    return
+  fi
+
+  if (( $#o_bundles )) || ! (( $#o_self )); then
+    print "Updating bundles..."
+    local bundledir url
+    for bundledir in $(antidote-list --dirs); do
+      url=$(git -C "$bundledir" config remote.origin.url)
+      print "antidote: checking for updates: $url"
+      () {
+        local oldsha=$(git -C "$1" rev-parse --short HEAD)
+        git -C "$1" pull --quiet --ff --rebase --autostash
+        local newsha=$(git -C "$1" rev-parse --short HEAD)
+        if [[ $oldsha != $newsha ]]; then
+          print "antidote: updated: $2 $oldsha -> $newsha"
+        fi
+      } "$bundledir" "$url" &
+    done
+    print "Waiting for bundle updates to complete..."
+    wait
+    print "Bundle updates complete."
+  fi
+
+  # update antidote
+  if (( $#o_self )) || ! (( $#o_bundles )); then
+    print "Updating antidote..."
+    if [[ -d "${0:A:h:h}/.git" ]]; then
+      git -C "${0:A:h:h}" pull --quiet --ff --rebase --autostash
+      print "Antidote self-update complete.\n"
+
+      # setup antidote again
+      (( $+functions[__antidote_setup] )) && unfunction __antidote_setup
+      autoload -Uz ${0:A:h}/__antidote_setup
+      __antidote_setup
+
+      # show antidote version
+      antidote -v
+    else
+      print "Self updating is disabled in this build."
+      print "Use your OS package manager to update antidote itself."
+    fi
+  fi
+#}
