@@ -15,5 +15,5 @@ clip() { xclip -in -selection clipboard < "${@:-/dev/stdin}"; }
 alias colemak='xkbcomp $HOME/.config/zsh/lib/42/42_btoz.xkb $DISPLAY'
 if [ ! -f /tmp/loadcustomxkb ]; then
   touch /tmp/loadcustomxkb
-  xkbcomp $HOME/.config/zsh/lib/42/42_btoz.xkb  $DISPLAY
+  xkbcomp ./42_btoz.xkb $DISPLAY
 fi

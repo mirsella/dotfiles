@@ -1,20 +1,3 @@
 # vim: set ft=gitignore:
-.antidote
-dot_antidote
-plugged
-*log
-.zcomp*
-.zcompcache/
-*gpg
-ssl
-*.git
-*bak
-novnc
-id_rsa*
-*key
-*pub
-ssl*
-*plugins.zsh
 cron/
 etc/
-*lock*

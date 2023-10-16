@@ -17,9 +17,6 @@ notif() {
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
 
-[ -f ~/.config/token/openai.token ] && source ~/.config/token/openai.token
-[ -f ~/Documents/gdrive/token/openai.token ] && source ~/Documents/gdrive/token/openai.token
-
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
 hash -d u=/run/media/mirsella
 export MAIL='mirsella@protonmail.com'
@@ -90,11 +87,10 @@ alias antibodybundle='antibody bundle < ~/.config/zsh/lib/$(hostname)/plugins.tx
 alias antidotebundle='antidote bundle < ~/.config/zsh/lib/$(hostname)/plugins.txt > ~/.config/zsh/lib/$(hostname)/plugins.zsh && source ~/.config/zsh/.zshrc'
 alias colemak='setxkbmap us -variant colemak_dh_iso'
 alias qwerty='setxkbmap us'
+alias irssi="irssi --home=$XDG_CONFIG_HOME/irssi "
 alias c='cargo'
 alias d='docker'
 alias ccw='cc -Wall -Werror -Wextra -g3'
-alias clip='wl-copy'
-alias clipp='wl-paste'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/zprofile.zsh

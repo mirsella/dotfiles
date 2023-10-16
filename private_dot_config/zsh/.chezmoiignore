@@ -1,0 +1,3 @@
+lib/*/plugins.zsh
+*zcompdump*
+.antidote

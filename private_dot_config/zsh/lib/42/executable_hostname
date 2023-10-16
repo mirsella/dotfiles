@@ -1,1 +1,2 @@
+# put in ~/.local/bin at the start of PATH to override the system
 echo 42
