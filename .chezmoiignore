@@ -1,5 +1,6 @@
 # vim: set ft=gitignore:
 .antidote
+dot_antidote
 plugged
 *log
 .zcomp*
