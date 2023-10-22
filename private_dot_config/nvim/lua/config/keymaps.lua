@@ -29,9 +29,9 @@ vim.keymap.set(
   { silent = true, noremap = true, desc = "show crates dependencies" }
 )
 
-vim.keymap.set("n", "<leader>cu", crates.update_crate, { silent = true, noremap = true, desc = "update crate" })
+vim.keymap.set("n", "<leader>cu", crates.update_all_crates, { silent = true, noremap = true, desc = "update crate" })
 vim.keymap.set("v", "<leader>cu", crates.update_crates, { silent = true, noremap = true, desc = "update crates" })
-vim.keymap.set("n", "<leader>cU", crates.upgrade_crate, { silent = true, noremap = true, desc = "upgrade crate" })
+vim.keymap.set("n", "<leader>cU", crates.upgrade_all_crates, { silent = true, noremap = true, desc = "upgrade crate" })
 vim.keymap.set("v", "<leader>cU", crates.upgrade_crates, { silent = true, noremap = true, desc = "upgrade crates" })
 
 vim.keymap.set(
