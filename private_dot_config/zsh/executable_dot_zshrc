@@ -14,6 +14,7 @@ notif() {
 	data='{"chat_id": '$TgId', "text": "'"${@:-$(read a; echo $a)}"'"}'
 	curl -s -X POST -H 'Content-Type: application/json' -d "$data" "https://api.telegram.org/bot$TgToken/sendMessage" | jq '[.ok, .result.text]' -c
 }
+[ -f ~/Documents/gdrive/token/openai.token ] && source ~/Documents/gdrive/token/openai.token
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
 
