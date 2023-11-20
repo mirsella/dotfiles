@@ -15,12 +15,12 @@
 return {
   {
     "rose-pine/neovim",
-    priority = 10000,
+    priority = 1000,
   },
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "rose-pine-moon",
+      colorscheme = function() end,
     },
   },
 }
