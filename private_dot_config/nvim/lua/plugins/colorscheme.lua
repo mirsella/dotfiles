@@ -13,14 +13,14 @@
 -- timer:start(0, 300000, vim.schedule_wrap(set_colorscheme_based_on_time))
 
 return {
-  {
-    "rose-pine/neovim",
-    priority = 1000,
-  },
-  {
-    "LazyVim/LazyVim",
-    opts = {
-      colorscheme = function() end,
-    },
-  },
+	{
+		"rose-pine/neovim",
+		priority = 1000,
+	},
+	{
+		"LazyVim/LazyVim",
+		opts = {
+			colorscheme = function() end,
+		},
+	},
 }

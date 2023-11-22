@@ -4,6 +4,6 @@
 
 -- Fixes Autocomment
 vim.api.nvim_create_autocmd("BufEnter", {
-  pattern = "*",
-  command = "set fo-=cro",
+	pattern = "*",
+	command = "set fo-=cro",
 })
