@@ -1,5 +1,6 @@
 export PATH="$HOME/sgoinfre/cargo/bin:$HOME/.local/bin:$PATH"
 export CARGO_HOME="$HOME/sgoinfre/cargo"
+export RUSTUP_HOME="$HOME/sgoinfre/rustup"
 alias rmf='/bin/rm -rf '
 alias rm='trash -rf'
 alias VV='echo -n z | xclip -selection clipboard'
