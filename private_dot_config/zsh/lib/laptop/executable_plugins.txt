@@ -10,3 +10,4 @@ ohmyzsh/ohmyzsh path:plugins/colored-man-pages
 mirsella/zsh-auto-notify # personal fork to add a command when sending notif
 zsh-users/zsh-autosuggestions
 zsh-users/zsh-completions
+MenkeTechnologies/zsh-cargo-completion

@@ -10,3 +10,5 @@ mirsella/zsh-auto-notify # personal fork to add a command when sending notif
 Aloxaf/fzf-tab
 zsh-users/zsh-autosuggestions
 zsh-users/zsh-completions
+MenkeTechnologies/zsh-cargo-completion
+MenkeTechnologies/zsh-cargo-completion
