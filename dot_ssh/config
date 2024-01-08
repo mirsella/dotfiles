@@ -7,3 +7,4 @@ Host tosh
 Host prod
   HostName intra.lemediapositif.com
   User prod
+  Port 2222
