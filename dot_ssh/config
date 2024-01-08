@@ -1,20 +1,9 @@
 Host rpi
   HostName 192.168.1.166
   User pi
-  # RemoteForward 127.0.0.1:2222 127.0.0.1:22
-  ForwardX11Trusted yes
-  Compression yes
-  ForwardX11 yes
 Host tosh
   HostName 192.168.1.111
   User mirsella
-# RemoteForward 127.0.0.1:2222 127.0.0.1:22
-  ForwardX11Trusted yes
-  Compression yes
-  ForwardX11 yes
-Host phone
-  HostName 192.168.1.192
-  User mirsella
-  ForwardX11Trusted yes
-  ForwardX11 yes
-  port 2222
+Host prod
+  HostName intra.lemediapositif.com
+  User prod
