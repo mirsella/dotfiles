@@ -9,8 +9,11 @@ startup_mode = "Maximized"
 history = 100000
 
 [font]
-size = 17.0
+size = 24.0
 normal = { family = "JetBrainsMono Nerd Font", style = "Normal" }
 italic = { family = "JetBrainsMono Nerd Font", style = "Italic" }
 bold = { family = "JetBrainsMono Nerd Font", style = "Bold" }
 bold_italic = { family = "JetBrainsMono Nerd Font", style = "Bold Italic" }
+
+[env]
+TERM = "xterm-256color"
