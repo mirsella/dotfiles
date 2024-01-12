@@ -41,10 +41,8 @@ alias NUL='> /dev/null 2>&1 ' #Silences both stdout and stderr
 alias yt='yt-dlp --cookies-from-browser firefox -x --recode-video mp3 --embed-metadata --embed-thumbnail --fixup warn --sponsorblock-remove all '
 alias mkdir='mkdir -p '
 alias cp='cp -r '
-# alias ls='ls -AhX --group-directories-first --color=auto '
-# alias ll='ls -AhXl --group-directories-first --color=auto '
-alias ls='lsd -Ah '
-alias ll='lsd -Ahl '
+alias ls='lsd -Ah --hyperlink=auto'
+alias ll='lsd -Ahl --hyperlink=auto'
 # alias bat='bat -pp --color=always --theme="Monokai Extended Origin" '
 alias bat='bat -pp --color=always --theme="ansi" '
 alias q='exit '
@@ -87,6 +85,7 @@ alias cch='cargo check'
 alias d='docker'
 alias dc='docker compose'
 alias p='pnpm'
+alias imgcat='wezterm imgcat '
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/zprofile.zsh
