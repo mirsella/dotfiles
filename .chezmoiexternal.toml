@@ -4,14 +4,14 @@ url = "https://github.com/mattmc3/antidote"
 clone.args = ["--depth=1"]
 refreshPeriod = "168h"
 
+# [".config/tmux/plugins/tpm"]
+# type = "git-repo"
+# url = "https://github.com/tmux-plugins/tpm"
+# clone.args = ["--depth=1"]
+# refreshPeriod = "168h"
 
-[".config/tmux/plugins/tpm"]
+[".config/wezterm/rose-pine"]
 type = "git-repo"
-url = "https://github.com/tmux-plugins/tpm"
+url = "https://github.com/neapsix/wezterm"
 clone.args = ["--depth=1"]
-refreshPeriod = "168h"
-
-[".config/alacritty/rose-pine-moon.toml"]
-type = "file"
-url = "https://raw.githubusercontent.com/rose-pine/alacritty/main/dist/rose-pine-moon.toml"
 refreshPeriod = "168h"
