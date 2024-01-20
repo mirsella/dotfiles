@@ -31,8 +31,8 @@ export LC_NUMERIC=fr_FR.UTF-8
 export LC_TIME=fr_FR.UTF-8
 export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
-alias -s html='firefox'
-alias -s pdf='firefox'
+alias -s html="$BROWSER"
+alias -s pdf="$BROWSER"
 alias -s odt='libreoffice'
 alias psaux='ps aux | rg '
 alias systemctlerrors='journalctl -p 3 -xb'

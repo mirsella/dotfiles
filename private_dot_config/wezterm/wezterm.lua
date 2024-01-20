@@ -19,6 +19,7 @@ config.hide_tab_bar_if_only_one_tab = true
 config.hyperlink_rules = wezterm.default_hyperlink_rules()
 config.scrollback_lines = 10000
 config.quick_select_alphabet = "colemak"
+config.window_close_confirmation = "NeverPrompt"
 
 -- start maximized
 wezterm.on("gui-startup", function(cmd)
