@@ -85,7 +85,7 @@ alias cch='cargo check'
 alias d='docker'
 alias dc='docker compose'
 alias p='pnpm'
-alias imgcat='wezterm imgcat '
+alias va='vagrant'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/zprofile.zsh
