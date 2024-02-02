@@ -86,8 +86,8 @@ alias d='docker'
 alias dc='docker compose'
 alias p='pnpm'
 alias va='vagrant'
-alias vaup='vagrant up --parallel'
-alias vade='vagrant destroy --parallel'
+alias vaup='vagrant up'
+alias vade='vagrant destroy'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/zprofile.zsh
