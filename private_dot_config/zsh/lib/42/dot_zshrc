@@ -1,0 +1,4 @@
+function hostname { echo 42 }
+export PATH="/mnt/nfs/homes/lgillard/.local/bin:$PATH"
+source ~/.config/zsh/exportxdg
+source ~/.config/zsh/.zshrc
