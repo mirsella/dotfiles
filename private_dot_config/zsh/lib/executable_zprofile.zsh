@@ -211,3 +211,5 @@ else
   bat -pp --color=always --theme="Monokai Extended Origin" $realpath
 fi
 '
+
+eval "$(zoxide init --cmd cd zsh)"
