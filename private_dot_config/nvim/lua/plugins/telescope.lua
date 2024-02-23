@@ -1,9 +1,22 @@
-local Util = require("util")
+local builtin = require("telescope.builtin")
+local utils = require("telescope.utils")
 return {
   "nvim-telescope/telescope.nvim",
   keys = {
-    { "<leader>ff", Util.telescope("files"), desc = "Find Files (root dir)" },
-    { "<leader>fF", Util.telescope("files", { cwd = false }), desc = "Find Files (cwd)" },
+    {
+      "<leader>ff",
+      function()
+        builtin.find_files()
+      end,
+      desc = "Find Files (root dir)",
+    },
+    {
+      "<leader>fF",
+      function()
+        builtin.find_files({ cwd = utils.buffer_dir() })
+      end,
+      desc = "Find Files (cwd)",
+    },
     { "<leader><space>", false },
     { "<leader>ft", false },
   },
