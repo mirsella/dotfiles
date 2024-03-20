@@ -48,3 +48,4 @@ export DUB_HOME="$XDG_CACHE_HOME/dub"
 export MOZ_ENABLE_WAYLAND=1
 export VAGRANT_HOME="$XDG_DATA_HOME"/vagrant
 export VAGRANT_ALIAS_FILE="$XDG_DATA_HOME"/vagrant/aliases
+export JAVA_HOME=/usr/lib/jvm/default
