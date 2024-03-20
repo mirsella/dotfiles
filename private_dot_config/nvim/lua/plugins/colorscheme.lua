@@ -20,9 +20,11 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
+      -- loaded in ./auto-dark-mode.lua
       colorscheme = function() end,
     },
-    { "folke/tokyonight.nvim", enabled = false },
+    -- // lazyvim errors if disabled
+    -- { "folke/tokyonight.nvim", enabled = false },
     { "catppuccin/nvim", enabled = false },
   },
 }
