@@ -26,3 +26,5 @@ vim.keymap.set(
   crates.show_features_popup,
   { silent = true, desc = "Show features popup in Cargo.toml" }
 )
+
+vim.keymap.set("n", "'", "`", { desc = "Go to mark" })
