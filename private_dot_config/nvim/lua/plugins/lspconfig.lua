@@ -4,6 +4,7 @@ return {
     inlay_hints = {
       enabled = true,
     },
+    -- for vue-language-server version 2
     servers = {
       tsserver = {
         init_options = {
@@ -15,7 +16,7 @@ return {
             },
           },
         },
-        filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
+        filetypes = { "typescript", "javascript", "vue" },
       },
       volar = {},
     },
