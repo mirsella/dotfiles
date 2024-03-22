@@ -6,5 +6,6 @@ vim.opt.pumblend = 0 -- opaque completion menu
 vim.opt.softtabstop = 2
 
 vim.opt.foldmethod = "expr"
-vim.opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 vim.opt.foldlevel = 99
+vim.opt.spelllang = "fr"
