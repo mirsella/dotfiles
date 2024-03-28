@@ -4,6 +4,3 @@ Host rpi
 Host tosh
   HostName 192.168.1.111
   User mirsella
-Host prod
-  HostName intra.lemediapositif.com
-  User prod
