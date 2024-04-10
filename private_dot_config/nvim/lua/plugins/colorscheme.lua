@@ -15,7 +15,7 @@
 return {
   {
     "rose-pine/neovim",
-    priority = 1000,
+    priority = 10000,
   },
   {
     "LazyVim/LazyVim",
