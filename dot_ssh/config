@@ -7,3 +7,6 @@ Host tosh
 Host vps
   HostName vps.mirsella.mooo.com
   User ubuntu
+Host prod
+  HostName intra.lemediapositif.com
+  User prod
