@@ -9,4 +9,5 @@ Host vps
   User ubuntu
 Host prod
   HostName intra.lemediapositif.com
+  Port 4391
   User prod
