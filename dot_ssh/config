@@ -4,6 +4,12 @@ Host rpi
 Host tosh
   HostName 192.168.1.111
   User mirsella
+Host main
+  HostName 192.168.1.131
+  User mirsella
+Host laptop
+  HostName 192.168.1.14
+  User mirsella
 Host vps
   HostName vps.mirsella.mooo.com
   User ubuntu
