@@ -19,11 +19,3 @@ vim.keymap.set(
 )
 vim.keymap.set({ "n", "v" }, "<leader><leader>", vim.lsp.buf.code_action, { silent = true, desc = "Show code actions" })
 vim.keymap.set("n", "'", "`", { desc = "Go to mark" })
-
-local crates = require("crates")
-vim.keymap.set(
-  "n",
-  "<leader>cf",
-  crates.show_features_popup,
-  { silent = true, desc = "Show features popup in Cargo.toml" }
-)
