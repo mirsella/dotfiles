@@ -27,5 +27,3 @@ vim.keymap.set(
   crates.show_features_popup,
   { silent = true, desc = "Show features popup in Cargo.toml" }
 )
--- vim.keymap.set("n", "<leader>cc", vim.cmd.RustLsp("openCargo"), { desc = "Open Cargo.toml" })
--- vim.keymap.set("n", "<leader>cC", vim.cmd.RustLsp("openDocs"), { desc = "Open docs.rs document for symbol" })
