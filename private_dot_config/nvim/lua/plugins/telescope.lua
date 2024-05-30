@@ -18,6 +18,12 @@ return {
       desc = "Find Files (cwd)",
     },
     { "<leader><space>", false },
-    { "<leader>ft", false },
+    {
+      "<leader>ft",
+      function()
+        builtin.filetype()
+      end,
+      { silent = true, desc = "Change filetype with Telescope" },
+    },
   },
 }

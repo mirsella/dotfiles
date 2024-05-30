@@ -11,11 +11,5 @@ vim.keymap.set(
   { desc = "Check Caps Lock" }
 )
 vim.keymap.set("i", "<c-t>", "<esc>", { silent = true })
-vim.keymap.set(
-  "n",
-  "<leader>ft",
-  "<cmd>Telescope filetypes<cr>",
-  { silent = true, desc = "Change filetype with Telescope" }
-)
 vim.keymap.set({ "n", "v" }, "<leader><leader>", vim.lsp.buf.code_action, { silent = true, desc = "Show code actions" })
 vim.keymap.set("n", "'", "`", { desc = "Go to mark" })
