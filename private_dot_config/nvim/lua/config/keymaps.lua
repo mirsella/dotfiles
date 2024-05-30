@@ -18,6 +18,7 @@ vim.keymap.set(
   { silent = true, desc = "Change filetype with Telescope" }
 )
 vim.keymap.set({ "n", "v" }, "<leader><leader>", vim.lsp.buf.code_action, { silent = true, desc = "Show code actions" })
+vim.keymap.set("n", "'", "`", { desc = "Go to mark" })
 
 local crates = require("crates")
 vim.keymap.set(
@@ -26,5 +27,5 @@ vim.keymap.set(
   crates.show_features_popup,
   { silent = true, desc = "Show features popup in Cargo.toml" }
 )
-
-vim.keymap.set("n", "'", "`", { desc = "Go to mark" })
+-- vim.keymap.set("n", "<leader>cc", vim.cmd.RustLsp("openCargo"), { desc = "Open Cargo.toml" })
+-- vim.keymap.set("n", "<leader>cC", vim.cmd.RustLsp("openDocs"), { desc = "Open docs.rs document for symbol" })

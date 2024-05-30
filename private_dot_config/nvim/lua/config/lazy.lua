@@ -31,7 +31,6 @@ require("lazy").setup({
     { import = "lazyvim.plugins.extras.lsp.none-ls" },
 
     { import = "lazyvim.plugins.extras.editor.illuminate" },
-    { import = "lazyvim.plugins.extras.editor.trouble-v3" },
     { import = "lazyvim.plugins.extras.editor.dial" },
     { import = "lazyvim.plugins.extras.editor.mini-move" },
 
