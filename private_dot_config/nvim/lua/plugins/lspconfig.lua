@@ -9,6 +9,9 @@ return {
       rust_analyzer = function()
         return true
       end,
+      clangd = function(_, opts)
+        opts.capabilities.offsetEncoding = { "utf-16" }
+      end,
     },
   },
   init = function()
