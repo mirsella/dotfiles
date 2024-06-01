@@ -14,8 +14,8 @@ require("lazy").setup({
       import = "lazyvim.plugins",
     },
 
-    -- using supermaven
-    { import = "lazyvim.plugins.extras.coding.copilot" },
+    -- replaced by supermaven
+    -- { import = "lazyvim.plugins.extras.coding.copilot" },
     -- { import = "lazyvim.plugins.extras.coding.codeium" },
 
     { import = "lazyvim.plugins.extras.coding.yanky" },
