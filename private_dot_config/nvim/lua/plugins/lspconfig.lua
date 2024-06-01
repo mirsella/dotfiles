@@ -4,11 +4,12 @@ return {
     inlay_hints = {
       enabled = true,
     },
-    -- setup = {
-    --   rust_analyzer = function()
-    --     return true
-    --   end,
-    -- },
+    -- fix warning with rustaceans.nvim https://github.com/mrcjkb/rustaceanvim/blob/master/doc/mason.txt
+    setup = {
+      rust_analyzer = function()
+        return true
+      end,
+    },
   },
   init = function()
     local keys = require("lazyvim.plugins.lsp.keymaps").get()
