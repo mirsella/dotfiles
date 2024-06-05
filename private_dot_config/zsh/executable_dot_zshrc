@@ -58,8 +58,8 @@ alias gt='git stash '
 alias gc='git commit '
 alias gp='git push '
 alias gcd='git commit -m "gcd $(date)"'
-gm() { git commit -m "$*" }
-gamp() { git add -A; git commit -m "${*:-gamp}"; git push }
+gm() { nocorrect git commit -m "$*" }
+gamp() { git add -A; nocorrect git commit -m "${*:-gamp}"; git push }
 alias fd='fd -HL -E run -E media -E sys -E proc '
 alias fda='fd -I '
 alias trapp='trap "exit" SIGINT '
