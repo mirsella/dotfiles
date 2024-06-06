@@ -4,11 +4,11 @@ url = "https://github.com/mattmc3/antidote"
 clone.args = ["--depth=1"]
 refreshPeriod = "168h"
 
-# [".config/tmux/plugins/tpm"]
-# type = "git-repo"
-# url = "https://github.com/tmux-plugins/tpm"
-# clone.args = ["--depth=1"]
-# refreshPeriod = "168h"
+[".config/tmux/plugins/tpm"]
+type = "git-repo"
+url = "https://github.com/tmux-plugins/tpm"
+clone.args = ["--depth=1"]
+refreshPeriod = "168h"
 
 [".config/wezterm/rose-pine"]
 type = "git-repo"
