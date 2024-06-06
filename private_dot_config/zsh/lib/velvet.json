@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
   "version": 2,
   "final_space": true,
+  "disable_notice": true,
   "console_title_template": "{{ if .Segments.Session.SSHSession }}SSH'd{{ if or .Root }} & {{ end }}{{ end }}{{ if .Root }}# (as {{ .UserName }}) | {{ end }}{{ if .WSL }}WSL | {{ end }}{{ .Folder }} ({{ .Shell }})",
   "blocks": [
     {
@@ -67,90 +68,22 @@
           }
         },
         {
-          "type": "exit",
-          "style": "diamond",
-          "foreground": "#EFDCF9",
-          "foreground_templates": [
-            "{{ if gt .Code 0 }}#FF3C3C{{ end }}"
-          ],
           "background": "#69307A",
-          "trailing_diamond": "\ue0b0",
-          "template": " \udb86\udca0{{ if gt .Code 0 }} {{.Code}}{{ end }} ",
+          "foreground": "#EFDCF9",
+          "foreground_templates": ["{{ if gt .Code 0 }}#FF3C3C{{ end }}"],
           "properties": {
             "always_enabled": true
-          }
+          },
+          "style": "diamond",
+          "template": " \uf08a{{ if gt .Code 0 }} {{.Code}}{{ end }} ",
+          "trailing_diamond": "\ue0b4",
+          "type": "status"
         }
       ]
     },
     {
       "type": "rprompt",
       "alignment": "right",
-      "segments": [
-        {
-          "type": "python",
-          "style": "diamond",
-          "foreground": "#E4F34A",
-          "background": "#4c1f5e",
-          "leading_diamond": " \ue0b6",
-          "trailing_diamond": "\ue0b4",
-          "template": "\ue235{{ if .Error }}{{ .Error }}{{ else }}{{ if .Venv }}{{ .Venv }} {{ end }}{{ .Full }}{{ end }}",
-          "properties": {
-            "fetch_version": false
-          }
-        },
-        {
-          "type": "go",
-          "style": "diamond",
-          "foreground": "#7FD5EA",
-          "background": "#4c1f5e",
-          "leading_diamond": " \ue0b6",
-          "trailing_diamond": "\ue0b4",
-          "template": "\udb81\udfd3{{ if .Error }}{{ .Error }}{{ else }}{{ .Full }}{{ end }}",
-          "properties": {
-            "fetch_version": false
-          }
-        },
-        {
-          "type": "node",
-          "style": "diamond",
-          "foreground": "#42E66C",
-          "background": "#4c1f5e",
-          "leading_diamond": " \ue0b6",
-          "trailing_diamond": "\ue0b4",
-          "template": "\ue718{{ if .PackageManagerIcon }}{{ .PackageManagerIcon }} {{ end }}{{ .Full }}",
-          "properties": {
-            "fetch_version": false
-          }
-        },
-        {
-          "type": "ruby",
-          "style": "diamond",
-          "foreground": "#E64747",
-          "background": "#4c1f5e",
-          "leading_diamond": " \ue0b6",
-          "trailing_diamond": "\ue0b4",
-          "template": "\ue791{{ if .Error }}{{ .Error }}{{ else }}{{ .Full }}{{ end }}",
-          "properties": {
-            "fetch_version": false
-          }
-        },
-        {
-          "type": "java",
-          "style": "diamond",
-          "foreground": "#E64747",
-          "background": "#4c1f5e",
-          "leading_diamond": " \ue0b6",
-          "trailing_diamond": "\ue0b4",
-          "template": "\ue738{{ if .Error }}{{ .Error }}{{ else }}{{ .Full }}{{ end }}",
-          "properties": {
-            "fetch_version": false
-          }
-        }
-      ]
-    },
-    {
-      "type": "rprompt",
-      "alignment": "left",
       "segments": [
         {
           "type": "time",
@@ -174,7 +107,7 @@
           "type": "session",
           "style": "diamond",
           "foreground": "#EFDCF9",
-          "template": "{{ .UserName }}@{{ .HostName }} ->",
+          "template": "->",
           "max_width": 77
         }
       ],
