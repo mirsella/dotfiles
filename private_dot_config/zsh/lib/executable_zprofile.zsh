@@ -3,7 +3,7 @@ export ZVM_LINE_INIT_MODE=$ZVM_MODE_INSERT
 source "${ZDOTDIR}/.antidote/antidote.zsh"
 export HISTSIZE=1000000
 export SAVEHIST=1000000
-export HISTFILE="$XDG_CACHE_HOME"/zsh_history
+export HISTFILE="$XDG_DATA_HOME"/zsh_history
 export HISTCONTROL=ignoreboth
 if type oh-my-posh > /dev/null; then
 	eval "$(oh-my-posh init zsh --config ~/.config/zsh/lib/velvet.json)"
