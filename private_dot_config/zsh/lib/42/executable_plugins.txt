@@ -11,4 +11,3 @@ Aloxaf/fzf-tab
 zsh-users/zsh-autosuggestions
 zsh-users/zsh-completions
 MenkeTechnologies/zsh-cargo-completion
-MenkeTechnologies/zsh-cargo-completion
