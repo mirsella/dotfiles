@@ -1,4 +1,4 @@
 return {
-	"linux-cultist/venv-selector.nvim",
-	enable = false,
+  "linux-cultist/venv-selector.nvim",
+  enabled = false,
 }
