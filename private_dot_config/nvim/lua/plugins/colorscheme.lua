@@ -25,6 +25,6 @@ return {
     },
     -- // lazyvim errors if disabled
     -- { "folke/tokyonight.nvim", enabled = false },
-    { "catppuccin/nvim", enabled = false },
+    { "catppuccin", enabled = false },
   },
 }
