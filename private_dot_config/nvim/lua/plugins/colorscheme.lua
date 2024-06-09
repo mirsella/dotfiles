@@ -17,14 +17,12 @@ return {
     "rose-pine/neovim",
     priority = 10000,
   },
+  { "folke/tokyonight.nvim", enabled = false },
+
   {
     "LazyVim/LazyVim",
-    opts = {
-      -- loaded in ./auto-dark-mode.lua
-      colorscheme = function() end,
-    },
-    -- // lazyvim errors if disabled
-    -- { "folke/tokyonight.nvim", enabled = false },
-    { "catppuccin", enabled = false },
+    opts = { colorscheme = "default" },
   },
+  { "folke/tokyonight.nvim", enabled = false },
+  { "catppuccin", enabled = false },
 }
