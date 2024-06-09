@@ -17,7 +17,6 @@ return {
     "rose-pine/neovim",
     priority = 10000,
   },
-  { "folke/tokyonight.nvim", enabled = false },
 
   {
     "LazyVim/LazyVim",
