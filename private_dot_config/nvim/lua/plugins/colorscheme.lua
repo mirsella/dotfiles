@@ -13,15 +13,15 @@
 -- timer:start(0, 300000, vim.schedule_wrap(set_colorscheme_based_on_time))
 
 return {
-  {
-    "rose-pine/neovim",
-    priority = 10000,
-  },
+	{
+		"rose-pine/neovim",
+		priority = 10000,
+	},
 
-  {
-    "LazyVim/LazyVim",
-    opts = { colorscheme = "default" },
-  },
-  { "folke/tokyonight.nvim", enabled = false },
-  { "catppuccin", enabled = false },
+	{
+		"LazyVim/LazyVim",
+		opts = { colorscheme = function() end },
+	},
+	{ "folke/tokyonight.nvim", enabled = false },
+	{ "catppuccin", enabled = false },
 }
