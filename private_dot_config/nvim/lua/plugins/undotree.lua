@@ -3,6 +3,12 @@ return {
 	dependencies = "nvim-lua/plenary.nvim",
 	config = true,
 	keys = {
-		{ "<leader>uu", "<cmd>lua require('undotree').toggle()<cr>" },
+		{
+			"<leader>uu",
+			function()
+				require("undotree").toggle()
+			end,
+			desc = "Undotree toggle",
+		},
 	},
 }
