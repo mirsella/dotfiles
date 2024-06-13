@@ -4,8 +4,8 @@ return {
     inlay_hints = {
       enabled = true,
     },
-    -- fix warning with rustaceans.nvim https://github.com/mrcjkb/rustaceanvim/blob/master/doc/mason.txt
     setup = {
+      -- fix warning with rustaceans.nvim https://github.com/mrcjkb/rustaceanvim/blob/master/doc/mason.txt
       rust_analyzer = function()
         return true
       end,
