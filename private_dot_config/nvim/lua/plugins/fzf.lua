@@ -1,7 +1,8 @@
 local function buf_dir()
-  local num = vim.api.nvim_get_current_buf()
-  local name = vim.api.nvim_buf_get_name(num)
-  return vim.uv.fs_realpath(name)
+  local bufnum = vim.api.nvim_get_current_buf()
+  local fullpath = vim.api.nvim_buf_get_name(bufnum)
+  local basedir = vim.fn.fnamemodify(fullpath, ":p:h")
+  return basedir
 end
 
 return {
