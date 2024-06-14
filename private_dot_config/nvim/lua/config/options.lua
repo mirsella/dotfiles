@@ -3,7 +3,7 @@
 -- Add any additional options here
 
 -- vim.opt.pumblend = 0 -- opaque completion menu
-vim.opt.softtabstop = 2
+-- vim.opt.softtabstop = 2
 
 vim.opt.foldmethod = "expr"
 vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
