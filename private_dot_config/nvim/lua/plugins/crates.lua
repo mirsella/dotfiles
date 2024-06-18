@@ -4,7 +4,9 @@ return {
 		{
 			"<leader>cf",
 			require("crates").show_features_popup,
-			{ silent = true, desc = "Show features popup in Cargo.toml" },
+			silent = true,
+      ft = "toml",
+      desc = "Show features popup in Cargo.toml",
 		},
 	},
 }

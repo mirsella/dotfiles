@@ -11,8 +11,8 @@ return {
     },
     lazy = false,
     keys = {
-      { "<leader>e", "<CMD>Oil<CR>", { desc = "Open parent directory" } },
-      { "-", "<CMD>Oil<CR>", { desc = "Open parent directory" } },
+      { "<leader>e", "<CMD>Oil<CR>", desc = "Open parent directory" },
+      { "-", "<CMD>Oil<CR>", desc = "Open parent directory" },
     },
   },
 }
