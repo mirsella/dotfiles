@@ -2,6 +2,7 @@ return {
   "mrcjkb/rustaceanvim",
   keys = {
     {
+      "n",
       "<leader>cc",
       function()
         vim.cmd.RustLsp("openCargo")
@@ -9,6 +10,7 @@ return {
       { desc = "Open Cargo.toml" },
     },
     {
+      "n",
       "<leader>cC",
       function()
         vim.cmd.RustLsp("openDocs")
