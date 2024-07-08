@@ -1,3 +1,2 @@
 # vim: set ft=gitignore:
 cron/
-etc/
