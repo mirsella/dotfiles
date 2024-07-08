@@ -1,0 +1,14 @@
+[Unit]
+Description=Framework for dark-mode and light-mode transitions.
+Documentation=man:darkman(1)
+
+[Service]
+Type=dbus
+BusName=nl.whynothugo.darkman
+ExecStart=/usr/bin/darkman run
+Restart=on-failure
+TimeoutStopSec=15
+Slice=background.slice
+
+[Install]
+WantedBy=default.target
