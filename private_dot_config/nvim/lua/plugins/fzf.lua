@@ -16,6 +16,7 @@ return {
 				end,
 				desc = "Find Files (Buffer Dir)",
 			},
+			{ "<leader><leader>", enabled = false },
 		},
 	},
 	{
