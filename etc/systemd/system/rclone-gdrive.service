@@ -1,14 +1,18 @@
 [Unit]
-Description=Framework for dark-mode and light-mode transitions.
-Documentation=man:darkman(1)
+Description=mount google drive with rclone 
+After=network.target
+StartLimitIntervalSec=10
+StartLimitBurst=5
 
 [Service]
-Type=dbus
-BusName=nl.whynothugo.darkman
-ExecStart=/usr/bin/darkman run
-Restart=on-failure
-TimeoutStopSec=15
-Slice=background.slice
+Type=simple
+User=mirsella
+ExecStartPre=-/bin/rm -rf ${HOME}/Documents/gdrive
+ExecStartPre=-mkdir -p ${HOME}/Documents/gdrive
+ExecStart=rclone mount --dir-cache-time 96h --cache-info-age 100h --vfs-cache-mode writes gdrive: ${HOME}/Documents/gdrive
+ExecStop=/bin/fusermount -u ${HOME}/Documents/gdrive
+Restart=always
+RestartSec=1
 
 [Install]
 WantedBy=default.target
