@@ -1,7 +1,6 @@
 return {
 	"f-person/auto-dark-mode.nvim",
 	dependencies = { "rose-pine/neovim" },
-	priority = 1000,
 	opts = {
 		update_interval = 1000,
 		set_dark_mode = function()
