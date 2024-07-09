@@ -2,8 +2,9 @@ return {
 	{
 		"rose-pine/neovim",
 		name = "rose-pine",
-		priority = 1000,
+		priority = 10000,
 		opts = {
+			variant = "auto",
 			dim_inactive_windows = true,
 			extend_background_behind_borders = false,
 			highlight_groups = {
