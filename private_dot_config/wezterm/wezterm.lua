@@ -1,9 +1,9 @@
 local wezterm = require("wezterm")
-local act = wezterm.action
+local theme = wezterm.plugin.require("https://github.com/neapsix/wezterm").main
 local config = wezterm.config_builder()
 
-config.colors = require("rose-pine/lua/rose-pine-moon").colors()
-config.window_frame = require("rose-pine/lua/rose-pine-moon").window_frame()
+config.colors = theme.colors()
+config.window_frame = theme.window_frame()
 config.colors.scrollbar_thumb = "#5c6370"
 config.enable_scroll_bar = true
 config.font_size = 20.0
