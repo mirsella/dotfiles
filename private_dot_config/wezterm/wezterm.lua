@@ -1,5 +1,5 @@
 local wezterm = require("wezterm")
-local theme = wezterm.plugin.require("https://github.com/neapsix/wezterm").main
+local theme = require("lua/rose-pine").main
 local config = wezterm.config_builder()
 
 config.colors = theme.colors()
