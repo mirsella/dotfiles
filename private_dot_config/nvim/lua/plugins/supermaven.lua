@@ -1,6 +1,8 @@
 return {
 	{
 		"supermaven-inc/supermaven-nvim",
+		-- fix https://github.com/supermaven-inc/supermaven-nvim/issues/74
+		commit = "df3ecf7",
 		event = { "BufReadPre", "BufNewFile" },
 		build = ":SupermavenUseFree",
 		opts = {
