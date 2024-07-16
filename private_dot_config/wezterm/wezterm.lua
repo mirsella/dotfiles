@@ -20,7 +20,7 @@ config.window_close_confirmation = "NeverPrompt"
 config.animation_fps = 60
 
 config.keys = {
-	{ key = "f", mods = "CTRL|SHIFT", action = act.Search({ CaseInSensitiveString = "" }) },
+	{ key = "f", mods = "CTRL|SHIFT", action = act.Search({ Regex = "" }) },
 	{ key = "|", mods = "CTRL|SHIFT", action = act.SplitHorizontal },
 	{ key = "-", mods = "CTRL|SHIFT", action = act.SplitVertical },
 
