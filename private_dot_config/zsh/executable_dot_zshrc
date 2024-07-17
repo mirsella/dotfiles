@@ -30,7 +30,6 @@ export LC_MONETARY=fr_FR.UTF-8
 export LC_NUMERIC=fr_FR.UTF-8
 export LC_TIME=fr_FR.UTF-8
 export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin"
-export XDG_DATA_DIRS="$XDG_DATA_DIRS:$HOME/.local/share"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias -s html="$BROWSER"
 alias -s pdf="$BROWSER"
