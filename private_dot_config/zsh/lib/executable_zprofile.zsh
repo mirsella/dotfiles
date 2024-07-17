@@ -5,7 +5,9 @@ export HISTSIZE=1000000
 export SAVEHIST=1000000
 export HISTFILE="$XDG_DATA_HOME"/zsh_history
 export HISTCONTROL=ignoreboth
-if type oh-my-posh > /dev/null; then
+if type starship > /dev/null; then
+  eval "$(starship init zsh)"
+elif type oh-my-posh > /dev/null; then
 	eval "$(oh-my-posh init zsh --config ~/.config/zsh/lib/velvet.json)"
 else
 	export PROMPT="%B%F{219}[%n@%M %~]%(!.%F{196}#%f.$) %f%b"
