@@ -26,10 +26,13 @@ min_time = 0
 
 [status]
 disabled = false
+pipestatus = true
+symbol = " "
+map_symbol = true
 
 [git_metrics]
 disabled = false
 
 [os]
-disabled = false
+disabled = true
 symbols.Arch = " "
