@@ -47,11 +47,11 @@ config.keys = {
 	},
 }
 
--- not working but oh well lets leave it here
-wezterm.on("gui-startup", function(cmd)
-	local _, _, window = wezterm.mux.spawn_window(cmd or {})
-	window:gui_window():maximize()
-end)
+-- not working
+-- wezterm.on("gui-startup", function(cmd)
+-- 	local _, _, window = wezterm.mux.spawn_window(cmd or {})
+-- 	window:gui_window():maximize()
+-- end)
 
 -- auto set theme variant
 wezterm.on("update-status", function(window)
