@@ -1,0 +1,35 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+add_newline = false
+
+[username]
+disabled = true
+
+# [directory]
+# style = "bg:#DA627D"
+# format = "[ $path ]($style)"
+# truncation_length = 3
+# truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+
+[time]
+disabled = true
+
+[cmd_duration]
+show_milliseconds = true
+min_time = 0
+
+[status]
+disabled = false
+
+[git_metrics]
+disabled = false
+
+[os]
+disabled = false
+symbols.Arch = " "
