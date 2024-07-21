@@ -17,6 +17,13 @@ return {
 				desc = "Find Files (Buffer Dir)",
 			},
 			{ "<leader><leader>", enabled = false },
+			{
+				"<leader>ft",
+				function()
+					require("fzf-lua").filetypes()
+				end,
+				{ silent = true, desc = "Change filetype" },
+			},
 		},
 	},
 	{
