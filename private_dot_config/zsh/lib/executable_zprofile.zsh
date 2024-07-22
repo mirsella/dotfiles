@@ -203,7 +203,7 @@ antidote load "${ZDOTDIR}/lib/$(hostname)/plugins.txt"
 # fzf-tab
 disable-fzf-tab
 zstyle ':fzf-tab:*' fzf-bindings 'tab:toggle'
-bindkey '^[OP' toggle-fzf-tab # F1 key
+bindkey '^[OS' toggle-fzf-tab # F1 key
 zstyle ':fzf-tab:*' continuous-trigger '/'
 zstyle ":fzf-tab:*" fzf-flags '--preview-window=right:100:wrap' '--height=100' '--ansi'
 zstyle ':fzf-tab:complete:*' fzf-preview '
