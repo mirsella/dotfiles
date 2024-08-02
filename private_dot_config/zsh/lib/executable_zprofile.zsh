@@ -102,7 +102,7 @@ export AUTO_NOTIFY_THRESHOLD=15
 export AUTO_NOTIFY_TITLE="code: %exit_code, took %elapsed sec.\n"
 export AUTO_NOTIFY_BODY="%command"
 export AUTO_NOTIFY_EXPIRE_TIME=2000
-AUTO_NOTIFY_IGNORE+=("less" "more" "man" "tig" "watch" "git commit" "top" "htop" "nano" "v" "nvim" "ssh" "chezmoi cd" "p nuxt dev")
+AUTO_NOTIFY_IGNORE+=("ore" "man" "watch" "gc" "top" "htop" "nano" "v" "nvim" "chezmoi cd" "p nuxt dev" "gd")
 
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
