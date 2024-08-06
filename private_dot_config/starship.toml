@@ -1,5 +1,5 @@
 "$schema" = 'https://starship.rs/config-schema.json'
-
+command_timeout = 200
 add_newline = false
 
 [username]
