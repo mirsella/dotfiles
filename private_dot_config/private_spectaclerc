@@ -10,11 +10,11 @@ clipboardGroup=PostScreenshotCopyImage
 launchAction=UseLastUsedCapturemode
 
 [GuiConfig]
-captureMode=5
+captureMode=0
 
 [ImageSave]
 lastImageSaveAsLocation=file:///home/mirsella/Downloads/mcgraw pistol.png
-lastImageSaveLocation=file:///home/mirsella/Documents/Pictures/Screenshots/Screenshot_20240723_190410.png
+lastImageSaveLocation=file:///home/mirsella/Documents/Pictures/Screenshots/Screenshot_20240807_001307.png
 translatedScreenshotsFolder=Screenshots
 
 [VideoSave]

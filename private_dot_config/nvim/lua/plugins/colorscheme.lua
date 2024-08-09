@@ -8,8 +8,8 @@ return {
 			dim_inactive_windows = true,
 			extend_background_behind_borders = false,
 			highlight_groups = {
-				Visual = { bg = "highlight_high" },
-				FzfLuaCursorLine = { bg = "highlight_med", fg = "text" },
+				-- Visual = { bg = "highlight_high" },
+				-- FzfLuaCursorLine = { bg = "highlight_med", fg = "text" },
 			},
 		},
 	},
