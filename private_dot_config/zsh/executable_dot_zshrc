@@ -16,6 +16,9 @@ notif() {
 }
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
+ports() {
+  sudo lsof -iTCP -sTCP:LISTEN -n -P | awk 'NR>1 {print $9, $1, $2}' | sed 's/.*://' | while read port process pid; do echo "Port $port: $(ps -p $pid -o command= | sed 's/^-//') (PID: $pid)"; done | sort -n
+}
 
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
 hash -d u=/run/media/mirsella
