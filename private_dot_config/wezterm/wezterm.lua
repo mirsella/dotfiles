@@ -56,7 +56,8 @@ config.keys = {
 -- auto set theme variant
 wezterm.on("update-status", function(window)
 	local overrides = window:get_config_overrides() or {}
-	local appearance = wezterm.gui.get_appearance()
+	local appearance = window:get_appearance()
+	print(appearance)
 	local scheme = appearance:find("Dark") and rose_pine.moon or rose_pine.dawn
 	if overrides.colors ~= scheme then
 		overrides.colors = scheme.colors()
