@@ -10,3 +10,5 @@
   autoSetupRemote = true
 [commit]
   gpgsign = {{ if dig .chezmoi.hostname "" .signinKey }}true{{ else }}false{{ end }}
+[core]
+	excludesfile = /home/mirsella/.config/git/ignore
