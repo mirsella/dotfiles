@@ -11,6 +11,9 @@ return {
 		event = { "VimEnter */*,.*", "BufNew */*,.*" },
 		opts = {
 			delete_to_trash = true,
+			keymaps = {
+				["<C-s>"] = false,
+			},
 		},
 		keys = {
 			{ "<leader>e", "<CMD>Oil<CR>", desc = "Open parent directory" },
