@@ -9,7 +9,7 @@ return {
 			extend_background_behind_borders = false,
 			highlight_groups = {
 				-- Visual = { bg = "highlight_high" },
-				-- FzfLuaCursorLine = { bg = "highlight_med", fg = "text" },
+				Visual = { bg = "iris", blend = 15 },
 			},
 		},
 	},
