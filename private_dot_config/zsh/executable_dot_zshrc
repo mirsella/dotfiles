@@ -25,7 +25,12 @@ hash -d u=/run/media/mirsella
 export MAIL='mirsella@protonmail.com'
 export EDITOR='nvim'
 export DIFFPROG='nvim -d'
-export BROWSER='firefox'
+if command -v zen-browser &> /dev/null
+then
+    export BROWSER="zen-browser"
+else
+    export BROWSER="firefox"
+fi
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export LC_MEASUREMENT=fr_FR.UTF-8
