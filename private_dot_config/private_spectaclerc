@@ -1,9 +1,6 @@
 [$Version]
 update_info=spectacle_clipboard.upd:clipboard-settings-change,spectacle_rememberregion.upd:spectacle-migrate-rememberregion
 
-[Annotations]
-annotationToolType=8
-
 [General]
 autoSaveImage=true
 clipboardGroup=PostScreenshotCopyImage
@@ -13,8 +10,8 @@ launchAction=UseLastUsedCapturemode
 captureMode=4
 
 [ImageSave]
-lastImageSaveAsLocation=file:///home/mirsella/Downloads/mcgraw pistol.png
-lastImageSaveLocation=file:///home/mirsella/Documents/Pictures/Screenshots/Screenshot_20240827_162105.png
+lastImageSaveAsLocation=file:///home/mirsella/dev/lak/lak_screenshot.png
+lastImageSaveLocation=file:///home/mirsella/Documents/Pictures/Screenshots/Screenshot_20240917_214907.png
 translatedScreenshotsFolder=Screenshots
 
 [VideoSave]
