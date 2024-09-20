@@ -1,17 +1,21 @@
 [$Version]
 update_info=spectacle_clipboard.upd:clipboard-settings-change,spectacle_rememberregion.upd:spectacle-migrate-rememberregion
 
+[FileDialogSize]
+2 screens: Height=540
+2 screens: Width=960
+
 [General]
 autoSaveImage=true
 clipboardGroup=PostScreenshotCopyImage
 launchAction=UseLastUsedCapturemode
 
 [GuiConfig]
-captureMode=4
+captureMode=0
 
 [ImageSave]
-lastImageSaveAsLocation=file:///home/mirsella/dev/lak/lak_screenshot.png
-lastImageSaveLocation=file:///home/mirsella/Documents/Pictures/Screenshots/Screenshot_20240917_214907.png
+lastImageSaveAsLocation=file:///home/mirsella/Downloads/confirmation freebox.png
+lastImageSaveLocation=file:///home/mirsella/Downloads/confirmation freebox.png
 translatedScreenshotsFolder=Screenshots
 
 [VideoSave]
