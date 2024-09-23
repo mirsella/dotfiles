@@ -67,9 +67,8 @@ alias ga='git add -A'
 alias gt='git stash'
 alias gc='git commit'
 alias gp='git push'
-alias gcd='git commit -m "quick push"'
-gm() { nocorrect git commit -m "$*" }
-gamp() { git add -A; nocorrect git commit -m "${*:-gamp quick commit }"; git push }
+gam() { git add -A; nocorrect git commit -m "${*:-quick commit }" }
+gamp() { git add -A; nocorrect git commit -m "${*:-quick commit }"; git push }
 alias fd='fd -HL -E run -E media -E sys -E proc -E dosdevices'
 alias fda='fd -I '
 alias trapp='trap "exit" SIGINT '
