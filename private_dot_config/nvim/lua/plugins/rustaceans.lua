@@ -1,5 +1,6 @@
 return {
 	"mrcjkb/rustaceanvim",
+	version = "^5",
 	keys = {
 		{
 			"<leader>cc",
