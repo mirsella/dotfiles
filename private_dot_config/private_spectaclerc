@@ -11,11 +11,11 @@ clipboardGroup=PostScreenshotCopyImage
 launchAction=UseLastUsedCapturemode
 
 [GuiConfig]
-captureMode=3
+captureMode=5
 
 [ImageSave]
 lastImageSaveAsLocation=file:///home/mirsella/Downloads/confirmation freebox.png
-lastImageSaveLocation=file:///home/mirsella/Documents/Pictures/Screenshots/Screenshot_20241002_125022.png
+lastImageSaveLocation=file:///home/mirsella/Documents/Pictures/Screenshots/Screenshot_20241004_141843.png
 translatedScreenshotsFolder=Screenshots
 
 [VideoSave]

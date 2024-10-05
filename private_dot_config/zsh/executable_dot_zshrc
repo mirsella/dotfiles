@@ -37,7 +37,7 @@ export LC_MEASUREMENT=fr_FR.UTF-8
 export LC_MONETARY=fr_FR.UTF-8
 export LC_NUMERIC=fr_FR.UTF-8
 export LC_TIME=fr_FR.UTF-8
-export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin"
+export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin:$PNPM_HOME"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias -s html="$BROWSER"
 alias -s pdf="$BROWSER"
@@ -52,8 +52,8 @@ alias cp='cp -r '
 alias ls='lsd -A --hyperlink=auto'
 alias ll='lsd -Al --hyperlink=auto'
 alias tree='lsd -A --tree -I node_modules -I .git '
-# alias bat='bat -pp --color=always --theme="Monokai Extended Origin" '
-alias bat='bat -pp --color=always --theme="ansi" '
+alias bat='bat -pp --color=always --theme="Monokai Extended Origin" '
+alias batl='bat -pp --color=always --theme="Monokai Extended Light" '
 alias q='exit '
 alias dut='du -cksh '
 alias rg='rg --hidden -S '
@@ -78,7 +78,6 @@ alias chownm='s chown -R $USER: '
 alias S='sudo systemctl '
 alias s='sudo -E '
 alias uefireboot='systemctl reboot --firmware-setup'
-# alias yarn="yarn --use-yarnrc $XDG_CONFIG_HOME/yarn/config"
 alias arduino-cli='arduino-cli --config-file $XDG_CONFIG_HOME/arduino15/arduino-cli.yaml '
 alias gclipp='git clone $(clipp)'
 alias gcl='git clone'
@@ -108,4 +107,3 @@ source ~/.config/zsh/lib/completion.zsh
 source ~/.config/zsh/lib/keybinds.zsh
 source  ~/.config/zsh/lib/fzf/fzf-completion.zsh
 source  ~/.config/zsh/lib/fzf/fzf-key-bindings.zsh
-
