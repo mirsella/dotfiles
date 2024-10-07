@@ -13,6 +13,7 @@ alias android-studio='flatpak run --env=ANDROID_SDK_HOME="$HOME/sgoinfre/android
 alias V='echo -n z | xclip -selection clipboard'
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }
+unalias clipp clip
 clipp () { xclip -out -selection clipboard; }
 clip () { xclip -in -selection clipboard < "${@:-/dev/stdin}"; }
 
@@ -24,5 +25,5 @@ clip () { xclip -in -selection clipboard < "${@:-/dev/stdin}"; }
 alias colemak='xkbcomp $HOME/.config/zsh/lib/42/42_btoz.xkb $DISPLAY'
 if [ ! -f /tmp/loadcustomxkb ]; then
   touch /tmp/loadcustomxkb
-  xkbcomp ./42_btoz.xkb $DISPLAY
+  xkbcomp $HOME/.config/zsh/lib/42/42_btoz.xkb $DISPLAY
 fi
