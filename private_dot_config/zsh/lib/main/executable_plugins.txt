@@ -6,7 +6,7 @@ marlonrichert/zsh-edit
 kutsan/zsh-system-clipboard
 ohmyzsh/ohmyzsh path:plugins/extract
 ohmyzsh/ohmyzsh path:plugins/colored-man-pages
-# mirsella/zsh-auto-notify # personal fork to add a command when sending notif
+mirsella/zsh-auto-notify # personal fork to add a command when sending notif
 Aloxaf/fzf-tab
 zsh-users/zsh-autosuggestions
 zsh-users/zsh-completions
