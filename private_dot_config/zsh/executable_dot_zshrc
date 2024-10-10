@@ -1,6 +1,7 @@
 winboot() {
-	WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
-	sudo grub-reboot "$WINDOWS_TITLE"
+	# WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
+	# sudo grub-reboot "$WINDOWS_TITLE"
+  sudo bootctl set-oneshot auto-windows
 	sudo reboot
 }
 waitforjob() {
@@ -31,12 +32,6 @@ then
 else
     export BROWSER="firefox"
 fi
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-export LC_MEASUREMENT=fr_FR.UTF-8
-export LC_MONETARY=fr_FR.UTF-8
-export LC_NUMERIC=fr_FR.UTF-8
-export LC_TIME=fr_FR.UTF-8
 export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin:$PNPM_HOME"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias -s html="$BROWSER"

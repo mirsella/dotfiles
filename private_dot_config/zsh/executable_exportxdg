@@ -5,6 +5,21 @@ export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_STATE_HOME="$HOME/.local/state"
 
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US.UTF-8
+export LC_ADDRESS=fr_FR.UTF-8
+export LC_COLLATE=fr_FR.UTF-8
+export LC_CTYPE=fr_FR.UTF-8
+export LC_IDENTIFICATION=fr_FR.UTF-8
+export LC_MEASUREMENT=fr_FR.UTF-8
+export LC_MESSAGES=fr_FR.UTF-8
+export LC_MONETARY=fr_FR.UTF-8
+export LC_NAME=fr_FR.UTF-8
+export LC_NUMERIC=fr_FR.UTF-8
+export LC_PAPER=fr_FR.UTF-8
+export LC_TELEPHONE=fr_FR.UTF-8
+export LC_TIME=fr_FR.UTF-8
+
 export GRADLE_USER_HOME="$XDG_DATA_HOME"/gradle
 export CARGO_HOME="$XDG_DATA_HOME"/cargo
 export RUSTUP_HOME="$XDG_DATA_HOME"/rustup
