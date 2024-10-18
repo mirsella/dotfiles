@@ -1,7 +1,7 @@
 return {
 	{
 		"supermaven-inc/supermaven-nvim",
-		enable = false,
+		enabled = false,
 		event = { "BufReadPre", "BufNewFile" },
 		build = ":SupermavenUseFree",
 		opts = {

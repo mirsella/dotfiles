@@ -94,6 +94,7 @@ alias rmf='s /bin/rm -rf '
 alias rm='trash -rf'
 alias clip='wl-copy'
 alias clipp='wl-paste'
+alias j='just'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/zprofile.zsh
