@@ -12,7 +12,10 @@ waitforjob() {
 notif() {
 	[ -f ~/.config/token/telegram.token ] && source ~/.config/token/telegram.token
 	[ -f ~/Documents/gdrive/token/telegram.token ] && source ~/Documents/gdrive/token/telegram.token
-	data='{"chat_id": '$TgId', "text": "'"${@:-$(read a; echo $a)}"'"}'
+  data=$(jq -n \
+      --arg chat_id "$TgId" \
+      --arg text "${*:-empty}" \
+      '{chat_id: $chat_id, text: $text}')
 	curl -s -X POST -H 'Content-Type: application/json' -d "$data" "https://api.telegram.org/bot$TgToken/sendMessage" | jq '[.ok, .result.text]' -c
 }
 bak() { cp -r "${1}" "${1}.bak" }

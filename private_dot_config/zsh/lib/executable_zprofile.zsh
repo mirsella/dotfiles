@@ -99,8 +99,6 @@ zstyle ':completion:*' menu select
 
 # mirsella/zsh-auto-notify
 export AUTO_NOTIFY_THRESHOLD=15
-# export AUTO_NOTIFY_TITLE="code: %exit_code, took %elapsed sec.\n"
-# export AUTO_NOTIFY_BODY="%command"
 export AUTO_NOTIFY_EXPIRE_TIME=2000
 AUTO_NOTIFY_IGNORE+=("man" "watch" "gc" "top" "htop" "nano" "v" "nvim" "chezmoi" "p" "gd")
 
