@@ -1,7 +1,7 @@
 export PATH="$PATH:$HOME/sgoinfre/cargo/bin"
 export CARGO_HOME="$HOME/sgoinfre/cargo"
 export RUSTUP_HOME="$HOME/sgoinfre/rustup"
-
+export NVM_DIR="$HOME/sgoinfre/nvm"
 export ANDROID_SDK_HOME="$HOME/sgoinfre/android"
 export ANDROID_SDK_ROOT="$HOME/sgoinfre/android"
 export ANDROID_HOME="$HOME/sgoinfre/android"
