@@ -21,6 +21,23 @@ return {
 		end,
 	},
 	{
+		"saghen/blink.cmp",
+		optional = true,
+		dependencies = { "saghen/blink.compat" },
+		sources = {
+			completion = {
+				enabled_providers = { "supermaven" },
+			},
+			providers = {
+				digraphs = {
+					name = "supermaven",
+					module = "blink.compat.source",
+					priority = 100,
+				},
+			},
+		},
+	},
+	{
 		"folke/noice.nvim",
 		optional = true,
 		opts = function(_, opts)
