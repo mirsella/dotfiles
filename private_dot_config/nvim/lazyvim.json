@@ -1,5 +1,7 @@
 {
   "extras": [
+    "lazyvim.plugins.extras.coding.blink",
+    "lazyvim.plugins.extras.coding.luasnip",
     "lazyvim.plugins.extras.coding.mini-comment",
     "lazyvim.plugins.extras.coding.mini-surround",
     "lazyvim.plugins.extras.coding.yanky",
@@ -9,6 +11,7 @@
     "lazyvim.plugins.extras.editor.inc-rename",
     "lazyvim.plugins.extras.editor.mini-move",
     "lazyvim.plugins.extras.formatting.prettier",
+    "lazyvim.plugins.extras.lang.ansible",
     "lazyvim.plugins.extras.lang.clangd",
     "lazyvim.plugins.extras.lang.docker",
     "lazyvim.plugins.extras.lang.git",
