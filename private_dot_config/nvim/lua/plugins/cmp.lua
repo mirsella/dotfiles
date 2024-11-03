@@ -19,9 +19,6 @@ return {
 			{ "chrisgrieser/cmp-nerdfont", lazy = true },
 		},
 		opts = {
-			signature_help = {
-				enabled = true,
-			},
 			sources = {
 				completion = {
 					-- TODO: not working :(
