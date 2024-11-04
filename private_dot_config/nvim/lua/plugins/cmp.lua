@@ -21,14 +21,13 @@ return {
 		opts = {
 			sources = {
 				completion = {
-					-- TODO: not working :(
 					enabled_providers = { "digraphs", "emoji", "nerdfont" },
 				},
 				providers = {
 					digraphs = {
 						name = "digraphs",
 						module = "blink.compat.source",
-						-- score_offset = -3,
+						score_offset = -3,
 					},
 					emoji = {
 						name = "emoji",
