@@ -30,13 +30,27 @@ return {
 						enabled = false, -- NOTE: trigger even without the . prefix
 						score_offset = -3,
 					},
-					emoji = {
-						name = "emoji",
-						module = "blink.compat.source",
-					},
 					nerdfont = {
 						name = "nerdfont",
 						module = "blink.compat.source",
+						transform_items = function(ctx, items)
+							local kind = require("blink.cmp.types").CompletionItemKind.Text
+							for i, _ in ipairs(items) do
+								items[i].kind = kind
+							end
+							return items
+						end,
+					},
+					emoji = {
+						name = "emoji",
+						module = "blink.compat.source",
+						transform_items = function(ctx, items)
+							local kind = require("blink.cmp.types").CompletionItemKind.Text
+							for i, _ in ipairs(items) do
+								items[i].kind = kind
+							end
+							return items
+						end,
 					},
 				},
 			},
