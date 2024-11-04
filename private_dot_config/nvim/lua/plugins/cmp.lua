@@ -4,7 +4,7 @@ return {
 		optional = true,
 		dependencies = { "dmitmel/cmp-digraphs", "hrsh7th/cmp-emoji", "chrisgrieser/cmp-nerdfont" },
 		opts = function(_, opts)
-			table.insert(opts.sources, { name = "digraphs" })
+			-- table.insert(opts.sources, { name = "digraphs", score_offset = -3 })
 			table.insert(opts.sources, { name = "emoji" })
 			table.insert(opts.sources, { name = "nerdfont" })
 		end,
@@ -27,6 +27,7 @@ return {
 					digraphs = {
 						name = "digraphs",
 						module = "blink.compat.source",
+						enabled = false, -- NOTE: trigger even without the . prefix
 						score_offset = -3,
 					},
 					emoji = {
