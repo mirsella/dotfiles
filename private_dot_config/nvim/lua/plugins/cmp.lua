@@ -27,12 +27,19 @@ return {
 					digraphs = {
 						name = "digraphs",
 						module = "blink.compat.source",
-						enabled = false, -- NOTE: trigger even without the . prefix
-						score_offset = -3,
+						transform_items = function(ctx, items)
+							local kind = require("blink.cmp.types").CompletionItemKind.Text
+							for i, _ in ipairs(items) do
+								items[i].kind = kind
+							end
+							return items
+						end,
+						score_offset = -10,
 					},
 					nerdfont = {
 						name = "nerdfont",
 						module = "blink.compat.source",
+						score_offset = -5,
 						transform_items = function(ctx, items)
 							local kind = require("blink.cmp.types").CompletionItemKind.Text
 							for i, _ in ipairs(items) do
@@ -44,6 +51,7 @@ return {
 					emoji = {
 						name = "emoji",
 						module = "blink.compat.source",
+						score_offset = -5,
 						transform_items = function(ctx, items)
 							local kind = require("blink.cmp.types").CompletionItemKind.Text
 							for i, _ in ipairs(items) do
