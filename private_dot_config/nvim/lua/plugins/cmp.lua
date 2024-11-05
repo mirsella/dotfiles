@@ -27,6 +27,11 @@ return {
 					digraphs = {
 						name = "digraphs",
 						module = "blink.compat.source",
+						override = {
+							get_trigger_characters = function()
+								return { "." }
+							end,
+						},
 						transform_items = function(ctx, items)
 							local kind = require("blink.cmp.types").CompletionItemKind.Text
 							for i, _ in ipairs(items) do

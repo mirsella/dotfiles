@@ -13,10 +13,6 @@ Host laptop
 Host vps
   HostName vps.mirsella.mooo.com
   User ubuntu
-Host prod
-  HostName intra.lemediapositif.com
-  Port 4391
-  User prod
 Host lmp
   HostName srv587046.hstgr.cloud
   User root
