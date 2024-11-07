@@ -19,6 +19,7 @@ return {
 			{ "chrisgrieser/cmp-nerdfont", lazy = true },
 		},
 		opts = {
+			trigger = { completion = { keyword_range = "full" } },
 			sources = {
 				completion = {
 					enabled_providers = { "digraphs", "emoji", "nerdfont" },
