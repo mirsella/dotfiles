@@ -35,7 +35,7 @@ then
 else
     export BROWSER="firefox"
 fi
-export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin:$PNPM_HOME"
+export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin:$PNPM_HOME:/opt/osxcross/target/bin"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias -s html="$BROWSER"
 alias -s pdf="$BROWSER"
@@ -85,6 +85,7 @@ alias kdesend='kdeconnect-cli -d $(kdeconnect-cli --list-devices | rg phone | he
 alias colemak='setxkbmap us -variant colemak_dh_iso'
 alias qwerty='setxkbmap us'
 alias c='cargo'
+alias cr='cargo run '
 alias cwt='cargo watch -qc -x test '
 alias cw='cargo watch -qc '
 alias cch='cargo check'
