@@ -14,9 +14,9 @@ return {
 		optional = true,
 		dependencies = {
 			{ "saghen/blink.compat" },
-			{ "dmitmel/cmp-digraphs", lazy = true },
-			{ "hrsh7th/cmp-emoji", lazy = true },
-			{ "chrisgrieser/cmp-nerdfont", lazy = true },
+			{ "dmitmel/cmp-digraphs" },
+			{ "hrsh7th/cmp-emoji" },
+			{ "chrisgrieser/cmp-nerdfont" },
 		},
 		opts = {
 			trigger = { completion = { keyword_range = "full" } },
