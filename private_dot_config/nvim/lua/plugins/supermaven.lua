@@ -1,7 +1,6 @@
 return {
 	{
 		"supermaven-inc/supermaven-nvim",
-		enabled = false,
 		event = { "BufReadPre", "BufNewFile" },
 		build = ":SupermavenUseFree",
 		opts = {
@@ -29,7 +28,7 @@ return {
 				enabled_providers = { "supermaven" },
 			},
 			providers = {
-				digraphs = {
+				supermaven = {
 					name = "supermaven",
 					module = "blink.compat.source",
 					priority = 100,
