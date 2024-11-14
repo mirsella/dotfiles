@@ -12,8 +12,12 @@ return {
 	{
 		"saghen/blink.cmp",
 		optional = true,
+		version = false,
 		dependencies = {
-			{ "saghen/blink.compat" },
+			{ "saghen/blink.compat", opts = {
+				impersonate_nvim_cmp = true,
+				enable_events = true,
+			} },
 			{ "dmitmel/cmp-digraphs" },
 			{ "hrsh7th/cmp-emoji" },
 			{ "chrisgrieser/cmp-nerdfont" },
