@@ -17,7 +17,10 @@ config.hide_tab_bar_if_only_one_tab = true
 config.scrollback_lines = 100000
 config.quick_select_alphabet = "colemak"
 config.window_close_confirmation = "NeverPrompt"
-config.animation_fps = 60
+config.animation_fps = 1 -- less resource usage
+config.cursor_blink_ease_in = "Constant"
+config.cursor_blink_ease_out = "Constant"
+config.enable_wayland = false -- wayland screen resolution broken https://github.com/wez/wezterm/issues/6262
 
 config.keys = {
 	{ key = "f", mods = "CTRL|SHIFT", action = act.Search({ Regex = "" }) },
@@ -47,21 +50,14 @@ config.keys = {
 	},
 }
 
--- not working
--- wezterm.on("gui-startup", function(cmd)
--- 	local _, _, window = wezterm.mux.spawn_window(cmd or {})
--- 	window:gui_window():maximize()
--- end)
-
 -- auto set theme variant
 wezterm.on("update-status", function(window)
 	local overrides = window:get_config_overrides() or {}
 	local appearance = window:get_appearance()
-	print(appearance)
 	local scheme = appearance:find("Dark") and rose_pine.moon or rose_pine.dawn
 	if overrides.colors ~= scheme then
 		overrides.colors = scheme.colors()
-		-- overrides.window_frame = scheme.window_frame()
+		overrides.window_frame = scheme.window_frame()
 		window:set_config_overrides(overrides)
 	end
 end)
