@@ -12,18 +12,14 @@ return {
 	{
 		"saghen/blink.cmp",
 		optional = true,
-		version = false,
 		dependencies = {
-			{ "saghen/blink.compat", opts = {
-				impersonate_nvim_cmp = true,
-				enable_events = true,
-			} },
+			{ "saghen/blink.compat" },
 			{ "dmitmel/cmp-digraphs" },
 			{ "hrsh7th/cmp-emoji" },
 			{ "chrisgrieser/cmp-nerdfont" },
 		},
 		opts = {
-			trigger = { completion = { keyword_range = "full" } },
+			-- trigger = { completion = { keyword_range = "full" } },
 			sources = {
 				completion = {
 					enabled_providers = { "digraphs", "emoji", "nerdfont" },
