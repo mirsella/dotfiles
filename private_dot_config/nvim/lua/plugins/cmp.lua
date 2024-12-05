@@ -19,7 +19,8 @@ return {
 			{ "chrisgrieser/cmp-nerdfont" },
 		},
 		opts = {
-			-- trigger = { completion = { keyword_range = "full" } },
+			trigger = { completion = { keyword_range = "full" } },
+			fuzzy = { prebuilt_binaries = { download = true } },
 			sources = {
 				completion = {
 					enabled_providers = { "digraphs", "emoji", "nerdfont" },
