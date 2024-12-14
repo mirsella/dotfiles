@@ -13,10 +13,8 @@ vim.keymap.set(
 vim.keymap.set("i", "<c-t>", "<esc>", { silent = true })
 vim.keymap.set(
 	{ "n", "v" },
-	"<leader><leader>",
+	"<leader>a",
 	vim.lsp.buf.code_action,
 	{ silent = true, desc = "Show code actions", noremap = true }
 )
 vim.keymap.set("n", "'", "`", { desc = "Go to mark" })
-
-vim.api.nvim_set_keymap("i", "<C-H>", "<C-W>", { noremap = true })
