@@ -29,9 +29,9 @@ hash -d u=/run/media/mirsella
 export MAIL='mirsella@protonmail.com'
 export EDITOR='nvim'
 export DIFFPROG='nvim -d'
-if command -v zen-browser &> /dev/null
+if command -v zen &> /dev/null
 then
-    export BROWSER="zen-browser"
+    export BROWSER="zen"
 else
     export BROWSER="firefox"
 fi
