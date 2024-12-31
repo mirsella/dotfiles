@@ -31,8 +31,12 @@ export EDITOR='nvim'
 export DIFFPROG='nvim -d'
 if command -v zen &> /dev/null
 then
-    export BROWSER="zen"
-else
+  export BROWSER="zen"
+elif command -v zen-browser &> /dev/null 
+then
+  export BROWSER="zen-browser"
+elif command -v firefox &> /dev/null
+then
     export BROWSER="firefox"
 fi
 export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin:$PNPM_HOME:/opt/osxcross/target/bin"
