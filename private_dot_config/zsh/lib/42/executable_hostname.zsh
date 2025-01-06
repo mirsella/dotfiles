@@ -7,7 +7,6 @@ export ANDROID_SDK_ROOT="$HOME/sgoinfre/android"
 export ANDROID_HOME="$HOME/sgoinfre/android"
 export GRADLE_USER_HOME="$HOME/sgoinfre/gradle"
 
-export BROWSER="firefox-esr"
 alias rmf='/bin/rm -rf '
 alias android-studio='flatpak run --env=ANDROID_SDK_HOME="$HOME/sgoinfre/android" --env=ANDROID_SDK_ROOT="$HOME/sgoinfre/android" --env=ANDROID_HOME="$HOME/sgoinfre/android" com.google.AndroidStudio'
 alias V='echo -n z | xclip -selection clipboard'
