@@ -1,4 +1,4 @@
-export PATH="$PATH:$HOME/sgoinfre/cargo/bin"
+export PATH="$HOME/sgoinfre/cargo/bin:$PATH"
 export CARGO_HOME="$HOME/sgoinfre/cargo"
 export RUSTUP_HOME="$HOME/sgoinfre/rustup"
 export NVM_DIR="$HOME/sgoinfre/nvm"
