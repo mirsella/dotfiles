@@ -8,7 +8,6 @@ return {
 			dim_inactive_windows = true,
 			extend_background_behind_borders = false,
 			highlight_groups = {
-				-- Visual = { bg = "highlight_high" },
 				Visual = { bg = "iris", blend = 15 },
 			},
 		},
