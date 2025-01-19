@@ -213,4 +213,10 @@ else
 fi
 '
 
-eval "$(zoxide init --cmd cd zsh)"
+if command -v zoxide > /dev/null; then
+  eval "$(zoxide init --cmd cd zsh)"
+fi
+
+if command -v jj > /dev/null; then
+  source <(jj util completion zsh)
+fi
