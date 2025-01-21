@@ -62,7 +62,6 @@ alias rga='rga --hidden -S '
 alias lg='lazygit'
 alias g='git'
 alias gbro='gh browse'
-alias g='git'
 alias gbi='git bisect'
 alias gch='git checkout'
 alias gb='git branch'
@@ -76,6 +75,7 @@ alias gclipp='git clone $(clipp)'
 alias gcl='git clone'
 gam() { git add -A; nocorrect git commit -m "${*:-quick commit }" }
 gamp() { git add -A; nocorrect git commit -m "${*:-quick commit }"; git push }
+jjd() { jj describe -m "${*}" }
 alias fd='fd -HL -E run -E media -E sys -E proc -E dosdevices'
 alias fda='fd -I '
 alias trapp='trap "exit" SIGINT '
