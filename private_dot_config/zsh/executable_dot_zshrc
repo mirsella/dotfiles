@@ -76,6 +76,7 @@ alias gcl='git clone'
 gam() { git add -A; nocorrect git commit -m "${*:-quick commit }" }
 gamp() { git add -A; nocorrect git commit -m "${*:-quick commit }"; git push }
 jjd() { jj describe -m "${*}" }
+jjc() { jj commit -m "${*}" }
 alias fd='fd -HL -E run -E media -E sys -E proc -E dosdevices'
 alias fda='fd -I '
 alias trapp='trap "exit" SIGINT '
@@ -105,7 +106,7 @@ alias rmf='s /bin/rm -rf '
 alias rm='trash -rf'
 alias clip='wl-copy'
 alias clipp='wl-paste'
-alias j='just'
+alias ju='just'
 
 source ~/.config/zsh/lib/$(hostname)/hostname.zsh
 source ~/.config/zsh/lib/zprofile.zsh
