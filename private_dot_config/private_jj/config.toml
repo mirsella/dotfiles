@@ -1,0 +1,9 @@
+[user]
+name = "mirsella"
+email = "mirsella@protonmail.com"
+
+[ui]
+default-command = "log"
+
+[experimental-advance-branches]
+enabled-branches = ["glob:*"]
