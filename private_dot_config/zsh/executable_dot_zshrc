@@ -75,6 +75,9 @@ alias gclipp='git clone $(clipp)'
 alias gcl='git clone'
 gam() { git add -A; nocorrect git commit -m "${*:-quick commit }" }
 gamp() { git add -A; nocorrect git commit -m "${*:-quick commit }"; git push }
+alias lj="lazyjj"
+alias j="jj"
+alias jp="jj git push"
 jjd() { jj describe -m "${*}" }
 jjc() { jj commit -m "${*}" }
 alias fd='fd -HL -E run -E media -E sys -E proc -E dosdevices'
