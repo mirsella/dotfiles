@@ -78,10 +78,10 @@ gamp() { git add -A; nocorrect git commit -m "${*:-quick commit }"; git push }
 alias lj="lazyjj"
 alias j="jj"
 alias jp="jj git push"
-alias jd="jj diff"
-jjd() { jj describe -m "${*}" }
-jjc() { jj commit -m "${*}" }
-jjci() { jj commit -i -m "${*}" }
+alias jdi="jj diff"
+jd() { jj describe -m "${*}" }
+jc() { jj commit -m "${*}" }
+jci() { jj commit -i -m "${*}" }
 alias fd='fd -HL -E run -E media -E sys -E proc -E dosdevices'
 alias fda='fd -I '
 alias trapp='trap "exit" SIGINT '

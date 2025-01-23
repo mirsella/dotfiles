@@ -15,5 +15,6 @@ log = "present(@) | ancestors(immutable_heads().., 3) | present(trunk())"
 l = ["log"]
 p = ["git push"]
 n = ["new"]
-d = ["diff"]
+di = ["diff"]
+d = ["describe"]
 c = ["commit"]
