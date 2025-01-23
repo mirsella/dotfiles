@@ -7,3 +7,15 @@ default-command = "log"
 
 [experimental-advance-branches]
 enabled-branches = ["glob:*"]
+
+[revsets]
+log = "present(@) | ancestors(immutable_heads().., 3) | present(trunk())"
+
+[aliases]
+l = ["log"]
+p = ["git push"]
+n = ["new"]
+d = ["diff"]
+dm = ["util", "exec", "--", "bash", "-c", "jj describe -m \"$@\"", ""]
+cm = ["util", "exec", "--", "bash", "-c", "jj commit -m \"$@\"", ""]
+cmi = ["util", "exec", "--", "bash", "-c", "jj commit -i -m \"$@\"", ""]
