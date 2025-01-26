@@ -25,6 +25,7 @@ ports() {
 }
 
 ([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
+
 hash -d u=/run/media/mirsella
 export MAIL='mirsella@protonmail.com'
 export EDITOR='nvim'
@@ -46,6 +47,7 @@ alias -s pdf="$BROWSER"
 alias -s odt='libreoffice'
 alias psaux='ps aux | rg '
 alias journalctlerrors='journalctl -p 3 -xb'
+alias clearnotif='for i in $(seq $(notify-send -p " " -t 1) -1 0); do qdbus6 org.kde.plasmashell /org/freedesktop/Notifications org.freedesktop.Notifications.CloseNotification $i; done'
 alias NU='2> /dev/null ' #Silences stderr
 alias NUL='> /dev/null 2>&1 ' #Silences both stdout and stderr
 alias yt='yt-dlp -x --recode-video mp3 --embed-metadata --embed-thumbnail --fixup warn --sponsorblock-remove all '
