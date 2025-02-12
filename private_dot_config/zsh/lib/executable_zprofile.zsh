@@ -100,7 +100,7 @@ zstyle ':completion:*' menu select
 # mirsella/zsh-auto-notify
 export AUTO_NOTIFY_THRESHOLD=15
 export AUTO_NOTIFY_EXPIRE_TIME=2000
-AUTO_NOTIFY_IGNORE+=("man" "watch" "gc" "top" "htop" "nano" "v" "nvim" "chezmoi" "p" "gd")
+AUTO_NOTIFY_IGNORE+=("man" "watch" "gc" "top" "htop" "nano" "v" "nvim" "chezmoi" "p" "gd" "just" "ju")
 
 
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
