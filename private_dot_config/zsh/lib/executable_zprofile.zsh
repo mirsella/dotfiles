@@ -79,19 +79,7 @@ zle -N self-insert url-quote-magic
 autoload -Uz bracketed-paste-magic
 zle -N bracketed-paste bracketed-paste-magic
 
-autoload -Uz compinit
-ZSH_COMPDUMP=${ZSH_COMPDUMP:-${ZDOTDIR}/.zcompdump}
-if [[ $ZSH_COMPDUMP(#qNmh-20) ]]; then
-  compinit -C -d "$ZSH_COMPDUMP"
-else
-  compinit -i -d "$ZSH_COMPDUMP"; touch "$ZSH_COMPDUMP"
-fi
-{
-  # compile .zcompdump
-  if [[ -s "$ZSH_COMPDUMP" && (! -s "${ZSH_COMPDUMP}.zwc" || "$ZSH_COMPDUMP" -nt "${ZSH_COMPDUMP}.zwc") ]]; then
-    zcompile "$ZSH_COMPDUMP"
-  fi
-} &!
+autoload -U compinit; compinit
 
 ## case insensitive path-completion
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
