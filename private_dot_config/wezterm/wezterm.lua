@@ -21,6 +21,7 @@ config.animation_fps = 1 -- less resource usage
 config.cursor_blink_ease_in = "Constant"
 config.cursor_blink_ease_out = "Constant"
 config.enable_wayland = false -- wayland screen resolution broken https://github.com/wez/wezterm/issues/6262
+config.warn_about_missing_glyphs = false
 
 config.keys = {
 	{ key = "f", mods = "CTRL|SHIFT", action = act.Search({ Regex = "" }) },
