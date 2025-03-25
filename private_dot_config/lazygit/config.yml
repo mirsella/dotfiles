@@ -1,0 +1,11 @@
+git:
+  autoFetch: true
+  autoRefresh: true
+  fetchAll: true
+  autoStageResolvedConflicts: true
+  branchLogCmd: git log --graph --color=always --abbrev-commit --decorate --date=relative --pretty=medium {{branchName} --}
+  allBranchesLogCmd: git log --graph --all --color=always --abbrev-commit --decorate --date=relative  --pretty=medium
+  overrideGpg: true
+  disableForcePushing: false
+  parseEmoji: true
+  truncateCopiedCommitHashesTo: 12
