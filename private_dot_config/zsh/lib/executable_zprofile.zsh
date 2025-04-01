@@ -79,8 +79,6 @@ zle -N self-insert url-quote-magic
 autoload -Uz bracketed-paste-magic
 zle -N bracketed-paste bracketed-paste-magic
 
-autoload -U compinit; compinit
-
 ## case insensitive path-completion
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 zstyle ':completion:*' menu select
@@ -186,6 +184,8 @@ ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern regexp cursor root line)
 # # ZSH_HIGHLIGHT_STYLES[ursor]='standout'
 
 antidote load "${ZDOTDIR}/lib/$(hostname)/plugins.txt"
+
+autoload -U compinit; compinit
 
 # fzf-tab
 disable-fzf-tab
