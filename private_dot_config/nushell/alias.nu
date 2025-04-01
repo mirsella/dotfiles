@@ -68,3 +68,4 @@ alias clipp = ^wl-paste
 alias ju = ^just
 alias dark = ^darkman set dark
 alias light = ^darkman set light
+alias fg = job unfreeze
