@@ -1,9 +1,9 @@
 zsh-users/zsh-syntax-highlighting
 wfxr/forgit
-# jeffreytse/zsh-vi-mode
+jeffreytse/zsh-vi-mode
 joshskidmore/zsh-fzf-history-search
 marlonrichert/zsh-edit
-# kutsan/zsh-system-clipboard
+kutsan/zsh-system-clipboard
 ohmyzsh/ohmyzsh path:plugins/extract
 ohmyzsh/ohmyzsh path:plugins/colored-man-pages
 mirsella/zsh-auto-notify # personal fork to add a command when sending notif
