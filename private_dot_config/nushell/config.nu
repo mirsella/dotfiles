@@ -22,4 +22,4 @@ let autoload_path = ($nu.data-dir | path join "vendor/autoload")
 mkdir $autoload_path
 starship init nu | save -f ($autoload_path | path join "starship.nu")
 zoxide init --cmd cd nushell | save -f ($autoload_path | path join "zoxide.nu")
-jj util completion nushell | save ($autoload_path | path join "jj.nu")
+jj util completion nushell | save -f ($autoload_path | path join "jj.nu")
