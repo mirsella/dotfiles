@@ -1,25 +1,24 @@
-# config.nu
-#
-# Installed by:
-# version = "0.102.0"
-#
-# This file is used to override default Nushell settings, define
-# (or import) custom commands, or run any other startup tasks.
-# See https://www.nushell.sh/book/configuration.html
-#
-# This file is loaded after env.nu and before login.nu
-#
-# You can open this file in your default editor using:
-# config nu
-#
-# See `help config nu` for more options
-#
-# You can remove these comments if you want or leave
-# them for future reference.
+source completions.nu
+source functions.nu
+source alias.nu
+source plugins.nu
 
 $env.config.buffer_editor = "nvim"
 $env.config.show_banner = false
+# $env.config.edit_mode = 'vi'
+$env.config.history.max_size = 10000
+$env.config.rm.always_trash = true
+$env.config.highlight_resolved_externals = true
 
-mkdir ($nu.data-dir | path join "vendor/autoload")
-starship init nu | save -f ($nu.data-dir | path join "vendor/autoload/starship.nu")
+# if ("~/.gtkrc-2.0" | path exists) {
+#   rm -v ~/.gtkrc-2.0 &
+# }
 
+# if ("~/Documents/gdrive/token/hathora.token" | path exists) {
+#   source ~/Documents/gdrive/token/hathora.token
+# }
+
+let autoload_path = ($nu.data-dir | path join "vendor/autoload")
+mkdir $autoload_path
+starship init nu | save -f ($autoload_path | path join "starship.nu")
+zoxide init nushell | save -f ($autoload_path | path join "zoxide.nu")
