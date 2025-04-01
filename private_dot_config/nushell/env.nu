@@ -1,9 +1,9 @@
-# # XDG Base Directory specification
-# $env.GTK_USE_PORTAL = 1
-# $env.XDG_CONFIG_HOME = $"($env.HOME)/.config"
-# $env.XDG_CACHE_HOME = $"($env.HOME)/.cache"
-# $env.XDG_DATA_HOME = $"($env.HOME)/.local/share"
-# $env.XDG_STATE_HOME = $"($env.HOME)/.local/state"
+# XDG Base Directory specification
+$env.GTK_USE_PORTAL = 1
+$env.XDG_CONFIG_HOME = $"($env.HOME)/.config"
+$env.XDG_CACHE_HOME = $"($env.HOME)/.cache"
+$env.XDG_DATA_HOME = $"($env.HOME)/.local/share"
+$env.XDG_STATE_HOME = $"($env.HOME)/.local/state"
 
 # Locale settings
 $env.LANG = "en_US.UTF-8"
