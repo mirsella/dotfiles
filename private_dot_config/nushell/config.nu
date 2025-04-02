@@ -14,7 +14,7 @@ $env.config.highlight_resolved_externals = true
 #   rm -v ~/.gtkrc-2.0 &
 # }
 
-do --ignore-errors {
+if ("~/.config/token/hathora.token" | path exists) {
   open ~/.config/token/hathora.token | parse "{key}={value}" | transpose -r -d | load-env
 }
 
