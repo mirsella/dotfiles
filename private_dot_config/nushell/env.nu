@@ -5,6 +5,15 @@ $env.XDG_CACHE_HOME = $"($env.HOME)/.cache"
 $env.XDG_DATA_HOME = $"($env.HOME)/.local/share"
 $env.XDG_STATE_HOME = $"($env.HOME)/.local/state"
 
+$env.PATH ++= [
+  "~/.local/bin"
+  "~/.local/share/gem/bin"
+  "~/.local/share/npm/bin"
+  "~/.local/share/cargo/bin"
+  $env.PNPM_HOME
+  "/opt/osxcross/target/bin"
+]
+
 # Locale settings
 $env.LANG = "en_US.UTF-8"
 $env.LANGUAGE = "en_US.UTF-8"

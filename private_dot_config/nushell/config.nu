@@ -14,9 +14,9 @@ $env.config.highlight_resolved_externals = true
 #   rm -v ~/.gtkrc-2.0 &
 # }
 
-# if ("~/Documents/gdrive/token/hathora.token" | path exists) {
-#   source ~/Documents/gdrive/token/hathora.token
-# }
+do --ignore-errors {
+  open ~/.config/token/hathora.token | parse "{key}={value}" | transpose -r -d | load-env
+}
 
 let autoload_path = ($nu.data-dir | path join "vendor/autoload")
 mkdir $autoload_path
