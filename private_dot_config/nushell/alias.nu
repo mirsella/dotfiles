@@ -6,7 +6,7 @@ alias clearnotif = do {
   }
 }
 
-# alias ls = ^lsd -A --hyperlink=auto
+alias lsd = ^lsd -A --hyperlink=auto
 # alias ll = ^lsd -Al --hyperlink=auto
 alias ls = ls -a
 alias ll = ls -al
