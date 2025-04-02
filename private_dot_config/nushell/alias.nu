@@ -57,6 +57,7 @@ alias cwt = ^cargo watch -qc -x test
 alias cw = ^cargo watch -qc
 alias cch = ^cargo check --all-targets --all-features
 alias ccyp = ^cargo clippy -D clippy::pedantic --all-targets --all-features --workspace
+alias cad = ^cargo add
 alias ce = ^cargo expand --theme "Monokai Extended Light"
 alias d = ^docker
 alias dc = ^docker compose

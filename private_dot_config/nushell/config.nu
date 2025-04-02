@@ -9,6 +9,7 @@ $env.config.show_banner = false
 $env.config.history.max_size = 100000
 $env.config.rm.always_trash = true
 $env.config.highlight_resolved_externals = true
+$env.config.float_precision = 4
 
 # if ("~/.gtkrc-2.0" | path exists) {
 #   rm -v ~/.gtkrc-2.0 &

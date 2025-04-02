@@ -15,6 +15,8 @@ def ensure-plugin [repo: string] {
   }
 }
 
-# ensure-plugin "yybit/nu_plugin_compress" # https://github.com/yybit/nu_plugin_compress/issues/5
-ensure-plugin "fdncred/nu_plugin_file"
+ensure-plugin "yybit/nu_plugin_compress"
+# ensure-plugin "fdncred/nu_plugin_file"
 ensure-plugin "FMotalleb/nu_plugin_clipboard"
+ensure-plugin "FMotalleb/nu_plugin_image"
+ensure-plugin "JosephTLyons/nu_plugin_units"
