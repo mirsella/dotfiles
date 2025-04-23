@@ -12,3 +12,8 @@
   gpgsign = {{ if dig .chezmoi.hostname "" .signinKey }}true{{ else }}false{{ end }}
 [core]
 	excludesfile = /home/mirsella/.config/git/ignore
+[filter "lfs"]
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
