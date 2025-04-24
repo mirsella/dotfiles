@@ -40,10 +40,6 @@ $env.config.keybindings = [
   }
 ]
 
-# if ("~/.gtkrc-2.0" | path exists) {
-#   rm -v ~/.gtkrc-2.0 &
-# }
-
 if ("~/.config/token/hathora.token" | path exists) {
   open ~/.config/token/hathora.token | parse "{key}={value}" | transpose -r -d | load-env
 }

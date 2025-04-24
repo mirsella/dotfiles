@@ -14,6 +14,13 @@ $env.PATH ++= [
   "/opt/osxcross/target/bin"
 ]
 
+$env.EDITOR = "nvim"
+if (scope commands | where name == "zen-browser" | is-not-empty) {
+    $env.BROWSER = "zen-browser"
+} else if (scope commands | where name == "firefox" | is-not-empty) {
+    $env.BROWSER = "firefox"
+}
+
 # Locale settings
 $env.LANG = "en_US.UTF-8"
 $env.LANGUAGE = "en_US.UTF-8"
