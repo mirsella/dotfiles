@@ -60,6 +60,7 @@ alias ccyp = ^cargo clippy -D clippy::pedantic --all-targets --all-features --wo
 alias cad = ^cargo add
 alias cr = ^cargo run
 alias cb = ^cargo build
+alias ct = ^cargo test
 alias ce = ^cargo expand --theme "Monokai Extended Light"
 alias d = ^docker
 alias dc = ^docker compose
