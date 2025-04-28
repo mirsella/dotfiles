@@ -53,6 +53,7 @@ alias kdesend = do {
 alias colemak = ^setxkbmap us -variant colemak_dh_iso
 alias qwerty = ^setxkbmap us
 alias c = ^cargo
+alias cfa = ^cargo fix --allow-dirty --allow-staged --all-features --all-targets
 alias cwt = ^cargo watch -qc -x test
 alias cw = ^cargo watch -qc
 alias cch = ^cargo check --all-targets --all-features
