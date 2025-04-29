@@ -6,10 +6,10 @@ $env.XDG_DATA_HOME = $"($env.HOME)/.local/share"
 $env.XDG_STATE_HOME = $"($env.HOME)/.local/state"
 
 $env.PATH ++= [
-  "~/.local/bin"
-  "~/.local/share/gem/bin"
-  "~/.local/share/npm/bin"
-  "~/.local/share/cargo/bin"
+  $"($env.HOME)/.local/bin"
+  $"($env.HOME)/.local/share/gem/bin"
+  $"($env.HOME)/.local/share/npm/bin"
+  $"($env.HOME)/.local/share/cargo/bin"
   $env.PNPM_HOME
   "/opt/osxcross/target/bin"
 ]
