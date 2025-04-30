@@ -38,6 +38,16 @@ $env.config.keybindings = [
     mode: [emacs, vi_insert]
     event: { send: HistoryHintComplete }
   }
+    {
+      name: fuzzy_history
+      modifier: control
+      keycode: char_r
+      mode: emacs
+      event: {
+        send: executehostcommand
+        cmd: "commandline (history | each { |it| $it.command } | uniq | reverse | str join (char nl) | fzf --layout=reverse --height=40% -q (commandline) | decode utf-8 | str trim)"
+      }
+    }
 ]
 
 if ("~/.config/token/hathora.token" | path exists) {
