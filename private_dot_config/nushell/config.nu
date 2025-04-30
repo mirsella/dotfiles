@@ -42,10 +42,10 @@ $env.config.keybindings = [
       name: fuzzy_history
       modifier: control
       keycode: char_r
-      mode: emacs
+      mode: [emacs, vi_normal, vi_insert]
       event: {
         send: executehostcommand
-        cmd: "commandline (history | each { |it| $it.command } | uniq | reverse | str join (char nl) | fzf --layout=reverse --height=40% -q (commandline) | decode utf-8 | str trim)"
+        cmd: "commandline edit -r (history | each { |it| $it.command } | uniq | reverse | str join (char nl) | fzf --layout=reverse --height=40% -q (commandline) | decode utf-8 | str trim)"
       }
     }
 ]
