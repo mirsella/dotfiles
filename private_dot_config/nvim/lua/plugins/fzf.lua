@@ -22,7 +22,7 @@ return {
 				function()
 					require("fzf-lua").filetypes()
 				end,
-				{ silent = true, desc = "Change filetype" },
+				desc = "Change filetype",
 			},
 		},
 	},
