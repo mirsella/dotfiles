@@ -1,0 +1,10 @@
+return {
+	{
+		"williamboman/mason.nvim",
+		version = "1.x.x",
+	},
+	{
+		"mason-org/mason-lspconfig.nvim",
+		version = "1.x.x",
+	},
+}
