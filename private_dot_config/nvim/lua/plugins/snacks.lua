@@ -7,20 +7,8 @@ return {
 		},
 	},
 	keys = {
-		{
-			"<leader>fe",
-			function()
-				Snacks.explorer({ cwd = LazyVim.root() })
-			end,
-			desc = "Explorer Snacks (root dir)",
-		},
-		{
-			"<leader>fE",
-			function()
-				Snacks.explorer()
-			end,
-			desc = "Explorer Snacks (cwd)",
-		},
+		{ "<leader>fe", false },
+		{ "<leader>fE", false },
 		{ "<leader>e", false },
 		{ "<leader>E", false },
 	},

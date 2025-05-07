@@ -9,3 +9,4 @@ vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 vim.opt.foldlevel = 99
 -- vim.opt.spelllang = "fr"
 -- vim.g.lazyvim_rust_diagnostics = "bacon-ls"
+vim.opt.laststatus = 3

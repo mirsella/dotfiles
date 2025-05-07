@@ -40,8 +40,11 @@ $env.config.keybindings = [
   }
 ]
 
-if ("~/.config/token/hathora.token" | path exists) {
-  open ~/.config/token/hathora.token | parse "{key}={value}" | transpose -r -d | load-env
+let tokens_dir = $env.HOME | path join ".config/token"
+for path in (glob $"($tokens_dir)/*.json") {
+  if ($path | path exists) {
+    open $path | load-env
+  }
 }
 
 let autoload_path = ($nu.data-dir | path join "vendor/autoload")
