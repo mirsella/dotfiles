@@ -4,6 +4,7 @@ return {
 	opts = {
 		explorer = {
 			replace_netrw = false,
+			enabled = false, -- using neotree extra
 		},
 	},
 	keys = {

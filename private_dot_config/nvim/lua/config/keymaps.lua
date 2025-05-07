@@ -11,10 +11,4 @@ vim.keymap.set(
 	{ desc = "Check Caps Lock" }
 )
 vim.keymap.set("i", "<c-t>", "<esc>", { silent = true })
-vim.keymap.set(
-	{ "n", "v" },
-	"<leader>a",
-	vim.lsp.buf.code_action,
-	{ silent = true, desc = "Show code actions", noremap = true }
-)
 vim.keymap.set("n", "'", "`", { desc = "Go to mark" })
