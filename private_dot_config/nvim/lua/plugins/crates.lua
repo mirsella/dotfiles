@@ -1,11 +1,11 @@
 return {
 	"Saecki/crates.nvim",
-	lazy = true,
 	keys = {
 		{
 			"<leader>cf",
-			require("crates").show_features_popup,
-			silent = true,
+			function()
+				require("crates").show_features_popup()
+			end,
 			ft = "toml",
 			desc = "Show features popup in Cargo.toml",
 		},
