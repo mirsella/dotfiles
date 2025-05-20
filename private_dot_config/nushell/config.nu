@@ -2,6 +2,7 @@ source completions.nu
 source functions.nu
 source alias.nu
 source plugins.nu
+source notif.nu
 
 $env.config.buffer_editor = "nvim"
 $env.config.show_banner = false
