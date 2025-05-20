@@ -47,10 +47,7 @@ alias arduino-cli = ^arduino-cli --config-file $env.XDG_CONFIG_HOME/arduino15/ar
 alias v = ^nvim -p
 alias parus = ^paru -S --noconfirm --needed
 alias rga = ^rga --no-ignore --hidden -S
-alias kdesend = do {
-  let device = (^kdeconnect-cli --list-devices | rg phone | head -n1 | str replace -r ".* device \(id: ([^)]+)\).*" "$1")
-  ^kdeconnect-cli -d $device --share
-}
+alias kdesend = ^kdeconnect-cli -n phone --share
 alias colemak = ^setxkbmap us -variant colemak_dh_iso
 alias qwerty = ^setxkbmap us
 alias c = ^cargo
