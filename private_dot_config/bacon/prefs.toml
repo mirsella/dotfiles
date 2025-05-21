@@ -73,6 +73,7 @@ line_format = "{kind}:{path}:{line}:{column}:{message}"
 # d = "job:doc-open"
 # t = "job:test"
 # r = "job:run"
+l = "job:bacon-ls"
 
 
 [jobs.check-all]
@@ -82,3 +83,23 @@ need_stdout = false
 [jobs.clippy-all]
 command = ["cargo", "clippy", "--all-targets", "--all-features"]
 need_stdout = false
+
+[jobs.bacon-ls]
+command = [
+  "cargo",
+  "clippy",
+  "--workspace",
+  "--tests",
+  "--all-targets",
+  "--all-features",
+  "--message-format",
+  "json-diagnostic-rendered-ansi",
+]
+analyzer = "cargo_json"
+need_stdout = true
+
+[exports.cargo-json-spans]
+auto = true
+exporter = "analyzer"
+line_format = "{diagnostic.level}|:|{span.file_name}|:|{span.line_start}|:|{span.line_end}|:|{span.column_start}|:|{span.column_end}|:|{diagnostic.message}|:|{diagnostic.rendered}|:|{span.suggested_replacement}"
+path = ".bacon-locations"

@@ -10,7 +10,7 @@ return {
 							["async-trait"] = { "async_trait" },
 							["napi-derive"] = { "napi" },
 							["async-recursion"] = { "async_recursion" },
-							["macros"] = { "complete_from_dir" },
+							["game_macros"] = { "complete_from_dir" },
 						},
 					},
 				},
