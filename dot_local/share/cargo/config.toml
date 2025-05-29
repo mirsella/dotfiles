@@ -5,7 +5,7 @@ codegen-backend = true
 [profile.dev]
 opt-level = 3
 # rustup component add rustc-codegen-cranelift-preview
-codegen-backend = "cranelift"
+# codegen-backend = "cranelift"
 
 # compile deps with llvm still for runtime perf
 [profile.dev.package."*"]

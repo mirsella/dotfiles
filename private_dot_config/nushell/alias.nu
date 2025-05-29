@@ -18,6 +18,7 @@ alias rg = ^rg --hidden -S
 alias rga = ^rga --hidden -S
 alias lg = ^lazygit
 alias g = ^git
+alias gs = ^git switch
 alias gw = ^git worktree
 alias gbro = ^gh browse
 alias gbi = ^git bisect
