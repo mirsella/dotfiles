@@ -53,6 +53,7 @@ $env.GNUPGHOME = $"($env.XDG_DATA_HOME)/gnupg"
 $env.WINEPREFIX = $"($env.XDG_DATA_HOME)/wineprefixes/wine64"
 $env.PASSWORD_STORE_DIR = $"($env.XDG_DATA_HOME)/password-store"
 $env.ANDROID_HOME = "/opt/android-sdk"
+$env.ANDROID_AVD_HOME = $"($env.XDG_CONFIG_HOME)/.android/avd"
 
 # Set NDK_HOME if the directory exists
 if ($env.ANDROID_HOME | path join "ndk" | path exists) {
