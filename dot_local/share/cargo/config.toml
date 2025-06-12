@@ -10,7 +10,7 @@
 linker = "clang"
 rustflags = [
   # "-Clink-arg=-fuse-ld=mold",
-  "-Clink-arg=-fuse-ld=wild",
+  "-Clink-arg=--ld-path=wild",
   "-Zshare-generics=y",
   "-Zthreads=0",
 ]
