@@ -13,6 +13,9 @@ return {
 							["game_macros"] = { "complete_from_dir" },
 						},
 					},
+					cargo = {
+						targetDir = true,
+					},
 				},
 			},
 		},
