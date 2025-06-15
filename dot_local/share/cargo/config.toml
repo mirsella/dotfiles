@@ -1,16 +1,31 @@
-# cranelift compiler backend
-# [unstable]
-# codegen-backend = true
+[profile]
+incremental = true
 
 [profile.dev]
 # rustup component add rustc-codegen-cranelift-preview
 # codegen-backend = "cranelift"
+
+# Consider compiling deps with cranelift if you want cold-compilation to be faster
+# [profile.dev.package."*"]
+# codegen-backend = "cranelift"
+
+# cranelift is `panic = abort`, so you need to compile with llvm to get `#[should_panic]` working
+[profile.test.package."*"]
+codegen-backend = "llvm"
+
+# Disable cranelift for release profile
+[profile.release]
+codegen-backend = "llvm"
+
+[build]
+rustc-wrapper = "sccache"
 
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
 rustflags = [
   # "-Clink-arg=-fuse-ld=mold",
   "-Clink-arg=--ld-path=wild",
+  # Nightly
   "-Zshare-generics=y",
-  "-Zthreads=0",
+  "-Zthreads=8",
 ]

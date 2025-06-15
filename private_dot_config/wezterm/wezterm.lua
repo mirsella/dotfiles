@@ -26,7 +26,6 @@ config.warn_about_missing_glyphs = false
 config.keys = {
 	{ key = "f", mods = "CTRL|SHIFT", action = act.Search({ Regex = "" }) },
 	{ key = "|", mods = "CTRL|SHIFT", action = act.SplitHorizontal },
-	{ key = "-", mods = "CTRL|SHIFT", action = act.SplitVertical },
 
 	{ key = "F1", mods = "NONE", action = "ActivateCopyMode" },
 	{ key = "F2", mods = "NONE", action = "QuickSelect" },
@@ -48,6 +47,11 @@ config.keys = {
 				wezterm.open_with(url)
 			end),
 		}),
+	},
+	{
+		key = "Enter",
+		mods = "ALT",
+		action = wezterm.action.DisableDefaultAssignment,
 	},
 }
 
