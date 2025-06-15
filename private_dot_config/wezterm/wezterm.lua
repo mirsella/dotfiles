@@ -14,7 +14,7 @@ config.window_padding = {
 }
 config.use_fancy_tab_bar = false
 config.hide_tab_bar_if_only_one_tab = true
-config.scrollback_lines = 100000
+config.scrollback_lines = 1000000
 config.quick_select_alphabet = "colemak"
 config.window_close_confirmation = "NeverPrompt"
 config.animation_fps = 1 -- less resource usage
