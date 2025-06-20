@@ -15,9 +15,9 @@ $env.PATH ++= [
 ]
 
 $env.EDITOR = "nvim"
-if (scope commands | where name == "zen-browser" | is-not-empty) {
+if ((which zen-browser | length) > 0) {
     $env.BROWSER = "zen-browser"
-} else if (scope commands | where name == "firefox" | is-not-empty) {
+} else if ((which zen-browser | length) > 0) {
     $env.BROWSER = "firefox"
 }
 
