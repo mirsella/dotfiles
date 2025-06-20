@@ -56,6 +56,7 @@ alias cfa = cargo fix --allow-dirty --allow-staged --all-features --all-targets
 alias cwt = cargo watch -qc -x test
 alias cw = cargo watch -qc
 alias cch = cargo check --all-targets --all-features --workspace
+alias cdoc = cargo doc --all-features --workspace
 alias ccy = cargo clippy --all-features --all-targets
 alias ccyp = cargo clippy --all-targets --all-features --workspace -- -D clippy::pedantic
 alias cad = cargo add
