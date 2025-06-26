@@ -8,8 +8,8 @@ alias clearnotif = do {
 
 alias lsd = lsd -A --hyperlink=auto
 # alias ll = lsd -Al --hyperlink=auto
-alias ls = ls -ad
-alias ll = ls -ald
+alias ls = ls -a
+alias ll = ls -al
 alias tree = lsd -A --tree -I node_modules -I .git
 alias bat = bat -pp --color=always --theme="Solarized (dark)"
 alias q = exit
