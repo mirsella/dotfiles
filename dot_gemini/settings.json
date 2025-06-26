@@ -1,0 +1,10 @@
+{
+	"selectedAuthType": "oauth-personal",
+	"theme": "Ayu Light",
+	"preferredEditor": "vim",
+	"autoAccept": true,
+	"telemetry": {
+		"enabled": false
+	},
+	"usageStatisticsEnabled": false
+}
