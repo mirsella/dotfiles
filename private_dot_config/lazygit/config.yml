@@ -12,4 +12,4 @@ git:
   #   - git log --graph --all --color=always --abbrev-commit --decorate --date=relative  --pretty=medium
 os:
   open: "xdg-open {{filename}}"
-  openLink: "xdg-open {{filename}}"
+  openLink: "xdg-open {{link}}"
