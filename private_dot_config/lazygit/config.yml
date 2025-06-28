@@ -3,10 +3,13 @@ git:
   autoRefresh: true
   fetchAll: true
   autoStageResolvedConflicts: true
-  branchLogCmd: git log --graph --color=always --abbrev-commit --decorate --date=relative --pretty=medium {{branchName} --}
+  # branchLogCmd: git log --graph --color=always --abbrev-commit --decorate --date=relative --pretty=medium {{branchName} --}
   overrideGpg: true
   disableForcePushing: false
   parseEmoji: true
   truncateCopiedCommitHashesTo: 12
-  allBranchesLogCmds:
-    - git log --graph --all --color=always --abbrev-commit --decorate --date=relative  --pretty=medium
+  # allBranchesLogCmds:
+  #   - git log --graph --all --color=always --abbrev-commit --decorate --date=relative  --pretty=medium
+os:
+  open: "xdg-open {{filename}}"
+  openLink: "xdg-open {{filename}}"
