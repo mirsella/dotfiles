@@ -42,4 +42,5 @@ let external_completer = {|spans|
 }
 
 $env.config.completions.external.enable = true
-$env.config.completions.external.completer = $external_completer
+# $env.config.completions.external.completer = $external_completer
+$env.config.completions.external.completer = $fish_completer
