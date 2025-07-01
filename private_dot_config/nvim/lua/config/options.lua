@@ -10,3 +10,4 @@ vim.opt.foldlevel = 99
 -- vim.opt.spelllang = "fr"
 -- vim.g.lazyvim_rust_diagnostics = "bacon-ls"
 vim.opt.laststatus = 3
+vim.g.snacks_animate = false

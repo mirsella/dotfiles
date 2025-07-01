@@ -1,5 +1,5 @@
-[unstable]
-codegen-backend = true
+# [unstable]
+# codegen-backend = true
 
 [profile]
 incremental = true
@@ -13,12 +13,12 @@ incremental = true
 # codegen-backend = "cranelift"
 
 # cranelift is `panic = abort`, so you need to compile with llvm to get `#[should_panic]` working
-[profile.test.package."*"]
-codegen-backend = "llvm"
+# [profile.test.package."*"]
+# codegen-backend = "llvm"
 
 # Disable cranelift for release profile
-[profile.release]
-codegen-backend = "llvm"
+# [profile.release]
+# codegen-backend = "llvm"
 
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"
@@ -26,6 +26,6 @@ rustflags = [
   "-Clink-arg=-fuse-ld=mold",
   # "-Clink-arg=--ld-path=wild",
   # Nightly
-  "-Zshare-generics=y",
-  "-Zthreads=8",
+  # "-Zshare-generics=y",
+  # "-Zthreads=8",
 ]
