@@ -77,3 +77,4 @@ alias light = darkman set light
 alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf
+alias oc = opencode
