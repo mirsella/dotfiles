@@ -1,9 +1,14 @@
 let fish_completer = {|spans|
-    fish --command $'complete "--do-complete=($spans | str join " ")"'
+    fish --command $"complete '--do-complete=($spans | str replace --all "'" "\\'" | str join ' ')'"
     | from tsv --flexible --noheaders --no-infer
     | rename value description
-    | update value {
-        if ($in | path exists) {$'"($in | str replace "\"" "\\\"" )"'} else {$in}
+    | update value {|row|
+      let value = $row.value
+      let need_quote = ['\' ',' '[' ']' '(' ')' ' ' '\t' "'" '"' "`"] | any {$in in $value}
+      if ($need_quote and ($value | path exists)) {
+        let expanded_path = if ($value starts-with ~) {$value | path expand --no-symlink} else {$value}
+        $'"($expanded_path | str replace --all "\"" "\\\"")"'
+      } else {$value}
     }
 }
 
@@ -11,10 +16,8 @@ let zoxide_completer = {|spans|
     $spans | skip 1 | zoxide query -l ...$in | lines | where {|x| $x != $env.PWD}
 }
 
-let carapace_completer = {|spans: list<string>|
-    carapace $spans.0 nushell ...$spans
-    | from json
-    | if ($in | default [] | where value =~ '^-.*ERR$' | is-empty) { $in } else { null }
+let carapace_completer = {|spans|
+    carapace $spans.0 nushell ...$spans | from json
 }
 
 # This completer will use carapace by default
@@ -30,6 +33,7 @@ let external_completer = {|spans|
     } else {
         $spans
     }
+
     match $spans.0 {
         # carapace completions are incorrect for nu
         nu => $fish_completer
