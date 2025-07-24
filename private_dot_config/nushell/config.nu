@@ -53,3 +53,4 @@ mkdir $autoload_path
 starship init nu | save -f ($autoload_path | path join "starship.nu")
 zoxide init --cmd cd nushell | save -f ($autoload_path | path join "zoxide.nu")
 jj util completion nushell | save -f ($autoload_path | path join "jj.nu")
+atuin init nu --disable-up-arrow | save -f ($autoload_path | path join "atuin.nu")

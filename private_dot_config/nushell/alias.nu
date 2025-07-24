@@ -79,3 +79,4 @@ alias suspend = systemctl suspend
 alias f = fzf
 alias oc = opencode
 alias gem = gemini -y
+alias oc = opencode
