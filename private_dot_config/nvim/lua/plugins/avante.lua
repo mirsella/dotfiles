@@ -11,13 +11,15 @@ return {
 			hints = { enabled = false },
 
 			auto_suggestions_provider = nil, -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
-			provider = "gemini",
+			provider = "moonshot",
 			providers = {
-				gemini = {
-					-- model = "gemini-2.5-pro-exp-03-25",
-					model = "gemini-2.5-flash-preview-04-17",
+				moonshot = {
+					__inherited_from = "openai",
+					api_key_name = "GROQ_API_KEY",
+					endpoint = "https://api.groq.com/openai/v1",
+					model = "moonshotai/kimi-k2-instruct",
 					extra_request_body = {
-						temperature = 0,
+						temperature = 0.6,
 					},
 				},
 			},
