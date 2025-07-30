@@ -13,13 +13,22 @@ return {
 			auto_suggestions_provider = nil, -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
 			provider = "moonshot",
 			providers = {
-				moonshot = {
+				groq = {
 					__inherited_from = "openai",
 					api_key_name = "GROQ_API_KEY",
 					endpoint = "https://api.groq.com/openai/v1",
 					model = "moonshotai/kimi-k2-instruct",
 					extra_request_body = {
 						temperature = 0.6,
+					},
+				},
+				moonshot = {
+					endpoint = "https://api.moonshot.ai/v1",
+					model = "kimi-k2-0711-preview",
+					timeout = 30000, -- Timeout in milliseconds
+					extra_request_body = {
+						temperature = 0.75,
+						max_tokens = 32768,
 					},
 				},
 			},
