@@ -13,13 +13,15 @@
 [core]
 	excludesfile = ~/.config/git/ignore
   attributesfile = ~/.config/git/attributes
+  editor = nvim
+  pager = bat
 [filter "lfs"]
 	required = true
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
 [merge]
-    conflictStyle = "diff3"
+  conflictStyle = "diff3"
 [merge "mergiraf"]
-    name = mergiraf
-    driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
+  name = mergiraf
+  driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
