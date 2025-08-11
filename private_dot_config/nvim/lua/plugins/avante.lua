@@ -11,7 +11,7 @@ return {
 			hints = { enabled = false },
 
 			auto_suggestions_provider = nil, -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
-			provider = "moonshot",
+			provider = "groq",
 			providers = {
 				groq = {
 					__inherited_from = "openai",
@@ -27,7 +27,7 @@ return {
 					model = "kimi-k2-0711-preview",
 					timeout = 30000, -- Timeout in milliseconds
 					extra_request_body = {
-						temperature = 0.75,
+						temperature = 0.6,
 						max_tokens = 32768,
 					},
 				},
