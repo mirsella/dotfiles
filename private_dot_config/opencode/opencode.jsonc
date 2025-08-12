@@ -10,7 +10,44 @@
 	"lsp": {
 		"rust-analyzer": {
 			"command": ["rust-analyzer"],
-			"extensions": [".rs"]
+			"extensions": [".rs"],
+			"env": {
+				"RUST_LOG": "info"
+			},
+			"initialization": {
+				"cargo": {
+					"buildScripts": {
+						"enable": true
+					},
+					"features": "all"
+				},
+				"checkOnSave": {
+					"command": "cargo clippy"
+				},
+				"procMacro": {
+					"enable": true,
+					"ignored": {
+						"async-trait": ["async_trait"],
+						"napi-derive": ["napi"],
+						"async-recursion": ["async_recursion"],
+						"game_macros": ["complete_from_dir"]
+					}
+				},
+				"diagnostics": {
+					"enable": true,
+					"disabled": ["unresolved-proc-macro"]
+				}
+			}
+		}
+	},
+	"mcp": {
+		"cargo-mcp": {
+			"type": "local",
+			"enabled": true,
+			"command": ["cargo-mcp", "serve"],
+			"environment": {
+				"RUST_LOG": "info"
+			}
 		}
 	},
 	"provider": {
@@ -49,7 +86,7 @@
 					"tool_call": false
 				},
 				"qwen/qwen3-coder:free": {
-					"tool_call": false
+					"tool_call": true
 				},
 				"moonshotai/kimi-k2:free": {
 					"tool_call": false
