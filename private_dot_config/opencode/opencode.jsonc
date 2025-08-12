@@ -29,7 +29,6 @@
 					"reasoning": true
 				},
 				"qwen3-coder:30b": {
-					"tool_call": true,
 					"reasoning": true
 				}
 			}
@@ -42,6 +41,19 @@
 			},
 			"models": {
 				"moonshotai/kimi-k2": {}
+			}
+		},
+		"openrouter": {
+			"models": {
+				"deepseek/deepseek-r1-0528:free": {
+					"tool_call": false
+				},
+				"qwen/qwen3-coder:free": {
+					"tool_call": false
+				},
+				"moonshotai/kimi-k2:free": {
+					"tool_call": false
+				}
 			}
 		}
 	}
