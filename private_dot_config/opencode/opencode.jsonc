@@ -40,16 +40,6 @@
 			}
 		}
 	},
-	"mcp": {
-		"cargo-mcp": {
-			"type": "local",
-			"enabled": true,
-			"command": ["cargo-mcp", "serve"],
-			"environment": {
-				"RUST_LOG": "info"
-			}
-		}
-	},
 	"provider": {
 		"ollama": {
 			"npm": "@ai-sdk/openai-compatible",
