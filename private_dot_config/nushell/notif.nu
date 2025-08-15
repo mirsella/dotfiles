@@ -1,5 +1,5 @@
 # Define the timeout for long-running commands in seconds
-let notification_timeout = 1
+let notification_timeout = 20
 
 # Define a list of commands to blacklist from notifications
 let notification_blacklist = [
