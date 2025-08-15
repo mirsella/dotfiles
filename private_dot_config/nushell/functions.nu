@@ -13,15 +13,6 @@ def waitforjob [job_number: int = 1] {
 def notif [...args] {
   let message = if ($args | is-empty) { "empty" } else { $args | str join " " }
   
-  # Source token files if they exist
-  # if ("~/.config/token/telegram.token" | path exists) {
-  #   source ~/.config/token/telegram.token
-  # }
-  # if ("~/Documents/gdrive/token/telegram.token" | path exists) {
-  #   source ~/Documents/gdrive/token/telegram.token
-  # }
-  
-  # Create JSON data
   let data = {
     chat_id: $env.TgId
     text: $message
@@ -41,7 +32,7 @@ def bakm [file: path] {
 }
 
 def psaux [name: string] {
-  ps | where name =~ $name
+  ps -l | where name =~ $name
 }
 
 def gam [...args] {
