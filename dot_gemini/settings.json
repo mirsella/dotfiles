@@ -14,5 +14,10 @@
 	"fileFiltering": {
 		"respectGitIgnore": true
 	},
-	"vimMode": true
+	"vimMode": true,
+	"mcpServers": {
+		"context7": {
+			"httpUrl": "https://mcp.context7.com/mcp"
+		}
+	}
 }
