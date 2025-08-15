@@ -22,9 +22,9 @@
 		}
 	},
 	"mcp": {
-		"context7": {
+		"deepwiki": {
 			"type": "remote",
-			"url": "https://mcp.context7.com/mcp",
+			"url": "https://mcp.deepwiki.com/mcp",
 			"enabled": true
 		}
 	},

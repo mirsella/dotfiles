@@ -16,8 +16,8 @@
 	},
 	"vimMode": true,
 	"mcpServers": {
-		"context7": {
-			"httpUrl": "https://mcp.context7.com/mcp"
+		"deepwiki": {
+			"httpUrl": "https://mcp.deepwiki.com/mcp"
 		}
 	}
 }
