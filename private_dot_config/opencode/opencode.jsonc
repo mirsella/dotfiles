@@ -11,31 +11,12 @@
 		"rust-analyzer": {
 			"command": ["rust-analyzer"],
 			"extensions": [".rs"],
-			"env": {
-				"RUST_LOG": "info"
-			},
 			"initialization": {
 				"cargo": {
 					"buildScripts": {
-						"enable": true
+						"enable": false
 					},
 					"features": "all"
-				},
-				"checkOnSave": {
-					"command": "cargo clippy"
-				},
-				"procMacro": {
-					"enable": true,
-					"ignored": {
-						"async-trait": ["async_trait"],
-						"napi-derive": ["napi"],
-						"async-recursion": ["async_recursion"],
-						"game_macros": ["complete_from_dir"]
-					}
-				},
-				"diagnostics": {
-					"enable": true,
-					"disabled": ["unresolved-proc-macro"]
 				}
 			}
 		}
