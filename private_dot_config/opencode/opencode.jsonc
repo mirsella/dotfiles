@@ -7,20 +7,6 @@
 			"extensions": [".rs"]
 		}
 	},
-	"lsp": {
-		"rust-analyzer": {
-			"command": ["rust-analyzer"],
-			"extensions": [".rs"],
-			"initialization": {
-				"cargo": {
-					"buildScripts": {
-						"enable": false
-					},
-					"features": "all"
-				}
-			}
-		}
-	},
 	"mcp": {
 		"deepwiki": {
 			"type": "remote",

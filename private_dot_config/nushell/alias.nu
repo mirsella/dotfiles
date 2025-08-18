@@ -78,5 +78,5 @@ alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf --multi
 alias oc = opencode
-alias gem = gemini -y
+def gem [] { NODE_OPTIONS="--max-old-space-size=8192" gemini -y }
 alias oc = opencode
