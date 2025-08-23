@@ -7,11 +7,6 @@
 			"extensions": [".rs"]
 		}
 	},
-	"lsp": {
-		"rust-analyzer": {
-			"disabled": true
-		}
-	},
 	"mcp": {
 		"deepwiki": {
 			"type": "remote",
