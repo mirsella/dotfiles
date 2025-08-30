@@ -1,3 +1,4 @@
+local actions = require("fzf-lua").actions
 return {
 	{
 		"ibhagwan/fzf-lua",
@@ -23,6 +24,16 @@ return {
 					require("fzf-lua").filetypes()
 				end,
 				desc = "Change filetype",
+			},
+		},
+		opts = {
+			actions = {
+				files = {
+					["enter"] = actions.file_edit,
+					-- disable quickfix mappings
+					["alt-q"] = false,
+					["alt-Q"] = false,
+				},
 			},
 		},
 	},

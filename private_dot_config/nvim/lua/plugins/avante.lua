@@ -11,7 +11,7 @@ return {
 			hints = { enabled = false },
 
 			auto_suggestions_provider = nil, -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
-			provider = "groq",
+			provider = "deepinfra",
 			providers = {
 				groq = {
 					__inherited_from = "openai",
@@ -23,9 +23,22 @@ return {
 					},
 				},
 				moonshot = {
+					__inherited_from = "openai",
 					endpoint = "https://api.moonshot.ai/v1",
+					api_key_name = "MOONSHOT_API_KEY",
 					model = "kimi-k2-0711-preview",
 					timeout = 30000, -- Timeout in milliseconds
+					extra_request_body = {
+						temperature = 0.6,
+						max_tokens = 32768,
+					},
+				},
+				deepinfra = {
+					__inherited_from = "openai",
+					endpoint = "https://api.deepinfra.com/v1/openai",
+					api_key_name = "DEEPINFRA_API_KEY",
+					model = "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
+					timeout = 10000, -- Timeout in milliseconds
 					extra_request_body = {
 						temperature = 0.6,
 						max_tokens = 32768,
