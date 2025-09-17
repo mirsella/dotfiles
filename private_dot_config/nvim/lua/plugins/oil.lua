@@ -18,10 +18,17 @@ return {
 			keymaps = {
 				["<C-s>"] = false,
 			},
+			win_options = {
+				signcolumn = "yes:2",
+			},
 		},
 		keys = {
 			{ "<leader>e", "<CMD>Oil<CR>", desc = "Open parent directory" },
 			{ "-", "<CMD>Oil<CR>", desc = "Open parent directory" },
 		},
+	},
+	{
+		"refractalize/oil-git-status.nvim",
+		config = true,
 	},
 }
