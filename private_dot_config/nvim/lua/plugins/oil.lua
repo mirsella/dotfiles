@@ -9,7 +9,7 @@ return {
 	},
 	{
 		"stevearc/oil.nvim",
-		dependencies = { "echasnovski/mini.icons" },
+		dependencies = { "nvim-mini/mini.icons" },
 		lazy = true,
 		cmd = "Oil",
 		event = { "VimEnter */*,.*", "BufNew */*,.*" },
