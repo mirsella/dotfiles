@@ -1,25 +1,27 @@
-# [unstable]
-# codegen-backend = true
+[unstable]
+codegen-backend = true
 
 [profile]
 incremental = true
 
-# [profile.dev]
-# doesn't work with wasm32
-# codegen-backend = "cranelift"
-# debug = "line-tables-only"
-#
-# [profile.dev.package."*"]
-# codegen-backend = "llvm"
-#
-# [profile.test.package."*"]
-# codegen-backend = "llvm"
-#
-# [profile.release]
-# codegen-backend = "llvm"
-#
-# [profile.web]
-# codegen-backend = "llvm"
+[profile.dev]
+codegen-backend = "cranelift"
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+codegen-backend = "llvm"
+
+[profile.test.package."*"]
+codegen-backend = "llvm"
+
+[profile.release]
+codegen-backend = "llvm"
+
+[profile.web]
+codegen-backend = "llvm"
+
+[profile.web-release]
+codegen-backend = "llvm"
 
 [target.x86_64-unknown-linux-gnu]
 linker = "clang"

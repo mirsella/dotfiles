@@ -30,6 +30,7 @@ alias ga = git add -A
 alias gt = git stash
 alias gc = git commit
 alias gp = git push
+alias gplease = git push --force-with-lease
 alias gclipp = do { git clone (wl-paste) }
 alias gcl = git clone
 alias lj = lazyjj
