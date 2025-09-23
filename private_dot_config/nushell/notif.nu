@@ -55,7 +55,9 @@ $env.config.hooks = ($env.config.hooks | upsert pre_prompt [{||
       $notification_blacklist
       | any {|el| $env._last_command_string | str starts-with $el }
     ) {
-      notif $"Command finished after ($duration | format duration sec) with status ($status): ($env._last_command_string)"
+      job spawn {
+        notif $"Command finished after ($duration | format duration sec) with status ($status): ($env._last_command_string)"
+      }
     }
 
     $env._last_command_start_time = null

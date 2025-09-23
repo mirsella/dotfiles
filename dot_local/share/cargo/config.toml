@@ -33,3 +33,10 @@ rustflags = [
   "-Zshare-generics=y",
   "-Zthreads=8",
 ]
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  # Nightly
+  "-Zshare-generics=y",
+  "-Zthreads=8",
+]

@@ -18,7 +18,7 @@ def notif [...args] {
     text: $message
   } | to json
   
-  http post $"https://api.telegram.org/bot($env.TgToken)/sendMessage" --content-type "application/json" $data 
+  http post $"https://api.telegram.org/bot($env.TgToken)/sendMessage" --content-type "application/json" $data -m 2sec
   | get ok result.text 
   | to json -r
 }
