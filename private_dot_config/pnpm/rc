@@ -1,0 +1,4 @@
+minimumReleaseAge=86400
+# optionally exclude some deps from the delay:
+minimumReleaseAgeExclude[]=@types/*
+minimumReleaseAgeExclude[]=webpack
