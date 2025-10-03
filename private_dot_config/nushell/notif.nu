@@ -56,7 +56,9 @@ $env.config.hooks = ($env.config.hooks | upsert pre_prompt [{||
       | any {|el| $env._last_command_string | str starts-with $el }
     ) {
       job spawn {
-        notif $"Command finished after ($duration | format duration sec) with status ($status): ($env._last_command_string)"
+        let message = $"Command finished after ($duration | format duration sec) with status ($status): ($env._last_command_string)"
+        notify-send $message
+        notif $message
       }
     }
 
