@@ -24,11 +24,11 @@ def notif [...args] {
 }
 
 def bak [file: path] {
-  cp -r $file $"($file).bak"
+  cp -r $"($file)" $"($file).bak"
 }
 
 def bakm [file: path] {
-  mv $file $"($file).bak"
+  mv $"($file)" $"($file).bak"
 }
 
 def psaux [name: string] {
