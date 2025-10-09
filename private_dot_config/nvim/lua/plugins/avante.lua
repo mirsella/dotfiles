@@ -1,17 +1,57 @@
 return {
 	{
 		"yetone/avante.nvim",
+		version = false,
 		event = "VeryLazy",
 		dependencies = {
-			"stevearc/dressing.nvim",
-			"ibhagwan/fzf-lua",
+			"nvim-lua/plenary.nvim",
+			"MunifTanjim/nui.nvim",
+			"ibhagwan/fzf-lua", -- for file_selector provider fzf
+			"folke/snacks.nvim", -- for input provider snacks
+			"nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
+			"zbirenbaum/copilot.lua", -- for providers='copilot'
+			{
+				-- support for image pasting
+				"HakonHarnes/img-clip.nvim",
+				event = "VeryLazy",
+				opts = {
+					-- recommended settings
+					default = {
+						embed_image_as_base64 = false,
+						prompt_for_file_name = false,
+						drag_and_drop = {
+							insert_mode = true,
+						},
+						-- required for Windows users
+						use_absolute_path = true,
+					},
+				},
+			},
+			{
+				-- Make sure to set this up properly if you have lazy=true
+				"MeanderingProgrammer/render-markdown.nvim",
+				opts = {
+					file_types = { "markdown", "Avante" },
+				},
+				ft = { "markdown", "Avante" },
+			},
 		},
 		opts = {
 			-- Default configuration
 			hints = { enabled = false },
+			instructions_file = "AGENTS.md",
+
+			input = {
+				provider = "snacks",
+				provider_opts = {
+					-- Additional snacks.input options
+					title = "Avante Input",
+					icon = " ",
+				},
+			},
 
 			auto_suggestions_provider = nil, -- Since auto-suggestions are a high-frequency operation and therefore expensive, it is recommended to specify an inexpensive provider or even a free provider: copilot
-			provider = "deepinfra",
+			provider = "copilot",
 			providers = {
 				groq = {
 					__inherited_from = "openai",
@@ -29,7 +69,7 @@ return {
 					model = "kimi-k2-0711-preview",
 					timeout = 30000, -- Timeout in milliseconds
 					extra_request_body = {
-						temperature = 0.6,
+						temperature = 0.75,
 						max_tokens = 32768,
 					},
 				},
@@ -44,6 +84,9 @@ return {
 						max_tokens = 32768,
 					},
 				},
+				copilot = {
+					model = "claude-4.5-sonnet",
+				},
 			},
 
 			-- File selector configuration
@@ -53,8 +96,7 @@ return {
 				provider_opts = {},
 			},
 		},
-		build = LazyVim.is_win() and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
-			or "make",
+		build = "make",
 	},
 	{
 		"saghen/blink.cmp",
