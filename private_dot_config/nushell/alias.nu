@@ -68,8 +68,8 @@ alias ce = cargo expand --theme "Monokai Extended Light"
 alias d = docker
 alias dc = docker compose
 alias p = pnpm
-alias rm = rm --trash --recursive
-alias rmf = rm --permanent --interactive --recursive
+alias rm = gomo -r
+alias rmf = /bin/rm -rI
 alias clip = wl-copy
 alias clipp = wl-paste
 alias ju = just
@@ -80,4 +80,3 @@ alias suspend = systemctl suspend
 alias f = fzf --multi
 alias oc = opencode
 def gem [] { NODE_OPTIONS="--max-old-space-size=8192" gemini -y }
-alias oc = opencode

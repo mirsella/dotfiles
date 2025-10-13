@@ -4,7 +4,7 @@ local config = wezterm.config_builder()
 local rose_pine = require("lua/rose-pine")
 
 -- config.enable_scroll_bar = true
-config.font_size = 16.0
+config.font_size = 14.0
 config.font = wezterm.font("JetBrains Mono")
 config.window_padding = {
 	left = 0,
