@@ -7,6 +7,10 @@
 			"extensions": [".rs"]
 		}
 	},
+	"keybinds": {
+		"model_cycle_recent": "f4",
+		"model_cycle_recent_reverse": "shift+f4"
+	},
 	"mcp": {
 		"deepwiki": {
 			"type": "remote",
@@ -15,25 +19,6 @@
 		}
 	},
 	"provider": {
-		"ollama": {
-			"npm": "@ai-sdk/openai-compatible",
-			"options": {
-				"baseURL": "http://localhost:11434/v1"
-			},
-			"models": {
-				"gpt-oss:20b": {
-					"tool_call": true,
-					"reasoning": true
-				},
-				"qwen3:32b": {
-					"tool_call": true,
-					"reasoning": true
-				},
-				"qwen3-coder:30b": {
-					"reasoning": true
-				}
-			}
-		},
 		"moonshot-openai-compatible": {
 			"npm": "@ai-sdk/openai-compatible",
 			"options": {
@@ -42,19 +27,6 @@
 			},
 			"models": {
 				"moonshotai/kimi-k2": {}
-			}
-		},
-		"openrouter": {
-			"models": {
-				"deepseek/deepseek-r1-0528:free": {
-					"tool_call": false
-				},
-				"qwen/qwen3-coder:free": {
-					"tool_call": true
-				},
-				"moonshotai/kimi-k2:free": {
-					"tool_call": false
-				}
 			}
 		}
 	}
