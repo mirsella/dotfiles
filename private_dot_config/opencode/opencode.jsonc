@@ -17,17 +17,5 @@
 			"url": "https://mcp.deepwiki.com/mcp",
 			"enabled": true
 		}
-	},
-	"provider": {
-		"moonshot-openai-compatible": {
-			"npm": "@ai-sdk/openai-compatible",
-			"options": {
-				"apiKey": "{env:OPENROUTER_API_KEY}",
-				"baseURL": "https://openrouter.ai/api/v1"
-			},
-			"models": {
-				"moonshotai/kimi-k2": {}
-			}
-		}
 	}
 }
