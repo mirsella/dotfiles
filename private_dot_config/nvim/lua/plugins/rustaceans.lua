@@ -10,8 +10,11 @@ return {
 							["async-trait"] = { "async_trait" },
 							["napi-derive"] = { "napi" },
 							["async-recursion"] = { "async_recursion" },
-							-- bevy_simple_subsecond_system_macros = { "hot" },
+							bevy_simple_subsecond_system_macros = { "hot" },
 						},
+					},
+					diagnostics = {
+						disabled = { "proc-macro-disabled" },
 					},
 					cargo = {
 						targetDir = true,
