@@ -1,0 +1,9 @@
+[Unit]
+Description=Language server multiplexer server
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/cargo/bin/lspmux server
+
+[Install]
+WantedBy=default.target
