@@ -3,6 +3,7 @@ Description=Language server multiplexer server
 
 [Service]
 Type=simple
+Environment=/usr/lib/rustup/bin:/usr/local/bin/:%h/.local/share/cargo/bin
 ExecStart=%h/.local/share/cargo/bin/lspmux server
 
 [Install]

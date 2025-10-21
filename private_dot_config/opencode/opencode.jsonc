@@ -17,5 +17,14 @@
 			"url": "https://mcp.deepwiki.com/mcp",
 			"enabled": true
 		}
+	},
+	"lsp": {
+		"rust": {
+			"disabled": true
+		},
+		"rust-lspmux": {
+			"command": ["lspmux", "client"],
+			"extensions": [".rs"]
+		}
 	}
 }
