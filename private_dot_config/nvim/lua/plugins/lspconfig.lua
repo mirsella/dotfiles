@@ -6,11 +6,9 @@ return {
 				enabled = true,
 			},
 		},
-		init = function()
-			local keys = require("lazyvim.plugins.lsp.keymaps").get()
-			-- disable a keymap
-			keys[#keys + 1] = { "<leader>cc", false }
-			keys[#keys + 1] = { "<leader>cC", false }
-		end,
+		keys = {
+			{ "<leader>cc", false },
+			{ "<leader>cC", false },
+		},
 	},
 }
