@@ -1,10 +1,14 @@
 [Unit]
 Description=Language server multiplexer server
+StartLimitIntervalSec=300
+StartLimitBurst=3
 
 [Service]
 Type=simple
-Environment=/usr/lib/rustup/bin:/usr/local/bin/:%h/.local/share/cargo/bin
+Environment=PATH=/usr/lib/rustup/bin:/usr/local/bin:%h/.local/share/cargo/bin
 ExecStart=%h/.local/share/cargo/bin/lspmux server
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=default.target
