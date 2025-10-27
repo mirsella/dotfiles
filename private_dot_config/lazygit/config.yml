@@ -1,4 +1,6 @@
 git:
+  pagers:
+    - useExternalDiffGitConfig: true
   autoFetch: true
   autoRefresh: true
   fetchAll: true
