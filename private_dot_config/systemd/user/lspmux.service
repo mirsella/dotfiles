@@ -5,6 +5,9 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
+Environment=RUSTUP_HOME=%h/.local/share/rustup
+Environment=CARGO_HOME=%h/.local/share/cargo
+Environment=PATH=/usr/lib/rustup/bin:%h/.local/share/cargo/bin:%h/.cargo/bin:/usr/local/bin:/usr/bin
 ExecStart=%h/.local/share/cargo/bin/lspmux server
 Restart=on-failure
 RestartSec=5s
