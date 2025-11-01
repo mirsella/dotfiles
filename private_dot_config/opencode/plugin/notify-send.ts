@@ -1,6 +1,6 @@
-import type { Plugin } from "@opencode-ai/plugin";
-
-export const NotificationPlugin: Plugin = async ({
+import path from "path";
+const processedSessions = new Set();
+export const NotificationPlugin = async ({
 	project,
 	client,
 	$,
@@ -9,10 +9,30 @@ export const NotificationPlugin: Plugin = async ({
 }) => {
 	return {
 		event: async ({ event }) => {
-			// Send notification on session completion
 			if (event.type === "session.idle") {
-				// NOTE: temporarily disabled becuase of a bug, the event is fired 6 times and error: GDBus.Error:org.freedesktop.Notifications.Error.ExcessNotificationGeneration: Created too many similar notifications in quick succession
-				// await $`notify-send -a "opencode" "Session completed!"`;
+				const sessionId = event.properties.sessionID;
+
+				// Check and add atomically
+				if (processedSessions.has(sessionId)) {
+					return;
+				}
+				processedSessions.add(sessionId);
+
+				// Add cleanup delay to handle race conditions
+				setTimeout(() => {
+					processedSessions.delete(sessionId);
+				}, 100);
+
+				const session = await client.session.get({
+					path: { id: sessionId },
+				});
+				const title = session.data?.title || "Session";
+				await $`notify-send "OpenCode" "${title} completed!" \
+          --urgency=normal \
+          --icon=starred \
+          --category=opencode \
+          --app-name=OpenCode \
+          --expire-time=10000`;
 			}
 		},
 	};
