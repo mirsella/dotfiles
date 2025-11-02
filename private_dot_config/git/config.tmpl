@@ -1,29 +1,36 @@
 [user]
-	name = mirsella
-	email = mirsella@protonmail.com
-	signinKey = {{ dig .chezmoi.hostname "" .signinKey }}
+  name = mirsella
+  email = mirsella@protonmail.com
+  signinKey = {{ dig .chezmoi.hostname "" .signinKey }}
 [init]
-	defaultBranch = main
+  defaultBranch = main
 [pull]
-	rebase = true
+  rebase = true
 [push]
   autoSetupRemote = true
 [commit]
   gpgsign = {{ if dig .chezmoi.hostname "" .signinKey }}true{{ else }}false{{ end }}
 [core]
-	excludesfile = ~/.config/git/ignore
+  excludesfile = ~/.config/git/ignore
   attributesfile = ~/.config/git/attributes
   editor = nvim
-  pager = bat
+  ; pager = bat
+  pager = delta
 [filter "lfs"]
-	required = true
-	clean = git-lfs clean -- %f
-	smudge = git-lfs smudge -- %f
-	process = git-lfs filter-process
+  required = true
+  clean = git-lfs clean -- %f
+  smudge = git-lfs smudge -- %f
+  process = git-lfs filter-process
 [merge]
-  conflictStyle = "diff3"
+  conflictStyle = "zdiff3"
 [merge "mergiraf"]
   name = mergiraf
   driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
 [diff]
-    external = difft
+  external = difft
+[delta]
+  navigate = true
+  line-numbers = true
+  side-by-side = true
+[interactive]
+  diffFilter = delta --color-only
