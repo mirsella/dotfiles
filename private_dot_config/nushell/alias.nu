@@ -62,6 +62,7 @@ alias ccy = cargo clippy --all-features --all-targets
 alias ccyp = cargo clippy --all-targets --all-features --workspace -- -D clippy::pedantic
 alias cad = cargo add
 alias cr = cargo run
+alias crr = cargo run --release
 alias cb = cargo build
 alias ct = cargo test
 alias ce = cargo expand --theme "Monokai Extended Light"
