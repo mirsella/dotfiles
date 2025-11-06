@@ -41,12 +41,13 @@ $env.config.keybindings = [
   }
 ]
 
-let tokens_dir = $env.HOME | path join ".config/token"
-for path in (glob $"($tokens_dir)/*.json") {
-  if ($path | path exists) {
-    open $path | load-env
-  }
-}
+# NOTE: using atuin dotfiles for now
+# let tokens_dir = $env.HOME | path join ".config/token"
+# for path in (glob $"($tokens_dir)/*.json") {
+#   if ($path | path exists) {
+#     open $path | load-env
+#   }
+# }
 
 let autoload_path = ($nu.data-dir | path join "vendor/autoload")
 mkdir $autoload_path
@@ -54,3 +55,5 @@ starship init nu | save -f ($autoload_path | path join "starship.nu")
 zoxide init --cmd cd nushell | save -f ($autoload_path | path join "zoxide.nu")
 jj util completion nushell | save -f ($autoload_path | path join "jj.nu")
 atuin init nu --disable-up-arrow | save -f ($autoload_path | path join "atuin.nu")
+
+atuin dotfiles var list | lines | parse "export {name}={value}" | reduce -f {} {|it, acc| $acc | upsert $it.name $it.value} | load-env
