@@ -1,0 +1,23 @@
+{
+  "selectedAuthType": "oauth-personal",
+  "theme": "Shades Of Purple",
+  "preferredEditor": "vim",
+  "autoAccept": true,
+  "telemetry": {
+    "enabled": false
+  },
+  "usageStatisticsEnabled": false,
+  "hideBanner": true,
+  "checkpointing": {
+    "enabled": true
+  },
+  "fileFiltering": {
+    "respectGitIgnore": true
+  },
+  "vimMode": true,
+  "mcpServers": {
+    "deepwiki": {
+      "httpUrl": "https://mcp.deepwiki.com/mcp"
+    }
+  }
+}
