@@ -18,6 +18,7 @@ let starts_with_blacklist = [
   "top",
   "htop",
   "watch",
+  "git diff","gd"
 ]
 
 let contains_blacklist = [
