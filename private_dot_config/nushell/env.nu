@@ -10,6 +10,7 @@ $env.PATH ++= [
   $"($env.HOME)/.local/share/gem/bin"
   $"($env.HOME)/.local/share/npm/bin"
   $"($env.HOME)/.local/share/cargo/bin"
+  $"($env.HOME)/.local/share/go/bin"
   $env.PNPM_HOME
   "/opt/osxcross/target/bin"
 ]
