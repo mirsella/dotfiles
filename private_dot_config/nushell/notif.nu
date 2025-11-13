@@ -2,7 +2,7 @@
 let notification_timeout = 20
 
 # Define a list of commands to blacklist from notifications
-let notification_blacklist = [
+let starts_with_blacklist = [
   "bacon","cch"
   "nvim",
   "lazygit",
@@ -18,6 +18,10 @@ let notification_blacklist = [
   "top",
   "htop",
   "watch",
+]
+
+let contains_blacklist = [
+  "run-external atuin search"
 ]
 
 # Variable to store the start time of the last executed command
@@ -52,8 +56,11 @@ $env.config.hooks = ($env.config.hooks | upsert pre_prompt [{||
     let status = if ($env.LAST_EXIT_CODE == null) { "?" } else { $env.LAST_EXIT_CODE }
 
     if ($duration_in_seconds >= $notification_timeout) and not (
-      $notification_blacklist
+      $starts_with_blacklist
       | any {|el| $env._last_command_string | str starts-with $el }
+    ) and not (
+      $contains_blacklist
+      | any {|el| $env._last_command_string | str contains $el }
     ) {
       job spawn {
         notify-send $"($env._last_command_string) with code ($status)"
