@@ -67,6 +67,7 @@ if ($env.ANDROID_HOME | path join "ndk" | path exists) {
 $env.PYTHONSTARTUP = "~/.config/python/pythonrc.py"
 $env.PYLINTHOME = $"($env.XDG_CACHE_HOME)/pylint"
 $env.ZDOTDIR = "~/.config/zsh"
+$env.HISTFILE = $"($env.XDG_STATE_HOME)/bash/history"
 $env.CUDA_PATH = "/opt/cuda"
 $env.CUDA_CACHE_PATH = $"($env.XDG_CACHE_HOME)/nv"
 $env.NODE_REPL_HISTORY = $"($env.XDG_DATA_HOME)/node_repl_history"
