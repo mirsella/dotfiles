@@ -26,5 +26,27 @@
 			"command": ["lspmux", "client"],
 			"extensions": [".rs"]
 		}
+	},
+	"permission": {
+		"bash": {
+			"rm *": "deny",
+			"sudo *": "deny",
+			"chmod *": "deny",
+			"chown *": "deny",
+			"git *": "ask",
+			"git rebase *": "allow",
+			"git commit *": "allow",
+
+			// Package managers (confirm)
+			"pnpm *": "ask",
+			"npm *": "ask",
+			"yarn *": "ask",
+			"brew *": "ask",
+			"paru *": "ask",
+			"pacman *": "ask",
+
+			"curl *": "ask",
+			"wget *": "ask"
+		}
 	}
 }

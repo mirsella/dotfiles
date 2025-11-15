@@ -4,11 +4,9 @@
 
 - Never use `git` command that will modify something, unless explicitly allowed. only use read only commands like log, diff. dont commit anything, dont push anything.
 
-- Never use `just`.
+- Never use destructive commands.
 
-- never run `cargo run`.
-
-- never run `cargo clean` or delete cache.
+- Never use `just`, `cargo run`, `cargo clean`, delete cache, `cargo doc`.
 
 - Never change the database, deploy anything, or migrate anything. you can only change code.
 
