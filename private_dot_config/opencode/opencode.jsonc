@@ -2,6 +2,13 @@
 	"$schema": "https://opencode.ai/config.json",
 	"share": "disabled",
 	"plugin": ["opencode-gemini-auth"],
+	"provider": {
+		"github-copilot": {
+			"npm": "@opeoginni/github-copilot-openai-compatible",
+			"name": "GitHub Copilot",
+			"id": "github-copilot"
+		}
+	},
 	"formatter": {
 		"rustfmt": {
 			"command": ["rustfmt", "$FILE"],
@@ -38,7 +45,6 @@
 			"git rebase *": "allow",
 			"git commit *": "allow",
 
-			// Package managers (confirm)
 			"pnpm *": "ask",
 			"npm *": "ask",
 			"yarn *": "ask",
