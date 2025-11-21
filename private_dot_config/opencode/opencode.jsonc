@@ -44,6 +44,9 @@
 			"git *": "ask",
 			"git rebase *": "allow",
 			"git commit *": "allow",
+			"git diff *": "allow",
+			"git show *": "allow",
+			"git status *": "allow",
 
 			"pnpm *": "ask",
 			"npm *": "ask",

@@ -1,23 +1,40 @@
 {
-  "selectedAuthType": "oauth-personal",
-  "theme": "Shades Of Purple",
-  "preferredEditor": "vim",
-  "autoAccept": true,
-  "telemetry": {
-    "enabled": false
+  "tools": {
+    "autoAccept": true
   },
-  "usageStatisticsEnabled": false,
-  "hideBanner": true,
-  "checkpointing": {
-    "enabled": true
+  "general": {
+    "checkpointing": {
+      "enabled": true
+    },
+    "preferredEditor": "vim",
+    "vimMode": true,
+    "disableAutoUpdate": false,
+    "previewFeatures": true,
+    "enablePromptCompletion": true
   },
-  "fileFiltering": {
-    "respectGitIgnore": true
+  "context": {
+    "fileFiltering": {
+      "respectGitIgnore": true
+    }
   },
-  "vimMode": true,
+  "ui": {
+    "hideBanner": true,
+    "theme": "Shades Of Purple"
+  },
   "mcpServers": {
     "deepwiki": {
       "httpUrl": "https://mcp.deepwiki.com/mcp"
     }
+  },
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  },
+  "telemetry": {
+    "enabled": false
+  },
+  "privacy": {
+    "usageStatisticsEnabled": false
   }
 }
