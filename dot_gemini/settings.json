@@ -9,7 +9,7 @@
     "preferredEditor": "vim",
     "vimMode": true,
     "disableAutoUpdate": false,
-    "previewFeatures": true,
+    "previewFeatures": false,
     "enablePromptCompletion": true
   },
   "context": {
