@@ -41,26 +41,27 @@
 	},
 	"permission": {
 		"bash": {
-			"rm *": "deny",
-			"sudo *": "deny",
-			"chmod *": "deny",
-			"chown *": "deny",
-			"git *": "ask",
-			"git rebase *": "allow",
-			"git commit *": "allow",
-			"git diff *": "allow",
-			"git show *": "allow",
-			"git status *": "allow",
+			"rm*": "deny",
+			"sudo*": "deny",
+			"chmod*": "deny",
+			"chown*": "deny",
+			"git*": "ask",
+			"git rebase*": "allow",
+			"git commit*": "allow",
+			"git diff*": "allow",
+			"git show*": "allow",
+			"git status*": "allow",
+			"git log*": "allow",
 
-			"pnpm *": "ask",
-			"npm *": "ask",
-			"yarn *": "ask",
-			"brew *": "ask",
-			"paru *": "ask",
-			"pacman *": "ask",
+			"pnpm*": "ask",
+			"npm*": "ask",
+			"yarn*": "ask",
+			"brew*": "ask",
+			"paru*": "ask",
+			"pacman*": "ask",
 
-			"curl *": "ask",
-			"wget *": "ask"
+			"curl*": "ask",
+			"wget*": "ask"
 		}
 	}
 }
