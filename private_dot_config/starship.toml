@@ -31,6 +31,9 @@ pipestatus = true
 symbol = " "
 map_symbol = true
 
+[git_metrics]
+disabled = false
+
 [os]
 disabled = true
 symbols.Arch = " "
