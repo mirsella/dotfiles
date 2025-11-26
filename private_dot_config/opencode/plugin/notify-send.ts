@@ -31,23 +31,25 @@ export const NotificationPlugin = async ({
 
 				// Check if "phone" device is connected via kdeconnect
 				const kdeconnectResult = await $`kdeconnect-cli --list-devices`.quiet();
-				const phoneConnected = kdeconnectResult.stdout.split('\n')
-					.some(line => line.includes('phone') && line.includes('reachable'));
+				const phoneConnected = kdeconnectResult.stdout
+					.split("\n")
+					.some((line) => line.includes("phone") && line.includes("reachable"));
 
 				let shouldFallback = false;
 				let errorMessage = "";
 
-				if (phoneConnected) {
-					// Send notification to phone via Telegram
-					const tgId = process.env.TgId;
-					const tgToken = process.env.TgToken;
-					
-					if (!tgId || !tgToken) {
-						shouldFallback = true;
-						errorMessage = "Telegram env vars (TgId/TgToken) not set";
-					} else {
-						try {
-							const response = await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+				// Send notification to phone via Telegram
+				const tgId = process.env.TgId;
+				const tgToken = process.env.TgToken;
+
+				if (!tgId || !tgToken) {
+					shouldFallback = true;
+					errorMessage = "Telegram env vars (TgId/TgToken) not set";
+				} else {
+					try {
+						const response = await fetch(
+							`https://api.telegram.org/bot${tgToken}/sendMessage`,
+							{
 								method: "POST",
 								headers: { "Content-Type": "application/json" },
 								body: JSON.stringify({
@@ -55,17 +57,19 @@ export const NotificationPlugin = async ({
 									text: message,
 								}),
 								signal: AbortSignal.timeout(2000),
-							});
-							if (!response.ok) {
-								shouldFallback = true;
-								errorMessage = `Telegram API error: ${response.status}`;
-							}
-						} catch (error) {
+							},
+						);
+						if (!response.ok) {
 							shouldFallback = true;
-							errorMessage = `Telegram fetch failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+							errorMessage = `Telegram API error: ${response.status}`;
 						}
+					} catch (error) {
+						shouldFallback = true;
+						errorMessage = `Telegram fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`;
 					}
-				} else {
+				}
+
+				if (!phoneConnected) {
 					shouldFallback = true;
 				}
 
@@ -79,7 +83,7 @@ export const NotificationPlugin = async ({
           --app-name=OpenCode \
           --expire-time=15000`;
 					}
-					
+
 					// Send the main notification as fallback
 					await $`notify-send "OpenCode" "${message}" \
           --urgency=normal \
