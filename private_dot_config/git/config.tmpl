@@ -23,9 +23,15 @@
   process = git-lfs filter-process
 [merge]
   conflictStyle = "zdiff3"
+  tool = diffview
+[mergetool]
+  prompt = false
+  keepBackup = false
 [merge "mergiraf"]
   name = mergiraf
   driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
+[mergetool "diffview"]
+  cmd = nvim -n -c "DiffEditor $left $right $output"
 [diff]
   external = difft
 [delta]
