@@ -59,3 +59,42 @@ def jc [...args] {
 def jci [...args] {
   jj commit -i -m ($args | str join " ")
 }
+
+def ports [] {
+    # Run lsof with sudo.
+    # We use 'complete' to capture the output without throwing an error if lsof returns exit code 1.
+    let lsof_out = (^sudo lsof -iTCP -sTCP:LISTEN -n -P | complete)
+
+    if ($lsof_out.stdout | is-empty) {
+        return
+    }
+
+    $lsof_out.stdout
+    | detect columns
+    | each {|row|
+        # Extract the port from the "NAME" column (e.g., "*:22" -> "22")
+        let port = ($row.NAME | split row ':' | last | into int)
+
+        # Fetch the full command line using ps.
+        let cmd = (
+            try { 
+                ^ps -p $row.PID -o command= 
+                | str trim 
+                | str replace --regex '^-' '' 
+            } catch { 
+                $row.COMMAND 
+            }
+        )
+
+        # Return a record for this row
+        {
+            port: $port,
+            cmd: $cmd,
+            pid: $row.PID
+        }
+    }
+    # Sort numerically by port
+    | sort-by port
+    # Format the output string using brackets for PID to avoid string interpolation ambiguity
+    | each {|it| $"Port ($it.port): ($it.cmd) [PID: ($it.pid)]" }
+}
