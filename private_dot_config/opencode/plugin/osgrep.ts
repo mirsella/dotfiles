@@ -32,19 +32,29 @@ osgrep is a semantic search tool for codebases. Prefer osgrep over grep, find, o
 
 let serveProcess: Subprocess | null = null;
 
+function killServe() {
+	if (serveProcess) {
+		serveProcess.kill();
+		serveProcess = null;
+	}
+}
+
 export const OsgrepPlugin: Plugin = async ({ $, directory }) => {
-	serveProcess = spawn(["osgrep", "serve"], {
-		cwd: directory,
-		stdout: "ignore",
-		stderr: "ignore",
-	});
-
-	process.on("exit", () => serveProcess?.kill());
-	process.on("SIGINT", () => serveProcess?.kill());
-	process.on("SIGTERM", () => serveProcess?.kill());
-
 	return {
 		instructions: OSGREP_INSTRUCTIONS,
+		event: async ({ event }) => {
+			if (event.type === "session.created") {
+				if (!serveProcess) {
+					serveProcess = spawn(["osgrep", "serve"], {
+						cwd: directory,
+						stdout: "ignore",
+						stderr: "ignore",
+					});
+				}
+			} else if (event.type === "session.deleted") {
+				killServe();
+			}
+		},
 		tool: {
 			osgrep: tool({
 				description:
@@ -73,7 +83,7 @@ export const OsgrepPlugin: Plugin = async ({ $, directory }) => {
 						.describe("Force re-index before searching"),
 				},
 				async execute(args) {
-					const cmdParts = ["osgrep", "--plain"];
+					const cmdParts = ["osgrep", "--json"];
 
 					if (args.limit) {
 						cmdParts.push("-m", String(args.limit));
