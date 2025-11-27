@@ -86,15 +86,14 @@ def ports [] {
             }
         )
 
-        # Return a record for this row
+        # Return a record for this row.
+        # Nushell automatically formats lists of records as a table.
         {
             port: $port,
-            cmd: $cmd,
-            pid: $row.PID
+            pid: $row.PID,
+            command: $cmd
         }
     }
     # Sort numerically by port
     | sort-by port
-    # Format the output string using brackets for PID to avoid string interpolation ambiguity
-    | each {|it| $"Port ($it.port): ($it.cmd) [PID: ($it.pid)]" }
 }
