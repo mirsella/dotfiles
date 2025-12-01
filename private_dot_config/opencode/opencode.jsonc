@@ -39,6 +39,8 @@
 	"permission": {
 		"bash": {
 			"rm*": "deny",
+			"rmdir": "deny",
+			"dd": "deny",
 			"sudo*": "deny",
 			"chmod*": "deny",
 			"chown*": "deny",
