@@ -3,7 +3,6 @@ return {
 		"mrcjkb/rustaceanvim",
 		opts = {
 			server = {
-				cmd = { vim.fn.expand("$HOME") .. "/.local/share/cargo/bin/lspmux" },
 				default_settings = {
 					["rust-analyzer"] = {
 						procMacro = {
