@@ -4,15 +4,7 @@ return {
 		opts = {
 			inlay_hints = {
 				enabled = true,
-			},
-			servers = {
-				["*"] = {
-					keys = {
-						-- codelens stuff
-						{ "<leader>cc", false },
-						{ "<leader>cC", false },
-					},
-				},
+				exclude = {},
 			},
 		},
 	},

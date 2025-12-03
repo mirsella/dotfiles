@@ -42,14 +42,14 @@ return {
 			desc = "Copy Git Modified (no folds)",
 		},
 
-		-- Group: Quickfix/Compiler (<leader>c)
-		{
-			"<leader>cc", -- 'c' for copy, within the 'c' (compiler/code) group
-			function()
-				vim.cmd("CopyQuickfixFilesToClipboard nofolds")
-			end,
-			desc = "Copy Quickfix List (no folds)",
-		},
+		-- Group: Quickfix/Compiler (<leader>c) (conflicts with my open cargo.toml config)
+		-- {
+		-- 	"<leader>cc", -- 'c' for copy, within the 'c' (compiler/code) group
+		-- 	function()
+		-- 		vim.cmd("CopyQuickfixFilesToClipboard nofolds")
+		-- 	end,
+		-- 	desc = "Copy Quickfix List (no folds)",
+		-- },
 
 		-- Group: Files (<leader>f)
 		{
