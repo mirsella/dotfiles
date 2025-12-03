@@ -11,3 +11,5 @@ vim.opt.foldlevel = 99
 -- vim.g.lazyvim_rust_diagnostics = "bacon-ls"
 vim.opt.laststatus = 3
 vim.g.snacks_animate = false
+
+vim.g.lazyvim_picker = "fzf"
