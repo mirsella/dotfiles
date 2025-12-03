@@ -5,10 +5,15 @@ return {
 			inlay_hints = {
 				enabled = true,
 			},
-		},
-		keys = {
-			{ "<leader>cc", false },
-			{ "<leader>cC", false },
+			servers = {
+				["*"] = {
+					keys = {
+						-- codelens stuff
+						{ "<leader>cc", false },
+						{ "<leader>cC", false },
+					},
+				},
+			},
 		},
 	},
 }

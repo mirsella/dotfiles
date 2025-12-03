@@ -1,7 +1,7 @@
 local wezterm = require("wezterm")
 local act = wezterm.action
 local config = wezterm.config_builder()
-local rose_pine = require("lua/rose-pine")
+local rose_pine = wezterm.plugin.require("https://github.com/neapsix/wezterm")
 
 -- config.enable_scroll_bar = true
 config.font_size = 12.0

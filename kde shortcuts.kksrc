@@ -1,0 +1,13 @@
+[Custom Commands][net.local.bash.desktop]
+Exec=bash -c 'for i in $(seq $(notify-send -p " " -t 1) -1 0); do qdbus6 org.kde.plasmashell /org/freedesktop/Notifications org.freedesktop.Notifications.CloseNotification $i; done'
+Name=clear notifications
+
+[Custom Commands][net.local.wezterm.desktop]
+Exec=/home/mirsella/.local/share/cargo/bin/wezterm
+Name=wezterm
+
+[net.local.bash.desktop][Global Shortcuts]
+_launch=Meta+S
+
+[net.local.wezterm.desktop][Global Shortcuts]
+_launch=Ctrl+Alt+T
