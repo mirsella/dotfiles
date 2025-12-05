@@ -7,6 +7,7 @@ return {
 				require("sidekick.").clear()
 			end,
 			desc = "Sidekick Toggle CLI",
+			mode = { "n", "v", "i" },
 		},
 	},
 }
