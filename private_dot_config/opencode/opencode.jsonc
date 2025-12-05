@@ -42,8 +42,8 @@
 	},
 	"permission": {
 		"bash": {
-			"rm*": "deny",
-			"rmdir": "deny",
+			"rm*": "ask",
+			"rmdir": "ask",
 			"dd": "deny",
 			"sudo*": "deny",
 			"chmod*": "deny",
