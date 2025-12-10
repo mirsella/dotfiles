@@ -1,7 +1,10 @@
 {
 	"$schema": "https://opencode.ai/config.json",
 	"share": "disabled",
-	"plugin": ["opencode-gemini-auth@1.2.0", "@tarquinen/opencode-dcp@0.4.14"],
+	"plugin": ["opencode-gemini-auth@latest", "@tarquinen/opencode-dcp@latest"],
+	"experimental": {
+		"primary_tools": ["prune"]
+	},
 	"disabled_providers": ["openrouter"],
 	"provider": {
 		"github-copilot": {
