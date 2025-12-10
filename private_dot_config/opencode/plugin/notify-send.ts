@@ -9,6 +9,12 @@ export const NotificationPlugin = async ({
 }) => {
 	return {
 		event: async ({ event }) => {
+			if (event.type === "permission.updated") {
+				const title = event.properties.title || "Permission Required";
+				await $`notify-send "OpenCode Permission" "${title}" --urgency=critical --icon=dialog-question --category=opencode.permission --app-name=OpenCode --expire-time=5000`.nothrow();
+				return;
+			}
+
 			if (
 				event.type !== "session.status" ||
 				event.properties.status.type !== "idle"
