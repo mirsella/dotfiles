@@ -1,6 +1,7 @@
 const processedSessions = new Set();
+import type { Plugin } from "@opencode-ai/plugin";
 
-export const NotificationPlugin = async ({
+export const NotificationPlugin: Plugin = async ({
 	project,
 	client,
 	$,
@@ -48,7 +49,9 @@ export const NotificationPlugin = async ({
 				const kdeconnectResult = await $`kdeconnect-cli --list-devices`
 					.quiet()
 					.nothrow();
-				const stdout = String(kdeconnectResult.stdout || kdeconnectResult.text || kdeconnectResult);
+				const stdout = String(
+					kdeconnectResult.stdout || kdeconnectResult.text || kdeconnectResult,
+				);
 				phoneConnected = stdout
 					.split("\n")
 					.some((line) => line.includes("phone") && line.includes("reachable"));
