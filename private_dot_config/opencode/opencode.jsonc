@@ -49,9 +49,6 @@
 	},
 	"permission": {
 		"bash": {
-			"rm*": "ask",
-			"rmdir": "ask",
-			"dd": "deny",
 			"sudo*": "deny",
 			"chmod*": "deny",
 			"chown*": "deny",
@@ -64,12 +61,9 @@
 			"git log*": "allow",
 			"git branch -a": "allow",
 
-			"pnpm*": "ask",
-			"npm*": "ask",
-			"yarn*": "ask",
-			"brew*": "ask",
-			"paru*": "ask",
-			"pacman*": "ask",
+			"brew*": "deny",
+			"paru*": "deny",
+			"pacman*": "deny",
 
 			"curl*": "ask",
 			"wget*": "ask"
