@@ -1,6 +1,6 @@
 {
 	"enabled": true,
 	"debug": false,
-	"model": "google/gemini-2.5-flash",
+	"model": "zen/big-pickle",
 	"updateThreshold": 1
 }
