@@ -24,6 +24,7 @@ config.enable_wayland = false -- wayland screen resolution broken https://github
 config.warn_about_missing_glyphs = false
 
 config.keys = {
+	{ key = "Enter", mods = "SHIFT", action = wezterm.action({ SendString = "\x1b\r" }) },
 	{ key = "f", mods = "CTRL|SHIFT", action = act.Search({ Regex = "" }) },
 	{ key = "|", mods = "CTRL|SHIFT", action = act.SplitHorizontal },
 
