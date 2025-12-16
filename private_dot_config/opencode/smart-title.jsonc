@@ -1,6 +1,6 @@
 {
 	"enabled": true,
 	"debug": false,
-	"model": "zen/big-pickle",
+	"model": "opencode/big-pickle",
 	"updateThreshold": 1
 }
