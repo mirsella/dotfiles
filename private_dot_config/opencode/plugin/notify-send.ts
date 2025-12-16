@@ -39,6 +39,10 @@ export const NotificationPlugin: Plugin = async ({
 				const session = await client.session.get({
 					path: { id: sessionId },
 				});
+				// Ignore sub-agent sessions
+				if (session.data?.parentID) {
+					return;
+				}
 				title = session.data?.title || "Session";
 			} catch {}
 
