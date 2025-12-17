@@ -58,7 +58,8 @@
 			"git show*": "allow",
 			"git status*": "allow",
 			"git log*": "allow",
-			"git branch -a": "allow",
+			"git branch*": "allow",
+			"git add*": "allow",
 
 			"brew*": "deny",
 			"paru*": "deny",
