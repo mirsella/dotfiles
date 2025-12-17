@@ -1,6 +1,6 @@
 {
 	"enabled": true,
 	"debug": false,
-	"model": "opencode/big-pickle",
+	"model": "google/gemini-3-flash-preview",
 	"updateThreshold": 1
 }
