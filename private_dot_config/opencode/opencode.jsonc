@@ -2,13 +2,13 @@
 	"$schema": "https://opencode.ai/config.json",
 	"plugin": [
 		"opencode-gemini-auth",
-		"@tarquinen/opencode-dcp",
+		// "@tarquinen/opencode-dcp",
 		"@tarquinen/opencode-smart-title"
 	],
 	"experimental": {
 		"primary_tools": ["prune"]
 	},
-	"disabled_providers": ["openrouter"],
+	// "disabled_providers": ["openrouter"],
 	"provider": {
 		"github-copilot": {
 			"npm": "@opeoginni/github-copilot-openai-compatible",

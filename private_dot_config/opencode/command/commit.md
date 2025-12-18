@@ -46,8 +46,6 @@ Output only the raw commit message text, no extras.
 
 Self-check: Valid prefix, lowercase scope, summary rules, blank line, bullets format, no trailing whitespace, note breaking if applicable.
 
-Ask the user if the generated commit message is acceptable and then perform the git commit with the message if approved.
-
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
