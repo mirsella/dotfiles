@@ -2,9 +2,10 @@
 agent: build
 description: Commit staged changes with a conventional commit message
 model: google/gemini-3-flash-preview
+subtask: true
 ---
 
-opencode Generate a commit message and perform the commit following these rules explicitly:
+Generate a commit message and perform the commit following these rules explicitly:
 
 Analyze the changes and generate a proper commit message.
 
