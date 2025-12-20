@@ -1,7 +1,7 @@
 ---
 agent: build
 description: Commit staged changes with a conventional commit message
-model: google/gemini-3-flash-preview
+model: google/gemini-3-flash
 subtask: true
 ---
 
