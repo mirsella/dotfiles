@@ -54,7 +54,7 @@ $env.INPUTRC = $"($env.XDG_CONFIG_HOME)/inputrc"
 $env.GNUPGHOME = $"($env.XDG_DATA_HOME)/gnupg"
 $env.WINEPREFIX = $"($env.XDG_DATA_HOME)/wineprefixes/wine64"
 $env.PASSWORD_STORE_DIR = $"($env.XDG_DATA_HOME)/password-store"
-$env.ANDROID_HOME = $"($env.XDG_DATA_HOME)/android/sdk"
+$env.ANDROID_HOME = $"($env.XDG_DATA_HOME)/android"
 $env.ANDROID_AVD_HOME = $"($env.XDG_DATA_HOME)/android/avd"
 
 # Set NDK_HOME if the directory exists

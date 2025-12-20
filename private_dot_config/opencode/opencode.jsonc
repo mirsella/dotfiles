@@ -2,20 +2,14 @@
 	"$schema": "https://opencode.ai/config.json",
 	"plugin": [
 		"opencode-gemini-auth",
+		"opencode-antigravity-auth",
 		"@tarquinen/opencode-dcp",
 		"@tarquinen/opencode-smart-title"
 	],
 	"experimental": {
 		"primary_tools": ["prune"]
 	},
-	// "disabled_providers": ["openrouter"],
-	"provider": {
-		"github-copilot": {
-			"npm": "@opeoginni/github-copilot-openai-compatible",
-			"name": "GitHub Copilot",
-			"id": "github-copilot"
-		}
-	},
+	"disabled_providers": ["openrouter"],
 	"agent": {
 		"general": { "tools": { "prune": false } },
 		"explore": { "tools": { "prune": false } }
@@ -47,6 +41,7 @@
 		}
 	},
 	"permission": {
+		"external_directory": "allow",
 		"bash": {
 			"sudo*": "deny",
 			"chmod*": "deny",
@@ -68,6 +63,51 @@
 
 			"curl*": "ask",
 			"wget*": "ask"
+		}
+	},
+
+	"provider": {
+		// "github-copilot": {
+		// 	"npm": "@opeoginni/github-copilot-openai-compatible",
+		// 	"name": "GitHub Copilot",
+		// 	"id": "github-copilot"
+		// }
+		"google": {
+			"models": {
+				"gemini-3-pro-high": {
+					"name": "Gemini 3 Pro High (Antigravity)",
+					"limit": {
+						"context": 1048576,
+						"output": 65535
+					},
+					"modalities": {
+						"input": ["text", "image", "pdf"],
+						"output": ["text"]
+					}
+				},
+				"gemini-3-flash": {
+					"name": "Gemini 3 Flash (Antigravity)",
+					"limit": {
+						"context": 1048576,
+						"output": 65536
+					},
+					"modalities": {
+						"input": ["text", "image", "pdf"],
+						"output": ["text"]
+					}
+				},
+				"claude-opus-4-5-thinking": {
+					"name": "Claude Opus 4.5 Thinking (Antigravity)",
+					"limit": {
+						"context": 200000,
+						"output": 64000
+					},
+					"modalities": {
+						"input": ["text", "image", "pdf"],
+						"output": ["text"]
+					}
+				}
+			}
 		}
 	}
 }
