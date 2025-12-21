@@ -37,3 +37,6 @@ disabled = false
 [os]
 disabled = true
 symbols.Arch = " "
+
+[gcloud]
+disabled = true
