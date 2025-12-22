@@ -80,4 +80,4 @@ alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf --multi
 alias oc = opencode
-def gem [] { NODE_OPTIONS="--max-old-space-size=8192" gemini -y }
+alias autocommit = opencode run --command "commit"
