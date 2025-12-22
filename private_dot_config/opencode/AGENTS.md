@@ -4,6 +4,8 @@
 
 - Never use `git` command that will modify something, unless explicitly allowed. only use read only commands like log, diff. dont commit anything, dont push anything.
 
+- always add --no-pager to git. and --no-ext-diff to git diff commands..
+
 - Never use destructive commands.
 
 - Never use `just`, `cargo run`, `cargo clean`, delete cache, `cargo doc`.

@@ -3,7 +3,7 @@
 	"plugin": [
 		"opencode-gemini-auth",
 		// "opencode-antigravity-auth",
-		"@tarquinen/opencode-dcp",
+		// "@tarquinen/opencode-dcp",
 		"@tarquinen/opencode-smart-title"
 	],
 	"experimental": {
