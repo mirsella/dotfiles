@@ -5,9 +5,6 @@
 		// "@tarquinen/opencode-dcp@beta",
 		"@tarquinen/opencode-smart-title"
 	],
-	"experimental": {
-		"primary_tools": ["prune"]
-	},
 	"disabled_providers": ["openrouter"],
 	"agent": {
 		"general": { "tools": { "prune": false } },
