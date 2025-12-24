@@ -55,10 +55,7 @@
 
 			"brew*": "deny",
 			"paru*": "deny",
-			"pacman*": "deny",
-
-			"curl*": "ask",
-			"wget*": "ask"
+			"pacman*": "deny"
 		}
 	},
 
