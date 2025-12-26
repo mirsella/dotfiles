@@ -2,7 +2,7 @@
 description: Git commit
 agent: general
 subtask: true
-model: google/gemini-3-flash
+model: google/gemini-2.5-flash
 ---
 
 Use git commands to commit changes. DO NOT create a script.
