@@ -2,7 +2,7 @@
 description: Git commit
 agent: general
 subtask: true
-model: opencode/big-pickle
+model: google/gemini-3-flash
 ---
 
 Use git commands to commit changes. DO NOT create a script.
