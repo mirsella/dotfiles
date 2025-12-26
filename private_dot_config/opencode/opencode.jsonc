@@ -1,9 +1,9 @@
 {
 	"$schema": "https://opencode.ai/config.json",
 	"plugin": [
-		// "@tarquinen/opencode-dcp@beta",
-		"@tarquinen/opencode-smart-title@0.1.7",
-		"opencode-antigravity-auth@=1.2.5-beta.6"
+		"@tarquinen/opencode-smart-title@latest",
+		"opencode-antigravity-auth@=1.2.5-beta.6",
+		"@tarquinen/opencode-dcp@latest"
 	],
 	"disabled_providers": ["openrouter"],
 	"formatter": {
@@ -64,7 +64,7 @@
 		"google": {
 			"models": {
 				"gemini-3-pro-low": {
-					"name": "Gemini 3 Pro Low (Antigravity)",
+					"name": "Gemini 3 Pro Low",
 					"limit": { "context": 1048576, "output": 65535 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -72,7 +72,7 @@
 					}
 				},
 				"gemini-3-pro-high": {
-					"name": "Gemini 3 Pro High (Antigravity)",
+					"name": "Gemini 3 Pro High",
 					"limit": { "context": 1048576, "output": 65535 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -80,7 +80,7 @@
 					}
 				},
 				"gemini-3-flash": {
-					"name": "Gemini 3 Flash (Antigravity)",
+					"name": "Gemini 3 Flash",
 					"limit": { "context": 1048576, "output": 65536 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -88,7 +88,7 @@
 					}
 				},
 				"claude-sonnet-4-5": {
-					"name": "Claude Sonnet 4.5 (Antigravity)",
+					"name": "Claude Sonnet 4.5",
 					"limit": { "context": 200000, "output": 64000 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -96,7 +96,7 @@
 					}
 				},
 				"claude-sonnet-4-5-thinking-low": {
-					"name": "Claude Sonnet 4.5 Thinking Low (Antigravity)",
+					"name": "Claude Sonnet 4.5 Thinking Low",
 					"limit": { "context": 200000, "output": 64000 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -104,7 +104,7 @@
 					}
 				},
 				"claude-sonnet-4-5-thinking-medium": {
-					"name": "Claude Sonnet 4.5 Thinking Medium (Antigravity)",
+					"name": "Claude Sonnet 4.5 Thinking Medium",
 					"limit": { "context": 200000, "output": 64000 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -112,7 +112,7 @@
 					}
 				},
 				"claude-sonnet-4-5-thinking-high": {
-					"name": "Claude Sonnet 4.5 Thinking High (Antigravity)",
+					"name": "Claude Sonnet 4.5 Thinking High",
 					"limit": { "context": 200000, "output": 64000 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -120,7 +120,7 @@
 					}
 				},
 				"claude-opus-4-5-thinking-low": {
-					"name": "Claude Opus 4.5 Thinking Low (Antigravity)",
+					"name": "Claude Opus 4.5 Thinking Low",
 					"limit": { "context": 200000, "output": 64000 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -128,7 +128,7 @@
 					}
 				},
 				"claude-opus-4-5-thinking-medium": {
-					"name": "Claude Opus 4.5 Thinking Medium (Antigravity)",
+					"name": "Claude Opus 4.5 Thinking Medium",
 					"limit": { "context": 200000, "output": 64000 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
@@ -136,7 +136,7 @@
 					}
 				},
 				"claude-opus-4-5-thinking-high": {
-					"name": "Claude Opus 4.5 Thinking High (Antigravity)",
+					"name": "Claude Opus 4.5 Thinking High",
 					"limit": { "context": 200000, "output": 64000 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
