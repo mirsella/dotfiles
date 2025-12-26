@@ -22,3 +22,5 @@ If NO argument is provided above (empty string):
 
 - Check if the current directory is a Git repository and commit changes with a message
 - If the current directory is not a Git repository, check child directories for Git repositories and commit changes in each one
+
+user arguments that should steer the commit message: "$ARGUMENTS"
