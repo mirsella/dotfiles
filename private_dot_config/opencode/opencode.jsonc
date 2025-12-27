@@ -13,8 +13,8 @@
 		}
 	},
 	"keybinds": {
-		"model_cycle_recent": "f4",
-		"model_cycle_recent_reverse": "shift+f4"
+		"model_cycle_favorite": "f4",
+		"model_cycle_favorite_reverse": "shift+f4"
 	},
 	"mcp": {
 		"deepwiki": {
