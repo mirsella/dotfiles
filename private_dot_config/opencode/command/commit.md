@@ -5,22 +5,25 @@ subtask: true
 model: google/gemini-2.5-flash
 ---
 
-Use git commands to commit changes. DO NOT create a script.
+Check the current git status and diff to understand changes.
+Review recent git logs to maintain commit message consistency.
+Stage all changes with 'git add .' (or specific files if appropriate).
+Generate a conventional commit message following the format:
 
-Review all changes before committing. Ensure that the commit message is clear and descriptive
-Arguments provided: "$ARGUMENTS"
+- feat: for new features
+- fix: for bug fixes
+- refactor: for code refactoring
+- chore: for maintenance tasks
+- docs: for documentation changes
+- style: for formatting changes
+- test: for test additions/modifications
+- perf: for performance improvements
 
-If an argument is provided above:
+Format: <type>(<scope>): <subject>
 
-- ONLY commit changes in that specific directory
+Careful of correctly handling backtick when running bash commands.
 
-- Do NOT check the current directory or other child directories
-
-- ONLY process the single directory specified
-
-If NO argument is provided above (empty string):
-
-- Check if the current directory is a Git repository and commit changes with a message
-- If the current directory is not a Git repository, check child directories for Git repositories and commit changes in each one
-
-user arguments that should steer the commit message: "$ARGUMENTS"
+Add detailed body if changes are substantial.
+Commit the changes with the generated message.
+Show confirmation of the commit hash and message.
+Do nothing else.
