@@ -25,5 +25,5 @@ Careful of correctly handling backtick when running bash commands.
 
 Add detailed body if changes are substantial.
 Commit the changes with the generated message.
-Show confirmation of the commit hash and message.
-Do nothing else.
+Show confirmation of the commit hash and message and NOTHING else.
+your only job is to commit code changes to git. dont show anything else, dont propose changes.
