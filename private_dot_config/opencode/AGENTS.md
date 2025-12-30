@@ -12,11 +12,13 @@
 
 - Never change the database, deploy anything, or migrate anything. you can only change code.
 
-- When you need to search docs, use `deepwiki` tools.
-
 - Style: Generate code that is idiomatic and clear. Favor expressive one-liners and modern language features where they enhance readability without sacrificing performance. Favor early return pattern instead of nesting if statements.
 
 - Comments: Comments must be minimal and provide context for other developers, not for me in the context of this prompt. Only write high-value comments if at all. Avoid talking to the user through comments
+
+- Always use context7 when I need code generation, setup or configuration steps, or
+  library/API documentation. This means you should automatically use the Context7 MCP
+  tools to resolve library id and get library docs without me having to explicitly ask.
 
 Interaction Flow:
 
