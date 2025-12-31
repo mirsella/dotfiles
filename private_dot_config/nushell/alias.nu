@@ -80,4 +80,5 @@ alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf --multi
 alias oc = opencode
+alias occ = opencode --continue
 alias autocommit = opencode run --command "commit"
