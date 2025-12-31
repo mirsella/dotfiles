@@ -2,7 +2,7 @@
 description: Git commit
 agent: general
 subtask: true
-model: google/gemini-3-flash-preview
+model: google/antigravity-gemini-3-flash
 ---
 
 Check the current git status and diff to understand changes.

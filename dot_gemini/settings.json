@@ -3,5 +3,13 @@
     "auth": {
       "selectedType": "oauth-personal"
     }
+  },
+  "ui": {
+    "theme": "Default"
+  },
+  "general": {
+    "vimMode": true,
+    "previewFeatures": true,
+    "disableAutoUpdate": false
   }
 }
