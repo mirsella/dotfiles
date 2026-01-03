@@ -1,7 +1,6 @@
 ---
 description: Git commit
 agent: general
-subtask: true
 model: google/antigravity-gemini-3-flash
 ---
 
@@ -27,3 +26,4 @@ Add detailed body if changes are substantial.
 Commit the changes with the generated message.
 Show confirmation of the commit hash and message and NOTHING else.
 your only job is to commit code changes to git. dont show anything else, dont propose changes.
+dont go on fixing other things. your only job is to commit the current code.
