@@ -1,7 +1,8 @@
 ---
 description: Git commit
 agent: general
-model: google/antigravity-gemini-3-flash
+subtask: false
+model: opencode/grok-code
 ---
 
 Check the current git status and diff to understand changes.
