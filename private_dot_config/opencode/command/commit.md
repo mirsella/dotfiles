@@ -5,6 +5,7 @@ subtask: false
 model: opencode/grok-code
 ---
 
+Check the current git diff to understand current non committed changes
 Stage all changes with 'git add .' (or specific files if appropriate).
 Generate a conventional commit message following the format:
 
