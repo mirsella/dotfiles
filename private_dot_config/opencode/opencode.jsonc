@@ -1,10 +1,10 @@
 {
 	"$schema": "https://opencode.ai/config.json",
 	"plugin": [
-		"opencode-antigravity-auth@1.2.8-beta.3",
-		"@tarquinen/opencode-smart-title@latest",
-		"@tarquinen/opencode-dcp@latest",
-		"opencode-supermemory@latest"
+		"opencode-antigravity-auth@1.2.8",
+		"@tarquinen/opencode-dcp@1.1.4",
+		"@tarquinen/opencode-smart-title@0.1.7",
+		"opencode-supermemory@0.1.6"
 	],
 	"disabled_providers": ["openrouter"],
 	"formatter": {
