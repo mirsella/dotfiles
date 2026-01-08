@@ -10,9 +10,31 @@ export const NotificationPlugin: Plugin = async ({
 }) => {
 	return {
 		event: async ({ event }) => {
-			if (event.type === "permission.updated") {
-				const title = event.properties.title || "Permission Required";
+			if (event.type === "permission.asked") {
+				const req = event.properties;
+				const title = req.title || "Permission Required";
 				await $`notify-send "OpenCode Permission" "${title}" --urgency=critical --icon=dialog-question --category=opencode.permission --app-name=OpenCode --expire-time=5000`.nothrow();
+				return;
+			}
+
+			if (event.type === "session.error") {
+				const { error } = event.properties;
+				if (!error) return;
+
+				let message = "Unknown error";
+				if (error.name === "APIError") {
+					message = `API Error: ${error.data.message}`;
+				} else if (error.name === "ProviderAuthError") {
+					message = `Auth Error: ${error.data.message}`;
+				} else if (error.name === "MessageAbortedError") {
+					message = `Aborted: ${error.data.message}`;
+				} else if (error.name === "MessageOutputLengthError") {
+					message = "Output length exceeded";
+				} else if (error.name === "UnknownError") {
+					message = error.data.message;
+				}
+
+				await $`notify-send "OpenCode Error" "${message}" --urgency=critical --icon=dialog-error --category=opencode.error --app-name=OpenCode --expire-time=10000`.nothrow();
 				return;
 			}
 
