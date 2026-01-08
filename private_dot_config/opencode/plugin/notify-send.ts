@@ -1,6 +1,15 @@
 const processedSessions = new Set();
 import type { Plugin } from "@opencode-ai/plugin";
 
+type NotifyOptions = {
+	title: string;
+	message: string;
+	urgency?: "low" | "normal" | "critical";
+	icon?: string;
+	category?: string;
+	expireTime?: number;
+};
+
 export const NotificationPlugin: Plugin = async ({
 	project,
 	client,
@@ -8,12 +17,93 @@ export const NotificationPlugin: Plugin = async ({
 	directory,
 	worktree,
 }) => {
+	const isPhoneConnected = async (): Promise<boolean> => {
+		try {
+			const result = await $`kdeconnect-cli --list-devices`.quiet().nothrow();
+			const stdout = String(result.stdout || result.text || result);
+			return stdout
+				.split("\n")
+				.some((line) => line.includes("phone") && line.includes("reachable"));
+		} catch {
+			return false;
+		}
+	};
+
+	const sendTelegram = async (message: string): Promise<string | null> => {
+		const tgId = process.env.TgId;
+		const tgToken = process.env.TgToken;
+
+		if (!tgId || !tgToken) {
+			return "Telegram env vars (TgId/TgToken) not set";
+		}
+
+		try {
+			const response = await fetch(
+				`https://api.telegram.org/bot${tgToken}/sendMessage`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ chat_id: tgId, text: message }),
+					signal: AbortSignal.timeout(2000),
+				},
+			);
+			if (!response.ok) {
+				return `Telegram API error: ${response.status}`;
+			}
+			return null;
+		} catch (error) {
+			return `Telegram fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`;
+		}
+	};
+
+	const sendDesktopNotification = async (opts: NotifyOptions): Promise<void> => {
+		const {
+			title,
+			message,
+			urgency = "normal",
+			icon = "starred",
+			category = "opencode",
+			expireTime = 6000,
+		} = opts;
+		await $`notify-send "OpenCode ${title}" "${message}" --urgency=${urgency} --icon=${icon} --category=opencode.${category} --app-name=OpenCode --expire-time=${expireTime}`.nothrow();
+	};
+
+	const notify = async (opts: NotifyOptions): Promise<void> => {
+		const message = `OpenCode ${opts.title}: ${opts.message}`;
+
+		const phoneConnected = await isPhoneConnected();
+		const telegramError = await sendTelegram(message);
+
+		const shouldFallback = !phoneConnected || telegramError !== null;
+		if (!shouldFallback) return;
+
+		if (telegramError) {
+			await sendDesktopNotification({
+				title: "Error",
+				message: telegramError,
+				urgency: "critical",
+				icon: "dialog-error",
+				category: "error",
+				expireTime: 10000,
+			});
+		}
+
+		await sendDesktopNotification(opts);
+	};
+
 	return {
 		event: async ({ event }) => {
 			if (event.type === "permission.asked") {
 				const req = event.properties;
 				const title = req.title || "Permission Required";
-				await $`notify-send "OpenCode Permission" "${title}" --urgency=critical --icon=dialog-question --category=opencode.permission --app-name=OpenCode --expire-time=5000`.nothrow();
+				await notify({
+					title: "Permission",
+					message: title,
+					urgency: "critical",
+					icon: "dialog-question",
+					category: "permission",
+					expireTime: 5000,
+				});
 				return;
 			}
 
@@ -34,7 +124,14 @@ export const NotificationPlugin: Plugin = async ({
 					message = error.data.message;
 				}
 
-				await $`notify-send "OpenCode Error" "${message}" --urgency=critical --icon=dialog-error --category=opencode.error --app-name=OpenCode --expire-time=10000`.nothrow();
+				await notify({
+					title: "Error",
+					message,
+					urgency: "critical",
+					icon: "dialog-error",
+					category: "error",
+					expireTime: 10000,
+				});
 				return;
 			}
 
@@ -61,74 +158,20 @@ export const NotificationPlugin: Plugin = async ({
 				const session = await client.session.get({
 					path: { id: sessionId },
 				});
-				// Ignore sub-agent sessions
 				if (session.data?.parentID) {
 					return;
 				}
 				title = session.data?.title || "Session";
 			} catch {}
 
-			const message = `OpenCode ${title} completed!`;
-
-			let phoneConnected = false;
-			try {
-				const kdeconnectResult = await $`kdeconnect-cli --list-devices`
-					.quiet()
-					.nothrow();
-				const stdout = String(
-					kdeconnectResult.stdout || kdeconnectResult.text || kdeconnectResult,
-				);
-				phoneConnected = stdout
-					.split("\n")
-					.some((line) => line.includes("phone") && line.includes("reachable"));
-			} catch {}
-
-			let shouldFallback = false;
-			let errorMessage = "";
-
-			const tgId = process.env.TgId;
-			const tgToken = process.env.TgToken;
-
-			if (!tgId || !tgToken) {
-				shouldFallback = true;
-				errorMessage = "Telegram env vars (TgId/TgToken) not set";
-			} else {
-				try {
-					const response = await fetch(
-						`https://api.telegram.org/bot${tgToken}/sendMessage`,
-						{
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								chat_id: tgId,
-								text: message,
-							}),
-							signal: AbortSignal.timeout(2000),
-						},
-					);
-					if (!response.ok) {
-						shouldFallback = true;
-						errorMessage = `Telegram API error: ${response.status}`;
-					}
-				} catch (error) {
-					shouldFallback = true;
-					errorMessage = `Telegram fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`;
-				}
-			}
-
-			if (!phoneConnected) {
-				shouldFallback = true;
-			}
-
-			if (!shouldFallback) {
-				return;
-			}
-
-			if (errorMessage) {
-				await $`notify-send "OpenCode Error" "${errorMessage}" --urgency=critical --icon=dialog-error --category=opencode.error --app-name=OpenCode --expire-time=10000`.nothrow();
-			}
-
-			await $`notify-send "OpenCode" "${message}" --urgency=normal --icon=starred --category=opencode --app-name=OpenCode --expire-time=6000`.nothrow();
+			await notify({
+				title: "Completed",
+				message: title,
+				urgency: "normal",
+				icon: "starred",
+				category: "completed",
+				expireTime: 6000,
+			});
 		},
 	};
 };
