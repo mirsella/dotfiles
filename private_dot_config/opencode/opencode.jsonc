@@ -76,9 +76,7 @@
 						"output": ["text"]
 					},
 					"variants": {
-						"minimal": { "thinkingLevel": "minimal" },
 						"low": { "thinkingLevel": "low" },
-						"medium": { "thinkingLevel": "medium" },
 						"high": { "thinkingLevel": "high" }
 					}
 				},
