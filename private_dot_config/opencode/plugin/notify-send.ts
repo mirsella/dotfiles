@@ -93,11 +93,30 @@ export const NotificationPlugin: Plugin = async ({
 
 	return {
 		event: async ({ event }) => {
+			// @ts-ignore - EventQuestionAsk not in installed SDK types yet
+			if (event.type === "question.asked") {
+				// @ts-ignore
+				const questions = event.properties.questions;
+				const q = questions[0];
+				const questionText = q?.question || "Question pending";
+				await notify({
+					title: "❓ Question",
+					message: questionText,
+					urgency: "critical",
+					icon: "dialog-information",
+					category: "question",
+					expireTime: 8000,
+				});
+				return;
+			}
+
+			// @ts-ignore - EventPermissionAsk not in installed SDK types yet
 			if (event.type === "permission.asked") {
+				// @ts-ignore
 				const req = event.properties;
 				const title = req.title || "Permission Required";
 				await notify({
-					title: "Permission",
+					title: "🔐 Permission",
 					message: title,
 					urgency: "critical",
 					icon: "dialog-question",
@@ -125,7 +144,7 @@ export const NotificationPlugin: Plugin = async ({
 				}
 
 				await notify({
-					title: "Error",
+					title: "❌ Error",
 					message,
 					urgency: "critical",
 					icon: "dialog-error",
@@ -165,7 +184,7 @@ export const NotificationPlugin: Plugin = async ({
 			} catch {}
 
 			await notify({
-				title: "Completed",
+				title: "✅ Completed",
 				message: title,
 				urgency: "normal",
 				icon: "starred",
