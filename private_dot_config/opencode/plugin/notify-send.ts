@@ -65,11 +65,11 @@ export const NotificationPlugin: Plugin = async ({
 			category = "opencode",
 			expireTime = 6000,
 		} = opts;
-		await $`notify-send "OpenCode ${title}" "${message}" --urgency=${urgency} --icon=${icon} --category=opencode.${category} --app-name=OpenCode --expire-time=${expireTime}`.nothrow();
+		await $`notify-send "OC ${title}" "${message}" --urgency=${urgency} --icon=${icon} --category=opencode.${category} --app-name=OpenCode --expire-time=${expireTime}`.nothrow();
 	};
 
 	const notify = async (opts: NotifyOptions): Promise<void> => {
-		const message = `OpenCode ${opts.title}: ${opts.message}`;
+		const message = `OC ${opts.title} ${opts.message}`;
 
 		const phoneConnected = await isPhoneConnected();
 		const telegramError = await sendTelegram(message);
@@ -79,7 +79,7 @@ export const NotificationPlugin: Plugin = async ({
 
 		if (telegramError) {
 			await sendDesktopNotification({
-				title: "Error",
+				title: "❌",
 				message: telegramError,
 				urgency: "critical",
 				icon: "dialog-error",
@@ -100,7 +100,7 @@ export const NotificationPlugin: Plugin = async ({
 				const q = questions[0];
 				const questionText = q?.question || "Question pending";
 				await notify({
-					title: "❓ Question",
+					title: "❓",
 					message: questionText,
 					urgency: "critical",
 					icon: "dialog-information",
@@ -116,7 +116,7 @@ export const NotificationPlugin: Plugin = async ({
 				const req = event.properties;
 				const title = req.title || "Permission Required";
 				await notify({
-					title: "🔐 Permission",
+					title: "🔐",
 					message: title,
 					urgency: "critical",
 					icon: "dialog-question",
@@ -144,7 +144,7 @@ export const NotificationPlugin: Plugin = async ({
 				}
 
 				await notify({
-					title: "❌ Error",
+					title: "❌",
 					message,
 					urgency: "critical",
 					icon: "dialog-error",
@@ -184,7 +184,7 @@ export const NotificationPlugin: Plugin = async ({
 			} catch {}
 
 			await notify({
-				title: "✅ Completed",
+				title: "✅",
 				message: title,
 				urgency: "normal",
 				icon: "starred",
