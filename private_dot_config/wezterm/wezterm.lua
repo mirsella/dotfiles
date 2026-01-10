@@ -55,13 +55,13 @@ config.keys = {
 		action = wezterm.action.DisableDefaultAssignment,
 	},
 
-	{
-		key = "n",
-		mods = "SUPER",
-		action = wezterm.action_callback(function(win, pane)
-			local tab, window = pane:move_to_new_window()
-		end),
-	},
+	-- {
+	-- 	key = "n",
+	-- 	mods = "SUPER",
+	-- 	action = wezterm.action_callback(function(win, pane)
+	-- 		local tab, window = pane:move_to_new_window()
+	-- 	end),
+	-- },
 }
 
 -- auto set theme variant
