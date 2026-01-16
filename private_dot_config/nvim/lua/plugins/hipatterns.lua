@@ -90,12 +90,8 @@ return {
 				return n and tonumber(n) or nil
 			end
 
-			local function parse_ctor_args(match, ctor_pat)
-				local inside = match:match(ctor_pat .. "%s*%((.*)%)")
-				if not inside then
-					return nil
-				end
-				local parts = vim.split(inside, ",", { plain = true, trimempty = true })
+			local function split_args(args_str)
+				local parts = vim.split(args_str, ",", { plain = true, trimempty = true })
 				for i, v in ipairs(parts) do
 					parts[i] = vim.trim(v)
 				end
@@ -104,13 +100,13 @@ return {
 
 			local function mk_color_u8_highlighter(key, ctor_pat, argc)
 				opts.highlighters[key] = {
-					pattern = ctor_pat .. "%s*%b()",
+					pattern = ctor_pat .. "%s*%(%s*().-()%s*%)",
 					group = function(buf_id, match)
 						if not is_rust(buf_id) then
 							return nil
 						end
 
-						local args = parse_ctor_args(match, ctor_pat)
+						local args = split_args(match)
 						if not args or #args < argc then
 							return nil
 						end
@@ -143,13 +139,13 @@ return {
 
 			local function mk_color_float_highlighter(key, ctor_pat, argc)
 				opts.highlighters[key] = {
-					pattern = ctor_pat .. "%s*%b()",
+					pattern = ctor_pat .. "%s*%(%s*().-()%s*%)",
 					group = function(buf_id, match)
 						if not is_rust(buf_id) then
 							return nil
 						end
 
-						local args = parse_ctor_args(match, ctor_pat)
+						local args = split_args(match)
 						if not args or #args < argc then
 							return nil
 						end
@@ -194,18 +190,14 @@ return {
 
 			-- Color::hex("RRGGBB") / "#RRGGBB" / "RRGGBBAA"
 			opts.highlighters.bevy_color_hex = {
-				pattern = 'Color::hex%s*%(%s*".-"%s*%)',
+				pattern = 'Color::hex%s*%(%s*"().-()"%s*%)',
 				group = function(buf_id, match)
 					if not is_rust(buf_id) then
 						return nil
 					end
 
-					local s = match:match('Color::hex%s*%(%s*"(.-)"%s*%)')
-					if not s then
-						return nil
-					end
-
-					local h = s:gsub("^#", ""):upper()
+					-- match is now the inside string e.g. "#RRGGBB"
+					local h = match:gsub("^#", ""):upper()
 					if (#h ~= 6 and #h ~= 8) or not h:match("^%x+$") then
 						return nil
 					end
@@ -241,13 +233,14 @@ return {
 			}
 
 			opts.highlighters.bevy_color_named = {
-				pattern = "Color::%u[%u%d_]*",
-				group = function(buf_id, match)
+				pattern = "Color::%s*()%u[%u%d_]*()",
+				group = function(buf_id, match, data)
 					if not is_rust(buf_id) then
 						return nil
 					end
 
-					local name = match:match("Color::(%u[%u%d_]*)")
+					-- match is now just the name, e.g. "WHITE"
+					local name = match
 					local hex = name and named[name] or nil
 					if not hex then
 						return nil
@@ -688,37 +681,6 @@ return {
 			mk_palette_highlighter("bevy_palette_tailwind", "tailwind")
 			mk_palette_highlighter("bevy_palette_css", "css")
 
-			-- Optional: highlight full call Color::Srgba(tailwind::FOO) as well
-			opts.highlighters.bevy_color_Srgba_palette = {
-				pattern = "Color::Srgba%s*%b()",
-				group = function(buf_id, match)
-					if not is_rust(buf_id) then
-						return nil
-					end
-
-					local inner = match:match("Color::Srgba%s*%(%s*(.-)%s*%)")
-					if not inner then
-						return nil
-					end
-
-					local mod, name = inner:match("^(%a+)::([%u%d_]+)$")
-					if mod ~= "tailwind" and mod ~= "css" then
-						return nil
-					end
-
-					local entry = palette_lookup(mod, name)
-					if not entry then
-						return nil
-					end
-
-					local hex = entry.hex
-					if entry.a and entry.a < 1 then
-						hex = blend_hex_over_bg(hex, get_normal_bg_hex(), entry.a)
-					end
-
-					return group_from_hex(hex)
-				end,
-			}
 
 		end,
 	},
