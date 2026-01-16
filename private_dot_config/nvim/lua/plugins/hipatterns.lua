@@ -11,19 +11,6 @@ return {
 				return vim.bo[buf_id].filetype == "rust"
 			end
 
-			local function dbg_enabled()
-				return vim.g.bevy_hipatterns_debug == true or vim.g.bevy_hipatterns_debug == 1
-			end
-
-			local function dbg(msg, level)
-				if not dbg_enabled() then
-					return
-				end
-				vim.schedule(function()
-					vim.notify(("[bevy-hipatterns] %s"):format(msg), level or vim.log.levels.INFO)
-				end)
-			end
-
 			local function clamp(x, lo, hi)
 				if x < lo then
 					return lo
@@ -194,7 +181,7 @@ return {
 				}
 			end
 
-			-- Bevy Color constructors (u8 + float)
+			-- Bevy Color constructors
 			mk_color_u8_highlighter("bevy_color_srgb_u8", "Color::srgb_u8", 3)
 			mk_color_u8_highlighter("bevy_color_rgb_u8", "Color::rgb_u8", 3)
 			mk_color_u8_highlighter("bevy_color_srgba_u8", "Color::srgba_u8", 4)
@@ -205,250 +192,97 @@ return {
 			mk_color_float_highlighter("bevy_color_srgba", "Color::srgba", 4)
 			mk_color_float_highlighter("bevy_color_rgba", "Color::rgba", 4)
 
-			-- Palettes: tailwind::NEUTRAL_500, css::ALICE_BLUE, etc.
-			local palettes_loaded = false
-			local palettes = { tailwind = {}, css = {} }
-			local miss_logged = {}
-
-			local function cargo_home()
-				local ch = vim.env.CARGO_HOME
-				if ch and ch ~= "" then
-					return ch
-				end
-
-				local xdg_data = vim.env.XDG_DATA_HOME
-				if xdg_data and xdg_data ~= "" then
-					return xdg_data .. "/cargo"
-				end
-
-				local home = uv.os_homedir() or vim.fn.expand("~")
-				return home .. "/.cargo"
-			end
-
-			local function glob_list(pattern)
-				local res = vim.fn.glob(pattern, true, true)
-				if type(res) == "string" then
-					if res == "" then
-						return {}
+			-- Color::hex("RRGGBB") / "#RRGGBB" / "RRGGBBAA"
+			opts.highlighters.bevy_color_hex = {
+				pattern = 'Color::hex%s*%(%s*".-"%s*%)',
+				group = function(buf_id, match)
+					if not is_rust(buf_id) then
+						return nil
 					end
-					return { res }
-				end
-				return res or {}
-			end
 
-			local function dedup(list)
-				local out = {}
-				local seen = {}
-				for _, p in ipairs(list) do
-					if not seen[p] then
-						seen[p] = true
-						out[#out + 1] = p
+					local s = match:match('Color::hex%s*%(%s*"(.-)"%s*%)')
+					if not s then
+						return nil
 					end
-				end
-				return out
-			end
 
-			local function newest_by_mtime(paths)
-				local best_path = nil
-				local best_mtime = -1
-
-				for _, p in ipairs(paths) do
-					local st = uv.fs_stat(p)
-					local m = st and st.mtime and st.mtime.sec or -1
-					if m > best_mtime then
-						best_mtime = m
-						best_path = p
+					local h = s:gsub("^#", ""):upper()
+					if (#h ~= 6 and #h ~= 8) or not h:match("^%x+$") then
+						return nil
 					end
-				end
 
-				return best_path
-			end
-
-			local function find_palette_files(filename)
-				local ch = cargo_home()
-				local patterns = {
-					ch .. "/registry/src/*/bevy_color-*/src/palettes/" .. filename,
-					ch .. "/git/checkouts/*bevy*/*/crates/bevy_color/src/palettes/" .. filename,
-				}
-
-				local matches = {}
-				for _, pat in ipairs(patterns) do
-					for _, p in ipairs(glob_list(pat)) do
-						matches[#matches + 1] = p
-					end
-				end
-
-				matches = dedup(matches)
-				table.sort(matches, function(a, b)
-					local sa = uv.fs_stat(a)
-					local sb = uv.fs_stat(b)
-					local ma = sa and sa.mtime and sa.mtime.sec or 0
-					local mb = sb and sb.mtime and sb.mtime.sec or 0
-					return ma > mb
-				end)
-
-				return matches
-			end
-
-			local function read_file(path)
-				local ok, lines = pcall(vim.fn.readfile, path)
-				if not ok or not lines then
-					return nil
-				end
-				return table.concat(lines, "\n")
-			end
-
-			local function extract_hex_literal(expr)
-				local h8 = expr:match('"#?(%x%x%x%x%x%x%x%x)"')
-				if h8 then
-					return h8:upper()
-				end
-				local h6 = expr:match('"#?(%x%x%x%x%x%x)"')
-				if h6 then
-					return h6:upper()
-				end
-
-				local rh8 = expr:match('r#*"#?(%x%x%x%x%x%x%x%x)"#*')
-				if rh8 then
-					return rh8:upper()
-				end
-				local rh6 = expr:match('r#*"#?(%x%x%x%x%x%x)"#*')
-				if rh6 then
-					return rh6:upper()
-				end
-
-				return nil
-			end
-
-			local function split_args(arg_str)
-				local parts = vim.split(arg_str, ",", { plain = true, trimempty = true })
-				for i, v in ipairs(parts) do
-					parts[i] = vim.trim(v)
-				end
-				return parts
-			end
-
-			local function parse_palette_expr(expr)
-				-- Prefer hex anywhere in RHS.
-				local hex = extract_hex_literal(expr)
-				if hex then
-					local out = { hex = "#" .. hex:sub(1, 6), a = 1 }
-					if #hex == 8 then
-						local a_u8 = tonumber(hex:sub(7, 8), 16)
-						out.a = a_u8 and clamp(a_u8 / 255, 0, 1) or 1
-					end
-					return out
-				end
-
-				-- Fallback: numeric ctors like Srgba::new(...), Srgba::rgb_u8(...), etc.
-				local ctor, args = expr:match("::([%w_]+)%s*(%b())")
-				if not ctor or not args then
-					return nil
-				end
-
-				local parts = split_args(args:sub(2, -2))
-				local r_u8, g_u8, b_u8
-				local a = 1
-
-				if (ctor == "rgb_u8" or ctor == "srgb_u8") and #parts >= 3 then
-					r_u8 = parse_u8_prefix(parts[1])
-					g_u8 = parse_u8_prefix(parts[2])
-					b_u8 = parse_u8_prefix(parts[3])
-				elseif (ctor == "rgba_u8" or ctor == "srgba_u8") and #parts >= 4 then
-					r_u8 = parse_u8_prefix(parts[1])
-					g_u8 = parse_u8_prefix(parts[2])
-					b_u8 = parse_u8_prefix(parts[3])
-					local a_u8 = parse_u8_prefix(parts[4])
-					a = a_u8 and clamp(a_u8 / 255, 0, 1) or 1
-				elseif (ctor == "rgb" or ctor == "srgb") and #parts >= 3 then
-					local r = parse_num_prefix(parts[1])
-					local g = parse_num_prefix(parts[2])
-					local b = parse_num_prefix(parts[3])
-					if r and g and b then
-						r_u8 = srgb_float_to_u8(r)
-						g_u8 = srgb_float_to_u8(g)
-						b_u8 = srgb_float_to_u8(b)
-					end
-				elseif
-					(ctor == "rgba" or ctor == "srgba" or ctor == "new" or ctor == "new_unchecked")
-					and #parts >= 4
-				then
-					local r = parse_num_prefix(parts[1])
-					local g = parse_num_prefix(parts[2])
-					local b = parse_num_prefix(parts[3])
-					local aa = parse_num_prefix(parts[4])
-					if r and g and b and aa then
-						r_u8 = srgb_float_to_u8(r)
-						g_u8 = srgb_float_to_u8(g)
-						b_u8 = srgb_float_to_u8(b)
-						a = clamp(aa, 0, 1)
-					end
-				end
-
-				if r_u8 and g_u8 and b_u8 then
-					return { hex = rgb_u8_to_hex(r_u8, g_u8, b_u8), a = a }
-				end
-
-				return nil
-			end
-
-			local function add_palette_from_content(dst, content)
-				local added = 0
-
-				-- [%s%S] to match across newlines. Stops at first semicolon.
-				for name, expr in content:gmatch("pub%s+const%s+([%u%d_]+)%s*:%s*[%w_:<>]+%s*=%s*([%s%S]-)%s*;") do
-					local entry = parse_palette_expr(expr)
-					if entry then
-						dst[name] = entry
-						added = added + 1
-					end
-				end
-
-				return added
-			end
-
-			local function load_palettes_once()
-				if palettes_loaded then
-					return
-				end
-				palettes_loaded = true
-
-				local ch = cargo_home()
-				dbg(("cargo_home=%s"):format(ch))
-
-				local function load_mod(mod, filename)
-					local files = find_palette_files(filename)
-					dbg(("%s: found %d candidate file(s) for %s"):format(mod, #files, filename))
-
-					local total_added = 0
-					for _, path in ipairs(files) do
-						local content = read_file(path)
-						if content then
-							local added = add_palette_from_content(palettes[mod], content)
-							total_added = total_added + added
-							dbg(("%s: parsed %d const(s) from %s"):format(mod, added, path))
-						else
-							dbg(("%s: failed to read %s"):format(mod, path), vim.log.levels.WARN)
+					local hex = "#" .. h:sub(1, 6)
+					if #h == 8 then
+						local a_u8 = tonumber(h:sub(7, 8), 16)
+						if not a_u8 then
+							return nil
+						end
+						local a = clamp(a_u8 / 255, 0, 1)
+						if a < 1 then
+							hex = blend_hex_over_bg(hex, get_normal_bg_hex(), a)
 						end
 					end
 
-					dbg(("%s: total parsed const(s)=%d"):format(mod, total_added))
-				end
+					return group_from_hex(hex)
+				end,
+			}
 
-				load_mod("tailwind", "tailwind.rs")
-				load_mod("css", "css.rs")
+			-- Re-enable Color::WHITE, Color::BLACK, etc.
+			local named = {
+				WHITE = "#FFFFFF",
+				BLACK = "#000000",
+				RED = "#FF0000",
+				GREEN = "#00FF00",
+				BLUE = "#0000FF",
+				YELLOW = "#FFFF00",
+				CYAN = "#00FFFF",
+				MAGENTA = "#FF00FF",
+				GRAY = "#808080",
+				GREY = "#808080",
+			}
 
-				local n500 = palettes.tailwind.NEUTRAL_500
-				if n500 then
-					dbg(("tailwind::NEUTRAL_500=%s a=%s"):format(n500.hex, tostring(n500.a)))
-				else
-					dbg("tailwind::NEUTRAL_500 not found in parsed palettes", vim.log.levels.WARN)
+			opts.highlighters.bevy_color_named = {
+				pattern = "Color::%u[%u%d_]*",
+				group = function(buf_id, match)
+					if not is_rust(buf_id) then
+						return nil
+					end
+
+					local name = match:match("Color::(%u[%u%d_]*)")
+					local hex = name and named[name] or nil
+					if not hex then
+						return nil
+					end
+
+					return group_from_hex(hex)
+				end,
+			}
+
+			-- Load hardcoded palettes (no FS searching at runtime).
+			local palettes = nil
+			do
+				local ok, mod = pcall(require, "bevy_palettes")
+				if ok and type(mod) == "table" then
+					palettes = mod
 				end
 			end
 
-			local function palette_entry(mod, name)
-				load_palettes_once()
-				return palettes[mod] and palettes[mod][name] or nil
+			local function palette_lookup(mod, name)
+				if not palettes then
+					return nil
+				end
+				local t = palettes[mod]
+				if type(t) ~= "table" then
+					return nil
+				end
+
+				local v = t[name]
+				if type(v) == "string" then
+					return { hex = v, a = 1 }
+				end
+				if type(v) == "table" and type(v.hex) == "string" then
+					return { hex = v.hex, a = v.a or 1 }
+				end
+				return nil
 			end
 
 			local function mk_palette_highlighter(key, mod)
@@ -464,12 +298,8 @@ return {
 							return nil
 						end
 
-						local entry = palette_entry(mod, name)
+						local entry = palette_lookup(mod, name)
 						if not entry then
-							if dbg_enabled() and not miss_logged[match] then
-								miss_logged[match] = true
-								dbg(("MISS %s (no palette entry)"):format(match), vim.log.levels.WARN)
-							end
 							return nil
 						end
 
@@ -486,7 +316,7 @@ return {
 			mk_palette_highlighter("bevy_palette_tailwind", "tailwind")
 			mk_palette_highlighter("bevy_palette_css", "css")
 
-			-- Optional: highlight full call Color::Srgba(tailwind::FOO)
+			-- Optional: highlight full call Color::Srgba(tailwind::FOO) as well
 			opts.highlighters.bevy_color_Srgba_palette = {
 				pattern = "Color::Srgba%s*%b()",
 				group = function(buf_id, match)
@@ -504,7 +334,7 @@ return {
 						return nil
 					end
 
-					local entry = palette_entry(mod, name)
+					local entry = palette_lookup(mod, name)
 					if not entry then
 						return nil
 					end
@@ -518,31 +348,182 @@ return {
 				end,
 			}
 
-			-- Debug command (safe to define once)
-			if not vim.g._bevy_hipatterns_debug_cmd then
-				vim.g._bevy_hipatterns_debug_cmd = true
+			-- One-time generator: create lua/bevy_palettes.lua from local bevy_color sources.
+			if not vim.g._bevy_palettes_generate_cmd then
+				vim.g._bevy_palettes_generate_cmd = true
 
-				vim.api.nvim_create_user_command("BevyHipatternsDebug", function()
-					load_palettes_once()
-					local n_tailwind = 0
-					for _ in pairs(palettes.tailwind) do
-						n_tailwind = n_tailwind + 1
-					end
-					local n_css = 0
-					for _ in pairs(palettes.css) do
-						n_css = n_css + 1
+				local function parse_float(s)
+					local n = s:match("[%+%-]?%d*%.?%d+")
+					return n and tonumber(n) or nil
+				end
+
+				local function round_u8_from_float01(x)
+					return clamp_u8(math.floor(clamp(x, 0, 1) * 255 + 0.5))
+				end
+
+				local function extract_srgba_consts(content)
+					local out = {}
+
+					-- Srgba::rgb(r,g,b)
+					for name, r, g, b in
+						content:gmatch(
+							"pub%s+const%s+([%u%d_]+)%s*:%s*Srgba%s*=%s*Srgba::rgb%s*%(%s*([^,]+)%s*,%s*([^,]+)%s*,%s*([^)]+)%s*%)%s*;"
+						)
+					do
+						local rr = parse_float(r)
+						local gg = parse_float(g)
+						local bb = parse_float(b)
+						if rr and gg and bb then
+							out[name] = rgb_u8_to_hex(
+								round_u8_from_float01(rr),
+								round_u8_from_float01(gg),
+								round_u8_from_float01(bb)
+							)
+						end
 					end
 
-					local n500 = palettes.tailwind.NEUTRAL_500
-					local msg = {
-						("cargo_home=%s"):format(cargo_home()),
-						("tailwind entries=%d"):format(n_tailwind),
-						("css entries=%d"):format(n_css),
-						("tailwind::NEUTRAL_500=%s"):format(n500 and (n500.hex .. " a=" .. tostring(n500.a)) or "nil"),
-						("tailwind.rs candidates=%d"):format(#find_palette_files("tailwind.rs")),
-					}
-					vim.notify(table.concat(msg, "\n"), vim.log.levels.INFO)
-				end, {})
+					-- Srgba::new(r,g,b,a) (ignore alpha if 1; keep if not)
+					for name, r, g, b, a in
+						content:gmatch(
+							"pub%s+const%s+([%u%d_]+)%s*:%s*Srgba%s*=%s*Srgba::new%s*%(%s*([^,]+)%s*,%s*([^,]+)%s*,%s*([^,]+)%s*,%s*([^)]+)%s*%)%s*;"
+						)
+					do
+						local rr = parse_float(r)
+						local gg = parse_float(g)
+						local bb = parse_float(b)
+						local aa = parse_float(a)
+						if rr and gg and bb and aa then
+							local hex = rgb_u8_to_hex(
+								round_u8_from_float01(rr),
+								round_u8_from_float01(gg),
+								round_u8_from_float01(bb)
+							)
+							if aa < 1 then
+								out[name] = { hex = hex, a = clamp(aa, 0, 1) }
+							else
+								out[name] = hex
+							end
+						end
+					end
+
+					return out
+				end
+
+				local function table_keys_sorted(t)
+					local ks = {}
+					for k in pairs(t) do
+						ks[#ks + 1] = k
+					end
+					table.sort(ks)
+					return ks
+				end
+
+				local function lua_quote(s)
+					return string.format("%q", s)
+				end
+
+				vim.api.nvim_create_user_command("BevyPalettesGenerate", function(cmd)
+					local args = {}
+					for token in (cmd.args or ""):gmatch("%S+") do
+						local k, v = token:match("^(%w+)%=(.+)$")
+						if k and v then
+							args[k] = vim.fn.expand(v)
+						end
+					end
+
+					local tailwind_path = args.tailwind
+					local css_path = args.css
+
+					if not tailwind_path or tailwind_path == "" then
+						vim.notify("BevyPalettesGenerate: missing tailwind=PATH", vim.log.levels.ERROR)
+						return
+					end
+
+					if not css_path or css_path == "" then
+						vim.notify("BevyPalettesGenerate: missing css=PATH", vim.log.levels.ERROR)
+						return
+					end
+
+					local out_path = args.out or (vim.fn.stdpath("config") .. "/lua/bevy_palettes.lua")
+
+					local function read(path)
+						local ok, lines = pcall(vim.fn.readfile, path)
+						if not ok or not lines then
+							return nil
+						end
+						return table.concat(lines, "\n")
+					end
+
+					local tw = read(tailwind_path)
+					if not tw then
+						vim.notify("BevyPalettesGenerate: failed to read " .. tailwind_path, vim.log.levels.ERROR)
+						return
+					end
+
+					local css = read(css_path)
+					if not css then
+						vim.notify("BevyPalettesGenerate: failed to read " .. css_path, vim.log.levels.ERROR)
+						return
+					end
+
+					local tailwind_tbl = extract_srgba_consts(tw)
+					local css_tbl = extract_srgba_consts(css)
+
+					local function count_entries(t)
+						local n = 0
+						for _ in pairs(t) do
+							n = n + 1
+						end
+						return n
+					end
+
+					local dir = vim.fn.fnamemodify(out_path, ":h")
+					vim.fn.mkdir(dir, "p")
+
+					local lines = {}
+					lines[#lines + 1] = "-- Auto-generated by :BevyPalettesGenerate"
+					lines[#lines + 1] = "return {"
+					lines[#lines + 1] = "  tailwind = {"
+					for _, k in ipairs(table_keys_sorted(tailwind_tbl)) do
+						local v = tailwind_tbl[k]
+						if type(v) == "string" then
+							lines[#lines + 1] = string.format("    %s = %s,", k, lua_quote(v))
+						else
+							lines[#lines + 1] =
+								string.format("    %s = { hex = %s, a = %s },", k, lua_quote(v.hex), tostring(v.a))
+						end
+					end
+					lines[#lines + 1] = "  },"
+					lines[#lines + 1] = "  css = {"
+					for _, k in ipairs(table_keys_sorted(css_tbl)) do
+						local v = css_tbl[k]
+						if type(v) == "string" then
+							lines[#lines + 1] = string.format("    %s = %s,", k, lua_quote(v))
+						else
+							lines[#lines + 1] =
+								string.format("    %s = { hex = %s, a = %s },", k, lua_quote(v.hex), tostring(v.a))
+						end
+					end
+					lines[#lines + 1] = "  },"
+					lines[#lines + 1] = "}"
+
+					local ok = pcall(vim.fn.writefile, lines, out_path)
+					if not ok then
+						vim.notify("BevyPalettesGenerate: failed to write " .. out_path, vim.log.levels.ERROR)
+						return
+					end
+
+					vim.notify(
+						("Wrote %s (tailwind=%d, css=%d). Restart Neovim."):format(
+							out_path,
+							count_entries(tailwind_tbl),
+							count_entries(css_tbl)
+						),
+						vim.log.levels.INFO
+					)
+				end, {
+					nargs = "*",
+				})
 			end
 		end,
 	},
