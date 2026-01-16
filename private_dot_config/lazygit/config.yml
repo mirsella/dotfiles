@@ -13,9 +13,9 @@ git:
   # allBranchesLogCmds:
   #   - git log --graph --all --color=always --abbrev-commit --decorate --date=relative  --pretty=medium
 os:
-  edit: 'if ($env.NVIM? | is-empty) { nvim -- {{filename}} } else { nvim --server $env.NVIM --remote-send "q"; nvim --server $env.NVIM --remote-tab {{filename}} }'
-  editAtLine: 'if ($env.NVIM? | is-empty) { nvim +{{line}} -- {{filename}} } else { nvim --server $env.NVIM --remote-send "q"; nvim --server $env.NVIM --remote-tab {{filename}}; nvim --server $env.NVIM --remote-send ":{{line}}<CR>" }'
-  openDirInEditor: 'if ($env.NVIM? | is-empty) { nvim -- {{dir}} } else { nvim --server $env.NVIM --remote-send "q"; nvim --server $env.NVIM --remote-tab {{dir}} }'
+  # edit: 'if ($env.NVIM? | is-empty) { nvim -- {{filename}} } else { nvim --server $env.NVIM --remote-send "q"; nvim --server $env.NVIM --remote-tab {{filename}} }'
+  # editAtLine: 'if ($env.NVIM? | is-empty) { nvim +{{line}} -- {{filename}} } else { nvim --server $env.NVIM --remote-send "q"; nvim --server $env.NVIM --remote-tab {{filename}}; nvim --server $env.NVIM --remote-send ":{{line}}<CR>" }'
+  # openDirInEditor: 'if ($env.NVIM? | is-empty) { nvim -- {{dir}} } else { nvim --server $env.NVIM --remote-send "q"; nvim --server $env.NVIM --remote-tab {{dir}} }'
   open: "xdg-open {{filename}}"
   openLink: "xdg-open {{link}}"
 gui:
