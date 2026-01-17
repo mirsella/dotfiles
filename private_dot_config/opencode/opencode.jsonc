@@ -77,12 +77,14 @@
 						"output": ["text"]
 					},
 					"variants": {
+						// "minimal": { "thinkingLevel": "minimal" },
 						"low": { "thinkingLevel": "low" },
+						// "medium": { "thinkingLevel": "medium" },
 						"high": { "thinkingLevel": "high" }
 					}
 				},
 				"antigravity-claude-sonnet-4-5": {
-					"name": "Claude Sonnet 4.5 (no thinking) (Antigravity)",
+					"name": "Claude Sonnet 4.5 (Antigravity)",
 					"limit": { "context": 200000, "output": 64000 },
 					"modalities": {
 						"input": ["text", "image", "pdf"],
