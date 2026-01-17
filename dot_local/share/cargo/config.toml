@@ -24,8 +24,8 @@ codegen-backend = "llvm"
 linker = "clang"
 rustflags = [
   # "-Clink-arg=-fuse-ld=lld",
-  # "-Clink-arg=-fuse-ld=mold",
-  "-Clink-arg=--ld-path=wild", # not compatible with dioxus hot reload
+  "-Clink-arg=-fuse-ld=mold",
+  # "-Clink-arg=--ld-path=wild", # not compatible with dioxus hot reload
   # Nightly
   "-Zshare-generics=y",
   "-Zthreads=8",
