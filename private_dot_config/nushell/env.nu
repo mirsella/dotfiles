@@ -5,16 +5,6 @@ $env.XDG_CACHE_HOME = $"($env.HOME)/.cache"
 $env.XDG_DATA_HOME = $"($env.HOME)/.local/share"
 $env.XDG_STATE_HOME = $"($env.HOME)/.local/state"
 
-$env.PATH ++= [
-  $"($env.HOME)/.local/bin"
-  $"($env.HOME)/.local/share/gem/bin"
-  $"($env.HOME)/.local/share/npm/bin"
-  $"($env.HOME)/.local/share/cargo/bin"
-  $"($env.HOME)/.local/share/go/bin"
-  $"($env.HOME)/.cache/.bun/bin"
-  $env.PNPM_HOME
-]
-
 $env.EDITOR = "nvim"
 if ((which zen-browser | length) > 0) {
     $env.BROWSER = "zen-browser"
@@ -98,3 +88,14 @@ $env.PNPM_HOME = "/home/mirsella/.local/share/pnpm"
 $env.WASMER_DIR = $"($env.XDG_CONFIG_HOME)/wasmer"
 $env.WASMER_CACHE_DIR = $"($env.XDG_CACHE_HOME)/wasmer"
 $env.WAKATIME_HOME = $"($env.XDG_CONFIG_HOME)/wakatime"
+
+
+$env.PATH ++= [
+  $"($env.HOME)/.local/bin"
+  $"($env.HOME)/.local/share/gem/bin"
+  $"($env.HOME)/.local/share/npm/bin"
+  $"($env.HOME)/.local/share/cargo/bin"
+  $"($env.HOME)/.local/share/go/bin"
+  $"($env.HOME)/.cache/.bun/bin"
+  $env.PNPM_HOME
+]
