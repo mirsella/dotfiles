@@ -13,7 +13,6 @@ $env.PATH ++= [
   $"($env.HOME)/.local/share/go/bin"
   $"($env.HOME)/.cache/.bun/bin"
   $env.PNPM_HOME
-  "/opt/osxcross/target/bin"
 ]
 
 $env.EDITOR = "nvim"
