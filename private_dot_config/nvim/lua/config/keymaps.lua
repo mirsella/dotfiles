@@ -18,3 +18,9 @@ vim.keymap.set(
 	{ silent = true, desc = "Show code actions", noremap = true }
 )
 vim.keymap.set("n", "'", "`", { desc = "Go to mark" })
+
+vim.keymap.set("n", "<leader>fp", function()
+	local path = vim.fn.expand("%:p")
+	vim.fn.setreg("+", path)
+	vim.notify("Copied: " .. path)
+end, { desc = "Copy current buffer full path to clipboard" })
