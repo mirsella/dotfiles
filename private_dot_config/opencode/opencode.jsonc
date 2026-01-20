@@ -7,6 +7,9 @@
 		"opencode-supermemory@0.1.6",
 		"@franlol/opencode-md-table-formatter@0.0.3"
 	],
+	"experimental": {
+		"batch_tool": true
+	},
 	"disabled_providers": ["openrouter"],
 	"formatter": {
 		"rustfmt": {
