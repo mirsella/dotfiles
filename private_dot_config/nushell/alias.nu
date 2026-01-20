@@ -82,3 +82,4 @@ alias f = fzf --multi
 alias oc = opencode
 alias occ = opencode --continue
 alias autocommit = opencode run --command "commitdiff"
+alias dm = darkman
