@@ -21,6 +21,12 @@
 		"model_cycle_favorite": "f4",
 		"model_cycle_favorite_reverse": "shift+f4"
 	},
+	"agent": {
+		"explore": {
+			"model": "google/gemini-3-flash-preview",
+			"reasoningEffort": "high"
+		}
+	},
 	"mcp": {
 		"context7": {
 			"type": "remote",
