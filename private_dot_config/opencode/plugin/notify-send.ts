@@ -65,7 +65,7 @@ export const NotificationPlugin: Plugin = async ({
 			category = "opencode",
 			expireTime = 6000,
 		} = opts;
-		await $`notify-send "OC ${title}" "${message}" --urgency=${urgency} --icon=${icon} --category=opencode.${category} --app-name=OpenCode --expire-time=${expireTime.toString()}`.nothrow();
+		await $`notify-send "OC ${title}" "${message}" --urgency=${urgency} --icon=${icon} --category=opencode.${category} --app-name=OpenCode --expire-time ${expireTime}`.nothrow();
 	};
 
 	const notify = async (opts: NotifyOptions): Promise<void> => {
