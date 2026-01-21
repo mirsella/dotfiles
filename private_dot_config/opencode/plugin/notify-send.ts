@@ -56,7 +56,9 @@ export const NotificationPlugin: Plugin = async ({
 		}
 	};
 
-	const sendDesktopNotification = async (opts: NotifyOptions): Promise<void> => {
+	const sendDesktopNotification = async (
+		opts: NotifyOptions,
+	): Promise<void> => {
 		const {
 			title,
 			message,
@@ -65,7 +67,18 @@ export const NotificationPlugin: Plugin = async ({
 			category = "opencode",
 			expireTime = 6000,
 		} = opts;
-		await $`notify-send "OC ${title}" "${message}" --urgency=${urgency} --icon=${icon} --category=opencode.${category} --app-name=OpenCode --expire-time ${expireTime}`.nothrow();
+		const args = [
+			"notify-send",
+			`OC ${title}`,
+			message,
+			`--urgency=${urgency}`,
+			`--icon=${icon}`,
+			`--category=opencode.${category}`,
+			"--app-name=OpenCode",
+			"--expire-time",
+			expireTime.toString(),
+		];
+		await $`${args}`.nothrow();
 	};
 
 	const notify = async (opts: NotifyOptions): Promise<void> => {
