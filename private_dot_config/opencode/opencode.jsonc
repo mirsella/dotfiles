@@ -1,8 +1,8 @@
 {
 	"$schema": "https://opencode.ai/config.json",
 	"plugin": [
-		"opencode-antigravity-auth@1.3.2-beta.0",
-		// "@tarquinen/opencode-dcp@1.2.4",
+		"opencode-antigravity-auth@1.3.2-beta.1",
+		"@tarquinen/opencode-dcp@1.2.7",
 		"@tarquinen/opencode-smart-title@0.1.7",
 		"opencode-supermemory@0.1.6",
 		"@franlol/opencode-md-table-formatter@0.0.3"
