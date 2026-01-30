@@ -2,6 +2,6 @@
 	"$schema": "https://raw.githubusercontent.com/NoeFabris/opencode-antigravity-auth/refs/heads/main/assets/antigravity.schema.json",
 	"auto_update": false,
 	"debug": false,
-	"quota_fallback": true,
+	"quota_fallback": false,
 	"auto_resume": true
 }
