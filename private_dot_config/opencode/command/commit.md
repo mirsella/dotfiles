@@ -2,7 +2,7 @@
 description: Git commit
 agent: general
 subtask: false
-model: opencode/grok-code
+model: google/gemini-2.5-flash
 ---
 
 Check the current git diff to understand current non committed changes
