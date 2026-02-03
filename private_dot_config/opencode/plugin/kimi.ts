@@ -36,7 +36,7 @@ export default async (context) => {
         const providerID = `kimi-coding-${(suffix || "default").toLowerCase()}`;
 
         cfg.provider[providerID] = {
-          name: `Kimi (${label})`,
+          name: `Kimi For Coding (${label})`,
           api: "https://api.kimi.com/coding/v1",
           npm: "@ai-sdk/anthropic",
           options: {
