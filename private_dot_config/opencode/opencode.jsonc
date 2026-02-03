@@ -63,15 +63,15 @@
 		"github-copilot": {
 			"models": {
 				"gpt-5.2-codex": {
-					"name": "GitHub Copilot GPT-5.2 Codex",
+					"name": "GPT-5.2 Codex",
 					"limit": { "context": 400000, "output": 128000, "input": 272000 }
 				},
 				"gpt-5.2": {
-					"name": "GitHub Copilot GPT-5.2",
+					"name": "GPT-5.2",
 					"limit": { "context": 400000, "output": 128000, "input": 272000 }
 				},
 				"claude-opus-4.5": {
-					"name": "Claude Opus 4.5 (GitHub Copilot)",
+					"name": "Claude Opus 4.5",
 					"limit": { "context": 160000, "input": 128000, "output": 16000 }
 				}
 			}
