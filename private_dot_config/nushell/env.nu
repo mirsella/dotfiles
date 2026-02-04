@@ -89,7 +89,6 @@ $env.WASMER_DIR = $"($env.XDG_CONFIG_HOME)/wasmer"
 $env.WASMER_CACHE_DIR = $"($env.XDG_CACHE_HOME)/wasmer"
 $env.WAKATIME_HOME = $"($env.XDG_CONFIG_HOME)/wakatime"
 
-
 $env.PATH ++= [
   $"($env.HOME)/.local/bin"
   $"($env.HOME)/.local/share/gem/bin"
@@ -99,3 +98,7 @@ $env.PATH ++= [
   $"($env.HOME)/.cache/.bun/bin"
   $env.PNPM_HOME
 ]
+
+$env.OPENCODE_EXPERIMENTAL = 1
+$env.OPENCODE_EXPERIMENTAL_PLAN_MODE = 1
+$env.OPENCODE_EXPERIMENTAL_MARKDOWN = 1
