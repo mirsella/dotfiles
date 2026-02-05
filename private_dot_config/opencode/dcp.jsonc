@@ -1,0 +1,9 @@
+{
+	"pruneNotification": "off",
+	"strategies": {
+		// Prune write tool inputs when the file has been subsequently read
+		"supersedeWrites": {
+			"enabled": true
+		}
+	}
+}
