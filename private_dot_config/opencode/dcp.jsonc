@@ -1,9 +1,5 @@
 {
-	"pruneNotification": "off",
-	"strategies": {
-		// Prune write tool inputs when the file has been subsequently read
-		"supersedeWrites": {
-			"enabled": true
-		}
-	}
+	"$schema": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/master/dcp.schema.json",
+	// "pruneNotification": "off",
+	"pruneNotificationType": "toast"
 }
