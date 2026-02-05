@@ -24,21 +24,3 @@ vim.keymap.set("n", "<leader>fp", function()
 	vim.fn.setreg("+", path)
 	vim.notify("Copied: " .. path)
 end, { desc = "Copy current buffer full path to clipboard" })
-
-vim.keymap.set("n", "<LeftMouse>", function()
-	local mouse = vim.fn.getmousepos()
-
-	-- Return early if click is not in a valid window (e.g., command line)
-	if mouse.winid <= 0 then
-		return "<LeftMouse>"
-	end
-
-	-- If clicking into a different window, focus it and suppress the click action
-	if mouse.winid ~= vim.api.nvim_get_current_win() then
-		vim.api.nvim_set_current_win(mouse.winid)
-		return ""
-	end
-
-	-- If already in the window, allow default behavior (moving cursor/toggling folds)
-	return "<LeftMouse>"
-end, { expr = true, desc = "Focus window without moving cursor on initial click" })
