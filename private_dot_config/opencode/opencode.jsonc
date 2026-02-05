@@ -59,6 +59,20 @@
 		// 	"name": "GitHub Copilot",
 		// 	"id": "github-copilot"
 		// }
+		"kimi-for-coding": {
+			"models": {
+				"k2p5": {
+					"variants": {
+						"max": {
+							"thinking": {
+								"type": "enabled",
+								"budgetTokens": 16000
+							}
+						}
+					}
+				}
+			}
+		},
 		"github-copilot": {
 			"models": {
 				"gpt-5.2-codex": {
