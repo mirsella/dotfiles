@@ -4,7 +4,8 @@
 		"opencode-antigravity-auth@1.4.5",
 		"@tarquinen/opencode-dcp@2.0.0",
 		"@tarquinen/opencode-smart-title@0.1.7",
-		"opencode-supermemory@0.1.6"
+		"opencode-supermemory@0.1.6",
+		"opencode-wakatime@1.1.5"
 	],
 	"disabled_providers": ["openrouter"],
 	"formatter": {
