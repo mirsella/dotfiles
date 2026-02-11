@@ -20,8 +20,8 @@
 	},
 	"agent": {
 		"explore": {
-			"model": "google/gemini-3-flash-preview",
-			"reasoningEffort": "high"
+			"model": "kimi-for-coding/k2p5",
+			"reasoningEffort": "max"
 		}
 	},
 	"mcp": {
@@ -55,11 +55,6 @@
 	},
 
 	"provider": {
-		// "github-copilot": {
-		// 	"npm": "@opeoginni/github-copilot-openai-compatible",
-		// 	"name": "GitHub Copilot",
-		// 	"id": "github-copilot"
-		// }
 		"kimi-for-coding": {
 			"models": {
 				"k2p5": {

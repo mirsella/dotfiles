@@ -10,6 +10,7 @@
   "general": {
     "vimMode": true,
     "previewFeatures": true,
-    "disableAutoUpdate": false
+    "disableAutoUpdate": false,
+    "enableAutoUpdate": true
   }
 }
