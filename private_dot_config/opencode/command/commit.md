@@ -1,12 +1,10 @@
 ---
 description: Git commit
 agent: general
-subtask: false
-model: google/gemini-2.5-flash
 ---
 
-Check the current git diff to understand current non committed changes
-Stage all changes with 'git add .' (or specific files if appropriate).
+No need to check the git diff, you know what files you modified.
+Stage all files you changed with git add.
 Generate a conventional commit message following the format:
 
 - feat: for new features
