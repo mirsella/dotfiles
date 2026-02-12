@@ -1,6 +1,7 @@
 ---
 description: Git commit
 agent: general
+subtask: false
 ---
 
 No need to check the git diff, you know what files you modified.

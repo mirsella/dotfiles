@@ -1,6 +1,7 @@
 ---
 description: Git commit
 agent: general
+subtask: true
 ---
 
 Check the current git status and diff to understand changes.
