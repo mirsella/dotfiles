@@ -4,6 +4,7 @@ agent: general
 subtask: false
 ---
 
+Commit our changes for this session, or last time we made one.
 No need to check the git diff, you know what files you modified.
 Stage all files you changed with git add.
 Generate a conventional commit message following the format:
