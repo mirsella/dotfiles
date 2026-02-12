@@ -20,8 +20,7 @@
 	},
 	"agent": {
 		"explore": {
-			"model": "kimi-for-coding/k2p5",
-			"reasoningEffort": "max"
+			"model": "kimi-for-coding/k2p5"
 		}
 	},
 	"mcp": {
@@ -55,20 +54,6 @@
 	},
 
 	"provider": {
-		"kimi-for-coding": {
-			"models": {
-				"k2p5": {
-					"variants": {
-						"max": {
-							"thinking": {
-								"type": "enabled",
-								"budgetTokens": 16000
-							}
-						}
-					}
-				}
-			}
-		},
 		"github-copilot": {
 			"models": {
 				"gpt-5.2-codex": {
