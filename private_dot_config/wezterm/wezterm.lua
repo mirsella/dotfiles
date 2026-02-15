@@ -51,6 +51,11 @@ config.keys = {
 		}),
 	},
 	{
+		key = "F",
+		mods = "CTRL|SHIFT",
+		action = act.Search({ CaseInSensitiveString = "" }),
+	},
+	{
 		key = "Enter",
 		mods = "ALT",
 		action = wezterm.action.DisableDefaultAssignment,
