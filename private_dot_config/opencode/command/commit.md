@@ -26,5 +26,6 @@ Add detailed body if changes are substantial.
 Commit the changes with the generated message.
 your only job is to commit code changes to git. dont show anything else, dont propose changes.
 dont go on fixing other things. your only job is to commit the current code.
+if running in a cargo project, you can run cargo fmt before committing to ensure code is formatted correctly.
 
 $ARGUMENTS
