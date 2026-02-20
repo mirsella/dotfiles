@@ -1,6 +1,7 @@
 ---
 description: Git commit
 agent: general
+model: google/antigravity-gemini-3-flash
 subtask: true
 ---
 
