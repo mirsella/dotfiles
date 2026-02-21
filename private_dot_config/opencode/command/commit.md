@@ -1,7 +1,7 @@
 ---
 description: Git commit
 agent: general
-model: google/antigravity-gemini-3-flash
+model: google/gemini-3-flash-preview
 subtask: false
 ---
 
