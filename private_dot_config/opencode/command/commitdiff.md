@@ -1,7 +1,7 @@
 ---
 description: Git commit
 agent: general
-model: openai/gpt-5.3-codex-spark
+model: google/gemini-3-flash-preview
 subtask: true
 ---
 
