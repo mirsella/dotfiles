@@ -16,9 +16,12 @@
 
 - Comments: Comments must be minimal and provide context for other developers, not for me in the context of this prompt. Only write high-value comments if at all. Avoid talking to the user through comments
 
-- Always use context7 when I need code generation, setup or configuration steps, or
-  library/API documentation. This means you should automatically use the Context7 MCP
-  tools to resolve library id and get library docs without me having to explicitly ask.
+- Context7: always use for library/API docs and code generation (resolve id first).
+- DeepWiki: use for large repo exploration, architecture, or source-level details.
+- When to use which:
+  - Only Context7: Daily coding with popular libraries (fastest, lowest token cost).
+  - Only DeepWiki: Exploring big repos or when you need diagrams + implementation details.
+  - Both together: Context7 for API reference, DeepWiki for source implementation.
 
 Interaction Flow:
 
