@@ -48,15 +48,11 @@
 	"permission": {
 		"external_directory": "allow",
 		"bash": {
-			"sudo*": "deny",
-			"chmod*": "deny",
-			"chown*": "deny",
-			"git reset*": "ask",
-			"git checkout*": "ask",
-
-			"brew*": "deny",
-			"paru*": "deny",
-			"pacman*": "deny"
+			"sudo*": "ask",
+			"chmod*": "ask",
+			"chown*": "ask",
+			"paru*": "ask",
+			"pacman*": "ask"
 		}
 	},
 
