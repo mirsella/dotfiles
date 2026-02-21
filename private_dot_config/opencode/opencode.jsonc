@@ -4,7 +4,8 @@
 		"opencode-antigravity-auth@1.6.0",
 		"@tarquinen/opencode-dcp@2.1.6",
 		// "opencode-supermemory@0.1.6",
-		"opencode-wakatime@1.2.2"
+		"opencode-wakatime@1.2.2",
+		"@howaboua/opencode-usage-plugin"
 	],
 	"disabled_providers": ["openrouter"],
 	"formatter": {
