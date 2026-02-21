@@ -1,6 +1,7 @@
 ---
 description: Git commit
 agent: general
+model: openai/gpt-5.3-codex-spark
 subtask: false
 ---
 
