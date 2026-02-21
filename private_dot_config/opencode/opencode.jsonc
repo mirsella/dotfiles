@@ -1,10 +1,10 @@
 {
 	"$schema": "https://opencode.ai/config.json",
 	"plugin": [
-		"opencode-antigravity-auth@1.6.0",
-		"@tarquinen/opencode-dcp@2.1.6",
-		// "opencode-supermemory@0.1.6",
-		"opencode-wakatime@1.2.2",
+		"opencode-antigravity-auth",
+		"@tarquinen/opencode-dcp",
+		"opencode-supermemory",
+		"opencode-wakatime",
 		"@howaboua/opencode-usage-plugin"
 	],
 	"disabled_providers": ["openrouter"],
@@ -29,8 +29,11 @@
 			"url": "https://mcp.context7.com/mcp",
 			"headers": {
 				"CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
-			},
-			"enabled": true
+			}
+		},
+		"deepwiki": {
+			"type": "remote",
+			"url": "https://mcp.deepwiki.com/mcp"
 		}
 	},
 	"lsp": {
