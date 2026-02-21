@@ -1,7 +1,6 @@
 ---
 description: Git commit
 agent: general
-model: google/gemini-3-flash-preview
 subtask: false
 ---
 
