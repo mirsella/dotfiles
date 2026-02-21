@@ -18,11 +18,11 @@
 		"model_cycle_recent": "f4",
 		"model_cycle_recent_reverse": "f5"
 	},
-	"agent": {
-		"explore": {
-			"model": "openai/gpt-5.3-codex-spark"
-		}
-	},
+	// "agent": {
+	// 	"explore": {
+	// 		"model": "google/gemini-3-flash-preview"
+	// 	}
+	// },
 	"mcp": {
 		"context7": {
 			"type": "remote",
