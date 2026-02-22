@@ -34,6 +34,16 @@
 		"deepwiki": {
 			"type": "remote",
 			"url": "https://mcp.deepwiki.com/mcp"
+		},
+		"posthog": {
+			"type": "remote",
+			"url": "https://mcp.posthog.com/mcp",
+			"enabled": false
+		},
+		"railway": {
+			"type": "local",
+			"command": ["bun", "-y", "@railway/mcp-server"],
+			"enabled": false
 		}
 	},
 	"lsp": {
