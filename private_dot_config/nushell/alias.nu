@@ -81,5 +81,5 @@ alias suspend = systemctl suspend
 alias f = fzf --multi
 alias oc = opencode
 alias occ = opencode --continue
-alias autocommit = opencode run --command "commitdiff"
+alias autocommit = opencode run --model "openai/gpt-5.3-codex-spark" --variant xhigh --command "commitdiff"
 alias dm = darkman
