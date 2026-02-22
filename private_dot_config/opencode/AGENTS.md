@@ -1,18 +1,12 @@
 - Follow Existing Code Style: Match the formatting, naming conventions, and module structure of the surrounding code.
-
-- Never use `git` command that will modify something, unless explicitly allowed. only use read only commands like log, diff. dont commit anything, dont push anything.
-
+- Never git push unless explicitly asked to.
 - always add "--no-ext-diff" to git diff commands.
-
 - Never use destructive commands.
-
 - Never use `just`, `cargo run`, `cargo clean`, delete cache, `cargo doc`.
-
 - Never change the database, deploy anything, or migrate anything. you can only change code.
-
 - Style: Generate code that is idiomatic and clear. Favor expressive one-liners and modern language features where they enhance readability without sacrificing performance. Favor early return pattern instead of nesting if statements.
-
 - Comments: Comments must be minimal and provide context for other developers, not for me in the context of this prompt. Only write high-value comments if at all. Avoid talking to the user through comments
+- when git committing, never commit `.opencode/plans/*` files
 
 - Context7: always use for library/API docs and code generation (resolve id first).
 - DeepWiki: use for large repo exploration, architecture, or source-level details.
