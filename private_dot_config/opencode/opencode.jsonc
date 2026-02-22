@@ -5,7 +5,8 @@
 		"@tarquinen/opencode-dcp",
 		"opencode-supermemory",
 		"opencode-wakatime",
-		"@howaboua/opencode-usage-plugin"
+		"@howaboua/opencode-usage-plugin",
+		"@tarquinen/opencode-smart-title"
 	],
 	"disabled_providers": ["openrouter"],
 	"formatter": {
