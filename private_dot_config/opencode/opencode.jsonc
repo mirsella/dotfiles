@@ -43,8 +43,8 @@
 		},
 		"railway": {
 			"type": "local",
-			"command": ["bun", "-y", "@railway/mcp-server"],
-			"enabled": false
+			"command": ["npx", "-y", "@railway/mcp-server"],
+			"enabled": true
 		}
 	},
 	"lsp": {
