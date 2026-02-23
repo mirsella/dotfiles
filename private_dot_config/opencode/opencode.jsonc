@@ -45,7 +45,7 @@
 		"railway": {
 			"type": "local",
 			"command": ["npx", "-y", "@railway/mcp-server"],
-			"enabled": true
+			"enabled": false
 		}
 	},
 	"lsp": {
