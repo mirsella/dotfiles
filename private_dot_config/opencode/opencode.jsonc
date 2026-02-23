@@ -3,7 +3,7 @@
 	"plugin": [
 		"opencode-antigravity-auth@latest",
 		"@tarquinen/opencode-dcp@latest",
-		"opencode-supermemory@latest",
+		// "opencode-supermemory@latest",
 		"opencode-wakatime@latest",
 		"@howaboua/opencode-usage-plugin@latest",
 		"@tarquinen/opencode-smart-title@latest"
