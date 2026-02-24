@@ -84,10 +84,14 @@ $env.ANSIBLE_CONFIG = $"($env.XDG_CONFIG_HOME)/ansible.cfg"
 $env.ANSIBLE_GALAXY_CACHE_DIR = $"($env.XDG_CACHE_HOME)/ansible/galaxy_cache"
 $env.DOCKER_CONFIG = $"($env.XDG_CONFIG_HOME)/docker"
 $env.FLY_CONFIG_DIR = $"($env.XDG_CONFIG_HOME)/fly"
-$env.PNPM_HOME = "/home/mirsella/.local/share/pnpm"
+$env.PNPM_HOME = $"($env.XDG_DATA_HOME)/pnpm"
 $env.WASMER_DIR = $"($env.XDG_CONFIG_HOME)/wasmer"
 $env.WASMER_CACHE_DIR = $"($env.XDG_CACHE_HOME)/wasmer"
 $env.WAKATIME_HOME = $"($env.XDG_CONFIG_HOME)/wakatime"
+$env.POSTHOG_HOME = $"($env.XDG_CONFIG_HOME)/posthog"
+$env.OPENCODE_EXPERIMENTAL = 1
+$env.OPENCODE_EXPERIMENTAL_PLAN_MODE = 1
+$env.OPENCODE_EXPERIMENTAL_MARKDOWN = 1
 
 $env.PATH ++= [
   $"($env.HOME)/.local/bin"
@@ -98,7 +102,3 @@ $env.PATH ++= [
   $"($env.HOME)/.cache/.bun/bin"
   $env.PNPM_HOME
 ]
-
-$env.OPENCODE_EXPERIMENTAL = 1
-$env.OPENCODE_EXPERIMENTAL_PLAN_MODE = 1
-$env.OPENCODE_EXPERIMENTAL_MARKDOWN = 1
