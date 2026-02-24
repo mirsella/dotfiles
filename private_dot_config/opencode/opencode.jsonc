@@ -4,10 +4,10 @@
 		"opencode-antigravity-auth@1.6.0",
 		"@tarquinen/opencode-dcp@2.1.7",
 		// "opencode-supermemory@2.0.2",
+		"@happycastle/opencode-openmemory@latest",
 		"opencode-wakatime@1.2.4",
 		"@howaboua/opencode-usage-plugin@0.1.9",
-		"@tarquinen/opencode-smart-title@0.1.7",
-		"psychmem@1.0.9"
+		"@tarquinen/opencode-smart-title@0.1.7"
 	],
 	"disabled_providers": ["openrouter"],
 	"formatter": {
