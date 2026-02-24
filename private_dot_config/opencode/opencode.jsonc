@@ -1,12 +1,13 @@
 {
 	"$schema": "https://opencode.ai/config.json",
 	"plugin": [
-		"opencode-antigravity-auth@latest",
-		"@tarquinen/opencode-dcp@latest",
-		// "opencode-supermemory@latest",
-		"opencode-wakatime@latest",
-		"@howaboua/opencode-usage-plugin@latest",
-		"@tarquinen/opencode-smart-title@latest"
+		"opencode-antigravity-auth@1.6.0",
+		"@tarquinen/opencode-dcp@2.1.7",
+		// "opencode-supermemory@2.0.2",
+		"opencode-wakatime@1.2.4",
+		"@howaboua/opencode-usage-plugin@0.1.9",
+		"@tarquinen/opencode-smart-title@0.1.7",
+		"psychmem@1.0.9"
 	],
 	"disabled_providers": ["openrouter"],
 	"formatter": {
