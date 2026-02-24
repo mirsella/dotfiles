@@ -92,6 +92,7 @@ $env.POSTHOG_HOME = $"($env.XDG_CONFIG_HOME)/posthog"
 $env.OPENCODE_EXPERIMENTAL = 1
 $env.OPENCODE_EXPERIMENTAL_PLAN_MODE = 1
 $env.OPENCODE_EXPERIMENTAL_MARKDOWN = 1
+$env.SQLITE_HISTORY = $"($env.XDG_STATE_HOME)/sqlite_history"
 
 $env.PATH ++= [
   $"($env.HOME)/.local/bin"
