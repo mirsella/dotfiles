@@ -20,17 +20,18 @@
 		"model_cycle_recent_reverse": "f5"
 	},
 	"agent": {
-		"explore": {
-			"model": "openai/gpt-5.3-codex-spark",
-			"variant": "low"
-		},
+		// too small context window
+		// "explore": {
+		// 	"model": "openai/gpt-5.3-codex-spark",
+		// 	"variant": "low"
+		// },
 		"plan": {
-			"model": "openai/gpt-5.3-codex",
+			"model": "openai/gpt-5.2",
 			"variant": "xhigh"
 		},
 		"build": {
 			"model": "openai/gpt-5.3-codex",
-			"variant": "medium"
+			"variant": "high"
 		}
 	},
 	"mcp": {
