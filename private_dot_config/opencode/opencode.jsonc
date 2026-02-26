@@ -48,7 +48,7 @@
 		},
 		"posthog": {
 			"type": "remote",
-			"url": "https://mcp.posthog.com/mcp",
+			"url": "https://mcp-eu.posthog.com/mcp",
 			"enabled": false
 		},
 		"railway": {
