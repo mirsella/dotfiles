@@ -15,13 +15,6 @@
 			"extensions": [".rs"]
 		}
 	},
-	"keybinds": {
-		"model_cycle_recent": "f4",
-		"model_cycle_recent_reverse": "f5",
-		"input_delete_line": "none",
-		"input_delete_to_line_end": "none",
-		"input_delete_to_line_start": "none"
-	},
 	"agent": {
 		// too small context window
 		// "explore": {
