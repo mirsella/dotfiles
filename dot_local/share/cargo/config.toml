@@ -29,7 +29,7 @@ rustflags = [
   "-Clink-arg=--ld-path=wild", # not compatible with dioxus hot reload
   # Nightly
   "-Zshare-generics=y",
-  "-Zthreads=8",
+  "-Zthreads=0",
 ]
 
 [target.wasm32-unknown-unknown]
@@ -37,7 +37,7 @@ rustflags = [
   "--cfg=web_sys_unstable_apis",
   # Nightly
   "-Zshare-generics=y",
-  "-Zthreads=8",
+  "-Zthreads=0",
 ]
 
 [package.metadata.bevy_cli.web]
