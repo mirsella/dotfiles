@@ -2,6 +2,9 @@
 - when git committing, never commit `.opencode/plans/*` files
 - when creating a new project, create it in ~/dev/
 
+- Prefer making invariant violations obvious: log (warn/error) and **early return / skip** when a state “shouldn’t happen”.
+- Avoid silent fallbacks that hide incorrect assumptions; if a fallback exists, it should be explicitly justified and logged.
+
 - Context7: always use for library/API docs and code generation (resolve id first).
 - DeepWiki: use for large repo exploration, architecture, or source-level details.
 - When to use which:
