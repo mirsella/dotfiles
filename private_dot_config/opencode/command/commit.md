@@ -20,7 +20,7 @@ Generate a conventional commit message following the format:
 
 Format: <type>(<scope>): <subject>
 
-Careful of correctly handling backtick when running bash commands.
+Careful of correctly handling backtick when running bash commands, use single quotes so there's no command substitution.
 
 Add detailed body if changes are substantial.
 Commit the changes with the generated message.
