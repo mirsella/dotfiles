@@ -58,13 +58,10 @@
       "pacman*": "ask",
     },
   },
-
   "provider": {
     "openai": {
       "options": {
-        "openai": {
-          "serviceTier": "priority",
-        },
+        "serviceTier": "priority",
       },
     },
     "github-copilot": {
