@@ -23,10 +23,6 @@
         "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}",
       },
     },
-    "icm": {
-      "type": "local",
-      "command": ["icm", "serve"],
-    },
     "deepwiki": {
       "type": "remote",
       "url": "https://mcp.deepwiki.com/mcp",
