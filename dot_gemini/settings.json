@@ -1,4 +1,19 @@
 {
+  "general": {
+    "disableAutoUpdate": false,
+    "enableAutoUpdate": true,
+    "previewFeatures": true,
+    "vimMode": true
+  },
+  "mcpServers": {
+    "icm": {
+      "args": [
+        "serve"
+      ],
+      "command": "/home/mirsella/.local/share/cargo/bin/icm",
+      "env": {}
+    }
+  },
   "security": {
     "auth": {
       "selectedType": "oauth-personal"
@@ -6,11 +21,5 @@
   },
   "ui": {
     "theme": "Default"
-  },
-  "general": {
-    "vimMode": true,
-    "previewFeatures": true,
-    "disableAutoUpdate": false,
-    "enableAutoUpdate": true
   }
 }
