@@ -28,10 +28,14 @@ linker = "clang"
 rustflags = [
   # "-Clink-arg=-fuse-ld=lld",
   # "-Clink-arg=-fuse-ld=mold",
-  "-Clink-arg=--ld-path=wild", # not compatible with dioxus hot reload
+  "-Clink-arg=--ld-path=wild",
   # Nightly
   "-Zshare-generics=y",
   "-Zthreads=0",
+]
+rustdocflags = [
+    "-Zshare-generics=y",
+    "-Zthreads=8",
 ]
 
 [target.wasm32-unknown-unknown]
@@ -40,6 +44,10 @@ rustflags = [
   # Nightly
   "-Zshare-generics=y",
   "-Zthreads=0",
+]
+rustdocflags = [
+    "-Zshare-generics=y",
+    "-Zthreads=8",
 ]
 
 [package.metadata.bevy_cli.web]
