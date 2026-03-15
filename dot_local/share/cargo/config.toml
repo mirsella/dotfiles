@@ -31,11 +31,11 @@ rustflags = [
   "-Clink-arg=--ld-path=wild",
   # Nightly
   "-Zshare-generics=y",
-  "-Zthreads=0",
+  "-Zthreads=8",
 ]
 rustdocflags = [
-    "-Zshare-generics=y",
-    "-Zthreads=8",
+  "-Zshare-generics=y",
+  "-Zthreads=8",
 ]
 
 [target.wasm32-unknown-unknown]
@@ -43,11 +43,11 @@ rustflags = [
   "--cfg=web_sys_unstable_apis",
   # Nightly
   "-Zshare-generics=y",
-  "-Zthreads=0",
+  "-Zthreads=8",
 ]
 rustdocflags = [
-    "-Zshare-generics=y",
-    "-Zthreads=8",
+  "-Zshare-generics=y",
+  "-Zthreads=8",
 ]
 
 [package.metadata.bevy_cli.web]
