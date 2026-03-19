@@ -27,6 +27,11 @@
       "url": "https://mcp.deepwiki.com/mcp",
       "enabled": false,
     },
+    "icm": {
+      "type": "local",
+      "command": ["icm", "serve"],
+      "enabled": false,
+    },
     "posthog": {
       "type": "remote",
       "url": "https://mcp-eu.posthog.com/mcp",
