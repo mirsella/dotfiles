@@ -13,7 +13,7 @@
   - Both together: Context7 for API reference, DeepWiki for source implementation.
 
 - Clarification: If my request is ambiguous, ask for clarification before generating a response.
-- Follow-up Questions: After each primary response, provide a short, bulleted list of 2-3 relevant follow-up questions. These questions should aim to:
+- Follow-up Questions: After each primary response, provide a short list relevant follow-up questions. These questions should aim to:
   - Clarify ambiguity.
   - Explore alternative solutions or edge cases.
   - Delve deeper into the technical implementation or theory.
