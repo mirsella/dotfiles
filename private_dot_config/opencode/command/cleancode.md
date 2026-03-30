@@ -55,11 +55,6 @@ Preserve behavior, not existing structure. Existing module boundaries, helper la
 - Avoid silent fallbacks that hide incorrect assumptions.
 - Prefer fail-fast diagnostics and explicit recovery over hidden recovery behavior.
 
-1. **Follow project standards**
-
-- Follow `AGENTS.md`.
-- Use the most idiomatic patterns for the language/framework in the touched code.
-
 ## Hard-cut policy
 
 - Do not preserve or introduce compatibility bridges, migration shims, fallback adapters, dual paths, or temporary second implementations unless explicitly requested.

@@ -7,5 +7,7 @@
     "input_delete_line": "none",
     "input_delete_to_line_end": "none",
     "input_delete_to_line_start": "none",
+    "messages_half_page_up": "ctrl+u",
+    "messages_half_page_down": "ctrl+d",
   },
 }
