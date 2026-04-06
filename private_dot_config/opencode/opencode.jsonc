@@ -30,7 +30,7 @@
     "icm": {
       "type": "local",
       "command": ["icm", "serve"],
-      "enabled": false,
+      "enabled": true,
     },
     "posthog": {
       "type": "remote",
