@@ -5,11 +5,11 @@
 // Layer 1: experimental.session.compacting → extract from conversation before compaction
 // Layer 2: session.created → inject recalled context
 
-import type { Plugin } from "@opencode-ai/plugin"
-import { execFileSync } from "child_process"
+import type { Plugin } from "@opencode-ai/plugin";
+import { execFileSync } from "child_process";
 
-const EXTRACT_EVERY = 3
-let toolCallCount = 0
+const EXTRACT_EVERY = 3;
+let toolCallCount = 0;
 
 function icmExtract(args: string[], input: string): void {
   try {
@@ -18,43 +18,49 @@ function icmExtract(args: string[], input: string): void {
       timeout: 10000,
       input,
       stdio: ["pipe", "pipe", "pipe"],
-    })
+    });
   } catch {
     // silent — extraction is best-effort
   }
 }
 
 export const IcmPlugin: Plugin = async ({ $, directory }) => {
-  const project = directory?.split("/").pop() || "project"
+  const project = directory?.split("/").pop() || "project";
 
   // Verify icm binary is available
   try {
-    const v = await $`icm --version`.quiet().nothrow()
-    const version = String(v.stdout).trim()
-    if (!version) throw new Error("not found")
-    console.error(`[icm] plugin loaded (${version})`)
+    const v = await $`icm --version`.quiet().nothrow();
+    const version = String(v.stdout).trim();
+    if (!version) throw new Error("not found");
+    // console.error(`[icm] plugin loaded (${version})`)
   } catch {
-    console.warn("[icm] icm binary not found in PATH — plugin disabled")
-    return {}
+    console.warn("[icm] icm binary not found in PATH — plugin disabled");
+    return {};
   }
 
   return {
     // Layer 0: extract facts from tool output every N calls
     "tool.execute.after": async (input: any, result: any) => {
-      const tool = String(input?.tool ?? "")
-      if (!tool || tool.startsWith("icm") || tool.startsWith("mcp__icm__")) return
+      const tool = String(input?.tool ?? "");
+      if (!tool || tool.startsWith("icm") || tool.startsWith("mcp__icm__"))
+        return;
 
-      toolCallCount++
-      if (toolCallCount < EXTRACT_EVERY) return
-      toolCallCount = 0
+      toolCallCount++;
+      if (toolCallCount < EXTRACT_EVERY) return;
+      toolCallCount = 0;
 
       // OpenCode puts tool output in result.metadata.output
       const output =
-        result?.metadata?.output ?? result?.output ?? (typeof result === "string" ? result : "")
-      if (!output || typeof output !== "string" || output.length < 20) return
+        result?.metadata?.output ??
+        result?.output ??
+        (typeof result === "string" ? result : "");
+      if (!output || typeof output !== "string" || output.length < 20) return;
 
       try {
-        icmExtract(["extract", "--store-raw", "-p", project], output.slice(0, 4000))
+        icmExtract(
+          ["extract", "--store-raw", "-p", project],
+          output.slice(0, 4000),
+        );
       } catch {
         // silent
       }
@@ -62,27 +68,27 @@ export const IcmPlugin: Plugin = async ({ $, directory }) => {
 
     // Layer 1: extract from conversation before compaction
     "experimental.session.compacting": async ({ messages }: any) => {
-      if (!messages || !Array.isArray(messages)) return
+      if (!messages || !Array.isArray(messages)) return;
 
       const text = messages
         .filter((m: any) => m.role === "assistant")
         .slice(-20)
         .map((m: any) => {
-          if (typeof m.content === "string") return m.content
+          if (typeof m.content === "string") return m.content;
           if (Array.isArray(m.content))
             return m.content
               .filter((p: any) => p.type === "text")
               .map((p: any) => p.text)
-              .join("\n")
-          return ""
+              .join("\n");
+          return "";
         })
         .join("\n")
-        .slice(-4000)
+        .slice(-4000);
 
-      if (text.length < 50) return
+      if (text.length < 50) return;
 
       try {
-        icmExtract(["extract", "--store-raw", "-p", project], text)
+        icmExtract(["extract", "--store-raw", "-p", project], text);
       } catch {
         // silent
       }
@@ -91,14 +97,18 @@ export const IcmPlugin: Plugin = async ({ $, directory }) => {
     // Layer 2: recall context at session start
     "session.created": async () => {
       try {
-        const result = await $`icm recall-context ${project} --limit 5`.quiet().nothrow()
-        const ctx = String(result.stdout).trim()
+        const result = await $`icm recall-context ${project} --limit 5`
+          .quiet()
+          .nothrow();
+        const ctx = String(result.stdout).trim();
         if (ctx) {
-          console.error(`[icm] recalled ${ctx.split("\n").length} lines of context`)
+          console.error(
+            `[icm] recalled ${ctx.split("\n").length} lines of context`,
+          );
         }
       } catch {
         // silent
       }
     },
-  }
-}
+  };
+};
