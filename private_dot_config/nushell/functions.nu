@@ -70,10 +70,15 @@ def ports [] {
     }
 
     $lsof_out.stdout
-    | detect columns
+    | detect columns --guess
     | each {|row|
-        # Extract the port from the "NAME" column (e.g., "*:22" -> "22")
-        let port = ($row.NAME | split row ':' | last | into int)
+        # Extract the final TCP port from IPv4/IPv6 listener strings.
+        let port = (
+            $row.NAME
+            | parse --regex '.*:(?<port>\d+)(?:\s+\(LISTEN\))?$'
+            | get 0.port
+            | into int
+        )
 
         # Fetch the full command line using ps.
         let cmd = (
@@ -90,7 +95,7 @@ def ports [] {
         # Nushell automatically formats lists of records as a table.
         {
             port: $port,
-            pid: $row.PID,
+            pid: ($row.PID | into int),
             command: $cmd
         }
     }
