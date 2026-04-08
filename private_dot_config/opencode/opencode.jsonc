@@ -6,6 +6,7 @@
     "opencode-wakatime",
     "@howaboua/opencode-usage-plugin",
     "@tarquinen/opencode-smart-title",
+    "opencodex-fast",
   ],
   "disabled_providers": ["openrouter"],
   "formatter": {
@@ -63,11 +64,11 @@
     },
   },
   "provider": {
-    "openai": {
-      "options": {
-        "serviceTier": "priority",
-      },
-    },
+    // "openai": {
+    //   "options": {
+    //     "serviceTier": "priority",
+    //   },
+    // },
     "github-copilot": {
       "models": {
         "gpt-5.2-codex": {
