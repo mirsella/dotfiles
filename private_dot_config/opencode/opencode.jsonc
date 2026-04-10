@@ -43,6 +43,11 @@
       "command": ["npx", "-y", "@railway/mcp-server"],
       "enabled": false,
     },
+    "linear": {
+      "type": "remote",
+      "url": "https://mcp.linear.app/mcp",
+      "enabled": false,
+    },
   },
   "lsp": {
     "rust": {
