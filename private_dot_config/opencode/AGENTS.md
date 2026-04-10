@@ -1,6 +1,7 @@
 - always add "--no-ext-diff" to git diff commands.
 - when git committing, never commit `.opencode/plans/*` files
 - when creating or cloning a project, do it in ~/dev/
+- when running cargo check, use `--all-features`
 
 - Prefer making invariant violations obvious: log (warn/error) and **early return / skip** when a state “shouldn’t happen”.
 - Avoid silent fallbacks that hide incorrect assumptions; if a fallback exists, it should be explicitly justified and logged.
