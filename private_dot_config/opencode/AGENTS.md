@@ -1,5 +1,6 @@
 - always add "--no-ext-diff" to git diff commands.
 - when git committing, never commit `.opencode/plans/*` files
+- when running git rebase, never open an editor; always use non-interactive flags or environment variables.
 - when creating or cloning a project, do it in ~/dev/
 - when running cargo check, use `--all-features`
 
