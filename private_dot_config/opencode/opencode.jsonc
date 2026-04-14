@@ -48,10 +48,10 @@
       "url": "https://mcp.linear.app/mcp",
       "enabled": false,
     },
-    "browsermcp": {
+    "playwright": {
       "type": "local",
-      "command": ["npx", "-y", "@browsermcp/mcp@latest"],
-      "enabled": false,
+      "command": ["/home/mirsella/.config/opencode/bin/playwright-mcp-helium"],
+      "enabled": true,
     },
     "google-drive": {
       "type": "local",

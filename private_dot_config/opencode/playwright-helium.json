@@ -1,0 +1,12 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": false,
+    "userDataDir": "/home/mirsella/.config/net.imput.helium",
+    "launchOptions": {
+      "executablePath": "/opt/helium-browser-bin/helium-wrapper",
+      "headless": false,
+      "args": ["--profile-directory=Profile 1"]
+    }
+  }
+}

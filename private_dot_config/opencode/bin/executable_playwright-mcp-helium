@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PLAYWRIGHT_MCP_CONFIG="/home/mirsella/.config/opencode/playwright-helium.json"
+HELIUM_USER_DATA_DIR="/home/mirsella/.config/net.imput.helium"
+HELIUM_PROFILE_DIRECTORY="Profile 1"
+
+if [[ ! -f "$PLAYWRIGHT_MCP_CONFIG" ]]; then
+  printf '%s\n' "Missing Playwright MCP config: $PLAYWRIGHT_MCP_CONFIG" >&2
+  exit 1
+fi
+
+if [[ ! -x /usr/bin/npx ]]; then
+  printf '%s\n' "Missing npx at /usr/bin/npx" >&2
+  exit 1
+fi
+
+if [[ ! -d "$HELIUM_USER_DATA_DIR/$HELIUM_PROFILE_DIRECTORY" ]]; then
+  printf '%s\n' "Missing Helium profile directory: $HELIUM_USER_DATA_DIR/$HELIUM_PROFILE_DIRECTORY" >&2
+  exit 1
+fi
+
+# Chromium-family browsers lock the user data root while a profile is open.
+for lock_path in \
+  "$HELIUM_USER_DATA_DIR/SingletonLock" \
+  "$HELIUM_USER_DATA_DIR/SingletonSocket" \
+  "$HELIUM_USER_DATA_DIR/SingletonCookie"; do
+  if [[ -e "$lock_path" ]]; then
+    printf '%s\n' "Refusing to launch Playwright MCP: Helium profile root is already locked: $lock_path" >&2
+    printf '%s\n' "Close Helium before starting the MCP server so the existing session is not corrupted." >&2
+    exit 1
+  fi
+done
+
+exec /usr/bin/npx -y @playwright/mcp@latest --config "$PLAYWRIGHT_MCP_CONFIG" "$@"
