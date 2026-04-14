@@ -50,8 +50,14 @@
     },
     "playwright": {
       "type": "local",
-      "command": ["/home/mirsella/.config/opencode/bin/playwright-mcp-helium"],
-      "enabled": true,
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp@latest",
+        "--config",
+        "/home/mirsella/.config/opencode/playwright-helium.json",
+      ],
+      "enabled": false,
     },
     "google-drive": {
       "type": "local",
