@@ -13,7 +13,7 @@ Format: <type>(<scope>): <subject>
 
 Careful of correctly handling backtick when running bash commands, use single quotes so there's no command substitution.
 
-The commit title should contains what was done. the description, if any, should also contains the motivation.
+The commit title should contains what was done. the description, if any, should also contains the motivation. (for example, fixing a bug)
 Add detailed body if changes are substantial.
 Commit the changes with the generated message.
 Your only job is to commit code changes to git. dont show anything else, dont propose changes.
