@@ -1,4 +1,3 @@
-const processedSessions = new Set();
 import type { Plugin } from "@opencode-ai/plugin";
 
 type NotifyOptions = {
@@ -8,6 +7,83 @@ type NotifyOptions = {
 	icon?: string;
 	category?: string;
 	expireTime?: number;
+};
+
+type GlobalNotificationState = {
+	activeIdleSessions: Set<string>;
+	recentlyAbortedSessions: Map<string, number>;
+	recentNotifications: Map<string, number>;
+	notificationQueue: Promise<void>;
+};
+
+const ABORT_SUPPRESSION_WINDOW_MS = 5000;
+const IDLE_DEDUPE_WINDOW_MS = 1000;
+const NOTIFICATION_DEDUPE_WINDOW_MS = 2000;
+
+const sharedGlobal = globalThis as typeof globalThis & {
+	__opencodeNotificationState?: GlobalNotificationState;
+};
+
+if (!sharedGlobal.__opencodeNotificationState) {
+	// Opencode can load the same plugin from multiple config paths.
+	sharedGlobal.__opencodeNotificationState = {
+		activeIdleSessions: new Set<string>(),
+		recentlyAbortedSessions: new Map<string, number>(),
+		recentNotifications: new Map<string, number>(),
+		notificationQueue: Promise.resolve(),
+	};
+}
+
+const sharedState = sharedGlobal.__opencodeNotificationState;
+
+const markSessionAborted = (sessionId?: string): void => {
+	if (!sessionId) {
+		return;
+	}
+
+	sharedState.recentlyAbortedSessions.set(sessionId, Date.now());
+};
+
+const wasSessionRecentlyAborted = (sessionId: string): boolean => {
+	const now = Date.now();
+
+	for (const [recentSessionId, timestamp] of sharedState.recentlyAbortedSessions) {
+		if (now - timestamp >= ABORT_SUPPRESSION_WINDOW_MS) {
+			sharedState.recentlyAbortedSessions.delete(recentSessionId);
+		}
+	}
+
+	return sharedState.recentlyAbortedSessions.has(sessionId);
+};
+
+const shouldSkipDuplicateNotification = (key: string): boolean => {
+	const now = Date.now();
+
+	for (const [recentKey, timestamp] of sharedState.recentNotifications) {
+		if (now - timestamp >= NOTIFICATION_DEDUPE_WINDOW_MS) {
+			sharedState.recentNotifications.delete(recentKey);
+		}
+	}
+
+	const previousTimestamp = sharedState.recentNotifications.get(key);
+	if (
+		previousTimestamp !== undefined &&
+		now - previousTimestamp < NOTIFICATION_DEDUPE_WINDOW_MS
+	) {
+		return true;
+	}
+
+	sharedState.recentNotifications.set(key, now);
+	return false;
+};
+
+const queueDesktopNotification = async (
+	callback: () => Promise<void>,
+): Promise<void> => {
+	sharedState.notificationQueue = sharedState.notificationQueue
+		.catch(() => {})
+		.then(callback);
+	await sharedState.notificationQueue;
 };
 
 export const NotificationPlugin: Plugin = async ({
@@ -78,10 +154,17 @@ export const NotificationPlugin: Plugin = async ({
 			"--expire-time",
 			expireTime.toString(),
 		];
-		await $`${args}`.nothrow();
+		await queueDesktopNotification(async () => {
+			await $`${args}`.quiet().nothrow();
+		});
 	};
 
 	const notify = async (opts: NotifyOptions): Promise<void> => {
+		const notificationKey = `${opts.category}:${opts.title}:${opts.message}`;
+		if (shouldSkipDuplicateNotification(notificationKey)) {
+			return;
+		}
+
 		const message = `OC ${opts.title} ${opts.message}`;
 
 		const phoneConnected = await isPhoneConnected();
@@ -140,16 +223,19 @@ export const NotificationPlugin: Plugin = async ({
 			}
 
 			if (event.type === "session.error") {
-				const { error } = event.properties;
+				const { error, sessionID } = event.properties;
 				if (!error) return;
+
+				if (error.name === "MessageAbortedError") {
+					markSessionAborted(sessionID);
+					return;
+				}
 
 				let message = "Unknown error";
 				if (error.name === "APIError") {
 					message = `API Error: ${error.data.message}`;
 				} else if (error.name === "ProviderAuthError") {
 					message = `Auth Error: ${error.data.message}`;
-				} else if (error.name === "MessageAbortedError") {
-					message = `Aborted: ${error.data.message}`;
 				} else if (error.name === "MessageOutputLengthError") {
 					message = "Output length exceeded";
 				} else if (error.name === "UnknownError") {
@@ -167,43 +253,49 @@ export const NotificationPlugin: Plugin = async ({
 				return;
 			}
 
-			if (
-				event.type !== "session.status" ||
-				event.properties.status.type !== "idle"
-			) {
+			const isIdleEvent =
+				event.type === "session.idle" ||
+				(event.type === "session.status" &&
+					event.properties.status.type === "idle");
+			if (!isIdleEvent) {
 				return;
 			}
 
 			const sessionId = event.properties.sessionID;
 
-			if (processedSessions.has(sessionId)) {
+			if (sharedState.activeIdleSessions.has(sessionId)) {
 				return;
 			}
-			processedSessions.add(sessionId);
+			if (wasSessionRecentlyAborted(sessionId)) {
+				return;
+			}
+			sharedState.activeIdleSessions.add(sessionId);
 
-			setTimeout(() => {
-				processedSessions.delete(sessionId);
-			}, 100);
-
-			let title = "Session";
 			try {
-				const session = await client.session.get({
-					path: { id: sessionId },
-				});
-				if (session.data?.parentID) {
-					return;
-				}
-				title = session.data?.title || "Session";
-			} catch {}
+				let title = "Session";
+				try {
+					const session = await client.session.get({
+						path: { id: sessionId },
+					});
+					if (session.data?.parentID) {
+						return;
+					}
+					title = session.data?.title || "Session";
+				} catch {}
 
-			await notify({
-				title: "✅",
-				message: title,
-				urgency: "normal",
-				icon: "starred",
-				category: "completed",
-				expireTime: 6000,
-			});
+				await notify({
+					title: "✅",
+					message: title,
+					urgency: "normal",
+					icon: "starred",
+					category: "completed",
+					expireTime: 6000,
+				});
+			} finally {
+				setTimeout(() => {
+					sharedState.activeIdleSessions.delete(sessionId);
+				}, IDLE_DEDUPE_WINDOW_MS);
+			}
 		},
 	};
 };
