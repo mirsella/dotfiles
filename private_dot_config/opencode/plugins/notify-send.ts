@@ -11,138 +11,85 @@ type NotifyOptions = {
 
 type GlobalNotificationState = {
 	activeIdleSessions: Set<string>;
-	recentlyAbortedSessions: Map<string, number>;
+	recentAborts: Map<string, number>;
 	recentNotifications: Map<string, number>;
 	notificationQueue: Promise<void>;
 };
 
-const ABORT_SUPPRESSION_WINDOW_MS = 5000;
-const IDLE_DEDUPE_WINDOW_MS = 1000;
-const NOTIFICATION_DEDUPE_WINDOW_MS = 2000;
+const WINDOWS = {
+	abort: 5000,
+	idle: 1000,
+	notification: 2000,
+} as const;
 
-const sharedGlobal = globalThis as typeof globalThis & {
+const globalState = globalThis as typeof globalThis & {
 	__opencodeNotificationState?: GlobalNotificationState;
 };
 
-if (!sharedGlobal.__opencodeNotificationState) {
-	// Opencode can load the same plugin from multiple config paths.
-	sharedGlobal.__opencodeNotificationState = {
-		activeIdleSessions: new Set<string>(),
-		recentlyAbortedSessions: new Map<string, number>(),
-		recentNotifications: new Map<string, number>(),
-		notificationQueue: Promise.resolve(),
-	};
-}
-
-const sharedState = sharedGlobal.__opencodeNotificationState;
-
-const markSessionAborted = (sessionId?: string): void => {
-	if (!sessionId) {
-		return;
+const state = (() => {
+	if (!globalState.__opencodeNotificationState) {
+		// Opencode may evaluate the same plugin multiple times.
+		globalState.__opencodeNotificationState = {
+			activeIdleSessions: new Set<string>(),
+			recentAborts: new Map<string, number>(),
+			recentNotifications: new Map<string, number>(),
+			notificationQueue: Promise.resolve(),
+		};
 	}
 
-	sharedState.recentlyAbortedSessions.set(sessionId, Date.now());
-};
+	return globalState.__opencodeNotificationState;
+})();
 
-const wasSessionRecentlyAborted = (sessionId: string): boolean => {
+const isRecent = (
+	map: Map<string, number>,
+	key: string,
+	window: number,
+): boolean => {
 	const now = Date.now();
 
-	for (const [recentSessionId, timestamp] of sharedState.recentlyAbortedSessions) {
-		if (now - timestamp >= ABORT_SUPPRESSION_WINDOW_MS) {
-			sharedState.recentlyAbortedSessions.delete(recentSessionId);
+	for (const [entry, timestamp] of map) {
+		if (now - timestamp >= window) {
+			map.delete(entry);
 		}
 	}
 
-	return sharedState.recentlyAbortedSessions.has(sessionId);
+	const last = map.get(key);
+	return last !== undefined && now - last < window;
 };
 
-const shouldSkipDuplicateNotification = (key: string): boolean => {
-	const now = Date.now();
+const remember = (map: Map<string, number>, key: string): void => {
+	map.set(key, Date.now());
+};
 
-	for (const [recentKey, timestamp] of sharedState.recentNotifications) {
-		if (now - timestamp >= NOTIFICATION_DEDUPE_WINDOW_MS) {
-			sharedState.recentNotifications.delete(recentKey);
-		}
+const queueNotification = async (callback: () => Promise<void>): Promise<void> => {
+	state.notificationQueue = state.notificationQueue.catch(() => {}).then(callback);
+	await state.notificationQueue;
+};
+
+const errorMessage = (error: { name: string; data: Record<string, unknown> }): string => {
+	switch (error.name) {
+		case "APIError":
+			return `API Error: ${error.data.message}`;
+		case "ProviderAuthError":
+			return `Auth Error: ${error.data.message}`;
+		case "MessageOutputLengthError":
+			return "Output length exceeded";
+		case "UnknownError":
+			return String(error.data.message ?? "Unknown error");
+		default:
+			return "Unknown error";
 	}
-
-	const previousTimestamp = sharedState.recentNotifications.get(key);
-	if (
-		previousTimestamp !== undefined &&
-		now - previousTimestamp < NOTIFICATION_DEDUPE_WINDOW_MS
-	) {
-		return true;
-	}
-
-	sharedState.recentNotifications.set(key, now);
-	return false;
 };
 
-const queueDesktopNotification = async (
-	callback: () => Promise<void>,
-): Promise<void> => {
-	sharedState.notificationQueue = sharedState.notificationQueue
-		.catch(() => {})
-		.then(callback);
-	await sharedState.notificationQueue;
-};
-
-export const NotificationPlugin: Plugin = async ({
-	project,
-	client,
-	$,
-	directory,
-	worktree,
-}) => {
-	const isPhoneConnected = async (): Promise<boolean> => {
-		try {
-			const result = await $`kdeconnect-cli --list-devices`.quiet().nothrow();
-			const stdout = String(result.stdout || result.text || result);
-			return stdout
-				.split("\n")
-				.some((line) => line.includes("phone") && line.includes("reachable"));
-		} catch {
-			return false;
-		}
-	};
-
-	const sendTelegram = async (message: string): Promise<string | null> => {
-		const tgId = process.env.TgId;
-		const tgToken = process.env.TgToken;
-
-		if (!tgId || !tgToken) {
-			return "Telegram env vars (TgId/TgToken) not set";
-		}
-
-		try {
-			const response = await fetch(
-				`https://api.telegram.org/bot${tgToken}/sendMessage`,
-				{
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ chat_id: tgId, text: message }),
-					signal: AbortSignal.timeout(2000),
-				},
-			);
-			if (!response.ok) {
-				return `Telegram API error: ${response.status}`;
-			}
-			return null;
-		} catch (error) {
-			return `Telegram fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`;
-		}
-	};
-
-	const sendDesktopNotification = async (
-		opts: NotifyOptions,
-	): Promise<void> => {
-		const {
-			title,
-			message,
-			urgency = "normal",
-			icon = "starred",
-			category = "opencode",
-			expireTime = 6000,
-		} = opts;
+export const NotificationPlugin: Plugin = async ({ client, $ }) => {
+	const sendDesktop = async ({
+		title,
+		message,
+		urgency = "normal",
+		icon = "starred",
+		category = "opencode",
+		expireTime = 6000,
+	}: NotifyOptions): Promise<void> => {
 		const args = [
 			"notify-send",
 			`OC ${title}`,
@@ -154,27 +101,60 @@ export const NotificationPlugin: Plugin = async ({
 			"--expire-time",
 			expireTime.toString(),
 		];
-		await queueDesktopNotification(async () => {
+
+		await queueNotification(async () => {
 			await $`${args}`.quiet().nothrow();
 		});
 	};
 
 	const notify = async (opts: NotifyOptions): Promise<void> => {
-		const notificationKey = `${opts.category}:${opts.title}:${opts.message}`;
-		if (shouldSkipDuplicateNotification(notificationKey)) {
+		const key = `${opts.category}:${opts.title}:${opts.message}`;
+		if (isRecent(state.recentNotifications, key, WINDOWS.notification)) {
+			return;
+		}
+		remember(state.recentNotifications, key);
+
+		const message = `OC ${opts.title} ${opts.message}`;
+		const phoneConnected = await (async (): Promise<boolean> => {
+			try {
+				const result = await $`kdeconnect-cli --list-devices`.quiet().nothrow();
+				return String(result.stdout || result.text || result)
+					.split("\n")
+					.some((line) => line.includes("phone") && line.includes("reachable"));
+			} catch {
+				return false;
+			}
+		})();
+
+		const telegramError = await (async (): Promise<string | null> => {
+			const { TgId: tgId, TgToken: tgToken } = process.env;
+			if (!tgId || !tgToken) {
+				return "Telegram env vars (TgId/TgToken) not set";
+			}
+
+			try {
+				const response = await fetch(
+					`https://api.telegram.org/bot${tgToken}/sendMessage`,
+					{
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ chat_id: tgId, text: message }),
+						signal: AbortSignal.timeout(2000),
+					},
+				);
+
+				return response.ok ? null : `Telegram API error: ${response.status}`;
+			} catch (error) {
+				return `Telegram fetch failed: ${error instanceof Error ? error.message : "Unknown error"}`;
+			}
+		})();
+
+		if (phoneConnected && telegramError === null) {
 			return;
 		}
 
-		const message = `OC ${opts.title} ${opts.message}`;
-
-		const phoneConnected = await isPhoneConnected();
-		const telegramError = await sendTelegram(message);
-
-		const shouldFallback = !phoneConnected || telegramError !== null;
-		if (!shouldFallback) return;
-
 		if (telegramError) {
-			await sendDesktopNotification({
+			await sendDesktop({
 				title: "❌",
 				message: telegramError,
 				urgency: "critical",
@@ -184,117 +164,109 @@ export const NotificationPlugin: Plugin = async ({
 			});
 		}
 
-		await sendDesktopNotification(opts);
+		await sendDesktop(opts);
 	};
 
 	return {
 		event: async ({ event }) => {
-			// @ts-ignore - EventQuestionAsk not in installed SDK types yet
-			if (event.type === "question.asked") {
-				// @ts-ignore
-				const questions = event.properties.questions;
-				const q = questions[0];
-				const questionText = q?.question || "Question pending";
-				await notify({
-					title: "❓",
-					message: questionText,
-					urgency: "critical",
-					icon: "dialog-information",
-					category: "question",
-					expireTime: 8000,
-				});
-				return;
-			}
-
-			// @ts-ignore - EventPermissionAsk not in installed SDK types yet
-			if (event.type === "permission.asked") {
-				// @ts-ignore
-				const req = event.properties;
-				const title = req.title || "Permission Required";
-				await notify({
-					title: "🔐",
-					message: title,
-					urgency: "critical",
-					icon: "dialog-question",
-					category: "permission",
-					expireTime: 5000,
-				});
-				return;
-			}
-
-			if (event.type === "session.error") {
-				const { error, sessionID } = event.properties;
-				if (!error) return;
-
-				if (error.name === "MessageAbortedError") {
-					markSessionAborted(sessionID);
+			switch (event.type) {
+				case "question.asked": {
+					// @ts-ignore - EventQuestionAsk not in installed SDK types yet
+					const question = event.properties.questions[0]?.question || "Question pending";
+					await notify({
+						title: "❓",
+						message: question,
+						urgency: "critical",
+						icon: "dialog-information",
+						category: "question",
+						expireTime: 8000,
+					});
 					return;
 				}
 
-				let message = "Unknown error";
-				if (error.name === "APIError") {
-					message = `API Error: ${error.data.message}`;
-				} else if (error.name === "ProviderAuthError") {
-					message = `Auth Error: ${error.data.message}`;
-				} else if (error.name === "MessageOutputLengthError") {
-					message = "Output length exceeded";
-				} else if (error.name === "UnknownError") {
-					message = error.data.message;
+				case "permission.asked": {
+					// @ts-ignore - EventPermissionAsk not in installed SDK types yet
+					await notify({
+						title: "🔐",
+						message: event.properties.title || "Permission Required",
+						urgency: "critical",
+						icon: "dialog-question",
+						category: "permission",
+						expireTime: 5000,
+					});
+					return;
 				}
 
-				await notify({
-					title: "❌",
-					message,
-					urgency: "critical",
-					icon: "dialog-error",
-					category: "error",
-					expireTime: 10000,
-				});
-				return;
-			}
-
-			const isIdleEvent =
-				event.type === "session.idle" ||
-				(event.type === "session.status" &&
-					event.properties.status.type === "idle");
-			if (!isIdleEvent) {
-				return;
-			}
-
-			const sessionId = event.properties.sessionID;
-
-			if (sharedState.activeIdleSessions.has(sessionId)) {
-				return;
-			}
-			if (wasSessionRecentlyAborted(sessionId)) {
-				return;
-			}
-			sharedState.activeIdleSessions.add(sessionId);
-
-			try {
-				let title = "Session";
-				try {
-					const session = await client.session.get({
-						path: { id: sessionId },
-					});
-					if (session.data?.parentID) {
+				case "session.error": {
+					const { error, sessionID } = event.properties;
+					if (!error) {
 						return;
 					}
-					title = session.data?.title || "Session";
-				} catch {}
+					if (error.name === "MessageAbortedError") {
+						if (sessionID) {
+							remember(state.recentAborts, sessionID);
+						}
+						return;
+					}
 
-				await notify({
-					title: "✅",
-					message: title,
-					urgency: "normal",
-					icon: "starred",
-					category: "completed",
-					expireTime: 6000,
-				});
-			} finally {
-				setTimeout(() => {
-					sharedState.activeIdleSessions.delete(sessionId);
-				}, IDLE_DEDUPE_WINDOW_MS);
+					await notify({
+						title: "❌",
+						message: errorMessage(error),
+						urgency: "critical",
+						icon: "dialog-error",
+						category: "error",
+						expireTime: 10000,
+					});
+					return;
+				}
+
+				case "session.idle":
+				case "session.status": {
+					if (
+						event.type === "session.status" &&
+						event.properties.status.type !== "idle"
+					) {
+						return;
+					}
+
+					const { sessionID } = event.properties;
+					if (
+						state.activeIdleSessions.has(sessionID) ||
+						isRecent(state.recentAborts, sessionID, WINDOWS.abort)
+					) {
+						return;
+					}
+
+					state.activeIdleSessions.add(sessionID);
+
+					try {
+						let title = "Session";
+						try {
+							const session = await client.session.get({ path: { id: sessionID } });
+							if (session.data?.parentID) {
+								return;
+							}
+							title = session.data?.title || title;
+						} catch {}
+
+						await notify({
+							title: "✅",
+							message: title,
+							urgency: "normal",
+							icon: "starred",
+							category: "completed",
+							expireTime: 6000,
+						});
+					} finally {
+						setTimeout(() => {
+							state.activeIdleSessions.delete(sessionID);
+						}, WINDOWS.idle);
+					}
+					return;
+				}
+
+				default:
+					return;
 			}
 		},
 	};
