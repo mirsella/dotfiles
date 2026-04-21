@@ -67,7 +67,7 @@ $env.NPM_CONFIG_USERCONFIG = $"($env.XDG_CONFIG_HOME)/npm/npmrc"
 $env.GEM_HOME = $"($env.XDG_DATA_HOME)/gem"
 $env.GEM_SPEC_CACHE = $"($env.XDG_CACHE_HOME)/gem"
 $env.NPM_CONFIG_STORE_DIR = $env.XDG_CACHE_HOME
-$env._JAVA_OPTIONS = "-Djava.util.prefs.userRoot=\"$($env.XDG_CONFIG_HOME)/java\""
+$env._JAVA_OPTIONS = $"-Djava.util.prefs.userRoot=\"($env.XDG_CONFIG_HOME)/java\""
 $env.XINITRC = $"($env.XDG_CONFIG_HOME)/X11/xinitrc"
 $env.PSQLRC = $"($env.XDG_CONFIG_HOME)/pg/psqlrc"
 $env.PSQL_HISTORY = $"($env.XDG_STATE_HOME)/psql_history"
