@@ -47,6 +47,8 @@ Preserve behavior, not existing structure. Existing module boundaries, helper la
 - Delete stale compatibility code, fallback paths, adapters, redundant configuration, dead branches, and unnecessary indirection.
 - Inline or merge small pieces when that improves readability and locality.
 - Single-use helpers, wrappers, modules, traits, plugins, and layers should usually be inlined or merged unless keeping them separate clearly improves readability.
+- If a helper is only used inside one function, prefer keeping it inside that function as a local closure or local function instead of promoting it to top-level scope.
+- If a helper is only called once, prefer inlining it entirely unless extracting it makes the code clearly easier to read.
 - A small amount of duplication is better than a bad abstraction.
 
 1. **Make invalid states obvious**
