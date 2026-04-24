@@ -8,6 +8,17 @@
     "@tarquinen/opencode-smart-title",
     "opencode-queue",
   ],
+  "default_agent": "build",
+  "agent": {
+    "build": {
+      "model": "opencode/gpt-5.5-fast",
+      "variant": "medium",
+    },
+    "plan": {
+      "model": "opencode/gpt-5.5-fast",
+      "variant": "xhigh",
+    },
+  },
   "disabled_providers": ["openrouter"],
   "formatter": {
     "rustfmt": {
