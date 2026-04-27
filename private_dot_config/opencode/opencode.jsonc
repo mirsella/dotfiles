@@ -12,11 +12,11 @@
   "agent": {
     "build": {
       "model": "openai/gpt-5.5-fast",
-      "variant": "medium",
+      "reasoningEffort": "medium",
     },
     "plan": {
       "model": "openai/gpt-5.5-fast",
-      "variant": "xhigh",
+      "reasoningEffort": "xhigh",
     },
   },
   "disabled_providers": ["openrouter"],
