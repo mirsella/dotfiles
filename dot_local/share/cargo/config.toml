@@ -61,7 +61,7 @@ wasm-opt = [
 ]
 
 [registries.menhera-cooldown]
-index = "sparse+https://index.crates.menhera.org/3d/"
+index = "sparse+https://index.crates.menhera.org/30d/"
 
 [registry]
 default = "menhera-cooldown"
@@ -70,7 +70,7 @@ default = "menhera-cooldown"
 replace-with = "menhera-cooldown"
 
 [source.menhera-cooldown]
-registry = "sparse+https://index.crates.menhera.org/3d/"
+registry = "sparse+https://index.crates.menhera.org/30d/"
 
 [alias]
 publish-crates-io = [
