@@ -59,3 +59,21 @@ wasm-opt = [
   "--enable-nontrapping-float-to-int",
   "--enable-mutable-globals",
 ]
+
+[registries.menhera-cooldown]
+index = "sparse+https://index.crates.menhera.org/3d/"
+
+[registry]
+default = "menhera-cooldown"
+
+[source.crates-io]
+replace-with = "menhera-cooldown"
+
+[source.menhera-cooldown]
+registry = "sparse+https://index.crates.menhera.org/3d/"
+
+[alias]
+publish-crates-io = [
+    "publish",
+    "--config", "registry.default = \"crates-io\"",
+]
