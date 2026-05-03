@@ -6,7 +6,7 @@
     "launchOptions": {
       "executablePath": "/opt/helium-browser-bin/helium-wrapper",
       "headless": false,
-      "args": ["--profile-directory=Profile 1"]
+      "args": ["--profile-directory=Default"]
     }
   }
 }

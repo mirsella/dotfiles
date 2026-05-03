@@ -8,6 +8,7 @@
     "@tarquinen/opencode-smart-title",
     "opencode-queue",
     "@plannotator/opencode",
+    "/home/mirsella/dev/opencode-goal/src/index.ts",
   ],
   "disabled_providers": ["openrouter"],
   "formatter": {
@@ -27,11 +28,6 @@
     "deepwiki": {
       "type": "remote",
       "url": "https://mcp.deepwiki.com/mcp",
-      "enabled": false,
-    },
-    "icm": {
-      "type": "local",
-      "command": ["icm", "serve"],
       "enabled": false,
     },
     "posthog": {
