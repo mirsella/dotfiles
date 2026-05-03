@@ -8,7 +8,7 @@
     "@tarquinen/opencode-smart-title",
     "opencode-queue",
     "@plannotator/opencode",
-    "/home/mirsella/dev/opencode-goal/src/index.ts",
+    "opencode-goal",
   ],
   "disabled_providers": ["openrouter"],
   "formatter": {
