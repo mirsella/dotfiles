@@ -1,4 +1,3 @@
 function hostname { echo 42 }
 export PATH="$HOME/.local/bin:$PATH"
-source ~/.config/zsh/exportxdg
 source ~/.config/zsh/.zshrc

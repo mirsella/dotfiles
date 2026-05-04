@@ -1,3 +1,7 @@
+if [ -f "${ZDOTDIR:-$HOME/.config/zsh}/exportxdg" ]; then
+  source "${ZDOTDIR:-$HOME/.config/zsh}/exportxdg"
+fi
+
 winboot() {
 	# WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
 	# sudo grub-reboot "$WINDOWS_TITLE"
@@ -28,19 +32,8 @@ ports() {
 [ -f ~/.config/token/hathora.token ] && source ~/.config/token/hathora.token
 hash -d u=/run/media/mirsella
 export MAIL='mirsella@protonmail.com'
-export EDITOR='nvim'
 export DIFFPROG='nvim -d'
-if command -v zen &> /dev/null
-then
-  export BROWSER="zen"
-elif command -v zen-browser &> /dev/null 
-then
-  export BROWSER="zen-browser"
-elif command -v firefox &> /dev/null
-then
-    export BROWSER="firefox"
-fi
-export PATH="$PATH:$HOME/.local/bin:$HOME/.local/share/gem/bin:$HOME/.local/share/npm/bin:$HOME/.local/share/cargo/bin:$PNPM_HOME:/opt/osxcross/target/bin"
+export PATH="$PATH:/opt/osxcross/target/bin"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias -s html="$BROWSER"
 alias -s pdf="$BROWSER"

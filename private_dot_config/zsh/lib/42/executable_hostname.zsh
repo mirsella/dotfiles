@@ -1,14 +1,6 @@
-export PATH="$HOME/sgoinfre/cargo/bin:$PATH"
-export CARGO_HOME="$HOME/sgoinfre/cargo"
-export RUSTUP_HOME="$HOME/sgoinfre/rustup"
 export NVM_DIR="$HOME/sgoinfre/nvm"
-export ANDROID_SDK_HOME="$HOME/sgoinfre/android"
-export ANDROID_SDK_ROOT="$HOME/sgoinfre/android"
-export ANDROID_HOME="$HOME/sgoinfre/android"
-export GRADLE_USER_HOME="$HOME/sgoinfre/gradle"
 
 alias rmf='/bin/rm -rf '
-alias android-studio='flatpak run --env=ANDROID_SDK_HOME="$HOME/sgoinfre/android" --env=ANDROID_SDK_ROOT="$HOME/sgoinfre/android" --env=ANDROID_HOME="$HOME/sgoinfre/android" com.google.AndroidStudio'
 alias V='echo -n z | xclip -selection clipboard'
 bak() { cp -r "${1}" "${1}.bak" }
 bakm() { mv "${1}" "${1}.bak" }

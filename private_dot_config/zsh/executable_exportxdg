@@ -1,72 +1,133 @@
 #!/usr/bin/sh
+
+# XDG Base Directory specification
 export GTK_USE_PORTAL=1
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_STATE_HOME="$HOME/.local/state"
 
-export LANG=en_US.UTF-8
-export LANGUAGE=en_US.UTF-8
-export LC_ADDRESS=fr_FR.UTF-8
-export LC_COLLATE=fr_FR.UTF-8
-export LC_CTYPE=fr_FR.UTF-8
-export LC_IDENTIFICATION=fr_FR.UTF-8
-export LC_MEASUREMENT=fr_FR.UTF-8
-export LC_MESSAGES=fr_FR.UTF-8
-export LC_MONETARY=fr_FR.UTF-8
-export LC_NAME=fr_FR.UTF-8
-export LC_NUMERIC=fr_FR.UTF-8
-export LC_PAPER=fr_FR.UTF-8
-export LC_TELEPHONE=fr_FR.UTF-8
-export LC_TIME=fr_FR.UTF-8
-
-export GRADLE_USER_HOME="$XDG_DATA_HOME"/gradle
-export CARGO_HOME="$XDG_DATA_HOME"/cargo
-export RUSTUP_HOME="$XDG_DATA_HOME"/rustup
-export GOPATH="$XDG_DATA_HOME"/go
-export KDEHOME="$XDG_CONFIG_HOME"/kde
-export SCREENRC="$XDG_CONFIG_HOME"/screen/screenrc
-export GRADLE_USER_HOME="$XDG_DATA_HOME"/gradle
-export GTK_RC_FILES="$XDG_CONFIG_HOME"/gtkrc-1.0
-export GTK2_RC_FILES="$XDG_CONFIG_HOME"/gtkrc-2.0
-export WGETRC="$XDG_CONFIG_HOME"/wget/wgetrc
-export LESSHISTFILE=-
-export INPUTRC="$XDG_CONFIG_HOME"/inputrc
-export GNUPGHOME="$XDG_DATA_HOME"/gnupg
-export WINEPREFIX="$XDG_DATA_HOME"/wineprefixes/wine64
-export PASSWORD_STORE_DIR="$XDG_DATA_HOME"/password-store
-export ANDROID_HOME="/opt/android-sdk"
-if [ -d "$ANDROID_HOME/ndk" ]; then
-	export NDK_HOME="$(find "$ANDROID_HOME/ndk" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -n 1)"
+export EDITOR="nvim"
+if command -v zen-browser >/dev/null 2>&1; then
+	export BROWSER="zen-browser"
+elif command -v firefox >/dev/null 2>&1; then
+	export BROWSER="firefox"
 fi
-export PYTHONSTARTUP=~/.config/python/pythonrc.py
-export PYLINTHOME="$XDG_CACHE_HOME"/pylint
-export ZDOTDIR=~/.config/zsh
-export CUDA_PATH=/opt/cuda
-export CUDA_CACHE_PATH="$XDG_CACHE_HOME"/nv
-export NODE_REPL_HISTORY="$XDG_DATA_HOME"/node_repl_history
-export TS_NODE_HISTORY="$XDG_DATA_HOME"/ts_node_repl_history
-export MYSQL_HISTFILE="$XDG_DATA_HOME"/mysql_history
-export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME"/npm/npmrc
-export GEM_HOME="$XDG_DATA_HOME"/gem
-export GEM_SPEC_CACHE="$XDG_CACHE_HOME"/gem
+
+# Locale settings
+export LANG="en_US.UTF-8"
+export LANGUAGE="en_US.UTF-8"
+export LC_ADDRESS="fr_FR.UTF-8"
+export LC_COLLATE="fr_FR.UTF-8"
+export LC_CTYPE="fr_FR.UTF-8"
+export LC_IDENTIFICATION="fr_FR.UTF-8"
+export LC_MEASUREMENT="fr_FR.UTF-8"
+export LC_MESSAGES="fr_FR.UTF-8"
+export LC_MONETARY="fr_FR.UTF-8"
+export LC_NAME="fr_FR.UTF-8"
+export LC_NUMERIC="fr_FR.UTF-8"
+export LC_PAPER="fr_FR.UTF-8"
+export LC_TELEPHONE="fr_FR.UTF-8"
+export LC_TIME="fr_FR.UTF-8"
+
+# Application-specific directories
+export GRADLE_USER_HOME="$XDG_DATA_HOME/gradle"
+export CARGO_HOME="$XDG_DATA_HOME/cargo"
+export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
+export GOPATH="$XDG_DATA_HOME/go"
+export KDEHOME="$XDG_CONFIG_HOME/kde"
+export SCREENRC="$XDG_CONFIG_HOME/screen/screenrc"
+export GTK_RC_FILES="$XDG_CONFIG_HOME/gtkrc-1.0"
+export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtkrc-2.0"
+export WGETRC="$XDG_CONFIG_HOME/wget/wgetrc"
+export LESSHISTFILE="-"
+export INPUTRC="$XDG_CONFIG_HOME/inputrc"
+export GNUPGHOME="$XDG_DATA_HOME/gnupg"
+export WINEPREFIX="$XDG_DATA_HOME/wineprefixes/wine64"
+export PASSWORD_STORE_DIR="$XDG_DATA_HOME/password-store"
+export ANDROID_HOME="$XDG_DATA_HOME/android/sdk"
+export ANDROID_AVD_HOME="$XDG_DATA_HOME/android/avd"
+export ANDROID_USER_HOME="$XDG_CONFIG_HOME/android"
+export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
+
+# Set NDK_HOME if the directory exists.
+if [ -d "$ANDROID_HOME/ndk" ]; then
+	ndk_home="$(find "$ANDROID_HOME/ndk" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort -V | tail -n 1)"
+	if [ -n "$ndk_home" ]; then
+		export NDK_HOME="$ndk_home"
+	fi
+	unset ndk_home
+fi
+
+export PYTHONSTARTUP="$XDG_CONFIG_HOME/python/pythonrc.py"
+export PYLINTHOME="$XDG_CACHE_HOME/pylint"
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+export HISTFILE="$XDG_STATE_HOME/bash/history"
+export CUDA_PATH="/opt/cuda"
+export CUDA_CACHE_PATH="$XDG_CACHE_HOME/nv"
+export NODE_REPL_HISTORY="$XDG_DATA_HOME/node_repl_history"
+export TS_NODE_HISTORY="$XDG_DATA_HOME/ts_node_repl_history"
+export MYSQL_HISTFILE="$XDG_DATA_HOME/mysql_history"
+export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
+export GEM_HOME="$XDG_DATA_HOME/gem"
+export GEM_SPEC_CACHE="$XDG_CACHE_HOME/gem"
 export NPM_CONFIG_STORE_DIR="$XDG_CACHE_HOME"
-export _JAVA_OPTIONS=-Djava.util.prefs.userRoot="$XDG_CONFIG_HOME"/java
-export XINITRC="$XDG_CONFIG_HOME"/X11/xinitrc
+export _JAVA_OPTIONS="-Djava.util.prefs.userRoot=$XDG_CONFIG_HOME/java"
+export XINITRC="$XDG_CONFIG_HOME/X11/xinitrc"
 export PSQLRC="$XDG_CONFIG_HOME/pg/psqlrc"
 export PSQL_HISTORY="$XDG_STATE_HOME/psql_history"
 export PGPASSFILE="$XDG_CONFIG_HOME/pg/pgpass"
 export PGSERVICEFILE="$XDG_CONFIG_HOME/pg/pg_service.conf"
 export DUB_HOME="$XDG_CACHE_HOME/dub"
 export MOZ_ENABLE_WAYLAND=1
-export VAGRANT_HOME="$XDG_DATA_HOME"/vagrant
-export VAGRANT_ALIAS_FILE="$XDG_DATA_HOME"/vagrant/aliases
-export JAVA_HOME=/usr/lib/jvm/default
-export ANDROID_HOME=/opt/android-sdk
-export CAPACITOR_ANDROID_STUDIO_PATH=/usr/bin/android-studio
-export ANSIBLE_HOME="${XDG_CONFIG_HOME}/ansible"
-export ANSIBLE_CONFIG="${XDG_CONFIG_HOME}/ansible.cfg"
-export ANSIBLE_GALAXY_CACHE_DIR="${XDG_CACHE_HOME}/ansible/galaxy_cache"
-export DOCKER_CONFIG="$XDG_CONFIG_HOME"/docker
-export FLY_CONFIG_DIR="$XDG_CONFIG_HOME"/fly
-export PNPM_HOME="/home/mirsella/.local/share/pnpm"
+export VAGRANT_HOME="$XDG_DATA_HOME/vagrant"
+export VAGRANT_ALIAS_FILE="$XDG_DATA_HOME/vagrant/aliases"
+export JAVA_HOME="/usr/lib/jvm/default"
+export CAPACITOR_ANDROID_STUDIO_PATH="/usr/bin/android-studio"
+export ANSIBLE_HOME="$XDG_CONFIG_HOME/ansible"
+export ANSIBLE_CONFIG="$XDG_CONFIG_HOME/ansible.cfg"
+export ANSIBLE_GALAXY_CACHE_DIR="$XDG_CACHE_HOME/ansible/galaxy_cache"
+export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
+export FLY_CONFIG_DIR="$XDG_CONFIG_HOME/fly"
+export PNPM_HOME="$XDG_DATA_HOME/pnpm"
+export WASMER_DIR="$XDG_CONFIG_HOME/wasmer"
+export WASMER_CACHE_DIR="$XDG_CACHE_HOME/wasmer"
+export WAKATIME_HOME="$XDG_CONFIG_HOME/wakatime"
+export POSTHOG_HOME="$XDG_CONFIG_HOME/posthog"
+
+# export OPENCODE_EXPERIMENTAL_PLAN_MODE=1 # using plannotator
+export OPENCODE_EXPERIMENTAL_EXA=1
+export OPENCODE_EXPERIMENTAL_LSP_TOOL=1
+export OPENCODE_EXPERIMENTAL_ICON_DISCOVERY=1
+export OPENCODE_EXPERIMENTAL_FILEWATCHER=1
+export OPENCODE_EXPERIMENTAL_EVENT_SYSTEM=1
+export OPENCODE_EXPERIMENTAL_WORKSPACES=1
+
+export SQLITE_HISTORY="$XDG_STATE_HOME/sqlite_history"
+
+path_prepend() {
+	case ":$PATH:" in
+		*":$1:"*) ;;
+		*) PATH="$1${PATH:+:$PATH}" ;;
+	esac
+}
+
+path_append() {
+	case ":$PATH:" in
+		*":$1:"*) ;;
+		*) PATH="${PATH:+$PATH:}$1" ;;
+	esac
+}
+
+path_prepend "$ANDROID_HOME/emulator"
+path_prepend "$ANDROID_HOME/platform-tools"
+path_append "$HOME/.local/bin"
+path_append "$HOME/.local/share/gem/bin"
+path_append "$HOME/.local/share/npm/bin"
+path_append "$HOME/.local/share/cargo/bin"
+path_append "$HOME/.local/share/go/bin"
+path_append "$HOME/.cache/.bun/bin"
+path_append "$PNPM_HOME"
+export PATH
+
+unset -f path_prepend path_append 2>/dev/null || true
