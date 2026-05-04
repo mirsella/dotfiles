@@ -31,8 +31,8 @@ def bakm [file: path] {
   mv $"($file)" $"($file).bak"
 }
 
-def psaux [name: string] {
-  ps -l | where name =~ $name
+def psaux [query: string] {
+  ps -l | where name =~ $query or command =~ $query
 }
 
 def gam [...args] {
