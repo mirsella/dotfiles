@@ -43,8 +43,10 @@ $env.INPUTRC = $"($env.XDG_CONFIG_HOME)/inputrc"
 $env.GNUPGHOME = $"($env.XDG_DATA_HOME)/gnupg"
 $env.WINEPREFIX = $"($env.XDG_DATA_HOME)/wineprefixes/wine64"
 $env.PASSWORD_STORE_DIR = $"($env.XDG_DATA_HOME)/password-store"
-$env.ANDROID_HOME = $"($env.XDG_DATA_HOME)/android"
+$env.ANDROID_HOME = $"($env.XDG_DATA_HOME)/android/sdk"
 $env.ANDROID_AVD_HOME = $"($env.XDG_DATA_HOME)/android/avd"
+$env.ANDROID_USER_HOME = $"($env.XDG_CONFIG_HOME)/android"
+$env.ANDROID_EMULATOR_HOME = $env.ANDROID_USER_HOME
 
 # Set NDK_HOME if the directory exists
 if ($env.ANDROID_HOME | path join "ndk" | path exists) {
@@ -99,6 +101,10 @@ $env.OPENCODE_EXPERIMENTAL_EVENT_SYSTEM = 1
 $env.OPENCODE_EXPERIMENTAL_WORKSPACES = 1
 
 $env.SQLITE_HISTORY = $"($env.XDG_STATE_HOME)/sqlite_history"
+$env.PATH = [
+  $"($env.ANDROID_HOME)/platform-tools"
+  $"($env.ANDROID_HOME)/emulator"
+] ++ $env.PATH
 $env.PATH ++= [
   $"($env.HOME)/.local/bin"
   $"($env.HOME)/.local/share/gem/bin"
