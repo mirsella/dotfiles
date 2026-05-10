@@ -81,4 +81,23 @@
       "pacman*": "ask",
     },
   },
+  "provider": {
+    "openai": {
+      "models": {
+        "gpt-5.5-fast": {
+          "variants": {
+            "none": {
+              "disabled": true,
+            },
+            "minimal": {
+              "disabled": true,
+            },
+            "medium": {
+              "disabled": true,
+            },
+          },
+        },
+      },
+    },
+  },
 }
