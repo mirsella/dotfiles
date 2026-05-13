@@ -83,3 +83,4 @@ alias oc = opencode
 alias occ = oc --continue
 alias autocommit = oc run --model "openai/gpt-5.3-codex-spark" --variant high --command "commitdiff"
 alias dm = darkman
+alias codex = codex --dangerously-bypass-approvals-and-sandbox

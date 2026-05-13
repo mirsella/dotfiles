@@ -80,6 +80,44 @@ return {
 				return hipatterns.compute_hex_color_group(hex, "bg")
 			end
 
+			-- Oklch → sRGB conversion (clipped to [0,1])
+			local function oklch_to_srgb_hex(L, C, H_deg)
+				L = clamp(L, 0, 1)
+				local h_rad = math.rad(H_deg % 360)
+
+				-- 1. Oklch → Oklab
+				local a_oklab = C * math.cos(h_rad)
+				local b_oklab = C * math.sin(h_rad)
+
+				-- 2. Oklab → linear sRGB
+				local l_ = L + 0.3963377774 * a_oklab + 0.2158037573 * b_oklab
+				local m_ = L - 0.1055613458 * a_oklab - 0.0638541728 * b_oklab
+				local s_ = L - 0.0894841775 * a_oklab - 1.2914855480 * b_oklab
+
+				local l3 = l_ * l_ * l_
+				local m3 = m_ * m_ * m_
+				local s3 = s_ * s_ * s_
+
+				local r_lin = 4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3
+				local g_lin = -1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3
+				local b_lin = -0.0041960863 * l3 - 0.7034186147 * m3 + 1.7076147010 * s3
+
+				-- 3. Linear → sRGB gamma
+				local function linear_to_srgb(c)
+					if c <= 0.0031308 then
+						return 12.92 * c
+					else
+						return 1.055 * (c ^ (1 / 2.4)) - 0.055
+					end
+				end
+
+				local r_srgb = linear_to_srgb(clamp(r_lin, 0, 1))
+				local g_srgb = linear_to_srgb(clamp(g_lin, 0, 1))
+				local b_srgb = linear_to_srgb(clamp(b_lin, 0, 1))
+
+				return rgb_u8_to_hex(srgb_float_to_u8(r_srgb), srgb_float_to_u8(g_srgb), srgb_float_to_u8(b_srgb))
+			end
+
 			local function parse_num_prefix(s)
 				local n = s:match("[%+%-]?%d*%.?%d+")
 				return n and tonumber(n) or nil
@@ -177,6 +215,46 @@ return {
 				}
 			end
 
+			local function mk_color_oklch_highlighter(key, ctor_pat, argc)
+				opts.highlighters[key] = {
+					pattern = ctor_pat .. "%s*%(%s*().-()%s*%)",
+					group = function(buf_id, match)
+						if not is_rust(buf_id) then
+							return nil
+						end
+
+						local args = split_args(match)
+						if not args or #args < argc then
+							return nil
+						end
+
+						local L = parse_num_prefix(args[1])
+						local C = parse_num_prefix(args[2])
+						local H = parse_num_prefix(args[3])
+						if L == nil or C == nil or H == nil then
+							return nil
+						end
+
+						local a = 1
+						if argc == 4 then
+							local aa = parse_num_prefix(args[4])
+							if aa == nil then
+								return nil
+							end
+							a = clamp(aa, 0, 1)
+						end
+
+						local hex = oklch_to_srgb_hex(L, C, H)
+
+						if a < 1 then
+							hex = blend_hex_over_bg(hex, get_normal_bg_hex(), a)
+						end
+
+						return group_from_hex(hex)
+					end,
+				}
+			end
+
 			-- Bevy Color constructors
 			mk_color_u8_highlighter("bevy_color_srgb_u8", "Color::srgb_u8", 3)
 			mk_color_u8_highlighter("bevy_color_rgb_u8", "Color::rgb_u8", 3)
@@ -187,6 +265,9 @@ return {
 			mk_color_float_highlighter("bevy_color_rgb", "Color::rgb", 3)
 			mk_color_float_highlighter("bevy_color_srgba", "Color::srgba", 4)
 			mk_color_float_highlighter("bevy_color_rgba", "Color::rgba", 4)
+
+			mk_color_oklch_highlighter("bevy_color_oklch", "Color::oklch", 3)
+			mk_color_oklch_highlighter("bevy_color_oklcha", "Color::oklcha", 4)
 
 			-- Color::hex("RRGGBB") / "#RRGGBB" / "RRGGBBAA"
 			opts.highlighters.bevy_color_hex = {

@@ -1,14 +1,14 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "opencode-antigravity-auth@latest",
-    "@tarquinen/opencode-dcp@latest",
-    "opencode-wakatime@latest",
-    "@howaboua/opencode-usage-plugin@latest",
-    "@tarquinen/opencode-smart-title@latest",
-    "opencode-queue@latest",
-    "@plannotator/opencode@latest",
-    "opencode-goal@latest",
+    "opencode-antigravity-auth",
+    "@tarquinen/opencode-dcp",
+    "opencode-wakatime",
+    "@howaboua/opencode-usage-plugin",
+    "@tarquinen/opencode-smart-title",
+    "opencode-queue",
+    "@plannotator/opencode",
+    "opencode-goal",
   ],
   "disabled_providers": ["openrouter"],
   "formatter": {
@@ -50,7 +50,7 @@
       "command": [
         "npx",
         "-y",
-        "@playwright/mcp@latest",
+        "@playwright/mcp",
         "--config",
         "/home/mirsella/.config/opencode/playwright-helium.json",
       ],
@@ -58,7 +58,12 @@
     },
     "google-drive": {
       "type": "local",
-      "command": ["npx", "-y", "@piotr-agier/google-drive-mcp@latest"],
+      "command": ["npx", "-y", "@piotr-agier/google-drive-mcp"],
+      "enabled": false,
+    },
+    "planetscale": {
+      "type": "remote",
+      "url": "https://mcp.pscale.dev/mcp/planetscale",
       "enabled": false,
     },
   },
