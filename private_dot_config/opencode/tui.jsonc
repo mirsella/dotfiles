@@ -10,8 +10,5 @@
     "messages_half_page_up": "ctrl+u",
     "messages_half_page_down": "ctrl+d",
   },
-  "plugin": [
-    // "opencode-vim@latest",
-    "./plugins/suppress-ctrl-u.ts",
-  ],
+  "plugin": ["opencode-vim", "./plugins/suppress-ctrl-u.ts"],
 }
