@@ -78,13 +78,6 @@
   },
   "permission": {
     "external_directory": "allow",
-    "bash": {
-      "sudo*": "ask",
-      "chmod*": "ask",
-      "chown*": "ask",
-      "paru*": "ask",
-      "pacman*": "ask",
-    },
   },
   "provider": {
     "openai": {
