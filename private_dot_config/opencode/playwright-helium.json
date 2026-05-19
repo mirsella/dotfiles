@@ -5,7 +5,10 @@
     "userDataDir": "/home/mirsella/.config/net.imput.helium",
     "launchOptions": {
       "executablePath": "/opt/helium-browser-bin/helium-wrapper",
-      "headless": false
+      "headless": false,
+      "args": [
+        "--profile-directory=Default"
+      ]
     }
   }
 }
