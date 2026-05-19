@@ -1,7 +1,6 @@
 personality = "pragmatic"
 model = "gpt-5.5"
 model_reasoning_effort = "xhigh"
-service_tier = "fast"
 [projects."/home/mirsella/dev/mightyminions/main"]
 trust_level = "trusted"
 
@@ -13,6 +12,8 @@ trust_level = "trusted"
 
 [notice]
 hide_full_access_warning = true
+hide_rate_limit_model_nudge = true
+fast_default_opt_out = true
 
 [features]
 memories = true
@@ -38,7 +39,7 @@ enabled = true
 [tui]
 theme = "rose-pine"
 terminal_title = ["activity", "project-name", "run-state", "thread-title"]
-status_line = ["model-with-reasoning", "current-dir", "branch-changes", "context-used", "weekly-limit", "context-window-size", "used-tokens", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "branch-changes", "context-used", "weekly-limit", "context-window-size", "used-tokens", "task-progress", "five-hour-limit"]
 status_line_use_colors = true
 
 [tui.model_availability_nux]

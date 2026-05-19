@@ -95,6 +95,19 @@
             },
           },
         },
+        "gpt-5.5": {
+          "variants": {
+            "none": {
+              "disabled": true,
+            },
+            "minimal": {
+              "disabled": true,
+            },
+            "medium": {
+              "disabled": true,
+            },
+          },
+        },
       },
     },
   },
