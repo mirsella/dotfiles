@@ -3,6 +3,7 @@
 - when running git rebase, never open an editor; always use non-interactive flags or environment variables.
 - when creating or cloning a project, do it in ~/dev/
 - when running cargo check, use `--all-features`
+- prefer pnpm or bun over npm.
 
 - Prefer making invariant violations obvious: log (warn/error) and **early return / skip** when a state “shouldn’t happen”.
 - Avoid silent fallbacks that hide incorrect assumptions; if a fallback exists, it should be explicitly justified and logged.
