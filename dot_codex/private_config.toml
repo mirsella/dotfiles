@@ -1,0 +1,45 @@
+personality = "pragmatic"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+service_tier = "fast"
+[projects."/home/mirsella/dev/mightyminions/main"]
+trust_level = "trusted"
+
+[projects."/home/mirsella"]
+trust_level = "trusted"
+
+[projects."/home/mirsella/dev/y2s"]
+trust_level = "trusted"
+
+[notice]
+hide_full_access_warning = true
+
+[features]
+memories = true
+js_repl = true
+external_migration = true
+prevent_idle_sleep = true
+terminal_resize_reflow = true
+goals = true
+mentions_v2 = true
+
+[[skills.config]]
+path = "/home/mirsella/.codex/skills/commit"
+enabled = true
+
+[[skills.config]]
+path = "/home/mirsella/.codex/skills/commitdiff"
+enabled = true
+
+[[skills.config]]
+path = "/home/mirsella/.codex/skills/cleancode"
+enabled = true
+
+[tui]
+theme = "rose-pine"
+terminal_title = ["activity", "project-name", "run-state", "thread-title"]
+status_line = ["model-with-reasoning", "current-dir", "branch-changes", "context-used", "weekly-limit", "context-window-size", "used-tokens", "task-progress"]
+status_line_use_colors = true
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
