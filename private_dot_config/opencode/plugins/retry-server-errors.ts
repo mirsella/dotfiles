@@ -7,6 +7,41 @@ const MESSAGE_POLL_ATTEMPTS = 5;
 const MESSAGE_POLL_DELAY_MS = 200;
 const MESSAGE_FETCH_LIMIT = 24;
 
+type Client = Parameters<Plugin>[0]["client"];
+type RetryReason = "provider" | "database-locked";
+type Log = (
+	level: "debug" | "info" | "warn" | "error",
+	message: string,
+	extra?: Record<string, unknown>,
+) => Promise<void>;
+
+type MessageEntry = {
+	info: Message;
+	parts: Array<{
+		type: string;
+		text?: string;
+		synthetic?: boolean;
+		ignored?: boolean;
+	}>;
+};
+
+type RetryableTail = {
+	message: AssistantMessage;
+	reason: RetryReason;
+	shouldDelete: boolean;
+};
+
+type DeleteTransport = {
+	delete?: (input: {
+		url: string;
+		path: { id: string; messageID: string };
+	}) => Promise<unknown>;
+};
+
+type ClientWithTransport = {
+	_client?: DeleteTransport;
+};
+
 type RetryState = {
 	backoffStep: number;
 	lastFailureAt: number;
@@ -19,9 +54,10 @@ const globalState = globalThis as typeof globalThis & {
 	__opencodeRetryServerErrors?: Map<string, RetryState>;
 };
 
-const states =
-	globalState.__opencodeRetryServerErrors ??
-	(globalState.__opencodeRetryServerErrors = new Map<string, RetryState>());
+if (!globalState.__opencodeRetryServerErrors) {
+	globalState.__opencodeRetryServerErrors = new Map<string, RetryState>();
+}
+const states = globalState.__opencodeRetryServerErrors;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -29,15 +65,15 @@ const getState = (sessionID: string): RetryState => {
 	const existing = states.get(sessionID);
 	if (existing) return existing;
 
-	const created: RetryState = {
-		backoffStep: 0,
-		lastFailureAt: 0,
-	};
+	const created: RetryState = { backoffStep: 0, lastFailureAt: 0 };
 	states.set(sessionID, created);
 	return created;
 };
 
-const safeJsonParse = (value: string): unknown => {
+const isObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
+const parseJson = (value: string): unknown => {
 	try {
 		return JSON.parse(value);
 	} catch {
@@ -45,31 +81,61 @@ const safeJsonParse = (value: string): unknown => {
 	}
 };
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null;
-
 const unwrapProviderError = (message: string) => {
-	const parsed = safeJsonParse(message);
-	if (!isObject(parsed)) return undefined;
-	if (parsed.type !== "error") return undefined;
+	const parsed = parseJson(message);
+	if (!isObject(parsed) || parsed.type !== "error" || !isObject(parsed.error)) {
+		return undefined;
+	}
 
-	const inner = parsed.error;
-	return isObject(inner) ? inner : undefined;
+	return parsed.error;
 };
 
-const isRetryableError = (error: AssistantMessage["error"] | undefined): boolean => {
-	if (!error) return false;
+const getErrorText = (error: AssistantMessage["error"] | undefined): string => {
+	if (!error) return "";
+
+	const parts: string[] = [];
+	if ("name" in error && typeof error.name === "string") {
+		parts.push(error.name);
+	}
+	if ("data" in error && isObject(error.data)) {
+		const data = error.data as Record<string, unknown>;
+		for (const key of ["message", "code", "type", "responseBody"] as const) {
+			const value = data[key];
+			if (typeof value === "string") parts.push(value);
+		}
+	}
+
+	return parts.join("\n");
+};
+
+const classifyRetryableError = (
+	error: AssistantMessage["error"] | undefined,
+): RetryReason | undefined => {
+	if (!error) return undefined;
+
+	const text = getErrorText(error).toLowerCase();
+	if (
+		text.includes("database is locked") ||
+		text.includes("database locked") ||
+		text.includes("sqlite_busy") ||
+		text.includes("sqlite_locked")
+	) {
+		return "database-locked";
+	}
 
 	const rawMessage =
-		error && "data" in error && isObject(error.data) && typeof error.data.message === "string"
+		"data" in error &&
+		isObject(error.data) &&
+		typeof error.data.message === "string"
 			? error.data.message
 			: "";
 	const nested = rawMessage ? unwrapProviderError(rawMessage) : undefined;
 	const nestedCode = typeof nested?.code === "string" ? nested.code : "";
 	const nestedType = typeof nested?.type === "string" ? nested.type : "";
-	const nestedMessage = typeof nested?.message === "string" ? nested.message : "";
+	const nestedMessage =
+		typeof nested?.message === "string" ? nested.message : "";
 
-	return (
+	if (
 		nestedCode === "server_error" ||
 		nestedCode === "server_is_overloaded" ||
 		nestedType === "server_error" ||
@@ -78,13 +144,14 @@ const isRetryableError = (error: AssistantMessage["error"] | undefined): boolean
 		rawMessage.includes("Our servers are currently overloaded") ||
 		nestedMessage.includes("An error occurred while processing your request") ||
 		nestedMessage.includes("Our servers are currently overloaded")
-	);
+	) {
+		return "provider";
+	}
+
+	return undefined;
 };
 
-const sortNewestFirst = <T extends Message>(messages: T[]): T[] =>
-	[...messages].sort((a, b) => b.time.created - a.time.created);
-
-const fetchMessages = async (client: Parameters<Plugin>[0]["client"], sessionID: string) => {
+const fetchMessages = async (client: Client, sessionID: string) => {
 	const response = await client.session.messages({
 		path: { id: sessionID },
 		query: { limit: MESSAGE_FETCH_LIMIT },
@@ -92,22 +159,46 @@ const fetchMessages = async (client: Parameters<Plugin>[0]["client"], sessionID:
 	return response.data ?? [];
 };
 
-const pollRetryableTail = async (
-	client: Parameters<Plugin>[0]["client"],
+const fetchMessageEntry = async (
+	client: Client,
 	sessionID: string,
-): Promise<AssistantMessage | undefined> => {
-	for (let attempt = 0; attempt < MESSAGE_POLL_ATTEMPTS; attempt++) {
-		const entries = await fetchMessages(client, sessionID);
-		const infos = entries.map((entry) => entry.info);
-		const tail = sortNewestFirst(infos)[0];
+	messageID: string,
+): Promise<MessageEntry | undefined> => {
+	const response = await client.session.message({
+		path: { id: sessionID, messageID },
+	});
+	return response.data as MessageEntry | undefined;
+};
 
-		if (
-			tail &&
-			tail.role === "assistant" &&
-			isRetryableError(tail.error)
-		) {
-			return tail;
-		}
+const findRetryableTail = (
+	entries: Awaited<ReturnType<typeof fetchMessages>>,
+	eventReason: RetryReason,
+): RetryableTail | undefined => {
+	const tail = entries
+		.map((entry) => entry.info)
+		.sort((a, b) => b.time.created - a.time.created)[0];
+	if (tail?.role !== "assistant") return undefined;
+
+	const tailReason = classifyRetryableError(tail.error);
+	if (tailReason)
+		return { message: tail, reason: tailReason, shouldDelete: true };
+
+	return eventReason === "database-locked"
+		? { message: tail, reason: eventReason, shouldDelete: false }
+		: undefined;
+};
+
+const pollRetryableTail = async (
+	client: Client,
+	sessionID: string,
+	eventReason: RetryReason,
+): Promise<RetryableTail | undefined> => {
+	for (let attempt = 0; attempt < MESSAGE_POLL_ATTEMPTS; attempt++) {
+		const retryableTail = findRetryableTail(
+			await fetchMessages(client, sessionID),
+			eventReason,
+		);
+		if (retryableTail) return retryableTail;
 
 		if (attempt + 1 < MESSAGE_POLL_ATTEMPTS) {
 			await wait(MESSAGE_POLL_DELAY_MS);
@@ -118,7 +209,7 @@ const pollRetryableTail = async (
 };
 
 const hasNewerMessages = async (
-	client: Parameters<Plugin>[0]["client"],
+	client: Client,
 	sessionID: string,
 	since: number,
 ): Promise<boolean> => {
@@ -126,40 +217,41 @@ const hasNewerMessages = async (
 	return entries.some((entry) => entry.info.time.created > since);
 };
 
-const fetchMessageEntry = async (
-	client: Parameters<Plugin>[0]["client"],
+const deleteMessage = async (
+	client: Client,
 	sessionID: string,
 	messageID: string,
-): Promise<{ info: Message; parts: Array<{ type: string; text?: string; synthetic?: boolean; ignored?: boolean }> } | undefined> => {
-	const response = await client.session.message({
-		path: {
-			id: sessionID,
-			messageID,
-		},
-	});
-	return response.data as
-		| { info: Message; parts: Array<{ type: string; text?: string; synthetic?: boolean; ignored?: boolean }> }
-		| undefined;
-};
-
-const deleteMessage = async (client: Parameters<Plugin>[0]["client"], sessionID: string, messageID: string): Promise<void> => {
-	const transport = (client.session as any)?._client ?? (client as any)?._client;
+): Promise<void> => {
+	const sessionWithTransport = client.session as typeof client.session &
+		ClientWithTransport;
+	const clientWithTransport = client as typeof client & ClientWithTransport;
+	const transport = sessionWithTransport._client ?? clientWithTransport._client;
 	if (!transport?.delete) {
 		throw new Error("OpenCode SDK transport does not expose delete()");
 	}
 
 	await transport.delete({
 		url: "/session/{id}/message/{messageID}",
-		path: {
-			id: sessionID,
-			messageID,
-		},
+		path: { id: sessionID, messageID },
+	});
+};
+
+const logDeleteFailure = async (
+	log: Log,
+	message: string,
+	deleteError: unknown,
+	extra: Record<string, unknown>,
+) => {
+	await log("warn", message, {
+		...extra,
+		error:
+			deleteError instanceof Error ? deleteError.message : String(deleteError),
 	});
 };
 
 const isPlainContinueMessage = (
-	entry: { info: Message; parts: Array<{ type: string; text?: string; synthetic?: boolean; ignored?: boolean }> } | undefined,
-): entry is { info: UserMessage; parts: Array<{ type: string; text?: string; synthetic?: boolean; ignored?: boolean }> } => {
+	entry: MessageEntry | undefined,
+): entry is MessageEntry & { info: UserMessage } => {
 	if (!entry || entry.info.role !== "user") return false;
 	if (entry.parts.length !== 1) return false;
 
@@ -172,57 +264,56 @@ const isPlainContinueMessage = (
 	);
 };
 
-const getAssistantChildren = (
-	entries: Array<{ info: Message; parts: Array<{ type: string; text?: string; synthetic?: boolean; ignored?: boolean }> }>,
+const removeRetryChainForParent = async (
+	client: Client,
+	sessionID: string,
 	parentID: string,
-): AssistantMessage[] =>
-	entries
+	entries: MessageEntry[],
+	skipMessageID: string | undefined,
+	log: Log,
+) => {
+	const children = entries
 		.map((entry) => entry.info)
 		.filter(
 			(message): message is AssistantMessage =>
-				message.role === "assistant" && message.parentID === parentID,
+				message.role === "assistant" &&
+				message.parentID === parentID &&
+				message.id !== skipMessageID,
 		);
-
-const removeRetryChainForParent = async (
-	client: Parameters<Plugin>[0]["client"],
-	sessionID: string,
-	parentID: string,
-	entries: Array<{ info: Message; parts: Array<{ type: string; text?: string; synthetic?: boolean; ignored?: boolean }> }>,
-	skipMessageID: string | undefined,
-	log: (level: "debug" | "info" | "warn" | "error", message: string, extra?: Record<string, unknown>) => Promise<void>,
-) => {
-	const children = getAssistantChildren(entries, parentID).filter((child) => child.id !== skipMessageID);
-	const hasSuccessfulChild = children.some((child) => !child.error);
-	if (hasSuccessfulChild) {
-		return false;
-	}
+	if (children.some((child) => !child.error)) return false;
 
 	for (const child of children) {
-		await deleteMessage(client, sessionID, child.id).catch(async (deleteError: unknown) => {
-			const message = deleteError instanceof Error ? deleteError.message : String(deleteError);
-			await log("warn", "failed to delete sibling retry message", {
-				sessionID,
-				messageID: child.id,
-				parentID,
-				error: message,
-			});
-		});
+		await deleteMessage(client, sessionID, child.id).catch((deleteError) =>
+			logDeleteFailure(
+				log,
+				"failed to delete sibling retry message",
+				deleteError,
+				{
+					sessionID,
+					messageID: child.id,
+					parentID,
+				},
+			),
+		);
 	}
 
-	await deleteMessage(client, sessionID, parentID).catch(async (deleteError: unknown) => {
-		const message = deleteError instanceof Error ? deleteError.message : String(deleteError);
-		await log("warn", "failed to delete retry parent continue message", {
-			sessionID,
-			messageID: parentID,
-			error: message,
-		});
-	});
+	await deleteMessage(client, sessionID, parentID).catch((deleteError) =>
+		logDeleteFailure(
+			log,
+			"failed to delete retry parent continue message",
+			deleteError,
+			{ sessionID, messageID: parentID },
+		),
+	);
 
 	return true;
 };
 
 const scheduleDelayMs = (state: RetryState, now: number): number => {
-	if (state.lastFailureAt && now - state.lastFailureAt < QUICK_FAILURE_WINDOW_MS) {
+	if (
+		state.lastFailureAt &&
+		now - state.lastFailureAt < QUICK_FAILURE_WINDOW_MS
+	) {
 		state.backoffStep += 1;
 	} else {
 		state.backoffStep = 0;
@@ -233,7 +324,7 @@ const scheduleDelayMs = (state: RetryState, now: number): number => {
 };
 
 export const RetryServerErrorsPlugin: Plugin = async ({ client }) => {
-	const log = async (level: "debug" | "info" | "warn" | "error", message: string, extra?: Record<string, unknown>) => {
+	const log: Log = async (level, message, extra) => {
 		await client.app
 			.log({
 				body: {
@@ -246,14 +337,13 @@ export const RetryServerErrorsPlugin: Plugin = async ({ client }) => {
 			.catch(() => undefined);
 	};
 
-	const toast = async (message: string, variant: "info" | "warning" | "error" = "warning") => {
+	const toast = async (
+		message: string,
+		variant: "info" | "warning" | "error" = "warning",
+	) => {
 		await client.tui
 			.showToast({
-				body: {
-					message,
-					variant,
-					duration: 2500,
-				},
+				body: { message, variant, duration: 2500 },
 			})
 			.catch(() => undefined);
 	};
@@ -263,10 +353,16 @@ export const RetryServerErrorsPlugin: Plugin = async ({ client }) => {
 			if (event.type !== "session.error") return;
 
 			const { sessionID, error } = event.properties;
-			if (!sessionID || !isRetryableError(error)) return;
+			const eventReason = classifyRetryableError(error);
+			if (!sessionID || !eventReason) return;
 
-			const failingMessage = await pollRetryableTail(client, sessionID);
-			if (!failingMessage) return;
+			const retryableTail = await pollRetryableTail(
+				client,
+				sessionID,
+				eventReason,
+			);
+			if (!retryableTail) return;
+			const { message: failingMessage } = retryableTail;
 
 			const state = getState(sessionID);
 			if (state.lastHandledMessageID === failingMessage.id) return;
@@ -283,27 +379,32 @@ export const RetryServerErrorsPlugin: Plugin = async ({ client }) => {
 
 			const recentEntries = await fetchMessages(client, sessionID);
 
-			await deleteMessage(client, sessionID, failingMessage.id).catch(async (deleteError: unknown) => {
-				const message = deleteError instanceof Error ? deleteError.message : String(deleteError);
-				await log("warn", "failed to delete retryable error message", {
-					sessionID,
-					messageID: failingMessage.id,
-					error: message,
-				});
-			});
+			if (retryableTail.shouldDelete) {
+				await deleteMessage(client, sessionID, failingMessage.id).catch(
+					(deleteError) =>
+						logDeleteFailure(
+							log,
+							"failed to delete retryable error message",
+							deleteError,
+							{ sessionID, messageID: failingMessage.id },
+						),
+				);
 
-			const parentEntry = await fetchMessageEntry(client, sessionID, failingMessage.parentID).catch(
-				() => undefined,
-			);
-			if (isPlainContinueMessage(parentEntry)) {
-				await removeRetryChainForParent(
+				const parentEntry = await fetchMessageEntry(
 					client,
 					sessionID,
-					parentEntry.info.id,
-					recentEntries,
-					failingMessage.id,
-					log,
-				);
+					failingMessage.parentID,
+				).catch(() => undefined);
+				if (isPlainContinueMessage(parentEntry)) {
+					await removeRetryChainForParent(
+						client,
+						sessionID,
+						parentEntry.info.id,
+						recentEntries,
+						failingMessage.id,
+						log,
+					);
+				}
 			}
 
 			if (delayMs > 0) {
@@ -314,11 +415,21 @@ export const RetryServerErrorsPlugin: Plugin = async ({ client }) => {
 				if (state.pendingToken !== token) return;
 
 				try {
-					if (await hasNewerMessages(client, sessionID, failingMessage.time.created)) {
-						await log("info", "skipped retry because the session moved forward", {
+					if (
+						await hasNewerMessages(
+							client,
 							sessionID,
-							messageID: failingMessage.id,
-						});
+							failingMessage.time.created,
+						)
+					) {
+						await log(
+							"info",
+							"skipped retry because the session moved forward",
+							{
+								sessionID,
+								messageID: failingMessage.id,
+							},
+						);
 						return;
 					}
 
@@ -339,16 +450,20 @@ export const RetryServerErrorsPlugin: Plugin = async ({ client }) => {
 						},
 					});
 
-					await log("info", "scheduled retry for transient provider error", {
+					await log("info", "scheduled retry for transient error", {
 						sessionID,
 						messageID: failingMessage.id,
+						reason: retryableTail.reason,
 						delayMs,
 						agent: parentUserMessage?.agent,
 						modelID: failingMessage.modelID,
 						providerID: failingMessage.providerID,
 					});
 				} catch (retryError) {
-					const message = retryError instanceof Error ? retryError.message : String(retryError);
+					const message =
+						retryError instanceof Error
+							? retryError.message
+							: String(retryError);
 					await log("error", "failed to schedule retry", {
 						sessionID,
 						messageID: failingMessage.id,
