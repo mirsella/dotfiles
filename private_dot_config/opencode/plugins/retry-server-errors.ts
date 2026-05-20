@@ -3,6 +3,7 @@ import type { AssistantMessage, Message, UserMessage } from "@opencode-ai/sdk";
 
 const RETRY_PROMPT = "continue";
 const QUICK_FAILURE_WINDOW_MS = 15_000;
+const DATABASE_LOCKED_RETRY_DELAY_MS = 1_000;
 const MESSAGE_POLL_ATTEMPTS = 5;
 const MESSAGE_POLL_DELAY_MS = 200;
 const MESSAGE_FETCH_LIMIT = 24;
@@ -309,7 +310,11 @@ const removeRetryChainForParent = async (
 	return true;
 };
 
-const scheduleDelayMs = (state: RetryState, now: number): number => {
+const scheduleDelayMs = (
+	state: RetryState,
+	now: number,
+	reason: RetryReason,
+): number => {
 	if (
 		state.lastFailureAt &&
 		now - state.lastFailureAt < QUICK_FAILURE_WINDOW_MS
@@ -320,7 +325,10 @@ const scheduleDelayMs = (state: RetryState, now: number): number => {
 	}
 
 	state.lastFailureAt = now;
-	return state.backoffStep * 1000;
+
+	const baseDelayMs =
+		reason === "database-locked" ? DATABASE_LOCKED_RETRY_DELAY_MS : 0;
+	return baseDelayMs + state.backoffStep * 1000;
 };
 
 export const RetryServerErrorsPlugin: Plugin = async ({ client }) => {
@@ -373,7 +381,7 @@ export const RetryServerErrorsPlugin: Plugin = async ({ client }) => {
 				state.pendingTimer = undefined;
 			}
 
-			const delayMs = scheduleDelayMs(state, Date.now());
+			const delayMs = scheduleDelayMs(state, Date.now(), retryableTail.reason);
 			const token = Symbol(failingMessage.id);
 			state.pendingToken = token;
 
