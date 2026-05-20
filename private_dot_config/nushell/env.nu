@@ -104,6 +104,7 @@ $env.SQLITE_HISTORY = $"($env.XDG_STATE_HOME)/sqlite_history"
 $env.PATH = [
   $"($env.ANDROID_HOME)/platform-tools"
   $"($env.ANDROID_HOME)/emulator"
+  $"($env.ANDROID_HOME)/cmdline-tools/latest/bin"
 ] ++ $env.PATH
 $env.PATH ++= [
   $"($env.HOME)/.local/bin"

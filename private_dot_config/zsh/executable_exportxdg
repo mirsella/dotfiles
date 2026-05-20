@@ -119,6 +119,7 @@ path_append() {
 	esac
 }
 
+path_prepend "$ANDROID_HOME/cmdline-tools/latest/bin"
 path_prepend "$ANDROID_HOME/emulator"
 path_prepend "$ANDROID_HOME/platform-tools"
 path_append "$HOME/.local/bin"
