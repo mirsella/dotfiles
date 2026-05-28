@@ -45,19 +45,21 @@ export INPUTRC="$XDG_CONFIG_HOME/inputrc"
 export GNUPGHOME="$XDG_DATA_HOME/gnupg"
 export WINEPREFIX="$XDG_DATA_HOME/wineprefixes/wine64"
 export PASSWORD_STORE_DIR="$XDG_DATA_HOME/password-store"
-export ANDROID_HOME="$XDG_DATA_HOME/android/sdk"
-export ANDROID_AVD_HOME="$XDG_DATA_HOME/android/avd"
+android_data_home="$XDG_DATA_HOME/android"
+export ANDROID_HOME="$android_data_home/sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export ANDROID_AVD_HOME="$android_data_home/avd"
 export ANDROID_USER_HOME="$XDG_CONFIG_HOME/android"
 export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
 
-# Set NDK_HOME if the directory exists.
-if [ -d "$ANDROID_HOME/ndk" ]; then
-	ndk_home="$(find "$ANDROID_HOME/ndk" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort -V | tail -n 1)"
-	if [ -n "$ndk_home" ]; then
-		export NDK_HOME="$ndk_home"
-	fi
-	unset ndk_home
+# Pin the NDK so all shells and machines use the same Android toolchain.
+android_ndk_root="$ANDROID_HOME/ndk/27.0.12077973"
+if [ -d "$android_ndk_root" ]; then
+	export ANDROID_NDK_HOME="$android_ndk_root"
+	export ANDROID_NDK_ROOT="$android_ndk_root"
+	export NDK_HOME="$android_ndk_root"
 fi
+unset android_data_home android_ndk_root
 
 export PYTHONSTARTUP="$XDG_CONFIG_HOME/python/pythonrc.py"
 export PYLINTHOME="$XDG_CACHE_HOME/pylint"

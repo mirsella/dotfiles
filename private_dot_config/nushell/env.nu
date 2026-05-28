@@ -43,17 +43,18 @@ $env.INPUTRC = $"($env.XDG_CONFIG_HOME)/inputrc"
 $env.GNUPGHOME = $"($env.XDG_DATA_HOME)/gnupg"
 $env.WINEPREFIX = $"($env.XDG_DATA_HOME)/wineprefixes/wine64"
 $env.PASSWORD_STORE_DIR = $"($env.XDG_DATA_HOME)/password-store"
-$env.ANDROID_HOME = $"($env.XDG_DATA_HOME)/android/sdk"
-$env.ANDROID_AVD_HOME = $"($env.XDG_DATA_HOME)/android/avd"
+let android_data_home = $"($env.XDG_DATA_HOME)/android"
+$env.ANDROID_HOME = $"($android_data_home)/sdk"
+$env.ANDROID_SDK_ROOT = $env.ANDROID_HOME
+$env.ANDROID_AVD_HOME = $"($android_data_home)/avd"
 $env.ANDROID_USER_HOME = $"($env.XDG_CONFIG_HOME)/android"
 $env.ANDROID_EMULATOR_HOME = $env.ANDROID_USER_HOME
 
-# Set NDK_HOME if the directory exists
-if ($env.ANDROID_HOME | path join "ndk" | path exists) {
-  let ndk_dirs = (ls $"($env.ANDROID_HOME)/ndk" | where type == dir | sort-by name)
-  if ($ndk_dirs | length) > 0 {
-    $env.NDK_HOME = $ndk_dirs | last | get name
-  }
+let android_ndk_root = $"($env.ANDROID_HOME)/ndk/27.0.12077973"
+if ($android_ndk_root | path exists) {
+  $env.ANDROID_NDK_HOME = $android_ndk_root
+  $env.ANDROID_NDK_ROOT = $android_ndk_root
+  $env.NDK_HOME = $android_ndk_root
 }
 
 $env.PYTHONSTARTUP = "~/.config/python/pythonrc.py"
