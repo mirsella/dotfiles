@@ -1,118 +1,24 @@
-# XDG Base Directory specification
-$env.GTK_USE_PORTAL = 1
-$env.XDG_CONFIG_HOME = $"($env.HOME)/.config"
-$env.XDG_CACHE_HOME = $"($env.HOME)/.cache"
-$env.XDG_DATA_HOME = $"($env.HOME)/.local/share"
-$env.XDG_STATE_HOME = $"($env.HOME)/.local/state"
+if ("ANDROID_HOME" in $env) {
+  let default_android_ndk_root = $"($env.ANDROID_HOME)/ndk/27.0.12077973"
+  let configured_android_ndk_root = if ("ANDROID_NDK_HOME" in $env) { $env.ANDROID_NDK_HOME } else { $default_android_ndk_root }
 
-$env.EDITOR = "nvim"
-if ((which zen-browser | length) > 0) {
-    $env.BROWSER = "zen-browser"
-} else if ((which zen-browser | length) > 0) {
-    $env.BROWSER = "firefox"
+  if ($configured_android_ndk_root | path exists) {
+    $env.ANDROID_NDK_HOME = $configured_android_ndk_root
+    $env.ANDROID_NDK_ROOT = $configured_android_ndk_root
+    $env.NDK_HOME = $configured_android_ndk_root
+  } else {
+    let android_ndk_roots = (glob $"($env.ANDROID_HOME)/ndk/*" | sort --natural | reverse)
+    if (($android_ndk_roots | length) > 0) {
+      let android_ndk_root = ($android_ndk_roots | first)
+      print --stderr $"ANDROID_NDK_HOME points to missing path '($configured_android_ndk_root)'; using '($android_ndk_root)'"
+      $env.ANDROID_NDK_HOME = $android_ndk_root
+      $env.ANDROID_NDK_ROOT = $android_ndk_root
+      $env.NDK_HOME = $android_ndk_root
+    } else {
+      print --stderr $"ANDROID_NDK_HOME points to missing path '($configured_android_ndk_root)'; unsetting Android NDK environment"
+      hide-env ANDROID_NDK_HOME ANDROID_NDK_ROOT NDK_HOME
+    }
+  }
+} else {
+  print --stderr "ANDROID_HOME is not set; skipping Android NDK environment"
 }
-
-# Locale settings
-$env.LANG = "en_US.UTF-8"
-$env.LANGUAGE = "en_US.UTF-8"
-$env.LC_ADDRESS = "fr_FR.UTF-8"
-$env.LC_COLLATE = "fr_FR.UTF-8"
-$env.LC_CTYPE = "fr_FR.UTF-8"
-$env.LC_IDENTIFICATION = "fr_FR.UTF-8"
-$env.LC_MEASUREMENT = "fr_FR.UTF-8"
-$env.LC_MESSAGES = "fr_FR.UTF-8"
-$env.LC_MONETARY = "fr_FR.UTF-8"
-$env.LC_NAME = "fr_FR.UTF-8"
-$env.LC_NUMERIC = "fr_FR.UTF-8"
-$env.LC_PAPER = "fr_FR.UTF-8"
-$env.LC_TELEPHONE = "fr_FR.UTF-8"
-$env.LC_TIME = "fr_FR.UTF-8"
-
-# Application-specific directories
-$env.GRADLE_USER_HOME = $"($env.XDG_DATA_HOME)/gradle"
-$env.CARGO_HOME = $"($env.XDG_DATA_HOME)/cargo"
-$env.RUSTUP_HOME = $"($env.XDG_DATA_HOME)/rustup"
-$env.GOPATH = $"($env.XDG_DATA_HOME)/go"
-$env.KDEHOME = $"($env.XDG_CONFIG_HOME)/kde"
-$env.SCREENRC = $"($env.XDG_CONFIG_HOME)/screen/screenrc"
-$env.GTK_RC_FILES = $"($env.XDG_CONFIG_HOME)/gtkrc-1.0"
-$env.GTK2_RC_FILES = $"($env.XDG_CONFIG_HOME)/gtkrc-2.0"
-$env.WGETRC = $"($env.XDG_CONFIG_HOME)/wget/wgetrc"
-$env.LESSHISTFILE = "-"
-$env.INPUTRC = $"($env.XDG_CONFIG_HOME)/inputrc"
-$env.GNUPGHOME = $"($env.XDG_DATA_HOME)/gnupg"
-$env.WINEPREFIX = $"($env.XDG_DATA_HOME)/wineprefixes/wine64"
-$env.PASSWORD_STORE_DIR = $"($env.XDG_DATA_HOME)/password-store"
-let android_data_home = $"($env.XDG_DATA_HOME)/android"
-$env.ANDROID_HOME = $"($android_data_home)/sdk"
-$env.ANDROID_SDK_ROOT = $env.ANDROID_HOME
-$env.ANDROID_AVD_HOME = $"($android_data_home)/avd"
-$env.ANDROID_USER_HOME = $"($env.XDG_CONFIG_HOME)/android"
-$env.ANDROID_EMULATOR_HOME = $env.ANDROID_USER_HOME
-
-let android_ndk_root = $"($env.ANDROID_HOME)/ndk/27.0.12077973"
-if ($android_ndk_root | path exists) {
-  $env.ANDROID_NDK_HOME = $android_ndk_root
-  $env.ANDROID_NDK_ROOT = $android_ndk_root
-  $env.NDK_HOME = $android_ndk_root
-}
-
-$env.PYTHONSTARTUP = "~/.config/python/pythonrc.py"
-$env.PYLINTHOME = $"($env.XDG_CACHE_HOME)/pylint"
-$env.ZDOTDIR = "~/.config/zsh"
-$env.HISTFILE = $"($env.XDG_STATE_HOME)/bash/history"
-$env.CUDA_PATH = "/opt/cuda"
-$env.CUDA_CACHE_PATH = $"($env.XDG_CACHE_HOME)/nv"
-$env.NODE_REPL_HISTORY = $"($env.XDG_DATA_HOME)/node_repl_history"
-$env.TS_NODE_HISTORY = $"($env.XDG_DATA_HOME)/ts_node_repl_history"
-$env.MYSQL_HISTFILE = $"($env.XDG_DATA_HOME)/mysql_history"
-$env.NPM_CONFIG_USERCONFIG = $"($env.XDG_CONFIG_HOME)/npm/npmrc"
-$env.GEM_HOME = $"($env.XDG_DATA_HOME)/gem"
-$env.GEM_SPEC_CACHE = $"($env.XDG_CACHE_HOME)/gem"
-$env.NPM_CONFIG_STORE_DIR = $env.XDG_CACHE_HOME
-$env._JAVA_OPTIONS = $"-Djava.util.prefs.userRoot=\"($env.XDG_CONFIG_HOME)/java\""
-$env.XINITRC = $"($env.XDG_CONFIG_HOME)/X11/xinitrc"
-$env.PSQLRC = $"($env.XDG_CONFIG_HOME)/pg/psqlrc"
-$env.PSQL_HISTORY = $"($env.XDG_STATE_HOME)/psql_history"
-$env.PGPASSFILE = $"($env.XDG_CONFIG_HOME)/pg/pgpass"
-$env.PGSERVICEFILE = $"($env.XDG_CONFIG_HOME)/pg/pg_service.conf"
-$env.DUB_HOME = $"($env.XDG_CACHE_HOME)/dub"
-$env.MOZ_ENABLE_WAYLAND = 1
-$env.VAGRANT_HOME = $"($env.XDG_DATA_HOME)/vagrant"
-$env.VAGRANT_ALIAS_FILE = $"($env.XDG_DATA_HOME)/vagrant/aliases"
-$env.JAVA_HOME = "/usr/lib/jvm/default"
-$env.CAPACITOR_ANDROID_STUDIO_PATH = "/usr/bin/android-studio"
-$env.ANSIBLE_HOME = $"($env.XDG_CONFIG_HOME)/ansible"
-$env.ANSIBLE_CONFIG = $"($env.XDG_CONFIG_HOME)/ansible.cfg"
-$env.ANSIBLE_GALAXY_CACHE_DIR = $"($env.XDG_CACHE_HOME)/ansible/galaxy_cache"
-$env.DOCKER_CONFIG = $"($env.XDG_CONFIG_HOME)/docker"
-$env.FLY_CONFIG_DIR = $"($env.XDG_CONFIG_HOME)/fly"
-$env.PNPM_HOME = $"($env.XDG_DATA_HOME)/pnpm"
-$env.WASMER_DIR = $"($env.XDG_CONFIG_HOME)/wasmer"
-$env.WASMER_CACHE_DIR = $"($env.XDG_CACHE_HOME)/wasmer"
-$env.WAKATIME_HOME = $"($env.XDG_CONFIG_HOME)/wakatime"
-$env.POSTHOG_HOME = $"($env.XDG_CONFIG_HOME)/posthog"
-
-# $env.OPENCODE_EXPERIMENTAL_PLAN_MODE = 1 # using plannotator
-$env.OPENCODE_EXPERIMENTAL_EXA = 1
-$env.OPENCODE_EXPERIMENTAL_LSP_TOOL = 1
-$env.OPENCODE_EXPERIMENTAL_ICON_DISCOVERY = 1
-$env.OPENCODE_EXPERIMENTAL_FILEWATCHER = 1
-$env.OPENCODE_EXPERIMENTAL_EVENT_SYSTEM = 1
-$env.OPENCODE_EXPERIMENTAL_WORKSPACES = 1
-
-$env.SQLITE_HISTORY = $"($env.XDG_STATE_HOME)/sqlite_history"
-$env.PATH = [
-  $"($env.ANDROID_HOME)/platform-tools"
-  $"($env.ANDROID_HOME)/emulator"
-  $"($env.ANDROID_HOME)/cmdline-tools/latest/bin"
-] ++ $env.PATH
-$env.PATH ++= [
-  $"($env.HOME)/.local/bin"
-  $"($env.HOME)/.local/share/gem/bin"
-  $"($env.HOME)/.local/share/npm/bin"
-  $"($env.HOME)/.local/share/cargo/bin"
-  $"($env.HOME)/.local/share/go/bin"
-  $"($env.HOME)/.cache/.bun/bin"
-  $env.PNPM_HOME
-]
