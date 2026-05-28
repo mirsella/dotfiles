@@ -10,5 +10,9 @@
     "messages_half_page_up": "ctrl+u",
     "messages_half_page_down": "ctrl+d",
   },
-  "plugin": ["opencode-vim", "./plugins/suppress-ctrl-u.ts", "@slkiser/opencode-quota"],
+  "plugin": [
+    // "opencode-vim",
+    "./plugins/suppress-ctrl-u.ts",
+    // "@slkiser/opencode-quota"
+  ],
 }
