@@ -1,3 +1,33 @@
+path_prepend() {
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) PATH="$1${PATH:+:$PATH}" ;;
+  esac
+}
+
+path_append() {
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) PATH="${PATH:+$PATH:}$1" ;;
+  esac
+}
+
+android_home="${ANDROID_HOME:-$HOME/.local/share/android/sdk}"
+path_prepend "$android_home/cmdline-tools/latest/bin"
+path_prepend "$android_home/emulator"
+path_prepend "$android_home/platform-tools"
+path_append "$HOME/.local/bin"
+path_append "${GEM_HOME:-$HOME/.local/share/gem}/bin"
+path_append "$HOME/.local/share/npm/bin"
+path_append "${CARGO_HOME:-$HOME/.local/share/cargo}/bin"
+path_append "${GOPATH:-$HOME/.local/share/go}/bin"
+path_append "${XDG_CACHE_HOME:-$HOME/.cache}/.bun/bin"
+path_append "${PNPM_HOME:-$HOME/.local/share/pnpm}"
+export PATH
+
+unset android_home
+unset -f path_prepend path_append 2>/dev/null || true
+
 winboot() {
 	# WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
 	# sudo grub-reboot "$WINDOWS_TITLE"
