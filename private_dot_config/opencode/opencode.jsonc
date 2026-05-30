@@ -66,6 +66,14 @@
       "url": "https://mcp.pscale.dev/mcp/planetscale",
       "enabled": false,
     },
+    "resend": {
+      "type": "local",
+      "command": ["npx", "-y", "resend-mcp"],
+      "enabled": false,
+      "environment": {
+        "RESEND_API_KEY": "{env:CONTEXT7_API_KEY}",
+      },
+    },
   },
   "lsp": {
     "rust": {
