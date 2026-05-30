@@ -22,6 +22,7 @@ path_append "$HOME/.local/share/npm/bin"
 path_append "${CARGO_HOME:-$HOME/.local/share/cargo}/bin"
 path_append "${GOPATH:-$HOME/.local/share/go}/bin"
 path_append "${XDG_CACHE_HOME:-$HOME/.cache}/.bun/bin"
+path_append "${PNPM_HOME:-$HOME/.local/share/pnpm}/bin"
 path_append "${PNPM_HOME:-$HOME/.local/share/pnpm}"
 export PATH
 

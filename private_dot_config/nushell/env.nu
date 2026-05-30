@@ -22,6 +22,7 @@ for path in [
   $"($cargo_home)/bin"
   $"($go_path)/bin"
   $"($xdg_cache_home)/.bun/bin"
+  $"($pnpm_home)/bin"
   $pnpm_home
 ] {
   if not ($path in $env.PATH) {
