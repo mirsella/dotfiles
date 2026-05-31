@@ -18,6 +18,7 @@ Prioritize code quality over speed. Do not introduce hacks, duct tape, local wor
 - Prefer fewer concepts, strong locality, and fewer moving parts.
 - Prefer direct, concrete code until an abstraction reduces duplication, encodes an invariant, or makes call sites clearer.
 - Use generics, traits, combinators, and helpers only when they reduce conceptual load and remain locally understandable.
+- Prefer reusing existing domain APIs over re-deriving their logic locally, even when the local code would be shorter.
 - Readable one-liners are acceptable when their meaning is obvious and they do not combine unrelated effects.
 
 ## Code quality rules
@@ -29,6 +30,8 @@ Prioritize code quality over speed. Do not introduce hacks, duct tape, local wor
 - Simplicity over complexity.
 - Do not knowingly introduce fragile invariants, hidden coupling, untracked temporary behavior, or code that only works for the current narrow case while pretending to be general.
 - Do not use broad catch-all behavior, permissive parsing, or hidden dual paths merely to make errors disappear.
+- Do not duplicate classification, validation, parsing, pricing, authorization, or state-transition rules that already exist elsewhere.
+- If two places need the same rule, there should usually be one named canonical implementation, not a local closure plus an existing method.
 
 ## Refactoring rules
 
@@ -49,6 +52,8 @@ Prioritize code quality over speed. Do not introduce hacks, duct tape, local wor
 - Keep behavior, state, validation, and side effects close together.
 - Minimize how many files, modules, traits, plugins, hooks, services, or callbacks are needed to understand one behavior.
 - Prefer code that can be understood from one nearby place.
+- Locality means the reader can find the canonical rule easily; it does not mean copying the rule into the caller.
+- Do not move behavior to a type merely because that type contains the data. Put behavior where the domain concept naturally belongs.
 
 1. **Prefer low-concept, idiomatic code**
 
@@ -62,8 +67,10 @@ Prioritize code quality over speed. Do not introduce hacks, duct tape, local wor
 - Delete stale compatibility code, fallback paths, adapters, redundant configuration, dead branches, and unnecessary indirection.
 - Inline or merge small pieces when that improves readability and locality.
 - Single-use helpers, wrappers, modules, traits, plugins, and layers should usually be inlined or merged unless keeping them separate clearly improves readability.
-- If a helper is only used inside one function, prefer keeping it inside that function as a local closure or local function instead of promoting it to top-level scope.
+- If a helper is only used inside one function, prefer keeping it inside that function as a local closure or local function only when it does not duplicate an existing named domain rule.
 - If a helper is only called once, prefer inlining it entirely unless extracting it makes the code clearly easier to read.
+- Never introduce a local closure that reimplements part of an existing trait method, enum method, parser, classifier, validator, or policy function.
+- If an existing method is slightly inconvenient but semantically correct, call it instead of rebuilding its internals.
 - A small amount of duplication is better than a bad abstraction.
 
 1. **Make invalid states impossible or obvious**
@@ -86,6 +93,7 @@ Prioritize code quality over speed. Do not introduce hacks, duct tape, local wor
 - Prioritize code touched in the current session.
 - Refactor adjacent supporting code when it is part of the same structural problem.
 - Do not be timid: a larger local refactor is better than a minimal diff if it clearly leaves the code better.
+- Do not move domain behavior across type/module boundaries unless the new owner is clearly more canonical than the old one.
 - Do not expand scope into unrelated rewrites merely because they are available.
 
 ## Heuristics
@@ -96,3 +104,5 @@ Prioritize code quality over speed. Do not introduce hacks, duct tape, local wor
 - One canonical path is better.
 - Low-concept idiomatic code is better than verbose ceremony or dense cleverness.
 - Local understandable cleverness is good; opaque magic is bad.
+- Calling a clear existing method is usually lower-concept than locally reconstructing what it does.
+- A refactor that creates a second implementation of the same rule is usually worse, even if each implementation is locally simple.
