@@ -1,13 +1,7 @@
 personality = "pragmatic"
 model = "gpt-5.5"
 model_reasoning_effort = "xhigh"
-[projects."/home/mirsella/dev/mightyminions/main"]
-trust_level = "trusted"
-
-[projects."/home/mirsella"]
-trust_level = "trusted"
-
-[projects."/home/mirsella/dev/y2s"]
+[projects."/home/mirsella/dev/mightyminions"]
 trust_level = "trusted"
 
 [notice]

@@ -4,7 +4,7 @@
     "opencode-antigravity-auth",
     "@tarquinen/opencode-dcp",
     "opencode-wakatime",
-    "@slkiser/opencode-quota",
+    // "@slkiser/opencode-quota",
     "@tarquinen/opencode-smart-title",
     "opencode-queue",
     "@plannotator/opencode",
