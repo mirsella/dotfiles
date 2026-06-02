@@ -49,14 +49,12 @@ $env.config.keybindings = [
 #   }
 # }
 
-let autoload_path = ($nu.data-dir | path join "vendor/autoload")
+let autoload_path = ($nu.user-autoload-dirs | first)
 mkdir $autoload_path
 starship init nu | save -f ($autoload_path | path join "starship.nu")
 zoxide init --cmd cd nushell | save -f ($autoload_path | path join "zoxide.nu")
 jj util completion nushell | save -f ($autoload_path | path join "jj.nu")
-# atuin init nu --disable-up-arrow | save -f ($autoload_path | path join "atuin.nu")
-atuin init nu --disable-up-arrow |
-  str replace "job spawn -d atuin" "job spawn --tag atuin" |  # TODO: Remove when https://github.com/atuinsh/atuin/issues/3268 fixed
-  save -f ($autoload_path | path join "atuin.nu")
+atuin init nu --disable-up-arrow | save -f ($autoload_path | path join "atuin.nu")
+rift shell-init nushell | save -f ($autoload_path | path join "rift.nu")
 
 atuin dotfiles var list | lines | parse "export {name}={value}" | reduce -f {} {|it, acc| $acc | upsert $it.name $it.value} | load-env
