@@ -153,7 +153,14 @@ def --env riftnew [
     return
   }
 
+  let cleaned = (git -C $target clean -fd -e target/ | complete)
+  if ($cleaned.exit_code != 0) {
+    print -e ($cleaned.stderr | str trim)
+    return
+  }
+
   print ($reset.stdout | str trim)
+  print ($cleaned.stdout | str trim)
   cd $target
 }
 
