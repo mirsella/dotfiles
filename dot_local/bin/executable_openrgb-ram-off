@@ -1,0 +1,44 @@
+#!/bin/sh
+set -u
+
+LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/openrgb"
+LOG_FILE="$LOG_DIR/ram-off.log"
+
+mkdir -p "$LOG_DIR" || exit 1
+exec 2>>"$LOG_FILE"
+
+if ! command -v openrgb >/dev/null 2>&1; then
+  printf '%s openrgb not found; cannot disable RAM RGB\n' "$(date -Is)" >>"$LOG_FILE"
+  exit 1
+fi
+
+devices=$(timeout 20s openrgb --list-devices 2>>"$LOG_FILE" | awk '/^[0-9]+: .*DRAM/ { sub(":", "", $1); print $1 }')
+
+if [ -z "$devices" ]; then
+  printf '%s no DRAM RGB devices detected; skipping\n' "$(date -Is)" >>"$LOG_FILE"
+  exit 0
+fi
+
+server_pid=""
+
+if ! pgrep -f 'openrgb .*--server.*--server-port 6742' >/dev/null 2>&1; then
+  openrgb --server --server-host 127.0.0.1 --server-port 6742 >>"$LOG_FILE" 2>&1 &
+  server_pid=$!
+  sleep 10
+fi
+
+for device in $devices; do
+  timeout 20s openrgb --client 127.0.0.1:6742 --device "$device" --mode Off >>"$LOG_FILE" 2>&1
+  status=$?
+
+  if [ "$status" -eq 124 ]; then
+    printf '%s openrgb client timed out after setting device %s off\n' "$(date -Is)" "$device" >>"$LOG_FILE"
+  elif [ "$status" -ne 0 ]; then
+    printf '%s openrgb client exited with status %s for device %s\n' "$(date -Is)" "$status" "$device" >>"$LOG_FILE"
+  fi
+done
+
+if [ -n "$server_pid" ]; then
+  kill -TERM "$server_pid" >/dev/null 2>&1 || true
+  wait "$server_pid" 2>/dev/null || true
+fi
