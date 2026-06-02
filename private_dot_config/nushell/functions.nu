@@ -48,6 +48,63 @@ def gamp [...args] {
   git push
 }
 
+# Create a new Rift workspace for the current repository.
+#
+# Defaults to ../<branch>, with the directory name sanitized for the filesystem.
+# Custom paths are used as-is. The Git branch name itself is preserved.
+def riftnew [
+  branch: string # Git branch to switch to or create
+  path?: path    # Target path, defaults to ../<sanitized-branch>
+] {
+  let valid_branch = (git check-ref-format --branch $branch | complete)
+  if ($valid_branch.exit_code != 0) {
+    print -e ($valid_branch.stderr | str trim)
+    return
+  }
+
+  let raw_target = if ($path == null) {
+    let safe_branch = ($branch | str replace --regex --all "[^A-Za-z0-9._-]+" "-" | str trim --char "-")
+    if ($safe_branch | is-empty) {
+      print -e $"branch name '($branch)' does not produce a usable directory name; pass an explicit path"
+      return
+    }
+
+    ".." | path join $safe_branch
+  } else {
+    $path
+  }
+
+  let target = ($raw_target | path expand)
+  let into = ($target | path dirname)
+  let name = ($target | path basename)
+
+  let created = (rift create --into $into --name $name | complete)
+  if ($created.exit_code != 0) {
+    print -e ($created.stderr | str trim)
+    return
+  }
+
+  let branch_exists = (git -C $target rev-parse --verify --quiet $"refs/heads/($branch)" | complete)
+  let switched = if ($branch_exists.exit_code == 0) {
+    git -C $target switch $branch | complete
+  } else {
+    git -C $target switch -c $branch | complete
+  }
+
+  if ($switched.exit_code != 0) {
+    print -e ($switched.stderr | str trim)
+    return
+  }
+
+  let reset = (git -C $target reset --hard $branch | complete)
+  if ($reset.exit_code != 0) {
+    print -e ($reset.stderr | str trim)
+    return
+  }
+
+  print ($reset.stdout | str trim)
+}
+
 def jd [...args] {
   jj describe -m ($args | str join " ")
 }
