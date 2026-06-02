@@ -48,11 +48,11 @@ def gamp [...args] {
   git push
 }
 
-# Create a new Rift workspace for the current repository.
+# Create a new Rift workspace backed by a Git worktree.
 #
 # Defaults to ../<branch>, with the directory name sanitized for the filesystem.
 # Custom paths are used as-is. The Git branch name itself is preserved.
-def riftnew [
+def --env riftnew [
   branch: string # Git branch to switch to or create
   path?: path    # Target path, defaults to ../<sanitized-branch>
 ] {
@@ -61,6 +61,20 @@ def riftnew [
     print -e ($valid_branch.stderr | str trim)
     return
   }
+
+  let configured_worktree = (git config --local --get core.worktree | complete)
+  if ($configured_worktree.exit_code == 0) and (not (($configured_worktree.stdout | str trim) | is-empty)) {
+    print -e $"this Git repository has core.worktree set to '($configured_worktree.stdout | str trim)'; unset it before creating a Rift Git worktree"
+    return
+  }
+
+  let source_root = (git rev-parse --show-toplevel | complete)
+  if ($source_root.exit_code != 0) {
+    print -e ($source_root.stderr | str trim)
+    return
+  }
+
+  let source = (($source_root.stdout | str trim) | path expand)
 
   let raw_target = if ($path == null) {
     let safe_branch = ($branch | str replace --regex --all "[^A-Za-z0-9._-]+" "-" | str trim --char "-")
@@ -78,21 +92,58 @@ def riftnew [
   let into = ($target | path dirname)
   let name = ($target | path basename)
 
-  let created = (rift create --into $into --name $name | complete)
+  let created = (rift create --into $into --name $name $source | complete)
   if ($created.exit_code != 0) {
     print -e ($created.stderr | str trim)
     return
   }
 
-  let branch_exists = (git -C $target rev-parse --verify --quiet $"refs/heads/($branch)" | complete)
-  let switched = if ($branch_exists.exit_code == 0) {
-    git -C $target switch $branch | complete
+  let temp_worktree = ($into | path join $".git-worktree-($name)-(random uuid)")
+  let branch_exists = (git -C $source rev-parse --verify --quiet $"refs/heads/($branch)" | complete)
+  let worktree_added = if ($branch_exists.exit_code == 0) {
+    git -C $source worktree add --no-checkout $temp_worktree $branch | complete
   } else {
-    git -C $target switch -c $branch | complete
+    git -C $source worktree add --no-checkout -b $branch $temp_worktree HEAD | complete
   }
 
-  if ($switched.exit_code != 0) {
-    print -e ($switched.stderr | str trim)
+  if ($worktree_added.exit_code != 0) {
+    print -e ($worktree_added.stderr | str trim)
+    print -e $"Rift workspace was created at ($target), but Git worktree linking failed. Commits there will not be stored in ($source)."
+    return
+  }
+
+  let worktree_git_dir_result = (git -C $temp_worktree rev-parse --git-dir | complete)
+  if ($worktree_git_dir_result.exit_code != 0) {
+    print -e ($worktree_git_dir_result.stderr | str trim)
+    return
+  }
+
+  let target_git = ($target | path join ".git")
+  let temp_git = ($temp_worktree | path join ".git")
+  let worktree_git_dir = (($worktree_git_dir_result.stdout | str trim) | path expand)
+
+  let removed_copied_git = (^rm -rf $target_git | complete)
+  if ($removed_copied_git.exit_code != 0) {
+    print -e ($removed_copied_git.stderr | str trim)
+    return
+  }
+
+  let moved_git = (^mv $temp_git $target_git | complete)
+  if ($moved_git.exit_code != 0) {
+    print -e ($moved_git.stderr | str trim)
+    return
+  }
+
+  try {
+    $"($target_git)\n" | save -f ($worktree_git_dir | path join "gitdir")
+  } catch {|err|
+    print -e $err.msg
+    return
+  }
+
+  let removed_temp_worktree = (^rm -rf $temp_worktree | complete)
+  if ($removed_temp_worktree.exit_code != 0) {
+    print -e ($removed_temp_worktree.stderr | str trim)
     return
   }
 
@@ -103,6 +154,7 @@ def riftnew [
   }
 
   print ($reset.stdout | str trim)
+  cd $target
 }
 
 def jd [...args] {

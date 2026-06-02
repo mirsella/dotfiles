@@ -5,6 +5,8 @@ let gem_home = ($env.GEM_HOME? | default $"($env.HOME)/.local/share/gem")
 let pnpm_home = ($env.PNPM_HOME? | default $"($env.HOME)/.local/share/pnpm")
 let xdg_cache_home = ($env.XDG_CACHE_HOME? | default $"($env.HOME)/.cache")
 
+$env.GTRASH_HOME_TRASH_FALLBACK_COPY = "true"
+
 for path in ([
   $"($android_home)/platform-tools"
   $"($android_home)/emulator"
