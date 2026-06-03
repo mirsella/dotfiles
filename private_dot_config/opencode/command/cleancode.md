@@ -32,6 +32,8 @@ Prioritize code quality over speed. Do not introduce hacks, duct tape, local wor
 - Do not use broad catch-all behavior, permissive parsing, or hidden dual paths merely to make errors disappear.
 - Do not duplicate classification, validation, parsing, pricing, authorization, or state-transition rules that already exist elsewhere.
 - If two places need the same rule, there should usually be one named canonical implementation, not a local closure plus an existing method.
+- Do not add abstraction-leaking preflight checks that revalidate invariants owned by a lower-level abstraction or canonical API. If the caller cannot handle failure differently and the callee already validates, logs, or errors appropriately, call the API directly instead of checking internals such as `is_none`, `is_err`, type shape, capability flags, or optional subfields first.
+- Only validate locally when the caller has domain-specific recovery, can produce a better typed error, or must prevent an invalid side effect before crossing a boundary.
 
 ## Refactoring rules
 
