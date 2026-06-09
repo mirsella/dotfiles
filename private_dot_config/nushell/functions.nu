@@ -99,11 +99,31 @@ def --env riftnew [
   }
 
   let temp_worktree = ($into | path join $".git-worktree-($name)-(random uuid)")
-  let branch_exists = (git -C $source rev-parse --verify --quiet $"refs/heads/($branch)" | complete)
-  let worktree_added = if ($branch_exists.exit_code == 0) {
+  let local_branch = (git -C $source rev-parse --verify --quiet $"refs/heads/($branch)" | complete)
+  let remote_branches = (
+    git -C $source remote
+    | lines
+    | each {|remote|
+      let remote_branch = $"refs/remotes/($remote)/($branch)"
+      let remote_branch_exists = (git -C $source rev-parse --verify --quiet $remote_branch | complete)
+      if ($remote_branch_exists.exit_code == 0) { $remote } else { null }
+    }
+    | compact
+  )
+
+  let worktree_added = if ($local_branch.exit_code == 0) {
     git -C $source worktree add --no-checkout $temp_worktree $branch | complete
-  } else {
+  } else if (($remote_branches | length) == 1) {
+    let remote_branch = $"($remote_branches.0)/($branch)"
+    git -C $source worktree add --no-checkout --track -b $branch $temp_worktree $remote_branch | complete
+  } else if ($remote_branches | is-empty) {
     git -C $source worktree add --no-checkout -b $branch $temp_worktree HEAD | complete
+  } else {
+    {
+      exit_code: 1,
+      stdout: "",
+      stderr: $"branch '($branch)' exists on multiple remotes: ($remote_branches | str join ', '); create the local branch explicitly first"
+    }
   }
 
   if ($worktree_added.exit_code != 0) {
