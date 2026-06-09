@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+card_name="bluez_card.54_B7_E5_C2_75_28"
+preferred_profile="a2dp-sink-sbc_xq"
+fallback_profile="a2dp-sink"
+
+log() {
+  systemd-cat -t lu-acton-2-a2dp-watch printf '%s\n' "$1"
+}
+
+card_block() {
+  pactl list cards | rg -A40 -m1 "Name: ${card_name}$" || true
+}
+
+ensure_profile() {
+  local block
+
+  if ! pactl list cards short | rg -q "${card_name}"; then
+    return
+  fi
+
+  block="$(card_block)"
+  if [[ -z "${block}" ]]; then
+    log "warning: ${card_name} exists but details were not readable"
+    return
+  fi
+
+  if [[ "${block}" == *"Active Profile: ${preferred_profile}"* ]] || [[ "${block}" == *"Active Profile: ${fallback_profile}"* ]]; then
+    return
+  fi
+
+  if [[ "${block}" == *"${preferred_profile}:"*"available: yes"* ]]; then
+    log "forcing ${card_name} to ${preferred_profile}"
+    pactl set-card-profile "${card_name}" "${preferred_profile}" || log "error: failed to set ${preferred_profile} on ${card_name}"
+    return
+  fi
+
+  if [[ "${block}" == *"${fallback_profile}:"*"available: yes"* ]]; then
+    log "forcing ${card_name} to ${fallback_profile}"
+    pactl set-card-profile "${card_name}" "${fallback_profile}" || log "error: failed to set ${fallback_profile} on ${card_name}"
+    return
+  fi
+
+  log "warning: no A2DP playback profile is available for ${card_name}; leaving current profile unchanged"
+}
+
+ensure_profile
+
+pactl subscribe | while read -r event; do
+  case "${event}" in
+    *"on card"*|*"on server"*)
+      ensure_profile
+      ;;
+  esac
+done
