@@ -51,10 +51,31 @@ $env.config.keybindings = [
 
 let autoload_path = ($nu.user-autoload-dirs | first)
 mkdir $autoload_path
-starship init nu | save -f ($autoload_path | path join "starship.nu")
-zoxide init --cmd cd nushell | save -f ($autoload_path | path join "zoxide.nu")
-jj util completion nushell | save -f ($autoload_path | path join "jj.nu")
-atuin init nu --disable-up-arrow | save -f ($autoload_path | path join "atuin.nu")
-rift shell-init nushell | save -f ($autoload_path | path join "rift.nu")
+
+def refresh-autoload [name: string, output_path: path, command: closure] {
+  let result = (do $command | complete)
+
+  if $result.exit_code == 0 {
+    $result.stdout | save -f $output_path
+    return
+  }
+
+  print --stderr $"failed to refresh ($name) shell integration: exit ($result.exit_code)"
+
+  let stderr = ($result.stderr | str trim)
+  if ($stderr | is-not-empty) {
+    print --stderr $stderr
+  }
+}
+
+if $nu.is-interactive {
+  job spawn {
+    refresh-autoload starship ($autoload_path | path join "starship.nu") {|| starship init nu }
+    refresh-autoload zoxide ($autoload_path | path join "zoxide.nu") {|| zoxide init --cmd cd nushell }
+    refresh-autoload jj ($autoload_path | path join "jj.nu") {|| jj util completion nushell }
+    refresh-autoload atuin ($autoload_path | path join "atuin.nu") {|| atuin init nu --disable-up-arrow }
+    refresh-autoload rift ($autoload_path | path join "rift.nu") {|| rift shell-init nushell }
+  } | ignore
+}
 
 atuin dotfiles var list | lines | parse "export {name}={value}" | reduce -f {} {|it, acc| $acc | upsert $it.name $it.value} | load-env
