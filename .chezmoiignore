@@ -3,6 +3,7 @@ cron/
 etc/
 kde shortcuts.kksrc
 README.md
+scripts/
 {{- if ne .chezmoi.hostname "laptop" }}
 .config/systemd/user/lu-acton-2-a2dp-watch.service
 enable-lu-acton-2-a2dp-watch.sh
