@@ -1,5 +1,7 @@
 source completions.nu
 source functions.nu
+const host_config = if ((sys host).hostname == "laptop") { "laptop.nu" } else { null }
+source $host_config
 source alias.nu
 source plugins.nu
 source notif.nu
