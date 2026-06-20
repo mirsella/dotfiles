@@ -35,6 +35,13 @@ $env.config.keybindings = [
     }
   }
   {
+    name: open_dolphin
+    modifier: control
+    keycode: char_e
+    mode: [emacs, vi_normal, vi_insert]
+    event: { send: executehostcommand cmd: "if (which 'dolphin' | is-empty) { print --stderr 'dolphin not found' } else { job spawn --description 'open dolphin' { ^dolphin (pwd) } | ignore }" }
+  }
+  {
     name: accept_history_suggestion
     modifier: control
     keycode: char_y
