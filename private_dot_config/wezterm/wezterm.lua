@@ -28,6 +28,27 @@ config.keys = {
 	{ key = "Enter", mods = "SHIFT", action = wezterm.action({ SendString = "\x1b\r" }) },
 	{ key = "f", mods = "CTRL|SHIFT", action = act.Search({ Regex = "" }) },
 	{ key = "|", mods = "CTRL|SHIFT", action = act.SplitHorizontal },
+	{
+		key = "e",
+		mods = "CTRL",
+		action = wezterm.action_callback(function(_, pane)
+			local cwd = pane:get_current_working_dir()
+			if not cwd then
+				wezterm.log_warn("unable to open dolphin: pane cwd is unknown")
+				return
+			end
+
+			if cwd.scheme ~= "file" then
+				wezterm.log_warn("unable to open dolphin for non-file cwd scheme: " .. cwd.scheme)
+				return
+			end
+
+			local ok, err = pcall(wezterm.background_child_process, { "dolphin", cwd.file_path })
+			if not ok then
+				wezterm.log_error("failed to open dolphin: " .. tostring(err))
+			end
+		end),
+	},
 
 	{ key = "F1", mods = "NONE", action = "ActivateCopyMode" },
 	{ key = "F2", mods = "NONE", action = "QuickSelect" },
