@@ -118,6 +118,14 @@ HIGH_CPU_IGNORE_COMMANDS = {
 }
 
 PANE_ACTIVE_MARKERS = ("esc interrupt",)
+PANE_IGNORE_TITLE_MARKERS = (APP_NAME,)
+
+IDLE_OPENCODE_CHILD_ARG_MARKERS = (
+    "nvim /tmp/",
+    "nvim --embed /tmp/",
+    "/copilot.lua/copilot/js/language-server.js",
+    "marksman server",
+)
 
 
 class Terminated(RuntimeError):
@@ -278,10 +286,14 @@ def ancestor_opencode_pid(procs: dict[int, dict[str, object]]) -> int | None:
     return None
 
 
-def process_tty(pid: int | None) -> str | None:
-    configured = os.environ.get("WATCHDOG_EXCLUDE_TTY", "").strip()
-    if configured:
-        return configured if configured.startswith("/dev/") else f"/dev/{configured}"
+def normalize_tty(tty: str) -> str | None:
+    tty = tty.strip()
+    if not tty or tty == "?":
+        return None
+    return tty if tty.startswith("/dev/") else f"/dev/{tty}"
+
+
+def pid_tty(pid: int | None) -> str | None:
     if pid is None:
         return None
     try:
@@ -294,10 +306,14 @@ def process_tty(pid: int | None) -> str | None:
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
-    tty = result.stdout.strip()
-    if not tty or tty == "?":
-        return None
-    return tty if tty.startswith("/dev/") else f"/dev/{tty}"
+    return normalize_tty(result.stdout)
+
+
+def process_tty(pid: int | None) -> str | None:
+    configured = normalize_tty(os.environ.get("WATCHDOG_EXCLUDE_TTY", ""))
+    if configured:
+        return configured
+    return pid_tty(pid)
 
 
 def excluded_run_id(
@@ -370,6 +386,10 @@ def is_ignored_args(args: str) -> bool:
     return any(marker in args for marker in IGNORE_ARG_MARKERS)
 
 
+def is_idle_opencode_child_args(args: str) -> bool:
+    return any(marker in args for marker in IDLE_OPENCODE_CHILD_ARG_MARKERS)
+
+
 def active_work_processes(
     procs: dict[int, dict[str, object]], excluded_pids: set[int]
 ) -> list[dict[str, object]]:
@@ -419,13 +439,31 @@ def opencode_blockers(
             if child is None:
                 continue
             args = str(child["args"])
-            if is_ignored_args(args):
+            if is_ignored_args(args) or is_idle_opencode_child_args(args):
                 continue
             child_copy = dict(child)
             child_copy["cpu"] = cpu_percent(child_pid, before, after, seconds)
             descendant_blockers.append(child_copy)
 
     return busy_opencode, descendant_blockers, opencode_pids
+
+
+def idle_prompt_editor_ttys(
+    procs: dict[int, dict[str, object]], opencode_pids: list[int]
+) -> set[str]:
+    children = children_by_parent(procs)
+    ttys: set[str] = set()
+    for pid in opencode_pids:
+        for child_pid in descendants(pid, children):
+            child = procs.get(child_pid)
+            if child is None:
+                continue
+            if not is_idle_opencode_child_args(str(child["args"])):
+                continue
+            tty = pid_tty(child_pid)
+            if tty:
+                ttys.add(tty)
+    return ttys
 
 
 def unexpected_high_cpu(
@@ -486,7 +524,9 @@ def capture_screenshot(label: str) -> Path | None:
     return None
 
 
-def wezterm_pane_blockers(excluded_tty: str | None) -> list[dict[str, object]]:
+def wezterm_pane_blockers(
+    excluded_tty: str | None, ignored_ttys: set[str]
+) -> list[dict[str, object]]:
     pane_list = run_command(["wezterm", "cli", "list", "--format", "json"], timeout=10)
     if pane_list is None or pane_list.returncode != 0:
         return []
@@ -501,10 +541,14 @@ def wezterm_pane_blockers(excluded_tty: str | None) -> list[dict[str, object]]:
         tty = str(pane.get("tty_name") or "")
         if excluded_tty and tty == excluded_tty:
             continue
+        if tty in ignored_ttys:
+            continue
 
         title = " ".join(
             str(pane.get(key) or "") for key in ("title", "tab_title", "window_title")
         )
+        if any(marker in title for marker in PANE_IGNORE_TITLE_MARKERS):
+            continue
         looks_relevant = "OC |" in title or "mightyminions" in str(
             pane.get("cwd") or ""
         )
@@ -519,18 +563,24 @@ def wezterm_pane_blockers(excluded_tty: str | None) -> list[dict[str, object]]:
         if text_result is None or text_result.returncode != 0:
             continue
 
-        lower_text = text_result.stdout.lower()
-        for marker in PANE_ACTIVE_MARKERS:
-            if marker.lower() in lower_text:
+        for line in text_result.stdout.splitlines():
+            lower_line = line.lower()
+            for marker in PANE_ACTIVE_MARKERS:
+                if marker.lower() not in lower_line:
+                    continue
                 blockers.append(
                     {
                         "pane_id": pane_id,
                         "tty": tty,
                         "title": title.strip(),
                         "marker": marker,
+                        "line": line.strip(),
                     }
                 )
                 break
+            else:
+                continue
+            break
     return blockers
 
 
@@ -700,7 +750,9 @@ def summarize_panes(items: list[dict[str, object]], limit: int = 6) -> str:
     parts = []
     for item in items[:limit]:
         title = str(item.get("title", ""))[:80]
-        parts.append(f"pane {item['pane_id']} {item['marker']} {title}")
+        tty = str(item.get("tty", ""))
+        line = str(item.get("line", ""))[:120]
+        parts.append(f"pane {item['pane_id']} {tty} {item['marker']} line={line!r} title={title}")
     if len(items) > limit:
         parts.append(f"... +{len(items) - limit} more")
     return " | ".join(parts)
@@ -877,7 +929,8 @@ def run_watchdog(args: argparse.Namespace) -> int:
             high_cpu = unexpected_high_cpu(
                 before_procs, after_procs, seconds, excluded_pids
             )
-            pane_blockers = wezterm_pane_blockers(excluded_tty)
+            editor_ttys = idle_prompt_editor_ttys(after_procs, opencode_pids)
+            pane_blockers = wezterm_pane_blockers(excluded_tty, editor_ttys)
 
             blockers = []
             if busy_opencode:

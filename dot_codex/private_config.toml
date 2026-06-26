@@ -50,12 +50,12 @@ status_line_use_colors = true
 "gpt-5.5" = 4
 
 [marketplaces.openai-bundled]
-last_updated = "2026-06-19T12:25:07Z"
+last_updated = "2026-06-20T16:24:21Z"
 source_type = "local"
 source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
 [marketplaces.openai-primary-runtime]
-last_updated = "2026-06-19T12:23:13Z"
+last_updated = "2026-06-20T17:18:28Z"
 source_type = "local"
 source = "/home/mirsella/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
 
@@ -70,7 +70,7 @@ NODE_REPL_NODE_MODULE_DIRS = ""
 NODE_REPL_NODE_PATH = "/opt/codex-desktop/resources/node-runtime/bin/node"
 NODE_REPL_TRUSTED_CODE_PATHS = "/home/mirsella/.codex"
 CODEX_HOME = "/home/mirsella/.codex"
-NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "feca4d852d7d18eab5e217b18c8c80099fe667c330e836640fd7a48f362de525"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "feca4d852d7d18eab5e217b18c8c80099fe667c330e836640fd7a48f362de525,82f978445a85872186b3b6bceeb16ed2c3dbaaa658e68a566c0a598ff1cf4c00,fdb0068cdea445acdd7a9a808b31399f97e0272c1cb83997084847ee1e8a602e"
 BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
 NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
 NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
