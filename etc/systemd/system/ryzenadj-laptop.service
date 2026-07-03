@@ -1,0 +1,12 @@
+[Unit]
+Description=Apply RyzenAdj laptop limits
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/modprobe ryzen_smu
+ExecStart=/usr/bin/ryzenadj --stapm-limit=45000 --fast-limit=53000 --slow-limit=35000 --apu-slow-limit=41000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=90 -i
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
