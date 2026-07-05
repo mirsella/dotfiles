@@ -85,6 +85,7 @@
       "disabled": true,
     },
     "rust-lspmux": {
+      "disabled": true,
       "command": ["lspmux", "client"],
       "extensions": [".rs"],
     },
