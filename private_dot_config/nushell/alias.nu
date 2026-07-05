@@ -86,6 +86,21 @@ alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf --multi
 alias oc = opencode
+alias ocgit-build = do {
+  cd ~/dev/opencode
+  bun run --cwd packages/cli build -- --single --skip-install
+}
+def --wrapped ocgit [...args] {
+  cd ~/dev/opencode
+  let binary = (glob "~/dev/opencode/packages/cli/dist/*/bin/opencode2" | first)
+  if ($binary == null) {
+    error make {
+      msg: "opencode2 not found; run ocgit-build to build the compiled CLI first"
+    }
+    return
+  }
+  ^$binary ...$args
+}
 alias occ = oc --continue
 alias autocommit = oc run --model "openai/gpt-5.3-codex-spark" --variant high --command "commitdiff"
 alias dm = darkman
