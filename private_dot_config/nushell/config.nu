@@ -83,7 +83,6 @@ if $nu.is-interactive {
     refresh-autoload zoxide ($autoload_path | path join "zoxide.nu") {|| zoxide init --cmd cd nushell }
     refresh-autoload jj ($autoload_path | path join "jj.nu") {|| jj util completion nushell }
     refresh-autoload atuin ($autoload_path | path join "atuin.nu") {|| atuin init nu --disable-up-arrow }
-    refresh-autoload rift ($autoload_path | path join "rift.nu") {|| rift shell-init nushell }
   } | ignore
 }
 

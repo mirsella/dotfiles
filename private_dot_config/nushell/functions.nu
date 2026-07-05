@@ -92,7 +92,7 @@ def --env riftnew [
   let into = ($target | path dirname)
   let name = ($target | path basename)
 
-  let created = (rift create --into $into --name $name $source | complete)
+  let created = (rift create --copy-all --into $into --name $name $source | complete)
   if ($created.exit_code != 0) {
     print -e ($created.stderr | str trim)
     return
