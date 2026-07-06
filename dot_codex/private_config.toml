@@ -1,3 +1,5 @@
+model = "gpt-5.5"
+model_reasoning_effort = "high"
 [projects."/home/mirsella/dev/mightyminions/main"]
 trust_level = "trusted"
 
@@ -6,3 +8,32 @@ trust_level = "trusted"
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
+
+[marketplaces.openai-bundled]
+last_updated = "2026-07-05T20:39:42Z"
+source_type = "local"
+source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[features]
+js_repl = false
+
+[mcp_servers.node_repl]
+command = "/opt/codex-desktop/resources/node_repl"
+startup_timeout_sec = 120.0
+
+[mcp_servers.node_repl.env]
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.616.32156"
+CODEX_HOME = "/home/mirsella/.codex"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = ""
+NODE_REPL_NODE_PATH = "/opt/codex-desktop/resources/node-runtime/bin/node"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "feca4d852d7d18eab5e217b18c8c80099fe667c330e836640fd7a48f362de525"
+NODE_REPL_TRUSTED_CODE_PATHS = "/home/mirsella/.codex"
+
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+env_http_headers = { "CONTEXT7_API_KEY" = "CONTEXT7_API_KEY" }

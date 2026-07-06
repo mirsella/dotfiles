@@ -13,5 +13,9 @@ if ! systemctl --user show-environment >/dev/null 2>&1; then
 fi
 
 systemctl --user daemon-reload
-systemctl --user enable --now opencode.service
+systemctl --user enable --now opencode.service lspmux.service
+
+{{- if eq .chezmoi.hostname "laptop" }}
+systemctl --user enable --now rclone-gdrive.service
+{{- end }}
 {{- end }}
