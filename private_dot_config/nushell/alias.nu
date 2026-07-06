@@ -87,7 +87,7 @@ alias suspend = systemctl suspend
 alias f = fzf --multi
 def --wrapped oc [...args] {
   let dir = (pwd)
-  ^/usr/bin/opencode attach http://localhost:4096 --dir $dir ...$args
+  ^opencode attach http://localhost:4096 --dir $dir ...$args
 }
 alias ocgit-build = do {
   cd ~/dev/opencode
@@ -105,7 +105,7 @@ def --wrapped ocgit [...args] {
   ^$binary ...$args
 }
 alias occ = oc --continue
-alias autocommit = /usr/bin/opencode run --model "openai/gpt-5.3-codex-spark" --variant high --command "commitdiff"
+alias autocommit = opencode run --model "openai/gpt-5.3-codex-spark" --variant high --command "commitdiff"
 alias dm = darkman
 alias codex = codex --dangerously-bypass-approvals-and-sandbox
 alias opencode-plugin-update = do { cd ~/.cache/opencode/packages; fd package.json -E node_modules | lines | each { $in | path dirname } | par-each { do { cd $in; bun update --latest } } }

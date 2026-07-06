@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=%h
-ExecStart=/usr/bin/opencode serve --port 4096
+ExecStart=opencode serve --port 4096
 Restart=on-failure
 RestartSec=2s
 
