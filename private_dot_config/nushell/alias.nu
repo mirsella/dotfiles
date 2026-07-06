@@ -85,7 +85,10 @@ alias light = darkman set light
 alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf --multi
-alias oc = opencode
+def --wrapped oc [...args] {
+  let dir = (pwd)
+  ^/usr/bin/opencode attach http://localhost:4096 --dir $dir ...$args
+}
 alias ocgit-build = do {
   cd ~/dev/opencode
   bun run --cwd packages/cli build -- --single --skip-install
