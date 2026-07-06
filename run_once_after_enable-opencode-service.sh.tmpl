@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+{{- if eq .chezmoi.os "linux" }}
+if ! command -v systemctl >/dev/null 2>&1; then
+  printf 'systemctl not found; skipping opencode user service enable.\n'
+  exit 0
+fi
+
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  printf 'user systemd manager unavailable; skipping opencode user service enable.\n'
+  exit 0
+fi
+
+systemctl --user daemon-reload
+systemctl --user enable --now opencode.service
+{{- end }}
