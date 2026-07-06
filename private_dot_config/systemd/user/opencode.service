@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenCode headless server
+Documentation=https://opencode.ai/docs
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+ExecStart=/usr/bin/opencode serve --port 4096
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target
