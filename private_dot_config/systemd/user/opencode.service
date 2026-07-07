@@ -6,9 +6,12 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=%h
+EnvironmentFile=%h/.config/telegram.env
 ExecStart=opencode serve --port 4096
 Restart=on-failure
 RestartSec=2s
+OOMPolicy=continue
+OOMScoreAdjust=-500
 
 [Install]
 WantedBy=default.target

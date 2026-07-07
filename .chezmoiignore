@@ -8,4 +8,5 @@ README.md
 .config/nushell/laptop.nu
 .config/systemd/user/lu-acton-2-a2dp-watch.service
 enable-lu-acton-2-a2dp-watch.sh
+.config/telegram.env
 {{- end }}
