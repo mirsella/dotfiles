@@ -122,6 +122,32 @@
             },
           },
         },
+        "gpt-5.6-fast": {
+          "variants": {
+            "none": {
+              "disabled": true,
+            },
+            "minimal": {
+              "disabled": true,
+            },
+            "medium": {
+              "disabled": true,
+            },
+          },
+        },
+        "gpt-5.6": {
+          "variants": {
+            "none": {
+              "disabled": true,
+            },
+            "minimal": {
+              "disabled": true,
+            },
+            "medium": {
+              "disabled": true,
+            },
+          },
+        },
       },
     },
   },
