@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+
+{{- if eq .chezmoi.hostname "laptop" }}
+service_name=ryzenadj-laptop.service
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+if [ "$(id -u)" -eq 0 ]; then
+  die 'run this as your regular user; the script uses sudo for system changes'
+fi
+
+command -v paru >/dev/null 2>&1 || die 'paru not found; cannot install RyzenAdj dependencies'
+command -v sudo >/dev/null 2>&1 || die 'sudo not found; cannot install system service'
+
+service_src="{{ .chezmoi.sourceDir }}/etc/systemd/system/$service_name"
+service_dst=/etc/systemd/system/$service_name
+
+[ -f "$service_src" ] || die "service file not found: $service_src"
+
+paru -S --needed ryzenadj-git ryzen_smu-dkms-git linux-cachyos-headers
+sudo dkms autoinstall
+sudo install -Dm644 "$service_src" "$service_dst"
+sudo systemctl daemon-reload
+sudo systemctl enable --now "$service_name"
+
+printf 'Installed and enabled %s.\n' "$service_name"
+{{- end }}
