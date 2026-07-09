@@ -7,6 +7,7 @@ After=network.target
 Type=simple
 WorkingDirectory=%h
 EnvironmentFile=%h/.config/telegram.env
+Environment=PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/rocm/bin:/usr/lib/rustup/bin
 ExecStart=opencode serve --port 4096
 Restart=on-failure
 RestartSec=2s
