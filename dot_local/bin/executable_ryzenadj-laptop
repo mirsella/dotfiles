@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+AC_ONLINE=/sys/class/power_supply/ACAD/online
+
+run_ryzenadj() {
+  if [ "$(id -u)" -eq 0 ]; then
+    exec /usr/bin/ryzenadj "$@"
+  fi
+
+  exec sudo /usr/bin/ryzenadj "$@"
+}
+
+if [ ! -r "$AC_ONLINE" ]; then
+  echo "error: cannot read $AC_ONLINE" >&2
+  exit 1
+fi
+
+if /usr/bin/grep -qx 1 "$AC_ONLINE"; then
+  run_ryzenadj --stapm-limit=45000 --fast-limit=53000 --slow-limit=35000 --apu-slow-limit=41000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=90 -i
+fi
+
+echo "battery: using Framework-aligned limits and keeping APU skin/STT near stock" >&2
+run_ryzenadj --stapm-limit=30000 --fast-limit=46000 --slow-limit=35000 --apu-slow-limit=41000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=44 -i
