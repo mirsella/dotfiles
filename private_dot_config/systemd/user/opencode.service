@@ -1,7 +1,8 @@
 [Unit]
-Description=OpenCode headless server
+Description=OpenCode server
 Documentation=https://opencode.ai/docs
-After=network.target
+After=network.target graphical-session.target
+PartOf=graphical-session.target
 
 [Service]
 Type=simple
@@ -15,4 +16,4 @@ OOMPolicy=continue
 OOMScoreAdjust=-500
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target
