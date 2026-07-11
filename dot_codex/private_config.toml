@@ -16,6 +16,7 @@ source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
 [features]
 js_repl = false
+memories = true
 
 [mcp_servers.node_repl]
 command = "/opt/codex-desktop/resources/node_repl"
