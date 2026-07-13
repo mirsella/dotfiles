@@ -1,7 +1,9 @@
 # vim: set ft=gitignore:
 cron/
 etc/
+system/
 apply-colemak-dhm-keyboard.sh
+update-system-backup.sh
 kde shortcuts.kksrc
 README.md
 {{- if ne .chezmoi.hostname "laptop" }}

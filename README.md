@@ -16,6 +16,8 @@ Notable pieces in this repo:
 - Neovim bootstrap based on LazyVim plus custom plugins.
 - WezTerm and tmux configuration for the terminal workflow.
 - OpenCode configuration, plugins, and MCP integrations.
+- Host-specific system backups under `system/<hostname>/`, intentionally
+  excluded from `chezmoi apply`.
 
 ## Apply on a machine
 
@@ -38,6 +40,18 @@ Apply ISO Colemak-DH for KDE, lock/login screens, and TTYs from the chezmoi sour
 ```
 
 The script is ignored by `chezmoi apply`, so it stays repo-only and is not installed into `PATH`. It writes KDE's `kxkbrc`, sets the system XKB default with `localectl set-x11-keymap`, and sets the virtual-console keymap with `localectl --no-convert set-keymap`.
+
+## System Backup
+
+Refresh the current host's root configuration snapshot:
+
+```bash
+./update-system-backup.sh
+```
+
+The script stores the snapshot under `system/$(hostname -s)/`. Pass a hostname
+as its first argument to override the destination name. These files are for
+manual recovery and are never installed by `chezmoi apply`.
 
 ## Notes
 
