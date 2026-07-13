@@ -86,8 +86,6 @@ IGNORE_ARG_MARKERS = (
     "@vue/language-server",
     "vue-language-server",
     "rust-analyzer",
-    "@playwright/mcp",
-    "playwright-mcp",
 )
 
 PROMPT_EDITOR_HELPER_MARKERS = (
@@ -98,6 +96,9 @@ PROMPT_EDITOR_HELPER_MARKERS = (
 )
 
 OPENCODE_BUSY_FOOTER_TEXT = "esc interrupt"
+MCP_COMMAND_PATTERN = re.compile(
+    r"(?:^|[/@._-])mcp(?:$|[/@._-])|modelcontextprotocol", re.IGNORECASE
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -318,17 +319,23 @@ def opencode_child_blockers(
 ) -> tuple[list[Proc], set[str]]:
     blockers: list[Proc] = []
     ignored_ttys: set[str] = set()
-    for pid in opencode_pids:
-        for child_pid in descendants(pid, children):
-            proc = procs.get(child_pid)
-            if proc is None:
-                continue
-            if contains_any(proc.args, PROMPT_EDITOR_HELPER_MARKERS):
-                if tty := pid_tty(proc.pid):
-                    ignored_ttys.add(tty)
-                continue
-            if not contains_any(proc.args, IGNORE_ARG_MARKERS):
-                blockers.append(proc)
+    child_pids = process_tree(set(opencode_pids), children) - set(opencode_pids)
+    ignored_pids = process_tree(
+        {
+            pid
+            for pid in child_pids
+            if any(MCP_COMMAND_PATTERN.search(arg) for arg in procs[pid].argv)
+        },
+        children,
+    )
+    for child_pid in sorted(child_pids - ignored_pids):
+        proc = procs[child_pid]
+        if contains_any(proc.args, PROMPT_EDITOR_HELPER_MARKERS):
+            if tty := pid_tty(proc.pid):
+                ignored_ttys.add(tty)
+            continue
+        if not contains_any(proc.args, IGNORE_ARG_MARKERS):
+            blockers.append(proc)
     return blockers, ignored_ttys
 
 
