@@ -6,11 +6,15 @@ trust_level = "trusted"
 [projects."/home/mirsella"]
 trust_level = "trusted"
 
+[projects."/home/mirsella/Documents/Codex/2026-07-12/com"]
+trust_level = "trusted"
+
 [tui.model_availability_nux]
 "gpt-5.5" = 4
+"gpt-5.6-sol" = 2
 
 [marketplaces.openai-bundled]
-last_updated = "2026-07-12T07:48:44Z"
+last_updated = "2026-07-12T16:43:46Z"
 source_type = "local"
 source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
@@ -60,6 +64,12 @@ enabled = true
 
 [plugins."computer-use@openai-bundled"]
 enabled = true
+
+[plugins."computer-use@openai-bundled".mcp_servers.computer-use.tools.press_key]
+approval_mode = "approve"
+
+[plugins."computer-use@openai-bundled".mcp_servers.computer-use.tools.type_text]
+approval_mode = "approve"
 
 [plugins."visualize@openai-bundled"]
 enabled = true

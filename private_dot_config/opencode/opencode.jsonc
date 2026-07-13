@@ -10,7 +10,11 @@
     "@plannotator/opencode",
     "opencode-goal",
   ],
+  "autoupdate": "notify",
   "disabled_providers": ["openrouter"],
+  "experimental": {
+    "disable_paste_summary": true,
+  },
   "formatter": {
     "rustfmt": {
       "command": ["rustfmt", "$FILE"],
@@ -96,32 +100,6 @@
   "provider": {
     "openai": {
       "models": {
-        "gpt-5.5-fast": {
-          "variants": {
-            "none": {
-              "disabled": true,
-            },
-            "minimal": {
-              "disabled": true,
-            },
-            "medium": {
-              "disabled": true,
-            },
-          },
-        },
-        "gpt-5.5": {
-          "variants": {
-            "none": {
-              "disabled": true,
-            },
-            "minimal": {
-              "disabled": true,
-            },
-            "medium": {
-              "disabled": true,
-            },
-          },
-        },
         "gpt-5.6-fast": {
           "variants": {
             "none": {
