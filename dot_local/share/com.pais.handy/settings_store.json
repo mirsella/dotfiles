@@ -170,7 +170,7 @@
     "recording_retention_period": "weeks2",
     "selected_language": "auto",
     "selected_microphone": null,
-    "selected_model": "",
+    "selected_model": "handy-computer/parakeet-unified-en-0.6b-gguf/parakeet-unified-en-0.6b-Q8_0.gguf",
     "selected_output_device": null,
     "settings_schema_version": 1,
     "show_tray_icon": true,

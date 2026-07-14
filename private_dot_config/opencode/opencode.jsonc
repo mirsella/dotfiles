@@ -1,10 +1,9 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "opencode-antigravity-auth",
     "@tarquinen/opencode-dcp",
     "opencode-wakatime",
-    // "@slkiser/opencode-quota",
+    "@slkiser/opencode-quota",
     "@tarquinen/opencode-smart-title",
     "opencode-queue",
     "@plannotator/opencode",
@@ -28,6 +27,11 @@
       "headers": {
         "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}",
       },
+    },
+    "open-computer-use": {
+      "type": "local",
+      "command": ["open-computer-use", "mcp"],
+      "enabled": false,
     },
     "cloudflare": {
       "type": "remote",
