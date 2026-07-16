@@ -1,0 +1,386 @@
+{{- $ipData := output "ip" "-j" "address" "show" "scope" "global" | fromJson -}}
+{{- $ipv4 := list -}}
+{{- $ipv6 := list -}}
+{{- range $interface := $ipData -}}
+{{- range $address := $interface.addr_info -}}
+{{- if and (eq (dig "scope" "" $address) "global") (eq (dig "family" "" $address) "inet") -}}
+{{- $ipv4 = append $ipv4 $address.local -}}
+{{- else if and (eq (dig "scope" "" $address) "global") (eq (dig "family" "" $address) "inet6") -}}
+{{- $ipv6 = append $ipv6 $address.local -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171713">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23171713'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23c9f36b' stroke-width='7'/%3E%3C/svg%3E">
+  <title>{{ .chezmoi.hostname }} / services</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #171713;
+      --paper: #e9e4d8;
+      --paper-dim: #bcb7aa;
+      --line: rgba(233, 228, 216, 0.24);
+      --signal: #ff5c35;
+      --lime: #c9f36b;
+      --display: "Iosevka Etoile", "Bodoni 72", Didot, Georgia, serif;
+      --mono: "Iosevka", "Berkeley Mono", "IBM Plex Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--paper);
+      background:
+        linear-gradient(rgba(233, 228, 216, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(233, 228, 216, 0.045) 1px, transparent 1px),
+        radial-gradient(circle at 78% 12%, rgba(201, 243, 107, 0.10), transparent 24rem),
+        var(--ink);
+      background-size: 36px 36px, 36px 36px, auto, auto;
+      font-family: var(--mono);
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      opacity: 0.14;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+    }
+
+    main {
+      position: relative;
+      display: grid;
+      min-height: 100vh;
+      grid-template-rows: auto 1fr auto;
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 30px 0 24px;
+    }
+
+    header,
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 0;
+      color: var(--paper-dim);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .identity,
+    .clock {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--lime);
+      box-shadow: 0 0 0 5px rgba(201, 243, 107, 0.10), 0 0 18px rgba(201, 243, 107, 0.4);
+      animation: breathe 2.8s ease-in-out infinite;
+    }
+
+    .hero {
+      display: grid;
+      align-content: center;
+      gap: clamp(42px, 7vw, 92px);
+      padding: clamp(64px, 10vw, 130px) 0;
+    }
+
+    .heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 40px;
+      animation: enter 600ms cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--signal);
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 880px;
+      margin: 0;
+      font-family: var(--display);
+      font-size: clamp(3.9rem, 11vw, 9.6rem);
+      font-weight: 400;
+      letter-spacing: -0.065em;
+      line-height: 0.78;
+    }
+
+    h1 span {
+      display: block;
+      margin-left: clamp(30px, 10vw, 140px);
+      color: transparent;
+      -webkit-text-stroke: 1px var(--paper-dim);
+    }
+
+    .node-mark {
+      display: grid;
+      width: 96px;
+      height: 96px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--lime);
+      font-size: 2rem;
+      transform: rotate(-12deg);
+    }
+
+    .console {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.8fr);
+      gap: 1px;
+      border: 1px solid var(--line);
+      background: var(--line);
+      animation: enter 600ms 100ms cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .services,
+    .telemetry {
+      background: rgba(23, 23, 19, 0.92);
+    }
+
+    .services { display: grid; }
+
+    .service {
+      position: relative;
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr) auto;
+      align-items: center;
+      min-height: 154px;
+      gap: 22px;
+      padding: 28px;
+      color: inherit;
+      text-decoration: none;
+      overflow: hidden;
+      transition: color 180ms ease, background 180ms ease;
+    }
+
+    .service + .service { border-top: 1px solid var(--line); }
+
+    .service::before {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      content: "";
+      background: var(--paper);
+      transform: translateX(-101%);
+      transition: transform 360ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .service:hover,
+    .service:focus-visible { color: var(--ink); }
+
+    .service:hover::before,
+    .service:focus-visible::before { transform: translateX(0); }
+
+    .service:focus-visible { outline: 3px solid var(--lime); outline-offset: -3px; }
+
+    .service > * { position: relative; z-index: 1; }
+
+    .port {
+      align-self: stretch;
+      display: grid;
+      place-items: center;
+      border-right: 1px solid currentColor;
+      color: var(--signal);
+      font-size: 0.7rem;
+      writing-mode: vertical-rl;
+      letter-spacing: 0.12em;
+    }
+
+    .service:hover .port,
+    .service:focus-visible .port { color: #bb3215; }
+
+    .service-name {
+      display: block;
+      font-family: var(--display);
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .service-desc {
+      display: block;
+      margin-top: 10px;
+      color: var(--paper-dim);
+      font-size: 0.75rem;
+      line-height: 1.6;
+    }
+
+    .service:hover .service-desc,
+    .service:focus-visible .service-desc { color: #555247; }
+
+    .arrow {
+      font-size: 2.2rem;
+      transition: transform 180ms ease;
+    }
+
+    .service:hover .arrow,
+    .service:focus-visible .arrow { transform: translate(5px, -5px); }
+
+    .telemetry { padding: 28px; }
+
+    .telemetry h2 {
+      margin: 0 0 28px;
+      color: var(--paper-dim);
+      font-size: 0.7rem;
+      font-weight: 400;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    dl { margin: 0; }
+
+    .datum {
+      padding: 17px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    dt {
+      margin-bottom: 7px;
+      color: var(--paper-dim);
+      font-size: 0.63rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .profile { color: var(--lime); }
+
+    footer { border-bottom: 0; }
+
+    footer span:last-child { text-align: right; }
+
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes breathe {
+      50% { opacity: 0.5; transform: scale(0.82); }
+    }
+
+    @media (max-width: 760px) {
+      main { width: min(100% - 24px, 1180px); padding-top: 12px; }
+      .heading { grid-template-columns: 1fr; }
+      .node-mark { display: none; }
+      .console { grid-template-columns: 1fr; }
+      .service { min-height: 132px; grid-template-columns: 48px 1fr auto; padding: 20px; gap: 16px; }
+      .telemetry { padding: 22px; }
+      header span:last-child { display: none; }
+      footer { align-items: flex-start; flex-direction: column; }
+      footer span:last-child { text-align: left; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="identity"><span class="status-dot" aria-hidden="true"></span><span>Node online / {{ .chezmoi.hostname }}</span></div>
+      <span id="route">Resolving access route</span>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <div class="heading">
+        <div>
+          <p class="eyebrow">Private service index</p>
+          <h1 id="page-title">Machine<span>room.</span></h1>
+        </div>
+        <div class="node-mark" aria-hidden="true">{{ upper (substr 0 1 .chezmoi.hostname) }}</div>
+      </div>
+
+      <div class="console">
+        <nav class="services" aria-label="Services">
+          <a class="service" data-port="4096" href="/">
+            <span class="port">TCP / 4096</span>
+            <span>
+              <strong class="service-name">OpenCode</strong>
+              <span class="service-desc">Terminal-native coding agent and remote workspace.</span>
+            </span>
+            <span class="arrow" aria-hidden="true">↗</span>
+          </a>
+          <a class="service" data-port="4097" href="/">
+            <span class="port">TCP / 4097</span>
+            <span>
+              <strong class="service-name">OpenChamber</strong>
+              <span class="service-desc">Browser workspace for sessions, projects and agents.</span>
+            </span>
+            <span class="arrow" aria-hidden="true">↗</span>
+          </a>
+        </nav>
+
+        <aside class="telemetry" aria-label="Node information">
+          <h2>Node telemetry</h2>
+          <dl>
+            <div class="datum"><dt>Hostname</dt><dd>{{ .chezmoi.hostname }}</dd></div>
+            <div class="datum"><dt>Access host</dt><dd id="access-host">—</dd></div>
+            <div class="datum"><dt>IPv4 snapshot</dt><dd>{{ if $ipv4 }}{{ join ", " $ipv4 }}{{ else }}Offline{{ end }}</dd></div>
+            <div class="datum"><dt>IPv6 snapshot</dt><dd>{{ if $ipv6 }}{{ join ", " $ipv6 }}{{ else }}Unavailable{{ end }}</dd></div>
+            <div class="datum"><dt>TLS profile</dt><dd class="profile">{{ if eq .chezmoi.hostname "main" }}Let's Encrypt / public{{ else }}Caddy private CA / local{{ end }}</dd></div>
+          </dl>
+        </aside>
+      </div>
+    </section>
+
+    <footer>
+      <div class="clock"><span>Local node time</span><time id="clock">--:--:--</time></div>
+      <span>Service links follow the current host</span>
+    </footer>
+  </main>
+
+  <script>
+    const accessHost = window.location.hostname || {{ .chezmoi.hostname | quote }};
+    const linkHost = accessHost.includes(":") && !accessHost.startsWith("[") ? `[${accessHost}]` : accessHost;
+
+    document.querySelector("#access-host").textContent = accessHost;
+    document.querySelector("#route").textContent = `${window.location.protocol.replace(":", "").toUpperCase()} / ${accessHost}`;
+    document.querySelectorAll("[data-port]").forEach((link) => {
+      link.href = `https://${linkHost}:${link.dataset.port}/`;
+    });
+
+    const clock = document.querySelector("#clock");
+    const updateClock = () => {
+      const now = new Date();
+      clock.dateTime = now.toISOString();
+      clock.textContent = now.toLocaleTimeString([], { hour12: false });
+    };
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>

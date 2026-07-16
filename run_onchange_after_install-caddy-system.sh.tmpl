@@ -1,0 +1,36 @@
+{{- if and (eq .chezmoi.os "linux") (or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop")) -}}
+#!/bin/sh
+set -eu
+
+# Caddyfile hash: {{ include "private_dot_config/caddy/Caddyfile.tmpl" | sha256sum }}
+# Homepage hash: {{ include "private_dot_config/caddy/site/index.html.tmpl" | sha256sum }}
+
+if ! command -v caddy >/dev/null 2>&1; then
+  if ! command -v pacman >/dev/null 2>&1; then
+    printf 'caddy is missing and this host is not Arch Linux.\n' >&2
+    exit 1
+  fi
+  sudo pacman -S --needed --noconfirm caddy
+fi
+
+sudo install -d -o root -g caddy -m 0750 /etc/caddy
+sudo install -d -o root -g root -m 0755 /srv/mirsella-home
+sudo install -o root -g caddy -m 0640 "$HOME/.config/caddy/Caddyfile" /etc/caddy/Caddyfile
+sudo install -o root -g root -m 0644 "$HOME/.config/caddy/site/index.html" /srv/mirsella-home/index.html
+sudo -u caddy /usr/bin/caddy validate --config /etc/caddy/Caddyfile
+
+systemctl --user disable --now caddy.service 2>/dev/null || true
+sudo systemctl daemon-reload
+sudo systemctl enable caddy.service
+if sudo systemctl is-active --quiet caddy.service; then
+  sudo systemctl reload caddy.service
+else
+  sudo systemctl start caddy.service
+fi
+
+{{ if eq .chezmoi.hostname "laptop" -}}
+# Install the private CA into the laptop's system and browser trust stores.
+sudo env HOME="$HOME" XDG_DATA_HOME=/var/lib XDG_CONFIG_HOME=/etc \
+  /usr/bin/caddy trust --config /etc/caddy/Caddyfile
+{{ end -}}
+{{- end }}

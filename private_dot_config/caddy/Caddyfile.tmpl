@@ -1,0 +1,105 @@
+{{- $isMain := eq .chezmoi.hostname "main" -}}
+{{- $siteHost := .chezmoi.hostname -}}
+{{- if $isMain -}}
+{{- $siteHost = "mirsella.mooo.com" -}}
+{{- end -}}
+{
+	admin unix//run/caddy/admin.socket
+	auto_https disable_redirects
+	skip_install_trust
+	servers :4096 {
+		listener_wrappers {
+			http_redirect
+			tls
+		}
+	}
+	servers :4097 {
+		listener_wrappers {
+			http_redirect
+			tls
+		}
+	}
+}
+
+(homepage) {
+	root * /srv/mirsella-home
+	encode zstd gzip
+	header {
+		Referrer-Policy no-referrer
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+	}
+	file_server
+}
+
+(opencode) {
+	reverse_proxy 127.0.0.1:14096 {
+		flush_interval -1
+		transport http {
+			read_timeout 3600s
+			write_timeout 3600s
+		}
+	}
+}
+
+(openchamber) {
+	reverse_proxy 127.0.0.1:14097 {
+		flush_interval -1
+		transport http {
+			read_timeout 3600s
+			write_timeout 3600s
+		}
+	}
+}
+
+{{ if $isMain -}}
+(site_tls) {
+	tls {
+		issuer acme https://acme-v02.api.letsencrypt.org/directory {
+			disable_http_challenge
+		}
+	}
+}
+
+http://{{ $siteHost }} {
+	redir https://{{ $siteHost }}{uri} 308
+}
+
+https://{{ $siteHost }} {
+	import site_tls
+	import homepage
+}
+
+https://{{ $siteHost }}:4096 {
+	import site_tls
+	import opencode
+}
+
+https://{{ $siteHost }}:4097 {
+	import site_tls
+	import openchamber
+}
+{{ else -}}
+(site_tls) {
+	tls internal
+}
+
+http://{{ $siteHost }}, http://{{ $siteHost }}.local {
+	redir https://{host}{uri} 308
+}
+
+https://{{ $siteHost }}, https://{{ $siteHost }}.local {
+	import site_tls
+	import homepage
+}
+
+https://{{ $siteHost }}:4096, https://{{ $siteHost }}.local:4096 {
+	import site_tls
+	import opencode
+}
+
+https://{{ $siteHost }}:4097, https://{{ $siteHost }}.local:4097 {
+	import site_tls
+	import openchamber
+}
+{{ end -}}
