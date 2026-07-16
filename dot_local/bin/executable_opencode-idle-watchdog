@@ -69,36 +69,7 @@ WORK_ARG_MARKERS = (
     "docker compose",
 )
 
-IGNORE_ARG_MARKERS = (
-    APP_NAME,
-    "opencode-idle-watchdog.py",
-    "wezterm cli",
-    "lspmux client",
-    "biome lsp-proxy",
-    "biome __run_server",
-    "pyright-langserver",
-    "yaml-language-server",
-    "bash-language-server",
-    "typescript-language-server",
-    "typescript/lib/tsserver.js",
-    "typescript/lib/typingsInstaller.js",
-    "vscode-json-languageserver",
-    "@vue/language-server",
-    "vue-language-server",
-    "rust-analyzer",
-)
-
-PROMPT_EDITOR_HELPER_MARKERS = (
-    "nvim /tmp/",
-    "nvim --embed /tmp/",
-    "/copilot.lua/copilot/js/language-server.js",
-    "marksman server",
-)
-
 OPENCODE_BUSY_FOOTER_TEXT = "esc interrupt"
-MCP_COMMAND_PATTERN = re.compile(
-    r"(?:^|[/@._-])mcp(?:$|[/@._-])|modelcontextprotocol", re.IGNORECASE
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,7 +80,6 @@ class Proc:
     state: str
     argv: tuple[str, ...]
     run_id: str | None = None
-    role: str | None = None
 
     @property
     def args(self) -> str:
@@ -210,7 +180,6 @@ def process_snapshot() -> dict[int, Proc]:
             state=state,
             argv=argv,
             run_id=env.get("OPENCODE_RUN_ID") or None,
-            role=env.get("OPENCODE_PROCESS_ROLE") or None,
         )
     return procs
 
@@ -265,10 +234,6 @@ def exclusion_context(procs: dict[int, Proc]) -> tuple[int | None, str | None, s
     return excluded_pid, excluded_run_id or None, excluded_tty
 
 
-def contains_any(text: str, markers: tuple[str, ...]) -> bool:
-    return any(marker in text for marker in markers)
-
-
 def is_excluded_opencode(
     proc: Proc, excluded_pid: int | None, excluded_run_id: str | None
 ) -> bool:
@@ -278,65 +243,13 @@ def is_excluded_opencode(
     )
 
 
-def children_by_parent(procs: dict[int, Proc]) -> dict[int, list[int]]:
-    children: dict[int, list[int]] = {}
-    for proc in procs.values():
-        children.setdefault(proc.ppid, []).append(proc.pid)
-    return children
-
-
-def descendants(root: int, children: dict[int, list[int]]) -> set[int]:
-    result: set[int] = set()
-    stack = list(children.get(root, []))
-    while stack:
-        pid = stack.pop()
-        if pid in result:
-            continue
-        result.add(pid)
-        stack.extend(children.get(pid, []))
-    return result
-
-
-def process_tree(roots: set[int], children: dict[int, list[int]]) -> set[int]:
-    pids = set(roots)
-    for pid in roots:
-        pids.update(descendants(pid, children))
-    return pids
-
-
-def work_processes(procs: dict[int, Proc], ignored_pids: set[int]) -> list[Proc]:
+def work_processes(procs: dict[int, Proc]) -> list[Proc]:
     return [
         proc
         for proc in sorted(procs.values(), key=lambda proc: proc.pid)
-        if proc.pid not in ignored_pids
-        and not contains_any(proc.args, IGNORE_ARG_MARKERS)
-        and (proc.comm in WORK_COMMANDS or contains_any(proc.args, WORK_ARG_MARKERS))
+        if proc.comm in WORK_COMMANDS
+        or any(marker in proc.args for marker in WORK_ARG_MARKERS)
     ]
-
-
-def opencode_child_blockers(
-    procs: dict[int, Proc], children: dict[int, list[int]], opencode_pids: list[int]
-) -> tuple[list[Proc], set[str]]:
-    blockers: list[Proc] = []
-    ignored_ttys: set[str] = set()
-    child_pids = process_tree(set(opencode_pids), children) - set(opencode_pids)
-    ignored_pids = process_tree(
-        {
-            pid
-            for pid in child_pids
-            if any(MCP_COMMAND_PATTERN.search(arg) for arg in procs[pid].argv)
-        },
-        children,
-    )
-    for child_pid in sorted(child_pids - ignored_pids):
-        proc = procs[child_pid]
-        if contains_any(proc.args, PROMPT_EDITOR_HELPER_MARKERS):
-            if tty := pid_tty(proc.pid):
-                ignored_ttys.add(tty)
-            continue
-        if not contains_any(proc.args, IGNORE_ARG_MARKERS):
-            blockers.append(proc)
-    return blockers, ignored_ttys
 
 
 def command_stdout(args: list[str], timeout: int) -> str | None:
@@ -350,7 +263,7 @@ def command_stdout(args: list[str], timeout: int) -> str | None:
     return result.stdout if result.returncode == 0 else None
 
 
-def wezterm_pane_blockers(ignored_ttys: set[str]) -> list[PaneBlocker]:
+def wezterm_pane_blockers(excluded_tty: str | None) -> list[PaneBlocker]:
     pane_list = command_stdout(["wezterm", "cli", "list", "--format", "json"], 10)
     if pane_list is None:
         return []
@@ -368,7 +281,7 @@ def wezterm_pane_blockers(ignored_ttys: set[str]) -> list[PaneBlocker]:
         if not isinstance(pane, dict):
             continue
         tty = normalize_tty(str(pane.get("tty_name") or ""))
-        if tty and tty in ignored_ttys:
+        if tty and tty == excluded_tty:
             continue
 
         title = " ".join(
@@ -534,8 +447,7 @@ def opencode_api_blockers(procs: dict[int, Proc], opencode_pids: list[int]) -> l
 def summarize_processes(items: list[Proc], limit: int = 8) -> str:
     parts = []
     for proc in items[:limit]:
-        role = f"/{proc.role}" if proc.role else ""
-        parts.append(f"{proc.pid}:{proc.comm}{role}:{proc.state} {proc.args[:90]}")
+        parts.append(f"{proc.pid}:{proc.comm}:{proc.state} {proc.args[:90]}")
     if len(items) > limit:
         parts.append(f"... +{len(items) - limit} more")
     return " | ".join(parts)
@@ -572,37 +484,17 @@ def current_blockers(
     excluded_run_id: str | None,
     excluded_tty: str | None,
 ) -> list[tuple[str, str]]:
-    children = children_by_parent(procs)
-    excluded_opencode_pids = {
-        proc.pid
-        for proc in procs.values()
-        if is_excluded_opencode(proc, excluded_pid, excluded_run_id)
-    }
     opencode_pids = sorted(
         proc.pid
         for proc in procs.values()
         if proc.comm == "opencode" and not is_excluded_opencode(proc, excluded_pid, excluded_run_id)
     )
 
-    opencode_children, ignored_ttys = opencode_child_blockers(procs, children, opencode_pids)
-    if excluded_tty:
-        ignored_ttys.add(excluded_tty)
-
     api_blockers = opencode_api_blockers(procs, opencode_pids)
-    work = work_processes(
-        procs,
-        process_tree(excluded_opencode_pids | set(opencode_pids), children),
-    )
-    pane_blockers = wezterm_pane_blockers(ignored_ttys)
+    work = work_processes(procs)
+    pane_blockers = wezterm_pane_blockers(excluded_tty)
 
     blockers: list[tuple[str, str]] = []
-    if opencode_children:
-        blockers.append(
-            (
-                "opencode child process",
-                f"opencode_children: {summarize_processes(opencode_children)}",
-            )
-        )
     if api_blockers:
         blockers.append(
             (
