@@ -11,7 +11,12 @@
 }
 
 https://mirsella.mooo.com:4096 {
-	tls internal
+	tls {
+		issuer acme https://acme-v02.api.letsencrypt.org/directory {
+			disable_http_challenge
+			alt_tlsalpn_port 8443
+		}
+	}
 
 	reverse_proxy 127.0.0.1:14096 {
 		flush_interval -1
@@ -23,7 +28,12 @@ https://mirsella.mooo.com:4096 {
 }
 
 https://mirsella.mooo.com:4097 {
-	tls internal
+	tls {
+		issuer acme https://acme-v02.api.letsencrypt.org/directory {
+			disable_http_challenge
+			alt_tlsalpn_port 8443
+		}
+	}
 
 	reverse_proxy 127.0.0.1:14097 {
 		flush_interval -1
