@@ -30,7 +30,6 @@ export const OrchestratorPlugin: Plugin = async () => {
 
 			const minion = config.agent.minion ?? {};
 			const permission = asObject(minion.permission);
-			const task = asObject(permission.task);
 
 			config.agent.orchestrator = {
 				...config.agent.orchestrator,
@@ -47,10 +46,7 @@ export const OrchestratorPlugin: Plugin = async () => {
 				prompt: minionPrompt,
 				permission: {
 					...permission,
-					task: {
-						...task,
-						"*": "deny",
-					},
+					task: "deny",
 				},
 			};
 		},
