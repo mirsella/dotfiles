@@ -105,6 +105,10 @@
   },
   "permission": {
     "external_directory": "allow",
+    "read": {
+      "*.env": "allow",
+      "*.env.*": "allow",
+    },
   },
   "provider": {
     "openai": {
