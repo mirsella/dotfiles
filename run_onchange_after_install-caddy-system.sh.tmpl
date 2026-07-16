@@ -28,6 +28,23 @@ else
   sudo systemctl start caddy.service
 fi
 
+if ! sudo systemctl is-active --quiet caddy.service; then
+  printf 'caddy.service did not become active after applying its configuration.\n' >&2
+  sudo systemctl status caddy.service --no-pager >&2 || true
+  exit 1
+fi
+
+attempt=0
+while ! sudo test -S /run/caddy/admin.socket; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 50 ]; then
+    printf 'Caddy admin socket was not created at /run/caddy/admin.socket.\n' >&2
+    sudo journalctl -u caddy.service -n 50 --no-pager >&2 || true
+    exit 1
+  fi
+  sleep 0.1
+done
+
 {{ if eq .chezmoi.hostname "laptop" -}}
 # Install the private CA into the laptop's system and browser trust stores.
 sudo env HOME="$HOME" XDG_DATA_HOME=/var/lib XDG_CONFIG_HOME=/etc \
