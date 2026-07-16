@@ -15,7 +15,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#171713">
+  <meta name="theme-color" content="#171713" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f2ede1" media="(prefers-color-scheme: light)">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23171713'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23c9f36b' stroke-width='7'/%3E%3C/svg%3E">
   <title>{{ .chezmoi.hostname }} / services</title>
   <style>
@@ -27,8 +28,36 @@
       --line: rgba(233, 228, 216, 0.24);
       --signal: #ff5c35;
       --lime: #c9f36b;
+      --grid: rgba(233, 228, 216, 0.045);
+      --glow: rgba(201, 243, 107, 0.10);
+      --status-halo: rgba(201, 243, 107, 0.10);
+      --status-glow: rgba(201, 243, 107, 0.4);
+      --surface: rgba(23, 23, 19, 0.92);
+      --hover-signal: #bb3215;
+      --hover-muted: #555247;
+      --noise-opacity: 0.14;
       --display: "Iosevka Etoile", "Bodoni 72", Didot, Georgia, serif;
       --mono: "Iosevka", "Berkeley Mono", "IBM Plex Mono", monospace;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        color-scheme: light;
+        --ink: #f2ede1;
+        --paper: #25241f;
+        --paper-dim: #625f56;
+        --line: rgba(37, 36, 31, 0.22);
+        --signal: #c43e20;
+        --lime: #526c13;
+        --grid: rgba(37, 36, 31, 0.055);
+        --glow: rgba(116, 148, 36, 0.14);
+        --status-halo: rgba(82, 108, 19, 0.12);
+        --status-glow: rgba(82, 108, 19, 0.28);
+        --surface: rgba(247, 243, 233, 0.92);
+        --hover-signal: #ff7957;
+        --hover-muted: #c5c0b4;
+        --noise-opacity: 0.08;
+      }
     }
 
     * { box-sizing: border-box; }
@@ -40,9 +69,9 @@
       margin: 0;
       color: var(--paper);
       background:
-        linear-gradient(rgba(233, 228, 216, 0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(233, 228, 216, 0.045) 1px, transparent 1px),
-        radial-gradient(circle at 78% 12%, rgba(201, 243, 107, 0.10), transparent 24rem),
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        radial-gradient(circle at 78% 12%, var(--glow), transparent 24rem),
         var(--ink);
       background-size: 36px 36px, 36px 36px, auto, auto;
       font-family: var(--mono);
@@ -53,7 +82,7 @@
       inset: 0;
       pointer-events: none;
       content: "";
-      opacity: 0.14;
+      opacity: var(--noise-opacity);
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
     }
 
@@ -94,7 +123,7 @@
       height: 8px;
       border-radius: 50%;
       background: var(--lime);
-      box-shadow: 0 0 0 5px rgba(201, 243, 107, 0.10), 0 0 18px rgba(201, 243, 107, 0.4);
+      box-shadow: 0 0 0 5px var(--status-halo), 0 0 18px var(--status-glow);
       animation: breathe 2.8s ease-in-out infinite;
     }
 
@@ -161,7 +190,7 @@
 
     .services,
     .telemetry {
-      background: rgba(23, 23, 19, 0.92);
+      background: var(--surface);
     }
 
     .services { display: grid; }
@@ -214,7 +243,7 @@
     }
 
     .service:hover .port,
-    .service:focus-visible .port { color: #bb3215; }
+    .service:focus-visible .port { color: var(--hover-signal); }
 
     .service-name {
       display: block;
@@ -233,7 +262,7 @@
     }
 
     .service:hover .service-desc,
-    .service:focus-visible .service-desc { color: #555247; }
+    .service:focus-visible .service-desc { color: var(--hover-muted); }
 
     .arrow {
       font-size: 2.2rem;

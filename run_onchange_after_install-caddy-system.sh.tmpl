@@ -19,7 +19,16 @@ sudo install -o root -g caddy -m 0640 "$HOME/.config/caddy/Caddyfile" /etc/caddy
 sudo install -o root -g root -m 0644 "$HOME/.config/caddy/site/index.html" /srv/mirsella-home/index.html
 sudo -u caddy /usr/bin/caddy validate --config /etc/caddy/Caddyfile
 
-systemctl --user disable --now caddy.service 2>/dev/null || true
+if systemctl --user is-active --quiet caddy.service; then
+  systemctl --user stop caddy.service
+fi
+systemctl --user disable caddy.service 2>/dev/null || true
+if systemctl --user is-active --quiet caddy.service; then
+  printf 'Legacy user caddy.service is still active.\n' >&2
+  systemctl --user status caddy.service --no-pager >&2 || true
+  exit 1
+fi
+
 sudo systemctl daemon-reload
 sudo systemctl enable caddy.service
 if sudo systemctl is-active --quiet caddy.service; then

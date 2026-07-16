@@ -84,21 +84,21 @@ https://{{ $siteHost }}:4097 {
 	tls internal
 }
 
-http://{{ $siteHost }}, http://{{ $siteHost }}.local {
+http://{{ $siteHost }}, http://{{ $siteHost }}.local, http://localhost {
 	redir https://{host}{uri} 308
 }
 
-https://{{ $siteHost }}, https://{{ $siteHost }}.local {
+https://{{ $siteHost }}, https://{{ $siteHost }}.local, https://localhost {
 	import site_tls
 	import homepage
 }
 
-https://{{ $siteHost }}:4096, https://{{ $siteHost }}.local:4096 {
+https://{{ $siteHost }}:4096, https://{{ $siteHost }}.local:4096, https://localhost:4096 {
 	import site_tls
 	import opencode
 }
 
-https://{{ $siteHost }}:4097, https://{{ $siteHost }}.local:4097 {
+https://{{ $siteHost }}:4097, https://{{ $siteHost }}.local:4097, https://localhost:4097 {
 	import site_tls
 	import openchamber
 }
