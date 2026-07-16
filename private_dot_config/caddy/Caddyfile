@@ -2,6 +2,12 @@
 	admin unix//{$XDG_RUNTIME_DIR}/caddy/admin.socket
 	auto_https disable_redirects
 	skip_install_trust
+	servers {
+		listener_wrappers {
+			http_redirect
+			tls
+		}
+	}
 }
 
 https://mirsella.mooo.com:4096 {
