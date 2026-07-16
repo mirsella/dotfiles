@@ -105,7 +105,7 @@ def --wrapped oc [...args] {
 
   let password = ($password_lines | first | str replace "OPENCODE_SERVER_PASSWORD=" "")
   with-env { OPENCODE_SERVER_PASSWORD: $password } {
-    ^opencode attach http://localhost:4096 --dir $dir ...$args
+    ^opencode attach http://127.0.0.1:14096 --dir $dir ...$args
   }
 }
 alias ocgit-build = do {

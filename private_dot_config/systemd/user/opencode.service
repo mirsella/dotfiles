@@ -10,7 +10,7 @@ WorkingDirectory=%h
 EnvironmentFile=%h/.config/telegram.env
 EnvironmentFile=%h/.config/opencode/server.env
 Environment=PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/rocm/bin:/usr/lib/rustup/bin
-ExecStart=opencode serve --hostname 0.0.0.0 --port 4096
+ExecStart=opencode serve --hostname 127.0.0.1 --port 14096
 Restart=on-failure
 RestartSec=2s
 OOMPolicy=continue

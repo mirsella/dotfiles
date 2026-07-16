@@ -1,0 +1,29 @@
+{
+	admin unix//{$XDG_RUNTIME_DIR}/caddy/admin.socket
+	auto_https disable_redirects
+	skip_install_trust
+}
+
+https://mirsella.mooo.com:4096 {
+	tls internal
+
+	reverse_proxy 127.0.0.1:14096 {
+		flush_interval -1
+		transport http {
+			read_timeout 3600s
+			write_timeout 3600s
+		}
+	}
+}
+
+https://mirsella.mooo.com:4097 {
+	tls internal
+
+	reverse_proxy 127.0.0.1:14097 {
+		flush_interval -1
+		transport http {
+			read_timeout 3600s
+			write_timeout 3600s
+		}
+	}
+}

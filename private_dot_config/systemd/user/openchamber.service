@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenChamber web server
+Documentation=https://github.com/openchamber/openchamber
+After=network-online.target opencode.service
+Wants=network-online.target opencode.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+EnvironmentFile=%h/.config/opencode/server.env
+EnvironmentFile=%h/.config/openchamber/server.env
+ExecStart=/usr/bin/openchamber serve --host 127.0.0.1 --port 14097 --foreground
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target
