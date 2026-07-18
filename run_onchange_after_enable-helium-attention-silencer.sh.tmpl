@@ -1,0 +1,24 @@
+{{- if eq .chezmoi.os "linux" -}}
+#!/bin/sh
+set -eu
+
+# metadata hash: {{ include "dot_local/share/kwin/scripts/helium-attention-silencer/metadata.json" | sha256sum }}
+# script hash: {{ include "dot_local/share/kwin/scripts/helium-attention-silencer/contents/code/main.js" | sha256sum }}
+
+if ! command -v kwriteconfig6 >/dev/null 2>&1; then
+  printf 'kwriteconfig6 not found; skipping Helium Attention Silencer enable.\n'
+  exit 0
+fi
+
+kwriteconfig6 --file kwinrc --group Plugins \
+  --key helium-attention-silencerEnabled true
+
+if ! command -v qdbus6 >/dev/null 2>&1; then
+  printf 'qdbus6 not found; Helium Attention Silencer will load at the next KWin start.\n'
+  exit 0
+fi
+
+if ! qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure >/dev/null 2>&1; then
+  printf 'KWin is not running; Helium Attention Silencer will load at the next KWin start.\n'
+fi
+{{- end }}
