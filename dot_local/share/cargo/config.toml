@@ -3,6 +3,7 @@ rustc-wrapper = "kache"
 
 [unstable]
 codegen-backend = true
+script = true
 
 [profile]
 incremental = true
@@ -36,10 +37,7 @@ rustflags = [
   "-Zshare-generics=y",
   "-Zthreads=8",
 ]
-rustdocflags = [
-  "-Zshare-generics=y",
-  "-Zthreads=8",
-]
+rustdocflags = ["-Zshare-generics=y", "-Zthreads=8"]
 
 
 [target.wasm32-unknown-unknown]
@@ -49,10 +47,7 @@ rustflags = [
   "-Zshare-generics=y",
   "-Zthreads=8",
 ]
-rustdocflags = [
-  "-Zshare-generics=y",
-  "-Zthreads=8",
-]
+rustdocflags = ["-Zshare-generics=y", "-Zthreads=8"]
 
 [package.metadata.bevy_cli.web]
 wasm-opt = [
