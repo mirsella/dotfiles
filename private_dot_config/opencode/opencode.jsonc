@@ -72,7 +72,7 @@
         "--config",
         "/home/mirsella/.config/opencode/playwright-helium.json",
       ],
-      "enabled": true,
+      "enabled": false,
     },
     "google-drive": {
       "type": "local",

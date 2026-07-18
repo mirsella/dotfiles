@@ -20,7 +20,7 @@ wait-timeout = "0.2.1"
 
 use std::collections::{HashMap, HashSet};
 use std::env;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::os::unix::fs::MetadataExt;
@@ -31,10 +31,10 @@ use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use base64::Engine;
 use chrono::Local;
-use clap::{CommandFactory, Parser, error::ErrorKind};
+use clap::Parser;
 use fs2::FileExt;
 use serde_json::Value;
 use signal_hook::{
@@ -48,14 +48,14 @@ const DEFAULT_INTERVAL: u64 = 180;
 const DEFAULT_IDLE_CHECKS: u32 = 3;
 const BUSY_PANE_TEXT: &str = "esc interrupt";
 
-#[derive(Debug, Parser)]
+#[derive(Parser)]
 #[command(
     about = "Wait until all other opencode sessions go idle, then optionally run a command.",
     trailing_var_arg = true,
     args_override_self = true
 )]
 struct Options {
-    #[arg(long, conflicts_with_all = ["status", "stop"])]
+    #[arg(long, conflicts_with_all = ["status", "stop"], requires = "command")]
     detach: bool,
 
     #[arg(long, conflicts_with_all = ["detach", "stop"])]
@@ -70,23 +70,14 @@ struct Options {
     #[arg(long, default_value_t = DEFAULT_IDLE_CHECKS, value_parser = positive_u32)]
     required_idle_checks: u32,
 
-    #[arg(value_name = "COMMAND", num_args = 0..)]
+    #[arg(
+        value_name = "COMMAND",
+        num_args = 0..,
+        conflicts_with_all = ["status", "stop"]
+    )]
     command: Vec<OsString>,
 }
 
-impl Options {
-    fn validate(&self) -> std::result::Result<(), &'static str> {
-        if self.detach && self.command.is_empty() {
-            return Err("--detach requires a command");
-        }
-        if (self.status || self.stop) && !self.command.is_empty() {
-            return Err("a command cannot be used with --status or --stop");
-        }
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug)]
 struct State {
     root: PathBuf,
     lock_file: PathBuf,
@@ -137,14 +128,14 @@ impl State {
     }
 }
 
-struct Instance {
-    state: State,
+struct Instance<'a> {
+    state: &'a State,
     pid: i32,
     _lock: File,
 }
 
-impl Instance {
-    fn acquire(state: &State) -> Result<Option<Self>> {
+impl<'a> Instance<'a> {
+    fn acquire(state: &'a State) -> Result<Option<Self>> {
         fs::create_dir_all(&state.root)
             .with_context(|| format!("create {}", state.root.display()))?;
         let lock = OpenOptions::new()
@@ -168,14 +159,14 @@ impl Instance {
         fs::write(&state.pid_file, pid.to_string())
             .with_context(|| format!("write {}", state.pid_file.display()))?;
         Ok(Some(Self {
-            state: state.clone(),
+            state,
             pid,
             _lock: lock,
         }))
     }
 }
 
-impl Drop for Instance {
+impl Drop for Instance<'_> {
     fn drop(&mut self) {
         if self.state.read_pid() == Some(self.pid) {
             let _ = fs::remove_file(&self.state.pid_file);
@@ -208,10 +199,6 @@ impl Cancellation {
         })
     }
 
-    fn pending(&self) -> Option<i32> {
-        self.receiver.try_recv().ok()
-    }
-
     fn wait(&self, duration: Duration) -> Option<i32> {
         self.receiver.recv_timeout(duration).ok()
     }
@@ -226,91 +213,14 @@ impl Drop for Cancellation {
     }
 }
 
-#[derive(Clone, Debug)]
-struct Identity {
-    name: String,
-    parent: i32,
-}
-
-#[derive(Clone, Debug)]
 struct ServerProcess {
     pid: i32,
     args: Vec<String>,
-    environment: HashMap<String, String>,
+    run_id: Option<String>,
+    username: Option<String>,
+    password: Option<String>,
 }
 
-struct ProcessTable {
-    identities: HashMap<i32, Identity>,
-    servers: Vec<ServerProcess>,
-}
-
-impl ProcessTable {
-    fn capture() -> Result<Self> {
-        let uid = unsafe { libc::getuid() };
-        let mut identities = HashMap::new();
-        let mut servers = Vec::new();
-
-        for entry in fs::read_dir("/proc").context("read /proc")?.flatten() {
-            let Some(pid) = entry
-                .file_name()
-                .to_str()
-                .and_then(|name| name.parse::<i32>().ok())
-            else {
-                continue;
-            };
-            if entry.metadata().ok().map(|metadata| metadata.uid()) != Some(uid) {
-                continue;
-            }
-            let Some(identity) = process_identity(pid) else {
-                continue;
-            };
-            if identity.name == "opencode" {
-                servers.push(ServerProcess {
-                    pid,
-                    args: nul_strings(&format!("/proc/{pid}/cmdline")),
-                    environment: environment(pid),
-                });
-            }
-            identities.insert(pid, identity);
-        }
-        servers.sort_by_key(|process| process.pid);
-        Ok(Self {
-            identities,
-            servers,
-        })
-    }
-
-    fn ancestor_named(&self, start: i32, expected: &str) -> Option<i32> {
-        let mut pid = start;
-        let mut visited = HashSet::new();
-        while pid > 1 && visited.insert(pid) {
-            let identity = self.identities.get(&pid)?;
-            if identity.name == expected {
-                return Some(pid);
-            }
-            pid = identity.parent;
-        }
-        None
-    }
-
-    fn eligible_servers<'a>(
-        &'a self,
-        exclusion: &'a Exclusion,
-    ) -> impl Iterator<Item = &'a ServerProcess> {
-        self.servers.iter().filter(|process| {
-            Some(process.pid) != exclusion.pid
-                && !exclusion.run_id.as_deref().is_some_and(|run_id| {
-                    process
-                        .environment
-                        .get("OPENCODE_RUN_ID")
-                        .map(String::as_str)
-                        == Some(run_id)
-                })
-        })
-    }
-}
-
-#[derive(Debug)]
 struct Exclusion {
     pid: Option<i32>,
     run_id: Option<String>,
@@ -318,22 +228,19 @@ struct Exclusion {
 }
 
 impl Exclusion {
-    fn detect(state: &State, processes: &ProcessTable) -> Self {
+    fn detect(state: &State, processes: &[ServerProcess]) -> Self {
         let pid = nonempty_env("WATCHDOG_EXCLUDE_OPENCODE_PID")
             .and_then(|value| value.parse::<i32>().ok())
             .filter(|pid| *pid > 0)
-            .or_else(|| processes.ancestor_named(std::process::id() as i32, "opencode"));
+            .or_else(|| ancestor_named(std::process::id() as i32, "opencode"));
         let run_id = nonempty_env("WATCHDOG_EXCLUDE_OPENCODE_RUN_ID")
             .or_else(|| nonempty_env("OPENCODE_RUN_ID"))
             .or_else(|| {
                 pid.and_then(|pid| {
                     processes
-                        .servers
                         .iter()
-                        .find(|process| process.pid == pid)?
-                        .environment
-                        .get("OPENCODE_RUN_ID")
-                        .cloned()
+                        .find(|process| process.pid == pid)
+                        .and_then(|process| process.run_id.clone())
                 })
             });
         let tty = nonempty_env("WATCHDOG_EXCLUDE_TTY")
@@ -341,28 +248,13 @@ impl Exclusion {
             .or_else(|| pid.and_then(|pid| process_tty(state, pid)));
         Self { pid, run_id, tty }
     }
-}
 
-#[derive(Clone, Debug)]
-struct Endpoint {
-    pid: i32,
-    base_url: String,
-    authorization: Option<String>,
-}
-
-struct Evidence {
-    source: &'static str,
-    details: Vec<String>,
-    display_limit: usize,
-}
-
-impl Evidence {
-    fn detail_line(&self) -> String {
-        format!(
-            "{}: {}",
-            self.source,
-            summarize(&self.details, self.display_limit)
-        )
+    fn includes(&self, process: &ServerProcess) -> bool {
+        Some(process.pid) == self.pid
+            || self
+                .run_id
+                .as_deref()
+                .is_some_and(|run_id| process.run_id.as_deref() == Some(run_id))
     }
 }
 
@@ -399,34 +291,66 @@ fn nul_strings(path: &str) -> Vec<String> {
         .collect()
 }
 
-fn environment(pid: i32) -> HashMap<String, String> {
-    fs::read(format!("/proc/{pid}/environ"))
-        .unwrap_or_default()
+fn env_value(environment: &[u8], name: &[u8]) -> Option<String> {
+    environment
         .split(|byte| *byte == 0)
-        .filter_map(|entry| {
-            let equals = entry.iter().position(|byte| *byte == b'=')?;
-            Some((
-                String::from_utf8_lossy(&entry[..equals]).into_owned(),
-                String::from_utf8_lossy(&entry[equals + 1..]).into_owned(),
-            ))
-        })
-        .collect()
+        .find_map(|entry| entry.strip_prefix(name)?.strip_prefix(b"="))
+        .map(|value| String::from_utf8_lossy(value).into_owned())
 }
 
-fn process_identity(pid: i32) -> Option<Identity> {
+fn process_identity(pid: i32) -> Option<(String, i32)> {
     parse_stat(&lossy_read(format!("/proc/{pid}/stat")))
 }
 
-fn parse_stat(stat: &str) -> Option<Identity> {
+fn parse_stat(stat: &str) -> Option<(String, i32)> {
     let open = stat.find('(')?;
     let close = stat.rfind(')')?;
     let mut fields = stat.get(close + 1..)?.split_whitespace();
     fields.next()?;
     let parent = fields.next()?.parse().ok()?;
-    Some(Identity {
-        name: stat.get(open + 1..close)?.to_owned(),
-        parent,
-    })
+    Some((stat.get(open + 1..close)?.to_owned(), parent))
+}
+
+fn ancestor_named(start: i32, expected: &str) -> Option<i32> {
+    let mut pid = start;
+    let mut visited = HashSet::new();
+    while pid > 1 && visited.insert(pid) {
+        let (name, parent) = process_identity(pid)?;
+        if name == expected {
+            return Some(pid);
+        }
+        pid = parent;
+    }
+    None
+}
+
+fn server_processes() -> Result<Vec<ServerProcess>> {
+    let uid = unsafe { libc::getuid() };
+    let mut processes = Vec::new();
+    for entry in fs::read_dir("/proc").context("read /proc")?.flatten() {
+        let Some(pid) = entry
+            .file_name()
+            .to_str()
+            .and_then(|name| name.parse::<i32>().ok())
+        else {
+            continue;
+        };
+        if entry.metadata().ok().map(|metadata| metadata.uid()) != Some(uid)
+            || !process_identity(pid).is_some_and(|(name, _)| name == "opencode")
+        {
+            continue;
+        }
+        let environment = fs::read(format!("/proc/{pid}/environ")).unwrap_or_default();
+        processes.push(ServerProcess {
+            pid,
+            args: nul_strings(&format!("/proc/{pid}/cmdline")),
+            run_id: env_value(&environment, b"OPENCODE_RUN_ID"),
+            username: env_value(&environment, b"OPENCODE_SERVER_USERNAME"),
+            password: env_value(&environment, b"OPENCODE_SERVER_PASSWORD"),
+        });
+    }
+    processes.sort_by_key(|process| process.pid);
+    Ok(processes)
 }
 
 fn normalize_tty(tty: &str) -> Option<String> {
@@ -568,51 +492,17 @@ fn process_sockets(pid: i32) -> Vec<String> {
 
 fn authorization(process: &ServerProcess) -> Option<String> {
     let password = process
-        .environment
-        .get("OPENCODE_SERVER_PASSWORD")
-        .cloned()
+        .password
+        .clone()
         .or_else(|| nonempty_env("OPENCODE_SERVER_PASSWORD"))?;
     let username = process
-        .environment
-        .get("OPENCODE_SERVER_USERNAME")
-        .cloned()
+        .username
+        .clone()
         .or_else(|| nonempty_env("OPENCODE_SERVER_USERNAME"))
         .unwrap_or_else(|| "opencode".to_owned());
     let encoded =
         base64::engine::general_purpose::STANDARD.encode(format!("{username}:{password}"));
     Some(format!("Basic {encoded}"))
-}
-
-fn endpoints(processes: &ProcessTable, exclusion: &Exclusion) -> Vec<Endpoint> {
-    let listeners = tcp_listeners();
-    let mut seen = HashSet::new();
-    let mut endpoints = Vec::new();
-
-    for process in processes.eligible_servers(exclusion) {
-        let mut candidates = Vec::new();
-        if let Some(port) = argument(&process.args, "--port").and_then(|port| port.parse().ok()) {
-            let host = probe_host(argument(&process.args, "--hostname").as_deref());
-            candidates.push(base_url(&host, port));
-        } else if process.args.iter().any(|arg| arg == "serve") {
-            candidates.push(base_url("127.0.0.1", 4096));
-        }
-        for inode in process_sockets(process.pid) {
-            if let Some((host, port)) = listeners.get(&inode) {
-                candidates.push(base_url(host, *port));
-            }
-        }
-
-        for url in candidates {
-            if seen.insert((process.pid, url.clone())) {
-                endpoints.push(Endpoint {
-                    pid: process.pid,
-                    base_url: url,
-                    authorization: authorization(process),
-                });
-            }
-        }
-    }
-    endpoints
 }
 
 fn http_client() -> ureq::Agent {
@@ -622,11 +512,16 @@ fn http_client() -> ureq::Agent {
     ureq::Agent::new_with_config(config)
 }
 
-fn request_json(client: &ureq::Agent, endpoint: &Endpoint, path: &str) -> Option<Value> {
+fn request_json(
+    client: &ureq::Agent,
+    base_url: &str,
+    authorization: Option<&str>,
+    path: &str,
+) -> Option<Value> {
     let mut request = client
-        .get(format!("{}{path}", endpoint.base_url.trim_end_matches('/')))
+        .get(format!("{}{path}", base_url.trim_end_matches('/')))
         .header("Accept", "application/json");
-    if let Some(authorization) = endpoint.authorization.as_deref() {
+    if let Some(authorization) = authorization {
         request = request.header("Authorization", authorization);
     }
     let mut response = request.call().ok()?;
@@ -650,42 +545,65 @@ fn active_sessions(status: &Value) -> Option<Vec<String>> {
     )
 }
 
-fn api_evidence(
+fn api_blockers(
     client: &ureq::Agent,
-    processes: &ProcessTable,
+    processes: &[ServerProcess],
     exclusion: &Exclusion,
-) -> Option<Evidence> {
+) -> Vec<String> {
+    let listeners = tcp_listeners();
+    let mut seen = HashSet::new();
     let mut details = Vec::new();
-    for endpoint in endpoints(processes, exclusion) {
-        let health = request_json(client, &endpoint, "/global/health");
-        if health
-            .as_ref()
-            .and_then(|value| value.get("healthy"))
-            .and_then(Value::as_bool)
-            != Some(true)
-        {
-            continue;
+    for process in processes
+        .iter()
+        .filter(|process| !exclusion.includes(process))
+    {
+        let mut urls = Vec::new();
+        if let Some(port) = argument(&process.args, "--port").and_then(|port| port.parse().ok()) {
+            let host = probe_host(argument(&process.args, "--hostname").as_deref());
+            urls.push(base_url(&host, port));
+        } else if process.args.iter().any(|arg| arg == "serve") {
+            urls.push(base_url("127.0.0.1", 4096));
         }
-        let Some(active) = request_json(client, &endpoint, "/session/status")
-            .as_ref()
-            .and_then(active_sessions)
-        else {
-            continue;
-        };
-        if !active.is_empty() {
-            details.push(format!(
-                "pid={} {} {}",
-                endpoint.pid,
-                endpoint.base_url,
-                active.into_iter().take(4).collect::<Vec<_>>().join(" ")
-            ));
+        urls.extend(
+            process_sockets(process.pid)
+                .into_iter()
+                .filter_map(|inode| {
+                    let (host, port) = listeners.get(&inode)?;
+                    Some(base_url(host, *port))
+                }),
+        );
+        let authorization = authorization(process);
+        for url in urls {
+            if !seen.insert((process.pid, url.clone())) {
+                continue;
+            }
+            let health = request_json(client, &url, authorization.as_deref(), "/global/health");
+            if health
+                .as_ref()
+                .and_then(|value| value.get("healthy"))
+                .and_then(Value::as_bool)
+                != Some(true)
+            {
+                continue;
+            }
+            let Some(active) =
+                request_json(client, &url, authorization.as_deref(), "/session/status")
+                    .as_ref()
+                    .and_then(active_sessions)
+            else {
+                continue;
+            };
+            if !active.is_empty() {
+                details.push(format!(
+                    "pid={} {} {}",
+                    process.pid,
+                    url,
+                    active.into_iter().take(4).collect::<Vec<_>>().join(" ")
+                ));
+            }
         }
     }
-    (!details.is_empty()).then_some(Evidence {
-        source: "opencode_api_blockers",
-        details,
-        display_limit: 5,
-    })
+    details
 }
 
 fn json_text(value: Option<&Value>) -> String {
@@ -700,8 +618,8 @@ fn shortened(text: &str, limit: usize) -> String {
     text.chars().take(limit).collect()
 }
 
-fn pane_evidence(state: &State, exclusion: &Exclusion) -> Option<Evidence> {
-    let listing = capture_command(
+fn pane_blockers(state: &State, exclusion: &Exclusion) -> Vec<String> {
+    let Some(listing) = capture_command(
         state,
         &[
             "wezterm".into(),
@@ -711,17 +629,19 @@ fn pane_evidence(state: &State, exclusion: &Exclusion) -> Option<Evidence> {
             "json".into(),
         ],
         Duration::from_secs(10),
-    )?;
+    ) else {
+        return Vec::new();
+    };
     let panes: Value = match serde_json::from_str(&listing) {
         Ok(value) => value,
         Err(error) => {
             state.log(format!("could not parse wezterm pane list: {error}"));
-            return None;
+            return Vec::new();
         }
     };
     let Some(panes) = panes.as_array() else {
         state.log("could not parse wezterm pane list: expected a list");
-        return None;
+        return Vec::new();
     };
 
     let mut details = Vec::new();
@@ -771,23 +691,7 @@ fn pane_evidence(state: &State, exclusion: &Exclusion) -> Option<Evidence> {
             ));
         }
     }
-    (!details.is_empty()).then_some(Evidence {
-        source: "pane_blockers",
-        details,
-        display_limit: 6,
-    })
-}
-
-fn inspect(state: &State, client: &ureq::Agent, exclusion: &Exclusion) -> Result<Vec<Evidence>> {
-    let processes = ProcessTable::capture()?;
-    let mut evidence = Vec::new();
-    if let Some(api) = api_evidence(client, &processes, exclusion) {
-        evidence.push(api);
-    }
-    if let Some(panes) = pane_evidence(state, exclusion) {
-        evidence.push(panes);
-    }
-    Ok(evidence)
+    details
 }
 
 fn summarize(items: &[String], limit: usize) -> String {
@@ -812,7 +716,7 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
         return Ok(0);
     };
     let cancellation = Cancellation::new()?;
-    let initial_processes = ProcessTable::capture()?;
+    let initial_processes = server_processes()?;
     let exclusion = Exclusion::detect(state, &initial_processes);
     state.log(format!(
         "watchdog started; excluding opencode pid={} run_id={} tty={}; interval={}s required_idle_checks={}; cache={}",
@@ -829,31 +733,38 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
     let mut check = 0;
     let signal = loop {
         check += 1;
-        let evidence = inspect(state, &client, &exclusion)?;
-        consecutive_idle = if evidence.is_empty() {
+        let processes = server_processes()?;
+        let api_blockers = api_blockers(&client, &processes, &exclusion);
+        let pane_blockers = pane_blockers(state, &exclusion);
+        consecutive_idle = if api_blockers.is_empty() && pane_blockers.is_empty() {
             consecutive_idle + 1
         } else {
             0
         };
-        let sources = evidence
-            .iter()
-            .map(|item| match item.source {
-                "opencode_api_blockers" => "opencode API session status",
-                "pane_blockers" => "active pane text",
-                source => source,
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
+        let sources = [
+            (!api_blockers.is_empty()).then_some("opencode API session status"),
+            (!pane_blockers.is_empty()).then_some("active pane text"),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(", ");
         state.log(format!(
             "check {check}: idle={consecutive_idle}/{}; blockers={}",
             options.required_idle_checks,
             if sources.is_empty() { "none" } else { &sources }
         ));
-        for item in evidence {
-            state.log(item.detail_line());
+        if !api_blockers.is_empty() {
+            state.log(format!(
+                "opencode_api_blockers: {}",
+                summarize(&api_blockers, 5)
+            ));
+        }
+        if !pane_blockers.is_empty() {
+            state.log(format!("pane_blockers: {}", summarize(&pane_blockers, 6)));
         }
 
-        if let Some(signal) = cancellation.pending() {
+        if let Some(signal) = cancellation.wait(Duration::ZERO) {
             break Some(signal);
         }
         if consecutive_idle >= options.required_idle_checks {
@@ -884,14 +795,18 @@ fn terminate_child(child: &mut Child) {
 fn command_display(command: &[OsString]) -> String {
     command
         .iter()
-        .map(|arg| format!("{:?}", arg.to_string_lossy()))
+        .map(|arg| format!("{arg:?}"))
         .collect::<Vec<_>>()
         .join(" ")
 }
 
 fn run_command(state: &State, cancellation: &Cancellation, command: &[OsString]) -> i32 {
     state.log(format!("running command: {}", command_display(command)));
-    let mut child = match Command::new(&command[0]).args(&command[1..]).spawn() {
+    let Some((program, arguments)) = command.split_first() else {
+        state.log("could not run command: empty command");
+        return 127;
+    };
+    let mut child = match Command::new(program).args(arguments).spawn() {
         Ok(child) => child,
         Err(error) => {
             state.log(format!("could not run command: {error}"));
@@ -974,37 +889,30 @@ fn stop(state: &State) -> i32 {
     1
 }
 
-fn background_arguments(argv: &[OsString], command_len: usize) -> Result<Vec<OsString>> {
-    let boundary = argv
-        .len()
-        .checked_sub(command_len)
-        .ok_or_else(|| anyhow!("parsed command exceeds original arguments"))?;
-    Ok(argv[..boundary]
-        .iter()
-        .filter(|arg| arg.as_os_str() != OsStr::new("--detach"))
-        .chain(argv[boundary..].iter())
-        .cloned()
-        .collect())
+fn background_arguments(options: &Options) -> Vec<OsString> {
+    let mut arguments = vec![
+        "--interval".into(),
+        options.interval.to_string().into(),
+        "--required-idle-checks".into(),
+        options.required_idle_checks.to_string().into(),
+    ];
+    if !options.command.is_empty() {
+        arguments.push("--".into());
+        arguments.extend(options.command.iter().cloned());
+    }
+    arguments
 }
 
-fn launch_background(
-    state: &State,
-    executable: &OsStr,
-    argv: &[OsString],
-    options: &Options,
-) -> Result<i32> {
-    let processes = ProcessTable::capture()?;
+fn launch_background(state: &State, options: &Options) -> Result<i32> {
+    let processes = server_processes()?;
     let exclusion = Exclusion::detect(state, &processes);
-    let arguments = background_arguments(argv, options.command.len())?;
     fs::create_dir_all(&state.root)?;
-    let input = File::open("/dev/null")?;
-    let output = OpenOptions::new().write(true).open("/dev/null")?;
-    let mut child = Command::new(executable);
+    let mut child = Command::new(env::current_exe().context("locate watchdog executable")?);
     child
-        .args(arguments)
-        .stdin(Stdio::from(input))
-        .stdout(Stdio::from(output.try_clone()?))
-        .stderr(Stdio::from(output));
+        .args(background_arguments(options))
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
     if let Some(pid) = exclusion.pid {
         child.env("WATCHDOG_EXCLUDE_OPENCODE_PID", pid.to_string());
     }
@@ -1030,13 +938,7 @@ fn launch_background(
 }
 
 fn execute() -> Result<i32> {
-    let raw: Vec<_> = env::args_os().collect();
-    let options = Options::parse_from(&raw);
-    if let Err(message) = options.validate() {
-        Options::command()
-            .error(ErrorKind::InvalidValue, message)
-            .exit();
-    }
+    let options = Options::parse();
     let state = State::discover()?;
     if options.status {
         return Ok(print_status(&state));
@@ -1045,7 +947,7 @@ fn execute() -> Result<i32> {
         return Ok(stop(&state));
     }
     if options.detach {
-        return launch_background(&state, &raw[0], &raw[1..], &options);
+        return launch_background(&state, &options);
     }
     wait_until_idle(&state, &options)
 }
@@ -1070,9 +972,10 @@ mod tests {
 
     #[test]
     fn parses_proc_stat_with_spaces_and_parentheses() {
-        let identity = parse_stat("42 (odd ) process) S 7 1 2 3").unwrap();
-        assert_eq!(identity.name, "odd ) process");
-        assert_eq!(identity.parent, 7);
+        assert_eq!(
+            parse_stat("42 (odd ) process) S 7 1 2 3").unwrap(),
+            ("odd ) process".to_owned(), 7)
+        );
     }
 
     #[test]
@@ -1097,26 +1000,45 @@ mod tests {
     }
 
     #[test]
-    fn detached_arguments_only_remove_watchdog_flags() {
-        let argv: Vec<OsString> = ["--detach", "--detach", "notify-send", "--detach"]
-            .into_iter()
-            .map(Into::into)
-            .collect();
+    fn detached_arguments_are_canonical() {
+        let options = Options::try_parse_from([
+            NAME,
+            "--detach",
+            "--interval",
+            "7",
+            "--required-idle-checks",
+            "2",
+            "notify-send",
+            "--detach",
+        ])
+        .unwrap();
         assert_eq!(
-            background_arguments(&argv, 2).unwrap(),
-            [OsString::from("notify-send"), OsString::from("--detach")]
+            background_arguments(&options),
+            [
+                "--interval",
+                "7",
+                "--required-idle-checks",
+                "2",
+                "--",
+                "notify-send",
+                "--detach"
+            ]
         );
     }
 
     #[test]
     fn detached_arguments_keep_separator_for_dash_command() {
-        let argv: Vec<OsString> = ["--detach", "--", "--command"]
-            .into_iter()
-            .map(Into::into)
-            .collect();
+        let options = Options::try_parse_from([NAME, "--detach", "--", "--command"]).unwrap();
         assert_eq!(
-            background_arguments(&argv, 1).unwrap(),
-            [OsString::from("--"), OsString::from("--command")]
+            background_arguments(&options),
+            [
+                "--interval",
+                "180",
+                "--required-idle-checks",
+                "3",
+                "--",
+                "--command"
+            ]
         );
     }
 
