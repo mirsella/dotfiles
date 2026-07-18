@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wait until other opencode sessions go idle."""
+"""Wait until other opencode sessions go idle, then optionally run a command."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import signal
 import subprocess
 import sys
@@ -21,7 +22,6 @@ import urllib.request
 
 APP_NAME = "opencode-idle-watchdog"
 DEFAULT_CHECK_INTERVAL_SECONDS = 180
-DEFAULT_FIRST_CHECK_SECONDS = 30
 DEFAULT_REQUIRED_IDLE_CHECKS = 3
 HTTP_TIMEOUT_SECONDS = 2
 
@@ -33,72 +33,14 @@ PID_PATH = STATE_DIR / "watchdog.pid"
 LOG_PATH = STATE_DIR / "watchdog.log"
 PROC = Path("/proc")
 
-WORK_COMMANDS = {
-    "cargo",
-    "cargo-ndk",
-    "rustc",
-    "just",
-    "fly",
-    "xcodebuild",
-    "gradle",
-    "xtask",
-    "ios-native",
-    "android-native",
-    "wasm-bindgen",
-    "trunk",
-    "docker",
-    "pod",
-}
-
-WORK_ARG_MARKERS = (
-    "fly deploy",
-    "cargo run --release --bin finalize_mobile_assets",
-    "cargo build -p mobile",
-    "cargo-ndk",
-    "just android-deploy",
-    "just ios-deploy",
-    "android-native deploy",
-    "ios-native deploy",
-    "xtask ios-vm deploy",
-    "./mobile/scripts/android-native",
-    "./mobile/scripts/ios-native",
-    "xcodebuild",
-    "wasm-bindgen",
-    "trunk build",
-    "docker build",
-    "docker compose",
-)
-
 OPENCODE_BUSY_FOOTER_TEXT = "esc interrupt"
 
 
 @dataclass(frozen=True, slots=True)
-class Proc:
+class OpencodeProcess:
     pid: int
-    ppid: int
-    comm: str
-    state: str
     argv: tuple[str, ...]
-    run_id: str | None = None
-
-    @property
-    def args(self) -> str:
-        return " ".join(self.argv) or self.comm
-
-
-@dataclass(frozen=True, slots=True)
-class ApiBlocker:
-    pid: int
-    url: str
-    active: dict[str, object]
-
-
-@dataclass(frozen=True, slots=True)
-class PaneBlocker:
-    pane_id: str
-    tty: str
-    title: str
-    line: str
+    env: dict[str, str]
 
 
 class Terminated(RuntimeError):
@@ -145,43 +87,55 @@ def proc_environ(pid: int) -> dict[str, str]:
     )
 
 
-def process_snapshot() -> dict[int, Proc]:
+def proc_identity(pid: int) -> tuple[str, int] | None:
+    stat = read_text(PROC / str(pid) / "stat")
+    start = stat.find("(")
+    end = stat.rfind(")")
+    if start < 0 or end < start:
+        return None
+    try:
+        return stat[start + 1 : end], int(stat[end + 2 :].split()[1])
+    except (IndexError, ValueError):
+        return None
+
+
+def opencode_processes() -> list[OpencodeProcess]:
     uid = os.getuid()
-    procs: dict[int, Proc] = {}
+    processes = []
     for name in os.listdir(PROC):
         if not name.isdigit():
             continue
         pid = int(name)
-        if proc_uid(pid) != uid:
+        identity = proc_identity(pid)
+        if identity is None or identity[0] != "opencode" or proc_uid(pid) != uid:
             continue
-
-        stat = read_text(PROC / name / "stat")
-        start = stat.find("(")
-        end = stat.rfind(")")
-        if start < 0 or end < start:
-            continue
-
-        try:
-            fields = stat[end + 2 :].split()
-            comm = stat[start + 1 : end]
-            state = fields[0]
-            ppid = int(fields[1])
-        except (IndexError, ValueError):
-            continue
-
-        env = proc_environ(pid) if comm == "opencode" else {}
-        argv = tuple(
-            arg for arg in read_text(PROC / name / "cmdline").split("\0") if arg
+        processes.append(
+            OpencodeProcess(
+                pid,
+                tuple(
+                    arg
+                    for arg in read_text(PROC / name / "cmdline").split("\0")
+                    if arg
+                ),
+                proc_environ(pid),
+            )
         )
-        procs[pid] = Proc(
-            pid=pid,
-            ppid=ppid,
-            comm=comm,
-            state=state,
-            argv=argv,
-            run_id=env.get("OPENCODE_RUN_ID") or None,
-        )
-    return procs
+    return sorted(processes, key=lambda process: process.pid)
+
+
+def ancestor_opencode_pid() -> int | None:
+    pid = os.getpid()
+    seen: set[int] = set()
+    while pid > 1 and pid not in seen:
+        seen.add(pid)
+        identity = proc_identity(pid)
+        if identity is None:
+            return None
+        comm, parent_pid = identity
+        if comm == "opencode":
+            return pid
+        pid = parent_pid
+    return None
 
 
 def normalize_tty(tty: str) -> str | None:
@@ -207,49 +161,21 @@ def pid_tty(pid: int | None) -> str | None:
     return normalize_tty(result.stdout)
 
 
-def exclusion_context(procs: dict[int, Proc]) -> tuple[int | None, str | None, str | None]:
+def exclusion_context() -> tuple[int | None, str | None, str | None]:
     configured_pid = os.environ.get("WATCHDOG_EXCLUDE_OPENCODE_PID", "").strip()
-    excluded_pid = int(configured_pid) if configured_pid.isdigit() else None
-    if excluded_pid is None:
-        pid = os.getpid()
-        seen: set[int] = set()
-        while pid > 1 and pid not in seen:
-            seen.add(pid)
-            proc = procs.get(pid)
-            if proc is None:
-                break
-            if proc.comm == "opencode":
-                excluded_pid = pid
-                break
-            pid = proc.ppid
+    excluded_pid = (
+        int(configured_pid) if configured_pid.isdigit() else ancestor_opencode_pid()
+    )
 
     excluded_run_id = (
         os.environ.get("WATCHDOG_EXCLUDE_OPENCODE_RUN_ID", "").strip()
         or os.environ.get("OPENCODE_RUN_ID", "").strip()
-        or (procs.get(excluded_pid).run_id if excluded_pid in procs else None)
+        or (proc_environ(excluded_pid).get("OPENCODE_RUN_ID") if excluded_pid else None)
     )
     excluded_tty = normalize_tty(os.environ.get("WATCHDOG_EXCLUDE_TTY", "")) or pid_tty(
         excluded_pid
     )
     return excluded_pid, excluded_run_id or None, excluded_tty
-
-
-def is_excluded_opencode(
-    proc: Proc, excluded_pid: int | None, excluded_run_id: str | None
-) -> bool:
-    return proc.comm == "opencode" and (
-        proc.pid == excluded_pid
-        or bool(excluded_run_id and proc.run_id == excluded_run_id)
-    )
-
-
-def work_processes(procs: dict[int, Proc]) -> list[Proc]:
-    return [
-        proc
-        for proc in sorted(procs.values(), key=lambda proc: proc.pid)
-        if proc.comm in WORK_COMMANDS
-        or any(marker in proc.args for marker in WORK_ARG_MARKERS)
-    ]
 
 
 def command_stdout(args: list[str], timeout: int) -> str | None:
@@ -263,7 +189,7 @@ def command_stdout(args: list[str], timeout: int) -> str | None:
     return result.stdout if result.returncode == 0 else None
 
 
-def wezterm_pane_blockers(excluded_tty: str | None) -> list[PaneBlocker]:
+def wezterm_pane_blockers(excluded_tty: str | None) -> list[str]:
     pane_list = command_stdout(["wezterm", "cli", "list", "--format", "json"], 10)
     if pane_list is None:
         return []
@@ -276,7 +202,7 @@ def wezterm_pane_blockers(excluded_tty: str | None) -> list[PaneBlocker]:
         log("could not parse wezterm pane list: expected a list")
         return []
 
-    blockers: list[PaneBlocker] = []
+    blockers = []
     for pane in panes:
         if not isinstance(pane, dict):
             continue
@@ -311,7 +237,10 @@ def wezterm_pane_blockers(excluded_tty: str | None) -> list[PaneBlocker]:
             None,
         )
         if line:
-            blockers.append(PaneBlocker(str(pane_id), tty or "", title, line))
+            blockers.append(
+                f"pane {pane_id} {tty or ''} {OPENCODE_BUSY_FOOTER_TEXT} "
+                f"line={line[:120]!r} title={title[:80]}"
+            )
     return blockers
 
 
@@ -367,37 +296,35 @@ def socket_inodes(pid: int) -> set[str]:
     return inodes
 
 
-def opencode_api_urls(procs: dict[int, Proc], opencode_pids: list[int]) -> list[tuple[int, str]]:
-    urls: list[tuple[int, str]] = []
-    for pid in opencode_pids:
-        proc = procs.get(pid)
-        if proc is None:
-            continue
+def opencode_api_urls(
+    processes: list[OpencodeProcess],
+) -> list[tuple[OpencodeProcess, str]]:
+    urls = []
+    for proc in processes:
         port = arg_value(proc.argv, "--port")
         host = local_probe_host(arg_value(proc.argv, "--hostname") or "127.0.0.1")
         if port and port.isdigit() and int(port) > 0:
-            urls.append((pid, f"http://{host}:{int(port)}"))
+            urls.append((proc, f"http://{host}:{int(port)}"))
         elif "serve" in proc.argv:
-            urls.append((pid, "http://127.0.0.1:4096"))
+            urls.append((proc, "http://127.0.0.1:4096"))
 
     listeners = tcp4_listeners()
-    for pid in opencode_pids:
-        for inode in socket_inodes(pid):
+    for proc in processes:
+        for inode in socket_inodes(proc.pid):
             if endpoint := listeners.get(inode):
                 host, port = endpoint
-                urls.append((pid, f"http://{host}:{port}"))
+                urls.append((proc, f"http://{host}:{port}"))
     return urls
 
 
-def auth_header_for_pid(pid: int) -> str | None:
-    env = proc_environ(pid)
-    password = env.get("OPENCODE_SERVER_PASSWORD") or os.environ.get(
+def auth_header(proc: OpencodeProcess) -> str | None:
+    password = proc.env.get("OPENCODE_SERVER_PASSWORD") or os.environ.get(
         "OPENCODE_SERVER_PASSWORD"
     )
     if not password:
         return None
     username = (
-        env.get("OPENCODE_SERVER_USERNAME")
+        proc.env.get("OPENCODE_SERVER_USERNAME")
         or os.environ.get("OPENCODE_SERVER_USERNAME")
         or "opencode"
     )
@@ -418,15 +345,15 @@ def get_json(url: str, path: str, auth: str | None) -> object | None:
         return None
 
 
-def opencode_api_blockers(procs: dict[int, Proc], opencode_pids: list[int]) -> list[ApiBlocker]:
-    blockers: list[ApiBlocker] = []
+def opencode_api_blockers(processes: list[OpencodeProcess]) -> list[str]:
+    blockers = []
     seen: set[tuple[int, str]] = set()
-    for pid, url in opencode_api_urls(procs, opencode_pids):
-        if (pid, url) in seen:
+    for proc, url in opencode_api_urls(processes):
+        if (proc.pid, url) in seen:
             continue
-        seen.add((pid, url))
+        seen.add((proc.pid, url))
 
-        auth = auth_header_for_pid(pid)
+        auth = auth_header(proc)
         health = get_json(url, "/global/health", auth)
         if not isinstance(health, dict) or health.get("healthy") is not True:
             continue
@@ -434,64 +361,43 @@ def opencode_api_blockers(procs: dict[int, Proc], opencode_pids: list[int]) -> l
         if not isinstance(status, dict):
             continue
 
-        active = {
-            session_id: value
+        active = [
+            (session_id, value)
             for session_id, value in status.items()
             if not isinstance(value, dict) or value.get("type") != "idle"
-        }
+        ]
         if active:
-            blockers.append(ApiBlocker(pid, url, active))
+            sessions = []
+            for session_id, value in active[:4]:
+                status_type = (
+                    value.get("type", "unknown")
+                    if isinstance(value, dict)
+                    else "unknown"
+                )
+                sessions.append(f"{session_id}:{status_type}")
+            blockers.append(f"pid={proc.pid} {url} {' '.join(sessions)}")
     return blockers
 
 
-def summarize_processes(items: list[Proc], limit: int = 8) -> str:
-    parts = []
-    for proc in items[:limit]:
-        parts.append(f"{proc.pid}:{proc.comm}:{proc.state} {proc.args[:90]}")
-    if len(items) > limit:
-        parts.append(f"... +{len(items) - limit} more")
-    return " | ".join(parts)
-
-
-def summarize_api_blockers(items: list[ApiBlocker], limit: int = 5) -> str:
-    parts = []
-    for item in items[:limit]:
-        sessions = []
-        for session_id, value in list(item.active.items())[:4]:
-            status = value.get("type", "unknown") if isinstance(value, dict) else "unknown"
-            sessions.append(f"{session_id}:{status}")
-        parts.append(f"pid={item.pid} {item.url} {' '.join(sessions)}")
-    if len(items) > limit:
-        parts.append(f"... +{len(items) - limit} more")
-    return " | ".join(parts)
-
-
-def summarize_panes(items: list[PaneBlocker], limit: int = 6) -> str:
-    parts = []
-    for item in items[:limit]:
-        parts.append(
-            f"pane {item.pane_id} {item.tty} {OPENCODE_BUSY_FOOTER_TEXT} "
-            f"line={item.line[:120]!r} title={item.title[:80]}"
-        )
+def summarize(items: list[str], limit: int) -> str:
+    parts = items[:limit]
     if len(items) > limit:
         parts.append(f"... +{len(items) - limit} more")
     return " | ".join(parts)
 
 
 def current_blockers(
-    procs: dict[int, Proc],
     excluded_pid: int | None,
     excluded_run_id: str | None,
     excluded_tty: str | None,
 ) -> list[tuple[str, str]]:
-    opencode_pids = sorted(
-        proc.pid
-        for proc in procs.values()
-        if proc.comm == "opencode" and not is_excluded_opencode(proc, excluded_pid, excluded_run_id)
-    )
-
-    api_blockers = opencode_api_blockers(procs, opencode_pids)
-    work = work_processes(procs)
+    processes = [
+        proc
+        for proc in opencode_processes()
+        if proc.pid != excluded_pid
+        and not (excluded_run_id and proc.env.get("OPENCODE_RUN_ID") == excluded_run_id)
+    ]
+    api_blockers = opencode_api_blockers(processes)
     pane_blockers = wezterm_pane_blockers(excluded_tty)
 
     blockers: list[tuple[str, str]] = []
@@ -499,13 +405,13 @@ def current_blockers(
         blockers.append(
             (
                 "opencode API session status",
-                f"opencode_api_blockers: {summarize_api_blockers(api_blockers)}",
+                f"opencode_api_blockers: {summarize(api_blockers, 5)}",
             )
         )
-    if work:
-        blockers.append(("work process", f"work_processes: {summarize_processes(work)}"))
     if pane_blockers:
-        blockers.append(("active pane text", f"pane_blockers: {summarize_panes(pane_blockers)}"))
+        blockers.append(
+            ("active pane text", f"pane_blockers: {summarize(pane_blockers, 6)}")
+        )
     return blockers
 
 
@@ -553,9 +459,14 @@ def stop_running() -> int:
     return 1
 
 
-def detach() -> int:
-    excluded_pid, excluded_run_id, excluded_tty = exclusion_context(process_snapshot())
-    child_args = [sys.argv[0], *[arg for arg in sys.argv[1:] if arg != "--detach"]]
+def detach(argv: list[str], command: list[str]) -> int:
+    excluded_pid, excluded_run_id, excluded_tty = exclusion_context()
+    command_index = len(argv) - len(command)
+    child_args = [
+        sys.argv[0],
+        *(arg for arg in argv[:command_index] if arg != "--detach"),
+        *argv[command_index:],
+    ]
 
     env = os.environ.copy()
     if excluded_pid is not None:
@@ -590,7 +501,7 @@ def run_watchdog(args: argparse.Namespace) -> int:
             return 0
 
         PID_PATH.write_text(str(os.getpid()), encoding="utf-8")
-        excluded_pid, excluded_run_id, excluded_tty = exclusion_context(process_snapshot())
+        excluded_pid, excluded_run_id, excluded_tty = exclusion_context()
         log(
             "watchdog started; "
             f"excluding opencode pid={excluded_pid or 'unknown'} "
@@ -600,17 +511,12 @@ def run_watchdog(args: argparse.Namespace) -> int:
         )
 
         idle_checks = 0
-        next_sleep = args.first_check
         check_number = 0
         try:
             while True:
-                time.sleep(next_sleep)
-                next_sleep = args.interval
                 check_number += 1
 
-                blockers = current_blockers(
-                    process_snapshot(), excluded_pid, excluded_run_id, excluded_tty
-                )
+                blockers = current_blockers(excluded_pid, excluded_run_id, excluded_tty)
                 blocker_names = [name for name, _detail in blockers]
                 idle_checks = 0 if blockers else idle_checks + 1
 
@@ -623,7 +529,8 @@ def run_watchdog(args: argparse.Namespace) -> int:
 
                 if idle_checks >= args.required_idle_checks:
                     log("idle confirmed")
-                    return 0
+                    break
+                time.sleep(args.interval)
         finally:
             if read_pid() == os.getpid():
                 try:
@@ -631,33 +538,57 @@ def run_watchdog(args: argparse.Namespace) -> int:
                 except OSError:
                     pass
 
+    if not args.command:
+        return 0
+    log(f"running command: {shlex.join(args.command)}")
+    try:
+        result = subprocess.run(args.command, check=False)
+    except OSError as exc:
+        log(f"could not run command: {exc}")
+        return 127
+    log(f"command exited with status {result.returncode}")
+    return result.returncode
+
+
+def positive_int(value: str) -> int:
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return number
+
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Wait until all other opencode sessions and their work go idle."
+        description=(
+            "Wait until all other opencode sessions go idle, then optionally run a command."
+        ),
+        allow_abbrev=False,
     )
-    parser.add_argument("--detach", action="store_true", help="start in the background")
-    parser.add_argument("--status", action="store_true", help="show current watchdog status")
-    parser.add_argument("--stop", action="store_true", help="stop the running watchdog")
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument("--detach", action="store_true", help="start in the background")
+    actions.add_argument("--status", action="store_true", help="show current watchdog status")
+    actions.add_argument("--stop", action="store_true", help="stop the running watchdog")
     parser.add_argument(
         "--interval",
-        type=int,
+        type=positive_int,
         default=DEFAULT_CHECK_INTERVAL_SECONDS,
-        help=f"seconds between checks after the first check (default: {DEFAULT_CHECK_INTERVAL_SECONDS})",
-    )
-    parser.add_argument(
-        "--first-check",
-        type=int,
-        default=DEFAULT_FIRST_CHECK_SECONDS,
-        help=f"seconds before the first check (default: {DEFAULT_FIRST_CHECK_SECONDS})",
+        help="seconds between checks (default: %(default)s)",
     )
     parser.add_argument(
         "--required-idle-checks",
-        type=int,
+        type=positive_int,
         default=DEFAULT_REQUIRED_IDLE_CHECKS,
-        help=f"consecutive idle checks before exiting successfully (default: {DEFAULT_REQUIRED_IDLE_CHECKS})",
+        help="consecutive idle checks before exiting successfully (default: %(default)s)",
     )
-    return parser.parse_args(argv)
+    parser.add_argument("command", nargs=argparse.REMAINDER, help="command to run after idle")
+    args = parser.parse_args(argv)
+    if args.command[:1] == ["--"]:
+        args.command = args.command[1:]
+    if args.detach and not args.command:
+        parser.error("--detach requires a command")
+    if (args.status or args.stop) and args.command:
+        parser.error("a command cannot be used with --status or --stop")
+    return args
 
 
 def main(argv: list[str]) -> int:
@@ -668,7 +599,7 @@ def main(argv: list[str]) -> int:
     if args.stop:
         return stop_running()
     if args.detach:
-        return detach()
+        return detach(argv, args.command)
     return run_watchdog(args)
 
 
