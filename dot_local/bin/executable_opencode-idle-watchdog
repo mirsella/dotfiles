@@ -529,20 +529,77 @@ fn request_json(
     serde_json::from_str(&body).ok()
 }
 
-fn active_sessions(status: &Value) -> Option<Vec<String>> {
-    Some(
-        status
-            .as_object()?
+fn session_blockers(
+    status: &serde_json::Map<String, Value>,
+    questions: Option<&Value>,
+    permissions: Option<&Value>,
+    messages: &serde_json::Map<String, Value>,
+) -> Vec<String> {
+    let mut waiting: HashSet<_> = [questions, permissions]
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_array)
+        .flatten()
+        .filter_map(|request| request.get("sessionID").and_then(Value::as_str))
+        .map(str::to_owned)
+        .collect();
+    loop {
+        let parents: Vec<_> = status
             .iter()
-            .filter_map(|(session, value)| {
-                let kind = value
-                    .as_object()
-                    .and_then(|value| value.get("type"))
-                    .and_then(Value::as_str);
-                (kind != Some("idle")).then(|| format!("{session}:{}", kind.unwrap_or("unknown")))
+            .filter_map(|(parent, state)| {
+                if waiting.contains(parent)
+                    || state.get("type").and_then(Value::as_str) != Some("busy")
+                {
+                    return None;
+                }
+                let parts = messages
+                    .get(parent)?
+                    .as_array()?
+                    .iter()
+                    .rev()
+                    .find(|message| {
+                        message.pointer("/info/role").and_then(Value::as_str) == Some("assistant")
+                    })?
+                    .get("parts")?
+                    .as_array()?;
+                let mut running = parts
+                    .iter()
+                    .filter(|part| {
+                        part.pointer("/state/status").and_then(Value::as_str) == Some("running")
+                    })
+                    .peekable();
+                running.peek()?;
+                running
+                    .all(|part| {
+                        part.get("type").and_then(Value::as_str) == Some("tool")
+                            && part.get("tool").and_then(Value::as_str) == Some("task")
+                            && part.get("sessionID").and_then(Value::as_str) == Some(parent)
+                            && part.pointer("/state/metadata").is_some_and(|metadata| {
+                                matches!(
+                                    metadata.get("background"),
+                                    None | Some(Value::Bool(false))
+                                ) && metadata
+                                    .get("sessionId")
+                                    .and_then(Value::as_str)
+                                    .is_some_and(|child| waiting.contains(child))
+                            })
+                    })
+                    .then(|| parent.clone())
             })
-            .collect(),
-    )
+            .collect();
+        if parents.is_empty() {
+            break;
+        }
+        waiting.extend(parents);
+    }
+    status
+        .iter()
+        .filter_map(|(session, value)| {
+            let kind = value.get("type").and_then(Value::as_str);
+            (kind != Some("idle") && !waiting.contains(session.as_str()))
+                .then(|| format!("{session}:{}", kind.unwrap_or("unknown")))
+        })
+        .collect()
 }
 
 fn api_blockers(
@@ -586,13 +643,32 @@ fn api_blockers(
             {
                 continue;
             }
-            let Some(active) =
+            let Some(Value::Object(status)) =
                 request_json(client, &url, authorization.as_deref(), "/session/status")
-                    .as_ref()
-                    .and_then(active_sessions)
             else {
+                details.push(format!(
+                    "pid={} {} session-status:invalid",
+                    process.pid, url
+                ));
                 continue;
             };
+            let messages = status
+                .iter()
+                .filter(|(_, value)| value.get("type").and_then(Value::as_str) == Some("busy"))
+                .filter_map(|(parent, _)| {
+                    let messages = request_json(
+                        client,
+                        &url,
+                        authorization.as_deref(),
+                        &format!("/session/{parent}/message"),
+                    )?;
+                    Some((parent.clone(), messages))
+                })
+                .collect();
+            let questions = request_json(client, &url, authorization.as_deref(), "/question");
+            let permissions = request_json(client, &url, authorization.as_deref(), "/permission");
+            let active =
+                session_blockers(&status, questions.as_ref(), permissions.as_ref(), &messages);
             if !active.is_empty() {
                 details.push(format!(
                     "pid={} {} {}",
@@ -616,6 +692,11 @@ fn json_text(value: Option<&Value>) -> String {
 
 fn shortened(text: &str, limit: usize) -> String {
     text.chars().take(limit).collect()
+}
+
+fn is_busy_pane_line(line: &str) -> bool {
+    let line = line.to_ascii_lowercase();
+    line.contains(BUSY_PANE_TEXT) && !line.contains("pane_blockers:")
 }
 
 fn pane_blockers(state: &State, exclusion: &Exclusion) -> Vec<String> {
@@ -681,7 +762,7 @@ fn pane_blockers(state: &State, exclusion: &Exclusion) -> Vec<String> {
         if let Some(line) = text
             .lines()
             .map(str::trim)
-            .find(|line| line.to_lowercase().contains(BUSY_PANE_TEXT))
+            .find(|line| is_busy_pane_line(line))
         {
             details.push(format!(
                 "pane {pane_id} {} {BUSY_PANE_TEXT} line={:?} title={}",
@@ -979,16 +1060,68 @@ mod tests {
     }
 
     #[test]
-    fn classifies_unknown_session_states_as_active() {
-        let status = serde_json::json!({
-            "idle": {"type": "idle"},
-            "busy": {"type": "busy"},
-            "malformed": "oops"
-        });
+    fn classifies_user_waits_and_foreground_task_chains() {
+        let fixture: Value = serde_json::from_str(r#"{
+          "status":{"background":{"type":"busy"},"busy":{"type":"busy"},"idle":{"type":"idle"},"leaf":{"type":"busy"},"malformed":"oops","malformed_task":{"type":"busy"},"middle":{"type":"busy"},"mixed":{"type":"busy"},"other":{"type":"busy"},"partial":{"type":"busy"},"permission":{"type":"busy"},"root":{"type":"busy"}},
+          "questions":[{"sessionID":"leaf"}],"permissions":[{"sessionID":"permission"}],
+          "messages":{
+            "background":[{
+              "info":{"role":"assistant"},
+              "parts":[{"type":"tool","tool":"task","sessionID":"background","state":{"status":"running","metadata":{"sessionId":"leaf","background":true}}}]
+            }],
+            "malformed_task":[{
+              "info":{"role":"assistant"},
+              "parts":[{"type":"tool","tool":"task","sessionID":"malformed_task","state":{"status":"running","metadata":{"sessionId":"leaf","background":"false"}}}]
+            }],
+            "middle":[
+              {"info":{"role":"assistant"},"parts":[{"type":"tool","tool":"bash","state":{"status":"running"}}]},
+              {"info":{"role":"assistant"},"parts":[{"type":"tool","tool":"task","sessionID":"middle","state":{"status":"running","metadata":{"sessionId":"leaf"}}}]}
+            ],
+            "mixed":[{
+              "info":{"role":"assistant"},
+              "parts":[
+                {"type":"tool","tool":"task","sessionID":"mixed","state":{"status":"running","metadata":{"sessionId":"leaf"}}},
+                {"type":"tool","tool":"bash","state":{"status":"running"}}
+              ]
+            }],
+            "partial":[{
+              "info":{"role":"assistant"},
+              "parts":[
+                {"type":"tool","tool":"task","sessionID":"partial","state":{"status":"running","metadata":{"sessionId":"leaf"}}},
+                {"type":"tool","tool":"task","sessionID":"partial","state":{"status":"running","metadata":{"sessionId":"other"}}}
+              ]
+            }],
+            "root":[{
+              "info":{"role":"assistant"},
+              "parts":[{"type":"tool","tool":"task","sessionID":"root","state":{"status":"running","metadata":{"sessionId":"middle","background":false}}}]
+            }]
+          }
+        }"#).unwrap();
         assert_eq!(
-            active_sessions(&status).unwrap(),
-            ["busy:busy", "malformed:unknown"]
+            session_blockers(
+                fixture["status"].as_object().unwrap(),
+                Some(&fixture["questions"]),
+                Some(&fixture["permissions"]),
+                fixture["messages"].as_object().unwrap(),
+            ),
+            [
+                "background:busy",
+                "busy:busy",
+                "malformed:unknown",
+                "malformed_task:busy",
+                "mixed:busy",
+                "other:busy",
+                "partial:busy",
+            ]
         );
+    }
+
+    #[test]
+    fn ignores_watchdog_logs_when_classifying_busy_panes() {
+        assert!(is_busy_pane_line("esc interrupt  ctrl+p commands"));
+        assert!(!is_busy_pane_line(
+            "[2026-07-19 05:20:15] pane_blockers: pane 76 esc interrupt"
+        ));
     }
 
     #[test]
