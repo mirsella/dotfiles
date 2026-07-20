@@ -1,8 +1,9 @@
 [Unit]
 Description=OpenChamber web server
 Documentation=https://github.com/openchamber/openchamber
-After=network-online.target opencode.service
+After=network-online.target graphical-session.target opencode.service
 Wants=network-online.target opencode.service
+PartOf=graphical-session.target
 
 [Service]
 Type=simple
@@ -14,4 +15,4 @@ Restart=on-failure
 RestartSec=2s
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target
