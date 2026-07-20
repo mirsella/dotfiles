@@ -49,15 +49,6 @@ $env.config.keybindings = [
     event: { send: HistoryHintComplete }
   }
 ]
-
-# NOTE: using atuin dotfiles for now
-# let tokens_dir = $env.HOME | path join ".config/token"
-# for path in (glob $"($tokens_dir)/*.json") {
-#   if ($path | path exists) {
-#     open $path | load-env
-#   }
-# }
-
 let autoload_path = ($nu.user-autoload-dirs | first)
 mkdir $autoload_path
 
@@ -85,5 +76,3 @@ if $nu.is-interactive {
     refresh-autoload atuin ($autoload_path | path join "atuin.nu") {|| atuin init nu --disable-up-arrow }
   } | ignore
 }
-
-atuin dotfiles var list | lines | parse "export {name}={value}" | reduce -f {} {|it, acc| $acc | upsert $it.name $it.value} | load-env

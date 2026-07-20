@@ -32,9 +32,12 @@
         "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}",
       },
     },
-    "open-computer-use": {
+    "computer_use": {
       "type": "local",
-      "command": ["open-computer-use", "mcp"],
+      "command": [
+        "/home/mirsella/.local/share/cargo/bin/open-computer-use",
+        "mcp",
+      ],
       "enabled": false,
     },
     "cloudflare": {
