@@ -28,16 +28,9 @@ export const OrchestratorPlugin: Plugin = async () => {
     config: async (config) => {
       config.agent ??= {};
 
-<<<<<<< Updated upstream
       const minion = config.agent.minion ?? {};
-||||||| Stash base
-			const minion = config.agent.minion ?? {};
-			const permission = asObject(minion.permission);
-=======
-			const minion = config.agent.minion ?? {};
-			const permission = asObject(minion.permission);
-			const task = asObject(permission.task);
->>>>>>> Stashed changes
+      const permission = asObject(minion.permission);
+      const task = asObject(permission.task);
 
       config.agent.orchestrator = {
         ...config.agent.orchestrator,
@@ -47,7 +40,6 @@ export const OrchestratorPlugin: Plugin = async () => {
         prompt: orchestratorPrompt,
       };
 
-<<<<<<< Updated upstream
       config.agent.minion = {
         ...minion,
         description:
@@ -56,37 +48,14 @@ export const OrchestratorPlugin: Plugin = async () => {
         model: "openai/gpt-5.6-terra",
         reasoningEffort: "high",
         prompt: minionPrompt,
+        permission: {
+          ...permission,
+          task: {
+            ...task,
+            "*": "deny",
+          },
+        },
       };
     },
   };
-||||||| Stash base
-			config.agent.minion = {
-				...minion,
-				description: "Subagent that executes focused tasks delegated by Orchestrator.",
-				mode: "subagent",
-				prompt: minionPrompt,
-				permission: {
-					...permission,
-					task: "deny",
-				},
-			};
-		},
-	};
-=======
-			config.agent.minion = {
-				...minion,
-				description: "Subagent that executes focused tasks delegated by Orchestrator.",
-				mode: "subagent",
-				prompt: minionPrompt,
-				permission: {
-					...permission,
-					task: {
-						...task,
-						"*": "deny",
-					},
-				},
-			};
-		},
-	};
->>>>>>> Stashed changes
 };
