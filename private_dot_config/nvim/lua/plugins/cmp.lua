@@ -64,7 +64,11 @@ return {
 			-- trigger = { completion = { keyword_range = "full" } },
 			fuzzy = { prebuilt_binaries = { download = true } },
 			sources = {
-				default = { "digraphs", "emoji", "nerdfont" },
+				default = {
+					-- "digraphs",
+					"emoji",
+					"nerdfont",
+				},
 				providers = {
 					digraphs = {
 						name = "digraphs",

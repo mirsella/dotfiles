@@ -10,7 +10,6 @@ WorkingDirectory=%h
 EnvironmentFile=%h/.config/telegram.env
 EnvironmentFile=%h/.config/opencode/server.env
 Environment=PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/rocm/bin:/usr/lib/rustup/bin
-ExecStartPre=/usr/bin/busctl --user set-property org.a11y.Bus /org/a11y/bus org.a11y.Status IsEnabled b true
 ExecStart=opencode serve --hostname 127.0.0.1 --port 14096
 Restart=on-failure
 RestartSec=2s

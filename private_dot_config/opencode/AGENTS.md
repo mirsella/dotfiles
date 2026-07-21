@@ -10,17 +10,6 @@
 
 - Context7: always use for library/API docs and code generation (resolve id first).
 
-## Writing
-
-Follow Orwell's six rules, with rules 5 and 6 adapted for technical writing:
-
-1. Never use a metaphor, simile, or other figure of speech which you are used to seeing in print.
-2. Never use a long word where a short one will do.
-3. If it is possible to cut a word out, always cut it out.
-4. Never use the passive where you can use the active.
-5. Avoid foreign phrases, scientific words, and jargon when plain English is equally precise. Keep established domain-specific terminology when it improves precision or clarity, and explain it when the audience may not know it.
-6. Break any of these rules when following it would reduce clarity, precision, correctness, or necessary technical detail.
-
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**
