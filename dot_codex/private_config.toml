@@ -27,6 +27,7 @@ source = "/home/mirsella/.cache/codex-runtimes/codex-primary-runtime/plugins/ope
 js_repl = false
 memories = true
 
+hooks = true
 [mcp_servers.node_repl]
 args = []
 command = "/opt/codex-desktop/resources/node_repl"

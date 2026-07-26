@@ -68,7 +68,6 @@
         "npx",
         "-y",
         "@playwright/mcp",
-        "--headless",
         "--config",
         "/home/mirsella/.config/opencode/playwright-helium.json",
       ],
@@ -143,5 +142,13 @@
         },
       },
     },
+    // Detected copilot authentication; opencode-quota added this global provider declaration.
+    "copilot": {},
+    // Detected openrouter authentication; opencode-quota added this global provider declaration.
+    "openrouter": {},
+    // Detected google-antigravity authentication; opencode-quota added this global provider declaration.
+    "google-antigravity": {},
+    // Detected google-gemini-cli authentication; opencode-quota added this global provider declaration.
+    "google-gemini-cli": {},
   },
 }
