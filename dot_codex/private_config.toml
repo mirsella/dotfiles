@@ -89,3 +89,8 @@ enabled = true
 
 [plugins."template-creator@openai-primary-runtime"]
 enabled = true
+
+[hooks.state]
+
+[hooks.state."/home/mirsella/.codex/hooks.json:stop:0:0"]
+trusted_hash = "sha256:386a88584abb63f4987ecf42746af826d7f3fd441548741670939072d4480286"
