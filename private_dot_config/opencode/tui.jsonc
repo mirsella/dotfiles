@@ -12,7 +12,7 @@
   },
   "plugin": [
     // "opencode-vim",
-    "./plugins/suppress-ctrl-u.ts",
+    "./tui-plugins/suppress-ctrl-u.ts",
     // "@slkiser/opencode-quota"
     "@tarquinen/opencode-dcp@latest",
   ],
