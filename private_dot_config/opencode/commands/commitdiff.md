@@ -4,9 +4,9 @@ agent: general
 subtask: true
 ---
 
-Check the current git status and diff to understand changes.
-Review recent git logs to maintain commit message consistency.
-Stage all changes with 'git add .' (or specific files if appropriate).
+Commit our changes in this session or since last commit.
+There may be other changes from other agents working.
+When multiples things were done, dont hesitate to commit separately, to have smaller, cleaner, logical commits.
 Generate a conventional commit message following the format:
 
 - feat: for new features

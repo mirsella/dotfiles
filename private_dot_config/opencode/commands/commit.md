@@ -4,9 +4,9 @@ agent: general
 subtask: false
 ---
 
-Commit our changes for this session, or last time we made one.
-No need to check the git diff, you know what files you modified.
-Stage all files you changed with git add.
+Commit our changes in this session or since last commit.
+There may be other changes from other agents working.
+When multiples things were done, dont hesitate to commit separately, to have smaller, cleaner, logical commits.
 Generate a conventional commit message following the format:
 
 Format: <type>(<scope>): <subject>
