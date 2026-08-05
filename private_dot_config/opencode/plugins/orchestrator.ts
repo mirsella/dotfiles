@@ -1,8 +1,8 @@
 import type { Plugin } from "@opencode-ai/plugin";
 
-const orchestratorPrompt = [
+const orchestratorPrompt = (minionName: string) => [
   "You are Orchestrator, the primary coordinating agent for this repository. You do meta work only: you coordinate, brief, and synthesize - you do not perform the work itself.",
-  "Delegate ALL actual work to the minion subagent - implementation, exploration, discovery, searching the codebase, reading files to understand a problem, and even trivial one-line edits. Task size is never a reason to do it yourself, and there is no 'final integration' exception.",
+  `Delegate ALL actual work to the ${minionName} subagent - implementation, exploration, discovery, searching the codebase, reading files to understand a problem, and even trivial one-line edits. Task size is never a reason to do it yourself, and there is no 'final integration' exception.`,
   "You are not hard-banned from tools, but direct tool use is reserved for coordination overhead: a quick peek to phrase a better brief, a fast read-only check to verify a minion's reported result, or answering a question about coordination state. If a tool call is producing the answer or the artifact the user asked for, that call belongs to a minion, not you.",
   "Exploration is work. If the user asks how something works or where something lives, delegate the investigation to a minion rather than exploring yourself.",
   "Always start minion subagents in the background. Even if you have nothing else to coordinate right now, the user may assign you new work while a Minion runs, and you must stay free to receive it. Never poll; you will be notified when they finish.",
@@ -23,39 +23,69 @@ const minionPrompt = [
 const asObject = (value: unknown): Record<string, unknown> =>
   typeof value === "object" && value !== null ? value : {};
 
+const configureMinion = (
+  existing: Record<string, unknown>,
+  model?: string,
+): Record<string, unknown> => {
+  const minion = { ...existing };
+  delete minion.model;
+  delete minion.reasoningEffort;
+  const options = { ...asObject(minion.options) };
+  delete options.reasoningEffort;
+
+  const permission = asObject(minion.permission);
+  const task = asObject(permission.task);
+
+  return {
+    ...minion,
+    description:
+      "Subagent that executes focused tasks delegated by Orchestrator.",
+    mode: "subagent",
+    ...(model === undefined ? {} : { model }),
+    options: {
+      ...options,
+      ...(model === undefined ? {} : { reasoningEffort: "max" }),
+    },
+    prompt: minionPrompt,
+    permission: {
+      ...permission,
+      task: {
+        ...task,
+        "*": "deny",
+      },
+    },
+  };
+};
+
 export const OrchestratorPlugin: Plugin = async () => {
   return {
     config: async (config) => {
       config.agent ??= {};
 
-      const minion = config.agent.minion ?? {};
-      const permission = asObject(minion.permission);
-      const task = asObject(permission.task);
+      const minion = asObject(config.agent.minion);
+      const minionLunamax = asObject(config.agent["minion-lunamax"]);
 
       config.agent.orchestrator = {
         ...config.agent.orchestrator,
         description:
           "Coordinates work by delegating implementation tasks to the minion subagent.",
         mode: "primary",
-        prompt: orchestratorPrompt,
+        prompt: orchestratorPrompt("minion"),
       };
 
-      config.agent.minion = {
-        ...minion,
+      config.agent["orchestrator-lunamax"] = {
+        ...config.agent["orchestrator-lunamax"],
         description:
-          "Subagent that executes focused tasks delegated by Orchestrator.",
-        mode: "subagent",
-        model: "openai/gpt-5.6-terra",
-        reasoningEffort: "high",
-        prompt: minionPrompt,
-        permission: {
-          ...permission,
-          task: {
-            ...task,
-            "*": "deny",
-          },
-        },
+          "Coordinates work by delegating implementation tasks to the LunaMax minion subagent.",
+        mode: "primary",
+        prompt: orchestratorPrompt("minion-lunamax"),
       };
+
+      config.agent.minion = configureMinion(minion);
+      config.agent["minion-lunamax"] = configureMinion(
+        minionLunamax,
+        "openai/gpt-5.6-luna",
+      );
     },
   };
 };

@@ -3,11 +3,12 @@
   "plugin": [
     "@tarquinen/opencode-dcp",
     "opencode-wakatime",
-    "@slkiser/opencode-quota",
+    // "@slkiser/opencode-quota",
     "@tarquinen/opencode-smart-title",
     "opencode-queue",
     "@plannotator/opencode",
     "opencode-goal",
+    "/home/mirsella/dev/opencode-browser-session-mcp/plugin/browser-session-routing.ts",
   ],
   "autoupdate": "notify",
   "experimental": {
@@ -62,17 +63,6 @@
       "url": "https://mcp.linear.app/mcp",
       "enabled": false,
     },
-    "playwright": {
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "@playwright/mcp",
-        "--config",
-        "/home/mirsella/.config/opencode/playwright-helium.json",
-      ],
-      "enabled": true,
-    },
     "google-drive": {
       "type": "local",
       "command": ["npx", "-y", "@piotr-agier/google-drive-mcp"],
@@ -107,8 +97,8 @@
   },
   "agent": {
     "explore": {
-      "model": "openai/gpt-5.6-terra",
-      "reasoningEffort": "low",
+      "model": "openai/gpt-5.6-luna",
+      "reasoningEffort": "max",
     },
   },
   "provider": {
