@@ -50,7 +50,8 @@
       "tailwind",
       "pnpm",
       "npm",
-      "seaorm"
+      "seaorm",
+      "voxride"
     ],
     "debug_mode": false,
     "experimental_enabled": true,

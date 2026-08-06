@@ -8,7 +8,7 @@
     "opencode-queue",
     "@plannotator/opencode",
     "opencode-goal",
-    "/home/mirsella/dev/opencode-browser-session-mcp/plugin/browser-session-routing.ts",
+    "@mirsella/opencode-browser-mcp@0.1.0",
   ],
   "autoupdate": "notify",
   "experimental": {
