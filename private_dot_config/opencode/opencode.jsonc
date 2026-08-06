@@ -35,8 +35,8 @@
     },
     "computer_use": {
       "type": "local",
-      "command": ["/home/mirsella/.local/bin/open-computer-use", "mcp"],
-      "enabled": false,
+      "command": ["open-computer-use", "mcp"],
+      "enabled": true,
     },
     "cloudflare": {
       "type": "remote",
