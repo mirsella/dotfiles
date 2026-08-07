@@ -8,7 +8,7 @@
     "opencode-queue",
     "@plannotator/opencode",
     "opencode-goal",
-    "@mirsella/opencode-browser-mcp@0.1.0",
+    "@mirsella/opencode-browser-mcp@0.2.0",
   ],
   "autoupdate": "notify",
   "experimental": {
