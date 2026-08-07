@@ -11,3 +11,8 @@ README.md
 .config/systemd/user/lu-acton-2-a2dp-watch.service
 enable-lu-acton-2-a2dp-watch.sh
 {{- end }}
+
+# opencode commands
+plannotator-annotate.md
+plannotator-last.md
+plannotator-review.md
