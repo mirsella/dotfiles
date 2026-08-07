@@ -5,10 +5,10 @@
     "opencode-wakatime",
     // "@slkiser/opencode-quota",
     "@tarquinen/opencode-smart-title",
-    "opencode-queue",
+    "@mirsella/opencode-queue",
     "@plannotator/opencode",
-    "opencode-goal",
-    "@mirsella/opencode-browser-mcp@0.2.0",
+    "@mirsella/opencode-goal",
+    "@mirsella/opencode-browser-mcp",
   ],
   "autoupdate": "notify",
   "experimental": {
