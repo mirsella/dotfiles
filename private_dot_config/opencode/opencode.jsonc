@@ -3,7 +3,6 @@
   "plugin": [
     "@tarquinen/opencode-dcp",
     "opencode-wakatime",
-    // "@slkiser/opencode-quota",
     "@tarquinen/opencode-smart-title",
     "opencode-queue",
     "@plannotator/opencode",
@@ -21,11 +20,6 @@
     },
   },
   "mcp": {
-    "aws": {
-      "type": "remote",
-      "url": "https://aws-mcp.eu-central-1.api.aws/mcp",
-      "enabled": false,
-    },
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
@@ -112,9 +106,6 @@
             "minimal": {
               "disabled": true,
             },
-            "medium": {
-              "disabled": true,
-            },
           },
         },
         "gpt-5.6-sol": {
@@ -125,20 +116,9 @@
             "minimal": {
               "disabled": true,
             },
-            "medium": {
-              "disabled": true,
-            },
           },
         },
       },
     },
-    // Detected copilot authentication; opencode-quota added this global provider declaration.
-    "copilot": {},
-    // Detected openrouter authentication; opencode-quota added this global provider declaration.
-    "openrouter": {},
-    // Detected google-antigravity authentication; opencode-quota added this global provider declaration.
-    "google-antigravity": {},
-    // Detected google-gemini-cli authentication; opencode-quota added this global provider declaration.
-    "google-gemini-cli": {},
   },
 }

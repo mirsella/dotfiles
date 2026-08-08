@@ -10,10 +10,5 @@
     "messages_half_page_up": "ctrl+u",
     "messages_half_page_down": "ctrl+d",
   },
-  "plugin": [
-    // "opencode-vim",
-    "./tui-plugins/suppress-ctrl-u.ts",
-    // "@slkiser/opencode-quota"
-    "@tarquinen/opencode-dcp@latest",
-  ],
+  "plugin": ["./tui-plugins/suppress-ctrl-u.ts", "@tarquinen/opencode-dcp"],
 }
