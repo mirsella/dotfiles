@@ -35,7 +35,7 @@
     },
     "computer_use": {
       "type": "local",
-      "command": ["open-computer-use", "mcp"],
+      "command": ["computer-use-mcp", "mcp"],
       "enabled": true,
     },
     "cloudflare": {
