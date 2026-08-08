@@ -30,7 +30,7 @@
     "computer_use": {
       "type": "local",
       "command": ["computer-use-mcp", "mcp"],
-      "enabled": true,
+      "enabled": false,
     },
     "cloudflare": {
       "type": "remote",

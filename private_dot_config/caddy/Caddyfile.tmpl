@@ -1,8 +1,5 @@
-{{- $isMain := eq .chezmoi.hostname "main" -}}
-{{- $siteHost := .chezmoi.hostname -}}
-{{- if $isMain -}}
-{{- $siteHost = "mirsella.mooo.com" -}}
-{{- end -}}
+{{- $host := .chezmoi.hostname -}}
+{{- $domain := "mirsella.mooo.com" -}}
 {
 	admin unix//run/caddy/admin.socket
 	auto_https disable_redirects
@@ -52,7 +49,7 @@
 	}
 }
 
-{{ if $isMain -}}
+{{ if eq $host "main" -}}
 (site_tls) {
 	tls {
 		issuer acme https://acme-v02.api.letsencrypt.org/directory {
@@ -61,21 +58,21 @@
 	}
 }
 
-http://{{ $siteHost }} {
-	redir https://{{ $siteHost }}{uri} 308
+http://{{ $domain }} {
+	redir https://{{ $domain }}{uri} 308
 }
 
-https://{{ $siteHost }} {
+http://{{ $host }}, https://{{ $domain }} {
 	import site_tls
 	import homepage
 }
 
-https://{{ $siteHost }}:4096 {
+https://{{ $domain }}:4096 {
 	import site_tls
 	import opencode
 }
 
-https://{{ $siteHost }}:4097 {
+https://{{ $domain }}:4097 {
 	import site_tls
 	import openchamber
 }
@@ -84,21 +81,21 @@ https://{{ $siteHost }}:4097 {
 	tls internal
 }
 
-http://{{ $siteHost }}, http://{{ $siteHost }}.local, http://localhost {
+http://{{ $host }}, http://{{ $host }}.local, http://localhost {
 	redir https://{host}{uri} 308
 }
 
-https://{{ $siteHost }}, https://{{ $siteHost }}.local, https://localhost {
+https://{{ $host }}, https://{{ $host }}.local, https://localhost {
 	import site_tls
 	import homepage
 }
 
-https://{{ $siteHost }}:4096, https://{{ $siteHost }}.local:4096, https://localhost:4096 {
+https://{{ $host }}:4096, https://{{ $host }}.local:4096, https://localhost:4096 {
 	import site_tls
 	import opencode
 }
 
-https://{{ $siteHost }}:4097, https://{{ $siteHost }}.local:4097, https://localhost:4097 {
+https://{{ $host }}:4097, https://{{ $host }}.local:4097, https://localhost:4097 {
 	import site_tls
 	import openchamber
 }
