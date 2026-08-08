@@ -1,6 +1,6 @@
 git:
-  pagers:
-    - useExternalDiffGitConfig: true
+  diffRenderers:
+    - type: extDiff
   autoFetch: true
   autoRefresh: true
   fetchAll: true
