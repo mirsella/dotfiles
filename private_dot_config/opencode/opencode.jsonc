@@ -9,7 +9,7 @@
     "opencode-goal",
     "@mirsella/opencode-browser-mcp",
   ],
-  "autoupdate": "notify",
+  "autoupdate": false,
   "experimental": {
     "disable_paste_summary": true,
   },

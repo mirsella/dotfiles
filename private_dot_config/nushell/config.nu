@@ -52,11 +52,17 @@ $env.config.keybindings = [
 let autoload_path = ($nu.user-autoload-dirs | first)
 mkdir $autoload_path
 
-def refresh-autoload [name: string, output_path: path, command: closure] {
+def refresh-autoload [name: string, output_path: path, command: closure, transform?: closure] {
   let result = (do $command | complete)
 
   if $result.exit_code == 0 {
-    $result.stdout | save -f $output_path
+    let output = if $transform == null {
+      $result.stdout
+    } else {
+      do $transform $result.stdout
+    }
+
+    $output | save -f $output_path
     return
   }
 
@@ -73,6 +79,8 @@ if $nu.is-interactive {
     refresh-autoload starship ($autoload_path | path join "starship.nu") {|| starship init nu }
     refresh-autoload zoxide ($autoload_path | path join "zoxide.nu") {|| zoxide init --cmd cd nushell }
     refresh-autoload jj ($autoload_path | path join "jj.nu") {|| jj util completion nushell }
-    refresh-autoload atuin ($autoload_path | path join "atuin.nu") {|| atuin init nu --disable-up-arrow }
+    refresh-autoload atuin ($autoload_path | path join "atuin.nu") {|| atuin init nu --disable-up-arrow } {|output|
+      $output | str replace 'let ATUIN_KEYBINDING_TOKEN = $"# ' 'let ATUIN_KEYBINDING_TOKEN = $" # '
+    }
   } | ignore
 }

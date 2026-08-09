@@ -3,6 +3,7 @@ cron/
 etc/
 system/
 apply-colemak-dhm-keyboard.sh
+apply-main-hotspot.sh
 update-system-backup.sh
 kde shortcuts.kksrc
 README.md

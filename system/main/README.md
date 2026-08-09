@@ -85,6 +85,28 @@ is recreated, calculate a new offset with:
 sudo btrfs inspect-internal map-swapfile -r /swap/swapfile
 ```
 
+## Ethernet-to-Wi-Fi hotspot
+
+NetworkManager provides a system-wide WPA2 hotspot named `main hotspot` on
+`wlan0`, sharing Ethernet from `enp5s0`. It autoconnects at priority 100 before
+user login. Its PSK is stored only in the `main hotspot` Wi-Fi item in the
+Proton Pass `Personal` vault, not in this repository.
+
+Docker keeps the global forwarding policy at `DROP`. The
+`configure-hotspot-forwarding` script allows only new forwarded connections
+from `10.42.0.0/24` on `wlan0` to `enp5s0`, plus established or related return
+traffic. Docker runs the script after every service start through its systemd
+drop-in.
+
+The non-secret root files are backed up at:
+
+- `etc/docker/daemon.json`
+- `etc/systemd/system/docker.service.d/hotspot-forwarding.conf`
+- `usr/local/sbin/configure-hotspot-forwarding`
+
+Run `./apply-main-hotspot.sh` from the repository root to restore the files and
+NetworkManager profile. The Proton Pass CLI must already be authenticated.
+
 ## Boot
 
 - Boot loader: systemd-boot 261.1-1-arch

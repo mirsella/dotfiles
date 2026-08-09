@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+iptables -w 5 -P FORWARD DROP
+
+if ! iptables -w 5 -C DOCKER-USER -s 10.42.0.0/24 -i wlan0 -o enp5s0 -j ACCEPT 2>/dev/null; then
+  iptables -w 5 -I DOCKER-USER 1 -s 10.42.0.0/24 -i wlan0 -o enp5s0 -j ACCEPT
+fi
+
+if ! iptables -w 5 -C DOCKER-USER -d 10.42.0.0/24 -i enp5s0 -o wlan0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null; then
+  iptables -w 5 -I DOCKER-USER 2 -d 10.42.0.0/24 -i enp5s0 -o wlan0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+fi
