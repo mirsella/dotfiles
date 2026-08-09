@@ -1,7 +1,7 @@
 [Unit]
 Description=OpenCode server
 Documentation=https://opencode.ai/docs
-After=network.target graphical-session.target
+After=network.target graphical-session.target plasma-workspace-wayland.target
 PartOf=graphical-session.target
 
 [Service]
