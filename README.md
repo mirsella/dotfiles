@@ -49,9 +49,8 @@ Refresh the current host's root configuration snapshot:
 ./update-system-backup.sh
 ```
 
-The script stores the snapshot under `system/$(hostname -s)/`. Pass a hostname
-as its first argument to override the destination name. These files are for
-manual recovery and are never installed by `chezmoi apply`.
+The script stores the snapshot under `system/$(hostname -s)/`. These files are
+for manual recovery and are never installed by `chezmoi apply`.
 
 ## Main Hotspot
 
@@ -65,7 +64,9 @@ Docker forwarding rules on host `main`:
 The script retrieves the WPA2 PSK from the `main hotspot` Wi-Fi item in the
 Proton Pass `Personal` vault. The password is not stored in this repository.
 It installs the root-owned files from `system/main/`, restarts Docker, and
-activates the system-wide, pre-login NetworkManager hotspot profile.
+activates the system-wide, pre-login NetworkManager hotspot profile. It aborts
+unless the computer's short hostname is exactly `main`; normal `chezmoi apply`
+never installs these files.
 
 ## Notes
 

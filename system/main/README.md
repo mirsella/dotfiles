@@ -2,9 +2,10 @@
 
 Snapshot date: 2026-07-13
 
-This is a machine-specific reference for host `main`. The entire `system/`
-source directory is ignored by `chezmoi apply`; restoring these files is
-intentionally a manual root operation.
+This is a machine-specific reference for host `main`. It must not be restored
+on another computer. The entire `system/` source directory is ignored by
+`chezmoi apply`, and the dedicated hotspot restore script aborts unless the
+short hostname is exactly `main`.
 
 ## Hardware and firmware
 
@@ -92,15 +93,13 @@ NetworkManager provides a system-wide WPA2 hotspot named `main hotspot` on
 user login. Its PSK is stored only in the `main hotspot` Wi-Fi item in the
 Proton Pass `Personal` vault, not in this repository.
 
-Docker keeps the global forwarding policy at `DROP`. The
-`configure-hotspot-forwarding` script allows only new forwarded connections
-from `10.42.0.0/24` on `wlan0` to `enp5s0`, plus established or related return
-traffic. Docker runs the script after every service start through its systemd
-drop-in.
+The `configure-hotspot-forwarding` script sets the global forwarding policy to
+`DROP`, then allows only new forwarded connections from `10.42.0.0/24` on
+`wlan0` to `enp5s0`, plus established or related return traffic. Docker runs
+the script after every service start through its systemd drop-in.
 
 The non-secret root files are backed up at:
 
-- `etc/docker/daemon.json`
 - `etc/systemd/system/docker.service.d/hotspot-forwarding.conf`
 - `usr/local/sbin/configure-hotspot-forwarding`
 

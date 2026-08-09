@@ -2,7 +2,10 @@
 set -euo pipefail
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-host=${1:-$(hostname -s)}
+
+(($# == 0)) || { printf 'usage: %s\n' "${0##*/}" >&2; exit 2; }
+
+host=$(hostname -s)
 
 if [[ ! $host =~ ^[A-Za-z0-9._-]+$ ]]; then
     printf 'error: invalid hostname: %s\n' "$host" >&2
@@ -45,11 +48,12 @@ copy_file /etc/mkinitcpio.conf etc/mkinitcpio.conf
 copy_file /etc/systemd/zram-generator.conf etc/systemd/zram-generator.conf optional
 copy_file /etc/sysctl.d/99-swappiness.conf etc/sysctl.d/99-swappiness.conf optional
 copy_file /etc/coolercontrol/config.toml etc/coolercontrol/config.toml optional
-copy_file /etc/docker/daemon.json etc/docker/daemon.json optional
-copy_file /etc/systemd/system/docker.service.d/hotspot-forwarding.conf \
-    etc/systemd/system/docker.service.d/hotspot-forwarding.conf optional
-copy_file /usr/local/sbin/configure-hotspot-forwarding \
-    usr/local/sbin/configure-hotspot-forwarding optional 0755
+if [[ $host == main ]]; then
+    copy_file /etc/systemd/system/docker.service.d/hotspot-forwarding.conf \
+        etc/systemd/system/docker.service.d/hotspot-forwarding.conf
+    copy_file /usr/local/sbin/configure-hotspot-forwarding \
+        usr/local/sbin/configure-hotspot-forwarding required 0755
+fi
 copy_file /boot/loader/loader.conf boot/loader/loader.conf
 
 mkdir -p "$staging/boot/loader/entries"
