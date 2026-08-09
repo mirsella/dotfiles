@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Isolate each build so oomd can kill Cargo without killing its terminal.
+exec /usr/bin/systemd-run \
+  --user \
+  --scope \
+  --quiet \
+  --collect \
+  --same-dir \
+  --description="Cargo command" \
+  /usr/bin/choom -n 500 -- /usr/bin/cargo "$@"
