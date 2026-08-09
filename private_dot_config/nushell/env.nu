@@ -5,6 +5,11 @@ let gem_home = ($env.GEM_HOME? | default $"($env.HOME)/.local/share/gem")
 let pnpm_home = ($env.PNPM_HOME? | default $"($env.HOME)/.local/share/pnpm")
 let xdg_cache_home = ($env.XDG_CACHE_HOME? | default $"($env.HOME)/.cache")
 
+let cargo_bin = $"($cargo_home)/bin"
+if not ($cargo_bin in $env.PATH) {
+  $env.PATH = [$cargo_bin] ++ $env.PATH
+}
+
 $env.GTRASH_HOME_TRASH_FALLBACK_COPY = "true"
 $env.COPILOT_ALLOW_ALL = "true"
 $env.PROTON_PASS_LINUX_KEYRING = "dbus"
@@ -23,7 +28,6 @@ for path in [
   $"($env.HOME)/.local/bin"
   $"($gem_home)/bin"
   $"($env.HOME)/.local/share/npm/bin"
-  $"($cargo_home)/bin"
   $"($go_path)/bin"
   $"($xdg_cache_home)/.bun/bin"
   $"($pnpm_home)/bin"
