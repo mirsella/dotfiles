@@ -25,6 +25,7 @@ const asObject = (value: unknown): Record<string, unknown> =>
 
 const configureMinion = (
   existing: Record<string, unknown>,
+  description: string,
   model?: string,
 ): Record<string, unknown> => {
   const minion = { ...existing };
@@ -38,8 +39,7 @@ const configureMinion = (
 
   return {
     ...minion,
-    description:
-      "Subagent that executes focused tasks delegated by Orchestrator.",
+    description,
     mode: "subagent",
     ...(model === undefined ? {} : { model }),
     options: {
@@ -81,9 +81,13 @@ export const OrchestratorPlugin: Plugin = async () => {
         prompt: orchestratorPrompt("minion-lunamax"),
       };
 
-      config.agent.minion = configureMinion(minion);
+      config.agent.minion = configureMinion(
+        minion,
+        "Executes focused tasks delegated by Orchestrator.",
+      );
       config.agent["minion-lunamax"] = configureMinion(
         minionLunamax,
+        "Executes focused tasks delegated by Orchestrator LunaMax.",
         "openai/gpt-5.6-luna",
       );
     },
