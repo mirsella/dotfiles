@@ -1,1 +1,3 @@
 .config/systemd/user/caddy.service
+.local/share/applications/rio.desktop
+.local/share/icons/rio-2024.svg

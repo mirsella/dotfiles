@@ -1,0 +1,60 @@
+confirm-before-quit = false
+enable-scroll-bar = false
+scrollback-history-limit = 1000000
+padding = [0]
+# Spawn shells so new tabs can inherit the active tab's working directory.
+use-fork = false
+
+[adaptive-theme]
+light = "rose-pine-dawn"
+dark = "rose-pine-moon"
+
+[fonts]
+family = "JetBrains Mono"
+size = 15
+disable-warnings-not-found = false
+
+[navigation]
+mode = "Tab"
+hide-if-single = true
+
+[panel]
+padding = [0]
+
+[cursor]
+shape = "block"
+blinking = false
+
+[bindings]
+keys = [
+  { key = "return", with = "shift", esc = "\u001b\r" },
+  { key = "F1", action = "ToggleVIMode" },
+]
+
+[hints]
+alphabet = "colemak"
+
+[[hints.rules]]
+regex = '[^\s\p{Cc}]{5,}'
+post-processing = true
+persist = false
+
+[hints.rules.action]
+action = "Copy"
+
+[hints.rules.binding]
+key = "F2"
+mods = []
+
+[[hints.rules]]
+regex = 'https?://[^\s<>"]+'
+hyperlinks = true
+post-processing = true
+persist = false
+
+[hints.rules.action]
+command = "xdg-open"
+
+[hints.rules.binding]
+key = "F3"
+mods = []
