@@ -1,9 +1,10 @@
 #!/bin/sh
 
-# Isolate each build so oomd can kill Cargo without killing its terminal.
+# Isolate each build in the oomd-monitored Cargo slice.
 exec /usr/bin/systemd-run \
   --user \
   --scope \
+  --slice=cargo.slice \
   --quiet \
   --collect \
   --same-dir \
