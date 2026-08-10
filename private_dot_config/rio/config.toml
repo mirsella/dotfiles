@@ -5,6 +5,10 @@ padding = [0]
 # Spawn shells so new tabs can inherit the active tab's working directory.
 use-fork = false
 
+[shell]
+program = "/home/mirsella/.local/bin/rio-shell-scope"
+args = []
+
 [adaptive-theme]
 light = "rose-pine-dawn"
 dark = "rose-pine-moon"

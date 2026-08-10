@@ -37,6 +37,18 @@ selection through `cargo +nightly`, `cargo +stable`, `rust-toolchain.toml`, and
 directory overrides remains covered. `rustup run nightly cargo ...` bypasses
 the wrapper and should be avoided when OOM protection is wanted.
 
+Rio starts each new tab through `~/.local/bin/rio-shell-scope`. The wrapper
+places Nushell and its descendants in a transient systemd scope with
+`oom_score_adj=300`, while retaining the tab's working directory. This keeps a
+large non-Cargo process or a Cargo invocation that bypasses the Cargo wrapper
+from sharing Rio's application cgroup. Existing tabs retain their old cgroup
+until they are closed and reopened.
+
+`ManagedOOMPreference=avoid` on Rio's user unit does not protect it from this
+root swap policy. For swap decisions, systemd-oomd ignores preferences on
+user-owned cgroups, so the separate tab and Cargo cgroups provide the useful
+protection boundaries.
+
 To remove the global swap policy while retaining the kernel's normal OOM
 killer and the Cargo score adjustment:
 

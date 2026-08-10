@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Keep each tab's process tree separate from the Rio application cgroup.
+exec /usr/bin/systemd-run \
+  --user \
+  --scope \
+  --quiet \
+  --collect \
+  --same-dir \
+  --description="Rio shell" \
+  /usr/bin/choom -n 300 -- /bin/nu --login "$@"
