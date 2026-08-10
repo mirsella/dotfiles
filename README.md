@@ -36,7 +36,6 @@ chezmoi apply
 - [Cargo OOM protection](docs/cargo-oom-protection.md)
 - [Keyboard layout](docs/keyboard-layout.md)
 - [System backup](docs/system-backup.md)
-- [Main hotspot](docs/main-hotspot.md)
 
 ## Notes
 
