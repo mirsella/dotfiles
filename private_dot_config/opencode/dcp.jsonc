@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/mirsella/opencode-dynamic-context-pruning/4735a75e05ef832ceff6371fca4fa9e2d4b22f73/dcp.schema.json",
+  "$schema": "https://raw.githubusercontent.com/mirsella/opencode-dynamic-context-pruning/resilient-state/dcp.schema.json",
   "pruneNotification": "minimal",
   "pruneNotificationType": "toast",
 }
