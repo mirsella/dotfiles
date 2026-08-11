@@ -225,6 +225,7 @@ struct Exclusion {
     pid: Option<i32>,
     run_id: Option<String>,
     tty: Option<String>,
+    sessions: HashSet<String>,
 }
 
 impl Exclusion {
@@ -246,15 +247,32 @@ impl Exclusion {
         let tty = nonempty_env("WATCHDOG_EXCLUDE_TTY")
             .and_then(|value| normalize_tty(&value))
             .or_else(|| pid.and_then(|pid| process_tty(state, pid)));
-        Self { pid, run_id, tty }
+        let sessions = nonempty_env("WATCHDOG_EXCLUDE_OPENCODE_SESSIONS")
+            .into_iter()
+            .flat_map(|value| {
+                value
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|session| !session.is_empty())
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        Self {
+            pid,
+            run_id,
+            tty,
+            sessions,
+        }
     }
 
-    fn includes(&self, process: &ServerProcess) -> bool {
-        Some(process.pid) == self.pid
-            || self
-                .run_id
-                .as_deref()
-                .is_some_and(|run_id| process.run_id.as_deref() == Some(run_id))
+    fn includes_process(&self, process: &ServerProcess) -> bool {
+        !process.args.iter().any(|arg| arg == "serve")
+            && (Some(process.pid) == self.pid
+                || self
+                    .run_id
+                    .as_deref()
+                    .is_some_and(|run_id| process.run_id.as_deref() == Some(run_id)))
     }
 }
 
@@ -490,6 +508,28 @@ fn process_sockets(pid: i32) -> Vec<String> {
         .collect()
 }
 
+fn process_urls(
+    process: &ServerProcess,
+    listeners: &HashMap<String, (String, u16)>,
+) -> Vec<String> {
+    let mut urls = Vec::new();
+    if let Some(port) = argument(&process.args, "--port").and_then(|port| port.parse().ok()) {
+        let host = probe_host(argument(&process.args, "--hostname").as_deref());
+        urls.push(base_url(&host, port));
+    } else if process.args.iter().any(|arg| arg == "serve") {
+        urls.push(base_url("127.0.0.1", 4096));
+    }
+    urls.extend(
+        process_sockets(process.pid)
+            .into_iter()
+            .filter_map(|inode| {
+                let (host, port) = listeners.get(&inode)?;
+                Some(base_url(host, *port))
+            }),
+    );
+    urls
+}
+
 fn authorization(process: &ServerProcess) -> Option<String> {
     let password = process
         .password
@@ -534,15 +574,18 @@ fn session_blockers(
     questions: Option<&Value>,
     permissions: Option<&Value>,
     messages: &serde_json::Map<String, Value>,
+    excluded_sessions: &HashSet<String>,
 ) -> Vec<String> {
-    let mut waiting: HashSet<_> = [questions, permissions]
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_array)
-        .flatten()
-        .filter_map(|request| request.get("sessionID").and_then(Value::as_str))
-        .map(str::to_owned)
-        .collect();
+    let mut waiting = excluded_sessions.clone();
+    waiting.extend(
+        [questions, permissions]
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_array)
+            .flatten()
+            .filter_map(|request| request.get("sessionID").and_then(Value::as_str))
+            .map(str::to_owned),
+    );
     loop {
         let parents: Vec<_> = status
             .iter()
@@ -602,6 +645,56 @@ fn session_blockers(
         .collect()
 }
 
+fn has_running_watchdog(messages: &Value) -> bool {
+    messages
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|message| message.get("parts").and_then(Value::as_array))
+        .flatten()
+        .any(|part| {
+            part.get("type").and_then(Value::as_str) == Some("tool")
+                && part.get("tool").and_then(Value::as_str) == Some("bash")
+                && part.pointer("/state/status").and_then(Value::as_str) == Some("running")
+                && part
+                    .pointer("/state/input/command")
+                    .and_then(Value::as_str)
+                    .is_some_and(|command| command.contains(NAME))
+        })
+}
+
+fn invoking_sessions(client: &ureq::Agent, processes: &[ServerProcess]) -> HashSet<String> {
+    let listeners = tcp_listeners();
+    let mut seen = HashSet::new();
+    let mut sessions = HashSet::new();
+    for process in processes {
+        let authorization = authorization(process);
+        for url in process_urls(process, &listeners) {
+            if !seen.insert((process.pid, url.clone())) {
+                continue;
+            }
+            let Some(Value::Object(status)) =
+                request_json(client, &url, authorization.as_deref(), "/session/status")
+            else {
+                continue;
+            };
+            for (session, _state) in status
+                .iter()
+                .filter(|(_, state)| state.get("type").and_then(Value::as_str) == Some("busy"))
+            {
+                let path = format!("/session/{session}/message");
+                if request_json(client, &url, authorization.as_deref(), &path)
+                    .as_ref()
+                    .is_some_and(has_running_watchdog)
+                {
+                    sessions.insert(session.clone());
+                }
+            }
+        }
+    }
+    sessions
+}
+
 fn api_blockers(
     client: &ureq::Agent,
     processes: &[ServerProcess],
@@ -612,25 +705,10 @@ fn api_blockers(
     let mut details = Vec::new();
     for process in processes
         .iter()
-        .filter(|process| !exclusion.includes(process))
+        .filter(|process| !exclusion.includes_process(process))
     {
-        let mut urls = Vec::new();
-        if let Some(port) = argument(&process.args, "--port").and_then(|port| port.parse().ok()) {
-            let host = probe_host(argument(&process.args, "--hostname").as_deref());
-            urls.push(base_url(&host, port));
-        } else if process.args.iter().any(|arg| arg == "serve") {
-            urls.push(base_url("127.0.0.1", 4096));
-        }
-        urls.extend(
-            process_sockets(process.pid)
-                .into_iter()
-                .filter_map(|inode| {
-                    let (host, port) = listeners.get(&inode)?;
-                    Some(base_url(host, *port))
-                }),
-        );
         let authorization = authorization(process);
-        for url in urls {
+        for url in process_urls(process, &listeners) {
             if !seen.insert((process.pid, url.clone())) {
                 continue;
             }
@@ -667,8 +745,13 @@ fn api_blockers(
                 .collect();
             let questions = request_json(client, &url, authorization.as_deref(), "/question");
             let permissions = request_json(client, &url, authorization.as_deref(), "/permission");
-            let active =
-                session_blockers(&status, questions.as_ref(), permissions.as_ref(), &messages);
+            let active = session_blockers(
+                &status,
+                questions.as_ref(),
+                permissions.as_ref(),
+                &messages,
+                &exclusion.sessions,
+            );
             if !active.is_empty() {
                 details.push(format!(
                     "pid={} {} {}",
@@ -798,18 +881,26 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
     };
     let cancellation = Cancellation::new()?;
     let initial_processes = server_processes()?;
-    let exclusion = Exclusion::detect(state, &initial_processes);
+    let mut exclusion = Exclusion::detect(state, &initial_processes);
+    let client = http_client();
+    exclusion
+        .sessions
+        .extend(invoking_sessions(&client, &initial_processes));
     state.log(format!(
-        "watchdog started; excluding opencode pid={} run_id={} tty={}; interval={}s required_idle_checks={}; cache={}",
+        "watchdog started; excluding opencode pid={} run_id={} tty={} sessions={}; interval={}s required_idle_checks={}; cache={}",
         exclusion.pid.map(|pid| pid.to_string()).unwrap_or_else(|| "unknown".into()),
         exclusion.run_id.as_deref().unwrap_or("unknown"),
         exclusion.tty.as_deref().unwrap_or("unknown"),
+        if exclusion.sessions.is_empty() {
+            "unknown".to_owned()
+        } else {
+            exclusion.sessions.iter().cloned().collect::<Vec<_>>().join(",")
+        },
         options.interval,
         options.required_idle_checks,
         state.root.display()
     ));
 
-    let client = http_client();
     let mut consecutive_idle = 0;
     let mut check = 0;
     let signal = loop {
@@ -986,7 +1077,10 @@ fn background_arguments(options: &Options) -> Vec<OsString> {
 
 fn launch_background(state: &State, options: &Options) -> Result<i32> {
     let processes = server_processes()?;
-    let exclusion = Exclusion::detect(state, &processes);
+    let mut exclusion = Exclusion::detect(state, &processes);
+    exclusion
+        .sessions
+        .extend(invoking_sessions(&http_client(), &processes));
     fs::create_dir_all(&state.root)?;
     let mut child = Command::new(env::current_exe().context("locate watchdog executable")?);
     child
@@ -1002,6 +1096,12 @@ fn launch_background(state: &State, options: &Options) -> Result<i32> {
     }
     if let Some(tty) = exclusion.tty {
         child.env("WATCHDOG_EXCLUDE_TTY", tty);
+    }
+    if !exclusion.sessions.is_empty() {
+        child.env(
+            "WATCHDOG_EXCLUDE_OPENCODE_SESSIONS",
+            exclusion.sessions.into_iter().collect::<Vec<_>>().join(","),
+        );
     }
     unsafe {
         child.pre_exec(|| {
@@ -1103,6 +1203,7 @@ mod tests {
                 Some(&fixture["questions"]),
                 Some(&fixture["permissions"]),
                 fixture["messages"].as_object().unwrap(),
+                &HashSet::new(),
             ),
             [
                 "background:busy",
@@ -1113,6 +1214,33 @@ mod tests {
                 "other:busy",
                 "partial:busy",
             ]
+        );
+    }
+
+    #[test]
+    fn excludes_sessions_running_the_watchdog() {
+        let messages: Value = serde_json::from_str(
+            r#"[{
+          "parts":[{
+            "type":"tool",
+            "tool":"bash",
+            "state":{
+              "status":"running",
+              "input":{"command":"/home/me/.local/bin/opencode-idle-watchdog --detach"}
+            }
+          }]
+        }]"#,
+        )
+        .unwrap();
+        assert!(has_running_watchdog(&messages));
+
+        let mut excluded = HashSet::new();
+        excluded.insert("self".to_owned());
+        let status: serde_json::Map<String, Value> =
+            serde_json::from_str(r#"{"other":{"type":"busy"},"self":{"type":"busy"}}"#).unwrap();
+        assert_eq!(
+            session_blockers(&status, None, None, &serde_json::Map::new(), &excluded),
+            ["other:busy"]
         );
     }
 

@@ -17,11 +17,8 @@ disable-warnings-not-found = false
 [navigation]
 mode = "Tab"
 hide-if-single = true
-tab-bar-height = 20
-tab-max-width = 130
-tab-gap = 1
+tab-bar-height = 24
 tab-inset-y = 0
-tab-radius = 0
 
 [panel]
 padding = [0]
