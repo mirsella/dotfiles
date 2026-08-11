@@ -57,6 +57,10 @@ persist = false
 [hints.rules.action]
 command = "xdg-open"
 
+[hints.rules.mouse]
+enabled = true
+mods = []
+
 [hints.rules.binding]
 key = "F3"
 mods = []
