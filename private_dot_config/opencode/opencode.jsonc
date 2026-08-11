@@ -20,9 +20,13 @@
     },
   },
   "mcp": {
-    "context7": {
+    "context7-broker": {
       "type": "local",
-      "command": ["npx", "-y", "git+https://github.com/mirsella/context7-account-broker.git"],
+      "command": [
+        "npx",
+        "-y",
+        "git+https://github.com/mirsella/context7-account-broker.git",
+      ],
       "timeout": 30000,
       "enabled": true,
       "environment": {
