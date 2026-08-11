@@ -8,6 +8,12 @@ while systemd-oomd can kill the complete build scope without killing unrelated
 applications. Each scope is a child of the dedicated `cargo.slice`; no hard
 memory limit is imposed.
 
+Scope names identify the workload in desktop OOM notifications. A scope such
+as `cargo-mightyminions-check-p2974927.scope` means Cargo was running `check`
+for the `mightyminions` project; the final number is the wrapper process ID.
+The project comes from `--manifest-path` when supplied, otherwise from the
+nearest parent directory containing `Cargo.toml`.
+
 Chezmoi also tracks `~/.config/systemd/user/cargo.slice`. Its
 `ManagedOOMSwap=kill` setting makes only Cargo scopes eligible for swap-based
 systemd-oomd kills. The root slice uses `ManagedOOMSwap=auto`, so Rio, shells,

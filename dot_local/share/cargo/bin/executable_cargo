@@ -1,12 +1,63 @@
 #!/bin/sh
 
 # Isolate each build in the oomd-monitored Cargo slice.
+action='command'
+manifest=
+expect_manifest=false
+
+for arg do
+  if [ "$expect_manifest" = true ]; then
+    manifest=$arg
+    expect_manifest=false
+    continue
+  fi
+
+  case $arg in
+    --manifest-path)
+      expect_manifest=true
+      ;;
+    --manifest-path=*)
+      manifest=${arg#--manifest-path=}
+      ;;
+    +*|-*)
+      ;;
+    *)
+      if [ "$action" = command ]; then
+        action=$arg
+      fi
+      ;;
+  esac
+done
+
+if [ -n "$manifest" ]; then
+  case $manifest in
+    */*) project_dir=${manifest%/*} ;;
+    *) project_dir=$PWD ;;
+  esac
+  project_dir=$(/usr/bin/realpath -m -- "$project_dir")
+else
+  project_dir=$PWD
+  while [ "$project_dir" != / ] && [ ! -f "$project_dir/Cargo.toml" ]; do
+    project_dir=${project_dir%/*}
+    [ -n "$project_dir" ] || project_dir=/
+  done
+fi
+
+project=${project_dir##*/}
+[ -n "$project" ] || project=unknown
+project=$(printf '%.48s' "$project")
+action=$(printf '%.32s' "$action")
+escaped_project=$(/usr/bin/systemd-escape "$project")
+escaped_action=$(/usr/bin/systemd-escape "$action")
+unit="cargo-$escaped_project-$escaped_action-p$$.scope"
+
 exec /usr/bin/systemd-run \
   --user \
   --scope \
+  --unit="$unit" \
   --slice=cargo.slice \
   --quiet \
   --collect \
   --same-dir \
-  --description="Cargo command" \
+  --description="Cargo $action in $project" \
   /usr/bin/choom -n 500 -- /usr/bin/cargo "$@"
