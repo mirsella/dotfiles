@@ -212,8 +212,16 @@ impl Drop for Cancellation {
 
 struct OpenCodeProcess {
     pid: i32,
-    shared_server: bool,
+    role: ProcessRole,
+    directory: Option<String>,
     authorization: Option<String>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ProcessRole {
+    SharedServer,
+    RemoteClient,
+    Standalone,
 }
 
 struct Exclusion {
@@ -241,7 +249,7 @@ impl Exclusion {
     }
 
     fn includes_process(&self, process: &OpenCodeProcess) -> bool {
-        !process.shared_server && Some(process.pid) == self.pid
+        process.role != ProcessRole::SharedServer && Some(process.pid) == self.pid
     }
 }
 
@@ -337,9 +345,23 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
                 base64::engine::general_purpose::STANDARD.encode(format!("{username}:{password}"));
             format!("Basic {encoded}")
         });
+        let role = if args.get(1).is_some_and(|arg| arg == "attach")
+            || args
+                .iter()
+                .any(|arg| arg == "--attach" || arg.starts_with("--attach="))
+        {
+            ProcessRole::RemoteClient
+        } else if args.iter().any(|arg| arg == "serve") {
+            ProcessRole::SharedServer
+        } else {
+            ProcessRole::Standalone
+        };
         processes.push(OpenCodeProcess {
             pid,
-            shared_server: args.iter().any(|arg| arg == "serve"),
+            role,
+            directory: fs::read_link(format!("/proc/{pid}/cwd"))
+                .ok()
+                .map(|path| path.to_string_lossy().into_owned()),
             authorization,
         });
     }
@@ -438,6 +460,7 @@ fn request_json(
     client: &ureq::Agent,
     base_url: &str,
     authorization: Option<&str>,
+    directory: Option<&str>,
     path: &str,
 ) -> Option<Value> {
     let mut request = client
@@ -445,6 +468,9 @@ fn request_json(
         .header("Accept", "application/json");
     if let Some(authorization) = authorization {
         request = request.header("Authorization", authorization);
+    }
+    if let Some(directory) = directory {
+        request = request.header("x-opencode-directory", directory);
     }
     let mut response = request.call().ok()?;
     let body = response.body_mut().read_to_string().ok()?;
@@ -548,23 +574,47 @@ fn has_running_watchdog(messages: &Value) -> bool {
 struct ApiSnapshot {
     pid: i32,
     url: String,
-    status: Option<serde_json::Map<String, Value>>,
-    messages: serde_json::Map<String, Value>,
-    questions: Option<Value>,
-    permissions: Option<Value>,
+    directory: String,
+    state: WorkspaceState,
+}
+
+enum WorkspaceState {
+    Invalid,
+    Available {
+        status: serde_json::Map<String, Value>,
+        messages: serde_json::Map<String, Value>,
+        questions: Option<Value>,
+        permissions: Option<Value>,
+    },
+}
+
+struct ApiScan {
+    snapshots: Vec<ApiSnapshot>,
+    failures: Vec<String>,
 }
 
 fn api_snapshots(
     client: &ureq::Agent,
     processes: &[OpenCodeProcess],
     exclusion: &Exclusion,
-) -> Vec<ApiSnapshot> {
+) -> ApiScan {
     let listeners = tcp_listener_urls();
     let mut snapshots = Vec::new();
-    for process in processes
+    let mut failures = Vec::new();
+    let shared_directories: HashSet<_> = processes
         .iter()
-        .filter(|process| !exclusion.includes_process(process))
-    {
+        .filter_map(|process| process.directory.clone())
+        .collect();
+    for process in processes.iter().filter(|process| {
+        process.directory.is_none()
+            && (process.role == ProcessRole::RemoteClient || !exclusion.includes_process(process))
+    }) {
+        failures.push(format!("pid={} cwd:unavailable", process.pid));
+    }
+    for process in processes.iter().filter(|process| {
+        process.role != ProcessRole::RemoteClient && !exclusion.includes_process(process)
+    }) {
+        let mut found = false;
         for inode in process_sockets(process.pid) {
             let Some(url) = listeners.get(&inode) else {
                 continue;
@@ -573,6 +623,7 @@ fn api_snapshots(
                 client,
                 url,
                 process.authorization.as_deref(),
+                None,
                 "/global/health",
             )
             .as_ref()
@@ -582,94 +633,146 @@ fn api_snapshots(
             {
                 continue;
             }
-            let status = match request_json(
-                client,
-                url,
-                process.authorization.as_deref(),
-                "/session/status",
-            ) {
-                Some(Value::Object(status)) => Some(status),
-                _ => None,
+            found = true;
+            let directories: Vec<_> = if process.role == ProcessRole::SharedServer {
+                shared_directories.iter().collect()
+            } else {
+                process.directory.iter().collect()
             };
-            let messages = status
-                .iter()
-                .flatten()
-                .filter(|(_, state)| state.get("type").and_then(Value::as_str) == Some("busy"))
-                .filter_map(|(session, _)| {
-                    let messages = request_json(
-                        client,
-                        url,
-                        process.authorization.as_deref(),
-                        &format!("/session/{session}/message"),
-                    )?;
-                    Some((session.clone(), messages))
-                })
-                .collect();
-            snapshots.push(ApiSnapshot {
-                pid: process.pid,
-                url: url.clone(),
-                status,
-                messages,
-                questions: request_json(client, url, process.authorization.as_deref(), "/question"),
-                permissions: request_json(
+            for directory in directories {
+                let state = match request_json(
                     client,
                     url,
                     process.authorization.as_deref(),
-                    "/permission",
-                ),
-            });
+                    Some(directory),
+                    "/session/status",
+                ) {
+                    Some(Value::Object(status)) => {
+                        let messages = status
+                            .iter()
+                            .filter(|(_, state)| {
+                                state.get("type").and_then(Value::as_str) == Some("busy")
+                            })
+                            .filter_map(|(session, _)| {
+                                let messages = request_json(
+                                    client,
+                                    url,
+                                    process.authorization.as_deref(),
+                                    Some(directory),
+                                    &format!("/session/{session}/message"),
+                                )?;
+                                Some((session.clone(), messages))
+                            })
+                            .collect();
+                        WorkspaceState::Available {
+                            status,
+                            messages,
+                            questions: request_json(
+                                client,
+                                url,
+                                process.authorization.as_deref(),
+                                Some(directory),
+                                "/question",
+                            ),
+                            permissions: request_json(
+                                client,
+                                url,
+                                process.authorization.as_deref(),
+                                Some(directory),
+                                "/permission",
+                            ),
+                        }
+                    }
+                    _ => WorkspaceState::Invalid,
+                };
+                snapshots.push(ApiSnapshot {
+                    pid: process.pid,
+                    url: url.clone(),
+                    directory: directory.clone(),
+                    state,
+                });
+            }
             break;
         }
+        if !found {
+            failures.push(format!("pid={} opencode-api:unreachable", process.pid));
+        }
     }
-    snapshots
+    if snapshots.is_empty()
+        && failures.is_empty()
+        && processes
+            .iter()
+            .any(|process| process.role == ProcessRole::RemoteClient)
+    {
+        failures.push("remote opencode clients have no observable server".to_owned());
+    }
+    ApiScan {
+        snapshots,
+        failures,
+    }
 }
 
-fn invoking_sessions(snapshots: &[ApiSnapshot]) -> HashSet<String> {
-    snapshots
+fn invoking_sessions(scan: &ApiScan) -> HashSet<String> {
+    scan.snapshots
         .iter()
-        .filter_map(|snapshot| snapshot.status.as_ref().map(|status| (status, snapshot)))
-        .flat_map(|(status, snapshot)| {
+        .filter_map(|snapshot| match &snapshot.state {
+            WorkspaceState::Available {
+                status, messages, ..
+            } => Some((status, messages)),
+            WorkspaceState::Invalid => None,
+        })
+        .flat_map(|(status, messages)| {
             status
                 .iter()
                 .filter(|(_, state)| state.get("type").and_then(Value::as_str) == Some("busy"))
-                .filter(|(session, _)| {
-                    snapshot
-                        .messages
-                        .get(*session)
-                        .is_some_and(has_running_watchdog)
-                })
+                .filter(|(session, _)| messages.get(*session).is_some_and(has_running_watchdog))
                 .map(|(session, _)| session.clone())
         })
         .collect()
 }
 
-fn api_blockers(snapshots: &[ApiSnapshot], exclusion: &Exclusion) -> Vec<String> {
-    let mut details = Vec::new();
-    for snapshot in snapshots {
-        let Some(status) = &snapshot.status else {
+fn api_blockers(scan: &ApiScan, exclusion: &Exclusion) -> Vec<String> {
+    let mut details = scan.failures.clone();
+    for snapshot in &scan.snapshots {
+        let WorkspaceState::Available {
+            status,
+            messages,
+            questions,
+            permissions,
+        } = &snapshot.state
+        else {
             details.push(format!(
-                "pid={} {} session-status:invalid",
-                snapshot.pid, snapshot.url
+                "pid={} {} directory={} session-status:invalid",
+                snapshot.pid, snapshot.url, snapshot.directory
             ));
             continue;
         };
         let active = session_blockers(
             status,
-            snapshot.questions.as_ref(),
-            snapshot.permissions.as_ref(),
-            &snapshot.messages,
+            questions.as_ref(),
+            permissions.as_ref(),
+            messages,
             &exclusion.sessions,
         );
         if !active.is_empty() {
             details.push(format!(
-                "pid={} {} {}",
+                "pid={} {} directory={} {}",
                 snapshot.pid,
                 snapshot.url,
+                snapshot.directory,
                 active.into_iter().take(4).collect::<Vec<_>>().join(" ")
             ));
         }
     }
     details
+}
+
+fn initial_scan(client: &ureq::Agent) -> Result<(Exclusion, ApiScan)> {
+    let processes = opencode_processes()?;
+    let mut exclusion = Exclusion::detect();
+    let scan = api_snapshots(client, &processes, &exclusion);
+    exclusion.sessions.extend(invoking_sessions(&scan));
+    Ok((exclusion, scan))
 }
 
 fn summarize(items: &[String], limit: usize) -> String {
@@ -694,13 +797,8 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
         return Ok(0);
     };
     let cancellation = Cancellation::new()?;
-    let initial_processes = opencode_processes()?;
-    let mut exclusion = Exclusion::detect();
     let client = http_client();
-    let initial_snapshots = api_snapshots(&client, &initial_processes, &exclusion);
-    exclusion
-        .sessions
-        .extend(invoking_sessions(&initial_snapshots));
+    let (exclusion, mut scan) = initial_scan(&client)?;
     let mut excluded_sessions: Vec<_> = exclusion.sessions.iter().cloned().collect();
     excluded_sessions.sort_unstable();
     state.log(format!(
@@ -718,14 +816,9 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
 
     let mut consecutive_idle = 0;
     let mut check = 0;
-    let mut snapshots = Some(initial_snapshots);
     let signal = loop {
         check += 1;
-        let snapshots = match snapshots.take() {
-            Some(snapshots) => snapshots,
-            None => api_snapshots(&client, &opencode_processes()?, &exclusion),
-        };
-        let api_blockers = api_blockers(&snapshots, &exclusion);
+        let api_blockers = api_blockers(&scan, &exclusion);
         consecutive_idle = if api_blockers.is_empty() {
             consecutive_idle + 1
         } else {
@@ -756,6 +849,7 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
         if let Some(signal) = cancellation.wait(Duration::from_secs(options.interval)) {
             break Some(signal);
         }
+        scan = api_snapshots(&client, &opencode_processes()?, &exclusion);
     };
 
     drop(instance);
@@ -886,10 +980,7 @@ fn background_arguments(options: &Options) -> Vec<OsString> {
 }
 
 fn launch_background(state: &State, options: &Options) -> Result<i32> {
-    let processes = opencode_processes()?;
-    let mut exclusion = Exclusion::detect();
-    let snapshots = api_snapshots(&http_client(), &processes, &exclusion);
-    exclusion.sessions.extend(invoking_sessions(&snapshots));
+    let (exclusion, _) = initial_scan(&http_client())?;
     fs::create_dir_all(&state.root)?;
     let mut child = Command::new(env::current_exe().context("locate watchdog executable")?);
     child
