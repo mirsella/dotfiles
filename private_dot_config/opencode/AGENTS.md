@@ -3,7 +3,6 @@
 - when creating or cloning a project, do it in ~/dev
 - prefer pnpm or bun over npm.
 
-- Prefer making invariant violations obvious: log (warn/error) and **early return / skip** when a state “shouldn’t happen”.
-- Avoid silent fallbacks that hide incorrect assumptions; if a fallback exists, it should be explicitly justified and logged.
+- Prefer making invariant violations obvious when a state “shouldn’t happen”. Avoid silent fallbacks that hide incorrect assumptions; if a fallback exists, it should be explicitly justified and logged.
 
 - Context7: always use for library/API docs and code generation (resolve id first).
