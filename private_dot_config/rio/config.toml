@@ -31,6 +31,8 @@ blinking = false
 keys = [
   { key = "return", with = "shift", esc = "\u001b\r" },
   { key = "F1", action = "ToggleVIMode" },
+  { key = "tab", with = "control | alt", action = "MoveCurrentTabToNext" },
+  { key = "tab", with = "control | alt | shift", action = "MoveCurrentTabToPrev" },
 ]
 
 [hints]
