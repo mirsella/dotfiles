@@ -1,21 +1,26 @@
 {{- $host := .chezmoi.hostname -}}
 {{- $domain := "mirsella.mooo.com" -}}
+{{- $bindIP := "" -}}
+{{- if eq $host "main" -}}
+{{- $routes := output "ip" "-j" "-4" "route" "get" "1.1.1.1" | fromJson -}}
+{{- $bindIP = dig "prefsrc" "" (index $routes 0) -}}
+{{- end -}}
 {
 	admin unix//run/caddy/admin.socket
-	auto_https disable_redirects
-	skip_install_trust
-	servers :4096 {
+{{ if eq $host "main" }}
+	servers {{ $bindIP }}:4096 {
 		listener_wrappers {
 			http_redirect
 			tls
 		}
 	}
-	servers :4097 {
+	servers {{ $bindIP }}:4097 {
 		listener_wrappers {
 			http_redirect
 			tls
 		}
 	}
+{{ end -}}
 }
 
 (homepage) {
@@ -30,73 +35,63 @@
 }
 
 (opencode) {
-	reverse_proxy 127.0.0.1:14096 {
-		flush_interval -1
-		transport http {
-			read_timeout 3600s
-			write_timeout 3600s
-		}
-	}
+	reverse_proxy 127.0.0.1:14096
 }
 
 (openchamber) {
-	reverse_proxy 127.0.0.1:14097 {
-		flush_interval -1
-		transport http {
-			read_timeout 3600s
-			write_timeout 3600s
-		}
-	}
+	reverse_proxy 127.0.0.1:14097
 }
 
 {{ if eq $host "main" -}}
-(site_tls) {
-	tls {
-		issuer acme https://acme-v02.api.letsencrypt.org/directory {
-			disable_http_challenge
-		}
+http://{{ $host }}, http://localhost {
+	import homepage
+}
+
+https://{{ $domain }} {
+	import homepage
+}
+
+https://:4096 {
+	bind {{ $bindIP }}
+	@public host {{ $domain }}
+	handle @public {
+		import opencode
+	}
+	handle {
+		respond 404
 	}
 }
 
-http://{{ $domain }} {
-	redir https://{{ $domain }}{uri} 308
+https://:4097 {
+	bind {{ $bindIP }}
+	@public host {{ $domain }}
+	handle @public {
+		import openchamber
+	}
+	handle {
+		respond 404
+	}
 }
 
-http://{{ $host }}, https://{{ $domain }} {
-	import site_tls
-	import homepage
-}
-
-https://{{ $domain }}:4096 {
-	import site_tls
+http://{{ $host }}:4096, http://localhost:4096 {
+	bind 127.0.0.1 [::1]
 	import opencode
 }
 
-https://{{ $domain }}:4097 {
-	import site_tls
+http://{{ $host }}:4097, http://localhost:4097 {
+	bind 127.0.0.1 [::1]
 	import openchamber
 }
 {{ else -}}
-(site_tls) {
-	tls internal
-}
-
 http://{{ $host }}, http://{{ $host }}.local, http://localhost {
-	redir https://{host}{uri} 308
-}
-
-https://{{ $host }}, https://{{ $host }}.local, https://localhost {
-	import site_tls
 	import homepage
 }
 
-https://{{ $host }}:4096, https://{{ $host }}.local:4096, https://localhost:4096 {
-	import site_tls
+http://{{ $host }}:4096, http://{{ $host }}.local:4096, http://localhost:4096 {
 	import opencode
 }
 
-https://{{ $host }}:4097, https://{{ $host }}.local:4097, https://localhost:4097 {
-	import site_tls
+http://{{ $host }}:4097, http://{{ $host }}.local:4097, http://localhost:4097 {
 	import openchamber
 }
 {{ end -}}

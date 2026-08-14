@@ -380,7 +380,7 @@
             <div class="datum"><dt>Access host</dt><dd id="access-host">—</dd></div>
             <div class="datum"><dt>IPv4 snapshot</dt><dd>{{ if $ipv4 }}{{ join ", " $ipv4 }}{{ else }}Offline{{ end }}</dd></div>
             <div class="datum"><dt>IPv6 snapshot</dt><dd>{{ if $ipv6 }}{{ join ", " $ipv6 }}{{ else }}Unavailable{{ end }}</dd></div>
-            <div class="datum"><dt>TLS profile</dt><dd class="profile">{{ if eq .chezmoi.hostname "main" }}Let's Encrypt / public{{ else }}Caddy private CA / local{{ end }}</dd></div>
+            <div class="datum"><dt>Transport</dt><dd class="profile" id="transport">Resolving</dd></div>
           </dl>
         </aside>
       </div>
@@ -398,8 +398,9 @@
 
     document.querySelector("#access-host").textContent = accessHost;
     document.querySelector("#route").textContent = `${window.location.protocol.replace(":", "").toUpperCase()} / ${accessHost}`;
+    document.querySelector("#transport").textContent = window.location.protocol === "https:" ? "Let's Encrypt / public" : "Plain HTTP / local";
     document.querySelectorAll("[data-port]").forEach((link) => {
-      link.href = `https://${linkHost}:${link.dataset.port}/`;
+      link.href = `${window.location.protocol}//${linkHost}:${link.dataset.port}/`;
     });
 
     const clock = document.querySelector("#clock");

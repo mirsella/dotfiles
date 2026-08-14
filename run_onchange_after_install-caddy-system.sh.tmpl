@@ -54,9 +54,4 @@ while ! sudo test -S /run/caddy/admin.socket; do
   sleep 0.1
 done
 
-{{ if eq .chezmoi.hostname "laptop" -}}
-# Install the private CA into the laptop's system and browser trust stores.
-sudo env HOME="$HOME" XDG_DATA_HOME=/var/lib XDG_CONFIG_HOME=/etc \
-  /usr/bin/caddy trust --config /etc/caddy/Caddyfile
-{{ end -}}
 {{- end }}
