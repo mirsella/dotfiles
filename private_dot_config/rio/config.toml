@@ -36,7 +36,8 @@ keys = [
 ]
 
 [hints]
-alphabet = "colemak"
+# Colemak keys ordered by reach; exhaust all two-key labels before using three.
+alphabet = "ntesiroahdlpufywqgjcmvkbxz"
 
 [[hints.rules]]
 regex = '[^\s\p{Cc}]{5,}'
