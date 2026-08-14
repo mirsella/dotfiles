@@ -1,0 +1,14 @@
+[Unit]
+Description=mount Voxride Google Drive with rclone
+After=network.target
+
+[Service]
+Type=simple
+ExecStartPre=-mkdir -p ${HOME}/Documents/gdrive-voxride
+ExecStart=rclone mount --vfs-cache-mode full gdrive-voxride: ${HOME}/Documents/gdrive-voxride
+ExecStop=/bin/fusermount -u ${HOME}/Documents/gdrive-voxride
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
