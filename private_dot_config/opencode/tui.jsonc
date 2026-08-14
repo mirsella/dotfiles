@@ -12,6 +12,6 @@
   },
   "plugin": [
     "./tui-plugins/suppress-ctrl-u.ts",
-    "github:mirsella/opencode-dynamic-context-pruning#resilient-state",
+    "@tarquinen/opencode-dcp@github:mirsella/opencode-dynamic-context-pruning#main",
   ],
 }
