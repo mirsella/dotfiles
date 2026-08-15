@@ -10,6 +10,13 @@ url = "https://github.com/tmux-plugins/tpm"
 clone.args = ["--depth=1"]
 refreshPeriod = "168h"
 
+[".cache/opencode/tui-plugins/opencode-dcp"]
+type = "git-repo"
+url = "https://github.com/mirsella/opencode-dynamic-context-pruning.git"
+clone.args = ["--depth=1"]
+refreshPeriod = "168h"
+pull.args = ["--ff-only"]
+
 [".config/wezterm/lua/rose-pine.lua"]
 type = "file"
 url = "https://raw.githubusercontent.com/neapsix/wezterm/main/plugin/init.lua"
