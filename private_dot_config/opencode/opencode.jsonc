@@ -9,6 +9,7 @@
     "opencode-goal",
     "@mirsella/opencode-browser-mcp",
     "@dietrichgebert/ponytail",
+    ["./doom-loop-threshold.ts", { "threshold": 6 }],
   ],
   "autoupdate": false,
   "experimental": {
@@ -95,6 +96,7 @@
   },
   "permission": {
     "external_directory": "allow",
+    "read": "allow",
   },
   "agent": {
     "explore": {
