@@ -8,6 +8,7 @@
     "@plannotator/opencode",
     "opencode-goal",
     "@mirsella/opencode-browser-mcp",
+    "@dietrichgebert/ponytail",
   ],
   "autoupdate": false,
   "experimental": {
