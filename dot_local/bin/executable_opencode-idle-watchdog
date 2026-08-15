@@ -7,7 +7,7 @@ edition = "2024"
 anyhow = "1.0.98"
 base64 = "0.22.1"
 clap = { version = "4.6.2", features = ["derive"] }
-fs2 = "0.4.3"
+comfy-table = "8.0.0"
 jiff = "0.2.35"
 libc = "0.2.174"
 serde_json = "1.0.141"
@@ -20,12 +20,12 @@ ureq = { version = "3.3.0", default-features = false }
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::OsString;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::io::{self, IsTerminal, Write};
 use std::os::unix::fs::MetadataExt;
-use std::os::unix::process::{CommandExt, ExitStatusExt};
+use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -33,7 +33,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 use base64::Engine;
 use clap::Parser;
-use fs2::FileExt;
+use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use jiff::Zoned;
 use serde_json::Value;
 use signal_hook::{
@@ -44,41 +44,27 @@ use signal_hook::{
 const NAME: &str = "opencode-idle-watchdog";
 const DEFAULT_INTERVAL: u64 = 180;
 const DEFAULT_IDLE_CHECKS: u32 = 3;
+const HEADERS: [&str; 6] = ["STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", "TITLE"];
 
 #[derive(Parser)]
 #[command(
-    about = "Wait until all other opencode sessions go idle, then optionally run a command.",
-    trailing_var_arg = true,
-    args_override_self = true
+    about = "Wait until all other opencode sessions go idle, then run a command in the foreground.",
+    after_help = "Shortcuts: sleep/suspend -> systemctl suspend, poweroff -> systemctl poweroff, hibernate -> systemctl hibernate",
+    trailing_var_arg = true
 )]
 struct Options {
-    #[arg(long, conflicts_with_all = ["status", "stop"], requires = "command")]
-    detach: bool,
-
-    #[arg(long, conflicts_with_all = ["detach", "stop"])]
-    status: bool,
-
-    #[arg(long, conflicts_with_all = ["detach", "status"])]
-    stop: bool,
-
     #[arg(long, default_value_t = DEFAULT_INTERVAL, value_parser = positive_u64)]
     interval: u64,
 
     #[arg(long, default_value_t = DEFAULT_IDLE_CHECKS, value_parser = positive_u32)]
     required_idle_checks: u32,
 
-    #[arg(
-        value_name = "COMMAND",
-        num_args = 0..,
-        conflicts_with_all = ["status", "stop"]
-    )]
+    #[arg(value_name = "COMMAND", num_args = 0..)]
     command: Vec<OsString>,
 }
 
 struct State {
     root: PathBuf,
-    lock_file: PathBuf,
-    pid_file: PathBuf,
     log_file: PathBuf,
 }
 
@@ -90,8 +76,6 @@ impl State {
             .unwrap_or_else(|| PathBuf::from(home).join(".cache"));
         let root = cache.join(NAME);
         Ok(Self {
-            lock_file: root.join("watchdog.lock"),
-            pid_file: root.join("watchdog.pid"),
             log_file: root.join("watchdog.log"),
             root,
         })
@@ -125,61 +109,6 @@ impl State {
                 .open(&self.log_file)
         {
             let _ = writeln!(file, "{line}");
-        }
-    }
-
-    fn read_pid(&self) -> Option<i32> {
-        fs::read_to_string(&self.pid_file)
-            .ok()?
-            .trim()
-            .parse::<i32>()
-            .ok()
-            .filter(|pid| *pid > 0)
-    }
-}
-
-struct Instance<'a> {
-    state: &'a State,
-    pid: i32,
-    _lock: File,
-}
-
-impl<'a> Instance<'a> {
-    fn acquire(state: &'a State) -> Result<Option<Self>> {
-        fs::create_dir_all(&state.root)
-            .with_context(|| format!("create {}", state.root.display()))?;
-        let lock = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(false)
-            .open(&state.lock_file)
-            .with_context(|| format!("open {}", state.lock_file.display()))?;
-        if let Err(error) = lock.try_lock_exclusive() {
-            if error.kind() == io::ErrorKind::WouldBlock {
-                state.log(format!(
-                    "another watchdog already holds {}; exiting",
-                    state.lock_file.display()
-                ));
-                return Ok(None);
-            }
-            return Err(error).context("lock watchdog instance");
-        }
-
-        let pid = std::process::id() as i32;
-        fs::write(&state.pid_file, pid.to_string())
-            .with_context(|| format!("write {}", state.pid_file.display()))?;
-        Ok(Some(Self {
-            state,
-            pid,
-            _lock: lock,
-        }))
-    }
-}
-
-impl Drop for Instance<'_> {
-    fn drop(&mut self) {
-        if self.state.read_pid() == Some(self.pid) {
-            let _ = fs::remove_file(&self.state.pid_file);
         }
     }
 }
@@ -880,96 +809,14 @@ fn clean_text(value: &str) -> String {
         .collect()
 }
 
-fn wrap_text(value: &str, width: usize) -> Vec<String> {
-    let mut remaining: Vec<_> = value.chars().collect();
-    let mut lines = Vec::new();
-    while remaining.len() > width {
-        let split = remaining[..width]
-            .iter()
-            .rposition(|character| {
-                character.is_whitespace() || matches!(character, '/' | '-' | '_')
-            })
-            .map(|index| index + 1)
-            .filter(|index| *index > 1)
-            .unwrap_or(width);
-        lines.push(
-            remaining
-                .drain(..split)
-                .collect::<String>()
-                .trim_end()
-                .to_owned(),
-        );
-        let whitespace = remaining
-            .iter()
-            .take_while(|character| character.is_whitespace())
-            .count();
-        remaining.drain(..whitespace);
-    }
-    lines.push(remaining.iter().collect());
-    lines
-}
-
-fn print_cells(cells: &[String; 6], widths: &[usize; 6], color: Option<&str>) {
-    let wrapped = cells
-        .iter()
-        .zip(widths)
-        .map(|(cell, width)| wrap_text(cell, *width))
-        .collect::<Vec<_>>();
-    for line in 0..wrapped.iter().map(Vec::len).max().unwrap_or(1) {
-        for column in 0..cells.len() {
-            let value = wrapped[column].get(line).map(String::as_str).unwrap_or("");
-            if column > 0 {
-                print!("  ");
-            }
-            if column == 0
-                && let Some(color) = color
-            {
-                print!(
-                    "\x1b[{color}m{value:<width$}\x1b[0m",
-                    width = widths[column]
-                );
-            } else if matches!(column, 1 | 2) {
-                print!("{value:>width$}", width = widths[column]);
-            } else {
-                print!("{value:<width$}", width = widths[column]);
-            }
-        }
-        println!();
-    }
-}
-
-fn table_widths() -> [usize; 6] {
-    let mut size = unsafe { std::mem::zeroed::<libc::winsize>() };
-    let available =
-        if unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) } == 0
-            && size.ws_col > 0
-        {
-            size.ws_col as usize
-        } else {
-            120
-        }
-        .saturating_sub(10)
-        .max(6);
-    let mut widths = [9, 8, 9, 8, 32, 12];
-    while widths.iter().sum::<usize>() > available {
-        let column = (0..widths.len())
-            .max_by_key(|column| widths[*column])
-            .unwrap();
-        widths[column] = widths[column].saturating_sub(1).max(1);
-    }
-    let extra = available - widths.iter().sum::<usize>();
-    widths[3] += extra / 3;
-    widths[5] += extra - extra / 3;
-    widths
-}
-
 struct Dashboard {
     enabled: bool,
     termios: Option<libc::termios>,
+    action: String,
 }
 
 impl Dashboard {
-    fn new() -> Self {
+    fn new(command: &[OsString]) -> Self {
         let enabled = io::stdout().is_terminal();
         let mut original = unsafe { std::mem::zeroed::<libc::termios>() };
         let termios =
@@ -987,13 +834,23 @@ impl Dashboard {
             print!("\x1b[?1049h\x1b[?25l");
             let _ = io::stdout().flush();
         }
-        Self { enabled, termios }
+        let action = if command.is_empty() {
+            "exit without running a command".to_owned()
+        } else {
+            command_display(command)
+        };
+        Self {
+            enabled,
+            termios,
+            action,
+        }
     }
 
     fn loading(&self) {
         if self.enabled {
             print!(
-                "\x1b[H\x1b[2J\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n\n\x1b[2mScanning sessions...\x1b[0m"
+                "\x1b[H\x1b[2J\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n\n\x1b[2mScanning sessions...\nOn idle: {}\x1b[0m",
+                self.action
             );
             let _ = io::stdout().flush();
         }
@@ -1056,14 +913,14 @@ impl Dashboard {
                     .and_then(Value::as_str)
                     .unwrap_or("unknown");
                 let (label, color) = if exclusion.sessions.contains(session) {
-                    ("SELF", "36")
+                    ("SELF", Color::Cyan)
                 } else if waiting.contains(session) {
-                    ("WAITING", "34")
+                    ("WAITING", Color::Blue)
                 } else {
                     match kind {
-                        "busy" => ("RUNNING", "33"),
-                        "retry" => ("RETRY", "35"),
-                        _ => ("UNKNOWN", "31"),
+                        "busy" => ("RUNNING", Color::Yellow),
+                        "retry" => ("RETRY", Color::Magenta),
+                        _ => ("UNKNOWN", Color::Red),
                     }
                 };
                 let details = sessions.get(session);
@@ -1095,24 +952,51 @@ impl Dashboard {
             }
         }
         rows.sort_unstable_by(|left, right| left.1.cmp(&right.1));
-        let widths = table_widths();
+        let mut size = unsafe { std::mem::zeroed::<libc::winsize>() };
+        let width = (unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) } == 0
+            && size.ws_col > 0)
+            .then_some(size.ws_col)
+            .unwrap_or(80);
+        let mut table = Table::new();
+        table
+            .load_style(UTF8_FULL.with_rounded_corners().with_solid_inner_borders())
+            .set_content_arrangement(ContentArrangement::DynamicFullWidth)
+            .set_width(width)
+            .set_header(HEADERS);
+        for column in [1, 2] {
+            table
+                .column_mut(column)
+                .expect("age and updated columns exist")
+                .set_cell_alignment(CellAlignment::Right);
+        }
+        if rows.is_empty() {
+            table.add_row([
+                Cell::new("IDLE").fg(Color::Green),
+                Cell::new(""),
+                Cell::new(""),
+                Cell::new(""),
+                Cell::new(""),
+                Cell::new("No active sessions"),
+            ]);
+        }
+        for (color, row) in rows {
+            let [status, age, updated, workspace, session, title] = row;
+            table.add_row([
+                Cell::new(status).fg(color),
+                Cell::new(age),
+                Cell::new(updated),
+                Cell::new(workspace),
+                Cell::new(session),
+                Cell::new(title),
+            ]);
+        }
         print!("\x1b[H\x1b[2J");
         println!("\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m");
         println!(
-            "\x1b[2mcheck #{check}  |\x1b[0m  {active} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s\n"
+            "\x1b[2mcheck #{check}  |\x1b[0m  {active} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s"
         );
-        print!("\x1b[2m");
-        let headers =
-            ["STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", "TITLE"].map(str::to_owned);
-        print_cells(&headers, &widths, None);
-        print!("\x1b[0m");
-        if rows.is_empty() {
-            println!("\x1b[32mIDLE\x1b[0m      No active sessions");
-        } else {
-            for (color, row) in rows {
-                print_cells(&row, &widths, Some(color));
-            }
-        }
+        println!("\x1b[2mon idle       |\x1b[0m  {}\n", self.action);
+        println!("{table}");
         if !scan.failures.is_empty() {
             println!("\n\x1b[31mAPI errors\x1b[0m");
             for failure in &scan.failures {
@@ -1151,19 +1035,16 @@ fn signal_exit(state: &State, signal: i32) -> i32 {
     128 + signal
 }
 
-fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
-    let Some(instance) = Instance::acquire(state)? else {
-        return Ok(0);
-    };
+fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Result<i32> {
     let client = http_client();
-    let dashboard = Dashboard::new();
+    let dashboard = Dashboard::new(command);
     let cancellation = Cancellation::new()?;
     dashboard.loading();
     let (exclusion, mut scan) = initial_scan(&client)?;
     let mut excluded_sessions: Vec<_> = exclusion.sessions.iter().cloned().collect();
     excluded_sessions.sort_unstable();
     let started = format!(
-        "watchdog started; excluding opencode pid={} sessions={}; interval={}s required_idle_checks={}; cache={}",
+        "watchdog started; excluding opencode pid={} sessions={}; interval={}s required_idle_checks={}; command={}; cache={}",
         exclusion
             .pid
             .map(|pid| pid.to_string())
@@ -1175,6 +1056,11 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
         },
         options.interval,
         options.required_idle_checks,
+        if command.is_empty() {
+            "none".to_owned()
+        } else {
+            command_display(command)
+        },
         state.root.display()
     );
     if dashboard.enabled {
@@ -1247,16 +1133,15 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
         scan = api_snapshots(&client, &opencode_processes()?, &exclusion);
     };
 
-    drop(instance);
     drop(dashboard);
     if let Some(signal) = signal {
         return Ok(signal_exit(state, signal));
     }
     state.log("idle confirmed");
-    if options.command.is_empty() {
+    if command.is_empty() {
         Ok(0)
     } else {
-        Ok(run_command(state, &cancellation, &options.command))
+        Ok(run_command(state, &cancellation, command))
     }
 }
 
@@ -1271,6 +1156,21 @@ fn command_display(command: &[OsString]) -> String {
         .map(|arg| format!("{arg:?}"))
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+fn resolve_command(command: &[OsString]) -> Vec<OsString> {
+    if let [shortcut] = command {
+        let action = match shortcut.to_str() {
+            Some("sleep" | "suspend") => Some("suspend"),
+            Some("poweroff") => Some("poweroff"),
+            Some("hibernate") => Some("hibernate"),
+            _ => None,
+        };
+        if let Some(action) = action {
+            return ["systemctl", action].map(OsString::from).into();
+        }
+    }
+    command.to_vec()
 }
 
 fn run_command(state: &State, cancellation: &Cancellation, command: &[OsString]) -> i32 {
@@ -1311,117 +1211,11 @@ fn run_command(state: &State, cancellation: &Cancellation, command: &[OsString])
     }
 }
 
-fn alive(pid: i32) -> bool {
-    pid > 0
-        && (unsafe { libc::kill(pid, 0) } == 0
-            || io::Error::last_os_error().raw_os_error() == Some(libc::EPERM))
-}
-
-fn print_status(state: &State) -> i32 {
-    let pid = state.read_pid();
-    println!(
-        "running={} pid={}",
-        pid.is_some_and(alive),
-        pid.map(|pid| pid.to_string())
-            .unwrap_or_else(|| "unknown".into())
-    );
-    println!("cache={}", state.root.display());
-    println!("log={}", state.log_file.display());
-    if let Ok(log) = fs::read_to_string(&state.log_file) {
-        let lines: Vec<_> = log.lines().collect();
-        if !lines.is_empty() {
-            println!("last log lines:");
-            for line in &lines[lines.len().saturating_sub(8)..] {
-                println!("{line}");
-            }
-        }
-    }
-    0
-}
-
-fn stop(state: &State) -> i32 {
-    let Some(pid) = state.read_pid().filter(|pid| alive(*pid)) else {
-        println!("watchdog is not running");
-        return 0;
-    };
-    if unsafe { libc::kill(pid, SIGTERM) } != 0 {
-        eprintln!(
-            "could not stop watchdog pid={pid}: {}",
-            io::Error::last_os_error()
-        );
-        return 1;
-    }
-    for _ in 0..50 {
-        if !alive(pid) {
-            println!("stopped watchdog pid={pid}");
-            return 0;
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
-    println!("watchdog pid={pid} did not stop after SIGTERM");
-    1
-}
-
-fn background_arguments(options: &Options) -> Vec<OsString> {
-    let mut arguments = vec![
-        "--interval".into(),
-        options.interval.to_string().into(),
-        "--required-idle-checks".into(),
-        options.required_idle_checks.to_string().into(),
-    ];
-    if !options.command.is_empty() {
-        arguments.push("--".into());
-        arguments.extend(options.command.iter().cloned());
-    }
-    arguments
-}
-
-fn launch_background(state: &State, options: &Options) -> Result<i32> {
-    let (exclusion, _) = initial_scan(&http_client())?;
-    fs::create_dir_all(&state.root)?;
-    let mut child = Command::new(env::current_exe().context("locate watchdog executable")?);
-    child
-        .args(background_arguments(options))
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
-    if let Some(pid) = exclusion.pid {
-        child.env("WATCHDOG_EXCLUDE_OPENCODE_PID", pid.to_string());
-    }
-    if !exclusion.sessions.is_empty() {
-        child.env(
-            "WATCHDOG_EXCLUDE_OPENCODE_SESSIONS",
-            exclusion.sessions.into_iter().collect::<Vec<_>>().join(","),
-        );
-    }
-    unsafe {
-        child.pre_exec(|| {
-            if libc::setsid() == -1 {
-                Err(io::Error::last_os_error())
-            } else {
-                Ok(())
-            }
-        });
-    }
-    let child = child.spawn().context("start detached watchdog")?;
-    println!("started {NAME} pid={}", child.id());
-    println!("log={}", state.log_file.display());
-    Ok(0)
-}
-
 fn execute() -> Result<i32> {
     let options = Options::parse();
     let state = State::discover()?;
-    if options.status {
-        return Ok(print_status(&state));
-    }
-    if options.stop {
-        return Ok(stop(&state));
-    }
-    if options.detach {
-        return launch_background(&state, &options);
-    }
-    wait_until_idle(&state, &options)
+    let command = resolve_command(&options.command);
+    wait_until_idle(&state, &options, &command)
 }
 
 fn main() {
@@ -1532,7 +1326,7 @@ mod tests {
             "tool":"bash",
             "state":{
               "status":"running",
-              "input":{"command":"/home/me/.local/bin/opencode-idle-watchdog --detach"}
+              "input":{"command":"/home/me/.local/bin/opencode-idle-watchdog poweroff"}
             }
           }]
         }]"#,
@@ -1552,53 +1346,30 @@ mod tests {
 
     #[test]
     fn trailing_command_owns_its_flags() {
-        let options =
-            Options::try_parse_from([NAME, "--detach", "notify-send", "--detach"]).unwrap();
-        assert!(options.detach);
-        assert_eq!(options.command, ["notify-send", "--detach"]);
+        let options = Options::try_parse_from([NAME, "notify-send", "--urgency", "low"]).unwrap();
+        assert_eq!(options.command, ["notify-send", "--urgency", "low"]);
     }
 
     #[test]
-    fn detached_arguments_are_canonical() {
-        let options = Options::try_parse_from([
-            NAME,
-            "--detach",
-            "--interval",
-            "7",
-            "--required-idle-checks",
-            "2",
-            "notify-send",
-            "--detach",
-        ])
-        .unwrap();
-        assert_eq!(
-            background_arguments(&options),
-            [
-                "--interval",
-                "7",
-                "--required-idle-checks",
-                "2",
-                "--",
-                "notify-send",
-                "--detach"
-            ]
-        );
+    fn resolves_shortcuts_and_preserves_direct_commands() {
+        for (shortcut, action) in [
+            ("sleep", "suspend"),
+            ("suspend", "suspend"),
+            ("poweroff", "poweroff"),
+            ("hibernate", "hibernate"),
+        ] {
+            assert_eq!(resolve_command(&[shortcut.into()]), ["systemctl", action]);
+        }
+        let direct = ["sleep", "30"].map(OsString::from);
+        assert_eq!(resolve_command(&direct), direct);
+        let direct = ["poweroff", "--force"].map(OsString::from);
+        assert_eq!(resolve_command(&direct), direct);
     }
 
     #[test]
-    fn detached_arguments_keep_separator_for_dash_command() {
-        let options = Options::try_parse_from([NAME, "--detach", "--", "--command"]).unwrap();
-        assert_eq!(
-            background_arguments(&options),
-            [
-                "--interval",
-                "180",
-                "--required-idle-checks",
-                "3",
-                "--",
-                "--command"
-            ]
-        );
+    fn command_display_shows_resolved_action() {
+        let command = resolve_command(&["sleep".into()]);
+        assert_eq!(command_display(&command), "\"systemctl\" \"suspend\"");
     }
 
     #[test]
@@ -1616,6 +1387,5 @@ mod tests {
     #[test]
     fn cleans_terminal_text() {
         assert_eq!(clean_text("hello\nworld"), "helloworld");
-        assert_eq!(wrap_text("abcdefgh", 3), ["abc", "def", "gh"]);
     }
 }
