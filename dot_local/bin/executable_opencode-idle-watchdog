@@ -188,10 +188,11 @@ struct Cancellation {
     receiver: Receiver<i32>,
     handle: SignalHandle,
     worker: Option<JoinHandle<()>>,
+    original_termios: Option<libc::termios>,
 }
 
 impl Cancellation {
-    fn new() -> Result<Self> {
+    fn new(keyboard: bool) -> Result<Self> {
         let mut signals = Signals::new([SIGINT, SIGTERM]).context("install signal handlers")?;
         let handle = signals.handle();
         let (sender, receiver) = mpsc::channel();
@@ -202,20 +203,50 @@ impl Cancellation {
                 }
             }
         });
+        let mut original = unsafe { std::mem::zeroed::<libc::termios>() };
+        let original_termios = if keyboard
+            && io::stdin().is_terminal()
+            && unsafe { libc::tcgetattr(libc::STDIN_FILENO, &mut original) } == 0
+        {
+            let mut cbreak = original;
+            cbreak.c_lflag &= !(libc::ICANON | libc::ECHO);
+            cbreak.c_cc[libc::VMIN] = 0;
+            cbreak.c_cc[libc::VTIME] = 0;
+            (unsafe { libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, &cbreak) } == 0)
+                .then_some(original)
+        } else {
+            None
+        };
         Ok(Self {
             receiver,
             handle,
             worker: Some(worker),
+            original_termios,
         })
     }
 
     fn wait(&self, duration: Duration) -> Option<i32> {
+        let mut byte = 0_u8;
+        if self.original_termios.is_some()
+            && unsafe {
+                libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1)
+            } == 1
+            // ponytail: Escape-prefixed keys also exit; parse sequences if navigation is added.
+            && matches!(byte, b'q' | 0x1b)
+        {
+            return Some(0);
+        }
         self.receiver.recv_timeout(duration).ok()
     }
 }
 
 impl Drop for Cancellation {
     fn drop(&mut self) {
+        if let Some(original) = &self.original_termios {
+            unsafe {
+                libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, original);
+            }
+        }
         self.handle.close();
         if let Some(worker) = self.worker.take() {
             let _ = worker.join();
@@ -938,7 +969,7 @@ impl Dashboard {
             "\x1b[2mcheck #{check}  |\x1b[0m  {active} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s\n"
         );
         println!(
-            "\x1b[2m{:<9} {:>8} {:>9}  {:<24}  {:<6}  {}\x1b[0m",
+            "\x1b[2m{:<9} {:>8} {:>9}  {:<20}  {:<32}  {}\x1b[0m",
             "STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", "TITLE"
         );
         let mut rows = Vec::new();
@@ -996,18 +1027,10 @@ impl Dashboard {
                     .strip_prefix(&home)
                     .map(|path| format!("~{path}"))
                     .unwrap_or_else(|| snapshot.directory.clone());
-                let short_id: String = session
-                    .chars()
-                    .rev()
-                    .take(6)
-                    .collect::<String>()
-                    .chars()
-                    .rev()
-                    .collect();
                 rows.push(format!(
-                    "\x1b[{color}m{label:<9}\x1b[0m {age:>8} {updated:>9}  {:<24}  {short_id:<6}  {}",
-                    clean_text(&workspace, 24),
-                    clean_text(title, 48)
+                    "\x1b[{color}m{label:<9}\x1b[0m {age:>8} {updated:>9}  {:<20}  {session:<32}  {}",
+                    clean_text(&workspace, 20),
+                    clean_text(title, 44)
                 ));
             }
         }
@@ -1025,7 +1048,7 @@ impl Dashboard {
                 println!("  {}", clean_text(failure, 100));
             }
         }
-        println!("\n\x1b[2mCtrl-C to cancel\x1b[0m");
+        println!("\n\x1b[2mq / Esc / Ctrl-C to exit\x1b[0m");
         let _ = io::stdout().flush();
     }
 }
@@ -1040,6 +1063,10 @@ impl Drop for Dashboard {
 }
 
 fn signal_exit(state: &State, signal: i32) -> i32 {
+    if signal == 0 {
+        state.log("watchdog exited");
+        return 0;
+    }
     state.log(if signal == SIGINT {
         "watchdog interrupted"
     } else {
@@ -1052,9 +1079,9 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
     let Some(instance) = Instance::acquire(state)? else {
         return Ok(0);
     };
-    let cancellation = Cancellation::new()?;
     let client = http_client();
     let dashboard = Dashboard::new();
+    let cancellation = Cancellation::new(dashboard.enabled)?;
     dashboard.loading();
     let (exclusion, mut scan) = initial_scan(&client)?;
     let mut excluded_sessions: Vec<_> = exclusion.sessions.iter().cloned().collect();
