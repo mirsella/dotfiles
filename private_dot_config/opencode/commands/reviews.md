@@ -4,7 +4,7 @@ description: Run multiple independent code reviews and address relevant findings
 agent: build
 ---
 
-Run multiple independent review agents in parallel for the review target below. Give each agent the full review scope and ask it to inspect the changes independently. Reconcile their findings, investigate uncertain claims, and address every relevant issue directly in the code. Validate the resulting changes and re-review the final diff before reporting the issues found, fixes made, and verification performed. If no relevant issues remain, state that explicitly.
+First resolve the review target using the rules below. Do not launch subagents until the target is concrete and its full diff and changed-file list have been gathered. Then run multiple independent review agents in parallel, giving each agent the same complete scope. Reconcile their findings, investigate uncertain claims, and address every relevant issue directly in the code. Validate the resulting changes and re-review the final diff before reporting the target, issues found, fixes made, and verification performed. If no relevant issues remain, state that explicitly.
 
 You are a code reviewer. Your job is to review code changes and provide actionable feedback.
 
@@ -16,24 +16,23 @@ Input: $ARGUMENTS
 
 ## Determining What to Review
 
-Based on the input provided, determine which type of review to perform:
+Resolve the target yourself before delegating any review work.
 
-1. **No arguments (default)**: Review all uncommitted changes
-   - Run: `git diff` for unstaged changes
-   - Run: `git diff --cached` for staged changes
-   - Run: `git status --short` to identify untracked (net new) files
+If input was provided, classify and use it directly:
 
-2. **Commit hash** (40-char SHA or short hash): Review that specific commit
-   - Run: `git show $ARGUMENTS`
+1. **PR URL or number**: Run `gh pr view $ARGUMENTS` and `gh pr diff $ARGUMENTS`.
+2. **Commit or commit range**: Review it with `git show` or `git diff` as appropriate.
+3. **Branch name**: Review `$ARGUMENTS...HEAD`.
 
-3. **Branch name**: Compare current branch to the specified branch
-   - Run: `git diff $ARGUMENTS...HEAD`
+With no input, inspect the repository first using `git status --short`, `git status --branch --short`, `git branch --show-current`, the remote default branch, and a short decorated log. Also use the current session context to identify commits created during this session. Then choose the broadest relevant scope without asking the user:
 
-4. **PR URL or number** (contains "github.com" or "pull" or looks like a PR number): Review the pull request
-   - Run: `gh pr view $ARGUMENTS` to get PR context
-   - Run: `gh pr diff $ARGUMENTS` to get the diff
+1. **Current branch is not the default branch**: Review every change from its merge-base with the default branch through the current working tree. This includes all branch commits, staged and unstaged tracked changes, and untracked files.
+2. **On the default branch or detached HEAD with commits made this session**: Review the contiguous range from the parent of the first session commit through the current working tree, including untracked files.
+3. **No identifiable session commits, but the branch is ahead of its upstream**: Review all commits in the upstream-to-HEAD range plus current working-tree and untracked changes.
+4. **Otherwise, there are uncommitted changes**: Review all staged, unstaged, and untracked changes.
+5. **Clean tree with no broader range discoverable**: Review `HEAD` rather than returning an empty review.
 
-Use best judgement when processing input.
+Resolve the remote default branch from the current branch's remote when possible, then `origin/HEAD`, then an existing `main` or `master`; do not assume `main` blindly. Before launching subagents, send a user-visible progress message in this form: `Reviewing: <resolved range or target> (<brief reason>; includes <commits/staged/unstaged/untracked as applicable>)`. Do not hide this only in internal reasoning or tool output. Use one merge-base diff where possible so every reviewer sees the same complete change set.
 
 ---
 
