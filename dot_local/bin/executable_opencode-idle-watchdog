@@ -188,11 +188,10 @@ struct Cancellation {
     receiver: Receiver<i32>,
     handle: SignalHandle,
     worker: Option<JoinHandle<()>>,
-    original_termios: Option<libc::termios>,
 }
 
 impl Cancellation {
-    fn new(keyboard: bool) -> Result<Self> {
+    fn new() -> Result<Self> {
         let mut signals = Signals::new([SIGINT, SIGTERM]).context("install signal handlers")?;
         let handle = signals.handle();
         let (sender, receiver) = mpsc::channel();
@@ -203,50 +202,20 @@ impl Cancellation {
                 }
             }
         });
-        let mut original = unsafe { std::mem::zeroed::<libc::termios>() };
-        let original_termios = if keyboard
-            && io::stdin().is_terminal()
-            && unsafe { libc::tcgetattr(libc::STDIN_FILENO, &mut original) } == 0
-        {
-            let mut cbreak = original;
-            cbreak.c_lflag &= !(libc::ICANON | libc::ECHO);
-            cbreak.c_cc[libc::VMIN] = 0;
-            cbreak.c_cc[libc::VTIME] = 0;
-            (unsafe { libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, &cbreak) } == 0)
-                .then_some(original)
-        } else {
-            None
-        };
         Ok(Self {
             receiver,
             handle,
             worker: Some(worker),
-            original_termios,
         })
     }
 
     fn wait(&self, duration: Duration) -> Option<i32> {
-        let mut byte = 0_u8;
-        if self.original_termios.is_some()
-            && unsafe {
-                libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1)
-            } == 1
-            // ponytail: Escape-prefixed keys also exit; parse sequences if navigation is added.
-            && matches!(byte, b'q' | 0x1b)
-        {
-            return Some(0);
-        }
         self.receiver.recv_timeout(duration).ok()
     }
 }
 
 impl Drop for Cancellation {
     fn drop(&mut self) {
-        if let Some(original) = &self.original_termios {
-            unsafe {
-                libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, original);
-            }
-        }
         self.handle.close();
         if let Some(worker) = self.worker.take() {
             let _ = worker.join();
@@ -904,33 +873,121 @@ fn elapsed(millis: u64) -> String {
     }
 }
 
-fn clean_text(value: &str, limit: usize) -> String {
-    let clean: String = value
+fn clean_text(value: &str) -> String {
+    value
         .chars()
         .filter(|character| !character.is_control())
-        .collect();
-    if clean.chars().count() <= limit {
-        return clean;
-    }
-    clean
-        .chars()
-        .take(limit.saturating_sub(1))
-        .chain(['~'])
         .collect()
+}
+
+fn wrap_text(value: &str, width: usize) -> Vec<String> {
+    let mut remaining: Vec<_> = value.chars().collect();
+    let mut lines = Vec::new();
+    while remaining.len() > width {
+        let split = remaining[..width]
+            .iter()
+            .rposition(|character| {
+                character.is_whitespace() || matches!(character, '/' | '-' | '_')
+            })
+            .map(|index| index + 1)
+            .filter(|index| *index > 1)
+            .unwrap_or(width);
+        lines.push(
+            remaining
+                .drain(..split)
+                .collect::<String>()
+                .trim_end()
+                .to_owned(),
+        );
+        let whitespace = remaining
+            .iter()
+            .take_while(|character| character.is_whitespace())
+            .count();
+        remaining.drain(..whitespace);
+    }
+    lines.push(remaining.iter().collect());
+    lines
+}
+
+fn print_cells(cells: &[String; 6], widths: &[usize; 6], color: Option<&str>) {
+    let wrapped = cells
+        .iter()
+        .zip(widths)
+        .map(|(cell, width)| wrap_text(cell, *width))
+        .collect::<Vec<_>>();
+    for line in 0..wrapped.iter().map(Vec::len).max().unwrap_or(1) {
+        for column in 0..cells.len() {
+            let value = wrapped[column].get(line).map(String::as_str).unwrap_or("");
+            if column > 0 {
+                print!("  ");
+            }
+            if column == 0
+                && let Some(color) = color
+            {
+                print!(
+                    "\x1b[{color}m{value:<width$}\x1b[0m",
+                    width = widths[column]
+                );
+            } else if matches!(column, 1 | 2) {
+                print!("{value:>width$}", width = widths[column]);
+            } else {
+                print!("{value:<width$}", width = widths[column]);
+            }
+        }
+        println!();
+    }
+}
+
+fn table_widths() -> [usize; 6] {
+    let mut size = unsafe { std::mem::zeroed::<libc::winsize>() };
+    let available =
+        if unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) } == 0
+            && size.ws_col > 0
+        {
+            size.ws_col as usize
+        } else {
+            120
+        }
+        .saturating_sub(10)
+        .max(6);
+    let mut widths = [9, 8, 9, 8, 32, 12];
+    while widths.iter().sum::<usize>() > available {
+        let column = (0..widths.len())
+            .max_by_key(|column| widths[*column])
+            .unwrap();
+        widths[column] = widths[column].saturating_sub(1).max(1);
+    }
+    let extra = available - widths.iter().sum::<usize>();
+    widths[3] += extra / 3;
+    widths[5] += extra - extra / 3;
+    widths
 }
 
 struct Dashboard {
     enabled: bool,
+    termios: Option<libc::termios>,
 }
 
 impl Dashboard {
     fn new() -> Self {
         let enabled = io::stdout().is_terminal();
+        let mut original = unsafe { std::mem::zeroed::<libc::termios>() };
+        let termios =
+            if enabled && unsafe { libc::tcgetattr(libc::STDIN_FILENO, &mut original) } == 0 {
+                let mut cbreak = original;
+                cbreak.c_lflag &= !(libc::ICANON | libc::ECHO);
+                cbreak.c_cc[libc::VMIN] = 0;
+                cbreak.c_cc[libc::VTIME] = 0;
+                (unsafe { libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, &cbreak) } == 0)
+                    .then_some(original)
+            } else {
+                None
+            };
         if enabled {
             print!("\x1b[?1049h\x1b[?25l");
             let _ = io::stdout().flush();
         }
-        Self { enabled }
+        Self { enabled, termios }
     }
 
     fn loading(&self) {
@@ -940,6 +997,18 @@ impl Dashboard {
             );
             let _ = io::stdout().flush();
         }
+    }
+
+    fn wait(&self, cancellation: &Cancellation, duration: Duration) -> Option<i32> {
+        let mut byte = 0_u8;
+        (self.termios.is_some()
+            && unsafe {
+                libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1)
+            } == 1
+            // ponytail: Escape-prefixed keys also exit; parse sequences if navigation is added.
+            && matches!(byte, b'q' | 0x1b))
+        .then_some(0)
+        .or_else(|| cancellation.wait(duration))
     }
 
     fn draw(
@@ -954,7 +1023,6 @@ impl Dashboard {
         if !self.enabled {
             return;
         }
-        let home = env::var("HOME").unwrap_or_default();
         let active = scan
             .snapshots
             .iter()
@@ -963,15 +1031,6 @@ impl Dashboard {
                 WorkspaceState::Invalid => None,
             })
             .sum::<usize>();
-        print!("\x1b[H\x1b[2J");
-        println!("\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m");
-        println!(
-            "\x1b[2mcheck #{check}  |\x1b[0m  {active} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s\n"
-        );
-        println!(
-            "\x1b[2m{:<9} {:>8} {:>9}  {:<20}  {:<32}  {}\x1b[0m",
-            "STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", "TITLE"
-        );
         let mut rows = Vec::new();
         for snapshot in &scan.snapshots {
             let WorkspaceState::Available {
@@ -1022,30 +1081,42 @@ impl Dashboard {
                     .and_then(|value| value.get("title"))
                     .and_then(Value::as_str)
                     .unwrap_or("Untitled session");
-                let workspace = snapshot
-                    .directory
-                    .strip_prefix(&home)
-                    .map(|path| format!("~{path}"))
-                    .unwrap_or_else(|| snapshot.directory.clone());
-                rows.push(format!(
-                    "\x1b[{color}m{label:<9}\x1b[0m {age:>8} {updated:>9}  {:<20}  {session:<32}  {}",
-                    clean_text(&workspace, 20),
-                    clean_text(title, 44)
+                rows.push((
+                    color,
+                    [
+                        label.to_owned(),
+                        age,
+                        updated,
+                        clean_text(&snapshot.directory),
+                        session.clone(),
+                        clean_text(title),
+                    ],
                 ));
             }
         }
-        rows.sort_unstable();
+        rows.sort_unstable_by(|left, right| left.1.cmp(&right.1));
+        let widths = table_widths();
+        print!("\x1b[H\x1b[2J");
+        println!("\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m");
+        println!(
+            "\x1b[2mcheck #{check}  |\x1b[0m  {active} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s\n"
+        );
+        print!("\x1b[2m");
+        let headers =
+            ["STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", "TITLE"].map(str::to_owned);
+        print_cells(&headers, &widths, None);
+        print!("\x1b[0m");
         if rows.is_empty() {
             println!("\x1b[32mIDLE\x1b[0m      No active sessions");
         } else {
-            for row in rows {
-                println!("{row}");
+            for (color, row) in rows {
+                print_cells(&row, &widths, Some(color));
             }
         }
         if !scan.failures.is_empty() {
             println!("\n\x1b[31mAPI errors\x1b[0m");
             for failure in &scan.failures {
-                println!("  {}", clean_text(failure, 100));
+                println!("  {}", clean_text(failure));
             }
         }
         println!("\n\x1b[2mq / Esc / Ctrl-C to exit\x1b[0m");
@@ -1055,6 +1126,11 @@ impl Dashboard {
 
 impl Drop for Dashboard {
     fn drop(&mut self) {
+        if let Some(original) = &self.termios {
+            unsafe {
+                libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, original);
+            }
+        }
         if self.enabled {
             print!("\x1b[?25h\x1b[?1049l");
             let _ = io::stdout().flush();
@@ -1081,7 +1157,7 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
     };
     let client = http_client();
     let dashboard = Dashboard::new();
-    let cancellation = Cancellation::new(dashboard.enabled)?;
+    let cancellation = Cancellation::new()?;
     dashboard.loading();
     let (exclusion, mut scan) = initial_scan(&client)?;
     let mut excluded_sessions: Vec<_> = exclusion.sessions.iter().cloned().collect();
@@ -1147,7 +1223,7 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
             options.required_idle_checks,
             options.interval,
         );
-        if let Some(signal) = cancellation.wait(Duration::ZERO) {
+        if let Some(signal) = dashboard.wait(&cancellation, Duration::ZERO) {
             break Some(signal);
         }
         if consecutive_idle >= options.required_idle_checks {
@@ -1155,7 +1231,7 @@ fn wait_until_idle(state: &State, options: &Options) -> Result<i32> {
         }
         let mut remaining = options.interval;
         while remaining > 0 {
-            if let Some(signal) = cancellation.wait(Duration::from_secs(1)) {
+            if let Some(signal) = dashboard.wait(&cancellation, Duration::from_secs(1)) {
                 break 'checks Some(signal);
             }
             remaining -= 1;
@@ -1539,7 +1615,7 @@ mod tests {
 
     #[test]
     fn cleans_terminal_text() {
-        assert_eq!(clean_text("hello\nworld", 20), "helloworld");
-        assert_eq!(clean_text("abcdefgh", 5), "abcd~");
+        assert_eq!(clean_text("hello\nworld"), "helloworld");
+        assert_eq!(wrap_text("abcdefgh", 3), ["abc", "def", "gh"]);
     }
 }
