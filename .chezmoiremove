@@ -1,4 +1,5 @@
 .config/systemd/user/caddy.service
+.config/opencode/plugins/rtk.ts
 .local/bin/rio-shell-scope
 .local/share/applications/rio.desktop
 .local/share/icons/rio-2024.svg

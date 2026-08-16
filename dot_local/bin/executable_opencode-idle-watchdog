@@ -70,8 +70,8 @@ struct Options {
     )]
     required_idle_checks: u32,
 
-    #[arg(long, value_name = "SESSION", action = clap::ArgAction::Append)]
-    ignore_session: Vec<String>,
+    #[arg(long = "ignore-session", value_name = "SESSION", action = clap::ArgAction::Append)]
+    ignored_sessions: Vec<String>,
 
     #[arg(value_name = "COMMAND", num_args = 0..)]
     command: Vec<OsString>,
@@ -1264,15 +1264,15 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             return Ok(signal_exit(state, signal));
         }
     };
-    let mut evaluation = evaluate(&scan, &options.ignore_session);
-    let mut self_sessions: Vec<_> = evaluation.excluded_sessions.iter().cloned().collect();
-    self_sessions.sort_unstable();
+    let mut evaluation = evaluate(&scan, &options.ignored_sessions);
+    let mut excluded_sessions: Vec<_> = evaluation.excluded_sessions.iter().cloned().collect();
+    excluded_sessions.sort_unstable();
     let started = format!(
-        "watchdog started; self_sessions={}; interval={}s required_idle_checks={}; command={}; cache={}",
-        if self_sessions.is_empty() {
+        "watchdog started; excluded_sessions={}; interval={}s required_idle_checks={}; command={}; cache={}",
+        if excluded_sessions.is_empty() {
             "none".to_owned()
         } else {
-            self_sessions.join(",")
+            excluded_sessions.join(",")
         },
         options.interval,
         options.required_idle_checks,
@@ -1336,7 +1336,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
                 Ok(result) => result?,
                 Err(signal) => break Some(signal),
             };
-            let final_evaluation = evaluate(&final_scan, &options.ignore_session);
+            let final_evaluation = evaluate(&final_scan, &options.ignored_sessions);
             if final_evaluation.blockers.is_empty() {
                 break None;
             }
@@ -1362,7 +1362,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         match dashboard.run_work(&cancellation, scan_work()) {
             Ok(result) => {
                 scan = result?;
-                evaluation = evaluate(&scan, &options.ignore_session);
+                evaluation = evaluate(&scan, &options.ignored_sessions);
             }
             Err(signal) => break Some(signal),
         }
@@ -1655,7 +1655,7 @@ mod tests {
             "ses_other",
         ])
         .unwrap();
-        assert_eq!(options.ignore_session, ["ses_old", "ses_other"]);
+        assert_eq!(options.ignored_sessions, ["ses_old", "ses_other"]);
     }
 
     #[test]
