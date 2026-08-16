@@ -20,9 +20,6 @@ function gitIndex(words: Word[]) {
 		switch (executable(words[index])) {
 			case "git":
 				return index;
-			case "rtk":
-				index++;
-				break;
 			case "command":
 				index++;
 				while (words[index]?.value === "-p") index++;
