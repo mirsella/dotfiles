@@ -31,7 +31,7 @@ use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use base64::Engine;
 use clap::Parser;
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table, presets::UTF8_FULL};
@@ -54,10 +54,20 @@ const HEADERS: [&str; 6] = ["STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", 
     trailing_var_arg = true
 )]
 struct Options {
-    #[arg(short = 'i', long, default_value_t = DEFAULT_INTERVAL, value_parser = positive_u64)]
+    #[arg(
+        short = 'i',
+        long,
+        default_value_t = DEFAULT_INTERVAL,
+        value_parser = clap::value_parser!(u64).range(1..)
+    )]
     interval: u64,
 
-    #[arg(short = 'r', long, default_value_t = DEFAULT_IDLE_CHECKS, value_parser = positive_u32)]
+    #[arg(
+        short = 'r',
+        long,
+        default_value_t = DEFAULT_IDLE_CHECKS,
+        value_parser = clap::value_parser!(u32).range(1..)
+    )]
     required_idle_checks: u32,
 
     #[arg(value_name = "COMMAND", num_args = 0..)]
@@ -83,23 +93,22 @@ impl State {
     }
 
     fn log(&self, message: impl AsRef<str>) {
-        let line = format!(
-            "[{}] {}",
-            Zoned::now().strftime("%Y-%m-%d %H:%M:%S"),
-            message.as_ref()
-        );
+        let line = self.timestamped(message);
         println!("{line}");
         let _ = io::stdout().flush();
         self.write_log(&line);
     }
 
     fn record(&self, message: impl AsRef<str>) {
-        let line = format!(
+        self.write_log(&self.timestamped(message));
+    }
+
+    fn timestamped(&self, message: impl AsRef<str>) -> String {
+        format!(
             "[{}] {}",
             Zoned::now().strftime("%Y-%m-%d %H:%M:%S"),
             message.as_ref()
-        );
-        self.write_log(&line);
+        )
     }
 
     fn write_log(&self, line: &str) {
@@ -155,91 +164,142 @@ impl Drop for Cancellation {
 
 struct OpenCodeProcess {
     pid: i32,
-    role: ProcessRole,
-    directory: Option<String>,
+    kind: ProcessKind,
     authorization: Option<String>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum ProcessRole {
-    SharedServer,
-    RemoteClient,
-    Standalone,
+enum ProcessKind {
+    Server,
+    Attach {
+        endpoint: String,
+        directory: Option<PathBuf>,
+    },
 }
 
-fn positive_u64(value: &str) -> std::result::Result<u64, String> {
-    match value.parse::<u64>() {
-        Ok(0) => Err("must be at least 1".to_owned()),
-        Ok(value) => Ok(value),
-        Err(_) => Err("must be a positive integer".to_owned()),
+fn proc_file(path: &Path, name: &str) -> Result<Option<Vec<u8>>> {
+    match fs::read(path.join(name)) {
+        Ok(bytes) => Ok(Some(bytes)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error).with_context(|| format!("read {}", path.join(name).display())),
     }
 }
 
-fn positive_u32(value: &str) -> std::result::Result<u32, String> {
-    match value.parse::<u32>() {
-        Ok(0) => Err("must be at least 1".to_owned()),
-        Ok(value) => Ok(value),
-        Err(_) => Err("must be a positive integer".to_owned()),
-    }
-}
-
-fn lossy_read(path: impl AsRef<Path>) -> String {
-    String::from_utf8_lossy(&fs::read(path).unwrap_or_default()).into_owned()
-}
-
-fn nul_strings(bytes: &[u8]) -> Vec<String> {
+fn nul_strings(bytes: &[u8]) -> Result<Vec<String>> {
     bytes
         .split(|byte| *byte == 0)
         .filter(|value| !value.is_empty())
-        .map(|value| String::from_utf8_lossy(value).into_owned())
+        .map(|value| {
+            std::str::from_utf8(value)
+                .map(str::to_owned)
+                .context("/proc command line contains invalid UTF-8")
+        })
         .collect()
 }
 
-fn env_value(environment: &[u8], name: &[u8]) -> Option<String> {
-    environment
-        .split(|byte| *byte == 0)
-        .find_map(|entry| entry.strip_prefix(name)?.strip_prefix(b"="))
-        .map(|value| String::from_utf8_lossy(value).into_owned())
-        .filter(|value| !value.trim().is_empty())
+fn env_value(environment: &[u8], name: &[u8]) -> Result<Option<String>> {
+    for entry in environment.split(|byte| *byte == 0) {
+        let Some(value) = entry
+            .strip_prefix(name)
+            .and_then(|entry| entry.strip_prefix(b"="))
+        else {
+            continue;
+        };
+        let value = std::str::from_utf8(value)
+            .context("/proc environment contains invalid UTF-8")?
+            .to_owned();
+        return Ok((!value.trim().is_empty()).then_some(value));
+    }
+    Ok(None)
 }
 
-fn server_env_value(name: &str) -> Option<String> {
-    if let Some(value) = env::var(name).ok().filter(|value| !value.trim().is_empty()) {
-        return Some(value);
+fn server_env_value(name: &str) -> Result<Option<String>> {
+    if let Some(value) = env::var_os(name) {
+        let value = value
+            .into_string()
+            .map_err(|_| anyhow::anyhow!("{name} is not valid UTF-8"))?;
+        if !value.trim().is_empty() {
+            return Ok(Some(value));
+        }
     }
-    let home = env::var_os("HOME")?;
+    let Some(home) = env::var_os("HOME") else {
+        return Ok(None);
+    };
     let config = env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(home).join(".config"));
-    lossy_read(config.join("opencode/server.env"))
+    let path = config.join("opencode/server.env");
+    let contents = match fs::read_to_string(&path) {
+        Ok(contents) => contents,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error).with_context(|| format!("read {}", path.display())),
+    };
+    Ok(contents
         .lines()
         .filter_map(|line| line.trim().split_once('='))
         .find(|(key, _)| *key == name)
         .map(|(_, value)| value.trim().trim_matches(['\'', '"']).to_owned())
-        .filter(|value| !value.is_empty())
+        .filter(|value| !value.is_empty()))
 }
 
-fn basic_authorization(username: String, password: String) -> String {
+fn basic_authorization(username: &str, password: &str) -> String {
     let encoded =
         base64::engine::general_purpose::STANDARD.encode(format!("{username}:{password}"));
     format!("Basic {encoded}")
 }
 
-fn process_role(args: &[String]) -> ProcessRole {
-    match args.get(1).map(String::as_str) {
-        Some("attach") => ProcessRole::RemoteClient,
-        Some("serve") => ProcessRole::SharedServer,
-        _ => ProcessRole::Standalone,
+fn process_kind(args: &[String], cwd: Option<PathBuf>) -> Result<ProcessKind> {
+    if args.get(1).map(String::as_str) != Some("attach") {
+        return Ok(ProcessKind::Server);
     }
+    let endpoint = args
+        .get(2)
+        .context("opencode attach has no endpoint")?
+        .clone();
+    let mut explicit_directory = None;
+    for (index, argument) in args.iter().enumerate() {
+        if let Some(value) = argument.strip_prefix("--dir=") {
+            if value.is_empty() {
+                bail!("opencode attach --dir has an empty value");
+            }
+            explicit_directory = Some(value);
+            break;
+        }
+        if argument == "--dir" {
+            let value = args
+                .get(index + 1)
+                .context("opencode attach --dir has no value")?;
+            if value.is_empty() {
+                bail!("opencode attach --dir has an empty value");
+            }
+            explicit_directory = Some(value);
+            break;
+        }
+    }
+    let directory = match explicit_directory {
+        Some(value) => {
+            let path = PathBuf::from(value);
+            if path.is_absolute() {
+                Some(path)
+            } else {
+                cwd.map(|cwd| cwd.join(path))
+            }
+        }
+        None => cwd,
+    };
+    Ok(ProcessKind::Attach {
+        endpoint,
+        directory,
+    })
 }
 
 fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
     let uid = unsafe { libc::getuid() };
     let configured_username =
-        server_env_value("OPENCODE_SERVER_USERNAME").unwrap_or_else(|| "opencode".to_owned());
-    let configured_password = server_env_value("OPENCODE_SERVER_PASSWORD");
+        server_env_value("OPENCODE_SERVER_USERNAME")?.unwrap_or_else(|| "opencode".to_owned());
+    let configured_password = server_env_value("OPENCODE_SERVER_PASSWORD")?;
     let mut processes = Vec::new();
-    for entry in fs::read_dir("/proc").context("read /proc")?.flatten() {
+    for entry in fs::read_dir("/proc").context("read /proc")? {
+        let entry = entry.context("read /proc entry")?;
         let path = entry.path();
         let Some(pid) = entry
             .file_name()
@@ -248,68 +308,46 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
         else {
             continue;
         };
-        let Ok(metadata) = entry.metadata() else {
+        let metadata = match entry.metadata() {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error).context("read /proc entry metadata"),
+        };
+        let Some(comm) = proc_file(&path, "comm")? else {
             continue;
         };
-        if metadata.uid() != uid
-            || fs::read_to_string(path.join("comm"))
-                .ok()
-                .is_none_or(|name| name.trim_end() != "opencode")
-        {
+        if comm.strip_suffix(b"\n") != Some(b"opencode") || metadata.uid() != uid {
             continue;
         }
-        let cmdline = match fs::read(path.join("cmdline")) {
-            Ok(cmdline) => cmdline,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
-            Err(error) => return Err(error).context(format!("read opencode pid {pid} cmdline")),
+        let Some(cmdline) = proc_file(&path, "cmdline")? else {
+            continue;
         };
-        let environment = match fs::read(path.join("environ")) {
-            Ok(environment) => environment,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
-            Err(error) => {
-                return Err(error).context(format!("read opencode pid {pid} environment"));
-            }
+        let Some(environment) = proc_file(&path, "environ")? else {
+            continue;
         };
-        let args = nul_strings(&cmdline);
+        let args = nul_strings(&cmdline)?;
         if args.is_empty() {
-            anyhow::bail!("opencode pid {pid} has an empty cmdline");
+            bail!("opencode pid {pid} has an empty cmdline");
         }
-        let password = env_value(&environment, b"OPENCODE_SERVER_PASSWORD")
+        let password = env_value(&environment, b"OPENCODE_SERVER_PASSWORD")?
             .or_else(|| configured_password.clone());
-        let username = env_value(&environment, b"OPENCODE_SERVER_USERNAME")
+        let username = env_value(&environment, b"OPENCODE_SERVER_USERNAME")?
             .unwrap_or_else(|| configured_username.clone());
-        let authorization = password.map(|password| basic_authorization(username, password));
-        let role = process_role(&args);
-        let directory = if role == ProcessRole::RemoteClient {
-            let cwd = fs::read_link(path.join("cwd")).ok();
-            let argument = args.iter().enumerate().find_map(|(index, argument)| {
-                argument.strip_prefix("--dir=").or_else(|| {
-                    (argument == "--dir")
-                        .then(|| args.get(index + 1).map(String::as_str))
-                        .flatten()
-                })
-            });
-            if args
-                .iter()
-                .any(|argument| argument == "--dir" || argument.starts_with("--dir="))
-            {
-                argument.map(PathBuf::from).and_then(|path| {
-                    if path.is_absolute() {
-                        Some(path)
-                    } else {
-                        cwd.map(|cwd| cwd.join(path))
-                    }
-                })
-            } else {
-                cwd
+        let authorization = password
+            .as_deref()
+            .map(|password| basic_authorization(&username, password));
+        let cwd = if args.get(1).map(String::as_str) == Some("attach") {
+            match fs::read_link(path.join("cwd")) {
+                Ok(cwd) => Some(cwd),
+                Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+                Err(error) => return Err(error).context(format!("read opencode pid {pid} cwd")),
             }
         } else {
             None
         };
         processes.push(OpenCodeProcess {
             pid,
-            role,
-            directory: directory.map(|path| path.to_string_lossy().into_owned()),
+            kind: process_kind(&args, cwd)?,
             authorization,
         });
     }
@@ -317,19 +355,17 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
     Ok(processes)
 }
 
-fn listener_host(address: &str) -> Option<String> {
+fn listener_host(address: &str) -> Result<String> {
     match address.len() {
         8 => {
-            let address = u32::from_str_radix(address, 16).ok()?;
+            let address = u32::from_str_radix(address, 16).context("invalid IPv4 listener")?;
             let address = std::net::Ipv4Addr::from(address.to_le_bytes());
-            Some(
-                (if address.is_unspecified() {
-                    std::net::Ipv4Addr::LOCALHOST
-                } else {
-                    address
-                })
-                .to_string(),
-            )
+            Ok((if address.is_unspecified() {
+                std::net::Ipv4Addr::LOCALHOST
+            } else {
+                address
+            })
+            .to_string())
         }
         32 => {
             let mut octets = [0; 16];
@@ -340,11 +376,15 @@ fn listener_host(address: &str) -> Option<String> {
                 .iter()
                 .zip(octets.chunks_mut(4))
             {
-                let word = std::str::from_utf8(word).ok()?;
-                output.copy_from_slice(&u32::from_str_radix(word, 16).ok()?.to_le_bytes());
+                let word = std::str::from_utf8(word).context("invalid IPv6 listener")?;
+                output.copy_from_slice(
+                    &u32::from_str_radix(word, 16)
+                        .context("invalid IPv6 listener")?
+                        .to_le_bytes(),
+                );
             }
             let address = std::net::Ipv6Addr::from(octets);
-            Some(format!(
+            Ok(format!(
                 "[{}]",
                 if address.is_unspecified() {
                     std::net::Ipv6Addr::LOCALHOST
@@ -353,48 +393,81 @@ fn listener_host(address: &str) -> Option<String> {
                 }
             ))
         }
-        _ => None,
+        _ => bail!("invalid listener address length"),
     }
 }
 
-fn tcp_listener_urls() -> HashMap<String, String> {
+fn tcp_listener_urls() -> Result<HashMap<String, String>> {
     let mut listeners = HashMap::new();
     for path in ["/proc/net/tcp", "/proc/net/tcp6"] {
-        for line in lossy_read(path).lines().skip(1) {
+        let contents = fs::read_to_string(path).with_context(|| format!("read {path}"))?;
+        for (line_number, line) in contents.lines().enumerate().skip(1) {
             let fields: Vec<_> = line.split_whitespace().collect();
-            if fields.len() < 10 || fields[3] != "0A" {
+            if fields.len() < 10 {
+                bail!("malformed {path} line {}", line_number + 1);
+            }
+            if fields[3] != "0A" {
                 continue;
             }
-            let Some((address, port)) = fields[1].split_once(':') else {
-                continue;
-            };
-            let Some(host) = listener_host(address) else {
-                continue;
-            };
-            let Some(port) = u16::from_str_radix(port, 16).ok() else {
-                continue;
-            };
+            let (address, port) = fields[1].split_once(':').context("listener has no port")?;
+            let host = listener_host(address)?;
+            let port = u16::from_str_radix(port, 16).context("invalid listener port")?;
             listeners.insert(fields[9].to_owned(), format!("http://{host}:{port}"));
         }
     }
-    listeners
+    Ok(listeners)
 }
 
-fn process_sockets(pid: i32) -> Vec<String> {
-    let Ok(entries) = fs::read_dir(format!("/proc/{pid}/fd")) else {
-        return Vec::new();
+fn process_sockets(pid: i32) -> Result<Vec<String>> {
+    let entries = match fs::read_dir(format!("/proc/{pid}/fd")) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(error).context(format!("read /proc/{pid}/fd")),
     };
-    entries
-        .flatten()
-        .filter_map(|entry| fs::read_link(entry.path()).ok())
-        .filter_map(|target| {
-            let target = target.to_string_lossy();
-            target
-                .strip_prefix("socket:[")?
-                .strip_suffix(']')
-                .map(str::to_owned)
-        })
-        .collect()
+    let mut sockets = Vec::new();
+    for entry in entries {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error).context("read process file descriptor"),
+        };
+        let target = match fs::read_link(entry.path()) {
+            Ok(target) => target,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error).context("read process file descriptor link"),
+        };
+        let Some(inode) = target
+            .to_str()
+            .and_then(|target| target.strip_prefix("socket:["))
+            .and_then(|target| target.strip_suffix(']'))
+        else {
+            continue;
+        };
+        sockets.push(inode.to_owned());
+    }
+    Ok(sockets)
+}
+
+fn endpoint_key(url: &str) -> Option<String> {
+    let authority = url
+        .strip_prefix("http://")
+        .or_else(|| url.strip_prefix("https://"))?
+        .split(['/', '?', '#'])
+        .next()?;
+    let authority = authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host)| host);
+    let (host, port) = authority
+        .strip_prefix('[')
+        .and_then(|authority| authority.split_once("]:"))
+        .or_else(|| authority.rsplit_once(':'))?;
+    let port = port.parse::<u16>().ok()?;
+    let host = host.trim_matches(['[', ']']).to_ascii_lowercase();
+    let host = match host.as_str() {
+        "localhost" => "127.0.0.1",
+        host => host,
+    };
+    Some(format!("{host}:{port}"))
 }
 
 struct OpenCodeApi<'a> {
@@ -584,7 +657,7 @@ struct ApiSnapshot {
     pid: i32,
     url: String,
     directory: String,
-    state: std::result::Result<WorkspaceState, String>,
+    state: Result<WorkspaceState>,
 }
 
 struct WorkspaceState {
@@ -656,8 +729,7 @@ fn workspace_snapshot(
             questions,
             permissions,
         })
-    })()
-    .map_err(|error| format!("{error:#}"));
+    })();
     ApiSnapshot {
         pid,
         url,
@@ -666,29 +738,39 @@ fn workspace_snapshot(
     }
 }
 
+struct ApiServer {
+    pid: i32,
+    url: String,
+    endpoint: String,
+    authorization: Option<String>,
+    directory: String,
+}
+
 fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan {
-    let listeners = tcp_listener_urls();
+    let listeners = match tcp_listener_urls() {
+        Ok(listeners) => listeners,
+        Err(error) => {
+            return ApiScan {
+                snapshots: Vec::new(),
+                failures: vec![format!("listener discovery: {error:#}")],
+            };
+        }
+    };
     let mut snapshots = Vec::new();
     let mut failures = Vec::new();
-    let mut jobs = Vec::new();
-    let mut shared_directories: Vec<_> = processes
-        .iter()
-        .filter(|process| process.role == ProcessRole::RemoteClient)
-        .filter_map(|process| process.directory.clone())
-        .collect();
-    shared_directories.sort_unstable();
-    shared_directories.dedup();
-    for process in processes
-        .iter()
-        .filter(|process| process.role == ProcessRole::RemoteClient && process.directory.is_none())
-    {
-        failures.push(format!("pid={} cwd:unavailable", process.pid));
-    }
-    for process in processes
-        .iter()
-        .filter(|process| process.role != ProcessRole::RemoteClient)
-    {
-        let Some(url) = process_sockets(process.pid)
+    let mut servers = Vec::new();
+    for process in processes {
+        if !matches!(&process.kind, ProcessKind::Server) {
+            continue;
+        }
+        let sockets = match process_sockets(process.pid) {
+            Ok(sockets) => sockets,
+            Err(error) => {
+                failures.push(format!("pid={} socket discovery: {error:#}", process.pid));
+                continue;
+            }
+        };
+        let Some(url) = sockets
             .into_iter()
             .filter_map(|inode| listeners.get(&inode))
             .find(|url| {
@@ -724,19 +806,54 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
                 continue;
             }
         };
-        let mut directories = if process.role == ProcessRole::SharedServer {
-            shared_directories.clone()
-        } else {
-            Vec::new()
+        let Some(endpoint) = endpoint_key(&url) else {
+            failures.push(format!("pid={} opencode-api:invalid-endpoint", process.pid));
+            continue;
         };
-        directories.push(directory);
+        servers.push(ApiServer {
+            pid: process.pid,
+            url,
+            endpoint,
+            authorization: process.authorization.clone(),
+            directory,
+        });
+    }
+
+    let mut attached = HashMap::<String, Vec<String>>::new();
+    for process in processes {
+        let ProcessKind::Attach {
+            endpoint,
+            directory,
+        } = &process.kind
+        else {
+            continue;
+        };
+        let Some(directory) = directory.as_ref().and_then(|directory| directory.to_str()) else {
+            failures.push(format!("pid={} attach-directory:unavailable", process.pid));
+            continue;
+        };
+        let Some(key) = endpoint_key(endpoint) else {
+            failures.push(format!("pid={} attach-endpoint:invalid", process.pid));
+            continue;
+        };
+        if !servers.iter().any(|server| server.endpoint == key) {
+            failures.push(format!("pid={} attach-endpoint:unreachable", process.pid));
+            continue;
+        }
+        attached.entry(key).or_default().push(directory.to_owned());
+    }
+
+    let mut jobs = Vec::new();
+    for server in servers {
+        let mut directories = attached.remove(&server.endpoint).unwrap_or_default();
+        directories.push(server.directory);
         directories.sort_unstable();
         directories.dedup();
         for directory in directories {
             jobs.push((
-                process.pid,
-                url.clone(),
-                process.authorization.clone(),
+                server.pid,
+                server.url.clone(),
+                server.authorization.clone(),
                 directory,
             ));
         }
@@ -751,23 +868,21 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
             .map(|job| job.join().expect("workspace scanner panicked"))
             .collect::<Vec<_>>()
     }));
-    if processes
-        .iter()
-        .any(|process| process.role == ProcessRole::RemoteClient)
-        && !processes
-            .iter()
-            .any(|process| process.role == ProcessRole::SharedServer)
-    {
-        failures.push("remote opencode clients have no observable server".to_owned());
-    }
     ApiScan {
         snapshots,
         failures,
     }
 }
 
-fn invoking_sessions(scan: &ApiScan) -> HashSet<String> {
-    scan.snapshots
+struct ScanEvaluation {
+    excluded_sessions: HashSet<String>,
+    blockers: Vec<String>,
+    active: usize,
+}
+
+fn evaluate(scan: &ApiScan) -> ScanEvaluation {
+    let excluded_sessions = scan
+        .snapshots
         .iter()
         .filter_map(|snapshot| snapshot.state.as_ref().ok())
         .flat_map(|state| {
@@ -783,40 +898,43 @@ fn invoking_sessions(scan: &ApiScan) -> HashSet<String> {
                 })
                 .map(|(session, _)| session.clone())
         })
-        .collect()
-}
-
-fn api_blockers(scan: &ApiScan, excluded_sessions: &HashSet<String>) -> Vec<String> {
-    let mut details = scan.failures.clone();
+        .collect::<HashSet<_>>();
+    let mut blockers = scan.failures.clone();
+    let mut active = 0;
     for snapshot in &scan.snapshots {
         let state = match &snapshot.state {
             Ok(state) => state,
             Err(error) => {
-                details.push(format!(
+                blockers.push(format!(
                     "pid={} {} directory={} workspace-scan:{error}",
                     snapshot.pid, snapshot.url, snapshot.directory
                 ));
                 continue;
             }
         };
-        let active = session_blockers(
+        let current = session_blockers(
             &state.status,
             &state.questions,
             &state.permissions,
             &state.assistants,
-            excluded_sessions,
+            &excluded_sessions,
         );
-        if !active.is_empty() {
-            details.push(format!(
+        active += current.len();
+        if !current.is_empty() {
+            blockers.push(format!(
                 "pid={} {} directory={} {}",
                 snapshot.pid,
                 snapshot.url,
                 snapshot.directory,
-                active.into_iter().take(4).collect::<Vec<_>>().join(" ")
+                current.into_iter().take(4).collect::<Vec<_>>().join(" ")
             ));
         }
     }
-    details
+    ScanEvaluation {
+        excluded_sessions,
+        blockers,
+        active,
+    }
 }
 
 fn collect_scan(client: &ureq::Agent) -> Result<ApiScan> {
@@ -928,43 +1046,26 @@ impl Dashboard {
     }
 
     fn status_line(
-        scan: &ApiScan,
-        excluded_sessions: &HashSet<String>,
+        evaluation: &ScanEvaluation,
         check: u32,
         idle: u32,
         required_idle: u32,
         next_scan: u64,
     ) -> String {
-        let active = scan
-            .snapshots
-            .iter()
-            .filter_map(|snapshot| {
-                snapshot.state.as_ref().ok().map(|state| {
-                    session_blockers(
-                        &state.status,
-                        &state.questions,
-                        &state.permissions,
-                        &state.assistants,
-                        excluded_sessions,
-                    )
-                    .len()
-                })
-            })
-            .sum::<usize>();
-        let state = if api_blockers(scan, excluded_sessions).is_empty() {
+        let state = if evaluation.blockers.is_empty() {
             "IDLE"
         } else {
             "BLOCKED"
         };
         format!(
-            "\x1b[2mcheck #{check}  |\x1b[0m  {state}  |  {active} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s"
+            "\x1b[2mcheck #{check}  |\x1b[0m  {state}  |  {} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s",
+            evaluation.active,
         )
     }
 
     fn tick(
         &self,
-        scan: &ApiScan,
-        excluded_sessions: &HashSet<String>,
+        evaluation: &ScanEvaluation,
         check: u32,
         idle: u32,
         required_idle: u32,
@@ -973,14 +1074,7 @@ impl Dashboard {
         if self.termios.is_some() {
             print!(
                 "\x1b[2;1H\x1b[2K{}",
-                Self::status_line(
-                    scan,
-                    excluded_sessions,
-                    check,
-                    idle,
-                    required_idle,
-                    next_scan
-                )
+                Self::status_line(evaluation, check, idle, required_idle, next_scan)
             );
             let _ = io::stdout().flush();
         }
@@ -989,7 +1083,7 @@ impl Dashboard {
     fn draw(
         &self,
         scan: &ApiScan,
-        excluded_sessions: &HashSet<String>,
+        evaluation: &ScanEvaluation,
         check: u32,
         idle: u32,
         required_idle: u32,
@@ -1008,11 +1102,11 @@ impl Dashboard {
                 &state.questions,
                 &state.permissions,
                 &state.assistants,
-                excluded_sessions,
+                &evaluation.excluded_sessions,
             );
             for (session, status) in &state.status {
                 let kind = status_kind(status);
-                let (label, color) = if excluded_sessions.contains(session) {
+                let (label, color) = if evaluation.excluded_sessions.contains(session) {
                     ("SELF", Color::Cyan)
                 } else if waiting.contains(session) {
                     ("WAITING", Color::Blue)
@@ -1074,11 +1168,10 @@ impl Dashboard {
                 .set_cell_alignment(CellAlignment::Right);
         }
         if rows.is_empty() {
-            let blockers = api_blockers(scan, excluded_sessions);
-            let (label, color, message) = if blockers.is_empty() {
+            let (label, color, message) = if evaluation.blockers.is_empty() {
                 ("IDLE", Color::Green, "No active sessions".to_owned())
             } else {
-                ("BLOCKED", Color::Red, summarize(&blockers, 2))
+                ("BLOCKED", Color::Red, summarize(&evaluation.blockers, 2))
             };
             table.add_row([
                 Cell::new(label).fg(color),
@@ -1102,28 +1195,26 @@ impl Dashboard {
         }
         let mut frame = format!(
             "\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n{}\n",
-            Self::status_line(
-                scan,
-                excluded_sessions,
-                check,
-                idle,
-                required_idle,
-                next_scan
-            ),
+            Self::status_line(evaluation, check, idle, required_idle, next_scan),
         );
         if let Some(action) = &self.action {
             frame.push_str(&format!("\x1b[2mon idle       |\x1b[0m  {action}\n"));
         }
         frame.push_str(&format!("\n{table}"));
-        if !scan.failures.is_empty() {
+        if !evaluation.blockers.is_empty() {
             frame.push_str("\n\n\x1b[31mAPI errors\x1b[0m");
-            for failure in &scan.failures {
+            for failure in &evaluation.blockers {
                 frame.push_str("\n  ");
                 frame.push_str(&clean_text(failure));
             }
         }
         frame.push_str("\n\n\x1b[2mq / Esc / Ctrl-C to exit\x1b[0m\n");
-        print!("\x1b[H{frame}\x1b[J");
+        let mut redraw = String::from("\x1b[H");
+        for line in frame.lines() {
+            writeln!(redraw, "\x1b[2K\r{line}").expect("writing to a string cannot fail");
+        }
+        redraw.push_str("\x1b[J");
+        print!("{redraw}");
         let _ = io::stdout().flush();
     }
 }
@@ -1174,14 +1265,14 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             return Ok(signal_exit(state, signal));
         }
     };
-    let mut excluded_sessions: Vec<_> = invoking_sessions(&scan).into_iter().collect();
-    excluded_sessions.sort_unstable();
+    let mut self_sessions: Vec<_> = evaluate(&scan).excluded_sessions.into_iter().collect();
+    self_sessions.sort_unstable();
     let started = format!(
         "watchdog started; self_sessions={}; interval={}s required_idle_checks={}; command={}; cache={}",
-        if excluded_sessions.is_empty() {
+        if self_sessions.is_empty() {
             "none".to_owned()
         } else {
-            excluded_sessions.join(",")
+            self_sessions.join(",")
         },
         options.interval,
         options.required_idle_checks,
@@ -1203,11 +1294,10 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
 
     let mut consecutive_idle = 0;
     let mut check = 0;
+    let mut evaluation = evaluate(&scan);
     let signal = 'checks: loop {
         check += 1;
-        let excluded_sessions = invoking_sessions(&scan);
-        let blockers = api_blockers(&scan, &excluded_sessions);
-        consecutive_idle = if blockers.is_empty() {
+        consecutive_idle = if evaluation.blockers.is_empty() {
             consecutive_idle + 1
         } else {
             0
@@ -1215,22 +1305,22 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         let check_message = format!(
             "check {check}: idle={consecutive_idle}/{}; blockers={}",
             options.required_idle_checks,
-            if blockers.is_empty() {
+            if evaluation.blockers.is_empty() {
                 "none"
             } else {
                 "opencode API session status"
             }
         );
         report(check_message);
-        if !blockers.is_empty() {
+        if !evaluation.blockers.is_empty() {
             report(format!(
                 "opencode_api_blockers: {}",
-                summarize(&blockers, 5)
+                summarize(&evaluation.blockers, 5)
             ));
         }
         dashboard.draw(
             &scan,
-            &excluded_sessions,
+            &evaluation,
             check,
             consecutive_idle,
             options.required_idle_checks,
@@ -1250,10 +1340,12 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
                 Ok(result) => result?,
                 Err(signal) => break Some(signal),
             };
-            if api_blockers(&final_scan, &invoking_sessions(&final_scan)).is_empty() {
+            let final_evaluation = evaluate(&final_scan);
+            if final_evaluation.blockers.is_empty() {
                 break None;
             }
             scan = final_scan;
+            evaluation = final_evaluation;
             consecutive_idle = 0;
             continue;
         }
@@ -1264,8 +1356,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             }
             remaining -= 1;
             dashboard.tick(
-                &scan,
-                &excluded_sessions,
+                &evaluation,
                 check,
                 consecutive_idle,
                 options.required_idle_checks,
@@ -1276,7 +1367,10 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             let client = client.clone();
             move || collect_scan(&client)
         }) {
-            Ok(result) => scan = result?,
+            Ok(result) => {
+                scan = result?;
+                evaluation = evaluate(&scan);
+            }
             Err(signal) => break Some(signal),
         }
     };
@@ -1388,33 +1482,51 @@ mod tests {
     fn classifies_opencode_processes_by_subcommand() {
         let args = |subcommand: &str| vec!["opencode".to_owned(), subcommand.to_owned()];
         assert!(matches!(
-            process_role(&args("attach")),
-            ProcessRole::RemoteClient
+            process_kind(
+                &["opencode", "attach", "http://127.0.0.1:1234"]
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>(),
+                None
+            ),
+            Ok(ProcessKind::Attach { .. })
         ));
         assert!(matches!(
-            process_role(&args("serve")),
-            ProcessRole::SharedServer
+            process_kind(&args("serve"), None),
+            Ok(ProcessKind::Server)
         ));
         assert!(matches!(
-            process_role(&args("run")),
-            ProcessRole::Standalone
+            process_kind(&args("run"), None),
+            Ok(ProcessKind::Server)
         ));
     }
 
     #[test]
     fn parses_proc_listener_addresses() {
-        assert_eq!(listener_host("0100007F").as_deref(), Some("127.0.0.1"));
-        assert_eq!(listener_host("00000000").as_deref(), Some("127.0.0.1"));
+        assert_eq!(listener_host("0100007F").unwrap(), "127.0.0.1");
+        assert_eq!(listener_host("00000000").unwrap(), "127.0.0.1");
         assert_eq!(
-            listener_host("00000000000000000000000001000000").as_deref(),
-            Some("[::1]")
+            listener_host("00000000000000000000000001000000").unwrap(),
+            "[::1]"
         );
         assert_eq!(
-            listener_host("00000000000000000000000000000000").as_deref(),
-            Some("[::1]")
+            listener_host("00000000000000000000000000000000").unwrap(),
+            "[::1]"
         );
-        assert_eq!(listener_host("not-an-address"), None);
+        assert!(listener_host("not-an-address").is_err());
         assert_eq!(encode_directory("/tmp/a b%"), "%2Ftmp%2Fa%20b%25");
+        assert_eq!(
+            endpoint_key("http://127.0.0.1:1234/").as_deref(),
+            Some("127.0.0.1:1234")
+        );
+        assert_eq!(
+            endpoint_key("http://localhost:1234").as_deref(),
+            Some("127.0.0.1:1234")
+        );
+        assert_eq!(
+            endpoint_key("http://[::1]:1234").as_deref(),
+            Some("::1:1234")
+        );
     }
 
     #[test]
@@ -1517,12 +1629,12 @@ mod tests {
                 pid: 42,
                 url: "http://127.0.0.1:1234".to_owned(),
                 directory: "/tmp/project".to_owned(),
-                state: Err("bad response".to_owned()),
+                state: Err(anyhow::anyhow!("bad response")),
             }],
             failures: Vec::new(),
         };
         assert_eq!(
-            api_blockers(&scan, &HashSet::new()),
+            evaluate(&scan).blockers,
             ["pid=42 http://127.0.0.1:1234 directory=/tmp/project workspace-scan:bad response"]
         );
     }
