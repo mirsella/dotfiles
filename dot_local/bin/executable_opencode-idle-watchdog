@@ -70,6 +70,9 @@ struct Options {
     )]
     required_idle_checks: u32,
 
+    #[arg(long, value_name = "SESSION", action = clap::ArgAction::Append)]
+    ignore_session: Vec<String>,
+
     #[arg(value_name = "COMMAND", num_args = 0..)]
     command: Vec<OsString>,
 }
@@ -257,23 +260,20 @@ fn process_kind(args: &[String], cwd: Option<PathBuf>) -> Result<ProcessKind> {
         .clone();
     let mut explicit_directory = None;
     for (index, argument) in args.iter().enumerate() {
-        if let Some(value) = argument.strip_prefix("--dir=") {
-            if value.is_empty() {
-                bail!("opencode attach --dir has an empty value");
-            }
-            explicit_directory = Some(value);
-            break;
+        let value = if let Some(value) = argument.strip_prefix("--dir=") {
+            value
+        } else if argument == "--dir" {
+            args.get(index + 1)
+                .map(String::as_str)
+                .context("opencode attach --dir has no value")?
+        } else {
+            continue;
+        };
+        if value.is_empty() {
+            bail!("opencode attach --dir has an empty value");
         }
-        if argument == "--dir" {
-            let value = args
-                .get(index + 1)
-                .context("opencode attach --dir has no value")?;
-            if value.is_empty() {
-                bail!("opencode attach --dir has an empty value");
-            }
-            explicit_directory = Some(value);
-            break;
-        }
+        explicit_directory = Some(value);
+        break;
     }
     let directory = match explicit_directory {
         Some(value) => {
@@ -313,10 +313,13 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
             Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
             Err(error) => return Err(error).context("read /proc entry metadata"),
         };
+        if metadata.uid() != uid {
+            continue;
+        }
         let Some(comm) = proc_file(&path, "comm")? else {
             continue;
         };
-        if comm.strip_suffix(b"\n") != Some(b"opencode") || metadata.uid() != uid {
+        if comm.strip_suffix(b"\n") != Some(b"opencode") {
             continue;
         }
         let Some(cmdline) = proc_file(&path, "cmdline")? else {
@@ -513,17 +516,17 @@ impl OpenCodeApi<'_> {
     }
 
     fn latest_assistant(&self, session: &str) -> Result<Value> {
-        let messages = self.get(&format!("/session/{session}/message?limit=1"))?;
-        let message = messages
-            .as_array()
-            .context("session messages are not an array")?
-            .last()
-            .context("busy session has no messages")?;
+        let Value::Array(mut messages) =
+            self.get(&format!("/session/{session}/message?limit=1"))?
+        else {
+            bail!("session messages are not an array");
+        };
+        let message = messages.pop().context("busy session has no messages")?;
         anyhow::ensure!(
             message.pointer("/info/role").and_then(Value::as_str) == Some("assistant"),
             "busy session's latest message is not from an assistant"
         );
-        Ok(message.clone())
+        Ok(message)
     }
 }
 
@@ -687,17 +690,14 @@ fn workspace_snapshot(
         directory: Some(&directory),
     };
     let state = (|| -> Result<WorkspaceState> {
-        let status = api
-            .get("/session/status")?
-            .as_object()
-            .cloned()
-            .context("session status is not an object")?;
-        let sessions = api
-            .get("/session?limit=200")?
-            .as_array()
-            .context("sessions are not an array")?
-            .iter()
-            .cloned()
+        let Value::Object(status) = api.get("/session/status")? else {
+            bail!("session status is not an object");
+        };
+        let Value::Array(session_details) = api.get("/session?limit=200")? else {
+            bail!("sessions are not an array");
+        };
+        let sessions = session_details
+            .into_iter()
             .map(|details| {
                 let id = details
                     .get("id")
@@ -712,16 +712,12 @@ fn workspace_snapshot(
             .filter(|(_, state)| status_kind(state) == "busy")
             .map(|(session, _)| Ok((session.clone(), api.latest_assistant(session)?)))
             .collect::<Result<_>>()?;
-        let questions = api
-            .get("/question")?
-            .as_array()
-            .cloned()
-            .context("questions are not an array")?;
-        let permissions = api
-            .get("/permission")?
-            .as_array()
-            .cloned()
-            .context("permissions are not an array")?;
+        let Value::Array(questions) = api.get("/question")? else {
+            bail!("questions are not an array");
+        };
+        let Value::Array(permissions) = api.get("/permission")? else {
+            bail!("permissions are not an array");
+        };
         Ok(WorkspaceState {
             status,
             sessions,
@@ -880,25 +876,26 @@ struct ScanEvaluation {
     active: usize,
 }
 
-fn evaluate(scan: &ApiScan) -> ScanEvaluation {
-    let excluded_sessions = scan
-        .snapshots
-        .iter()
-        .filter_map(|snapshot| snapshot.state.as_ref().ok())
-        .flat_map(|state| {
-            state
-                .status
-                .iter()
-                .filter(|(_, state)| status_kind(state) == "busy")
-                .filter(|(session, _)| {
-                    state
-                        .assistants
-                        .get(*session)
-                        .is_some_and(has_running_watchdog)
-                })
-                .map(|(session, _)| session.clone())
-        })
-        .collect::<HashSet<_>>();
+fn evaluate(scan: &ApiScan, ignored_sessions: &[String]) -> ScanEvaluation {
+    let mut excluded_sessions = ignored_sessions.iter().cloned().collect::<HashSet<_>>();
+    excluded_sessions.extend(
+        scan.snapshots
+            .iter()
+            .filter_map(|snapshot| snapshot.state.as_ref().ok())
+            .flat_map(|state| {
+                state
+                    .status
+                    .iter()
+                    .filter(|(_, state)| status_kind(state) == "busy")
+                    .filter(|(session, _)| {
+                        state
+                            .assistants
+                            .get(*session)
+                            .is_some_and(has_running_watchdog)
+                    })
+                    .map(|(session, _)| session.clone())
+            }),
+    );
     let mut blockers = scan.failures.clone();
     let mut active = 0;
     for snapshot in &scan.snapshots {
@@ -906,7 +903,7 @@ fn evaluate(scan: &ApiScan) -> ScanEvaluation {
             Ok(state) => state,
             Err(error) => {
                 blockers.push(format!(
-                    "pid={} {} directory={} workspace-scan:{error}",
+                    "pid={} {} directory={} workspace-scan:{error:#}",
                     snapshot.pid, snapshot.url, snapshot.directory
                 ));
                 continue;
@@ -1198,9 +1195,10 @@ impl Dashboard {
             Self::status_line(evaluation, check, idle, required_idle, next_scan),
         );
         if let Some(action) = &self.action {
-            frame.push_str(&format!("\x1b[2mon idle       |\x1b[0m  {action}\n"));
+            writeln!(frame, "\x1b[2mon idle       |\x1b[0m  {action}")
+                .expect("writing to a string cannot fail");
         }
-        frame.push_str(&format!("\n{table}"));
+        write!(frame, "\n{table}").expect("writing to a string cannot fail");
         if !evaluation.blockers.is_empty() {
             frame.push_str("\n\n\x1b[31mAPI errors\x1b[0m");
             for failure in &evaluation.blockers {
@@ -1254,18 +1252,20 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
     );
     let cancellation = Cancellation::new()?;
     let dashboard = Dashboard::new(command);
-    dashboard.loading();
-    let mut scan = match dashboard.run_work(&cancellation, {
+    let scan_work = || {
         let client = client.clone();
         move || collect_scan(&client)
-    }) {
+    };
+    dashboard.loading();
+    let mut scan = match dashboard.run_work(&cancellation, scan_work()) {
         Ok(result) => result?,
         Err(signal) => {
             drop(dashboard);
             return Ok(signal_exit(state, signal));
         }
     };
-    let mut self_sessions: Vec<_> = evaluate(&scan).excluded_sessions.into_iter().collect();
+    let mut evaluation = evaluate(&scan, &options.ignore_session);
+    let mut self_sessions: Vec<_> = evaluation.excluded_sessions.iter().cloned().collect();
     self_sessions.sort_unstable();
     let started = format!(
         "watchdog started; self_sessions={}; interval={}s required_idle_checks={}; command={}; cache={}",
@@ -1294,7 +1294,6 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
 
     let mut consecutive_idle = 0;
     let mut check = 0;
-    let mut evaluation = evaluate(&scan);
     let signal = 'checks: loop {
         check += 1;
         consecutive_idle = if evaluation.blockers.is_empty() {
@@ -1333,14 +1332,11 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             if command.is_empty() {
                 break None;
             }
-            let final_scan = match dashboard.run_work(&cancellation, {
-                let client = client.clone();
-                move || collect_scan(&client)
-            }) {
+            let final_scan = match dashboard.run_work(&cancellation, scan_work()) {
                 Ok(result) => result?,
                 Err(signal) => break Some(signal),
             };
-            let final_evaluation = evaluate(&final_scan);
+            let final_evaluation = evaluate(&final_scan, &options.ignore_session);
             if final_evaluation.blockers.is_empty() {
                 break None;
             }
@@ -1363,13 +1359,10 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
                 remaining,
             );
         }
-        match dashboard.run_work(&cancellation, {
-            let client = client.clone();
-            move || collect_scan(&client)
-        }) {
+        match dashboard.run_work(&cancellation, scan_work()) {
             Ok(result) => {
                 scan = result?;
-                evaluation = evaluate(&scan);
+                evaluation = evaluate(&scan, &options.ignore_session);
             }
             Err(signal) => break Some(signal),
         }
@@ -1634,7 +1627,7 @@ mod tests {
             failures: Vec::new(),
         };
         assert_eq!(
-            evaluate(&scan).blockers,
+            evaluate(&scan, &[]).blockers,
             ["pid=42 http://127.0.0.1:1234 directory=/tmp/project workspace-scan:bad response"]
         );
     }
@@ -1650,6 +1643,19 @@ mod tests {
         let options = Options::try_parse_from([NAME, "-i", "5", "-r", "2"]).unwrap();
         assert_eq!(options.interval, 5);
         assert_eq!(options.required_idle_checks, 2);
+    }
+
+    #[test]
+    fn parses_ignored_sessions() {
+        let options = Options::try_parse_from([
+            NAME,
+            "--ignore-session",
+            "ses_old",
+            "--ignore-session",
+            "ses_other",
+        ])
+        .unwrap();
+        assert_eq!(options.ignore_session, ["ses_old", "ses_other"]);
     }
 
     #[test]

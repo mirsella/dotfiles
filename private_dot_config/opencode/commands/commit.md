@@ -5,7 +5,7 @@ subtask: false
 ---
 
 Commit our changes in this session or since last commit.
-There may be other changes from other agents working.
+There may be other changes from other agents working, dont include them.
 When multiples things were done, dont hesitate to commit separately, to have smaller, cleaner, logical commits.
 Generate a conventional commit message following the format:
 
