@@ -104,6 +104,9 @@
       "reasoningEffort": "max",
     },
   },
+  "compaction": {
+    "prune": false,
+  },
   "provider": {
     "openai": {
       "models": {
@@ -127,6 +130,31 @@
             },
           },
         },
+      },
+      "options": {
+        "headers": {
+          "sleev-provider": "codex",
+          "sleev-harness": "opencode",
+        },
+        "baseURL": "http://127.0.0.1:17321",
+      },
+    },
+    "opencode": {
+      "options": {
+        "headers": {
+          "sleev-provider": "opencode",
+          "sleev-harness": "opencode",
+        },
+        "baseURL": "http://127.0.0.1:17321",
+      },
+    },
+    "copilot": {
+      "options": {
+        "headers": {
+          "sleev-provider": "copilot",
+          "sleev-harness": "opencode",
+        },
+        "baseURL": "http://127.0.0.1:17321",
       },
     },
   },

@@ -1,5 +1,7 @@
 model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
+model_provider = "sleev"
+
 [projects."/home/mirsella/dev/mightyminions/main"]
 trust_level = "trusted"
 
@@ -94,3 +96,14 @@ enabled = true
 
 [hooks.state."/home/mirsella/.codex/hooks.json:stop:0:0"]
 trusted_hash = "sha256:386a88584abb63f4987ecf42746af826d7f3fd441548741670939072d4480286"
+
+[model_providers.sleev]
+name = "Sleev"
+base_url = "http://127.0.0.1:17321/v1"
+wire_api = "responses"
+supports_websockets = true
+requires_openai_auth = true
+
+[model_providers.sleev.http_headers]
+"sleev-provider" = "codex"
+"sleev-harness" = "codex cli"

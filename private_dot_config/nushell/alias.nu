@@ -85,30 +85,7 @@ alias light = darkman set light
 alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf --multi
-# def --wrapped oc [...args] {
-#   let dir = (pwd)
-#   let server_env = $"($env.HOME)/.config/opencode/server.env"
-#   if not ($server_env | path exists) {
-#     error make { msg: $"OpenCode server credentials not found at ($server_env)" }
-#     return
-#   }
-#
-#   let password_lines = (
-#     open --raw $server_env
-#     | lines
-#     | where { |line| $line starts-with "OPENCODE_SERVER_PASSWORD=" }
-#   )
-#   if (($password_lines | length) != 1) {
-#     error make { msg: $"Expected one OPENCODE_SERVER_PASSWORD entry in ($server_env)" }
-#     return
-#   }
-#
-#   let password = ($password_lines | first | str replace "OPENCODE_SERVER_PASSWORD=" "")
-#   with-env { OPENCODE_SERVER_PASSWORD: $password } {
-#     ^opencode attach http://127.0.0.1:14096 --dir $dir ...$args
-#   }
-# }
-alias oc = opencode
+alias oc = opencode --port 0
 alias occ = oc --continue
 alias autocommit = opencode run --model "openai/gpt-5.3-codex-spark" --variant high --command "commitdiff"
 alias dm = darkman

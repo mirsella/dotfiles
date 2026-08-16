@@ -54,10 +54,10 @@ const HEADERS: [&str; 6] = ["STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", 
     trailing_var_arg = true
 )]
 struct Options {
-    #[arg(long, default_value_t = DEFAULT_INTERVAL, value_parser = positive_u64)]
+    #[arg(short = 'i', long, default_value_t = DEFAULT_INTERVAL, value_parser = positive_u64)]
     interval: u64,
 
-    #[arg(long, default_value_t = DEFAULT_IDLE_CHECKS, value_parser = positive_u32)]
+    #[arg(short = 'r', long, default_value_t = DEFAULT_IDLE_CHECKS, value_parser = positive_u32)]
     required_idle_checks: u32,
 
     #[arg(value_name = "COMMAND", num_args = 0..)]
@@ -158,7 +158,6 @@ struct OpenCodeProcess {
     role: ProcessRole,
     directory: Option<String>,
     authorization: Option<String>,
-    started: u64,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -166,20 +165,6 @@ enum ProcessRole {
     SharedServer,
     RemoteClient,
     Standalone,
-}
-
-struct Exclusion {
-    pid: Option<i32>,
-    sessions: HashSet<String>,
-}
-
-impl Exclusion {
-    fn detect() -> Self {
-        Self {
-            pid: ancestor_named(std::process::id() as i32, "opencode"),
-            sessions: HashSet::new(),
-        }
-    }
 }
 
 fn positive_u64(value: &str) -> std::result::Result<u64, String> {
@@ -198,17 +183,12 @@ fn positive_u32(value: &str) -> std::result::Result<u32, String> {
     }
 }
 
-fn nonempty_env(name: &str) -> Option<String> {
-    env::var(name).ok().filter(|value| !value.trim().is_empty())
-}
-
 fn lossy_read(path: impl AsRef<Path>) -> String {
     String::from_utf8_lossy(&fs::read(path).unwrap_or_default()).into_owned()
 }
 
-fn nul_strings(path: &str) -> Vec<String> {
-    fs::read(path)
-        .unwrap_or_default()
+fn nul_strings(bytes: &[u8]) -> Vec<String> {
+    bytes
         .split(|byte| *byte == 0)
         .filter(|value| !value.is_empty())
         .map(|value| String::from_utf8_lossy(value).into_owned())
@@ -224,7 +204,7 @@ fn env_value(environment: &[u8], name: &[u8]) -> Option<String> {
 }
 
 fn server_env_value(name: &str) -> Option<String> {
-    if let Some(value) = nonempty_env(name) {
+    if let Some(value) = env::var(name).ok().filter(|value| !value.trim().is_empty()) {
         return Some(value);
     }
     let home = env::var_os("HOME")?;
@@ -245,32 +225,12 @@ fn basic_authorization(username: String, password: String) -> String {
     format!("Basic {encoded}")
 }
 
-fn process_identity(pid: i32) -> Option<(String, i32, u64)> {
-    parse_stat(&lossy_read(format!("/proc/{pid}/stat")))
-}
-
-fn parse_stat(stat: &str) -> Option<(String, i32, u64)> {
-    let open = stat.find('(')?;
-    let close = stat.rfind(')')?;
-    let fields: Vec<_> = stat.get(close + 1..)?.split_whitespace().collect();
-    Some((
-        stat.get(open + 1..close)?.to_owned(),
-        fields.get(1)?.parse().ok()?,
-        fields.get(19)?.parse().ok()?,
-    ))
-}
-
-fn ancestor_named(start: i32, expected: &str) -> Option<i32> {
-    let mut pid = start;
-    let mut visited = HashSet::new();
-    while pid > 1 && visited.insert(pid) {
-        let (name, parent, _) = process_identity(pid)?;
-        if name == expected {
-            return Some(pid);
-        }
-        pid = parent;
+fn process_role(args: &[String]) -> ProcessRole {
+    match args.get(1).map(String::as_str) {
+        Some("attach") => ProcessRole::RemoteClient,
+        Some("serve") => ProcessRole::SharedServer,
+        _ => ProcessRole::Standalone,
     }
-    None
 }
 
 fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
@@ -280,6 +240,7 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
     let configured_password = server_env_value("OPENCODE_SERVER_PASSWORD");
     let mut processes = Vec::new();
     for entry in fs::read_dir("/proc").context("read /proc")?.flatten() {
+        let path = entry.path();
         let Some(pid) = entry
             .file_name()
             .to_str()
@@ -290,58 +251,66 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
         let Ok(metadata) = entry.metadata() else {
             continue;
         };
-        let Some((name, _, started)) = process_identity(pid) else {
-            continue;
-        };
-        if metadata.uid() != uid || name != "opencode" {
+        if metadata.uid() != uid
+            || fs::read_to_string(path.join("comm"))
+                .ok()
+                .is_none_or(|name| name.trim_end() != "opencode")
+        {
             continue;
         }
-        let environment = fs::read(format!("/proc/{pid}/environ")).unwrap_or_default();
-        let args = nul_strings(&format!("/proc/{pid}/cmdline"));
+        let cmdline = match fs::read(path.join("cmdline")) {
+            Ok(cmdline) => cmdline,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error).context(format!("read opencode pid {pid} cmdline")),
+        };
+        let environment = match fs::read(path.join("environ")) {
+            Ok(environment) => environment,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(error).context(format!("read opencode pid {pid} environment"));
+            }
+        };
+        let args = nul_strings(&cmdline);
+        if args.is_empty() {
+            anyhow::bail!("opencode pid {pid} has an empty cmdline");
+        }
         let password = env_value(&environment, b"OPENCODE_SERVER_PASSWORD")
             .or_else(|| configured_password.clone());
         let username = env_value(&environment, b"OPENCODE_SERVER_USERNAME")
             .unwrap_or_else(|| configured_username.clone());
         let authorization = password.map(|password| basic_authorization(username, password));
-        let role = if args.get(1).is_some_and(|arg| arg == "attach")
-            || args
+        let role = process_role(&args);
+        let directory = if role == ProcessRole::RemoteClient {
+            let cwd = fs::read_link(path.join("cwd")).ok();
+            let argument = args.iter().enumerate().find_map(|(index, argument)| {
+                argument.strip_prefix("--dir=").or_else(|| {
+                    (argument == "--dir")
+                        .then(|| args.get(index + 1).map(String::as_str))
+                        .flatten()
+                })
+            });
+            if args
                 .iter()
-                .any(|arg| arg == "--attach" || arg.starts_with("--attach="))
-        {
-            ProcessRole::RemoteClient
-        } else if args.iter().any(|arg| arg == "serve") {
-            ProcessRole::SharedServer
+                .any(|argument| argument == "--dir" || argument.starts_with("--dir="))
+            {
+                argument.map(PathBuf::from).and_then(|path| {
+                    if path.is_absolute() {
+                        Some(path)
+                    } else {
+                        cwd.map(|cwd| cwd.join(path))
+                    }
+                })
+            } else {
+                cwd
+            }
         } else {
-            ProcessRole::Standalone
-        };
-        let cwd = fs::read_link(format!("/proc/{pid}/cwd")).ok();
-        let directory_arg = args.iter().enumerate().find_map(|(index, argument)| {
-            argument.strip_prefix("--dir=").or_else(|| {
-                (argument == "--dir")
-                    .then(|| args.get(index + 1).map(String::as_str))
-                    .flatten()
-            })
-        });
-        let directory = if args
-            .iter()
-            .any(|argument| argument == "--dir" || argument.starts_with("--dir="))
-        {
-            directory_arg.map(PathBuf::from).and_then(|path| {
-                if path.is_absolute() {
-                    Some(path)
-                } else {
-                    cwd.as_ref().map(|cwd| cwd.join(path))
-                }
-            })
-        } else {
-            cwd
+            None
         };
         processes.push(OpenCodeProcess {
             pid,
             role,
             directory: directory.map(|path| path.to_string_lossy().into_owned()),
             authorization,
-            started,
         });
     }
     processes.sort_by_key(|process| process.pid);
@@ -447,30 +416,41 @@ fn encode_directory(directory: &str) -> String {
 }
 
 impl OpenCodeApi<'_> {
-    fn get(&self, path: &str) -> Option<Value> {
-        let mut request = self
-            .client
-            .get(format!("{}{path}", self.url.trim_end_matches('/')))
-            .header("Accept", "application/json");
+    fn get(&self, path: &str) -> Result<Value> {
+        let mut url = format!("{}{path}", self.url.trim_end_matches('/'));
+        if let Some(directory) = self.directory {
+            write!(
+                url,
+                "{}directory={}",
+                if path.contains('?') { '&' } else { '?' },
+                encode_directory(directory)
+            )
+            .expect("writing to a string cannot fail");
+        }
+        let mut request = self.client.get(&url).header("Accept", "application/json");
         if let Some(authorization) = self.authorization {
             request = request.header("Authorization", authorization);
         }
-        if let Some(directory) = self.directory {
-            request = request.header("x-opencode-directory", encode_directory(directory));
-        }
-        let mut response = request.call().ok()?;
-        let body = response.body_mut().read_to_string().ok()?;
-        serde_json::from_str(&body).ok()
+        let mut response = request.call().with_context(|| format!("GET {url}"))?;
+        let body = response
+            .body_mut()
+            .read_to_string()
+            .with_context(|| format!("read GET {url}"))?;
+        serde_json::from_str(&body).with_context(|| format!("parse GET {url}"))
     }
 
-    fn latest_assistant(&self, session: &str) -> Option<Value> {
-        let message = self
-            .get(&format!("/session/{session}/message?limit=1"))?
-            .as_array()?
-            .last()?
-            .clone();
-        (message.pointer("/info/role").and_then(Value::as_str) == Some("assistant"))
-            .then_some(message)
+    fn latest_assistant(&self, session: &str) -> Result<Value> {
+        let messages = self.get(&format!("/session/{session}/message?limit=1"))?;
+        let message = messages
+            .as_array()
+            .context("session messages are not an array")?
+            .last()
+            .context("busy session has no messages")?;
+        anyhow::ensure!(
+            message.pointer("/info/role").and_then(Value::as_str) == Some("assistant"),
+            "busy session's latest message is not from an assistant"
+        );
+        Ok(message.clone())
     }
 }
 
@@ -488,50 +468,10 @@ fn active_part(part: &Value) -> bool {
     )
 }
 
-fn standalone_snapshots(process: &OpenCodeProcess) -> Option<Vec<ApiSnapshot>> {
-    let runtime = env::var_os("XDG_RUNTIME_DIR")?;
-    let path = PathBuf::from(runtime).join(format!("opencode-idle-watchdog/{}.json", process.pid));
-    let record: Value = serde_json::from_slice(&fs::read(path).ok()?).ok()?;
-    let updated = record.get("updatedAt")?.as_u64()?;
-    if record.get("schema")?.as_u64()? != 1
-        || record.get("pid")?.as_i64()? != process.pid as i64
-        || record.get("started")?.as_str()?.parse::<u64>().ok()? != process.started
-        || SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .ok()?
-            .as_millis()
-            .abs_diff(updated as u128)
-            > 5_000
-    {
-        return None;
-    }
-    record
-        .get("snapshots")?
-        .as_array()?
-        .iter()
-        .map(|snapshot| {
-            Some(ApiSnapshot {
-                pid: process.pid,
-                url: "standalone-tui".to_owned(),
-                directory: snapshot.get("workspace")?.as_str()?.to_owned(),
-                state: WorkspaceState::Available {
-                    status: snapshot.get("status")?.as_object()?.clone(),
-                    sessions: snapshot.get("sessions")?.as_object()?.clone(),
-                    assistants: snapshot.get("assistants")?.as_object()?.clone(),
-                    questions: Some(Value::Array(snapshot.get("questions")?.as_array()?.clone())),
-                    permissions: Some(Value::Array(
-                        snapshot.get("permissions")?.as_array()?.clone(),
-                    )),
-                },
-            })
-        })
-        .collect()
-}
-
 fn waiting_sessions(
     status: &serde_json::Map<String, Value>,
-    questions: Option<&Value>,
-    permissions: Option<&Value>,
+    questions: &[Value],
+    permissions: &[Value],
     assistants: &serde_json::Map<String, Value>,
     excluded_sessions: &HashSet<String>,
 ) -> HashSet<String> {
@@ -540,21 +480,25 @@ fn waiting_sessions(
         [questions, permissions]
             .into_iter()
             .flatten()
-            .filter_map(Value::as_array)
-            .flatten()
             .filter_map(|request| request.get("sessionID").and_then(Value::as_str))
             .map(str::to_owned),
     );
-    waiting.extend(assistants.iter().filter_map(|(session, message)| {
-        message
-            .get("parts")?
-            .as_array()?
+    waiting.extend(
+        assistants
             .iter()
-            .any(|part| {
-                active_part(part) && part.get("tool").and_then(Value::as_str) == Some("question")
+            .filter(|(_, message)| {
+                message
+                    .get("parts")
+                    .and_then(Value::as_array)
+                    .is_some_and(|parts| {
+                        parts.iter().any(|part| {
+                            active_part(part)
+                                && part.get("tool").and_then(Value::as_str) == Some("question")
+                        })
+                    })
             })
-            .then(|| session.clone())
-    }));
+            .map(|(session, _)| session.clone()),
+    );
     loop {
         let parents: Vec<_> = status
             .iter()
@@ -593,8 +537,8 @@ fn waiting_sessions(
 
 fn session_blockers(
     status: &serde_json::Map<String, Value>,
-    questions: Option<&Value>,
-    permissions: Option<&Value>,
+    questions: &[Value],
+    permissions: &[Value],
     assistants: &serde_json::Map<String, Value>,
     excluded_sessions: &HashSet<String>,
 ) -> Vec<String> {
@@ -640,18 +584,15 @@ struct ApiSnapshot {
     pid: i32,
     url: String,
     directory: String,
-    state: WorkspaceState,
+    state: std::result::Result<WorkspaceState, String>,
 }
 
-enum WorkspaceState {
-    Invalid,
-    Available {
-        status: serde_json::Map<String, Value>,
-        sessions: serde_json::Map<String, Value>,
-        assistants: serde_json::Map<String, Value>,
-        questions: Option<Value>,
-        permissions: Option<Value>,
-    },
+struct WorkspaceState {
+    status: serde_json::Map<String, Value>,
+    sessions: serde_json::Map<String, Value>,
+    assistants: serde_json::Map<String, Value>,
+    questions: Vec<Value>,
+    permissions: Vec<Value>,
 }
 
 struct ApiScan {
@@ -672,36 +613,51 @@ fn workspace_snapshot(
         authorization: authorization.as_deref(),
         directory: Some(&directory),
     };
-    let state = match api.get("/session/status") {
-        Some(Value::Object(status)) => {
-            let sessions = api
-                .get("/session?limit=200")
-                .and_then(|value| value.as_array().cloned())
-                .unwrap_or_default()
-                .into_iter()
-                .filter_map(|details| {
-                    let id = details.get("id")?.as_str()?.to_owned();
-                    Some((id, details))
-                })
-                .collect();
-            let assistants = status
-                .iter()
-                .filter(|(_, state)| status_kind(state) == "busy")
-                .filter_map(|(session, _)| {
-                    api.latest_assistant(session)
-                        .map(|message| (session.clone(), message))
-                })
-                .collect();
-            WorkspaceState::Available {
-                status,
-                sessions,
-                assistants,
-                questions: api.get("/question"),
-                permissions: api.get("/permission"),
-            }
-        }
-        _ => WorkspaceState::Invalid,
-    };
+    let state = (|| -> Result<WorkspaceState> {
+        let status = api
+            .get("/session/status")?
+            .as_object()
+            .cloned()
+            .context("session status is not an object")?;
+        let sessions = api
+            .get("/session?limit=200")?
+            .as_array()
+            .context("sessions are not an array")?
+            .iter()
+            .cloned()
+            .map(|details| {
+                let id = details
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .context("session has no string id")?
+                    .to_owned();
+                Ok((id, details))
+            })
+            .collect::<Result<_>>()?;
+        let assistants = status
+            .iter()
+            .filter(|(_, state)| status_kind(state) == "busy")
+            .map(|(session, _)| Ok((session.clone(), api.latest_assistant(session)?)))
+            .collect::<Result<_>>()?;
+        let questions = api
+            .get("/question")?
+            .as_array()
+            .cloned()
+            .context("questions are not an array")?;
+        let permissions = api
+            .get("/permission")?
+            .as_array()
+            .cloned()
+            .context("permissions are not an array")?;
+        Ok(WorkspaceState {
+            status,
+            sessions,
+            assistants,
+            questions,
+            permissions,
+        })
+    })()
+    .map_err(|error| format!("{error:#}"));
     ApiSnapshot {
         pid,
         url,
@@ -714,29 +670,14 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
     let listeners = tcp_listener_urls();
     let mut snapshots = Vec::new();
     let mut failures = Vec::new();
-    for process in processes
-        .iter()
-        .filter(|process| process.role == ProcessRole::Standalone)
-    {
-        match standalone_snapshots(process) {
-            Some(mut records) => snapshots.append(&mut records),
-            None => failures.push(format!(
-                "pid={} standalone-session:unobservable",
-                process.pid
-            )),
-        }
-    }
     let mut jobs = Vec::new();
-    let mut unreachable = Vec::new();
-    let shared_directories: HashSet<_> = snapshots
+    let mut shared_directories: Vec<_> = processes
         .iter()
-        .map(|snapshot| snapshot.directory.clone())
-        .chain(
-            processes
-                .iter()
-                .filter_map(|process| process.directory.clone()),
-        )
+        .filter(|process| process.role == ProcessRole::RemoteClient)
+        .filter_map(|process| process.directory.clone())
         .collect();
+    shared_directories.sort_unstable();
+    shared_directories.dedup();
     for process in processes
         .iter()
         .filter(|process| process.role == ProcessRole::RemoteClient && process.directory.is_none())
@@ -745,40 +686,59 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
     }
     for process in processes
         .iter()
-        .filter(|process| process.role == ProcessRole::SharedServer)
+        .filter(|process| process.role != ProcessRole::RemoteClient)
     {
-        let mut found = false;
-        for inode in process_sockets(process.pid) {
-            let Some(url) = listeners.get(&inode) else {
-                continue;
-            };
-            if (OpenCodeApi {
-                client,
-                url,
-                authorization: process.authorization.as_deref(),
-                directory: None,
+        let Some(url) = process_sockets(process.pid)
+            .into_iter()
+            .filter_map(|inode| listeners.get(&inode))
+            .find(|url| {
+                OpenCodeApi {
+                    client,
+                    url,
+                    authorization: process.authorization.as_deref(),
+                    directory: None,
+                }
+                .get("/global/health")
+                .is_ok_and(|value| value.get("healthy").and_then(Value::as_bool) == Some(true))
             })
-            .get("/global/health")
-            .as_ref()
-            .and_then(|value| value.get("healthy"))
-            .and_then(Value::as_bool)
-                != Some(true)
-            {
+            .cloned()
+        else {
+            failures.push(format!("pid={} opencode-api:unreachable", process.pid));
+            continue;
+        };
+        let api = OpenCodeApi {
+            client,
+            url: &url,
+            authorization: process.authorization.as_deref(),
+            directory: None,
+        };
+        let directory = match api.get("/path").and_then(|path| {
+            path.get("directory")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+                .context("OpenCode path has no directory")
+        }) {
+            Ok(directory) => directory,
+            Err(error) => {
+                failures.push(format!("pid={} opencode-path:{error:#}", process.pid));
                 continue;
             }
-            found = true;
-            for directory in &shared_directories {
-                jobs.push((
-                    process.pid,
-                    url.clone(),
-                    process.authorization.clone(),
-                    directory.clone(),
-                ));
-            }
-            break;
-        }
-        if !found {
-            unreachable.push(process);
+        };
+        let mut directories = if process.role == ProcessRole::SharedServer {
+            shared_directories.clone()
+        } else {
+            Vec::new()
+        };
+        directories.push(directory);
+        directories.sort_unstable();
+        directories.dedup();
+        for directory in directories {
+            jobs.push((
+                process.pid,
+                url.clone(),
+                process.authorization.clone(),
+                directory,
+            ));
         }
     }
     snapshots.extend(thread::scope(|scope| {
@@ -791,9 +751,6 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
             .map(|job| job.join().expect("workspace scanner panicked"))
             .collect::<Vec<_>>()
     }));
-    for process in unreachable {
-        failures.push(format!("pid={} opencode-api:unreachable", process.pid));
-    }
     if processes
         .iter()
         .any(|process| process.role == ProcessRole::RemoteClient)
@@ -812,45 +769,42 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
 fn invoking_sessions(scan: &ApiScan) -> HashSet<String> {
     scan.snapshots
         .iter()
-        .filter_map(|snapshot| match &snapshot.state {
-            WorkspaceState::Available {
-                status, assistants, ..
-            } => Some((status, assistants)),
-            WorkspaceState::Invalid => None,
-        })
-        .flat_map(|(status, assistants)| {
-            status
+        .filter_map(|snapshot| snapshot.state.as_ref().ok())
+        .flat_map(|state| {
+            state
+                .status
                 .iter()
                 .filter(|(_, state)| status_kind(state) == "busy")
-                .filter(|(session, _)| assistants.get(*session).is_some_and(has_running_watchdog))
+                .filter(|(session, _)| {
+                    state
+                        .assistants
+                        .get(*session)
+                        .is_some_and(has_running_watchdog)
+                })
                 .map(|(session, _)| session.clone())
         })
         .collect()
 }
 
-fn api_blockers(scan: &ApiScan, exclusion: &Exclusion) -> Vec<String> {
+fn api_blockers(scan: &ApiScan, excluded_sessions: &HashSet<String>) -> Vec<String> {
     let mut details = scan.failures.clone();
     for snapshot in &scan.snapshots {
-        let WorkspaceState::Available {
-            status,
-            assistants,
-            questions,
-            permissions,
-            ..
-        } = &snapshot.state
-        else {
-            details.push(format!(
-                "pid={} {} directory={} session-status:invalid",
-                snapshot.pid, snapshot.url, snapshot.directory
-            ));
-            continue;
+        let state = match &snapshot.state {
+            Ok(state) => state,
+            Err(error) => {
+                details.push(format!(
+                    "pid={} {} directory={} workspace-scan:{error}",
+                    snapshot.pid, snapshot.url, snapshot.directory
+                ));
+                continue;
+            }
         };
         let active = session_blockers(
-            status,
-            questions.as_ref(),
-            permissions.as_ref(),
-            assistants,
-            &exclusion.sessions,
+            &state.status,
+            &state.questions,
+            &state.permissions,
+            &state.assistants,
+            excluded_sessions,
         );
         if !active.is_empty() {
             details.push(format!(
@@ -867,13 +821,6 @@ fn api_blockers(scan: &ApiScan, exclusion: &Exclusion) -> Vec<String> {
 
 fn collect_scan(client: &ureq::Agent) -> Result<ApiScan> {
     Ok(api_snapshots(client, &opencode_processes()?))
-}
-
-fn initial_scan(client: &ureq::Agent) -> Result<(Exclusion, ApiScan)> {
-    let mut exclusion = Exclusion::detect();
-    let scan = collect_scan(client)?;
-    exclusion.sessions.extend(invoking_sessions(&scan));
-    Ok((exclusion, scan))
 }
 
 fn summarize(items: &[String], limit: usize) -> String {
@@ -982,7 +929,7 @@ impl Dashboard {
 
     fn status_line(
         scan: &ApiScan,
-        exclusion: &Exclusion,
+        excluded_sessions: &HashSet<String>,
         check: u32,
         idle: u32,
         required_idle: u32,
@@ -991,35 +938,33 @@ impl Dashboard {
         let active = scan
             .snapshots
             .iter()
-            .filter_map(|snapshot| match &snapshot.state {
-                WorkspaceState::Available {
-                    status,
-                    assistants,
-                    questions,
-                    permissions,
-                    ..
-                } => Some(
+            .filter_map(|snapshot| {
+                snapshot.state.as_ref().ok().map(|state| {
                     session_blockers(
-                        status,
-                        questions.as_ref(),
-                        permissions.as_ref(),
-                        assistants,
-                        &exclusion.sessions,
+                        &state.status,
+                        &state.questions,
+                        &state.permissions,
+                        &state.assistants,
+                        excluded_sessions,
                     )
-                    .len(),
-                ),
-                WorkspaceState::Invalid => None,
+                    .len()
+                })
             })
             .sum::<usize>();
+        let state = if api_blockers(scan, excluded_sessions).is_empty() {
+            "IDLE"
+        } else {
+            "BLOCKED"
+        };
         format!(
-            "\x1b[2mcheck #{check}  |\x1b[0m  {active} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s"
+            "\x1b[2mcheck #{check}  |\x1b[0m  {state}  |  {active} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s"
         )
     }
 
     fn tick(
         &self,
         scan: &ApiScan,
-        exclusion: &Exclusion,
+        excluded_sessions: &HashSet<String>,
         check: u32,
         idle: u32,
         required_idle: u32,
@@ -1028,7 +973,14 @@ impl Dashboard {
         if self.termios.is_some() {
             print!(
                 "\x1b[2;1H\x1b[2K{}",
-                Self::status_line(scan, exclusion, check, idle, required_idle, next_scan)
+                Self::status_line(
+                    scan,
+                    excluded_sessions,
+                    check,
+                    idle,
+                    required_idle,
+                    next_scan
+                )
             );
             let _ = io::stdout().flush();
         }
@@ -1037,7 +989,7 @@ impl Dashboard {
     fn draw(
         &self,
         scan: &ApiScan,
-        exclusion: &Exclusion,
+        excluded_sessions: &HashSet<String>,
         check: u32,
         idle: u32,
         required_idle: u32,
@@ -1048,26 +1000,19 @@ impl Dashboard {
         }
         let mut rows = Vec::new();
         for snapshot in &scan.snapshots {
-            let WorkspaceState::Available {
-                status,
-                sessions,
-                assistants,
-                questions,
-                permissions,
-            } = &snapshot.state
-            else {
+            let Ok(state) = &snapshot.state else {
                 continue;
             };
             let waiting = waiting_sessions(
-                status,
-                questions.as_ref(),
-                permissions.as_ref(),
-                assistants,
-                &exclusion.sessions,
+                &state.status,
+                &state.questions,
+                &state.permissions,
+                &state.assistants,
+                excluded_sessions,
             );
-            for (session, state) in status {
-                let kind = status_kind(state);
-                let (label, color) = if exclusion.sessions.contains(session) {
+            for (session, status) in &state.status {
+                let kind = status_kind(status);
+                let (label, color) = if excluded_sessions.contains(session) {
                     ("SELF", Color::Cyan)
                 } else if waiting.contains(session) {
                     ("WAITING", Color::Blue)
@@ -1079,7 +1024,7 @@ impl Dashboard {
                         _ => ("UNKNOWN", Color::Red),
                     }
                 };
-                let details = sessions.get(session);
+                let details = state.sessions.get(session);
                 let age = details
                     .and_then(|value| value.pointer("/time/created"))
                     .and_then(Value::as_u64)
@@ -1109,10 +1054,13 @@ impl Dashboard {
         }
         rows.sort_unstable_by(|left, right| left.1.cmp(&right.1));
         let mut size = unsafe { std::mem::zeroed::<libc::winsize>() };
-        let width = (unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) } == 0
-            && size.ws_col > 0)
-            .then_some(size.ws_col)
-            .unwrap_or(80);
+        let width = if unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) } == 0
+            && size.ws_col > 0
+        {
+            size.ws_col
+        } else {
+            80
+        };
         let mut table = Table::new();
         table
             .load_style(UTF8_FULL.with_rounded_corners().with_solid_inner_borders())
@@ -1126,13 +1074,19 @@ impl Dashboard {
                 .set_cell_alignment(CellAlignment::Right);
         }
         if rows.is_empty() {
+            let blockers = api_blockers(scan, excluded_sessions);
+            let (label, color, message) = if blockers.is_empty() {
+                ("IDLE", Color::Green, "No active sessions".to_owned())
+            } else {
+                ("BLOCKED", Color::Red, summarize(&blockers, 2))
+            };
             table.add_row([
-                Cell::new("IDLE").fg(Color::Green),
+                Cell::new(label).fg(color),
                 Cell::new(""),
                 Cell::new(""),
                 Cell::new(""),
                 Cell::new(""),
-                Cell::new("No active sessions"),
+                Cell::new(message),
             ]);
         }
         for (color, row) in rows {
@@ -1148,7 +1102,14 @@ impl Dashboard {
         }
         let mut frame = format!(
             "\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n{}\n",
-            Self::status_line(scan, exclusion, check, idle, required_idle, next_scan),
+            Self::status_line(
+                scan,
+                excluded_sessions,
+                check,
+                idle,
+                required_idle,
+                next_scan
+            ),
         );
         if let Some(action) = &self.action {
             frame.push_str(&format!("\x1b[2mon idle       |\x1b[0m  {action}\n"));
@@ -1203,9 +1164,9 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
     let cancellation = Cancellation::new()?;
     let dashboard = Dashboard::new(command);
     dashboard.loading();
-    let (exclusion, mut scan) = match dashboard.run_work(&cancellation, {
+    let mut scan = match dashboard.run_work(&cancellation, {
         let client = client.clone();
-        move || initial_scan(&client)
+        move || collect_scan(&client)
     }) {
         Ok(result) => result?,
         Err(signal) => {
@@ -1213,16 +1174,12 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             return Ok(signal_exit(state, signal));
         }
     };
-    let mut excluded_sessions: Vec<_> = exclusion.sessions.iter().cloned().collect();
+    let mut excluded_sessions: Vec<_> = invoking_sessions(&scan).into_iter().collect();
     excluded_sessions.sort_unstable();
     let started = format!(
-        "watchdog started; excluding opencode pid={} sessions={}; interval={}s required_idle_checks={}; command={}; cache={}",
-        exclusion
-            .pid
-            .map(|pid| pid.to_string())
-            .unwrap_or_else(|| "unknown".into()),
+        "watchdog started; self_sessions={}; interval={}s required_idle_checks={}; command={}; cache={}",
         if excluded_sessions.is_empty() {
-            "unknown".to_owned()
+            "none".to_owned()
         } else {
             excluded_sessions.join(",")
         },
@@ -1248,7 +1205,8 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
     let mut check = 0;
     let signal = 'checks: loop {
         check += 1;
-        let blockers = api_blockers(&scan, &exclusion);
+        let excluded_sessions = invoking_sessions(&scan);
+        let blockers = api_blockers(&scan, &excluded_sessions);
         consecutive_idle = if blockers.is_empty() {
             consecutive_idle + 1
         } else {
@@ -1272,7 +1230,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         }
         dashboard.draw(
             &scan,
-            &exclusion,
+            &excluded_sessions,
             check,
             consecutive_idle,
             options.required_idle_checks,
@@ -1292,7 +1250,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
                 Ok(result) => result?,
                 Err(signal) => break Some(signal),
             };
-            if api_blockers(&final_scan, &exclusion).is_empty() {
+            if api_blockers(&final_scan, &invoking_sessions(&final_scan)).is_empty() {
                 break None;
             }
             scan = final_scan;
@@ -1307,7 +1265,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             remaining -= 1;
             dashboard.tick(
                 &scan,
-                &exclusion,
+                &excluded_sessions,
                 check,
                 consecutive_idle,
                 options.required_idle_checks,
@@ -1427,12 +1385,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_proc_stat_with_spaces_and_parentheses() {
-        assert_eq!(
-            parse_stat("42 (odd ) process) S 7 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 99")
-                .unwrap(),
-            ("odd ) process".to_owned(), 7, 99)
-        );
+    fn classifies_opencode_processes_by_subcommand() {
+        let args = |subcommand: &str| vec!["opencode".to_owned(), subcommand.to_owned()];
+        assert!(matches!(
+            process_role(&args("attach")),
+            ProcessRole::RemoteClient
+        ));
+        assert!(matches!(
+            process_role(&args("serve")),
+            ProcessRole::SharedServer
+        ));
+        assert!(matches!(
+            process_role(&args("run")),
+            ProcessRole::Standalone
+        ));
     }
 
     #[test]
@@ -1448,6 +1414,7 @@ mod tests {
             Some("[::1]")
         );
         assert_eq!(listener_host("not-an-address"), None);
+        assert_eq!(encode_directory("/tmp/a b%"), "%2Ftmp%2Fa%20b%25");
     }
 
     #[test]
@@ -1490,8 +1457,8 @@ mod tests {
         assert_eq!(
             session_blockers(
                 fixture["status"].as_object().unwrap(),
-                Some(&fixture["questions"]),
-                Some(&fixture["permissions"]),
+                fixture["questions"].as_array().unwrap(),
+                fixture["permissions"].as_array().unwrap(),
                 fixture["assistants"].as_object().unwrap(),
                 &HashSet::new(),
             ),
@@ -1509,7 +1476,7 @@ mod tests {
 
     #[test]
     fn excludes_sessions_running_the_watchdog() {
-        let message: Value = serde_json::from_str(
+        let mut message: Value = serde_json::from_str(
             r#"{
           "parts":[{
             "type":"tool",
@@ -1523,14 +1490,40 @@ mod tests {
         )
         .unwrap();
         assert!(has_running_watchdog(&message));
+        message["parts"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "type": "tool",
+                "tool": "bash",
+                "state": { "status": "running", "input": { "command": "sleep 30" } }
+            }));
+        assert!(!has_running_watchdog(&message));
 
         let mut excluded = HashSet::new();
         excluded.insert("self".to_owned());
         let status: serde_json::Map<String, Value> =
             serde_json::from_str(r#"{"other":{"type":"busy"},"self":{"type":"busy"}}"#).unwrap();
         assert_eq!(
-            session_blockers(&status, None, None, &serde_json::Map::new(), &excluded),
+            session_blockers(&status, &[], &[], &serde_json::Map::new(), &excluded),
             ["other:busy"]
+        );
+    }
+
+    #[test]
+    fn incomplete_workspace_scan_blocks_idle() {
+        let scan = ApiScan {
+            snapshots: vec![ApiSnapshot {
+                pid: 42,
+                url: "http://127.0.0.1:1234".to_owned(),
+                directory: "/tmp/project".to_owned(),
+                state: Err("bad response".to_owned()),
+            }],
+            failures: Vec::new(),
+        };
+        assert_eq!(
+            api_blockers(&scan, &HashSet::new()),
+            ["pid=42 http://127.0.0.1:1234 directory=/tmp/project workspace-scan:bad response"]
         );
     }
 
@@ -1538,6 +1531,13 @@ mod tests {
     fn trailing_command_owns_its_flags() {
         let options = Options::try_parse_from([NAME, "notify-send", "--urgency", "low"]).unwrap();
         assert_eq!(options.command, ["notify-send", "--urgency", "low"]);
+    }
+
+    #[test]
+    fn parses_short_control_flags() {
+        let options = Options::try_parse_from([NAME, "-i", "5", "-r", "2"]).unwrap();
+        assert_eq!(options.interval, 5);
+        assert_eq!(options.required_idle_checks, 2);
     }
 
     #[test]
