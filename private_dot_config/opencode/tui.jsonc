@@ -12,6 +12,6 @@
   },
   "plugin": [
     "./tui-plugins/suppress-ctrl-u.ts",
-    "file://{{ .chezmoi.homeDir }}/.cache/opencode/tui-plugins/opencode-dcp",
+    // "file:///home/mirsella/.cache/opencode/tui-plugins/opencode-dcp",
   ],
 }
