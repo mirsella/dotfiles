@@ -179,5 +179,16 @@
         "baseURL": "http://127.0.0.1:17321",
       },
     },
+    "crof": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Nahcrof",
+      "options": {
+        "baseURL": "http://127.0.0.1:17321",
+        "headers": {
+          "sleev-harness": "opencode",
+          "sleev-base-url": "https://crof.ai/v1"
+        }
+      }
+    }
   },
 }
