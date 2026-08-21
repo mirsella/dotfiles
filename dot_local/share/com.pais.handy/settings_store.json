@@ -168,6 +168,8 @@
     "post_process_selected_prompt_id": null,
     "push_to_talk": false,
     "recording_retention_period": "weeks2",
+    "reliable_paste": false,
+    "selected_channel": null,
     "selected_language": "auto",
     "selected_microphone": "pipewire",
     "selected_model": "handy-computer/parakeet-unified-en-0.6b-gguf/parakeet-unified-en-0.6b-Q8_0.gguf",

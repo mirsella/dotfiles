@@ -39,6 +39,6 @@ for device in $devices; do
 done
 
 if [ -n "$server_pid" ]; then
-  kill -TERM "$server_pid" >/dev/null 2>&1 || true
+  kill -KILL "$server_pid" >/dev/null 2>&1 || true
   wait "$server_pid" 2>/dev/null || true
 fi
