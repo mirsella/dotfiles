@@ -110,28 +110,6 @@
   "provider": {
     "openai": {
       "models": {
-        "gpt-5.6-luna": {
-          "variants": {
-            "none": {
-              "disabled": true,
-            },
-            "minimal": {
-              "disabled": true,
-            },
-            "low": {
-              "disabled": true,
-            },
-            "medium": {
-              "disabled": true,
-            },
-            "high": {
-              "disabled": true,
-            },
-            "xhigh": {
-              "disabled": true,
-            },
-          },
-        },
         "gpt-5.6-sol-fast": {
           "variants": {
             "none": {
@@ -179,16 +157,5 @@
         "baseURL": "http://127.0.0.1:17321",
       },
     },
-    "crof": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Nahcrof",
-      "options": {
-        "baseURL": "http://127.0.0.1:17321",
-        "headers": {
-          "sleev-harness": "opencode",
-          "sleev-base-url": "https://crof.ai/v1"
-        }
-      }
-    }
   },
 }
