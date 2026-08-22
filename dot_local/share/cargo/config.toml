@@ -34,9 +34,13 @@ rustflags = [
   "-Clink-arg=--ld-path=wild",
   # Nightly
   "-Zshare-generics=y",
+  "-Zthreads=8",
+  "-Zembed-metadata=no"
 ]
 rustdocflags = [
   "-Zshare-generics=y",
+  "-Zthreads=8",
+  "-Zembed-metadata=no"
 ]
 
 
@@ -45,9 +49,13 @@ rustflags = [
   "--cfg=web_sys_unstable_apis",
   # Nightly
   "-Zshare-generics=y",
+  "-Zthreads=8",
+  "-Zembed-metadata=no"
 ]
 rustdocflags = [
   "-Zshare-generics=y",
+  "-Zthreads=8",
+  "-Zembed-metadata=no"
 ]
 
 [package.metadata.bevy_cli.web]
