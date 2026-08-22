@@ -35,12 +35,12 @@ rustflags = [
   # Nightly
   "-Zshare-generics=y",
   "-Zthreads=8",
-  "-Zembed-metadata=no"
+  # "-Zembed-metadata=no"
 ]
 rustdocflags = [
   "-Zshare-generics=y",
   "-Zthreads=8",
-  "-Zembed-metadata=no"
+  # "-Zembed-metadata=no"
 ]
 
 
@@ -50,12 +50,12 @@ rustflags = [
   # Nightly
   "-Zshare-generics=y",
   "-Zthreads=8",
-  "-Zembed-metadata=no"
+  # "-Zembed-metadata=no"
 ]
 rustdocflags = [
   "-Zshare-generics=y",
   "-Zthreads=8",
-  "-Zembed-metadata=no"
+  # "-Zembed-metadata=no"
 ]
 
 [package.metadata.bevy_cli.web]
