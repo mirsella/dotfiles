@@ -11,6 +11,7 @@ vim.keymap.set(
 	{ desc = "Check Caps Lock" }
 )
 vim.keymap.set("i", "<c-t>", "<esc>", { silent = true })
+vim.keymap.set("i", "<D-Space>", "<Nop>")
 vim.keymap.set(
 	{ "n", "v" },
 	"<leader><leader>",
