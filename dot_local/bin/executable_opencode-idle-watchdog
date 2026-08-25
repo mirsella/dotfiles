@@ -978,9 +978,12 @@ impl Dashboard {
     fn terminal_size() -> (u16, u16) {
         let mut size = unsafe { std::mem::zeroed::<libc::winsize>() };
         if unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) } == 0 {
-            (if size.ws_col > 0 { size.ws_col } else { 80 }, size.ws_row)
+            (
+                if size.ws_col > 0 { size.ws_col } else { 80 },
+                if size.ws_row > 0 { size.ws_row } else { 24 },
+            )
         } else {
-            (80, 0)
+            (80, 24)
         }
     }
 
@@ -999,7 +1002,7 @@ impl Dashboard {
                 None
             };
         if termios.is_some() {
-            print!("\x1b[?1049h\x1b[?25l");
+            print!("\x1b[?1049h\x1b[?25l\x1b[?7l");
             let _ = io::stdout().flush();
         }
         let action = (!command.is_empty()).then(|| command_display(command));
@@ -1010,13 +1013,28 @@ impl Dashboard {
         }
     }
 
-    fn loading(&self) {
-        if self.termios.is_some() {
-            print!(
-                "\x1b[H\x1b[2J\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n\n\x1b[2mScanning sessions...\x1b[0m"
-            );
-            let _ = io::stdout().flush();
+    fn render(&self, frame: &str) {
+        if self.termios.is_none() {
+            return;
         }
+        let mut redraw = String::new();
+        for (row, line) in frame
+            .lines()
+            .take(usize::from(self.terminal_size.get().1))
+            .enumerate()
+        {
+            write!(redraw, "\x1b[{};1H\x1b[2K{line}", row + 1)
+                .expect("writing to a string cannot fail");
+        }
+        redraw.push_str("\x1b[J\x1b[H");
+        print!("{redraw}");
+        let _ = io::stdout().flush();
+    }
+
+    fn loading(&self) {
+        self.render(
+            "\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n\n\x1b[2mScanning sessions...\x1b[0m",
+        );
     }
 
     fn wait(
@@ -1027,17 +1045,15 @@ impl Dashboard {
     ) -> Option<i32> {
         let started = Instant::now();
         loop {
-            let mut byte = 0_u8;
-            if self.termios.is_some()
-                && unsafe {
+            if self.termios.is_some() {
+                let mut byte = 0_u8;
+                if unsafe {
                     libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1)
                 } == 1
-                // ponytail: Escape-prefixed keys also exit; parse sequences if navigation is added.
-                && matches!(byte, b'q' | 0x1b)
-            {
-                return Some(0);
-            }
-            if self.termios.is_some() {
+                    && byte == b'q'
+                {
+                    return Some(0);
+                }
                 let terminal_size = Self::terminal_size();
                 if terminal_size != self.terminal_size.replace(terminal_size) {
                     on_resize();
@@ -1097,7 +1113,7 @@ impl Dashboard {
     ) {
         if self.termios.is_some() {
             print!(
-                "\x1b[2;1H\x1b[2K{}",
+                "\x1b[2;1H\x1b[2K{}\x1b[H",
                 Self::status_line(evaluation, check, idle, required_idle, next_scan)
             );
             let _ = io::stdout().flush();
@@ -1171,7 +1187,7 @@ impl Dashboard {
             }
         }
         rows.sort_unstable_by(|left, right| left.1.cmp(&right.1));
-        let width = Self::terminal_size().0;
+        let width = self.terminal_size.get().0;
         let mut table = Table::new();
         table
             .load_style(UTF8_FULL.with_rounded_corners().with_solid_inner_borders())
@@ -1226,14 +1242,8 @@ impl Dashboard {
                 frame.push_str(&clean_text(failure));
             }
         }
-        frame.push_str("\n\n\x1b[2mq / Esc / Ctrl-C to exit\x1b[0m\n");
-        let mut redraw = String::from("\x1b[H");
-        for line in frame.lines() {
-            writeln!(redraw, "\x1b[2K\r{line}").expect("writing to a string cannot fail");
-        }
-        redraw.push_str("\x1b[J");
-        print!("{redraw}");
-        let _ = io::stdout().flush();
+        frame.push_str("\n\n\x1b[2mq / Ctrl-C to exit\x1b[0m\n");
+        self.render(&frame);
     }
 }
 
@@ -1245,7 +1255,7 @@ impl Drop for Dashboard {
             }
         }
         if self.termios.is_some() {
-            print!("\x1b[?25h\x1b[?1049l");
+            print!("\x1b[?7h\x1b[?25h\x1b[?1049l");
             let _ = io::stdout().flush();
         }
     }
