@@ -24,65 +24,63 @@
   "mcp": {
     "context7-broker": {
       "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "git+https://github.com/mirsella/context7-account-broker.git",
-      ],
+      "command": ["npx", "-y", "@mirsella/context7-account-broker"],
       "timeout": 30000,
       "enabled": true,
-      "environment": {
-        "npm_config_allow_git": "all",
-      },
     },
     "computer_use": {
       "type": "local",
       "command": ["computer-use-mcp", "mcp"],
       "enabled": false,
     },
-    "cloudflare": {
+    // "cloudflare": {
+    //   "type": "remote",
+    //   "url": "https://mcp.cloudflare.com/mcp",
+    //   "enabled": false,
+    // },
+    "composio": {
       "type": "remote",
-      "url": "https://mcp.cloudflare.com/mcp",
-      "enabled": false,
+      "url": "https://connect.composio.dev/mcp",
+      "enabled": true,
     },
-    "deepwiki": {
-      "type": "remote",
-      "url": "https://mcp.deepwiki.com/mcp",
-      "enabled": false,
-    },
-    "posthog": {
-      "type": "remote",
-      "url": "https://mcp-eu.posthog.com/mcp",
-      "enabled": false,
-    },
-    "railway": {
-      "type": "local",
-      "command": ["npx", "-y", "@railway/mcp-server"],
-      "enabled": false,
-    },
-    "linear": {
-      "type": "remote",
-      "url": "https://mcp.linear.app/mcp",
-      "enabled": false,
-    },
-    "google-drive": {
-      "type": "local",
-      "command": ["npx", "-y", "@piotr-agier/google-drive-mcp"],
-      "enabled": false,
-    },
+    // "deepwiki": {
+    //   "type": "remote",
+    //   "url": "https://mcp.deepwiki.com/mcp",
+    //   "enabled": false,
+    // },
+    // "posthog": {
+    //   "type": "remote",
+    //   "url": "https://mcp-eu.posthog.com/mcp",
+    //   "enabled": false,
+    // },
+    // "railway": {
+    //   "type": "local",
+    //   "command": ["npx", "-y", "@railway/mcp-server"],
+    //   "enabled": false,
+    // },
+    // "linear": {
+    //   "type": "remote",
+    //   "url": "https://mcp.linear.app/mcp",
+    //   "enabled": false,
+    // },
+    // "google-drive": {
+    //   "type": "local",
+    //   "command": ["npx", "-y", "@piotr-agier/google-drive-mcp"],
+    //   "enabled": false,
+    // },
     "planetscale": {
       "type": "remote",
       "url": "https://mcp.pscale.dev/mcp/planetscale",
       "enabled": false,
     },
-    "resend": {
-      "type": "local",
-      "command": ["npx", "-y", "resend-mcp"],
-      "enabled": false,
-      "environment": {
-        "RESEND_API_KEY": "{env:RESEND_API_KEY}",
-      },
-    },
+    // "resend": {
+    //   "type": "local",
+    //   "command": ["npx", "-y", "resend-mcp"],
+    //   "enabled": false,
+    //   "environment": {
+    //     "RESEND_API_KEY": "{env:RESEND_API_KEY}",
+    //   },
+    // },
   },
   "lsp": {
     "rust": {
@@ -186,9 +184,9 @@
         "baseURL": "http://127.0.0.1:17321",
         "headers": {
           "sleev-harness": "opencode",
-          "sleev-base-url": "https://crof.ai/v1"
-        }
-      }
-    }
+          "sleev-base-url": "https://crof.ai/v1",
+        },
+      },
+    },
   },
 }
