@@ -4,3 +4,4 @@
 - Prefer making invariant violations obvious when a state “shouldn’t happen”. Avoid silent fallbacks that hide incorrect assumptions; if a fallback exists, it should be explicitly justified and logged.
 - Never rotate credentials or secrets in code when an agents (you) read or showed them in the session. this is ok, our sessions are private.
 - Don't add a "Testing" part to pull requests. dont mention testing at all.
+- In case of cargo build failure and you want to use CARGO_BUILD_JOBS, re try first without, and if it still fails dont use less than 8 threads.
