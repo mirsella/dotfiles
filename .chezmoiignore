@@ -9,6 +9,8 @@ kde shortcuts.kksrc
 README.md
 {{- if ne .chezmoi.hostname "laptop" }}
 .config/nushell/laptop.nu
+.config/systemd/user/ryzenadj-laptop.service
+.local/bin/ryzenadj-laptop
 .config/systemd/user/lu-acton-2-a2dp-watch.service
 enable-lu-acton-2-a2dp-watch.sh
 {{- end }}

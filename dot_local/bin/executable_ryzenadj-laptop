@@ -2,23 +2,58 @@
 set -eu
 
 AC_ONLINE=/sys/class/power_supply/ACAD/online
+PLATFORM_PROFILE=/sys/firmware/acpi/platform_profile
 
 run_ryzenadj() {
   if [ "$(id -u)" -eq 0 ]; then
-    exec /usr/bin/ryzenadj "$@"
+    /usr/bin/ryzenadj "$@"
+    return
   fi
 
-  exec sudo /usr/bin/ryzenadj "$@"
+  sudo -n /usr/bin/ryzenadj "$@"
 }
 
-if [ ! -r "$AC_ONLINE" ]; then
-  echo "error: cannot read $AC_ONLINE" >&2
+if [ ! -r "$AC_ONLINE" ] || [ ! -r "$PLATFORM_PROFILE" ]; then
+  echo "error: cannot read power state" >&2
   exit 1
 fi
 
-if /usr/bin/grep -qx 1 "$AC_ONLINE"; then
-  run_ryzenadj --stapm-limit=45000 --fast-limit=53000 --slow-limit=35000 --apu-slow-limit=41000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=90 -i
+enabled() {
+  /usr/bin/grep -qx 1 "$AC_ONLINE" && /usr/bin/grep -qx performance "$PLATFORM_PROFILE"
+}
+
+apply_limits() {
+  run_ryzenadj --fast-limit=53000 --slow-limit=35000 --apu-slow-limit=41000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=90 -i
+}
+
+if [ "${1-}" != --watch ]; then
+  if enabled; then
+    apply_limits
+  else
+    echo "skipped: requires AC power and the performance profile" >&2
+  fi
+  exit 0
 fi
 
-echo "battery: using Framework-aligned limits and keeping APU skin/STT near stock" >&2
-run_ryzenadj --stapm-limit=30000 --fast-limit=46000 --slow-limit=35000 --apu-slow-limit=41000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=44 -i
+while :; do
+  if enabled; then
+    actual=$(run_ryzenadj -i 2>/dev/null | /usr/bin/awk '
+      /PPT LIMIT FAST/ { fast = $6 }
+      /PPT LIMIT SLOW/ { slow = $6 }
+      /PPT LIMIT APU/ { apu = $6 }
+      /THM LIMIT CORE/ { tctl = $6 }
+      /STT LIMIT APU/ { stt = $6 }
+      END { if (fast && slow && apu && tctl && stt) print fast, slow, apu, tctl, stt }
+    ')
+    if [ -z "$actual" ]; then
+      echo "error: failed to read RyzenAdj limits" >&2
+      exit 1
+    fi
+
+    if [ "$actual" != "53.000 35.000 41.000 100.000 90.000" ]; then
+      echo "limits changed (fast slow apu tctl stt: $actual); reapplying performance limits" >&2
+      apply_limits
+    fi
+  fi
+  sleep 5
+done
