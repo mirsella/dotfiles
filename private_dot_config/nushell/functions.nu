@@ -263,3 +263,5 @@ def --wrapped oc [...args] {
     ^opencode attach http://127.0.0.1:14096 --dir $dir ...$args
   }
 }
+
+def cfm [] { cargo fmt; gam "cargo fmt" }

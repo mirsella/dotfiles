@@ -155,6 +155,7 @@
         },
       },
       "options": {
+        "chunkTimeout": 180000,
         "headers": {
           "sleev-provider": "codex",
           "sleev-harness": "opencode",
