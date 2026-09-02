@@ -177,6 +177,24 @@
         "baseURL": "http://127.0.0.1:17321",
       },
     },
+    "deepinfra": {
+      "options": {
+        "baseURL": "http://127.0.0.1:17321",
+        "headers": {
+          "sleev-harness": "opencode",
+          "sleev-base-url": "https://api.deepinfra.com/v1/openai",
+        },
+      },
+    },
+    "abliteration-ai": {
+      "options": {
+        "baseURL": "http://127.0.0.1:17321",
+        "headers": {
+          "sleev-harness": "opencode",
+          "sleev-base-url": "https://api.abliteration.ai/v1",
+        },
+      },
+    },
     "crof": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Nahcrof",
