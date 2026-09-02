@@ -168,7 +168,7 @@
         "baseURL": "http://127.0.0.1:17321",
       },
     },
-    "copilot": {
+    "github-copilot": {
       "options": {
         "headers": {
           "sleev-provider": "copilot",
@@ -182,7 +182,7 @@
         "baseURL": "http://127.0.0.1:17321",
         "headers": {
           "sleev-harness": "opencode",
-          "sleev-base-url": "https://api.deepinfra.com/v1/openai",
+          "sleev-base-url": "https://api.deepinfra.com/v1",
         },
       },
     },
