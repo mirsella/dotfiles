@@ -96,6 +96,9 @@
     "external_directory": "allow",
     "read": "allow",
   },
+  "tools": {
+    "todowrite": false,
+  },
   "agent": {
     "explore": {
       "model": "openai/gpt-5.6-luna",
