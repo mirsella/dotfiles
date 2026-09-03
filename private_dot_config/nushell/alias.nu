@@ -84,7 +84,16 @@ alias light = darkman set light
 alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf --multi
-alias opencode = opencode --port 0
+def --wrapped opencode [...args] {
+  if ($args | is-not-empty) and (($args | first) in [
+    completion mcp attach debug providers auth agent upgrade uninstall
+    models stats export import github pr session plugin plug db
+  ]) {
+    ^opencode ...$args
+  } else {
+    ^opencode --port 0 ...$args
+  }
+}
 alias occ = oc --continue
 alias autocommit = opencode run --model "openai/gpt-5.3-codex-spark" --variant high --command "commitdiff"
 alias codex = codex --dangerously-bypass-approvals-and-sandbox
