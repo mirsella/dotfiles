@@ -26,8 +26,14 @@ return {
 			},
 		},
 		opts = function(_, opts)
+			local actions = require("fzf-lua").actions
 			local files = opts.actions and opts.actions.files or {}
-			files["enter"] = require("fzf-lua").actions.file_edit
+			files["enter"] = function(...)
+				actions.file_edit(...)
+				if vim.bo.buftype == "" and vim.bo.filetype == "" then
+					vim.cmd("filetype detect")
+				end
+			end
 			files["alt-q"] = false
 			files["alt-Q"] = false
 			opts.actions = opts.actions or {}
