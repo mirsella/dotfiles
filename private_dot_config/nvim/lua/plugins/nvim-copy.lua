@@ -1,6 +1,5 @@
 return {
 	"YounesElhjouji/nvim-copy",
-	event = "VeryLazy",
 	opts = {
 		-- Configure files and directories to ignore using Gitignore-style patterns
 		ignore = {

@@ -1,4 +1,4 @@
 return {
-  "chentoast/marks.nvim",
-  event = { "LazyFile" },
+	"chentoast/marks.nvim",
+	event = "VeryLazy",
 }

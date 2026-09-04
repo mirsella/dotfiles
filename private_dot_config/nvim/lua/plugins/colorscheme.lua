@@ -14,7 +14,11 @@ return {
 	},
 	{
 		"LazyVim/LazyVim",
-		opts = { colorscheme = function() end },
+		opts = {
+			colorscheme = function()
+				vim.cmd.colorscheme(vim.o.background == "light" and "rose-pine-dawn" or "rose-pine-moon")
+			end,
+		},
 	},
 	{ "folke/tokyonight.nvim", enabled = false },
 	{ "catppuccin", enabled = false },

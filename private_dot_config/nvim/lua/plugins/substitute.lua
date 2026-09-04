@@ -1,6 +1,13 @@
 return {
 	"gbprod/substitute.nvim",
-	dependencies = { "gbprod/yanky.nvim" },
+	dependencies = {
+		{
+			"gbprod/yanky.nvim",
+			event = function()
+				return {}
+			end,
+		},
+	},
 	keys = {
 		{
 			"gs",
