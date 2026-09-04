@@ -97,5 +97,5 @@ def --wrapped opencode [...args] {
 alias occ = oc --continue
 alias autocommit = opencode run --model "openai/gpt-5.3-codex-spark" --variant high --command "commitdiff"
 alias codex = codex --dangerously-bypass-approvals-and-sandbox
-alias opencode-plugin-update = do { cd ~/.cache/opencode/packages; fd package.json -E node_modules | lines | each { $in | path dirname } | par-each { do { cd $in; bun update --latest } } }
+alias opencode-plugin-update = do { cd ~/.cache/opencode/packages; fd package.json -E node_modules | lines | each { $in | path dirname } | each { do { cd $in; bun update --latest } } }
 alias waymain = waypipe ssh main

@@ -1,4 +1,3 @@
-local actions = require("fzf-lua").actions
 return {
 	{
 		"ibhagwan/fzf-lua",
@@ -26,16 +25,14 @@ return {
 				desc = "Change filetype",
 			},
 		},
-		opts = {
-			actions = {
-				files = {
-					["enter"] = actions.file_edit,
-					-- disable quickfix mappings
-					["alt-q"] = false,
-					["alt-Q"] = false,
-				},
-			},
-		},
+		opts = function(_, opts)
+			local files = opts.actions and opts.actions.files or {}
+			files["enter"] = require("fzf-lua").actions.file_edit
+			files["alt-q"] = false
+			files["alt-Q"] = false
+			opts.actions = opts.actions or {}
+			opts.actions.files = files
+		end,
 	},
 	{
 		"nvim-telescope/telescope.nvim",

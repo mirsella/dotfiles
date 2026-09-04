@@ -1,5 +1,5 @@
 return {
 	"wakatime/vim-wakatime",
-	lazy = false,
+	event = "VeryLazy",
 	opts = { status_bar_enabled = false },
 }

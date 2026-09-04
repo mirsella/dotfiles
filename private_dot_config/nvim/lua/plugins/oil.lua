@@ -9,10 +9,12 @@ return {
 	},
 	{
 		"stevearc/oil.nvim",
-		dependencies = { "nvim-mini/mini.icons" },
-		lazy = true,
+		dependencies = {
+			"nvim-mini/mini.icons",
+			{ "refractalize/oil-git-status.nvim", opts = {} },
+		},
+		lazy = vim.fn.argc(-1) == 0 or vim.fn.isdirectory(vim.fn.argv(0)) == 0,
 		cmd = "Oil",
-		event = { "VimEnter */*,.*", "BufNew */*,.*" },
 		opts = {
 			delete_to_trash = true,
 			keymaps = {
@@ -26,9 +28,5 @@ return {
 			{ "<leader>e", "<CMD>Oil<CR>", desc = "Open parent directory" },
 			{ "-", "<CMD>Oil<CR>", desc = "Open parent directory" },
 		},
-	},
-	{
-		"refractalize/oil-git-status.nvim",
-		config = true,
 	},
 }

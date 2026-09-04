@@ -7,7 +7,7 @@ return {
 			function()
 				require("substitute").operator()
 			end,
-      mode = { "n", "v" },
+			mode = { "n", "v" },
 			desc = "Substitute operator",
 		},
 		{
@@ -25,7 +25,7 @@ return {
 			desc = "Substitute to end of line",
 		},
 	},
-	opts = {
-		on_substitute = require("yanky.integration").substitute(),
-	},
+	opts = function()
+		return { on_substitute = require("yanky.integration").substitute() }
+	end,
 }
