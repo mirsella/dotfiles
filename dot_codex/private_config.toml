@@ -1,5 +1,6 @@
 model = "gpt-5.6-sol"
 model_reasoning_effort = "medium"
+service_tier = "fast"
 model_provider = "sleev"
 
 [projects."/home/mirsella/dev/mightyminions/main"]
@@ -106,4 +107,4 @@ requires_openai_auth = true
 
 [model_providers.sleev.http_headers]
 "sleev-provider" = "codex"
-"sleev-harness" = "codex cli"
+"sleev-harness" = "chatgpt"

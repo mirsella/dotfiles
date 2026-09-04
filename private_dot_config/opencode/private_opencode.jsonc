@@ -4,11 +4,12 @@
     // "@tarquinen/opencode-dcp@github:mirsella/opencode-dynamic-context-pruning#main",
     "opencode-wakatime",
     "@tarquinen/opencode-smart-title",
-    "opencode-queue",
     "@plannotator/opencode",
+    "@dietrichgebert/ponytail",
+    "opencode-queue",
     "opencode-goal",
     "@mirsella/opencode-browser-mcp",
-    "@dietrichgebert/ponytail",
+    "@mirsella/context7-account-broker",
     ["./doom-loop-threshold.ts", { "threshold": 6 }],
   ],
   "autoupdate": false,
@@ -22,12 +23,6 @@
     },
   },
   "mcp": {
-    "context7-broker": {
-      "type": "local",
-      "command": ["npx", "-y", "@mirsella/context7-account-broker"],
-      "timeout": 30000,
-      "enabled": true,
-    },
     "computer_use": {
       "type": "local",
       "command": ["computer-use-mcp", "mcp"],
@@ -82,16 +77,7 @@
     //   },
     // },
   },
-  "lsp": {
-    "rust": {
-      "disabled": true,
-    },
-    "rust-lspmux": {
-      "disabled": true,
-      "command": ["lspmux", "client"],
-      "extensions": [".rs"],
-    },
-  },
+  "lsp": false,
   "permission": {
     "external_directory": "allow",
     "read": "allow",
