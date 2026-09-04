@@ -35,6 +35,7 @@ export type SessionStatus = OpenCodeSessionStatus;
 
 export interface SessionInfo {
 	id: string;
+	title: string;
 	parentID?: string;
 	time: { updated: number };
 }
@@ -69,17 +70,26 @@ export interface WatchdogApi {
 }
 
 type RecoveryReservation = { attempt: number; rollback(): Promise<void> };
+type RecoveryMetadata = {
+	childTitle: string;
+	parentSessionID: string;
+	parentTitle: string;
+};
 export interface RecoveryCounter {
 	count(childSessionID: string): number;
 	reserve(
 		childSessionID: string,
 		limit: number,
 		now: number,
+		metadata: RecoveryMetadata,
 	): Promise<RecoveryReservation | undefined>;
 	cleanup(now: number): Promise<void>;
 }
 
-type PersistedRecovery = { recoveryCount: number; lastRecoveryAt: number };
+type PersistedRecovery = RecoveryMetadata & {
+	recoveryCount: number;
+	lastRecoveryAt: number;
+};
 type Log = (
 	level: "debug" | "info" | "warn" | "error",
 	event: string,
@@ -181,6 +191,7 @@ async function loadConfig(path: string) {
 
 export class RecoveryStore implements RecoveryCounter {
 	private readonly records = new Map<string, PersistedRecovery>();
+	private totalRecoveries = 0;
 	private writes = Promise.resolve();
 
 	private constructor(
@@ -197,7 +208,19 @@ export class RecoveryStore implements RecoveryCounter {
 		try {
 			const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
 			if (!isRecord(parsed)) throw new Error("state must be a JSON object");
-			for (const [child, entry] of Object.entries(parsed)) {
+			const legacy = !("sessions" in parsed);
+			if (!legacy) {
+				const total = parsed.totalRecoveries;
+				if (typeof total !== "number" || !Number.isInteger(total) || total < 0)
+					throw new Error("totalRecoveries must be a non-negative integer");
+				store.totalRecoveries = total;
+			}
+			const sessions = legacy ? parsed : parsed.sessions;
+			if (!isRecord(sessions)) throw new Error("sessions must be a JSON object");
+			const metadata = (value: unknown) =>
+				typeof value === "string" ? value : legacy ? "(unavailable)" : undefined;
+			let listedRecoveries = 0;
+			for (const [child, entry] of Object.entries(sessions)) {
 				if (
 					!isRecord(entry) ||
 					typeof entry.recoveryCount !== "number" ||
@@ -206,12 +229,24 @@ export class RecoveryStore implements RecoveryCounter {
 					typeof entry.lastRecoveryAt !== "number"
 				)
 					throw new Error(`invalid recovery record for ${child}`);
+				const childTitle = metadata(entry.childTitle);
+				const parentSessionID = metadata(entry.parentSessionID);
+				const parentTitle = metadata(entry.parentTitle);
+				if (childTitle === undefined || parentSessionID === undefined || parentTitle === undefined)
+					throw new Error(`missing session metadata for ${child}`);
+				listedRecoveries += entry.recoveryCount;
 				if (now - entry.lastRecoveryAt <= STATE_RETENTION_MS)
 					store.records.set(child, {
 						recoveryCount: entry.recoveryCount,
 						lastRecoveryAt: entry.lastRecoveryAt,
+						childTitle,
+						parentSessionID,
+						parentTitle,
 					});
 			}
+			if (legacy) store.totalRecoveries = listedRecoveries;
+			else if (store.totalRecoveries < listedRecoveries)
+				throw new Error("totalRecoveries is lower than the listed session counts");
 		} catch (error) {
 			if (isRecord(error) && error.code === "ENOENT") return store;
 			await warn(`failed to load ${path}: ${errorText(error)}; recovery is disabled`);
@@ -228,14 +263,16 @@ export class RecoveryStore implements RecoveryCounter {
 		childSessionID: string,
 		limit: number,
 		now: number,
+		metadata: RecoveryMetadata,
 	): Promise<RecoveryReservation | undefined> {
 		let reservation: RecoveryReservation | undefined;
 		await this.update(() => {
 			const previous = this.records.get(childSessionID);
 			const recoveryCount = (previous?.recoveryCount ?? 0) + 1;
 			if (recoveryCount > limit) return false;
-			const current = { recoveryCount, lastRecoveryAt: now };
+			const current = { recoveryCount, lastRecoveryAt: now, ...metadata };
 			this.records.set(childSessionID, current);
+			this.totalRecoveries++;
 			reservation = {
 				attempt: recoveryCount,
 				rollback: () =>
@@ -243,6 +280,7 @@ export class RecoveryStore implements RecoveryCounter {
 						if (this.records.get(childSessionID) !== current) return false;
 						if (previous) this.records.set(childSessionID, previous);
 						else this.records.delete(childSessionID);
+						this.totalRecoveries--;
 						return true;
 					}),
 			};
@@ -266,19 +304,21 @@ export class RecoveryStore implements RecoveryCounter {
 	private async update(change: () => boolean): Promise<void> {
 		const operation = this.writes.then(async () => {
 			const previous = new Map(this.records);
+			const previousTotal = this.totalRecoveries;
 			try {
 				if (!change()) return;
 				await mkdir(dirname(this.path), { recursive: true });
 				const temporary = `${this.path}.tmp-${process.pid}`;
 				await writeFile(
 					temporary,
-					`${JSON.stringify(Object.fromEntries(this.records), null, 2)}\n`,
+					`${JSON.stringify({ totalRecoveries: this.totalRecoveries, sessions: Object.fromEntries(this.records) }, null, 2)}\n`,
 					{ mode: 0o600 },
 				);
 				await rename(temporary, this.path);
 			} catch (error) {
 				this.records.clear();
 				for (const entry of previous) this.records.set(...entry);
+				this.totalRecoveries = previousTotal;
 				throw error;
 			}
 		});
@@ -307,6 +347,7 @@ type TaskInvocation = {
 type Notice = "suspect" | "parallel" | "limit" | "report";
 type Child = {
 	id: string;
+	title: string;
 	parentID: string;
 	updatedAt: number;
 	activityAt: number;
@@ -325,6 +366,7 @@ type Recovery = {
 type RecoverySnapshot = {
 	childStatus: SessionStatus;
 	activeChildren: string[];
+	parentTitle: string;
 };
 
 function makeRecoveryPrompt(child: Child): string {
@@ -702,6 +744,11 @@ export class SubagentWatchdog {
 				child.id,
 				this.config.maxRecoveriesPerChild,
 				this.now(),
+				{
+					childTitle: child.title,
+					parentSessionID: child.parentID,
+					parentTitle: snapshot.parentTitle,
+				},
 			);
 			if (!reservation) {
 				this.recoveries.delete(child.parentID);
@@ -825,6 +872,7 @@ export class SubagentWatchdog {
 			return;
 		return {
 			childStatus,
+			parentTitle: freshParent.title,
 			activeChildren: sessions
 				.filter(
 					(candidate) =>
@@ -983,6 +1031,7 @@ export class SubagentWatchdog {
 		if (!existing) {
 			const child: Child = {
 				id: info.id,
+				title: info.title,
 				parentID: info.parentID,
 				updatedAt: info.time.updated,
 				activityAt: eventActivity ? this.now() : info.time.updated,
@@ -994,6 +1043,7 @@ export class SubagentWatchdog {
 			return child;
 		}
 		existing.parentID = info.parentID;
+		existing.title = info.title;
 		if (eventActivity || info.time.updated > existing.updatedAt) {
 			existing.updatedAt = Math.max(existing.updatedAt, info.time.updated);
 			this.recordActivity(info.id, eventActivity ? this.now() : info.time.updated);
@@ -1021,7 +1071,12 @@ export class SubagentWatchdog {
 		child: Child,
 		extra: Record<string, unknown> = {},
 	): Promise<void> {
-		return this.log(level, event, { child: child.id, parent: child.parentID, ...extra });
+		return this.log(level, event, {
+			child: child.id,
+			childTitle: child.title,
+			parent: child.parentID,
+			...extra,
+		});
 	}
 
 	private taskKey(parentID: string, callID: string): string {
