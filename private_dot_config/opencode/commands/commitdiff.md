@@ -1,7 +1,8 @@
 ---
 description: Git commit
-agent: general
+agent: minion-lunamax
 subtask: true
+model: openai/gpt-5.6-luna
 ---
 
 Commit our changes in this session or since last commit.

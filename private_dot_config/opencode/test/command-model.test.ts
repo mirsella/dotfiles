@@ -12,12 +12,14 @@ test("command model is consumed once and isolated between sessions", async () =>
       commit: { template: "Commit this session's changes", model: "openai/gpt-5.6-luna#max" },
       plain: { template: "No thinking override", model: "openai/gpt-5.6-luna" },
       review: { template: "No model override" },
+      commitdiff: { template: "Commit diff", subtask: true, model: "openai/gpt-5.6-luna" },
     },
   } satisfies Config;
   await hooks.config(config);
   expect(config.model).toBe("openai/gpt-6-astra");
   expect(config.command.commit).toEqual({ template: "Commit this session's changes" });
   expect(config.command.plain.model).toBeUndefined();
+  expect(config.command.commitdiff.model).toBe("openai/gpt-5.6-luna");
   const command = (sessionID: string, name = "commit") =>
     hooks["command.execute.before"](
       { sessionID, command: name, arguments: "" },
@@ -56,6 +58,8 @@ test("command model is consumed once and isolated between sessions", async () =>
   expect(await chat("a")).toBe(astra);
 
   await command("a", "review");
+  expect(await chat("a")).toBe(astra);
+  await command("a", "commitdiff");
   expect(await chat("a")).toBe(astra);
   await command("a");
   await command("a", "review");

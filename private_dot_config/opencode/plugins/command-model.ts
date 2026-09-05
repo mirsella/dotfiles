@@ -13,7 +13,7 @@ export default (async () => {
   return {
     config: async (config) => {
       for (const [name, command] of Object.entries(config.command ?? {})) {
-        if (command.model === undefined) continue;
+        if (command.model === undefined || command.subtask === true) continue;
         const match = /^([^/\s#]+)\/([^\s#]+)(?:#([^\s#]+))?$/.exec(command.model);
         if (!match) throw new Error(`Invalid model for /${name}: expected provider/model[#variant]`);
         const [, providerID, modelID, variant] = match;
