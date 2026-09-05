@@ -1,3 +1,10 @@
+# Shared user instructions
+
+Read `/home/mirsella/.config/opencode/AGENTS.md` at the start of each task. It is the source of truth for shared preferences; where it conflicts with the retained rules below, prefer the OpenCode instructions.
+Do not modify OpenCode configuration, commands, or skills unless the user explicitly requests it.
+
+# Retained Codex instructions
+
 - always add "--no-ext-diff" to git diff commands.
 - when git committing, never commit `.opencode/plans/*` files
 - when running git rebase, never open an editor; always use non-interactive flags or environment variables.
