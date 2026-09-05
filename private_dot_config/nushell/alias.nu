@@ -52,6 +52,7 @@ alias kdesend = kdeconnect-cli -n phone --share
 alias colemak = setxkbmap us -variant colemak_dh_iso
 alias qwerty = setxkbmap us
 alias c = cargo
+alias cf = cargo fmt
 alias cfa = cargo clippy --fix --allow-dirty --allow-staged --all-features --all-targets
 alias cwt = cargo watch -c -x test
 alias cw = cargo watch -c
