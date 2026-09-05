@@ -1,124 +1,157 @@
 ---
 name: cleancode
-description: Refactors only this agent's current-session changes for simplicity, correctness, and runtime efficiency while preserving intended behavior.
+description: Aggressively refactors recently touched code for simplicity, locality, robustness, and runtime efficiency while preserving intended behavior.
 ---
 
-Refactor the code you changed in this session into simpler, idiomatic
-code that does less work. Apply worthwhile improvements, not just
-suggestions. Do not stop at cosmetic cleanup when a deeper simplification
-is clearly justified within scope.
+Aggressively improve all code you recently touched in this session, including
+committed changes. Refactor related supporting code when it completes a worthwhile
+improvement. Preserve other contributors' work.
 
-## Scope and ownership
+Preserve intended behavior, not existing structure. Change module boundaries,
+helper layers, APIs, data shapes, names, and call patterns when that improves the
+code. Apply worthwhile improvements rather than merely suggesting them or stopping
+at cosmetics. A coherent local refactor is better than a minimal patch that leaves
+the design awkward. Do not churn equivalent code for stylistic preference.
 
-- Before editing, identify all still-present code you created or modified
-  in this session, including earlier turns, committed edits, and work you
-  explicitly delegated. Do not limit the pass to your last patch.
-- Establish ownership from session context and edit history. Git diffs
-  help inspect changes; they do not prove ownership. A dirty worktree or
-  a touched file is not blanket permission to edit it.
-- Keep the workset to the specific functions or blocks you changed.
-  Preserve the user's and independent agents' edits, including overlapping
-  changes. When ownership is uncertain, leave that code unchanged and
-  report the limitation.
-- The scope stays fixed during cleanup. Reading related code or making
-  incidental edits does not expand it. Do not refactor untouched callers
-  or helpers. If a sound change requires out-of-scope edits, leave it
-  unapplied and report the dependency rather than adding a workaround.
-  Delegated agents inherit the same limits.
+## Simplicity and design
 
-## Priorities
+- Prefer fewer concepts, fewer moving parts, and direct, concrete, idiomatic code.
+  Correctness, robustness, and meaningful efficiency matter more than cosmetic
+  simplicity or saving implementation effort.
+- Prefer designs that make code unnecessary. Actively look for entire branches,
+  stored fields, conversions, parameters, and layers that can disappear rather
+  than merely shortening their implementation. Judge the complete solution,
+  including callers and supporting code: moving complexity elsewhere is not
+  simplification. Less code is better when it preserves clarity, robustness,
+  and meaningful performance.
+- Fix underlying design problems instead of adding hacks, local workarounds,
+  monkey patches, hidden second implementations, or layers of patches. Rewrite
+  awkward control flow, collapse layers, merge fragmented logic, remove redundant
+  state, and delete dead code.
+- Use abstractions, generics, traits, combinators, and helpers when they reduce
+  conceptual load, remove meaningful duplication, encode an invariant, clarify
+  call sites, or provide useful performance. Keep them locally understandable.
+- Concise code, readable one-liners, and local cleverness are welcome when their
+  meaning is obvious and they do not combine unrelated effects. Avoid nonlocal
+  magic and code that is compact only because it is harder to read.
+- When branches differ only in a value or small decision, choose that value once
+  and share the common operation instead of repeating the surrounding sequence.
+  For example, choose the timeout first, then share request construction and error
+  handling. Use early returns to remove unnecessary nesting. Keep genuinely
+  different behaviors explicit rather than forcing them through a flag-heavy
+  shared helper.
+- Let names and structure explain straightforward operations. Remove comments
+  that merely narrate the code, stale explanations, and redundant section labels.
+  Keep useful API documentation and explanations of intent, invariants, surprising
+  constraints, and performance-sensitive choices.
 
-Correctness, safety, and required behavior are constraints. Preserve
-meaningful performance before optimizing for fewer concepts, clearer
-code, or fewer lines. Prefer the simplest design that preserves or
-improves efficiency for the relevant workload.
+## Locality
 
-Net diff size is a tie-breaker, not a target. Prefer deletion and reuse
-when otherwise comparable, but accept added code or tests when justified.
-Never chase a negative diff, compress control flow, hide errors, or remove
-useful diagnostics to reduce line count.
+- Keep behavior, state, validation, and side effects close together. Minimize the
+  files, modules, traits, plugins, hooks, services, and callbacks a reader must
+  follow to understand one behavior.
+- Put behavior where the domain concept naturally belongs, not automatically on
+  whichever type stores the data. Move it across type or module boundaries when
+  the new owner is more appropriate.
+- Inline pointless wrappers. Inline or merge single-use helpers, modules, traits,
+  plugins, and layers unless separation improves readability, protects an
+  invariant, or provides useful performance.
+- If a helper belongs to one function, prefer keeping it inside that function as
+  a local closure or local function. If it is called only once, prefer inlining
+  it entirely unless extraction makes the code clearly easier to read. Neither
+  approach should duplicate an existing domain rule.
+- Prefer clear ownership and direct data flow over machinery introduced to work
+  around an awkward design. Look for opportunities to borrow for temporary access,
+  move when transferring ownership, and keep mutation with its owner instead of
+  adding clones, shared ownership, locks, or interior mutability without a real
+  need.
 
-## Refactoring rules
+## Canonical rules and APIs
 
-- Follow repository instructions, toolchain, and idioms. Preserve
-  task-defined behavior, side effects, error handling, and supported
-  contracts. Do not introduce features or silently reinterpret requirements.
-- Remove dead code, redundant state, pointless wrappers, obsolete
-  configuration, and unnecessary indirection within scope. Simplify
-  awkward control flow and collapse fragmented logic. Prefer a coherent
-  fix over layers of local patches.
-- Reuse the canonical domain API instead of reconstructing its rules
-  locally. Do not duplicate validation, parsing, classification, policy,
-  or state-transition logic in a helper or closure. Keep related behavior
-  close without copying rules into callers.
-- Do not make callers inspect a callee's internals or repeat checks
-  already handled by its API. Keep local checks for distinct recovery,
-  better typed errors, preventing invalid side effects, or avoiding
-  substantial work the API would otherwise perform. Reuse canonical
-  predicates rather than duplicating their logic.
-- Prefer direct, concrete code. Keep a helper, type, trait, or layer when
-  it names meaningful work, enforces an invariant, isolates a real
-  boundary, or provides a worthwhile performance benefit. Inline trivial
-  forwarding and needless fragmentation. Single use alone does not make
-  an abstraction unnecessary; similar-looking code alone does not justify
-  sharing one.
-- Make invalid states impossible or explicit. Preserve useful typed
-  errors and deliberate recovery. Do not swallow unexpected failures,
-  add permissive fallbacks, or log the same failure at multiple layers.
-  Log where the failure is handled with useful context, not on every
-  propagation step.
-- Treat this project as greenfield unless repository or task instructions
-  say otherwise. Remove obsolete compatibility and transitional
-  implementations in scope; do not add shims or parallel legacy
-  implementations without an explicit requirement. This does not
-  authorize removing deliberate error recovery, supported platform
-  implementations, or performance fast paths. Explicitly required
-  temporary compatibility must stay minimal, local, and have a clear
-  deletion condition.
+- Reuse existing domain APIs instead of re-deriving classification, validation,
+  parsing, pricing, authorization, or state-transition rules. Even a slightly
+  inconvenient method is better than rebuilding its internals. Prefer one named
+  canonical implementation, not an existing method plus a local reconstruction.
+- Never introduce a local closure that reimplements part of an existing trait
+  method, enum method, parser, classifier, validator, or policy function. Locality
+  means making the canonical rule easy to find, not copying it into callers.
+- Avoid preflight checks that inspect a callee's internals or revalidate invariants
+  its API owns. If the caller cannot handle failure differently and the callee
+  already validates, logs, or errors appropriately, call it directly instead of
+  checking `is_none`, `is_err`, type shape, capability flags, or optional subfields
+  first.
+- Validate locally for domain-specific recovery, a better typed error, preventing
+  an invalid side effect, or avoiding substantial unnecessary work. Reuse canonical
+  predicates rather than rebuilding the rule.
+- A little incidental duplication is better than a bad abstraction. Duplicated
+  domain policy is a different problem.
+
+## Robustness and errors
+
+- Prefer types, schemas, explicit validation, and clear invariants that make
+  invalid states impossible or obvious. Avoid fragile invariants, hidden coupling,
+  untracked temporary behavior, and code that handles only the current narrow
+  case while pretending to be general.
+- Choose data representations that remove bookkeeping and special cases. Prefer
+  one meaningful state over mutually exclusive booleans such as `is_loading`,
+  `is_ready`, and `has_failed`, and `Option<T>` over a separate presence flag plus
+  a placeholder value. Derive cheap facts from their source instead of storing
+  and synchronizing them. Keep cached or denormalized data when it avoids
+  meaningful work.
+- When something "shouldn't happen", do not silently continue. Return typed errors
+  or explicit failure states in core logic. At side-effect boundaries, log
+  `warn`/`error` when dropping, skipping, retrying, or recovering from unexpected
+  input, without double-logging.
+- Preserve useful diagnostics and deliberate recovery. Do not hide failures behind
+  broad catch-alls, permissive parsing, silent fallbacks, or hidden alternative
+  paths merely to make errors disappear.
+
+## Delete obsolete structure
+
+This is a greenfield project. Unless explicitly required, remove stale
+compatibility code, migration shims, fallback adapters, parallel legacy
+implementations, redundant configuration, dead branches, and unnecessary
+indirection. Update affected callers instead of keeping compatibility glue or
+obsolete APIs. Required temporary compatibility should be minimal, local, and tied
+to a clear deletion condition. Deliberate recovery, supported platform
+implementations, and useful performance fast paths are not obsolete compatibility.
+
+Remove flexibility that serves no current purpose: unused parameters, mode flags
+that never vary, configuration for fixed decisions, and extension points for
+hypothetical implementations. Express the actual supported behavior directly
+instead of maintaining a framework around it.
+
+Prefer deletion and reuse over adding helpers, types, protocol shapes, or
+configuration. Reduce net added code where practical, but do not chase a negative
+diff or shrink code by hiding errors, removing useful diagnostics, or making
+control flow denser.
 
 ## Performance and efficiency
 
-- Prefer a better algorithm or doing less work over micro-optimizing the
-  same work. Remove unnecessary computation, allocations, cloning,
-  copies, repeated traversals, I/O, and synchronization. Consider actual
-  input sizes, call frequency, and ownership rather than only the edited
-  function in isolation.
-- Do not accept material regressions in relevant latency, throughput,
-  allocation behavior, memory use, or other resource costs for cosmetic
-  simplicity. Keep modest local complexity when it avoids meaningful
-  cost. Do not add speculative machinery for theoretical gains.
-- Treat changes such as `SmallVec` to `Vec`, removing buffer reuse or
-  caching, undoing batching, or changing data layout as performance
-  decisions, not style cleanup. Understand why the current choice exists
-  before replacing it. Neither a specialized implementation nor a
-  simpler-looking replacement is automatically better.
-- Preserve useful optimizations while simplifying their surrounding
-  code. Remove specialization only when evidence shows it is unnecessary
-  or a replacement introduces no meaningful regression for the actual
-  workload.
-- Use direct cost reasoning when conclusive. For consequential, uncertain
-  tradeoffs, compare before and after under the same representative
-  workload when feasible. Do not demand benchmarks for every mechanical
-  cleanup. When evidence is insufficient, retain the current
-  performance-sensitive choice rather than guessing. Distinguish
-  cost-based reasoning from measured results; passing correctness tests
-  does not prove performance equivalence.
+Actively improve efficiency by doing less work. Prefer better algorithms and
+eliminate unnecessary allocations, cloning, copies, repeated computation or
+traversal, I/O, and synchronization. Consider the relevant workload, input sizes,
+call frequency, ownership, and both runtime and memory costs.
 
-## Verify and finish
+Keep data in a useful representation. Remove unnecessary round trips through
+strings or serialization, conversions between equivalent internal structs, and
+temporary collections that only feed the next operation. Convert at meaningful
+boundaries and materialize data when it provides a real benefit.
 
-- Review the entire identified workset, with enough surrounding code and
-  tests to understand its behavior and invariants.
-- Run the relevant formatter, build or type checks, lints, and tests
-  using repository conventions. Add or update focused tests when needed
-  to protect scoped behavior. Do not let formatting, generated files, or
-  test cleanup introduce unrelated changes.
-- Inspect the final diff for scope violations and unintended behavior or
-  performance changes. Do not label failures pre-existing without
-  evidence. State any checks you could not run.
-- Stop when the whole workset has been reviewed and worthwhile, justified
-  improvements are complete. Already-clean code may remain unchanged.
-  Do not manufacture changes or continue merely because the diff is
-  net-positive.
-- Finish with a brief summary of changes, checks actually run, and any
-  performance-sensitive decisions or blocked work. Do not claim coverage
-  of code you could not identify or inspect.
+Keep modest local complexity when it buys meaningful performance. Do not replace
+`SmallVec` with `Vec` merely because it looks simpler when that gives up useful
+allocation behavior. Apply the same judgment to buffer reuse, caching, batching,
+and data layout. Simplify around useful optimizations rather than deleting them.
+Remove unnecessary specialization when justified; do not add machinery for
+speculative gains or trade a substantial performance benefit for cosmetic cleanup.
+
+## Finish
+
+Follow repository requirements; otherwise keep checks lightweight. Routine Rust
+cleanup usually needs only `cargo fmt` and/or scoped `cargo clippy`. Use focused
+tests for uncertain or behavior-sensitive changes and test edits; measure
+performance when a consequential tradeoff needs evidence.
+
+Briefly report the improvements, checks actually run, and Git diff line counts,
+total and per logical change, as `+added / -deleted (net +/-N)`, with the comparison
+base clearly labeled.
