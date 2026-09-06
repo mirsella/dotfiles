@@ -21,9 +21,12 @@ the design awkward. Do not churn equivalent code for stylistic preference.
 - Prefer designs that make code unnecessary. Actively look for entire branches,
   stored fields, conversions, parameters, and layers that can disappear rather
   than merely shortening their implementation. Judge the complete solution,
-  including callers and supporting code: moving complexity elsewhere is not
-  simplification. Less code is better when it preserves clarity, robustness,
-  and meaningful performance.
+  including callers, supporting code, dependencies, configuration, and runtime
+  costs. Moving complexity elsewhere is not simplification. Less code is better
+  when it preserves clarity, robustness, and meaningful performance. A shorter
+  implementation that adds a dependency and its integration code is not
+  automatically simpler. Do not hand-roll substantial functionality merely to
+  avoid a suitable dependency.
 - Fix underlying design problems instead of adding hacks, local workarounds,
   monkey patches, hidden second implementations, or layers of patches. Rewrite
   awkward control flow, collapse layers, merge fragmented logic, remove redundant
@@ -55,7 +58,9 @@ the design awkward. Do not churn equivalent code for stylistic preference.
   the new owner is more appropriate.
 - Inline pointless wrappers. Inline or merge single-use helpers, modules, traits,
   plugins, and layers unless separation improves readability, protects an
-  invariant, or provides useful performance.
+  invariant, or provides useful performance. Examples include a factory that
+  merely forwards to one constructor or a trait that adds no useful contract
+  or substitution point.
 - If a helper belongs to one function, prefer keeping it inside that function as
   a local closure or local function. If it is called only once, prefer inlining
   it entirely unless extraction makes the code clearly easier to read. Neither
@@ -68,6 +73,11 @@ the design awkward. Do not churn equivalent code for stylistic preference.
 
 ## Canonical rules and APIs
 
+- Before simplifying custom machinery, consider whether an existing capability
+  can replace it entirely. Prefer repository APIs, standard-library operations,
+  native platform features, and existing dependencies when they satisfy the
+  behavior and performance requirements. Use the capability directly instead of
+  building a new wrapper around it without a concrete benefit.
 - Reuse existing domain APIs instead of re-deriving classification, validation,
   parsing, pricing, authorization, or state-transition rules. Even a slightly
   inconvenient method is better than rebuilding its internals. Prefer one named
@@ -82,7 +92,8 @@ the design awkward. Do not churn equivalent code for stylistic preference.
   first.
 - Validate locally for domain-specific recovery, a better typed error, preventing
   an invalid side effect, or avoiding substantial unnecessary work. Reuse canonical
-  predicates rather than rebuilding the rule.
+  predicates rather than rebuilding the rule. Remove redundant internal checks,
+  not validation at trust boundaries.
 - A little incidental duplication is better than a bad abstraction. Duplicated
   domain policy is a different problem.
 
@@ -117,7 +128,7 @@ to a clear deletion condition. Deliberate recovery, supported platform
 implementations, and useful performance fast paths are not obsolete compatibility.
 
 Remove flexibility that serves no current purpose: unused parameters, mode flags
-that never vary, configuration for fixed decisions, and extension points for
+that never vary, configuration objects for fixed decisions, and extension points for
 hypothetical implementations. Express the actual supported behavior directly
 instead of maintaining a framework around it.
 

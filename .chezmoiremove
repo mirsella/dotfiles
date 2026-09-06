@@ -3,3 +3,9 @@
 .local/bin/rio-shell-scope
 .local/share/applications/rio.desktop
 .local/share/icons/rio-2024.svg
+.cache/opencode/packages/@dietrichgebert/ponytail
+.cache/opencode/packages/@dietrichgebert/ponytail@latest
+.claude/.ponytail-active
+.codex/plugins/cache/ponytail
+.config/opencode/.ponytail-active
+.config/ponytail
