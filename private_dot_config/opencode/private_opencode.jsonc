@@ -147,6 +147,26 @@
             },
           },
         },
+        "gpt-6-astra": {
+          "variants": {
+            "xhigh": {
+              "disabled": true,
+            },
+            "max": {
+              "disabled": true,
+            },
+          },
+        },
+        "gpt-6-astra-fast": {
+          "variants": {
+            "xhigh": {
+              "disabled": true,
+            },
+            "max": {
+              "disabled": true,
+            },
+          },
+        },
       },
       "options": {
         "chunkTimeout": 180000,
