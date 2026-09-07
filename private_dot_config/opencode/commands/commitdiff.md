@@ -1,30 +1,12 @@
 ---
 description: Git commit
 agent: luna
-subtask: true
-model: openai/gpt-5.6-luna
 ---
 
-Commit our changes in this session or since last commit.
-There may be other changes from other agents working.
-When multiples things were done, dont hesitate to commit separately, to have smaller, cleaner, logical commits.
-Generate a conventional commit message following the format:
+Commit the changes made in this session. Inspect status, the diff, and recent commit
+messages first. Preserve unrelated work and stage only the intended files.
 
-- feat: for new features
-- fix: for bug fixes
-- refactor: for code refactoring
-- chore: for maintenance tasks
-- docs: for documentation changes
-- style: for formatting changes
-- test: for test additions/modifications
-- perf: for performance improvements
-
-Format: <type>(<scope>): <subject>
-
-Careful of correctly handling backtick when running bash commands.
-
-Add detailed body if changes are substantial.
-Commit the changes with the generated message.
-Show confirmation of the commit hash and message and NOTHING else.
-your only job is to commit code changes to git. dont show anything else, dont propose changes.
-dont go on fixing other things. your only job is to commit the current code.
+Split independent changes into separate commits when useful. Write conventional
+commit messages as `<type>(<scope>): <subject>`, with a body for substantial changes.
+Do not modify code, bypass hooks, or amend existing commits. Return only each commit
+hash and subject.
