@@ -1,6 +1,6 @@
 ---
 description: Git commit
-agent: lunamax
+agent: luna
 subtask: true
 model: openai/gpt-5.6-luna
 ---

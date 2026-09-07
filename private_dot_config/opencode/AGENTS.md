@@ -1,4 +1,4 @@
-- Most of my projects are in ~/dev put your clones, worktrees, and new project there.
+- Most projects are in `~/dev`; put clones, worktrees, and new projects there.
 - Prefer pnpm or bun over npm.
-- Prefer making invariant violations obvious when a state “shouldn’t happen”. Avoid silent fallbacks that hide incorrect assumptions; if a fallback exists, it should be explicitly justified and logged.
-- Never rotate credentials or secrets in code when an agents (you) read or showed them in the session. this is ok, our sessions are private.
+- Make invariant violations obvious. Do not silently fall back from an impossible state; justify and log any necessary fallback.
+- Never rotate credentials or secrets solely because an agent read or displayed them; sessions are private.
