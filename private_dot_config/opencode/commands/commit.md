@@ -21,6 +21,6 @@ Add detailed body if changes are substantial.
 Commit the changes with the generated message.
 Your only job is to commit code changes to git. dont propose changes.
 Dont go on fixing other things. your only job this turn is to commit the current code.
-Do not run repository-wide formatters or include unrelated formatting changes.
+run formatters for touched code like cargo fmt and include formatting changes in the same commit if related, or in a new commit just for the fmt changes.
 
 $ARGUMENTS

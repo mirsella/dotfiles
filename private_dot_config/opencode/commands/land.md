@@ -2,7 +2,7 @@
 description: Commit, land on main or queue for later, and clean up
 ---
 
-Commit only this session's work. Create a task branch if HEAD is detached.
+If there's still uncommitted changes see `/home/mirsella/.config/opencode/commands/commit.md` . Create a task branch if HEAD is detached.
 Rebase onto local main and merge into its checkout with
 `git merge --ff-only --no-autostash`. If main advanced, rebase and retry.
 
