@@ -33,5 +33,6 @@ recommendation and wait for approval, even when the best option seems clear.
 Keep checks lightweight: usually formatting and scoped Clippy, with focused
 tests or measurements for sensitive or uncertain changes.
 
-Include Git diff line counts, total and per logical fix, as
-`+/-net (+added/-deleted)`, with the comparison base labeled.
+End with one line: `diff: Total <counts> | Code <counts> | Tests <counts>`.
+Counts are `+/-net (+added/-deleted)`, with only net numbers bold. Count only your
+edits in this turn; Tests includes inline tests and fixtures, Code everything else.

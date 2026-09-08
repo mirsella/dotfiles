@@ -199,36 +199,45 @@ export class RecoveryStore implements RecoveryCounter {
 		const store = new RecoveryStore(path, warn);
 		try {
 			const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
-			if (!isRecord(parsed) || !isRecord(parsed.sessions))
-				throw new Error("state must be a JSON object with a sessions object");
-			const total = parsed.totalRecoveries;
-			if (typeof total !== "number" || !Number.isInteger(total) || total < 0)
-				throw new Error("totalRecoveries must be a non-negative integer");
-			store.totalRecoveries = total;
+			if (!isRecord(parsed)) throw new Error("state must be a JSON object");
+			const legacy = !("sessions" in parsed);
+			if (!legacy) {
+				const total = parsed.totalRecoveries;
+				if (typeof total !== "number" || !Number.isInteger(total) || total < 0)
+					throw new Error("totalRecoveries must be a non-negative integer");
+				store.totalRecoveries = total;
+			}
+			const sessions = legacy ? parsed : parsed.sessions;
+			if (!isRecord(sessions)) throw new Error("sessions must be a JSON object");
+			const metadata = (value: unknown) =>
+				typeof value === "string" ? value : legacy ? "(unavailable)" : undefined;
 			let listedRecoveries = 0;
-			for (const [child, entry] of Object.entries(parsed.sessions)) {
+			for (const [child, entry] of Object.entries(sessions)) {
 				if (
 					!isRecord(entry) ||
 					typeof entry.recoveryCount !== "number" ||
 					!Number.isInteger(entry.recoveryCount) ||
 					entry.recoveryCount < 0 ||
-					typeof entry.lastRecoveryAt !== "number" ||
-					typeof entry.childTitle !== "string" ||
-					typeof entry.parentSessionID !== "string" ||
-					typeof entry.parentTitle !== "string"
+					typeof entry.lastRecoveryAt !== "number"
 				)
 					throw new Error(`invalid recovery record for ${child}`);
+				const childTitle = metadata(entry.childTitle);
+				const parentSessionID = metadata(entry.parentSessionID);
+				const parentTitle = metadata(entry.parentTitle);
+				if (childTitle === undefined || parentSessionID === undefined || parentTitle === undefined)
+					throw new Error(`missing session metadata for ${child}`);
 				listedRecoveries += entry.recoveryCount;
 				if (now - entry.lastRecoveryAt <= STATE_RETENTION_MS)
 					store.records.set(child, {
 						recoveryCount: entry.recoveryCount,
 						lastRecoveryAt: entry.lastRecoveryAt,
-						childTitle: entry.childTitle,
-						parentSessionID: entry.parentSessionID,
-						parentTitle: entry.parentTitle,
+						childTitle,
+						parentSessionID,
+						parentTitle,
 					});
 			}
-			if (store.totalRecoveries < listedRecoveries)
+			if (legacy) store.totalRecoveries = listedRecoveries;
+			else if (store.totalRecoveries < listedRecoveries)
 				throw new Error("totalRecoveries is lower than the listed session counts");
 		} catch (error) {
 			if (isRecord(error) && error.code === "ENOENT") return store;
@@ -335,6 +344,7 @@ type Child = {
 	updatedAt: number;
 	activityAt: number;
 	activeTools: Set<string>;
+	bashRunning: Set<string>;
 	notices: Set<Notice>;
 	task?: TaskInvocation;
 };
@@ -484,7 +494,11 @@ export class SubagentWatchdog {
 		output: { metadata?: unknown },
 	): Promise<void> {
 		this.recordActivity(input.sessionID);
-		this.children.get(input.sessionID)?.activeTools.delete(input.callID);
+		const ch = this.children.get(input.sessionID);
+		if (ch) {
+			ch.activeTools.delete(input.callID);
+			ch.bashRunning.delete(input.callID);
+		}
 		if (input.tool !== "task") return;
 
 		try {
@@ -548,6 +562,9 @@ export class SubagentWatchdog {
 					if (part.state.status === "running" || part.state.status === "pending")
 						child.activeTools.add(part.callID);
 					else child.activeTools.delete(part.callID);
+					if (part.tool === "bash" && part.state.status === "running")
+						child.bashRunning.add(part.callID);
+					else child.bashRunning.delete(part.callID);
 				}
 				const metadata =
 					"metadata" in part.state && isRecord(part.state.metadata)
@@ -688,9 +705,11 @@ export class SubagentWatchdog {
 				);
 			}
 
-			const threshold = child.activeTools.size
-				? this.config.toolRecoverAfterMs
-				: this.config.recoverAfterMs;
+			const threshold = child.bashRunning.size
+				? 2 * 60 * 60_000
+				: child.activeTools.size
+					? this.config.toolRecoverAfterMs
+					: this.config.recoverAfterMs;
 			if (idleForMs < threshold) continue;
 			if (this.store.count(child.id) >= this.config.maxRecoveriesPerChild) {
 				await this.reportLimit(child);
@@ -1016,6 +1035,7 @@ export class SubagentWatchdog {
 				updatedAt: info.time.updated,
 				activityAt: eventActivity ? this.now() : info.time.updated,
 				activeTools: new Set(),
+				bashRunning: new Set(),
 				notices: new Set(),
 				task: [...this.tasks.values()].find((task) => task.childID === info.id),
 			};

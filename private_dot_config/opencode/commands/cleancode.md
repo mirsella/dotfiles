@@ -163,6 +163,6 @@ cleanup usually needs only `cargo fmt` and/or scoped `cargo clippy`. Use focused
 tests for uncertain or behavior-sensitive changes and test edits; measure
 performance when a consequential tradeoff needs evidence.
 
-Briefly report the improvements, and Git diff line counts,
-total and per logical change, as `+/-net (+added/-deleted)`,
-with the comparison base clearly labeled.
+Briefly report improvements. End with one line: `diff: Total <counts> | Code <counts> | Tests <counts>`.
+Counts are `+/-net (+added/-deleted)`, with only net numbers bold. Count only your
+edits in this turn; Tests includes inline tests and fixtures, Code everything else.
