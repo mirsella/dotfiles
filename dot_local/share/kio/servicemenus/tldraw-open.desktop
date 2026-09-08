@@ -8,4 +8,4 @@ X-KDE-Priority=TopLevel
 [Desktop Action openInTldraw]
 Name=Open in tldraw (web)
 Icon=image-x-generic
-Exec=/home/mirsella/.local/bin/open-in-tldraw.sh %F
+Exec=bash /home/mirsella/.local/bin/open-in-tldraw.sh %F
