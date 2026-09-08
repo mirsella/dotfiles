@@ -3,21 +3,23 @@ import type { Plugin } from "@opencode-ai/plugin";
 const workers = [
   {
     name: "luna",
-    description: "Routine, well-scoped subtasks.",
+    description:
+      "Routine, well-scoped subtasks with a clear approach, including implementation, reviews, summaries, and writing.",
     modelID: "gpt-5.6-luna",
     reasoningEffort: "max",
   },
   {
     name: "astra",
-    description: "Occasional design or guidance, or explicit user requests. Not a default worker.",
+    description:
+      "Difficult, ambiguous, or high-stakes subtasks: architecture and design trade-offs, technical guidance, hard implementation or debugging, deep reviews (correctness, concurrency, security, performance), and nuanced writing (issues, PRs, support replies, emails).",
     modelID: "gpt-6-astra",
     reasoningEffort: "low",
   },
 ] as const;
 
 const taskPolicy = `Delegation policy for task calls:
-When delegating from an OpenAI main session, use luna for routine, well-scoped subtasks and general otherwise. The named workers are unavailable from other providers or child sessions. Other agents are unaffected.
-Load the orchestrator skill only when the user explicitly requests orchestration for the current task.`;
+In OpenAI main sessions, prefer luna or astra over general when their descriptions fit.
+These workers are unavailable from other providers or child sessions. Other agents are unaffected.`;
 
 export default (async ({ client }) => {
   const marker = `<opencode-orchestrator-${crypto.randomUUID()}:`;
@@ -32,7 +34,10 @@ export default (async ({ client }) => {
           mode: "subagent",
           model: `openai/${modelID}`,
           ...existing,
-          options: { reasoningEffort, ...(existing?.options as Record<string, unknown> | undefined) },
+          options: {
+            reasoningEffort,
+            ...(existing?.options as Record<string, unknown> | undefined),
+          },
         };
       }
     },
@@ -47,7 +52,11 @@ export default (async ({ client }) => {
       let limit = 2;
       const [session, initial] = await Promise.all([
         client.session.get({ path: { id: sessionID }, throwOnError: true }),
-        client.session.messages({ path: { id: sessionID }, query: { limit }, throwOnError: true }),
+        client.session.messages({
+          path: { id: sessionID },
+          query: { limit },
+          throwOnError: true,
+        }),
       ]);
       if (session.data.parentID) {
         throw new Error(`${agent} is available only from OpenAI main sessions`);
@@ -60,21 +69,45 @@ export default (async ({ client }) => {
         current = messages.findLast(({ info }) => info.role === "assistant");
         if (current || messages.length < limit) break;
         limit *= 2;
-        ({ data: messages } = await client.session.messages({ path: { id: sessionID }, query: { limit }, throwOnError: true }));
+        ({ data: messages } = await client.session.messages({
+          path: { id: sessionID },
+          query: { limit },
+          throwOnError: true,
+        }));
       }
       const assistant = current?.info;
-      if (!current || assistant?.role !== "assistant" || assistant.time.completed !== undefined || assistant.summary) {
-        throw new Error(`Unable to resolve executing assistant for task ${callID} in session ${sessionID}`);
+      if (
+        !current ||
+        assistant?.role !== "assistant" ||
+        assistant.time.completed !== undefined ||
+        assistant.summary
+      ) {
+        throw new Error(
+          `Unable to resolve executing assistant for task ${callID} in session ${sessionID}`,
+        );
       }
 
       let { providerID, modelID } = assistant;
       // Command subtasks pass the persisted part ID and record the target model on
       // their synthetic assistant. Their invoking model belongs to the parent user.
-      if (current.parts.some((part) => part.type === "tool" && part.tool === "task" && part.id === callID)) {
-        const parent = messages.find(({ info }) => info.id === assistant.parentID)
-          ?? (await client.session.message({ path: { id: sessionID, messageID: assistant.parentID }, throwOnError: true })).data;
+      if (
+        current.parts.some(
+          (part) =>
+            part.type === "tool" && part.tool === "task" && part.id === callID,
+        )
+      ) {
+        const parent =
+          messages.find(({ info }) => info.id === assistant.parentID) ??
+          (
+            await client.session.message({
+              path: { id: sessionID, messageID: assistant.parentID },
+              throwOnError: true,
+            })
+          ).data;
         if (parent.info.role !== "user") {
-          throw new Error(`Unable to resolve invoking user for command task ${callID} in session ${sessionID}`);
+          throw new Error(
+            `Unable to resolve invoking user for command task ${callID} in session ${sessionID}`,
+          );
         }
         ({ providerID, modelID } = parent.info.model);
       }
@@ -87,7 +120,9 @@ export default (async ({ client }) => {
       output.args.prompt = `${marker}${modelID.endsWith("-fast") ? "fast" : "normal"}>\n${output.args.prompt}`;
     },
     "chat.message": async ({ agent }, { message, parts }) => {
-      const part = parts.find((part) => part.type === "text" && part.text.startsWith(marker));
+      const part = parts.find(
+        (part) => part.type === "text" && part.text.startsWith(marker),
+      );
       if (part?.type !== "text") return;
       const fastHeader = `${marker}fast>\n`;
       const normalHeader = `${marker}normal>\n`;
@@ -103,7 +138,10 @@ export default (async ({ client }) => {
       const base = worker.modelID;
       // Explicit models outside the worker's default family remain authoritative.
       if (message.model.providerID !== "openai") return;
-      if (message.model.modelID === base || message.model.modelID === `${base}-fast`) {
+      if (
+        message.model.modelID === base ||
+        message.model.modelID === `${base}-fast`
+      ) {
         message.model.modelID = `${base}${fast ? "-fast" : ""}`;
       }
     },
