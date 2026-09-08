@@ -3,29 +3,27 @@ import type { Plugin } from "@opencode-ai/plugin";
 const workers = [
   {
     name: "luna",
-    description: "Handles routine exploration, research, implementation, and checks.",
+    description: "Routine subtasks.",
     modelID: "gpt-5.6-luna",
     reasoningEffort: "max",
   },
   {
     name: "sol",
-    description: "Handles difficult investigation, implementation, debugging, and review.",
+    description: "Difficult subtasks.",
     modelID: "gpt-5.6-sol",
     reasoningEffort: "high",
   },
   {
     name: "astra",
-    description: "Handles the hardest problems and offers independent ideas, feedback, and review.",
+    description: "The hardest or highest-risk subtasks.",
     modelID: "gpt-6-astra",
     reasoningEffort: "medium",
   },
 ] as const;
 
 const taskPolicy = `Delegation policy for task calls:
-The OpenAI main branch applies only when the executing assistant's providerID is exactly "openai" and the current session has no parentID. In this branch, luna, sol, and astra are available, subject to permissions and disabled agents. Do not use general. Respect explicit agent and cost constraints. Report an unavailable requested agent; otherwise a legitimately available alternative is allowed, without bypassing restrictions.
-Within the OpenAI main branch, default to luna for routine work and sol for difficult work; they should handle most delegated work. Use astra for the hardest or highest-risk problems, or a useful fresh perspective, ideas, feedback, or review. Select by the assignment, not the current model's tier. Escalation does not require a separate user request. These are defaults, not quotas or mandatory reviews.
-The other branch applies when providerID is not exactly "openai" or the session has a parentID. In this branch, use general for general-purpose subtasks, subject to normal permissions and subagent depth limits. It inherits the calling model unless explicitly configured otherwise. The luna, sol, and astra workers are unavailable, even if listed in this tool. Other available agents remain usable.
-Load the orchestrator skill for multi-agent coordination, including explicit orchestration requests.`;
+Delegate as usual. When providerID is "openai" and the session has no parentID, use luna for routine subtasks, sol for difficult subtasks, and astra for the hardest or highest-risk subtasks instead of general. Otherwise, use general; the named workers are unavailable. Other agents are unaffected.
+Load the orchestrator skill only when the user explicitly requests orchestration for the current task.`;
 
 export default (async ({ client }) => {
   const marker = `<opencode-orchestrator-${crypto.randomUUID()}:`;
