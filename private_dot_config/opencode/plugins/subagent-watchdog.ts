@@ -135,27 +135,19 @@ export function normalizeConfig(value: unknown): {
 		if (typeof value[key] === "boolean") config[key] = value[key];
 		else warnings.push(`${key} must be a boolean; using the default`);
 	}
-	for (const key of [
-		"suspectAfterMs",
-		"recoverAfterMs",
-		"toolRecoverAfterMs",
-		"pollIntervalMs",
-		"abortWaitMs",
+	for (const { key, min, label } of [
+		{ key: "suspectAfterMs", min: 1, label: "positive" },
+		{ key: "recoverAfterMs", min: 1, label: "positive" },
+		{ key: "toolRecoverAfterMs", min: 1, label: "positive" },
+		{ key: "pollIntervalMs", min: 1, label: "positive" },
+		{ key: "abortWaitMs", min: 1, label: "positive" },
+		{ key: "maxRecoveriesPerChild", min: 0, label: "non-negative" },
 	] as const) {
 		if (!(key in value)) continue;
 		const candidate = value[key];
-		if (typeof candidate === "number" && Number.isInteger(candidate) && candidate > 0)
+		if (typeof candidate === "number" && Number.isInteger(candidate) && candidate >= min)
 			config[key] = candidate;
-		else warnings.push(`${key} must be a positive integer; using the default`);
-	}
-	if ("maxRecoveriesPerChild" in value) {
-		const candidate = value.maxRecoveriesPerChild;
-		if (typeof candidate === "number" && Number.isInteger(candidate) && candidate >= 0)
-			config.maxRecoveriesPerChild = candidate;
-		else
-			warnings.push(
-				"maxRecoveriesPerChild must be a non-negative integer; using the default",
-			);
+		else warnings.push(`${key} must be a ${label} integer; using the default`);
 	}
 	if ("mode" in value) {
 		if (value.mode === "report" || value.mode === "auto") config.mode = value.mode;
@@ -207,45 +199,36 @@ export class RecoveryStore implements RecoveryCounter {
 		const store = new RecoveryStore(path, warn);
 		try {
 			const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
-			if (!isRecord(parsed)) throw new Error("state must be a JSON object");
-			const legacy = !("sessions" in parsed);
-			if (!legacy) {
-				const total = parsed.totalRecoveries;
-				if (typeof total !== "number" || !Number.isInteger(total) || total < 0)
-					throw new Error("totalRecoveries must be a non-negative integer");
-				store.totalRecoveries = total;
-			}
-			const sessions = legacy ? parsed : parsed.sessions;
-			if (!isRecord(sessions)) throw new Error("sessions must be a JSON object");
-			const metadata = (value: unknown) =>
-				typeof value === "string" ? value : legacy ? "(unavailable)" : undefined;
+			if (!isRecord(parsed) || !isRecord(parsed.sessions))
+				throw new Error("state must be a JSON object with a sessions object");
+			const total = parsed.totalRecoveries;
+			if (typeof total !== "number" || !Number.isInteger(total) || total < 0)
+				throw new Error("totalRecoveries must be a non-negative integer");
+			store.totalRecoveries = total;
 			let listedRecoveries = 0;
-			for (const [child, entry] of Object.entries(sessions)) {
+			for (const [child, entry] of Object.entries(parsed.sessions)) {
 				if (
 					!isRecord(entry) ||
 					typeof entry.recoveryCount !== "number" ||
 					!Number.isInteger(entry.recoveryCount) ||
 					entry.recoveryCount < 0 ||
-					typeof entry.lastRecoveryAt !== "number"
+					typeof entry.lastRecoveryAt !== "number" ||
+					typeof entry.childTitle !== "string" ||
+					typeof entry.parentSessionID !== "string" ||
+					typeof entry.parentTitle !== "string"
 				)
 					throw new Error(`invalid recovery record for ${child}`);
-				const childTitle = metadata(entry.childTitle);
-				const parentSessionID = metadata(entry.parentSessionID);
-				const parentTitle = metadata(entry.parentTitle);
-				if (childTitle === undefined || parentSessionID === undefined || parentTitle === undefined)
-					throw new Error(`missing session metadata for ${child}`);
 				listedRecoveries += entry.recoveryCount;
 				if (now - entry.lastRecoveryAt <= STATE_RETENTION_MS)
 					store.records.set(child, {
 						recoveryCount: entry.recoveryCount,
 						lastRecoveryAt: entry.lastRecoveryAt,
-						childTitle,
-						parentSessionID,
-						parentTitle,
+						childTitle: entry.childTitle,
+						parentSessionID: entry.parentSessionID,
+						parentTitle: entry.parentTitle,
 					});
 			}
-			if (legacy) store.totalRecoveries = listedRecoveries;
-			else if (store.totalRecoveries < listedRecoveries)
+			if (store.totalRecoveries < listedRecoveries)
 				throw new Error("totalRecoveries is lower than the listed session counts");
 		} catch (error) {
 			if (isRecord(error) && error.code === "ENOENT") return store;
@@ -363,10 +346,14 @@ type Recovery = {
 	promptedAt?: number;
 	callID?: string;
 };
-type RecoverySnapshot = {
+type Examination = {
+	freshChild: SessionInfo;
 	childStatus: SessionStatus;
-	activeChildren: string[];
+	parentStatus: SessionStatus;
 	parentTitle: string;
+	activeChildren: string[];
+	pending: Set<string>;
+	taskState: TaskState | undefined;
 };
 
 function makeRecoveryPrompt(child: Child): string {
@@ -761,14 +748,8 @@ export class SubagentWatchdog {
 				await reservation.rollback();
 				return await this.cancelRecovery(child, recovery);
 			}
-			if (
-				!this.config.recoverParallelChildren &&
-				snapshot.activeChildren.length > 1
-			) {
-				await reservation.rollback();
-				await this.skipParallel(child, recovery, snapshot.activeChildren);
+			if (await this.skipParallel(child, recovery, snapshot.activeChildren, reservation))
 				return;
-			}
 
 			await this.api.abort(child.parentID);
 			abortRequested = true;
@@ -785,25 +766,19 @@ export class SubagentWatchdog {
 			if (!(await this.waitForIdle(child.parentID)))
 				return await this.failRecovery(child.parentID, "parent did not become idle");
 
-			const [{ sessions, statuses, pending }, taskState] = await Promise.all([
-				this.api.snapshot(),
-				this.api.getTaskState(child.parentID, child.id),
-			]);
-			const freshChild = sessions.find(({ id }) => id === child.id);
-			const freshParent = sessions.find(({ id }) => id === child.parentID);
+			const examined = await this.examine(child);
+			const taskState = examined?.taskState;
 			if (
+				!examined ||
 				this.recoveries.get(child.parentID) !== recovery ||
-				!freshChild ||
-				!freshParent ||
-				freshChild.parentID !== child.parentID ||
-				isActive(statusOf(statuses, child.id)) ||
-				statusOf(statuses, child.parentID).type !== "idle" ||
+				isActive(examined.childStatus) ||
+				examined.parentStatus.type !== "idle" ||
 				!taskState ||
 				taskState.callID !== recovery.blockedCallID ||
 				taskState.status !== "error" ||
 				!taskState.latest ||
-				pending.has(child.id) ||
-				pending.has(child.parentID)
+				examined.pending.has(child.id) ||
+				examined.pending.has(child.parentID)
 			)
 				return await this.failRecovery(
 					child.parentID,
@@ -833,29 +808,42 @@ export class SubagentWatchdog {
 		}
 	}
 
-	private async revalidate(
-		child: Child,
-		recovery: Recovery,
-	): Promise<RecoverySnapshot | undefined> {
+	private async examine(child: Child): Promise<Examination | undefined> {
 		const [{ sessions, statuses, pending }, taskState] = await Promise.all([
 			this.api.snapshot(),
 			this.api.getTaskState(child.parentID, child.id),
 		]);
 		const freshChild = sessions.find(({ id }) => id === child.id);
 		const freshParent = sessions.find(({ id }) => id === child.parentID);
-		if (this.recoveries.get(child.parentID) !== recovery) return;
-		if (freshChild && freshChild.time.updated > child.updatedAt) {
+		if (!freshChild || !freshParent || freshChild.parentID !== child.parentID)
+			return undefined;
+		return {
+			freshChild,
+			childStatus: statusOf(statuses, child.id),
+			parentStatus: statusOf(statuses, child.parentID),
+			parentTitle: freshParent.title,
+			activeChildren: sessions
+				.filter((candidate) => candidate.parentID === child.parentID && isActive(statusOf(statuses, candidate.id)))
+				.map((candidate) => candidate.id),
+			pending,
+			taskState,
+		};
+	}
+
+	private async revalidate(
+		child: Child,
+		recovery: Recovery,
+	): Promise<Examination | undefined> {
+		const examined = await this.examine(child);
+		if (!examined || this.recoveries.get(child.parentID) !== recovery) return;
+		const { freshChild, childStatus, parentStatus, taskState, pending } = examined;
+		if (freshChild.time.updated > child.updatedAt) {
 			child.updatedAt = freshChild.time.updated;
 			this.recordActivity(child.id, freshChild.time.updated);
 			return;
 		}
-		const childStatus = statusOf(statuses, child.id);
-		const parentStatus = statusOf(statuses, child.parentID);
 		if (!recovery.blockedCallID) recovery.blockedCallID = taskState?.callID;
 		if (
-			!freshChild ||
-			!freshParent ||
-			freshChild.parentID !== child.parentID ||
 			child.activityAt !== recovery.decidedAt ||
 			statusKey(childStatus) !== recovery.statusKey ||
 			!taskState ||
@@ -870,25 +858,17 @@ export class SubagentWatchdog {
 			child.task?.background === true
 		)
 			return;
-		return {
-			childStatus,
-			parentTitle: freshParent.title,
-			activeChildren: sessions
-				.filter(
-					(candidate) =>
-						candidate.parentID === child.parentID &&
-						isActive(statusOf(statuses, candidate.id)),
-				)
-				.map((candidate) => candidate.id),
-		};
+		return examined;
 	}
 
 	private async skipParallel(
 		child: Child,
 		recovery: Recovery,
 		activeChildren: string[],
+		reservation?: RecoveryReservation,
 	): Promise<boolean> {
 		if (this.config.recoverParallelChildren || activeChildren.length <= 1) return false;
+		await reservation?.rollback();
 		this.recoveries.delete(child.parentID);
 		if (!child.notices.has("parallel")) {
 			child.notices.add("parallel");
@@ -1285,3 +1265,5 @@ export const SubagentWatchdogPlugin: Plugin = async ({ client, directory }) => {
 			guarded("tool.execute.after", () => watchdog.handleToolAfter(input, output)),
 	};
 };
+
+export default SubagentWatchdogPlugin;
