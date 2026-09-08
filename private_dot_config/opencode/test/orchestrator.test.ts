@@ -127,14 +127,15 @@ test("task definition carries the conditional delegation policy without service 
   const description = await definition();
   expect(description).toStartWith("Original tool description\n\nDelegation policy for task calls:");
   for (const text of [
-    "top-level session running an OpenAI model",
+    'providerID is exactly "openai"', "current session has no parentID",
     "Do not use general", "legitimately available alternative",
-    "most delegated work", "fresh perspective", "escalation does not require a separate user request",
-    "defaults, not quotas", "non-overlapping writes", "reuse existing task IDs",
-    "deliberate comparison and verification", "explicitly requests orchestration",
-    "understand the implementation", "assess tradeoffs", "inspect key code",
-    "including non-OpenAI and child sessions", "use general for general-purpose subtasks",
+    "Within the OpenAI main branch", "most delegated work", "fresh perspective",
+    "Select by the assignment, not the current model's tier",
+    "Escalation does not require a separate user request", "defaults, not quotas",
+    'providerID is not exactly "openai"', "session has a parentID",
+    "In this branch, use general for general-purpose subtasks",
     "luna, sol, and astra workers are unavailable",
+    "including explicit orchestration requests",
   ]) {
     expect(description).toContain(text);
   }
