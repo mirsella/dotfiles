@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Config, Hooks } from "@opencode-ai/plugin";
+import type { Config } from "@opencode-ai/plugin";
 import type { AssistantMessage, Part, Session, SessionMessagesResponse, ToolPart, UserMessage } from "@opencode-ai/sdk";
 import { createOpencodeClient } from "@opencode-ai/sdk";
 import orchestrator from "../plugins/orchestrator";
@@ -41,24 +41,25 @@ const setup = async (messages: SessionMessagesResponse = [user(), assistant()]) 
     baseUrl: "http://opencode.test",
     fetch: async (request) => {
       const url = new URL(request.url);
-      const sessionID = url.pathname.split("/")[2];
+      const [, , sessionID, resource, messageID] = url.pathname.split("/");
       const source = histories[sessionID];
       let data;
-      switch (url.pathname.slice(`/session/${sessionID}`.length)) {
-        case "":
+      switch (resource) {
+        case undefined:
           requests.push("get");
           data = source?.session;
           break;
-        case "/message": {
+        case "message": {
+          if (messageID) {
+            requests.push(`message:${messageID}`);
+            data = source?.messages?.find(({ info }) => info.id === messageID);
+            break;
+          }
           const limit = Number(url.searchParams.get("limit"));
           requests.push(`messages:${limit}`);
           data = source?.messages?.slice(-limit);
           break;
         }
-        case "/message/user":
-          requests.push("message:user");
-          data = source?.messages?.find(({ info }) => info.id === "user");
-          break;
         default:
           throw new Error(`Unexpected request: ${request.method} ${url}`);
       }
@@ -95,11 +96,10 @@ test("registers worker defaults and preserves unrelated configuration", async ()
   await hooks.config(config);
   expect(config.model).toBe("openai/gpt-6-astra");
   expect(config.agent!.general).toBe(general);
-  expect(Object.keys(config.agent!)).toEqual(["general", "luna", "sol", "astra"]);
+  expect(Object.keys(config.agent!)).toEqual(["general", "luna", "astra"]);
   for (const [name, model, effort] of [
     ["luna", "openai/gpt-5.6-luna", "max"],
-    ["sol", "openai/gpt-5.6-sol", "high"],
-    ["astra", "openai/gpt-6-astra", "medium"],
+    ["astra", "openai/gpt-6-astra", "low"],
   ]) {
     expect(config.agent![name]).toMatchObject({ mode: "subagent", model, options: { reasoningEffort: effort } });
     expect(config.agent![name].description).toBeString();
@@ -112,11 +112,11 @@ test("preserves explicit worker permissions, disable, prompts, and model setting
     variant: "custom", model: "openai/custom-luna", mode: "all" as const,
     description: "Custom worker", options: { reasoningEffort: "low", custom: true },
   };
-  const config: Config = { agent: { luna, sol: { options: { custom: true } } } };
+  const config: Config = { agent: { luna, astra: { options: { custom: true } } } };
   const { hooks } = await setup();
   await hooks.config(config);
   expect(config.agent!.luna).toEqual(luna);
-  expect(config.agent!.sol.options).toEqual({ reasoningEffort: "high", custom: true });
+  expect(config.agent!.astra.options).toEqual({ reasoningEffort: "low", custom: true });
   const registered = structuredClone(config);
   await hooks.config(config);
   expect(config).toEqual(registered);
@@ -127,11 +127,9 @@ test("task definition carries the conditional delegation policy without service 
   const description = await definition();
   expect(description).toStartWith("Original tool description\n\nDelegation policy for task calls:");
   for (const text of [
-    "Delegate as usual",
-    'providerID is "openai"', "session has no parentID",
-    "luna for routine subtasks", "sol for difficult subtasks",
-    "astra for the hardest or highest-risk subtasks instead of general",
-    "Otherwise, use general; the named workers are unavailable",
+    "When delegating from an OpenAI main session",
+    "luna for routine, well-scoped subtasks and general otherwise",
+    "named workers are unavailable from other providers or child sessions",
     "Other agents are unaffected",
     "only when the user explicitly requests orchestration for the current task",
   ]) {
@@ -146,45 +144,55 @@ test("leaves unrelated tool definitions unchanged", async () => {
   expect(requests).toEqual([]);
 });
 
-test("does not install LLM preparation hooks", async () => {
-  const { hooks } = await setup();
-  for (const name of ["experimental.chat.system.transform", "experimental.chat.messages.transform", "chat.params"] as const) {
-    expect((hooks as Hooks)[name]).toBeUndefined();
-  }
-});
-
-test("cold OpenAI continuation allows workers and denies general before tool parts exist", async () => {
+test("cold OpenAI continuation allows workers and general before tool parts exist", async () => {
   const { task } = await setup();
-  for (const agent of ["luna", "sol", "astra"]) await expect(task(agent)).resolves.toEndWith(taskPrompt);
-  await expect(task("general")).rejects.toThrow("general is unavailable from OpenAI main sessions");
+  for (const agent of ["luna", "astra"]) await expect(task(agent)).resolves.toEndWith(taskPrompt);
+  await expect(task("general")).resolves.toBe(taskPrompt);
 });
 
 test("uses each executing assistant's provider rather than remembered or latest user models", async () => {
   const { task, state } = await setup();
   await expect(task("astra")).resolves.toEndWith(taskPrompt);
   state.messages = [user(), assistant("other"), user("openai", "queued")];
-  for (const agent of ["luna", "sol", "astra"]) {
+  for (const agent of ["luna", "astra"]) {
     await expect(task(agent)).rejects.toThrow("available only from OpenAI main sessions");
   }
   await expect(task("general")).resolves.toBe(taskPrompt);
   state.messages = [user("other"), assistant(), user("other", "queued")];
   await expect(task("astra")).resolves.toEndWith(taskPrompt);
-  await expect(task("general")).rejects.toThrow("unavailable from OpenAI main sessions");
+  await expect(task("general")).resolves.toBe(taskPrompt);
 });
 
-test("child sessions cannot invoke workers but can use general", async () => {
-  const { task, state } = await setup();
+test("child sessions reject workers without paging history or resolving command parents", async () => {
+  const { task, state, requests } = await setup([assistant("openai", [commandPart]), ...Array.from({ length: 5 }, (_, i) => user("openai", `queued-${i}`))]);
   state.session!.parentID = "parent";
-  for (const agent of ["luna", "sol", "astra"]) {
-    await expect(task(agent)).rejects.toThrow("available only from OpenAI main sessions");
+  for (const agent of ["luna", "astra"]) {
+    await expect(task(agent, "part")).rejects.toThrow("available only from OpenAI main sessions");
   }
   await expect(task("general")).resolves.toBe(taskPrompt);
+  expect(requests.sort()).toEqual(["get", "get", "messages:2", "messages:2"]);
+});
+
+test.each([false, true])("general bypasses routing with child=%s, even without readable history", async (child) => {
+  const { hooks, task, prompt, state, requests } = await setup();
+  state.session!.parentID = child ? "parent" : undefined;
+  state.messages = undefined;
+  const config: Config = {};
+  await hooks.config(config);
+  expect(config.agent!.general).toBeUndefined();
+  const source = await task("general");
+  expect(source).toBe(taskPrompt);
+  expect(await prompt("child", "general", "custom-parent-fast", source, "other")).toEqual({
+    providerID: "other", modelID: "custom-parent-fast", variant: "custom",
+  });
+  expect(requests).toEqual([]);
 });
 
 test("unrelated tools and agent types need no lookups", async () => {
   const { task, requests } = await setup();
   expect(await task("explore")).toBe(taskPrompt);
   expect(await task("custom")).toBe(taskPrompt);
+  expect(await task("general")).toBe(taskPrompt);
   expect(await task("astra", "call", "read")).toBe(taskPrompt);
   expect(requests).toEqual([]);
 });
@@ -192,7 +200,7 @@ test("unrelated tools and agent types need no lookups", async () => {
 test("finds the executing assistant behind queued users and shares its model across parallel tasks", async () => {
   const { task, state, requests } = await setup();
   state.messages!.push(...Array.from({ length: 5 }, (_, i) => user("other", `queued-${i}`)));
-  await Promise.all([task("luna", "call-1"), task("sol", "call-2")]);
+  await Promise.all([task("luna", "call-1"), task("astra", "call-2")]);
   expect(requests.sort()).toEqual(["get", "get", "messages:2", "messages:2", "messages:4", "messages:4", "messages:8", "messages:8"]);
 });
 
@@ -203,14 +211,24 @@ test("command subtasks use their exact parent user's provider, not the target or
   await expect(task("general", "part")).resolves.toBe(taskPrompt);
   state.messages = [user("openai"), assistant("other", [commandPart]), user("other", "queued")];
   await expect(task("astra", "part")).resolves.toEndWith(taskPrompt);
-  await expect(task("general", "part")).rejects.toThrow("unavailable from OpenAI main sessions");
-  expect(requests.filter((request) => request.startsWith("message:"))).toEqual(Array(4).fill("message:user"));
+  await expect(task("general", "part")).resolves.toBe(taskPrompt);
+  expect(requests.filter((request) => request.startsWith("message:"))).toEqual(Array(2).fill("message:user"));
 });
 
 test("command subtasks reuse an invoking user already in the fetched page", async () => {
   const { task, requests } = await setup([user(), assistant("other", [commandPart])]);
   await expect(task("astra", "part")).resolves.toEndWith(taskPrompt);
   expect(requests).toEqual(["get", "messages:2"]);
+});
+
+test("command subtasks resolve the assistant's parent ID, not a fixed or latest user", async () => {
+  const invoking = user("openai", "invoking-user");
+  invoking.info.model.modelID += "-fast";
+  const command = assistant("other", [commandPart]);
+  command.info.parentID = invoking.info.id;
+  const { task, prompt, requests } = await setup([invoking, command, user("other", "queued")]);
+  expect((await prompt("child", "astra", "gpt-6-astra", await task("astra", "part"))).modelID).toBe("gpt-6-astra-fast");
+  expect(requests).toEqual(["get", "messages:2", "message:invoking-user"]);
 });
 
 test("normal task call IDs do not select the command authorization path", async () => {
@@ -228,7 +246,7 @@ test("SDK request errors retain their server diagnostics and HTTP status", async
   });
   state.session = session;
   state.messages = undefined;
-  await expect(task("general")).rejects.toMatchObject({
+  await expect(task("astra")).rejects.toMatchObject({
     message: "Missing /session/session/message", cause: { status: 404 },
   });
 });
@@ -271,7 +289,7 @@ test("all workers follow live fast/non-fast switches, including resumed child se
     const queued = user("openai", "queued");
     queued.info.model.modelID = fast ? "gpt-6-astra" : "gpt-6-astra-fast";
     state.messages = [user(), current, queued];
-    for (const [agent, base] of [["luna", "gpt-5.6-luna"], ["sol", "gpt-5.6-sol"], ["astra", "gpt-6-astra"]]) {
+    for (const [agent, base] of [["luna", "gpt-5.6-luna"], ["astra", "gpt-6-astra"]]) {
       const source = await task(agent);
       for (const configured of [base, `${base}-fast`]) {
         expect(await prompt(agent, agent, configured, source)).toEqual({
@@ -287,11 +305,11 @@ test("snapshots the invoking model rather than a later turn and correlates paral
   const fast = assistant();
   fast.info.modelID += "-fast";
   state.messages = [user(), fast];
-  const [fastSol, fastLuna] = await Promise.all([task("sol", "fast-sol"), task("luna", "fast-luna")]);
+  const [fastAstra, fastLuna] = await Promise.all([task("astra", "fast-astra"), task("luna", "fast-luna")]);
   state.messages = [user(), assistant()];
-  const normalSol = await task("sol", "normal-sol");
-  expect((await prompt("fast-sol", "sol", "gpt-5.6-sol", fastSol)).modelID).toBe("gpt-5.6-sol-fast");
-  expect((await prompt("normal", "sol", "gpt-5.6-sol-fast", normalSol)).modelID).toBe("gpt-5.6-sol");
+  const normalAstra = await task("astra", "normal-astra");
+  expect((await prompt("fast-astra", "astra", "gpt-6-astra", fastAstra)).modelID).toBe("gpt-6-astra-fast");
+  expect((await prompt("normal", "astra", "gpt-6-astra-fast", normalAstra)).modelID).toBe("gpt-6-astra");
   expect((await prompt("fast-luna", "luna", "gpt-5.6-luna", fastLuna)).modelID).toBe("gpt-5.6-luna-fast");
 });
 
@@ -300,9 +318,9 @@ test("concurrent main sessions with identical call IDs keep independent speed se
   const fast = assistant();
   fast.info.modelID += "-fast";
   histories.other = { session: { ...state.session!, id: "other" }, messages: [user(), fast] };
-  const [normal, accelerated] = await Promise.all([task("sol"), task("sol", "call", "task", "other")]);
-  expect((await prompt("normal", "sol", "gpt-5.6-sol-fast", normal)).modelID).toBe("gpt-5.6-sol");
-  expect((await prompt("fast", "sol", "gpt-5.6-sol", accelerated)).modelID).toBe("gpt-5.6-sol-fast");
+  const [normal, accelerated] = await Promise.all([task("astra"), task("astra", "call", "task", "other")]);
+  expect((await prompt("normal", "astra", "gpt-6-astra-fast", normal)).modelID).toBe("gpt-6-astra");
+  expect((await prompt("fast", "astra", "gpt-6-astra", accelerated)).modelID).toBe("gpt-6-astra-fast");
 });
 
 test("command tasks inherit the invoking user's speed and correlate by part ID", async () => {
@@ -314,25 +332,25 @@ test("command tasks inherit the invoking user's speed and correlate by part ID",
 
 test("queued resumes carry their own speed regardless of scheduling order or cancellation", async () => {
   const { state, task, prompt } = await setup();
-  const normal = await task("sol", "normal");
-  await task("sol", "cancelled");
+  const normal = await task("astra", "normal");
+  await task("astra", "cancelled");
   const fast = assistant();
   fast.info.modelID += "-fast";
   state.messages = [user(), fast];
-  const accelerated = await task("sol", "fast");
+  const accelerated = await task("astra", "fast");
   // The cancelled invocation never reaches chat.message; no cleanup event is needed.
-  expect((await prompt("child", "sol", "gpt-5.6-sol", accelerated)).modelID).toBe("gpt-5.6-sol-fast");
-  expect((await prompt("child", "sol", "gpt-5.6-sol-fast", normal)).modelID).toBe("gpt-5.6-sol");
-  expect((await prompt("child", "sol", "gpt-5.6-sol-fast")).modelID).toBe("gpt-5.6-sol-fast");
+  expect((await prompt("child", "astra", "gpt-6-astra", accelerated)).modelID).toBe("gpt-6-astra-fast");
+  expect((await prompt("child", "astra", "gpt-6-astra-fast", normal)).modelID).toBe("gpt-6-astra");
+  expect((await prompt("child", "astra", "gpt-6-astra-fast")).modelID).toBe("gpt-6-astra-fast");
 });
 
 test("unrelated prompts and explicit custom worker models are unchanged", async () => {
   const { task, prompt, requests } = await setup();
   expect((await prompt("session", "build", "gpt-6-astra-fast")).modelID).toBe("gpt-6-astra-fast");
-  expect((await prompt("child", "sol", "gpt-5.6-sol-fast")).modelID).toBe("gpt-5.6-sol-fast");
+  expect((await prompt("child", "astra", "gpt-6-astra-fast")).modelID).toBe("gpt-6-astra-fast");
   expect(requests).toEqual([]);
-  for (const [provider, model] of [["openai", "custom-sol-fast"], ["other", "gpt-5.6-sol-fast"]]) {
-    expect((await prompt("child", "sol", model, await task("sol"), provider)).modelID).toBe(model);
+  for (const [provider, model] of [["openai", "custom-astra-fast"], ["other", "gpt-6-astra-fast"]]) {
+    expect((await prompt("child", "astra", model, await task("astra"), provider)).modelID).toBe(model);
   }
 });
 
@@ -342,7 +360,7 @@ test("worker corrections by later hooks retain the parent's speed without pinnin
     const current = assistant();
     current.info.modelID = `gpt-6-astra${fast ? "-fast" : ""}`;
     state.messages = [user(), current];
-    const source = await task("sol");
+    const source = await task("astra");
     // The watchdog rewrites subagent_type when resuming a different original worker.
     expect((await prompt("child", "luna", "gpt-5.6-luna", source)).modelID)
       .toBe(`gpt-5.6-luna${fast ? "-fast" : ""}`);
@@ -352,27 +370,27 @@ test("worker corrections by later hooks retain the parent's speed without pinnin
 
 test("corrupted model markers fail explicitly", async () => {
   const { task, prompt } = await setup();
-  const source = await task("sol");
-  await expect(prompt("child", "sol", "gpt-5.6-sol", source.replace(":normal>", ":invalid>"))).rejects.toThrow("Invalid orchestrator model marker");
+  const source = await task("astra");
+  await expect(prompt("child", "astra", "gpt-6-astra", source.replace(":normal>", ":invalid>"))).rejects.toThrow("Invalid orchestrator model marker");
 });
 
 test.each(["", "\n@src/main.ts\n\u00e9\r\n", "<opencode-orchestrator-user:sol:fast>\nKeep this text."])(
   "removes only routing metadata, preserving prompt %j and attachments",
   async (text) => {
     const { hooks } = await setup();
-    const args = { subagent_type: "sol", prompt: text };
+    const args = { subagent_type: "astra", prompt: text };
     await hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call" }, { args });
-    const message = { ...user().info, sessionID: "child", agent: "sol", model: { providerID: "openai", modelID: "gpt-5.6-sol-fast" } };
+    const message = { ...user().info, sessionID: "child", agent: "astra", model: { providerID: "openai", modelID: "gpt-6-astra-fast" } };
     const parts: Part[] = [
       { id: "file", sessionID: "child", messageID: message.id, type: "file", mime: "text/plain", url: "file:///project/src/main.ts" },
       { id: "text", sessionID: "child", messageID: message.id, type: "text", text },
     ];
     const expected = structuredClone(parts);
     parts[1] = { ...parts[1], type: "text", text: args.prompt };
-    await hooks["chat.message"]({ sessionID: "child", agent: "sol" }, { message, parts });
+    await hooks["chat.message"]({ sessionID: "child", agent: "astra" }, { message, parts });
     expect(parts).toEqual(expected);
-    expect(message.model.modelID).toBe("gpt-5.6-sol");
-    await hooks["chat.message"]({ sessionID: "child", agent: "sol" }, { message, parts });
+    expect(message.model.modelID).toBe("gpt-6-astra");
+    await hooks["chat.message"]({ sessionID: "child", agent: "astra" }, { message, parts });
     expect(parts).toEqual(expected);
   },
 );

@@ -3,26 +3,20 @@ import type { Plugin } from "@opencode-ai/plugin";
 const workers = [
   {
     name: "luna",
-    description: "Routine subtasks.",
+    description: "Routine, well-scoped subtasks.",
     modelID: "gpt-5.6-luna",
     reasoningEffort: "max",
   },
   {
-    name: "sol",
-    description: "Difficult subtasks.",
-    modelID: "gpt-5.6-sol",
-    reasoningEffort: "high",
-  },
-  {
     name: "astra",
-    description: "The hardest or highest-risk subtasks.",
+    description: "Occasional design or guidance, or explicit user requests. Not a default worker.",
     modelID: "gpt-6-astra",
-    reasoningEffort: "medium",
+    reasoningEffort: "low",
   },
 ] as const;
 
 const taskPolicy = `Delegation policy for task calls:
-Delegate as usual. When providerID is "openai" and the session has no parentID, use luna for routine subtasks, sol for difficult subtasks, and astra for the hardest or highest-risk subtasks instead of general. Otherwise, use general; the named workers are unavailable. Other agents are unaffected.
+When delegating from an OpenAI main session, use luna for routine, well-scoped subtasks and general otherwise. The named workers are unavailable from other providers or child sessions. Other agents are unaffected.
 Load the orchestrator skill only when the user explicitly requests orchestration for the current task.`;
 
 export default (async ({ client }) => {
@@ -48,22 +42,26 @@ export default (async ({ client }) => {
     "tool.execute.before": async ({ tool, sessionID, callID }, output) => {
       if (tool !== "task") return;
       const agent = output.args.subagent_type;
-      const worker = workers.find(({ name }) => name === agent);
-      if (agent !== "general" && !worker) return;
+      if (!workers.some(({ name }) => name === agent)) return;
 
       let limit = 2;
       const [session, initial] = await Promise.all([
         client.session.get({ path: { id: sessionID }, throwOnError: true }),
         client.session.messages({ path: { id: sessionID }, query: { limit }, throwOnError: true }),
       ]);
+      if (session.data.parentID) {
+        throw new Error(`${agent} is available only from OpenAI main sessions`);
+      }
       let messages = initial.data;
+      let current;
       // The runner persists its assistant before tool execution. Queued users can be newer;
       // streamed tool parts need not be persisted yet, so they cannot identify normal calls.
-      while (messages.length === limit && messages.every(({ info }) => info.role === "user")) {
+      while (true) {
+        current = messages.findLast(({ info }) => info.role === "assistant");
+        if (current || messages.length < limit) break;
         limit *= 2;
         ({ data: messages } = await client.session.messages({ path: { id: sessionID }, query: { limit }, throwOnError: true }));
       }
-      const current = messages.findLast(({ info }) => info.role === "assistant");
       const assistant = current?.info;
       if (!current || assistant?.role !== "assistant" || assistant.time.completed !== undefined || assistant.summary) {
         throw new Error(`Unable to resolve executing assistant for task ${callID} in session ${sessionID}`);
@@ -81,12 +79,7 @@ export default (async ({ client }) => {
         ({ providerID, modelID } = parent.info.model);
       }
 
-      const openaiMain = !session.data.parentID && providerID === "openai";
-      if (!worker) {
-        if (openaiMain) throw new Error("general is unavailable from OpenAI main sessions");
-        return;
-      }
-      if (!openaiMain) {
+      if (providerID !== "openai") {
         throw new Error(`${agent} is available only from OpenAI main sessions`);
       }
       // Task has no model override or child-prompt correlation ID. Carry the
