@@ -80,7 +80,12 @@ const setup = async (messages: SessionMessagesResponse = [user(), assistant()]) 
     expect(parts).toEqual([{ id: "text", sessionID, messageID: message.id, type: "text", text: taskPrompt }]);
     return message.model;
   };
-  return { hooks, state, histories, requests, task, prompt };
+  const definition = async (toolID = "task", description = "Original tool description") => {
+    const output = { description, parameters: {} };
+    await hooks["tool.definition"]({ toolID }, output);
+    return output.description;
+  };
+  return { hooks, state, histories, requests, task, prompt, definition };
 };
 
 test("registers worker defaults and preserves unrelated configuration", async () => {
@@ -117,31 +122,34 @@ test("preserves explicit worker permissions, disable, prompts, and model setting
   expect(config).toEqual(registered);
 });
 
-test("adds conditional guidance only to task, without touching parameters", async () => {
-  const { hooks, requests } = await setup();
-  const output = { description: "Original task description", parameters: { original: true } };
-  await hooks["tool.definition"]({ toolID: "task" }, output);
-  expect(output.description).toStartWith("Original task description\n\nDelegation policy:");
+test("task definition carries the conditional delegation policy without service lookups", async () => {
+  const { definition, requests } = await setup();
+  const description = await definition();
+  expect(description).toStartWith("Original tool description\n\nDelegation policy for task calls:");
   for (const text of [
-    "top-level OpenAI", "do not use general", "legitimately available alternative",
+    "top-level session running an OpenAI model",
+    "Do not use general", "legitimately available alternative",
     "most delegated work", "fresh perspective", "escalation does not require a separate user request",
     "defaults, not quotas", "non-overlapping writes", "reuse existing task IDs",
     "deliberate comparison and verification", "explicitly requests orchestration",
     "understand the implementation", "assess tradeoffs", "inspect key code",
+    "including non-OpenAI and child sessions", "use general for general-purpose subtasks",
+    "luna, sol, and astra workers are unavailable",
   ]) {
-    expect(output.description).toContain(text);
+    expect(description).toContain(text);
   }
-  expect(output.parameters).toEqual({ original: true });
-  const read = { description: "Read a file", parameters: {} };
-  await hooks["tool.definition"]({ toolID: "read" }, read);
-  expect(read).toEqual({ description: "Read a file", parameters: {} });
   expect(requests).toEqual([]);
 });
 
-test("internal LLM requests have no session lookup or system injection hooks", async () => {
+test("leaves unrelated tool definitions unchanged", async () => {
+  const { definition, requests } = await setup();
+  expect(await definition("read", "Read files")).toBe("Read files");
+  expect(requests).toEqual([]);
+});
+
+test("does not install LLM preparation hooks", async () => {
   const { hooks } = await setup();
-  // Title, compaction, and synthetic project-copy requests never receive task tools.
-  for (const name of ["experimental.chat.system.transform", "chat.params", "event"] as const) {
+  for (const name of ["experimental.chat.system.transform", "experimental.chat.messages.transform", "chat.params"] as const) {
     expect((hooks as Hooks)[name]).toBeUndefined();
   }
 });

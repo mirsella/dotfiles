@@ -6,7 +6,9 @@ description: Use when the user asks to orchestrate delegated work or when coordi
 # Orchestrator
 
 Coordinate delegated work for the current task. Follow the task tool's delegation
-policy for worker availability, tier selection, and explicit user choices.
+policy for worker availability, tier selection, and explicit user choices. When
+general is available, use it for general-purpose subtasks;
+orchestration does not require named tier workers.
 
 An explicit orchestration request makes delegated execution the default for this
 task. Use workers for exploration of current behavior and limitations, research,
@@ -22,11 +24,11 @@ context discovery, and integration. Delegate design when its context transfers
 economically; retain tightly coupled work when handing it off costs more than doing
 it. No formal cost calculation or target agent count is needed.
 
-Within the task tool's tier defaults, prefer a worker likely to finish well without
-extensive correction. Escalate when complexity, uncertainty, risk, or a failed
-attempt warrants it rather than repeatedly retrying an unsuitable tier. A fresh
-perspective can help even on a small uncertain decision; give independent reviewers
-the facts and question without requiring agreement with your conclusion.
+Within the current request's tier defaults, prefer a worker likely to finish well
+without extensive correction. Escalate when complexity, uncertainty, risk, or a
+failed attempt warrants it rather than repeatedly retrying an unsuitable tier. A
+fresh perspective can help even on a small uncertain decision; give independent
+reviewers the facts and question without requiring agreement with your conclusion.
 
 ## Dispatch work
 

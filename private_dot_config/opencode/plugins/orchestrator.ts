@@ -21,6 +21,13 @@ const workers = [
   },
 ] as const;
 
+const taskPolicy = `Delegation policy for task calls:
+When the current request is a top-level session running an OpenAI model, luna, sol, and astra are available, subject to permissions and disabled agents. Do not use general. Respect explicit agent and cost constraints. Report an unavailable requested agent; otherwise a legitimately available alternative is allowed, without bypassing restrictions.
+Default to luna for routine work and sol for difficult work; they should handle most delegated work. Use astra for the hardest or highest-risk problems, or a useful fresh perspective, ideas, feedback, or review. Select by the assignment, not the parent's tier; escalation does not require a separate user request. These are defaults, not quotas or mandatory reviews.
+Balance quality, elapsed time, and total effort, including briefing and review. Same-tier delegation adds capacity and perspective but requires context transfer. Parallelize independent scopes with non-overlapping writes; reuse existing task IDs when their context helps. Avoid accidental duplication; deliberate comparison and verification are valid.
+In every other context, including non-OpenAI and child sessions, use general for general-purpose subtasks, subject to normal permissions and subagent depth limits. It inherits the calling model unless explicitly configured otherwise. The luna, sol, and astra workers are unavailable, even if listed in this tool. Other available agents remain usable.
+Load the orchestrator skill for multi-agent coordination. When the user explicitly requests orchestration, delegate substantive exploration, research, implementation, and review. The parent owns shared decisions and integration: understand the implementation, assess tradeoffs, and inspect key code rather than just collecting reports. Delegated design and small local edits or unblockers are appropriate.`;
+
 export default (async ({ client }) => {
   const marker = `<opencode-orchestrator-${crypto.randomUUID()}:`;
 
@@ -39,12 +46,7 @@ export default (async ({ client }) => {
       }
     },
     "tool.definition": async ({ toolID }, output) => {
-      if (toolID !== "task") return;
-      output.description += `\n\nDelegation policy:
-luna, sol, and astra are available only from top-level OpenAI sessions, subject to permissions and disabled agents. In those sessions, do not use general. Respect explicit agent and cost constraints. Report an unavailable requested agent; otherwise a legitimately available alternative is allowed, without bypassing restrictions.
-Default to luna for routine work and sol for difficult work; they should handle most delegated work. Use astra for the hardest or highest-risk problems, or a useful fresh perspective, ideas, feedback, or review. Select by the assignment, not the parent's tier; escalation does not require a separate user request. These are defaults, not quotas or mandatory reviews.
-Balance quality, elapsed time, and total effort, including briefing and review. Same-tier delegation adds capacity and perspective but requires context transfer. Parallelize independent scopes with non-overlapping writes; reuse existing task IDs when their context helps. Avoid accidental duplication; deliberate comparison and verification are valid.
-Load the orchestrator skill for multi-agent coordination. When the user explicitly requests orchestration, delegate substantive exploration, research, implementation, and review. The parent owns shared decisions and integration: understand the implementation, assess tradeoffs, and inspect key code rather than just collecting reports. Delegated design and small local edits or unblockers are appropriate.`;
+      if (toolID === "task") output.description += `\n\n${taskPolicy}`;
     },
     "tool.execute.before": async ({ tool, sessionID, callID }, output) => {
       if (tool !== "task") return;
