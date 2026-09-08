@@ -4,7 +4,7 @@ description: Aggressively refactors recently touched code for simplicity, locali
 ---
 
 Aggressively improve all code you recently touched in this session, including
-committed changes. Refactor related supporting code when it completes a worthwhile
+recently committed changes. Refactor related supporting code when it completes a worthwhile
 improvement. Preserve other contributors' work.
 
 Preserve intended behavior, not existing structure. Change module boundaries,
@@ -163,6 +163,6 @@ cleanup usually needs only `cargo fmt` and/or scoped `cargo clippy`. Use focused
 tests for uncertain or behavior-sensitive changes and test edits; measure
 performance when a consequential tradeoff needs evidence.
 
-Briefly report the improvements, checks actually run, and Git diff line counts,
-total and per logical change, as `+added / -deleted (net +/-N)`, with the comparison
-base clearly labeled.
+Briefly report the improvements, and Git diff line counts,
+total and per logical change, as `+/-net (+added/-deleted)`,
+with the comparison base clearly labeled.

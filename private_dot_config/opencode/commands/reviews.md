@@ -6,7 +6,8 @@ agent: build
 Review the code you changed in this session, including committed changes and
 work you delegated. Focus on concrete defects introduced by this work that are
 worth fixing before merge, not style preferences, speculative hardening, or
-pre-existing issues. Preserve other contributors' edits.
+pre-existing issues.
+Preserve other contributors edits, there might be other agents working on the same files.
 
 Additional focus: $ARGUMENTS
 
@@ -33,4 +34,4 @@ Keep checks lightweight: usually formatting and scoped Clippy, with focused
 tests or measurements for sensitive or uncertain changes.
 
 Include Git diff line counts, total and per logical fix, as
-`+added / -deleted (net +/-N)`, with the comparison base labeled.
+`+/-net (+added/-deleted)`, with the comparison base labeled.
