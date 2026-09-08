@@ -4,33 +4,35 @@ const workers = [
   {
     name: "luna",
     description: "Handles routine exploration, research, implementation, and checks.",
-    model: "openai/gpt-5.6-luna",
+    modelID: "gpt-5.6-luna",
     reasoningEffort: "max",
   },
   {
     name: "sol",
     description: "Handles difficult investigation, implementation, debugging, and review.",
-    model: "openai/gpt-5.6-sol",
+    modelID: "gpt-5.6-sol",
     reasoningEffort: "high",
   },
   {
     name: "astra",
     description: "Handles the hardest problems and offers independent ideas, feedback, and review.",
-    model: "openai/gpt-6-astra",
+    modelID: "gpt-6-astra",
     reasoningEffort: "medium",
   },
 ] as const;
 
 export default (async ({ client }) => {
+  const marker = `<opencode-orchestrator-${crypto.randomUUID()}:`;
+
   return {
     config: async (config) => {
       config.agent ??= {};
-      for (const { name, description, model, reasoningEffort } of workers) {
+      for (const { name, description, modelID, reasoningEffort } of workers) {
         const existing = config.agent[name];
         config.agent[name] = {
           description,
           mode: "subagent",
-          model,
+          model: `openai/${modelID}`,
           ...existing,
           options: { reasoningEffort, ...(existing?.options as Record<string, unknown> | undefined) },
         };
@@ -47,7 +49,8 @@ Load the orchestrator skill for multi-agent coordination. When the user explicit
     "tool.execute.before": async ({ tool, sessionID, callID }, output) => {
       if (tool !== "task") return;
       const agent = output.args.subagent_type;
-      if (agent !== "general" && !workers.some(({ name }) => name === agent)) return;
+      const worker = workers.find(({ name }) => name === agent);
+      if (agent !== "general" && !worker) return;
 
       let limit = 2;
       const [session, initial] = await Promise.all([
@@ -67,7 +70,7 @@ Load the orchestrator skill for multi-agent coordination. When the user explicit
         throw new Error(`Unable to resolve executing assistant for task ${callID} in session ${sessionID}`);
       }
 
-      let providerID = assistant.providerID;
+      let { providerID, modelID } = assistant;
       // Command subtasks pass the persisted part ID and record the target model on
       // their synthetic assistant. Their invoking model belongs to the parent user.
       if (current.parts.some((part) => part.type === "tool" && part.tool === "task" && part.id === callID)) {
@@ -76,13 +79,40 @@ Load the orchestrator skill for multi-agent coordination. When the user explicit
         if (parent.info.role !== "user") {
           throw new Error(`Unable to resolve invoking user for command task ${callID} in session ${sessionID}`);
         }
-        providerID = parent.info.model.providerID;
+        ({ providerID, modelID } = parent.info.model);
       }
 
       const openaiMain = !session.data.parentID && providerID === "openai";
-      if (agent === "general" && openaiMain) throw new Error("general is unavailable from OpenAI main sessions");
-      if (agent !== "general" && !openaiMain) {
+      if (!worker) {
+        if (openaiMain) throw new Error("general is unavailable from OpenAI main sessions");
+        return;
+      }
+      if (!openaiMain) {
         throw new Error(`${agent} is available only from OpenAI main sessions`);
+      }
+      // Task has no model override or child-prompt correlation ID. Carry the
+      // snapshot with this invocation so cancelled/queued resumes cannot mix it up.
+      output.args.prompt = `${marker}${modelID.endsWith("-fast") ? "fast" : "normal"}>\n${output.args.prompt}`;
+    },
+    "chat.message": async ({ agent }, { message, parts }) => {
+      const part = parts.find((part) => part.type === "text" && part.text.startsWith(marker));
+      if (part?.type !== "text") return;
+      const fastHeader = `${marker}fast>\n`;
+      const normalHeader = `${marker}normal>\n`;
+      const fast = part.text.startsWith(fastHeader);
+      if (!fast && !part.text.startsWith(normalHeader)) {
+        throw new Error(`Invalid orchestrator model marker for agent ${agent}`);
+      }
+      // Remove transport metadata before the child message is persisted or sent to an LLM.
+      part.text = part.text.slice((fast ? fastHeader : normalHeader).length);
+      // Recovery plugins can correct the worker after tool.execute.before.
+      const worker = workers.find(({ name }) => name === agent);
+      if (!worker) return;
+      const base = worker.modelID;
+      // Explicit models outside the worker's default family remain authoritative.
+      if (message.model.providerID !== "openai") return;
+      if (message.model.modelID === base || message.model.modelID === `${base}-fast`) {
+        message.model.modelID = `${base}${fast ? "-fast" : ""}`;
       }
     },
   };

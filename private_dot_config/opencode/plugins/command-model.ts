@@ -30,8 +30,13 @@ export default (async () => {
     "chat.message": async ({ sessionID }, { message }) => {
       const model = pending.get(sessionID);
       pending.delete(sessionID);
+      if (!model) return;
+      const fast = model.providerID === "openai"
+        && message.model.providerID === "openai"
+        && message.model.modelID.endsWith("-fast")
+        && !model.modelID.endsWith("-fast");
       // V1 reads variant here, though the installed legacy SDK type omits it.
-      if (model) message.model = { ...model };
+      message.model = { ...model, modelID: fast ? `${model.modelID}-fast` : model.modelID };
     },
     event: async ({ event }) => {
       if (event.type === "session.deleted") pending.delete(event.properties.info.id);
