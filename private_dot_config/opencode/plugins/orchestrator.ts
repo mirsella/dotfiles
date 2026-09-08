@@ -4,14 +4,14 @@ const workers = [
   {
     name: "luna",
     description:
-      "Routine, well-scoped subtasks with a clear approach, including implementation, reviews, summaries, and writing.",
+      "Routine, well-scoped subtasks with a clear approach, including implementation, reviews, summaries, and writing. cheaper but slower.",
     modelID: "gpt-5.6-luna",
     reasoningEffort: "max",
   },
   {
     name: "astra",
     description:
-      "Difficult, ambiguous, or high-stakes subtasks: architecture and design trade-offs, technical guidance, hard implementation or debugging, deep reviews (correctness, concurrency, security, performance), and nuanced writing (issues, PRs, support replies, emails).",
+      "Difficult, ambiguous, or high-stakes subtasks: architecture and design trade-offs, technical guidance, hard implementation or debugging, deep reviews (correctness, concurrency, security, performance), and nuanced writing (issues, PRs, support replies, emails). faster but more expensive.",
     modelID: "gpt-6-astra",
     reasoningEffort: "low",
   },
