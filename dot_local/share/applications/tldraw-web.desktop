@@ -1,7 +1,0 @@
-[Desktop Entry]
-Name=Open in tldraw (web)
-Exec=bash /home/mirsella/.local/bin/open-in-tldraw.sh %F
-Icon=image-x-generic
-Type=Application
-MimeType=image/png;image/jpeg;image/webp;
-NoDisplay=false
