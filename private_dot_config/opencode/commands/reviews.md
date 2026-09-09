@@ -32,7 +32,8 @@ recommendation and wait for approval, even when the best option seems clear.
 
 Keep checks lightweight: usually formatting and scoped Clippy, with focused
 tests or measurements for sensitive or uncertain changes.
+Report the checks made in a single line: "checks: "
 
-End with one line: `diff: Total <counts> | Code <counts> | Tests <counts>`.
+Without jumping a line, briefly report improvement with one line: `diff: Total <counts> | Code <counts> | Tests <counts>`.
 Counts are `+/-net (+added/-deleted)`, with only net numbers bold. Count only your
 edits in this turn; Tests includes inline tests and fixtures, Code everything else.

@@ -162,7 +162,8 @@ Follow repository requirements; otherwise keep checks lightweight. Routine Rust
 cleanup usually needs only `cargo fmt` and/or scoped `cargo clippy`. Use focused
 tests for uncertain or behavior-sensitive changes and test edits; measure
 performance when a consequential tradeoff needs evidence.
+Report the checks made in a single line: "checks: "
 
-Briefly report improvements. End with one line: `diff: Total <counts> | Code <counts> | Tests <counts>`.
+Without jumping a line, briefly report improvement with one line: `diff: Total <counts> | Code <counts> | Tests <counts>`.
 Counts are `+/-net (+added/-deleted)`, with only net numbers bold. Count only your
 edits in this turn; Tests includes inline tests and fixtures, Code everything else.
