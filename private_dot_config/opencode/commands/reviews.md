@@ -9,7 +9,7 @@ worth fixing before merge, not style preferences, speculative hardening, or
 pre-existing issues.
 Preserve other contributors edits, there might be other agents working on the same files.
 
-Additional focus: $ARGUMENTS
+$ARGUMENTS
 
 ## Fix by default
 

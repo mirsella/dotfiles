@@ -10,3 +10,5 @@ Split independent changes into separate commits when useful. Write conventional
 commit messages as `<type>(<scope>): <subject>`, with a body for substantial changes.
 Do not modify code, bypass hooks, or amend existing commits. Return only each commit
 hash and subject.
+
+$ARGUMENTS

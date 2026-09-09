@@ -13,6 +13,8 @@ code. Apply worthwhile improvements rather than merely suggesting them or stoppi
 at cosmetics. A coherent local refactor is better than a minimal patch that leaves
 the design awkward. Do not churn equivalent code for stylistic preference.
 
+$ARGUMENTS
+
 ## Simplicity and design
 
 - Prefer fewer concepts, fewer moving parts, and direct, concrete, idiomatic code.
