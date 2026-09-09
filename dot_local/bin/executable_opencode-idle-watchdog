@@ -45,6 +45,9 @@ use signal_hook::{
 const NAME: &str = "opencode-idle-watchdog";
 const DEFAULT_INTERVAL: u64 = 30;
 const DEFAULT_IDLE_CHECKS: u32 = 3;
+const DEFAULT_STUCK_AFTER: u64 = 900;
+const REQUEST_TIMEOUT_SECS: u64 = 10;
+const REQUEST_ATTEMPTS: u32 = 3;
 const HEADERS: [&str; 6] = ["STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", "TITLE"];
 
 #[derive(Parser)]
@@ -69,6 +72,16 @@ struct Options {
         value_parser = clap::value_parser!(u32).range(1..)
     )]
     required_idle_checks: u32,
+
+    /// Stop blocking on a busy session whose detail fetch keeps failing once it
+    /// shows no progress for this long (0 disables and blocks on them forever).
+    #[arg(
+        long = "stuck-after",
+        default_value_t = DEFAULT_STUCK_AFTER,
+        value_name = "SECONDS",
+        value_parser = clap::value_parser!(u64)
+    )]
+    stuck_after: u64,
 
     #[arg(long = "ignore-session", value_name = "SESSION", action = clap::ArgAction::Append)]
     ignored_sessions: Vec<String>,
@@ -418,6 +431,17 @@ fn encode_directory(directory: &str) -> String {
     })
 }
 
+fn is_transient(error: &ureq::Error) -> bool {
+    match error {
+        ureq::Error::Timeout(_)
+        | ureq::Error::ConnectionFailed
+        | ureq::Error::Io(_)
+        | ureq::Error::Protocol(_) => true,
+        ureq::Error::StatusCode(status) => *status == 429 || *status >= 500,
+        _ => false,
+    }
+}
+
 impl OpenCodeApi<'_> {
     fn get(&self, path: &str) -> Result<Value> {
         let mut url = format!("{}{path}", self.url.trim_end_matches('/'));
@@ -430,11 +454,21 @@ impl OpenCodeApi<'_> {
             )
             .expect("writing to a string cannot fail");
         }
-        let mut request = self.client.get(&url).header("Accept", "application/json");
-        if let Some(authorization) = self.authorization {
-            request = request.header("Authorization", authorization);
-        }
-        let mut response = request.call().with_context(|| format!("GET {url}"))?;
+        let mut attempt = 0u32;
+        let mut response = loop {
+            attempt += 1;
+            let mut request = self.client.get(&url).header("Accept", "application/json");
+            if let Some(authorization) = self.authorization {
+                request = request.header("Authorization", authorization);
+            }
+            match request.call() {
+                Ok(response) => break response,
+                Err(error) if attempt < REQUEST_ATTEMPTS && is_transient(&error) => {
+                    std::thread::sleep(Duration::from_millis(500 * u64::from(attempt)));
+                }
+                Err(error) => return Err(error).with_context(|| format!("GET {url}")),
+            }
+        };
         let body = response
             .body_mut()
             .read_to_string()
@@ -579,26 +613,69 @@ fn waiting_sessions(
     waiting
 }
 
-fn session_blockers(
-    status: &serde_json::Map<String, Value>,
-    questions: &[Value],
-    permissions: &[Value],
-    assistants: &serde_json::Map<String, Value>,
+struct SessionVerdict {
+    session: String,
+    label: &'static str,
+    color: Color,
+    blocker: Option<String>,
+}
+
+fn classify_snapshot(
+    state: &WorkspaceState,
     excluded_sessions: &HashSet<String>,
-) -> Vec<String> {
+    stuck: &HashSet<String>,
+) -> Vec<SessionVerdict> {
     let waiting = waiting_sessions(
-        status,
-        questions,
-        permissions,
-        assistants,
+        &state.status,
+        &state.questions,
+        &state.permissions,
+        &state.assistants,
         excluded_sessions,
     );
-    status
+    let unresolved: HashSet<&str> = state
+        .unresolved_busy
         .iter()
-        .filter_map(|(session, value)| {
+        .map(|unresolved| unresolved.session.as_str())
+        .collect();
+    state
+        .status
+        .iter()
+        .map(|(session, value)| {
             let kind = status_kind(value);
-            (kind != "idle" && !waiting.contains(session.as_str()))
-                .then(|| format!("{session}:{kind}"))
+            let (label, color, blocker) = if excluded_sessions.contains(session) {
+                ("SELF", Color::Cyan, None)
+            } else if stuck.contains(session) {
+                ("STUCK", Color::DarkGrey, None)
+            } else if waiting.contains(session.as_str()) {
+                // Membership via /question or /permission proves the wait even when
+                // the message detail fetch failed, so these never block.
+                ("WAITING", Color::Blue, None)
+            } else if unresolved.contains(session.as_str()) {
+                // The detail fetch failed and nothing proves idleness, so fail
+                // closed. Only busy sessions are fetched, so these are busy.
+                (
+                    "RUNNING",
+                    Color::Yellow,
+                    Some(format!("{session}:busy-unresolved")),
+                )
+            } else {
+                match kind {
+                    "idle" => ("IDLE", Color::Green, None),
+                    "busy" => (
+                        "RUNNING",
+                        Color::Yellow,
+                        Some(format!("{session}:busy")),
+                    ),
+                    "retry" => ("RETRY", Color::Magenta, Some(format!("{session}:retry"))),
+                    _ => ("UNKNOWN", Color::Red, Some(format!("{session}:unknown"))),
+                }
+            };
+            SessionVerdict {
+                session: session.clone(),
+                label,
+                color,
+                blocker,
+            }
         })
         .collect()
 }
@@ -631,10 +708,17 @@ struct ApiSnapshot {
     state: Result<WorkspaceState>,
 }
 
+struct UnresolvedBusy {
+    session: String,
+    updated: Option<u64>,
+    reason: String,
+}
+
 struct WorkspaceState {
     status: serde_json::Map<String, Value>,
     sessions: serde_json::Map<String, Value>,
     assistants: serde_json::Map<String, Value>,
+    unresolved_busy: Vec<UnresolvedBusy>,
     questions: Vec<Value>,
     permissions: Vec<Value>,
 }
@@ -661,10 +745,10 @@ fn workspace_snapshot(
         let Value::Object(status) = api.get("/session/status")? else {
             bail!("session status is not an object");
         };
-        let Value::Array(session_details) = api.get("/session?limit=200")? else {
+        let Value::Array(session_details) = api.get("/session?limit=1000")? else {
             bail!("sessions are not an array");
         };
-        let sessions = session_details
+        let sessions: serde_json::Map<String, Value> = session_details
             .into_iter()
             .map(|details| {
                 let id = details
@@ -675,11 +759,27 @@ fn workspace_snapshot(
                 Ok((id, details))
             })
             .collect::<Result<_>>()?;
-        let assistants = status
+        let mut assistants = serde_json::Map::new();
+        let mut unresolved_busy = Vec::new();
+        for session in status
             .iter()
             .filter(|(_, state)| status_kind(state) == "busy")
-            .map(|(session, _)| Ok((session.clone(), api.latest_assistant(session)?)))
-            .collect::<Result<_>>()?;
+            .map(|(session, _)| session)
+        {
+            match api.latest_assistant(session) {
+                Ok(message) => {
+                    assistants.insert(session.clone(), message);
+                }
+                Err(error) => unresolved_busy.push(UnresolvedBusy {
+                    session: session.clone(),
+                    updated: sessions
+                        .get(session)
+                        .and_then(|details| details.pointer("/time/updated"))
+                        .and_then(Value::as_u64),
+                    reason: format!("{error:#}"),
+                }),
+            }
+        }
         let Value::Array(questions) = api.get("/question")? else {
             bail!("questions are not an array");
         };
@@ -690,6 +790,7 @@ fn workspace_snapshot(
             status,
             sessions,
             assistants,
+            unresolved_busy,
             questions,
             permissions,
         })
@@ -794,11 +895,24 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
 
 struct ScanEvaluation {
     excluded_sessions: HashSet<String>,
+    stuck: HashSet<String>,
     blockers: Vec<String>,
     active: usize,
 }
 
-fn evaluate(scan: &ApiScan, ignored_sessions: &[String]) -> ScanEvaluation {
+struct StuckEntry {
+    first_seen: Instant,
+    updated: Option<u64>,
+    reported: bool,
+}
+
+fn evaluate(
+    scan: &ApiScan,
+    ignored_sessions: &[String],
+    stuck_after: Duration,
+    tracker: &mut HashMap<String, StuckEntry>,
+    report: &dyn Fn(String),
+) -> ScanEvaluation {
     let mut excluded_sessions = ignored_sessions.iter().cloned().collect::<HashSet<_>>();
     excluded_sessions.extend(
         scan.snapshots
@@ -818,6 +932,77 @@ fn evaluate(scan: &ApiScan, ignored_sessions: &[String]) -> ScanEvaluation {
                     .map(|(session, _)| session.clone())
             }),
     );
+    let mut stuck = HashSet::new();
+    if stuck_after.is_zero() {
+        tracker.clear();
+    } else {
+        let mut current: HashMap<&str, (Option<u64>, &str)> = HashMap::new();
+        let mut observed: HashSet<&str> = HashSet::new();
+        for snapshot in &scan.snapshots {
+            let Ok(state) = &snapshot.state else {
+                continue;
+            };
+            observed.extend(state.status.keys().map(String::as_str));
+            // Sessions that cannot block (excluded or waiting on the user) need no
+            // stuck tracking; claiming they block would contradict the verdicts.
+            let waiting = waiting_sessions(
+                &state.status,
+                &state.questions,
+                &state.permissions,
+                &state.assistants,
+                &excluded_sessions,
+            );
+            for unresolved in &state.unresolved_busy {
+                if excluded_sessions.contains(&unresolved.session)
+                    || waiting.contains(&unresolved.session)
+                {
+                    continue;
+                }
+                current.insert(
+                    unresolved.session.as_str(),
+                    (unresolved.updated, unresolved.reason.as_str()),
+                );
+            }
+        }
+        // Only drop entries the scan affirmatively resolved. Sessions a failed scan
+        // did not observe keep their timer so a flaky server cannot reset it.
+        tracker.retain(|session, entry| {
+            let resolved =
+                observed.contains(session.as_str()) && !current.contains_key(session.as_str());
+            if resolved && entry.reported {
+                report(format!("session {session} left the stuck-unresolved state"));
+            }
+            !resolved
+        });
+        for (session, (updated, reason)) in &current {
+            let entry = tracker.entry((*session).to_owned()).or_insert_with(|| {
+                report(format!(
+                    "blocking on {session} (session detail unavailable: {reason}); stops blocking after {}s without progress",
+                    stuck_after.as_secs()
+                ));
+                StuckEntry {
+                    first_seen: Instant::now(),
+                    updated: *updated,
+                    reported: false,
+                }
+            });
+            if entry.updated != *updated {
+                entry.first_seen = Instant::now();
+                entry.updated = *updated;
+                entry.reported = false;
+            }
+            if entry.first_seen.elapsed() >= stuck_after {
+                if !entry.reported {
+                    entry.reported = true;
+                    report(format!(
+                        "no progress from {session} for {}s; no longer blocking idle",
+                        stuck_after.as_secs()
+                    ));
+                }
+                stuck.insert((*session).to_owned());
+            }
+        }
+    }
     let mut blockers = scan.failures.clone();
     let mut active = 0;
     for snapshot in &scan.snapshots {
@@ -831,13 +1016,10 @@ fn evaluate(scan: &ApiScan, ignored_sessions: &[String]) -> ScanEvaluation {
                 continue;
             }
         };
-        let current = session_blockers(
-            &state.status,
-            &state.questions,
-            &state.permissions,
-            &state.assistants,
-            &excluded_sessions,
-        );
+        let current: Vec<String> = classify_snapshot(state, &excluded_sessions, &stuck)
+            .into_iter()
+            .filter_map(|verdict| verdict.blocker)
+            .collect();
         active += current.len();
         if !current.is_empty() {
             blockers.push(format!(
@@ -851,6 +1033,7 @@ fn evaluate(scan: &ApiScan, ignored_sessions: &[String]) -> ScanEvaluation {
     }
     ScanEvaluation {
         excluded_sessions,
+        stuck,
         blockers,
         active,
     }
@@ -1059,28 +1242,8 @@ impl Dashboard {
             let Ok(state) = &snapshot.state else {
                 continue;
             };
-            let waiting = waiting_sessions(
-                &state.status,
-                &state.questions,
-                &state.permissions,
-                &state.assistants,
-                &evaluation.excluded_sessions,
-            );
-            for (session, status) in &state.status {
-                let kind = status_kind(status);
-                let (label, color) = if evaluation.excluded_sessions.contains(session) {
-                    ("SELF", Color::Cyan)
-                } else if waiting.contains(session) {
-                    ("WAITING", Color::Blue)
-                } else {
-                    match kind {
-                        "idle" => ("IDLE", Color::Green),
-                        "busy" => ("RUNNING", Color::Yellow),
-                        "retry" => ("RETRY", Color::Magenta),
-                        _ => ("UNKNOWN", Color::Red),
-                    }
-                };
-                let details = state.sessions.get(session);
+            for verdict in classify_snapshot(state, &evaluation.excluded_sessions, &evaluation.stuck) {
+                let details = state.sessions.get(verdict.session.as_str());
                 let age = details
                     .and_then(|value| value.pointer("/time/created"))
                     .and_then(Value::as_u64)
@@ -1096,13 +1259,13 @@ impl Dashboard {
                     .and_then(Value::as_str)
                     .unwrap_or("Untitled session");
                 rows.push((
-                    color,
+                    verdict.color,
                     [
-                        label.to_owned(),
+                        verdict.label.to_owned(),
                         age,
                         updated,
                         clean_text(&snapshot.directory),
-                        session.clone(),
+                        verdict.session,
                         clean_text(title),
                     ],
                 ));
@@ -1199,11 +1362,18 @@ fn signal_exit(state: &State, signal: i32) -> i32 {
 fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Result<i32> {
     let client = ureq::Agent::new_with_config(
         ureq::Agent::config_builder()
-            .timeout_global(Some(Duration::from_secs(2)))
+            .timeout_global(Some(Duration::from_secs(REQUEST_TIMEOUT_SECS)))
             .build(),
     );
     let cancellation = Cancellation::new()?;
     let dashboard = Dashboard::new(command);
+    let report = |message| {
+        if dashboard.termios.is_some() {
+            state.record(message);
+        } else {
+            state.log(message);
+        }
+    };
     let scan_work = || {
         let client = client.clone();
         move || collect_scan(&client)
@@ -1216,11 +1386,19 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             return Ok(signal_exit(state, signal));
         }
     };
-    let mut evaluation = evaluate(&scan, &options.ignored_sessions);
+    let stuck_after = Duration::from_secs(options.stuck_after);
+    let mut stuck_tracker: HashMap<String, StuckEntry> = HashMap::new();
+    let mut evaluation = evaluate(
+        &scan,
+        &options.ignored_sessions,
+        stuck_after,
+        &mut stuck_tracker,
+        &report,
+    );
     let mut excluded_sessions: Vec<_> = evaluation.excluded_sessions.iter().cloned().collect();
     excluded_sessions.sort_unstable();
     let started = format!(
-        "watchdog started; excluded_sessions={}; interval={}s required_idle_checks={}; command={}; cache={}",
+        "watchdog started; excluded_sessions={}; interval={}s required_idle_checks={} stuck_after={}s request_timeout={}s request_attempts={}; command={}; cache={}",
         if excluded_sessions.is_empty() {
             "none".to_owned()
         } else {
@@ -1228,6 +1406,9 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         },
         options.interval,
         options.required_idle_checks,
+        options.stuck_after,
+        REQUEST_TIMEOUT_SECS,
+        REQUEST_ATTEMPTS,
         if command.is_empty() {
             "none".to_owned()
         } else {
@@ -1235,13 +1416,6 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         },
         state.root.display()
     );
-    let report = |message| {
-        if dashboard.termios.is_some() {
-            state.record(message);
-        } else {
-            state.log(message);
-        }
-    };
     report(started);
 
     let mut consecutive_idle = 0;
@@ -1294,7 +1468,13 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
                     Ok(result) => result?,
                     Err(signal) => break Some(signal),
                 };
-            let final_evaluation = evaluate(&final_scan, &options.ignored_sessions);
+            let final_evaluation = evaluate(
+                &final_scan,
+                &options.ignored_sessions,
+                stuck_after,
+                &mut stuck_tracker,
+                &report,
+            );
             if final_evaluation.blockers.is_empty() {
                 break None;
             }
@@ -1322,7 +1502,13 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         match dashboard.run_work(&cancellation, || draw(0), scan_work()) {
             Ok(result) => {
                 scan = result?;
-                evaluation = evaluate(&scan, &options.ignored_sessions);
+                evaluation = evaluate(
+                    &scan,
+                    &options.ignored_sessions,
+                    stuck_after,
+                    &mut stuck_tracker,
+                    &report,
+                );
             }
             Err(signal) => break Some(signal),
         }
@@ -1431,6 +1617,34 @@ fn main() {
 mod tests {
     use super::*;
 
+    fn workspace_state(fixture: &Value) -> WorkspaceState {
+        WorkspaceState {
+            status: fixture["status"].as_object().cloned().unwrap_or_default(),
+            sessions: serde_json::Map::new(),
+            assistants: fixture["assistants"]
+                .as_object()
+                .cloned()
+                .unwrap_or_default(),
+            unresolved_busy: Vec::new(),
+            questions: fixture["questions"].as_array().cloned().unwrap_or_default(),
+            permissions: fixture["permissions"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default(),
+        }
+    }
+
+    fn blockers_of(
+        state: &WorkspaceState,
+        excluded: &HashSet<String>,
+        stuck: &HashSet<String>,
+    ) -> Vec<String> {
+        classify_snapshot(state, excluded, stuck)
+            .into_iter()
+            .filter_map(|verdict| verdict.blocker)
+            .collect()
+    }
+
     #[test]
     fn classifies_disappearing_proc_entries() {
         assert!(proc_entry_gone(&io::Error::from_raw_os_error(libc::ENOENT)));
@@ -1492,12 +1706,10 @@ mod tests {
           }
         }"#).unwrap();
         assert_eq!(
-            session_blockers(
-                fixture["status"].as_object().unwrap(),
-                fixture["questions"].as_array().unwrap(),
-                fixture["permissions"].as_array().unwrap(),
-                fixture["assistants"].as_object().unwrap(),
+            blockers_of(
+                &workspace_state(&fixture),
                 &HashSet::new(),
+                &HashSet::new()
             ),
             [
                 "background:busy",
@@ -1541,10 +1753,141 @@ mod tests {
         excluded.insert("self".to_owned());
         let status: serde_json::Map<String, Value> =
             serde_json::from_str(r#"{"other":{"type":"busy"},"self":{"type":"busy"}}"#).unwrap();
+        let state = WorkspaceState {
+            status,
+            sessions: serde_json::Map::new(),
+            assistants: serde_json::Map::new(),
+            unresolved_busy: Vec::new(),
+            questions: Vec::new(),
+            permissions: Vec::new(),
+        };
         assert_eq!(
-            session_blockers(&status, &[], &[], &serde_json::Map::new(), &excluded),
+            blockers_of(&state, &excluded, &HashSet::new()),
             ["other:busy"]
         );
+    }
+
+    #[test]
+    fn unresolved_busy_blocks_until_stuck() {
+        let fixture = serde_json::json!({
+            "status": {"wedged": {"type": "busy"}, "idle": {"type": "idle"}},
+            "questions": [],
+        });
+        let mut state = workspace_state(&fixture);
+        state.unresolved_busy = vec![UnresolvedBusy {
+            session: "wedged".to_owned(),
+            updated: Some(1),
+            reason: "timeout".to_owned(),
+        }];
+        assert_eq!(
+            blockers_of(&state, &HashSet::new(), &HashSet::new()),
+            ["wedged:busy-unresolved"]
+        );
+        let mut stuck = HashSet::new();
+        stuck.insert("wedged".to_owned());
+        assert!(blockers_of(&state, &HashSet::new(), &stuck).is_empty());
+    }
+
+    #[test]
+    fn proven_wait_without_detail_stays_idle() {
+        let fixture = serde_json::json!({
+            "status": {"wedged": {"type": "busy"}},
+            "questions": [{"sessionID": "wedged"}],
+        });
+        let mut state = workspace_state(&fixture);
+        state.unresolved_busy = vec![UnresolvedBusy {
+            session: "wedged".to_owned(),
+            updated: Some(1),
+            reason: "timeout".to_owned(),
+        }];
+        let verdicts = classify_snapshot(&state, &HashSet::new(), &HashSet::new());
+        assert_eq!(verdicts.len(), 1);
+        assert_eq!(verdicts[0].label, "WAITING");
+        assert!(verdicts[0].blocker.is_none());
+        // A proven wait is never tracked as stuck, so no event can claim it blocks.
+        let scan = ApiScan {
+            snapshots: vec![ApiSnapshot {
+                pid: 7,
+                url: "http://127.0.0.1:1234".to_owned(),
+                directory: "/tmp/project".to_owned(),
+                state: Ok(state),
+            }],
+            failures: Vec::new(),
+        };
+        let mut tracker = HashMap::new();
+        let report = |_: String| {};
+        let evaluation = evaluate(&scan, &[], Duration::from_secs(60), &mut tracker, &report);
+        assert!(evaluation.blockers.is_empty());
+        assert!(evaluation.stuck.is_empty());
+        assert!(tracker.is_empty());
+    }
+
+    #[test]
+    fn classifies_transient_request_errors() {
+        assert!(is_transient(&ureq::Error::ConnectionFailed));
+        assert!(is_transient(&ureq::Error::StatusCode(500)));
+        assert!(is_transient(&ureq::Error::StatusCode(429)));
+        assert!(!is_transient(&ureq::Error::StatusCode(404)));
+        assert!(!is_transient(&ureq::Error::HostNotFound));
+    }
+
+    #[test]
+    fn stuck_tracker_concedes_sessions_without_progress() {
+        let mut scan = ApiScan {
+            snapshots: vec![ApiSnapshot {
+                pid: 7,
+                url: "http://127.0.0.1:1234".to_owned(),
+                directory: "/tmp/project".to_owned(),
+                state: Ok(WorkspaceState {
+                    status: serde_json::from_str(r#"{"wedged":{"type":"busy"}}"#).unwrap(),
+                    sessions: serde_json::Map::new(),
+                    assistants: serde_json::Map::new(),
+                    unresolved_busy: vec![UnresolvedBusy {
+                        session: "wedged".to_owned(),
+                        updated: Some(1),
+                        reason: "timeout".to_owned(),
+                    }],
+                    questions: Vec::new(),
+                    permissions: Vec::new(),
+                }),
+            }],
+            failures: Vec::new(),
+        };
+        let mut tracker = HashMap::new();
+        let after = Duration::from_secs(60);
+        let report = |_: String| {};
+        let evaluation = evaluate(&scan, &[], after, &mut tracker, &report);
+        assert!(evaluation.stuck.is_empty());
+        assert!(!evaluation.blockers.is_empty());
+        tracker.get_mut("wedged").unwrap().first_seen -= after;
+        let evaluation = evaluate(&scan, &[], after, &mut tracker, &report);
+        assert!(evaluation.stuck.contains("wedged"));
+        assert!(evaluation.blockers.is_empty());
+        // A failed scan observes nothing: the entry survives with its timer intact.
+        let failed = ApiScan {
+            snapshots: vec![ApiSnapshot {
+                pid: 7,
+                url: "http://127.0.0.1:1234".to_owned(),
+                directory: "/tmp/project".to_owned(),
+                state: Err(anyhow::anyhow!("boom")),
+            }],
+            failures: Vec::new(),
+        };
+        let evaluation = evaluate(&failed, &[], after, &mut tracker, &report);
+        assert!(!evaluation.blockers.is_empty());
+        assert!(evaluation.stuck.is_empty());
+        assert!(tracker.contains_key("wedged"));
+        // The surviving timer still concedes the session on the next good scan.
+        let evaluation = evaluate(&scan, &[], after, &mut tracker, &report);
+        assert!(evaluation.stuck.contains("wedged"));
+        // A session the scan sees idle is affirmatively resolved and dropped.
+        if let Ok(resolved) = &mut scan.snapshots[0].state {
+            resolved.status = serde_json::from_str(r#"{"wedged":{"type":"idle"}}"#).unwrap();
+            resolved.unresolved_busy.clear();
+        }
+        let evaluation = evaluate(&scan, &[], after, &mut tracker, &report);
+        assert!(evaluation.blockers.is_empty());
+        assert!(!tracker.contains_key("wedged"));
     }
 
     #[test]
@@ -1558,8 +1901,10 @@ mod tests {
             }],
             failures: Vec::new(),
         };
+        let mut tracker = HashMap::new();
+        let report = |_: String| {};
         assert_eq!(
-            evaluate(&scan, &[]).blockers,
+            evaluate(&scan, &[], Duration::from_secs(60), &mut tracker, &report).blockers,
             ["pid=42 http://127.0.0.1:1234 directory=/tmp/project workspace-scan:bad response"]
         );
     }
@@ -1575,6 +1920,9 @@ mod tests {
         let options = Options::try_parse_from([NAME, "-i", "5", "-r", "2"]).unwrap();
         assert_eq!(options.interval, 5);
         assert_eq!(options.required_idle_checks, 2);
+        assert_eq!(options.stuck_after, DEFAULT_STUCK_AFTER);
+        let options = Options::try_parse_from([NAME, "--stuck-after", "0"]).unwrap();
+        assert_eq!(options.stuck_after, 0);
     }
 
     #[test]
