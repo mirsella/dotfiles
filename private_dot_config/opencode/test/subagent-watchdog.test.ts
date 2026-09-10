@@ -263,6 +263,19 @@ describe("subagent watchdog", () => {
 		}
 	});
 
+	test("recovery prompts even when the parent never becomes idle", async () => {
+		const { api, watchdog, logs, setNow } = setup();
+		await watchdog.tick();
+		api.onAbort = () => {
+			api.statuses[parent.id] = { type: "busy" };
+		};
+		await tickAt(watchdog, setNow, 181_000);
+		expect(api.aborts).toEqual([parent.id]);
+		expect(logs).toContain("watchdog.child.parent_not_idle");
+		expect(api.prompts).toHaveLength(1);
+		expect(api.prompts[0].prompt).toContain(child.id);
+	});
+
 	test("pending permission or question disables recovery", async () => {
 		const { api, watchdog, setNow } = setup();
 		api.pending.add(parent.id);

@@ -782,8 +782,10 @@ export class SubagentWatchdog {
 			});
 			await this.notify(`Recovering stalled subagent ${child.id}`, "warning");
 
-			if (!(await this.waitForIdle(child.parentID)))
-				return await this.failRecovery(child.parentID, "parent did not become idle");
+		if (!(await this.waitForIdle(child.parentID)))
+			await this.logChild("warn", "watchdog.child.parent_not_idle", child, {
+				attempt: reservation.attempt,
+			});
 
 			const examined = await this.examine(child);
 			const taskState = examined?.taskState;
@@ -791,7 +793,6 @@ export class SubagentWatchdog {
 				!examined ||
 				this.recoveries.get(child.parentID) !== recovery ||
 				isActive(examined.childStatus) ||
-				examined.parentStatus.type !== "idle" ||
 				!taskState ||
 				taskState.callID !== recovery.blockedCallID ||
 				taskState.status !== "error" ||
