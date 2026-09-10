@@ -77,13 +77,24 @@ const SubagentWatchdogPlugin: Plugin = async ({ client, directory }) => {
 		log,
 		notify,
 	);
-	await watchdog.start();
-	await log("info", "watchdog.started", {
-		mode: loaded.config.mode,
-		suspectAfterMs: loaded.config.suspectAfterMs,
-		recoverAfterMs: loaded.config.recoverAfterMs,
-		toolRecoverAfterMs: loaded.config.toolRecoverAfterMs,
-	});
+	// Do not await start() here: the first tick queries the session API,
+	// and awaiting it inside plugin init deadlocks directory bootstrap
+	// (bootstrap waits for plugins, tick waits for bootstrap). The awaits
+	// above are pure file I/O and safe; everything server-touching runs
+	// in the background once bootstrap has completed.
+	void watchdog
+		.start()
+		.then(() =>
+			log("info", "watchdog.started", {
+				mode: loaded.config.mode,
+				suspectAfterMs: loaded.config.suspectAfterMs,
+				recoverAfterMs: loaded.config.recoverAfterMs,
+				toolRecoverAfterMs: loaded.config.toolRecoverAfterMs,
+			}),
+		)
+		.catch((error: unknown) => {
+			void log("error", "watchdog.start.failed", { error: errorText(error) });
+		});
 
 	const guarded = async (operation: string, callback: () => Promise<void>) => {
 		try {
