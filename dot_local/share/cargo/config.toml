@@ -35,13 +35,9 @@ rustflags = [
   # Nightly
   "-Zshare-generics=y",
   "-Zthreads=8",
-  # "-Zembed-metadata=no"
+  "-Zembed-metadata=no",
 ]
-rustdocflags = [
-  "-Zshare-generics=y",
-  "-Zthreads=8",
-  # "-Zembed-metadata=no"
-]
+rustdocflags = ["-Zshare-generics=y", "-Zthreads=8", "-Zembed-metadata=no"]
 
 
 [target.wasm32-unknown-unknown]
@@ -50,13 +46,9 @@ rustflags = [
   # Nightly
   "-Zshare-generics=y",
   "-Zthreads=8",
-  # "-Zembed-metadata=no"
+  "-Zembed-metadata=no",
 ]
-rustdocflags = [
-  "-Zshare-generics=y",
-  "-Zthreads=8",
-  # "-Zembed-metadata=no"
-]
+rustdocflags = ["-Zshare-generics=y", "-Zthreads=8", "-Zembed-metadata=no"]
 
 [package.metadata.bevy_cli.web]
 wasm-opt = [
