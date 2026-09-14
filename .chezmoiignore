@@ -19,3 +19,13 @@ enable-lu-acton-2-a2dp-watch.sh
 plannotator-annotate.md
 plannotator-last.md
 plannotator-review.md
+
+# Plannotator skills are removed across agent installations.
+.config/opencode/skills/plannotator*
+.config/opencode/skills/plannotator*/**
+.agents/skills/plannotator*
+.agents/skills/plannotator*/**
+.claude/skills/plannotator*
+.claude/skills/plannotator*/**
+.codex/skills/plannotator*
+.codex/skills/plannotator*/**
