@@ -1,11 +1,11 @@
 ---
 name: unslop
-description: Cut AI tells from any writing. Must always apply.
+description: Cut AI tells from replies to the user. Must always apply to assistant commentary and answers.
 ---
 
 # Unslop
 
-Edit text to remove AI patterns and add human voice.
+Make replies to the user clear and natural. Apply this skill to commentary and final answers. When drafting public text or writing for other people, use `humanizer` for that text and `unslop` for the accompanying reply to the user. Preserve literal quotations and code.
 
 ## Process
 
