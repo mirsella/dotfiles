@@ -29,3 +29,7 @@ plannotator-review.md
 .claude/skills/plannotator*/**
 .codex/skills/plannotator*
 .codex/skills/plannotator*/**
+
+# Codex-managed bundled skills (installed and updated by codex itself).
+.codex/skills/.system
+.codex/skills/.system/**
