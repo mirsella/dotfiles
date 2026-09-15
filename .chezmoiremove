@@ -21,10 +21,3 @@
 .config/opencode/skills/plannotator-review
 .config/opencode/skills/plannotator-setup-goal
 .config/opencode/skills/plannotator-visual-explainer
-.agents/skills/plannotator-annotate
-.agents/skills/plannotator-last
-.agents/skills/plannotator-review
-.claude/skills/plannotator-annotate
-.claude/skills/plannotator-last
-.claude/skills/plannotator-review
-.codex/skills/plannotator-setup-goal

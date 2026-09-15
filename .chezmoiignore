@@ -23,12 +23,6 @@ plannotator-review.md
 # Plannotator skills are removed across agent installations.
 .config/opencode/skills/plannotator*
 .config/opencode/skills/plannotator*/**
-.agents/skills/plannotator*
-.agents/skills/plannotator*/**
-.claude/skills/plannotator*
-.claude/skills/plannotator*/**
-.codex/skills/plannotator*
-.codex/skills/plannotator*/**
 
 # Codex-managed bundled skills (installed and updated by codex itself).
 .codex/skills/.system
