@@ -9,3 +9,4 @@
 .codex/plugins/cache/ponytail
 .config/opencode/.ponytail-active
 .config/ponytail
+.config/nvim/lua/plugins/wakatime.lua

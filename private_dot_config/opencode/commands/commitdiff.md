@@ -1,6 +1,6 @@
 ---
 description: Git commit
-agent: luna
+model: openai/gpt-5.6-luna#max
 ---
 
 Commit the changes made in this session. Inspect status, the diff, and recent commit
