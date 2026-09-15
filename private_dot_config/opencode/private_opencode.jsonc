@@ -178,6 +178,15 @@
         "baseURL": "http://127.0.0.1:17321",
       },
     },
+    "opencode-go": {
+      "options": {
+        "headers": {
+          "sleev-provider": "opencode-go",
+          "sleev-harness": "opencode",
+        },
+        "baseURL": "http://127.0.0.1:17321",
+      },
+    },
     "github-copilot": {
       "options": {
         "headers": {
