@@ -5,6 +5,9 @@
 .local/share/icons/rio-2024.svg
 .cache/opencode/packages/@dietrichgebert/ponytail
 .cache/opencode/packages/@dietrichgebert/ponytail@latest
+
+# DCP tui plugin is no longer cloned by chezmoi.
+.cache/opencode/tui-plugins/opencode-dcp
 .claude/.ponytail-active
 .codex/plugins/cache/ponytail
 .config/opencode/.ponytail-active
