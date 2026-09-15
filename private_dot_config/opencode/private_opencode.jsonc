@@ -1,7 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    // "@tarquinen/opencode-dcp@github:mirsella/opencode-dynamic-context-pruning#main",
     "@tarquinen/opencode-smart-title",
     "@plannotator/opencode",
     "opencode-queue",

@@ -105,6 +105,8 @@ const STATE_CLEANUP_INTERVAL_MS = 24 * 60 * 60_000;
 const TASK_RETENTION_MS = 60 * 60_000;
 const WAIT_POLL_MS = 250;
 const IDLE_STATUS: SessionStatus = { type: "idle" };
+const RECOVERY_PROMPT =
+	"A subagent from your previous turn got stuck. Resume your existing subagent with the task tool, then continue.";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
@@ -365,30 +367,6 @@ type Examination = {
 	pending: Set<string>;
 	taskState: TaskState | undefined;
 };
-
-function makeRecoveryPrompt(child: Child): string {
-	return [
-		"A subagent used by your previous turn became stuck, so that turn was interrupted automatically.",
-		"",
-		"Resume the EXISTING subagent task below and then continue the work you were doing.",
-		"",
-		"Existing task_id:",
-		child.id,
-		...(child.task?.subagentType
-			? ["", "Subagent type:", child.task.subagentType]
-			: ["", "Reuse the original subagent type associated with this task."]),
-		...(child.task?.description
-			? ["", "Original task:", child.task.description]
-			: []),
-		"",
-		"You MUST reuse this exact task_id when calling the task tool.",
-		"Do not create a replacement subagent.",
-		"Do not restart the task from scratch.",
-		"Continue from the existing subagent context.",
-		"",
-		"After the resumed subagent finishes, continue the original parent task normally.",
-	].join("\n");
-}
 
 export class SubagentWatchdog {
 	private readonly children = new Map<string, Child>();
@@ -808,7 +786,7 @@ export class SubagentWatchdog {
 			recovery.promptedAt = this.now();
 			await this.api.promptAsync(
 				child.parentID,
-				makeRecoveryPrompt(child),
+				RECOVERY_PROMPT,
 				this.promptContexts.get(child.parentID),
 			);
 			await this.logChild("info", "watchdog.child.recovery_prompted", child, {

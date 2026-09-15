@@ -6,7 +6,7 @@ import orchestrator from "../plugins/orchestrator";
 
 type Model = { providerID: string; modelID: string; variant?: string };
 
-const deepseek: Model = { providerID: "opencode-go", modelID: "deepseek-v4.1-flash" };
+const deepseek: Model = { providerID: "opencode-go", modelID: "deepseek-v4.1-flash", variant: "max" };
 const solFast = (variant: "high" | "low"): Model => ({ providerID: "openai", modelID: "gpt-5.6-sol-fast", variant });
 const astra: Model = { providerID: "openai", modelID: "gpt-6-astra" };
 const astraFast: Model = { providerID: "openai", modelID: "gpt-6-astra-fast" };
@@ -149,10 +149,9 @@ test("task definition carries the delegation policy without service lookups", as
   expect(description).toStartWith("Original tool description\n\nDelegation policy for task calls:");
   for (const text of [
     "general and explore are the default workers",
-    "In an OpenAI main session you may choose astra yourself",
-    "call astra only when the user explicitly requests it",
+    "Choose astra yourself only in OpenAI main sessions",
+    "call it only when the user explicitly requests it",
     "unavailable from child sessions",
-    "Other agents are unaffected",
   ]) {
     expect(description).toContain(text);
   }
@@ -296,12 +295,10 @@ test("command subtask rejects an assistant in place of its invoking user", async
   await expect(task("astra", "part")).rejects.toThrow("Unable to resolve invoking user for command task part");
 });
 
-test("OpenAI normal sessions run general and explore on deepseek", async () => {
+test("OpenAI normal sessions run general and explore on deepseek with max reasoning", async () => {
   const { task, prompt } = await setup();
   for (const agent of ["general", "explore"]) {
-    const model = await prompt("child", agent, "gpt-6-astra", await task(agent));
-    expect(model).toMatchObject(deepseek);
-    expect(model.variant).toBeUndefined();
+    expect(await prompt("child", agent, "gpt-6-astra", await task(agent))).toMatchObject(deepseek);
   }
 });
 

@@ -12,8 +12,5 @@
     "messages_half_page_down": "ctrl+d",
     "workspace_set": "ctrl+alt+w",
   },
-  "plugin": [
-    "./tui-plugins/suppress-ctrl-u.ts",
-    // "file:///home/mirsella/.cache/opencode/tui-plugins/opencode-dcp",
-  ],
+  "plugin": ["./tui-plugins/suppress-ctrl-u.ts"],
 }

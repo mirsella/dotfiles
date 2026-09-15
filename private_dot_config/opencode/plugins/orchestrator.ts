@@ -19,7 +19,7 @@ type Worker = {
   reasoningEffort?: string;
 };
 
-const deepseek = { providerID: "opencode-go", modelID: "deepseek-v4.1-flash" } satisfies ModelSpec;
+const deepseek = { providerID: "opencode-go", modelID: "deepseek-v4.1-flash", variant: "max" } satisfies ModelSpec;
 const solFast = (variant: "high" | "low"): ModelSpec => ({
   providerID: "openai",
   modelID: "gpt-5.6-sol-fast",
@@ -35,7 +35,7 @@ const workers = {
     fast: { providerID: "openai", modelID: "gpt-6-astra-fast" },
     reasoningEffort: "low",
     description:
-      "Difficult, ambiguous, or high-stakes subtasks: architecture and design trade-offs, technical guidance, hard implementation or debugging, deep reviews (correctness, concurrency, security, performance), and nuanced writing (issues, PRs, support replies, emails). faster but more expensive.",
+      "Difficult or high-stakes subtasks: architecture and design trade-offs, hard debugging, deep reviews, and nuanced writing. More expensive than the default workers.",
   },
 } satisfies Record<WorkerName, Worker>;
 
@@ -43,9 +43,8 @@ const workerFor = (name?: string): Worker | undefined =>
   name === undefined ? undefined : (workers as Record<string, Worker | undefined>)[name];
 
 const taskPolicy = `Delegation policy for task calls:
-general and explore are the default workers; use them for routine, well-scoped subtasks, searches, and mechanical work.
-astra covers difficult or high-stakes subtasks. In an OpenAI main session you may choose astra yourself when its description fits. From any other provider, call astra only when the user explicitly requests it.
-These workers are unavailable from child sessions. Other agents are unaffected.`;
+general and explore are the default workers. Choose astra yourself only in OpenAI main sessions; from any other provider, call it only when the user explicitly requests it.
+These workers are unavailable from child sessions.`;
 
 export default (async ({ client }) => {
   const prefix = `<opencode-orchestrator-${crypto.randomUUID()}:`;

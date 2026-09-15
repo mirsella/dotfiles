@@ -188,8 +188,7 @@ describe("subagent watchdog", () => {
 		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([parent.id]);
 		expect(api.prompts).toHaveLength(1);
-		expect(api.prompts[0].prompt).toContain(child.id);
-		expect(api.prompts[0].prompt).toContain("explore");
+		expect(api.prompts[0].prompt).toContain("Resume your existing subagent");
 		await taskPart(watchdog, "call_original", 0);
 		expect(logs).not.toContain("watchdog.child.recovered");
 
@@ -273,7 +272,7 @@ describe("subagent watchdog", () => {
 		expect(api.aborts).toEqual([parent.id]);
 		expect(logs).toContain("watchdog.child.parent_not_idle");
 		expect(api.prompts).toHaveLength(1);
-		expect(api.prompts[0].prompt).toContain(child.id);
+		expect(api.prompts[0].prompt).toContain("Resume your existing subagent");
 	});
 
 	test("pending permission or question disables recovery", async () => {
