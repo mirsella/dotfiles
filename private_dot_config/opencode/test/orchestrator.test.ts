@@ -1,18 +1,32 @@
 import { expect, test } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Config } from "@opencode-ai/plugin";
 import type { AssistantMessage, Part, Session, SessionMessagesResponse, ToolPart, UserMessage } from "@opencode-ai/sdk";
 import { createOpencodeClient } from "@opencode-ai/sdk";
+import { MODE_MODELS, readState, writeState, type State } from "../lib/subagent-mode";
 import orchestrator from "../plugins/orchestrator";
 
 type Model = { providerID: string; modelID: string; variant?: string };
+type Marker = { fast: boolean } | { model: Model };
 
-const deepseek: Model = { providerID: "opencode-go", modelID: "deepseek-v4.1-flash", variant: "max" };
+const luna: Model = { providerID: "openai", modelID: "gpt-5.6-luna", variant: "max" };
+const deepseek: Model = MODE_MODELS.go;
 const solFast = (variant: "high" | "low"): Model => ({ providerID: "openai", modelID: "gpt-5.6-sol-fast", variant });
 const astra: Model = { providerID: "openai", modelID: "gpt-6-astra" };
 const astraFast: Model = { providerID: "openai", modelID: "gpt-6-astra-fast" };
 const allWorkers = ["general", "explore", "astra"] as const;
-const normalMarker = /^<opencode-orchestrator-[^:]+:normal>\n/;
-const fastMarker = /^<opencode-orchestrator-[^:]+:fast>\n/;
+const markerPattern = /^<opencode-orchestrator-[^:]+:(\{.*?\})>\n/;
+
+const markerOf = (prompt: string): Marker => {
+  const match = markerPattern.exec(prompt);
+  if (match === null) throw new Error(`Missing orchestrator marker in ${JSON.stringify(prompt)}`);
+  return JSON.parse(match[1]) as Marker;
+};
+const auto = (fast: boolean): Marker => ({ fast });
+const forced = (model: Model): Marker => ({ model });
+const inherits = (prompt: string) => expect(prompt).toBe(taskPrompt);
 
 const user = (providerID = "openai", id = "user") => ({
   info: {
@@ -49,6 +63,8 @@ const commandPart: ToolPart = {
 const taskPrompt = "Inspect @src/main.ts\nReport findings.\n";
 
 const setup = async (messages: SessionMessagesResponse = [user(), assistant()]) => {
+  const file = join(mkdtempSync(join(tmpdir(), "orchestrator-")), "subagent-mode.json");
+  process.env.OPENCODE_SUBAGENT_MODE_FILE = file;
   const session: Session = {
     id: "session", projectID: "project", directory: "/project", title: "Test",
     version: "1", time: { created: 1, updated: 1 },
@@ -106,7 +122,8 @@ const setup = async (messages: SessionMessagesResponse = [user(), assistant()]) 
     await hooks["tool.definition"]({ toolID }, output);
     return output.description;
   };
-  return { hooks, state, histories, requests, task, prompt, definition };
+  const setState = (subagentState: State) => writeState(subagentState, file);
+  return { hooks, state, histories, requests, task, prompt, definition, setState };
 };
 
 test("registers astra defaults and leaves other agents untouched", async () => {
@@ -166,10 +183,12 @@ test("leaves unrelated tool definitions unchanged", async () => {
 
 test("OpenAI main sessions tag every worker with the current speed", async () => {
   const { task } = await setup();
-  for (const agent of allWorkers) expect(await task(agent)).toMatch(normalMarker);
+  for (const agent of allWorkers) {
+    expect(markerOf(await task(agent))).toEqual(auto(false));
+  }
   const accelerated = await setup([user(), fastAssistant()]);
   for (const agent of allWorkers) {
-    expect(await accelerated.task(agent)).toMatch(fastMarker);
+    expect(markerOf(await accelerated.task(agent))).toEqual(auto(true));
   }
 });
 
@@ -199,18 +218,22 @@ test("unrelated tools and agent types need no lookups", async () => {
 
 test("uses each executing assistant's provider rather than remembered or latest user models", async () => {
   const { task, state } = await setup();
-  for (const agent of allWorkers) expect(await task(agent)).toMatch(normalMarker);
+  for (const agent of allWorkers) {
+    expect(markerOf(await task(agent))).toEqual(auto(false));
+  }
   state.messages = [user(), assistant("other"), user("openai", "queued")];
-  for (const agent of allWorkers) expect(await task(agent)).toBe(taskPrompt);
+  for (const agent of allWorkers) inherits(await task(agent));
   state.messages = [user("other"), assistant(), user("other", "queued")];
-  for (const agent of allWorkers) expect(await task(agent)).toMatch(normalMarker);
+  for (const agent of allWorkers) {
+    expect(markerOf(await task(agent))).toEqual(auto(false));
+  }
 });
 
 test("finds the executing assistant behind queued users and shares its model across parallel tasks", async () => {
   const { task, state, requests } = await setup();
   state.messages!.push(...Array.from({ length: 5 }, (_, i) => user("other", `queued-${i}`)));
   const prompts = await Promise.all([task("general", "call-1"), task("astra", "call-2"), task("explore", "call-3")]);
-  expect(prompts.every((prompt) => normalMarker.test(prompt))).toBe(true);
+  for (const prompt of prompts) expect(markerOf(prompt)).toEqual(auto(false));
   expect(requests.sort()).toEqual([
     "get", "get", "get",
     "messages:2", "messages:2", "messages:2",
@@ -225,14 +248,14 @@ test("command subtasks use their exact parent user's provider, not the target or
   await expect(task("astra", "part")).resolves.toBe(taskPrompt);
   await expect(task("general", "part")).resolves.toBe(taskPrompt);
   state.messages = [user("openai"), assistant("other", [commandPart]), user("other", "queued")];
-  await expect(task("astra", "part")).resolves.toMatch(normalMarker);
-  await expect(task("general", "part")).resolves.toMatch(normalMarker);
+  expect(markerOf(await task("astra", "part"))).toEqual(auto(false));
+  expect(markerOf(await task("general", "part"))).toEqual(auto(false));
   expect(requests.filter((request) => request.startsWith("message:"))).toEqual(Array(4).fill("message:user"));
 });
 
 test("command subtasks reuse an invoking user already in the fetched page", async () => {
   const { task, requests } = await setup([user(), assistant("other", [commandPart])]);
-  await expect(task("astra", "part")).resolves.toMatch(normalMarker);
+  expect(markerOf(await task("astra", "part"))).toEqual(auto(false));
   expect(requests).toEqual(["get", "messages:2"]);
 });
 
@@ -241,13 +264,13 @@ test("command subtasks resolve the assistant's parent ID, not a fixed or latest 
   const command = assistant("other", [commandPart]);
   command.info.parentID = invoking.info.id;
   const { task, requests } = await setup([invoking, command, user("other", "queued")]);
-  await expect(task("astra", "part")).resolves.toMatch(fastMarker);
+  expect(markerOf(await task("astra", "part"))).toEqual(auto(true));
   expect(requests).toEqual(["get", "messages:2", "message:invoking-user"]);
 });
 
 test("normal task call IDs do not select the command authorization path", async () => {
   const { task, requests } = await setup([user("other"), assistant("openai", [commandPart])]);
-  await expect(task("astra", commandPart.callID)).resolves.toMatch(normalMarker);
+  expect(markerOf(await task("astra", commandPart.callID))).toEqual(auto(false));
   expect(requests).toEqual(["get", "messages:2"]);
 });
 
@@ -295,10 +318,10 @@ test("command subtask rejects an assistant in place of its invoking user", async
   await expect(task("astra", "part")).rejects.toThrow("Unable to resolve invoking user for command task part");
 });
 
-test("OpenAI normal sessions run general and explore on deepseek with max reasoning", async () => {
+test("OpenAI normal sessions run general and explore on luna max", async () => {
   const { task, prompt } = await setup();
   for (const agent of ["general", "explore"]) {
-    expect(await prompt("child", agent, "gpt-6-astra", await task(agent))).toMatchObject(deepseek);
+    expect(await prompt("child", agent, "gpt-6-astra", await task(agent))).toMatchObject(luna);
   }
 });
 
@@ -316,6 +339,93 @@ test("non-OpenAI main sessions leave worker models to inheritance", async () => 
   expect((await prompt("child", "general", "deepseek-v4.1-flash", taskPrompt, "opencode-go")).variant).toBe("custom");
   expect(await task("astra")).toBe(taskPrompt);
   expect((await prompt("child", "astra", "gpt-6-astra")).modelID).toBe("gpt-6-astra");
+});
+
+test("forced Go mode rewrites general and explore from any provider", async () => {
+  const { task, prompt, state, setState } = await setup();
+  setState({ global: { mode: "go" } });
+  for (const provider of ["openai", "other"]) {
+    state.messages = [user(provider), assistant(provider)];
+    for (const agent of ["general", "explore"]) {
+      const marked = await task(agent);
+      expect(markerOf(marked)).toEqual(forced(deepseek));
+      expect(await prompt("child", agent, "gpt-5.6-luna", marked)).toMatchObject(deepseek);
+    }
+  }
+});
+
+test("forced Codex mode pins workers to luna max regardless of speed", async () => {
+  const { task, prompt, state, setState } = await setup();
+  setState({ global: { mode: "codex" } });
+  for (const fast of [false, true]) {
+    state.messages = [fast ? fastUser() : user(), fast ? fastAssistant() : assistant()];
+    for (const agent of ["general", "explore"]) {
+      const marked = await task(agent);
+      expect(markerOf(marked)).toEqual(forced(luna));
+      expect(await prompt("child", agent, "deepseek-v4.1-flash", marked, "opencode-go")).toMatchObject(luna);
+    }
+  }
+});
+
+test("astra keeps its OpenAI family when workers are forced elsewhere", async () => {
+  const { task, prompt, state, setState } = await setup();
+  setState({ global: { mode: "go" } });
+  const marked = await task("astra");
+  expect(markerOf(marked)).toEqual(auto(false));
+  expect(await prompt("child", "astra", "gpt-6-astra", marked)).toMatchObject(astra);
+  state.messages = [user("other"), assistant("other")];
+  inherits(await task("astra"));
+});
+
+test("session scopes override the global mode and model", async () => {
+  const { task, prompt, histories, state, setState } = await setup();
+  const custom = { providerID: "opencode-go", modelID: "kimi-k3" };
+  setState({
+    global: { mode: "go", models: { codex: luna } },
+    sessions: { session: { mode: "codex", models: { codex: custom } } },
+  });
+  histories.other = {
+    session: { ...state.session!, id: "other" },
+    messages: [user("other"), assistant("other")],
+  };
+  const expectations = [
+    { sessionID: "session", ...custom },
+    { sessionID: "other", ...deepseek },
+  ];
+  for (const { sessionID, ...spec } of expectations) {
+    const marked = await task("general", "call", "task", sessionID);
+    expect(markerOf(marked)).toEqual(forced(spec));
+    expect(await prompt(`child-${sessionID}`, "general", "gpt-6-astra", marked)).toMatchObject(spec);
+  }
+});
+
+test("custom models persist across server restarts", async () => {
+  const { hooks, setState } = await setup();
+  const state: State = {
+    global: { mode: "go", models: { go: { providerID: "opencode-go", modelID: "kimi-k3" } } },
+    sessions: { one: { mode: "codex", models: { codex: luna } } },
+  };
+  setState(state);
+  await hooks.config({});
+  expect(readState(process.env.OPENCODE_SUBAGENT_MODE_FILE!)).toEqual(state);
+});
+
+test("deleted sessions drop their overrides", async () => {
+  const { hooks, setState } = await setup();
+  setState({ global: { mode: "go" }, sessions: { session: { mode: "codex" }, other: {} } });
+  const file = process.env.OPENCODE_SUBAGENT_MODE_FILE!;
+  const deleted = (id: string) =>
+    hooks.event({ event: { type: "session.deleted", properties: { info: { id } } } });
+  await deleted("session");
+  expect(readState(file)).toEqual({ global: { mode: "go" }, sessions: { other: {} } });
+  await deleted("missing");
+  expect(readState(file)).toEqual({ global: { mode: "go" }, sessions: { other: {} } });
+});
+
+test("unreadable state files fall back to auto", async () => {
+  const { task } = await setup();
+  writeFileSync(process.env.OPENCODE_SUBAGENT_MODE_FILE!, "{not json");
+  expect(markerOf(await task("general"))).toEqual(auto(false));
 });
 
 test("astra follows fast mode and keeps explicit custom models authoritative", async () => {
@@ -345,8 +455,8 @@ test("unrelated prompts and non-worker agents are unchanged", async () => {
 test("all workers follow live fast/non-fast switches, including resumed child sessions", async () => {
   const { state, task, prompt } = await setup();
   const expected = {
-    general: { normal: deepseek, fast: solFast("high") },
-    explore: { normal: deepseek, fast: solFast("low") },
+    general: { normal: luna, fast: solFast("high") },
+    explore: { normal: luna, fast: solFast("low") },
     astra: { normal: astra, fast: astraFast },
   } as const;
   for (const fast of [false, true, false]) {
@@ -400,15 +510,26 @@ test("later hook corrections keep the parent's speed without pinning the origina
     state.messages = [user(), fast ? fastAssistant() : assistant()];
     const source = await task("astra");
     // The watchdog rewrites subagent_type when resuming a different original worker.
-    expect(await prompt("child", "general", "gpt-5.6-luna", source)).toMatchObject(fast ? solFast("high") : deepseek);
-    expect(await prompt("child", "explore", "gpt-5.6-luna", source)).toMatchObject(fast ? solFast("low") : deepseek);
+    expect(await prompt("child", "general", "gpt-5.6-luna", source)).toMatchObject(fast ? solFast("high") : luna);
+    expect(await prompt("child", "explore", "gpt-5.6-luna", source)).toMatchObject(fast ? solFast("low") : luna);
   }
 });
 
 test("corrupted model markers fail explicitly", async () => {
   const { task, prompt } = await setup();
   const source = await task("astra");
-  await expect(prompt("child", "astra", "gpt-6-astra", source.replace(":normal>", ":invalid>"))).rejects.toThrow("Invalid orchestrator model marker");
+  const prefix = source.slice(0, source.indexOf("{"));
+  const corrupted = [
+    `${prefix}{not json}>\n${taskPrompt}`,
+    `${prefix}{"fast":"yes"}>\n${taskPrompt}`,
+    `${prefix}{"fast":false,"model":{"providerID":"openai","modelID":"gpt-5.6-luna"}}>\n${taskPrompt}`,
+    `${prefix}{"model":{"providerID":"openai"}}>\n${taskPrompt}`,
+    `${prefix}{}>\n${taskPrompt}`,
+    `${prefix}{"fast":false}${taskPrompt}`,
+  ];
+  for (const text of corrupted) {
+    await expect(prompt("child", "astra", "gpt-6-astra", text)).rejects.toThrow("Invalid orchestrator model marker");
+  }
 });
 
 test.each(["", "\n@src/main.ts\n\u00e9\r\n", "<opencode-orchestrator-user:sol:fast>\nKeep this text."])(

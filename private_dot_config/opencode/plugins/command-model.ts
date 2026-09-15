@@ -1,23 +1,19 @@
 import type { Plugin } from "@opencode-ai/plugin";
-
-type CommandModel = {
-  providerID: string;
-  modelID: string;
-  variant: string | undefined;
-};
+import { parseModel, type ModelSpec } from "../lib/model-spec";
 
 export default (async () => {
-  const commandModels = new Map<string, CommandModel>();
-  const pending = new Map<string, CommandModel>();
+  const commandModels = new Map<string, ModelSpec>();
+  const pending = new Map<string, ModelSpec>();
 
   return {
     config: async (config) => {
       for (const [name, command] of Object.entries(config.command ?? {})) {
         if (command.model === undefined || command.subtask === true) continue;
-        const match = /^([^/\s#]+)\/([^\s#]+)(?:#([^\s#]+))?$/.exec(command.model);
-        if (!match) throw new Error(`Invalid model for /${name}: expected provider/model[#variant]`);
-        const [, providerID, modelID, variant] = match;
-        commandModels.set(name, { providerID, modelID, variant });
+        const model = parseModel(command.model);
+        if (model === undefined) {
+          throw new Error(`Invalid model for /${name}: expected provider/model[#variant]`);
+        }
+        commandModels.set(name, model);
         // Prevent the built-in command override from changing session selection.
         delete command.model;
       }

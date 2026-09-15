@@ -1,38 +1,34 @@
 import type { Plugin } from "@opencode-ai/plugin";
-
-type ModelSpec = {
-  providerID: string;
-  modelID: string;
-  variant?: string;
-};
+import { asModelSpec, type ModelSpec } from "../lib/model-spec";
+import { readState, resolveScope, writeState } from "../lib/subagent-mode";
 
 type WorkerName = "general" | "explore" | "astra";
 
 type Worker = {
-  // "mirror" workers have no configured model, so their child model is inherited
-  // from the invoking session and the plugin always replaces it. "fixed" workers
-  // declare a model in agent config and only switch within that family.
+  // "mirror" workers follow the active mode. "fixed" workers only switch within
+  // their own model family and always follow the invoking assistant's speed.
   kind: "mirror" | "fixed";
-  normal: ModelSpec;
-  fast: ModelSpec;
+  // Specs used in auto mode, and for fixed workers in every mode.
+  auto: { normal: ModelSpec; fast: ModelSpec };
   description?: string;
   reasoningEffort?: string;
 };
 
-const deepseek = { providerID: "opencode-go", modelID: "deepseek-v4.1-flash", variant: "max" } satisfies ModelSpec;
+const lunaMax = { providerID: "openai", modelID: "gpt-5.6-luna", variant: "max" } satisfies ModelSpec;
 const solFast = (variant: "high" | "low"): ModelSpec => ({
   providerID: "openai",
   modelID: "gpt-5.6-sol-fast",
   variant,
 });
+const astra = { providerID: "openai", modelID: "gpt-6-astra" } satisfies ModelSpec;
+const astraFast = { providerID: "openai", modelID: "gpt-6-astra-fast" } satisfies ModelSpec;
 
 const workers = {
-  general: { kind: "mirror", normal: deepseek, fast: solFast("high") },
-  explore: { kind: "mirror", normal: deepseek, fast: solFast("low") },
+  general: { kind: "mirror", auto: { normal: lunaMax, fast: solFast("high") } },
+  explore: { kind: "mirror", auto: { normal: lunaMax, fast: solFast("low") } },
   astra: {
     kind: "fixed",
-    normal: { providerID: "openai", modelID: "gpt-6-astra" },
-    fast: { providerID: "openai", modelID: "gpt-6-astra-fast" },
+    auto: { normal: astra, fast: astraFast },
     reasoningEffort: "low",
     description:
       "Difficult or high-stakes subtasks: architecture and design trade-offs, hard debugging, deep reviews, and nuanced writing. More expensive than the default workers.",
@@ -46,9 +42,33 @@ const taskPolicy = `Delegation policy for task calls:
 general and explore are the default workers. Choose astra yourself only in OpenAI main sessions; from any other provider, call it only when the user explicitly requests it.
 These workers are unavailable from child sessions.`;
 
+// The task prompt is the only channel that reaches the child session, so the
+// routing decision rides along as a marker and is stripped again in chat.message.
+type Marker = { fast: boolean } | { model: ModelSpec };
+
 export default (async ({ client }) => {
   const prefix = `<opencode-orchestrator-${crypto.randomUUID()}:`;
-  const markers = { normal: `${prefix}normal>\n`, fast: `${prefix}fast>\n` };
+  const encodeMarker = (marker: Marker) => `${prefix}${JSON.stringify(marker)}>\n`;
+  const decodeMarker = (agent: string | undefined, text: string): { marker: Marker; length: number } => {
+    const invalid = () => new Error(`Invalid orchestrator model marker for agent ${agent}`);
+    const end = text.indexOf(">\n", prefix.length);
+    if (end === -1) throw invalid();
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text.slice(prefix.length, end));
+    } catch {
+      throw invalid();
+    }
+    if (typeof raw !== "object" || raw === null) throw invalid();
+    const { fast, model } = raw as Record<string, unknown>;
+    if (fast === undefined) {
+      const spec = asModelSpec(model);
+      if (spec === undefined) throw invalid();
+      return { marker: { model: spec }, length: end + 2 };
+    }
+    if (model !== undefined || typeof fast !== "boolean") throw invalid();
+    return { marker: { fast }, length: end + 2 };
+  };
 
   // The assistant that invoked a task owns its model. Queued user messages can be
   // newer than it, and command subtasks record the target model on a synthetic
@@ -122,7 +142,7 @@ export default (async ({ client }) => {
       config.agent.astra = {
         description: workers.astra.description,
         mode: "subagent",
-        model: `${workers.astra.normal.providerID}/${workers.astra.normal.modelID}`,
+        model: `${workers.astra.auto.normal.providerID}/${workers.astra.auto.normal.modelID}`,
         ...existing,
         options: {
           reasoningEffort: workers.astra.reasoningEffort,
@@ -130,47 +150,59 @@ export default (async ({ client }) => {
         },
       };
     },
+    // Overrides live in a state file owned by the /subagents dialog; keep it from
+    // accumulating scopes for sessions that no longer exist.
+    event: async ({ event }) => {
+      if (event.type !== "session.deleted") return;
+      const state = readState();
+      if (state.sessions === undefined || !(event.properties.info.id in state.sessions)) return;
+      delete state.sessions[event.properties.info.id];
+      writeState(state);
+    },
     "tool.definition": async ({ toolID }, output) => {
       if (toolID === "task") output.description += `\n\n${taskPolicy}`;
     },
     "tool.execute.before": async ({ tool, sessionID, callID }, output) => {
       if (tool !== "task") return;
       const requested = output.args.subagent_type as string;
-      if (!workerFor(requested)) return;
+      const worker = workerFor(requested);
+      if (!worker) return;
 
       const { providerID, modelID } = await resolveInvoker(sessionID, callID, requested);
-      // Other providers keep the inherited model for mirror workers and the
-      // configured model for fixed workers, so there is nothing to carry.
-      if (providerID !== "openai") return;
+      const { mode, models } = resolveScope(readState(), sessionID);
+      // Fixed workers keep their own family, and other providers keep the inherited
+      // model in auto mode, so only mirror workers in a forced mode carry a model.
+      const forced = worker.kind === "mirror" && mode !== "auto" ? models[mode] : undefined;
+      if (forced === undefined && providerID !== "openai") return;
 
       // Task has no model override or child-prompt correlation ID. Carry the
       // snapshot with this invocation so cancelled/queued resumes cannot mix it up.
       output.args.prompt =
-        markers[modelID.endsWith("-fast") ? "fast" : "normal"] + output.args.prompt;
+        encodeMarker(
+          forced === undefined
+            ? { fast: providerID === "openai" && modelID.endsWith("-fast") }
+            : { model: forced },
+        ) + output.args.prompt;
     },
     "chat.message": async ({ agent }, { message, parts }) => {
       const part = parts.find(
         (part) => part.type === "text" && part.text.startsWith(prefix),
       );
       if (part?.type !== "text") return;
-      const fast = part.text.startsWith(markers.fast);
-      if (!fast && !part.text.startsWith(markers.normal)) {
-        throw new Error(`Invalid orchestrator model marker for agent ${agent}`);
-      }
+      const { marker, length } = decodeMarker(agent, part.text);
       // Remove transport metadata before the child message is persisted or sent to an LLM.
-      part.text = part.text.slice(markers[fast ? "fast" : "normal"].length);
-      // Recovery plugins can correct the worker after tool.execute.before.
+      part.text = part.text.slice(length);
       const worker = workerFor(agent);
       if (!worker) return;
-      const spec = fast ? worker.fast : worker.normal;
+      const spec = "model" in marker ? marker.model : worker.auto[marker.fast ? "fast" : "normal"];
       const current = message.model as ModelSpec;
       // Fixed workers only rewrite their own family, leaving explicit models from
-      // recovery hooks authoritative. Mirror workers are always inherited.
+      // recovery hooks authoritative. Mirror workers are always rewritten.
       if (
         worker.kind === "fixed" &&
         (current.providerID !== spec.providerID ||
-          (current.modelID !== worker.normal.modelID &&
-            current.modelID !== worker.fast.modelID))
+          (current.modelID !== worker.auto.normal.modelID &&
+            current.modelID !== worker.auto.fast.modelID))
       ) {
         return;
       }

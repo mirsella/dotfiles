@@ -12,5 +12,5 @@
     "messages_half_page_down": "ctrl+d",
     "workspace_set": "ctrl+alt+w",
   },
-  "plugin": ["./tui-plugins/suppress-ctrl-u.ts"],
+  "plugin": ["./tui-plugins/suppress-ctrl-u.ts", "./tui-plugins/subagent-mode.ts"],
 }
