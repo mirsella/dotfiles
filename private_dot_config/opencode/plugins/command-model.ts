@@ -30,9 +30,9 @@ export default (async () => {
     "chat.message": async ({ sessionID }, { message }) => {
       const model = pending.get(sessionID);
       pending.delete(sessionID);
-      if (!model) return;
+      // Never switch the session to a provider other than the one it is already using.
+      if (!model || message.model.providerID !== model.providerID) return;
       const fast = model.providerID === "openai"
-        && message.model.providerID === "openai"
         && message.model.modelID.endsWith("-fast")
         && !model.modelID.endsWith("-fast");
       // V1 reads variant here, though the installed legacy SDK type omits it.
