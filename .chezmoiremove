@@ -21,3 +21,11 @@
 .config/opencode/skills/plannotator-review
 .config/opencode/skills/plannotator-setup-goal
 .config/opencode/skills/plannotator-visual-explainer
+
+# cleancode/reviews live as OpenCode commands now; Codex uses pointer shims in .codex/skills.
+.config/opencode/skills/cleancode
+.config/opencode/skills/reviews
+
+# Same: skills that duplicate an OpenCode command.
+.config/opencode/skills/commit
+.config/opencode/skills/commitdiff

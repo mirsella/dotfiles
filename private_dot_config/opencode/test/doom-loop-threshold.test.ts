@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { Hooks, PluginInput } from "@opencode-ai/plugin";
-import { DoomLoopThresholdPlugin } from "./doom-loop-threshold";
+import { DoomLoopThresholdPlugin } from "../lib/doom-loop-threshold";
 
 test("rejects the sixth identical tool call", async () => {
 	const responses: string[] = [];

@@ -1,5 +1,4 @@
 ---
-name: cleancode
 description: Aggressively refactors recently touched code for simplicity, locality, robustness, and runtime efficiency while preserving intended behavior.
 ---
 
