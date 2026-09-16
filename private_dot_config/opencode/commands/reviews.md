@@ -3,11 +3,11 @@ description: Review session changes and fix important defects; ask before substa
 agent: build
 ---
 
-Review the code you changed in this session, including committed changes and
-work you delegated. Focus on concrete defects introduced by this work that are
-worth fixing before merge, not style preferences, speculative hardening, or
-pre-existing issues.
-Preserve other contributors edits, there might be other agents working on the same files.
+Review only the code changed in this session by this agent, including committed
+changes and work you delegated. Focus on concrete defects introduced by this
+work that are worth fixing before merge, not style preferences, speculative
+hardening, or pre-existing issues.
+Other agents may be working in the same worktree — only review your own changes, never theirs. If ownership of a hunk is shared or uncertain, exclude it. Formatting is fine.
 
 $ARGUMENTS
 
