@@ -27,3 +27,6 @@ plannotator-review.md
 # Codex-managed bundled skills (installed and updated by codex itself).
 .codex/skills/.system
 .codex/skills/.system/**
+
+# Never manage dependency trees.
+node_modules/

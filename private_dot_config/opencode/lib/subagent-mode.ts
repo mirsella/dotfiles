@@ -8,7 +8,11 @@ export type Mode = "auto" | ForcedMode;
 
 // Defaults for the forced modes until overridden from the /subagents dialog.
 export const MODE_MODELS: Record<ForcedMode, ModelSpec> = {
-  go: { providerID: "opencode-go", modelID: "deepseek-v4.1-flash", variant: "max" },
+  go: {
+    providerID: "opencode-go",
+    modelID: "muse-spark-1.3-contributor",
+    variant: "xhigh",
+  },
   codex: { providerID: "openai", modelID: "gpt-5.6-luna", variant: "max" },
 };
 
@@ -24,9 +28,19 @@ export type State = {
 
 export const stateFile = (dir?: string) =>
   process.env.OPENCODE_SUBAGENT_MODE_FILE ??
-  join(dir ?? join(process.env.XDG_DATA_HOME || join(homedir(), ".local", "share"), "opencode"), "subagent-mode.json");
+  join(
+    dir ??
+      join(
+        process.env.XDG_DATA_HOME || join(homedir(), ".local", "share"),
+        "opencode",
+      ),
+    "subagent-mode.json",
+  );
 
-const sanitizeScope = (value: unknown, dropped: { any: boolean }): Scope | undefined => {
+const sanitizeScope = (
+  value: unknown,
+  dropped: { any: boolean },
+): Scope | undefined => {
   if (typeof value !== "object" || value === null) {
     dropped.any = true;
     return undefined;
@@ -93,7 +107,8 @@ export const readState = (file = stateFile()): State => {
   }
   // A hand-edited or stale file must not break delegation, but the fallback is
   // worth knowing about.
-  if (dropped.any) console.warn(`[subagent-mode] ignoring invalid fields in ${file}`);
+  if (dropped.any)
+    console.warn(`[subagent-mode] ignoring invalid fields in ${file}`);
   return state;
 };
 
@@ -105,14 +120,16 @@ export const writeState = (state: State, file = stateFile()) => {
 };
 
 export const resolveScope = (state: State, sessionID?: string) => {
-  const session = sessionID === undefined ? undefined : state.sessions?.[sessionID];
+  const session =
+    sessionID === undefined ? undefined : state.sessions?.[sessionID];
   const global = state.global;
   const mode: Mode = session?.mode ?? global?.mode ?? "auto";
   return {
     mode,
     models: {
       go: session?.models?.go ?? global?.models?.go ?? MODE_MODELS.go,
-      codex: session?.models?.codex ?? global?.models?.codex ?? MODE_MODELS.codex,
+      codex:
+        session?.models?.codex ?? global?.models?.codex ?? MODE_MODELS.codex,
     },
   };
 };
