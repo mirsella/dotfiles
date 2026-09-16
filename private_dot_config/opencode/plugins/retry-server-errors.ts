@@ -15,6 +15,41 @@ type MessageEntry = { info: Message; parts: Part[] };
 const errorMessage = (error: unknown) =>
 	error instanceof Error ? error.message : String(error);
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
+const TRANSIENT_UNKNOWN_ERROR_PATTERNS = ["expected 'id' to be a string"];
+
+const isRetryableProviderError = (message: AssistantMessage) => {
+	const error = message.error;
+	if (!error) return false;
+	if (error.name === "APIError") return error.data.isRetryable === true;
+	if (error.name === "UnknownError") {
+		const text =
+			typeof error.data.message === "string"
+				? error.data.message.toLowerCase()
+				: "";
+		return TRANSIENT_UNKNOWN_ERROR_PATTERNS.some((pattern) =>
+			text.includes(pattern),
+		);
+	}
+	return false;
+};
+
+const errorDetails = (message: AssistantMessage) => {
+	const error = message.error;
+	if (!error || !isObject(error)) return {};
+	if (!("name" in error)) return {};
+	const data = "data" in error && isObject(error.data) ? error.data : {};
+	return {
+		errorName: error.name,
+		errorMessage:
+			"message" in data && typeof data.message === "string"
+				? data.message
+				: undefined,
+	};
+};
+
 const messages = async (client: Client, sessionID: string) =>
 	(
 		await client.session.messages({
@@ -162,6 +197,7 @@ export const RetryServerErrorsPlugin: Plugin = async ({
 				messageID: failed.id,
 				modelID: failed.modelID,
 				providerID: failed.providerID,
+				...errorDetails(failed),
 			});
 		} catch (error) {
 			const message = errorMessage(error);
@@ -186,11 +222,7 @@ export const RetryServerErrorsPlugin: Plugin = async ({
 		event: async ({ event }) => {
 			if (event.type !== "message.updated") return;
 			const message = event.properties.info;
-			if (
-				message.role === "assistant" &&
-				message.error?.name === "APIError" &&
-				message.error.data.isRetryable
-			) {
+			if (message.role === "assistant" && isRetryableProviderError(message)) {
 				await retry(message);
 			}
 		},
