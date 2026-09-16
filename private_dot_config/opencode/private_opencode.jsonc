@@ -7,7 +7,6 @@
     "opencode-goal",
     "@mirsella/opencode-browser-mcp",
     "@mirsella/context7-account-broker",
-    ["./doom-loop-threshold.ts", { "threshold": 6 }],
   ],
   "autoupdate": false,
   "experimental": {

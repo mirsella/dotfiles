@@ -10,7 +10,10 @@
     "input_delete_to_line_start": "none",
     "messages_half_page_up": "ctrl+u",
     "messages_half_page_down": "ctrl+d",
-    "workspace_set": "ctrl+alt+w",
+    "session_move": "ctrl+alt+w",
   },
-  "plugin": ["./tui-plugins/suppress-ctrl-u.ts", "./tui-plugins/subagent-mode.ts"],
+  "plugin": [
+    "./tui-plugins/suppress-ctrl-u.ts",
+    "./tui-plugins/subagent-mode.ts",
+  ],
 }

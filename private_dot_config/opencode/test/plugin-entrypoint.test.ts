@@ -5,9 +5,11 @@ import { describe, expect, test } from "bun:test";
 // any export is not a plugin function. The entrypoint must therefore expose
 // exactly one runtime export: the default plugin factory.
 describe("plugin entrypoint", () => {
-	test("exposes exactly one function export", async () => {
-		const module = await import("../plugins/subagent-watchdog");
-		expect(Object.keys(module)).toEqual(["default"]);
-		expect(typeof module.default).toBe("function");
-	});
+	for (const name of ["subagent-watchdog", "doom-loop-threshold"]) {
+		test(`${name} exposes exactly one function export`, async () => {
+			const module = await import(`../plugins/${name}`);
+			expect(Object.keys(module)).toEqual(["default"]);
+			expect(typeof module.default).toBe("function");
+		});
+	}
 });
