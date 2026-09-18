@@ -30,19 +30,15 @@
     enable = true;
     datasets = {
       "tank/library" = {
-        hourly = 24;
         daily = 7;
         weekly = 4;
-        monthly = 3;
         autosnap = true;
         autoprune = true;
         recursive = true;
       };
       "fast/ncdata" = {
-        hourly = 24;
         daily = 7;
         weekly = 4;
-        monthly = 3;
         autosnap = true;
         autoprune = true;
         recursive = true;

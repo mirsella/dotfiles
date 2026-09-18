@@ -1,4 +1,4 @@
-{ lib, osConfig, pkgs, hostName, gitSigningKey, ... }:
+{ lib, osConfig, pkgs, gitSigningKey, ... }:
 {
   home = {
     username = "mirsella";
@@ -47,9 +47,10 @@
         "config.nu"
         "env.nu"
         "functions.nu"
+        "laptop.nu"
         "notif.nu"
         "plugins.nu"
-      ] ++ lib.optionals (hostName == "laptop") [ "laptop.nu" ];
+      ];
     in
     lib.mapAttrs' (n: _: lib.nameValuePair n { source = ./files/config + "/${n}"; }) plain
     // builtins.listToAttrs (
