@@ -29,7 +29,9 @@ let
           dev=$(basename "$target" 2>/dev/null || true)
           stat="/sys/block/$dev/stat"
           if [ -z "$dev" ] || [ ! -r "$stat" ]; then resolve_ok=0; break; fi
-          cur="$cur $disk=$(awk '{print $7}' "$stat")"
+          read -r _ _ _ _ _ _ w _ < "$stat"
+          if [ -z "$w" ]; then resolve_ok=0; break; fi
+          cur="$cur $disk=$w"
         done
         if [ "$resolve_ok" = 1 ] && [ -f "$stateDir/${name}" ] && [ "$(cat "$stateDir/${name}")" = "$cur" ]; then
           echo "no block writes for ${dataset}, skipping snapshots"
