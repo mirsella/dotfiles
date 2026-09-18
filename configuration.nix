@@ -9,6 +9,24 @@
   ];
 
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  sops.secrets =
+    let
+      userSecret = path: {
+        sopsFile = ./secrets/services.yaml;
+        owner = "mirsella";
+        inherit path;
+      };
+    in
+    {
+      telegram_env = userSecret "/home/mirsella/.config/telegram.env";
+      opencode_server = userSecret "/home/mirsella/.config/opencode/server.env";
+      openchamber_server = userSecret "/home/mirsella/.config/openchamber/server.env";
+      env_secrets = userSecret "/home/mirsella/.config/environment.d/55-secrets.conf";
+      stuff_config = userSecret "/home/mirsella/.config/stuff/config.toml";
+      context7_accounts = userSecret "/home/mirsella/.config/context7-account-broker/accounts.json";
+      gdrive_gcp = userSecret "/home/mirsella/.config/google-drive-mcp/gcp-oauth.keys.json";
+      gdrive_tokens = userSecret "/home/mirsella/.config/google-drive-mcp/tokens.json";
+    };
 
   home-manager = {
     useGlobalPkgs = true;

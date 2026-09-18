@@ -1,24 +1,5 @@
-{ config, lib, pkgs, ... }:
+{ lib, osConfig, pkgs, ... }:
 {
-  sops.secrets =
-    let
-      userSecret = path: {
-        sopsFile = ../../secrets/services.yaml;
-        owner = config.home.username;
-        inherit path;
-      };
-    in
-    {
-      telegram_env = userSecret "${config.home.homeDirectory}/.config/telegram.env";
-      opencode_server = userSecret "${config.home.homeDirectory}/.config/opencode/server.env";
-      openchamber_server = userSecret "${config.home.homeDirectory}/.config/openchamber/server.env";
-      env_secrets = userSecret "${config.home.homeDirectory}/.config/environment.d/55-secrets.conf";
-      stuff_config = userSecret "${config.home.homeDirectory}/.config/stuff/config.toml";
-      context7_accounts = userSecret "${config.home.homeDirectory}/.config/context7-account-broker/accounts.json";
-      gdrive_gcp = userSecret "${config.home.homeDirectory}/.config/google-drive-mcp/gcp-oauth.keys.json";
-      gdrive_tokens = userSecret "${config.home.homeDirectory}/.config/google-drive-mcp/tokens.json";
-    };
-
   home = {
     username = "mirsella";
     homeDirectory = "/home/mirsella";
@@ -108,8 +89,8 @@
         Type = "simple";
         WorkingDirectory = "%h";
         EnvironmentFile = [
-          config.sops.secrets.telegram_env.path
-          config.sops.secrets.opencode_server.path
+          osConfig.sops.secrets.telegram_env.path
+          osConfig.sops.secrets.opencode_server.path
         ];
         Environment = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin";
         ExecStart = "${pkgs.opencode}/bin/opencode serve --hostname 127.0.0.1 --port 14096";
