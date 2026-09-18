@@ -10,6 +10,12 @@
 
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
 
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    users.mirsella = import ./modules/home/mirsella.nix;
+  };
+
   boot = {
     loader.systemd-boot.enable = true;
     loader.efi.canTouchEfiVariables = true;
@@ -48,6 +54,7 @@
 
   users.users.mirsella = {
     isNormalUser = true;
+    shell = pkgs.nushell;
     extraGroups = [ "wheel" "networkmanager" ];
     hashedPassword = "$6$u95TjqJ3iGNjVYkK$uZJx66pXAgvJmSXtNR7oY4dAOUSMyDJVm5CxxDzQnRCu1YTf1bJAkEoKn3VzqdyTWyt7MOBdRxY8DHGdZdLZZ0";
     openssh.authorizedKeys.keys = [

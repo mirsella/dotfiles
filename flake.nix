@@ -18,12 +18,13 @@
   };
 
   outputs =
-    { nixpkgs, sops-nix, disko, ... }:
+    { nixpkgs, home-manager, sops-nix, disko, ... }:
     {
       nixosConfigurations.predator = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
           ./configuration.nix
+          home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
           disko.nixosModules.disko
         ];
