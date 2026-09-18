@@ -1,9 +1,19 @@
-{ pkgs, ... }:
+{ lib, ... }:
 {
   networking.hostId = "007f0200";
   boot.supportedFilesystems = [ "zfs" ];
   boot.zfs.forceImportRoot = false;
   boot.zfs.extraPools = [ "fast" "tank" ];
+
+  fileSystems = lib.genAttrs [
+    "/var/lib/nextcloud"
+    "/var/lib/postgresql"
+    "/srv/services"
+  ] (mountpoint: {
+    device = "fast/${baseNameOf mountpoint}";
+    fsType = "zfs";
+    options = [ "nofail" ];
+  });
 
   services.zfs = {
     autoScrub = {
