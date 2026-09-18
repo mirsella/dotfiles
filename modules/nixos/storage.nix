@@ -112,7 +112,7 @@ let
       after = [ "zfs-import-tank.service" "zfs-import-fast.service" ];
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.python3}/bin/python3 ${./dirty-flag.py} /var/lib/sanoid-gate";
+        ExecStart = "${pkgs.zfs-dirty-flag}/bin/zfs-dirty-flag /var/lib/sanoid-gate";
         StateDirectory = "sanoid-gate";
         Restart = "always";
         RestartSec = "5s";

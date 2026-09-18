@@ -12,6 +12,7 @@
   nixpkgs.overlays = [
     (final: prev: {
       openchamber = final.callPackage ./pkgs/openchamber { };
+      zfs-dirty-flag = final.callPackage ./pkgs/zfs-dirty-flag { };
     })
   ];
 
