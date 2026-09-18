@@ -6,6 +6,13 @@
     ./modules/nixos/storage.nix
     ./modules/nixos/caddy.nix
     ./modules/nixos/nextcloud.nix
+    ./modules/nixos/openchamber.nix
+  ];
+
+  nixpkgs.overlays = [
+    (final: prev: {
+      openchamber = final.callPackage ./pkgs/openchamber { };
+    })
   ];
 
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
