@@ -24,7 +24,7 @@ let
         for d in $(${pkgs.zfs}/bin/zfs list -r -H -o name ${dataset}); do
           latest=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name -S creation "$d" | grep '@autosnap_' | head -1)
           if [ -z "$latest" ]; then changed=1; break; fi
-          if [ "$(${pkgs.zfs}/bin/zfs get -H -p -o value written "$latest")" != 0 ]; then changed=1; break; fi
+          if [ -n "$(${pkgs.zfs}/bin/zfs diff "$latest" "$d" 2>/dev/null | head -1)" ]; then changed=1; break; fi
         done
         if [ "$changed" = 1 ]; then
           exec ${pkgs.sanoid}/bin/sanoid --cron --configdir ${confDir} --cache-dir /var/cache/sanoid-${name} --run-dir /run/sanoid-${name}
