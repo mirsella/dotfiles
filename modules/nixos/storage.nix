@@ -47,7 +47,6 @@
     description = "Spin down idle tank HDDs";
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
-      Type = "forking";
       ExecStart = "${pkgs.hd-idle}/bin/hd-idle -i 0 -a /dev/disk/by-id/wwn-0x5000c500aa3cc143 -i 2700 -c scsi -a /dev/disk/by-id/wwn-0x500003961228993f -i 2700 -c scsi";
     };
   };
