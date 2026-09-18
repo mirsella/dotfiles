@@ -107,5 +107,6 @@ lib.mkMerge [
   }
 
   (mkConditionalSanoid "tank" "tank/library")
+  (mkConditionalSanoid "backup" "tank/backup")
   (mkConditionalSanoid "fast" "fast/ncdata")
 ]
