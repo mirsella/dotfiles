@@ -1,5 +1,3 @@
-# New dotfiles repo: NixOS (predator) + standalone Home Manager (Arch hosts).
-# Built fresh here, later copied on top of mirsella/dotfiles as a migration commit.
 {
   description = "mirsella dotfiles";
 
@@ -20,7 +18,7 @@
   };
 
   outputs =
-    { self, nixpkgs, home-manager, sops-nix, disko, ... }:
+    { nixpkgs, sops-nix, disko, ... }:
     {
       nixosConfigurations.predator = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -30,8 +28,5 @@
           disko.nixosModules.disko
         ];
       };
-
-      # Standalone Home Manager for Arch hosts lands here next:
-      # homeConfigurations."mirsella@laptop", "mirsella@main".
     };
 }

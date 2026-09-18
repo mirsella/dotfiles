@@ -1,11 +1,10 @@
-# ZFS storage: fast SSD pool + tank HDD mirror. Disks provisioned once
-# (see disko.nix, the layout record); a normal rebuild never touches them.
 { pkgs, lib, ... }:
 {
   imports = [ ../../disko.nix ];
 
-  networking.hostId = "007f0200"; # stable id required for ZFS
+  networking.hostId = "007f0200";
   boot.supportedFilesystems = [ "zfs" ];
+  boot.zfs.forceImportRoot = false;
   boot.zfs.extraPools = [ "fast" "tank" ];
 
   services.zfs = {
@@ -22,7 +21,6 @@
 
   environment.systemPackages = with pkgs; [ smartmontools ];
 
-  # Mounts resolve once the pools exist; never block boot before that.
   fileSystems = lib.genAttrs [
     "/var/lib/nextcloud"
     "/var/lib/postgresql"
@@ -32,19 +30,16 @@
     "/srv/storage/archive"
   ] (_: { options = [ "nofail" ]; });
 
-  # tank snapshots; fast datasets + syncoid replication added once fast exists.
   services.sanoid = {
     enable = true;
-    datasets = {
-      "tank/library" = {
-        hourly = 24;
-        daily = 7;
-        weekly = 4;
-        monthly = 3;
-        autosnap = true;
-        autoprune = true;
-        recursive = true;
-      };
+    datasets."tank/library" = {
+      hourly = 24;
+      daily = 7;
+      weekly = 4;
+      monthly = 3;
+      autosnap = true;
+      autoprune = true;
+      recursive = true;
     };
   };
 }
