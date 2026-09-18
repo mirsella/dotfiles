@@ -15,6 +15,8 @@ buildNpmPackage rec {
 
   npmDepsHash = "sha256-T/rokk+gUa0UusZPpaiphP59KSxXpb13ttFICWT4Kpg=";
 
+  npmFlags = [ "--legacy-peer-deps" ];
+
   dontNpmBuild = true;
 
   meta = {
