@@ -5,7 +5,6 @@
   networking.hostId = "007f0200";
   boot.supportedFilesystems = [ "zfs" ];
   boot.zfs.forceImportRoot = false;
-  boot.zfs.extraPools = [ "fast" "tank" ];
 
   services.zfs = {
     autoScrub = {
