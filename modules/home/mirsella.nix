@@ -38,11 +38,7 @@
       all = builtins.readDir ./files/config;
       merged = [
         "environment.d"
-        "google-drive-mcp"
-        "openchamber"
         "opencode"
-        "stuff"
-        "context7-account-broker"
       ];
       plain = lib.removeAttrs all merged;
       nushell = [
