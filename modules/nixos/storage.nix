@@ -9,7 +9,11 @@
     "/var/lib/nextcloud"
     "/var/lib/postgresql"
     "/srv/services"
-  ] (_: { options = [ "nofail" ]; });
+  ] (mountpoint: {
+    device = "fast/${baseNameOf mountpoint}";
+    fsType = "zfs";
+    options = [ "nofail" ];
+  });
 
   services.zfs = {
     autoScrub = {
