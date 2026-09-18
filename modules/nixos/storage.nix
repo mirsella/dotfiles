@@ -11,7 +11,7 @@ let
     autosnap = yes
     autoprune = yes
   '';
-  mkConditionalSanoid = name: dataset: disks:
+  mkConditionalSanoid = name: dataset:
     let
       confDir = pkgs.writeTextDir "sanoid.conf" ''
         ${snapPolicy}
@@ -19,24 +19,17 @@ let
         use_template = keep
         recursive = yes
       '';
-      check = pkgs.writeShellScript "sanoid-if-changed-${name}" ''
-        stateDir=/var/lib/sanoid-gate
-        mkdir -p "$stateDir"
-        cur="boot_id=$(cat /proc/sys/kernel/random/boot_id)"
-        resolve_ok=1
-        for disk in ${lib.escapeShellArgs disks}; do
-          target=$(readlink "/dev/disk/by-id/$disk" 2>/dev/null || true)
-          dev=$(basename "$target" 2>/dev/null || true)
-          stat="/sys/block/$dev/stat"
-          if [ -z "$dev" ] || [ ! -r "$stat" ]; then resolve_ok=0; break; fi
-          read -r _ _ _ _ _ _ w _ < "$stat"
-          if [ -z "$w" ]; then resolve_ok=0; break; fi
-          cur="$cur $disk=$w"
-        done
-        if [ "$resolve_ok" = 1 ] && [ -f "$stateDir/${name}" ] && [ "$(cat "$stateDir/${name}")" = "$cur" ]; then
-          echo "no block writes for ${dataset}, skipping snapshots"
+      sanoidRun = "${pkgs.sanoid}/bin/sanoid --cron --configdir ${confDir} --cache-dir /var/cache/sanoid-${name} --run-dir /run/sanoid-${name}";
+      daily = pkgs.writeShellScript "sanoid-if-dirty-${name}" ''
+        flag=/run/sanoid-gate/${name}.dirty
+        if [ ! -e "$flag" ]; then
+          echo "no writes flagged for ${dataset}, skipping snapshots"
           exit 0
         fi
+        rm -f "$flag"
+        exec ${sanoidRun}
+      '';
+      verify = pkgs.writeShellScript "sanoid-verify-${name}" ''
         changed=0
         for d in $(${pkgs.zfs}/bin/zfs list -r -H -o name ${dataset}); do
           latest=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name -S creation "$d" | grep '@autosnap_' | head -1)
@@ -44,26 +37,21 @@ let
           if [ -n "$(${pkgs.zfs}/bin/zfs diff "$latest" "$d" 2>/dev/null | head -1)" ]; then changed=1; break; fi
         done
         if [ "$changed" = 1 ]; then
-          ${pkgs.sanoid}/bin/sanoid --cron --configdir ${confDir} --cache-dir /var/cache/sanoid-${name} --run-dir /run/sanoid-${name}
+          exec ${sanoidRun}
         else
-          echo "no changes on ${dataset}, skipping snapshots"
-        fi
-        if [ "$resolve_ok" = 1 ]; then
-          echo "$cur" > "$stateDir/${name}"
-        else
-          rm -f "$stateDir/${name}"
+          echo "verify: no changes on ${dataset}, skipping snapshots"
         fi
       '';
     in
     {
       systemd.services."sanoid-${name}" = {
-        description = "Snapshot ${dataset} only if changed";
+        description = "Snapshot ${dataset} if flagged dirty";
+        after = [ "zfs-dirty-flag.service" ];
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = check;
+          ExecStart = daily;
           CacheDirectory = "sanoid-${name}";
-          RuntimeDirectory = "sanoid-${name}";
-          StateDirectory = "sanoid-gate";
+          RuntimeDirectory = [ "sanoid-${name}" "sanoid-gate" ];
         };
       };
       systemd.timers."sanoid-${name}" = {
@@ -74,7 +62,38 @@ let
           RandomizedDelaySec = "1h";
         };
       };
+      systemd.services."sanoid-${name}-verify" = {
+        description = "Weekly backstop: snapshot ${dataset} if diff shows changes";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = verify;
+          CacheDirectory = "sanoid-${name}";
+          RuntimeDirectory = "sanoid-${name}";
+        };
+      };
+      systemd.timers."sanoid-${name}-verify" = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = "weekly";
+          Persistent = true;
+          RandomizedDelaySec = "6h";
+        };
+      };
     };
+  dirtyFlagDaemon = {
+    systemd.services.zfs-dirty-flag = {
+      description = "Flag ZFS dataset writes for conditional snapshots";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "zfs-import-tank.service" "zfs-import-fast.service" ];
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.python3}/bin/python3 ${./dirty-flag.py} /run/sanoid-gate";
+        RuntimeDirectory = "sanoid-gate";
+        Restart = "always";
+        RestartSec = "5s";
+      };
+    };
+  };
 in
 lib.mkMerge [
   {
@@ -129,7 +148,8 @@ lib.mkMerge [
   };
   }
 
-  (mkConditionalSanoid "tank" "tank/library" [ "wwn-0x5000c500aa3cc143" "wwn-0x500003961228993f" ])
-  (mkConditionalSanoid "backup" "tank/backup" [ "wwn-0x5000c500aa3cc143" "wwn-0x500003961228993f" ])
-  (mkConditionalSanoid "fast" "fast/ncdata" [ "ata-CT240BX500SSD1_2004E3E6DE68" ])
+  (mkConditionalSanoid "tank" "tank/library")
+  (mkConditionalSanoid "backup" "tank/backup")
+  (mkConditionalSanoid "fast" "fast/ncdata")
+  dirtyFlagDaemon
 ]
