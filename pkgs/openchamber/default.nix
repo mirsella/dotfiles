@@ -1,4 +1,4 @@
-{ lib, buildNpmPackage, fetchurl }:
+{ lib, buildNpmPackage, fetchurl, jq }:
 buildNpmPackage rec {
   pname = "openchamber";
   version = "1.24.1";
@@ -18,6 +18,8 @@ buildNpmPackage rec {
   npmDepsHash = "sha256-T/rokk+gUa0UusZPpaiphP59KSxXpb13ttFICWT4Kpg=";
 
   npmFlags = [ "--legacy-peer-deps" ];
+
+  nativeBuildInputs = [ jq ];
 
   dontNpmBuild = true;
 
