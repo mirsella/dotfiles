@@ -1,4 +1,4 @@
-{ lib, osConfig, pkgs, ... }:
+{ lib, osConfig, pkgs, hostName, gitSigningKey, ... }:
 {
   home = {
     username = "mirsella";
@@ -47,10 +47,9 @@
         "config.nu"
         "env.nu"
         "functions.nu"
-        "laptop.nu"
         "notif.nu"
         "plugins.nu"
-      ];
+      ] ++ lib.optionals (hostName == "laptop") [ "laptop.nu" ];
     in
     lib.mapAttrs' (n: _: lib.nameValuePair n { source = ./files/config + "/${n}"; }) plain
     // builtins.listToAttrs (
@@ -140,8 +139,7 @@
       enable = true;
       settings = {
       user.name = "mirsella";
-      user.email = "mirsella@protonmail.com";
-      init.defaultBranch = "main";
+      user.email = "mirsella@protonmail.com";      init.defaultBranch = "main";
       pull.rebase = true;
       push.autoSetupRemote = true;
       core = {
@@ -176,6 +174,9 @@
         side-by-side = true;
       };
       interactive.diffFilter = "delta --color-only";
+      } // lib.optionalAttrs (gitSigningKey != null) {
+        commit.gpgsign = true;
+        user.signingkey = gitSigningKey;
       };
     };
     ssh = {

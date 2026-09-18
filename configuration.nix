@@ -38,6 +38,10 @@
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
+    extraSpecialArgs = {
+      hostName = "predator";
+      gitSigningKey = null;
+    };
     users.mirsella = import ./modules/home/mirsella.nix;
   };
 
