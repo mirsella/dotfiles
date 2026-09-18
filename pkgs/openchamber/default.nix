@@ -1,5 +1,12 @@
-{ lib, stdenv, fetchurl, nodejs, python3, jq, makeWrapper }:
-stdenv.mkDerivation rec {
+# Bumping versions (on predator, has network):
+#   ver=1.25.0
+#   nix store prefetch-file https://registry.npmjs.org/@openchamber/web/-/web-$ver.tgz
+#   tar -xzf <store-path> -C /tmp/oc-lock && cd /tmp/oc-lock/package
+#   nix shell nixpkgs/nixos-26.05#nodejs --command bash -c \
+#     "npm install --package-lock-only --ignore-scripts --no-audit --no-fund --legacy-peer-deps"
+#   copy package-lock.json here, update version + hashes below (build errors print the right ones).
+{ lib, buildNpmPackage, fetchurl, jq }:
+buildNpmPackage rec {
   pname = "openchamber";
   version = "1.24.1";
 
@@ -7,37 +14,21 @@ stdenv.mkDerivation rec {
     url = "https://registry.npmjs.org/@openchamber/web/-/web-${version}.tgz";
     hash = "sha256-T+9bVDR7y3sb46LtudzTCOMWNxLVW0tybGKug9R/YAc=";
   };
+  sourceRoot = "package";
 
-  nativeBuildInputs = [
-    nodejs
-    python3
-    jq
-    makeWrapper
-  ];
-
-  buildPhase = ''
-    runHook preBuild
-    tar -xzf $src
-    cd package
-    jq 'del(.scripts.prepack, .scripts.prepare)' package.json > package.json.tmp
+  postPatch = ''
+    cp ${./package-lock.json} package-lock.json
+    jq '.allowScripts = {"node-pty": true} | del(.scripts.prepack, .scripts.prepare)' package.json > package.json.tmp
     mv package.json.tmp package.json
-    export HOME=$TMPDIR npm_config_cache=$TMPDIR/npm-cache
-    npm install --no-audit --no-fund --legacy-peer-deps --dangerously-allow-all-scripts
-    rm -f package-lock.json
-    runHook postBuild
   '';
 
-  installPhase = ''
-    runHook preInstall
-    mkdir -p $out
-    cp -r bin server package.json node_modules $out/
-    wrapProgram $out/bin/openchamber --prefix PATH : ${lib.makeBinPath [ nodejs ]}
-    runHook postInstall
-  '';
+  npmDepsHash = "sha256-T/rokk+gUa0UusZPpaiphP59KSxXpb13ttFICWT4Kpg=";
 
-  outputHashMode = "recursive";
-  outputHashAlgo = "sha256";
-  outputHash = lib.fakeHash;
+  npmFlags = [ "--legacy-peer-deps" ];
+
+  nativeBuildInputs = [ jq ];
+
+  dontNpmBuild = true;
 
   meta = {
     description = "OpenChamber web server";
