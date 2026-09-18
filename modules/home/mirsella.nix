@@ -181,18 +181,18 @@
     ssh = {
       enable = true;
       enableDefaultConfig = false;
-      matchBlocks = {
+      settings = {
         rpi = {
-          hostname = "192.168.1.166";
-          user = "mirsella";
+          HostName = "192.168.1.166";
+          User = "mirsella";
         };
         laptop = {
-          hostname = "192.168.1.61";
-          user = "mirsella";
+          HostName = "192.168.1.61";
+          User = "mirsella";
         };
         main = {
-          hostname = "192.168.1.131";
-          user = "mirsella";
+          HostName = "192.168.1.131";
+          User = "mirsella";
         };
       };
     };
