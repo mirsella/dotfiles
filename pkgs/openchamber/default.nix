@@ -7,7 +7,7 @@ buildNpmPackage rec {
     url = "https://registry.npmjs.org/@openchamber/web/-/web-${version}.tgz";
     hash = "sha256-T+9bVDR7y3sb46LtudzTCOMWNxLVW0tybGKug9R/YAc=";
   };
-  sourceRoot = "source/package";
+  sourceRoot = "package";
 
   npmDepsHash = lib.fakeHash;
 
