@@ -1,14 +1,21 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 {
   networking.hostId = "007f0200";
   boot.supportedFilesystems = [ "zfs" ];
   boot.zfs.forceImportRoot = false;
+  boot.zfs.extraPools = [ "fast" ];
+
+  fileSystems = lib.genAttrs [
+    "/var/lib/nextcloud"
+    "/var/lib/postgresql"
+    "/srv/services"
+  ] (_: { options = [ "nofail" ]; });
 
   services.zfs = {
     autoScrub = {
       enable = true;
       interval = "monthly";
-      pools = [ "fast" "tank" ];
+      pools = [ "fast" ];
     };
     trim = {
       enable = true;
@@ -17,17 +24,4 @@
   };
 
   environment.systemPackages = with pkgs; [ smartmontools ];
-
-  services.sanoid = {
-    enable = true;
-    datasets."tank/library" = {
-      hourly = 24;
-      daily = 7;
-      weekly = 4;
-      monthly = 3;
-      autosnap = true;
-      autoprune = true;
-      recursive = true;
-    };
-  };
 }
