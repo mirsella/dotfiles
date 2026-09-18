@@ -1,7 +1,61 @@
 {
-  pkgs, ... }:
-{
-  networking.hostId = "007f0200";
+  pkgs,
+  lib,
+  ...
+}:
+let
+  snapPolicy = ''
+    [template_keep]
+    daily = 7
+    weekly = 4
+    autosnap = yes
+    autoprune = yes
+  '';
+  mkConditionalSanoid = name: dataset:
+    let
+      confDir = pkgs.writeTextDir "sanoid.conf" ''
+        ${snapPolicy}
+        [${dataset}]
+        use_template = keep
+        recursive = yes
+      '';
+      check = pkgs.writeShellScript "sanoid-if-changed-${name}" ''
+        changed=0
+        for d in $(${pkgs.zfs}/bin/zfs list -r -H -o name ${dataset}); do
+          latest=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name -S creation "$d" | grep '@autosnap_' | head -1)
+          if [ -z "$latest" ]; then changed=1; break; fi
+          if [ "$(${pkgs.zfs}/bin/zfs get -H -p -o value written "$latest")" != 0 ]; then changed=1; break; fi
+        done
+        if [ "$changed" = 1 ]; then
+          exec ${pkgs.sanoid}/bin/sanoid --cron --configdir ${confDir} --cache-dir /var/cache/sanoid-${name} --run-dir /run/sanoid-${name}
+        else
+          echo "no changes on ${dataset}, skipping snapshots"
+        fi
+      '';
+    in
+    {
+      systemd.services."sanoid-${name}" = {
+        description = "Snapshot ${dataset} only if changed";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = check;
+          CacheDirectory = "sanoid-${name}";
+          RuntimeDirectory = "sanoid-${name}";
+        };
+      };
+      systemd.timers."sanoid-${name}" = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = "daily";
+          Persistent = true;
+          RandomizedDelaySec = "1h";
+        };
+      };
+    };
+in
+lib.mkMerge [
+  {
+    networking.hostId = "007f0200";
   boot.supportedFilesystems = [ "zfs" ];
   boot.zfs.forceImportRoot = false;
   boot.zfs.extraPools = [ "fast" "tank" ];
@@ -50,24 +104,8 @@
       ExecStart = "${pkgs.hd-idle}/bin/hd-idle -i 0 -a /dev/disk/by-id/wwn-0x5000c500aa3cc143 -i 2700 -c scsi -a /dev/disk/by-id/wwn-0x500003961228993f -i 2700 -c scsi";
     };
   };
+  }
 
-  services.sanoid = {
-    enable = true;
-    datasets = {
-      "tank/library" = {
-        daily = 7;
-        weekly = 4;
-        autosnap = true;
-        autoprune = true;
-        recursive = true;
-      };
-      "fast/ncdata" = {
-        daily = 7;
-        weekly = 4;
-        autosnap = true;
-        autoprune = true;
-        recursive = true;
-      };
-    };
-  };
-}
+  (mkConditionalSanoid "tank" "tank/library")
+  (mkConditionalSanoid "fast" "fast/ncdata")
+]
