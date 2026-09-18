@@ -111,12 +111,10 @@
             mountpoint = "/srv/storage/archive";
           };
           backup = {
-            type = "zfs_fs";
-            mountpoint = "none";
+            type = "zfs_fs"; # inherits mountpoint=none: never mounted
           };
           "backup/fast" = {
-            type = "zfs_fs";
-            mountpoint = "none";
+            type = "zfs_fs"; # inherits mountpoint=none: replication target only
           };
         };
       };
