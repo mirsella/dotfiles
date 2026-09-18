@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+TryExec=/home/mirsella/.local/share/cargo/bin/rio
+Exec=/home/mirsella/.local/share/cargo/bin/rio --app-id rio-cargo
+Icon=rio
+Terminal=false
+Categories=System;TerminalEmulator;
+
+Name=Rio (Cargo)
+GenericName=Terminal
+Comment=Cargo-installed Rio fork
+StartupWMClass=rio-cargo
+Actions=New;
+
+[Desktop Action New]
+Name=New Terminal
+Exec=/home/mirsella/.local/share/cargo/bin/rio --app-id rio-cargo
+Icon=rio

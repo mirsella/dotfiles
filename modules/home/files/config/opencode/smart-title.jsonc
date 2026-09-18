@@ -1,0 +1,6 @@
+{
+	"enabled": true,
+	"debug": false,
+	"model": "opencode/big-pickle",
+	"updateThreshold": 1
+}

@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+"""Show your OpenAI Codex rate-limit reset credits.
+
+Reads authentication from ~/.codex/auth.json (created by the Codex CLI).
+The auth file is never transmitted anywhere except OpenAI's own API.
+"""
+
+import argparse
+import json
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+# ANSI styles
+BOLD = "\033[1m"
+DIM = "\033[2m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+RED = "\033[31m"
+CYAN = "\033[36m"
+RESET = "\033[0m"
+
+API_URL = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits"
+
+
+def load_auth(auth_path: Path) -> dict:
+    """Load and return the Codex auth JSON."""
+    if not auth_path.exists():
+        raise FileNotFoundError(f"Auth file not found: {auth_path}")
+    return json.loads(auth_path.read_text())
+
+
+def fetch_credits(auth: dict) -> dict:
+    """Call the Codex rate-limit reset credits endpoint."""
+    token = auth["tokens"]["access_token"]
+    account = auth["tokens"]["account_id"]
+
+    req = urllib.request.Request(
+        API_URL,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "ChatGPT-Account-ID": account,
+            "OpenAI-Beta": "codex-1",
+            "originator": "Codex Desktop",
+        },
+    )
+
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read())
+
+
+def parse_dt(iso: str | None) -> datetime | None:
+    if not iso:
+        return None
+    return datetime.fromisoformat(iso.replace("Z", "+00:00"))
+
+
+def fmt_dt(dt: datetime | None) -> str:
+    if not dt:
+        return "n/a"
+    return dt.strftime("%b %d, %H:%M UTC")
+
+
+def time_left(dt: datetime | None) -> str:
+    if not dt:
+        return ""
+
+    delta = dt - datetime.now(timezone.utc)
+    if delta <= timedelta(0):
+        return f"{RED}expired{RESET}"
+
+    days = delta.days
+    hours, remainder = divmod(delta.seconds, 3600)
+    minutes, _ = divmod(remainder, 60)
+
+    if days > 0:
+        return f"{GREEN}{days}d {hours}h left{RESET}"
+    if hours > 0:
+        return f"{YELLOW}{hours}h {minutes}m left{RESET}"
+    return f"{RED}{minutes}m left{RESET}"
+
+
+def progress_bar(available: int, total: int, width: int = 18) -> str:
+    if total <= 0:
+        return f"{DIM}{'░' * width}{RESET}"
+
+    filled = min(width, max(0, int(round(available / total * width))))
+    empty = width - filled
+
+    if empty:
+        return f"{GREEN}{'█' * filled}{DIM}{'░' * empty}{RESET}"
+    return f"{GREEN}{'█' * filled}{RESET}"
+
+
+def render(credits_data: dict) -> None:
+    credits = credits_data.get("credits", [])
+    available = credits_data.get("available_count", 0)
+    earned = credits_data.get("total_earned_count", 0)
+    total = len(credits)
+
+    print()
+    print(f"  {BOLD}{CYAN}🐳 Codex Rate-Limit Reset Credits{RESET}")
+    print()
+    print(
+        f"  {progress_bar(available, total)}"
+        f"  {BOLD}{available}{RESET}{DIM}/{total} available{RESET}"
+        f"  ·  earned: {earned}"
+    )
+
+    if not credits:
+        print(f"\n  {YELLOW}⚠️  No credits found.{RESET}\n")
+        return
+
+    sorted_credits = sorted(
+        credits,
+        key=lambda c: (
+            parse_dt(c.get("expires_at")) or datetime.max.replace(tzinfo=timezone.utc)
+        ),
+    )
+
+    next_expires = parse_dt(sorted_credits[0].get("expires_at"))
+    print()
+    print(
+        f"  {BOLD}Next expires:{RESET} {fmt_dt(next_expires)} · {time_left(next_expires)}"
+    )
+    print()
+
+    for idx, credit in enumerate(sorted_credits, start=1):
+        status = credit.get("status", "unknown")
+        expires = parse_dt(credit.get("expires_at"))
+        granted = parse_dt(credit.get("granted_at"))
+
+        if status == "available":
+            icon = "●"
+            status_color = GREEN
+        elif status == "redeemed":
+            icon = "✓"
+            status_color = DIM
+        else:
+            icon = "!"
+            status_color = YELLOW
+
+        print(
+            f"  {status_color}{icon}{RESET} {BOLD}#{idx}{RESET}"
+            f"  {status_color}{status}{RESET}"
+            f"  ·  expires {fmt_dt(expires)} · {time_left(expires)}"
+        )
+        print(f"        {DIM}granted {fmt_dt(granted)}{RESET}")
+
+    print()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Show your OpenAI Codex rate-limit reset credits.",
+    )
+    parser.add_argument(
+        "--auth",
+        type=Path,
+        default=Path("~/.codex/auth.json").expanduser(),
+        help="Path to your Codex auth.json file (default: ~/.codex/auth.json)",
+    )
+    args = parser.parse_args()
+
+    auth = load_auth(args.auth)
+    credits_data = fetch_credits(auth)
+    render(credits_data)
+
+
+if __name__ == "__main__":
+    main()

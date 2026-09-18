@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Service
+X-KDE-ServiceTypes=KonqPopupMenu/Plugin
+MimeType=image/png;image/jpeg;image/webp;
+Actions=annotateSpectacle;
+X-KDE-Priority=TopLevel
+TryExec=spectacle
+
+[Desktop Action annotateSpectacle]
+Name=Annotate with Spectacle
+Icon=spectacle
+Exec=spectacle -E %U

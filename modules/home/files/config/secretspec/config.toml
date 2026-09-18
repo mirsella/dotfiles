@@ -1,0 +1,3 @@
+[defaults]
+provider = "protonpass"
+profile = "default"

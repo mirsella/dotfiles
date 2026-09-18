@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Annotate with Spectacle
+Exec=spectacle -E %U
+Icon=spectacle
+Type=Application
+MimeType=image/png;image/jpeg;image/webp;
+NoDisplay=false

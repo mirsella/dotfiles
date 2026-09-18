@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+
+import argparse
+import collections
+import datetime as dt
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+
+PATTERN = re.compile(r"Failed password for (?:invalid user )?(\S+) from ([0-9A-Fa-f\.:]+) port")
+
+
+def build_prefix():
+    if os.geteuid() == 0:
+        return []
+    if shutil.which("sudo"):
+        return ["sudo"]
+    return []
+
+
+def run_cmd(prefix, args, allow_fail=False):
+    command = prefix + args
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0 and not allow_fail:
+        err = (result.stderr or "").strip()
+        out = (result.stdout or "").strip()
+        detail = err or out or "command failed"
+        raise RuntimeError(f"{' '.join(command)}: {detail}")
+    return result.stdout
+
+
+def parse_banned_ips(status_text):
+    for line in status_text.splitlines():
+        if "Banned IP list:" in line:
+            ips = line.split("Banned IP list:", 1)[1].strip()
+            return ips.split() if ips else []
+    return []
+
+
+def read_failed_password_logs(prefix, since=None):
+    command = [
+        "journalctl",
+        "-u",
+        "sshd",
+        "--no-pager",
+        "--grep",
+        "Failed password",
+        "-o",
+        "cat",
+    ]
+    if since:
+        command.extend(["--since", since])
+    return run_cmd(prefix, command, allow_fail=False)
+
+
+def collect_stats(log_text):
+    users = collections.Counter()
+    ips = collections.Counter()
+    ip_users = collections.defaultdict(collections.Counter)
+
+    for line in log_text.splitlines():
+        match = PATTERN.search(line)
+        if not match:
+            continue
+        user, ip = match.group(1), match.group(2)
+        users[user] += 1
+        ips[ip] += 1
+        ip_users[ip][user] += 1
+
+    return {
+        "users": users,
+        "ips": ips,
+        "ip_users": ip_users,
+        "total_failed": sum(users.values()),
+    }
+
+
+def print_stats_section(title, stats, top_users, top_ips):
+    users = stats["users"]
+    ips = stats["ips"]
+
+    print(title)
+    print(f"Failed password attempts: {stats['total_failed']}")
+    print(f"Unique usernames: {len(users)}")
+    print(f"Unique source IPs: {len(ips)}")
+    print()
+
+    print("Top usernames:")
+    if users:
+        for username, count in users.most_common(top_users):
+            print(f"  {username:<20} {count}")
+    else:
+        print("  (none)")
+    print()
+
+    print("Top source IPs:")
+    if ips:
+        for ip, count in ips.most_common(top_ips):
+            print(f"  {ip:<39} {count}")
+    else:
+        print("  (none)")
+    print()
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Report failed SSH username attempts and fail2ban bans.")
+    parser.add_argument(
+        "--recent-since",
+        default="24 hours ago",
+        help="journalctl --since value for the recent section (default: 24 hours ago)",
+    )
+    parser.add_argument("--top-users", type=int, default=15, help="how many usernames to show")
+    parser.add_argument("--top-ips", type=int, default=15, help="how many source IPs to show")
+    parser.add_argument("--top-per-ip", type=int, default=5, help="how many usernames per banned IP")
+    args = parser.parse_args()
+
+    prefix = build_prefix()
+
+    try:
+        logs_total = read_failed_password_logs(prefix)
+        logs_recent = read_failed_password_logs(prefix, since=args.recent_since)
+    except Exception as exc:
+        print(f"Error reading sshd logs: {exc}", file=sys.stderr)
+        print("Tip: run with sudo or ensure this user can read the journal.", file=sys.stderr)
+        sys.exit(1)
+
+    total_stats = collect_stats(logs_total)
+    recent_stats = collect_stats(logs_recent)
+
+    status_text = run_cmd(prefix, ["fail2ban-client", "status", "sshd"], allow_fail=True)
+    banned_ips = parse_banned_ips(status_text)
+
+    print("SSH attack report")
+    print(f"Generated: {dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Recent window: since {args.recent_since}")
+    print()
+
+    print_stats_section("Total (all available logs):", total_stats, args.top_users, args.top_ips)
+    print_stats_section(f"Recent ({args.recent_since}):", recent_stats, args.top_users, args.top_ips)
+
+    print(f"Currently banned by fail2ban (sshd): {len(banned_ips)}")
+    if banned_ips:
+        for ip in banned_ips:
+            recent_top = recent_stats["ip_users"][ip].most_common(args.top_per_ip)
+            total_top = total_stats["ip_users"][ip].most_common(args.top_per_ip)
+            recent_text = ", ".join(f"{u}:{n}" for u, n in recent_top) if recent_top else "-"
+            total_text = ", ".join(f"{u}:{n}" for u, n in total_top) if total_top else "-"
+            print(f"  {ip} | recent: {recent_text} | total: {total_text}")
+    elif status_text.strip():
+        print("  (none)")
+    else:
+        print("  fail2ban sshd status unavailable (try running with sudo).")
+
+
+if __name__ == "__main__":
+    main()

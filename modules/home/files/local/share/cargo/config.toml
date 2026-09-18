@@ -1,0 +1,78 @@
+[build]
+rustc-wrapper = "kache"
+
+[unstable]
+codegen-backend = true
+
+[profile]
+incremental = true
+
+[profile.dev]
+codegen-backend = "cranelift"
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+codegen-backend = "llvm"
+
+[profile.test.package."*"]
+codegen-backend = "llvm"
+
+[profile.release]
+codegen-backend = "llvm"
+
+[profile.web]
+codegen-backend = "llvm"
+
+[profile.web-release]
+codegen-backend = "llvm"
+
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = [
+  # "-Clink-arg=-fuse-ld=lld",
+  # "-Clink-arg=-fuse-ld=mold",
+  "-Clink-arg=--ld-path=wild",
+  # Nightly
+  "-Zshare-generics=y",
+  "-Zthreads=8",
+  "-Zembed-metadata=no",
+]
+rustdocflags = ["-Zshare-generics=y", "-Zthreads=8", "-Zembed-metadata=no"]
+
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  "--cfg=web_sys_unstable_apis",
+  # Nightly
+  "-Zshare-generics=y",
+  "-Zthreads=8",
+  "-Zembed-metadata=no",
+]
+rustdocflags = ["-Zshare-generics=y", "-Zthreads=8", "-Zembed-metadata=no"]
+
+[package.metadata.bevy_cli.web]
+wasm-opt = [
+  "-Oz",
+  "--enable-threads",
+  "--enable-bulk-memory",
+  "--enable-nontrapping-float-to-int",
+  "--enable-mutable-globals",
+]
+
+# [registries.menhera-cooldown]
+# index = "sparse+https://index.crates.menhera.org/30d/"
+#
+# [registry]
+# default = "menhera-cooldown"
+#
+# [source.crates-io]
+# replace-with = "menhera-cooldown"
+#
+# [source.menhera-cooldown]
+# registry = "sparse+https://index.crates.menhera.org/30d/"
+#
+# [alias]
+# publish-crates-io = [
+#     "publish",
+#     "--config", "registry.default = \"crates-io\"",
+# ]

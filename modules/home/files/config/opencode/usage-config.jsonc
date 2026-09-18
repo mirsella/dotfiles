@@ -1,0 +1,25 @@
+{
+	// REQUIRED: Proxy server endpoint (default: "http://localhost:8000")
+	// Leave empty ONLY if you don't use the proxy
+	"endpoint": "http://localhost:8000",
+
+	// REQUIRED: API key for proxy auth (default: "VerysecretKey")
+	// Leave empty if your proxy doesn't require authentication
+	"apiKey": "VerysecretKey",
+
+	// Optional: Z.ai API endpoint (default: "https://api.z.ai")
+	"zaiEndpoint": "https://api.z.ai",
+
+	// Optional: Request timeout in milliseconds (default: 10000)
+	"timeout": 10000,
+
+	// Optional: Show/hide providers in /usage output
+	"providers": {
+		"openai": true,
+		"proxy": false,
+		"copilot": true,
+		"zai": false,
+		"anthropic": false,
+		"openrouter": false
+	}
+}
