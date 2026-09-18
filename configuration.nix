@@ -3,7 +3,7 @@
 # Installed via SSH from mirsella laptop
 { config, pkgs, ... }:
 {
-  imports = [ ./hardware-configuration.nix ./acer-wmi-ph31751-module.nix ];
+  imports = [ ./hardware-configuration.nix ./acer-wmi-ph31751-module.nix ./modules/nixos/storage.nix ];
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
