@@ -31,8 +31,26 @@ let
           echo "no writes flagged for ${dataset}, skipping snapshots"
           exit 0
         fi
-        rm -f "$flag"
-        exec ${sanoidRun}
+        changed=0
+        for d in $(${pkgs.zfs}/bin/zfs list -r -H -o name ${dataset}); do
+          latest=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name -S creation "$d" | grep '@autosnap_' | head -1)
+          if [ -z "$latest" ]; then changed=1; break; fi
+          if [ -n "$(${pkgs.zfs}/bin/zfs diff "$latest" "$d" 2>/dev/null | head -1)" ]; then changed=1; break; fi
+        done
+        if [ "$changed" = 0 ]; then
+          rm -f "$flag"
+          echo "flag stale for ${dataset}, cleared without snapshotting"
+          exit 0
+        fi
+        before=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name)
+        ${sanoidRun}
+        after=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name)
+        if [ -n "$(comm -13 <(echo "$before") <(echo "$after") | head -1)" ]; then
+          rm -f "$flag"
+          echo "snapshotted ${dataset}, flag cleared"
+        else
+          echo "snapshot not due yet for ${dataset}, flag kept for next run"
+        fi
       '';
       verify = pkgs.writeShellScript "sanoid-verify-${name}" ''
         changed=0
