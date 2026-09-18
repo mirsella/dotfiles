@@ -4,6 +4,7 @@
     ./hardware-configuration.nix
     ./acer-wmi-ph31751-module.nix
     ./modules/nixos/storage.nix
+    ./modules/nixos/caddy.nix
   ];
 
   boot = {
