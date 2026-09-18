@@ -2,9 +2,6 @@
 {
   services.caddy = {
     enable = true;
-    globalConfig = ''
-      admin unix//run/caddy/admin.socket
-    '';
     virtualHosts = {
       "mirsella.mooo.com".extraConfig = ''
         root * ${./site}
