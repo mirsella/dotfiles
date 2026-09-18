@@ -1,7 +1,10 @@
 Declarative NixOS config for **predator**.
 
 Working on predator from another machine looks like:
-`scp configuration.nix predator:/tmp/ && ssh predator 'sudo cp /tmp/configuration.nix /etc/nixos/ && sudo nixos-rebuild switch'`
+`scp -r . predator:~/nixos && ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/nixos#predator'`
+
+Manual system-level files (kept outside Home Manager, Arch boxes only):
+- system Caddy (`/etc/caddy/Caddyfile`, system `caddy.service`), udev rules, pacman hooks
 
 ## LAN machine map (`~/.ssh/config` aliases)
 

@@ -1,7 +1,7 @@
 keys:
-  - &predator-host age1u4tq7dx4d4rmzrqm3vj84anfjww7a99u5awdrwsvnhf564jqe2ps4du882
-  - &laptop age1dyjaq2yda0mshn6n3mxph3mg7qxzjwwcyd9sa99pgdzkmwdez7zsfn9wvy
-  - &main age1chh88gmlll8ezl34yxu3vlsgaqefudlsz6spag9qzcc5e74nu00q2j4zn4
+  - &predator-host age1fapf7vtn2ff5lgyykxe4k753rxs4zk9smd443qh2trf49j4yx3xq0dnldl
+  - &laptop age1g7262fjwcagcuu074x439e7jq5wx4hn0smuf94qhv7cy9e4haswslztuzc
+  - &main age1rndzt9qrq0u4g3j3fv2fvrjsvg29hf2mc0y64ynt9ajx5pnexvzq6s4utc
 creation_rules:
   - path_regex: secrets/[^/]+\.(yaml|json|env|ini)$
     key_groups:

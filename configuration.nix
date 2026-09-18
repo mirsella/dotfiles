@@ -5,7 +5,10 @@
     ./acer-wmi-ph31751-module.nix
     ./modules/nixos/storage.nix
     ./modules/nixos/caddy.nix
+    ./modules/nixos/nextcloud.nix
   ];
+
+  sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
 
   boot = {
     loader.systemd-boot.enable = true;
@@ -65,6 +68,7 @@
     wget
     htop
     efibootmgr
+    sops
   ];
 
   # EC-owned keyboard backlight, no sysfs knob: EC RAM 0x30/0x31 read 01 when
