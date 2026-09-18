@@ -45,13 +45,10 @@
           };
           rootFsOptions = commonRootFsOptions;
           datasets = {
-            nextcloud = zfsFs "/var/lib/nextcloud";
-            postgresql = {
+            ncdata = {
               type = "zfs_fs";
-              mountpoint = "/var/lib/postgresql";
-              options.recordsize = "32K";
+              mountpoint = "legacy";
             };
-            services = zfsFs "/srv/services";
           };
         };
         tank = {
@@ -63,12 +60,7 @@
             library = zfsFs "/srv/storage";
             "library/photos" = zfsFs "/srv/storage/photos";
             "library/archive" = zfsFs "/srv/storage/archive";
-            backup = {
-              type = "zfs_fs";
-            };
-            "backup/fast" = {
-              type = "zfs_fs";
-            };
+            backup = zfsFs "/srv/backup";
           };
         };
       };
