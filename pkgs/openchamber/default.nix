@@ -9,6 +9,10 @@ buildNpmPackage rec {
   };
   sourceRoot = "package";
 
+  postPatch = ''
+    cp ${./package-lock.json} package-lock.json
+  '';
+
   npmDepsHash = lib.fakeHash;
 
   dontNpmBuild = true;
