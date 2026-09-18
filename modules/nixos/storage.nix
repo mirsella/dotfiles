@@ -1,7 +1,5 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 {
-  imports = [ ../../disko.nix ];
-
   networking.hostId = "007f0200";
   boot.supportedFilesystems = [ "zfs" ];
   boot.zfs.forceImportRoot = false;
@@ -19,15 +17,6 @@
   };
 
   environment.systemPackages = with pkgs; [ smartmontools ];
-
-  fileSystems = lib.genAttrs [
-    "/var/lib/nextcloud"
-    "/var/lib/postgresql"
-    "/srv/services"
-    "/srv/storage"
-    "/srv/storage/photos"
-    "/srv/storage/archive"
-  ] (_: { options = [ "nofail" ]; });
 
   services.sanoid = {
     enable = true;
