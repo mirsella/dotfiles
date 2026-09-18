@@ -21,7 +21,12 @@ let
       '';
       sanoidRun = "${pkgs.sanoid}/bin/sanoid --cron --configdir ${confDir} --cache-dir /var/cache/sanoid-${name} --run-dir /run/sanoid-${name}";
       daily = pkgs.writeShellScript "sanoid-if-dirty-${name}" ''
-        flag=/run/sanoid-gate/${name}.dirty
+        if ! systemctl is-active --quiet zfs-dirty-flag.service; then
+          echo "dirty-flag daemon not active, snapshotting ${dataset} to be safe"
+          rm -f /var/lib/sanoid-gate/${name}.dirty
+          exec ${sanoidRun}
+        fi
+        flag=/var/lib/sanoid-gate/${name}.dirty
         if [ ! -e "$flag" ]; then
           echo "no writes flagged for ${dataset}, skipping snapshots"
           exit 0
@@ -51,7 +56,7 @@ let
           Type = "oneshot";
           ExecStart = daily;
           CacheDirectory = "sanoid-${name}";
-          RuntimeDirectory = [ "sanoid-${name}" "sanoid-gate" ];
+          RuntimeDirectory = "sanoid-${name}";
         };
       };
       systemd.timers."sanoid-${name}" = {
@@ -87,8 +92,8 @@ let
       after = [ "zfs-import-tank.service" "zfs-import-fast.service" ];
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.python3}/bin/python3 ${./dirty-flag.py} /run/sanoid-gate";
-        RuntimeDirectory = "sanoid-gate";
+        ExecStart = "${pkgs.python3}/bin/python3 ${./dirty-flag.py} /var/lib/sanoid-gate";
+        StateDirectory = "sanoid-gate";
         Restart = "always";
         RestartSec = "5s";
       };
