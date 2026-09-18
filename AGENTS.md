@@ -1,10 +1,12 @@
 Declarative NixOS config for **predator**.
 
-Working on predator from another machine looks like:
-`scp -r . predator:~/nixos && ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/nixos#predator'`
+Deploy from another machine looks like:
+`rsync -a --delete . predator:~/nixos/ && ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/nixos#predator'`
+(predator has no chezmoi — Nix only. Long rebuilds: launch detached, poll the log.)
 
-Manual system-level files (kept outside Home Manager, Arch boxes only):
-- system Caddy (`/etc/caddy/Caddyfile`, system `caddy.service`), udev rules, pacman hooks
+Manual files (kept outside this repo):
+- laptop `/etc/systemd/logind.conf.d/nolidsleep.conf` (ignore lid switch), laptop `~/.config/powerdevilrc` (`LidAction=64` = screen off on lid close, all profiles)
+- Arch boxes: system Caddy (`/etc/caddy/Caddyfile`, system `caddy.service`), udev rules, pacman hooks
 
 ## LAN machine map (`~/.ssh/config` aliases)
 
