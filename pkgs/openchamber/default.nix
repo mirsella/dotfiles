@@ -11,6 +11,8 @@ buildNpmPackage rec {
 
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
+    jq '.allowScripts = {"node-pty": true} | del(.scripts.prepack, .scripts.prepare)' package.json > package.json.tmp
+    mv package.json.tmp package.json
   '';
 
   npmDepsHash = "sha256-T/rokk+gUa0UusZPpaiphP59KSxXpb13ttFICWT4Kpg=";
