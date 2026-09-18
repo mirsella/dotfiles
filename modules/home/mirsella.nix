@@ -100,6 +100,7 @@
     };
     ssh = {
       enable = true;
+      enableDefaultConfig = false;
       matchBlocks = {
         rpi = {
           hostname = "192.168.1.166";
