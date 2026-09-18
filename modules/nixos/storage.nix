@@ -38,7 +38,7 @@
       }
       {
         device = "/dev/disk/by-id/wwn-0x500003961228993f";
-        options = "-d sat -n standby,q -i 43200";
+        options = "-d sat -n standby,q -c interval=43200";
       }
     ];
   };
