@@ -11,7 +11,7 @@ let
     autosnap = yes
     autoprune = yes
   '';
-  mkConditionalSanoid = name: dataset:
+  mkConditionalSanoid = name: dataset: disks:
     let
       confDir = pkgs.writeTextDir "sanoid.conf" ''
         ${snapPolicy}
@@ -20,6 +20,21 @@ let
         recursive = yes
       '';
       check = pkgs.writeShellScript "sanoid-if-changed-${name}" ''
+        stateDir=/var/lib/sanoid-gate
+        mkdir -p "$stateDir"
+        cur="boot_id=$(cat /proc/sys/kernel/random/boot_id)"
+        resolve_ok=1
+        for disk in ${lib.escapeShellArgs disks}; do
+          target=$(readlink "/dev/disk/by-id/$disk" 2>/dev/null || true)
+          dev=$(basename "$target" 2>/dev/null || true)
+          stat="/sys/block/$dev/stat"
+          if [ -z "$dev" ] || [ ! -r "$stat" ]; then resolve_ok=0; break; fi
+          cur="$cur $disk=$(awk '{print $7}' "$stat")"
+        done
+        if [ "$resolve_ok" = 1 ] && [ -f "$stateDir/${name}" ] && [ "$(cat "$stateDir/${name}")" = "$cur" ]; then
+          echo "no block writes for ${dataset}, skipping snapshots"
+          exit 0
+        fi
         changed=0
         for d in $(${pkgs.zfs}/bin/zfs list -r -H -o name ${dataset}); do
           latest=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name -S creation "$d" | grep '@autosnap_' | head -1)
@@ -27,9 +42,14 @@ let
           if [ -n "$(${pkgs.zfs}/bin/zfs diff "$latest" "$d" 2>/dev/null | head -1)" ]; then changed=1; break; fi
         done
         if [ "$changed" = 1 ]; then
-          exec ${pkgs.sanoid}/bin/sanoid --cron --configdir ${confDir} --cache-dir /var/cache/sanoid-${name} --run-dir /run/sanoid-${name}
+          ${pkgs.sanoid}/bin/sanoid --cron --configdir ${confDir} --cache-dir /var/cache/sanoid-${name} --run-dir /run/sanoid-${name}
         else
           echo "no changes on ${dataset}, skipping snapshots"
+        fi
+        if [ "$resolve_ok" = 1 ]; then
+          echo "$cur" > "$stateDir/${name}"
+        else
+          rm -f "$stateDir/${name}"
         fi
       '';
     in
@@ -41,6 +61,7 @@ let
           ExecStart = check;
           CacheDirectory = "sanoid-${name}";
           RuntimeDirectory = "sanoid-${name}";
+          StateDirectory = "sanoid-gate";
         };
       };
       systemd.timers."sanoid-${name}" = {
@@ -106,7 +127,7 @@ lib.mkMerge [
   };
   }
 
-  (mkConditionalSanoid "tank" "tank/library")
-  (mkConditionalSanoid "backup" "tank/backup")
-  (mkConditionalSanoid "fast" "fast/ncdata")
+  (mkConditionalSanoid "tank" "tank/library" [ "wwn-0x5000c500aa3cc143" "wwn-0x500003961228993f" ])
+  (mkConditionalSanoid "backup" "tank/backup" [ "wwn-0x5000c500aa3cc143" "wwn-0x500003961228993f" ])
+  (mkConditionalSanoid "fast" "fast/ncdata" [ "ata-CT240BX500SSD1_2004E3E6DE68" ])
 ]
