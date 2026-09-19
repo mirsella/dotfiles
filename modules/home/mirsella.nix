@@ -34,7 +34,6 @@
       fi
       run rustup default nightly
     '';
-    ];
     file = {
       ".config/git/ignore".source = ./files/git/ignore;
       ".config/git/attributes".source = ./files/git/attributes;
