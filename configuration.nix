@@ -117,7 +117,7 @@
     git
     ffmpeg
     imagemagick
-    ntfs-3g
+    ntfs3g
     curl
     wget
     htop
