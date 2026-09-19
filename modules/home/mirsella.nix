@@ -12,10 +12,15 @@
       atuin
       bat
       carapace
+      cargo-expand
+      cargo-update
+      cargo-watch
       chafa
+      computer-use-mcp
       delta
       diffstat
       difftastic
+      dioxus-cli
       dust
       fd
       fzf
@@ -28,15 +33,18 @@
       inxi
       jq
       jujutsu
+      kache
       lazygit
       lazyjj
       lsd
+      lspmux
       markdownlint-cli
       mergiraf
       mermaid-cli
       mold
       neovim
       nodejs
+      nodemon
       nushell
       ouch
       pnpm
@@ -44,9 +52,16 @@
       python3
       python3Packages.pynvim
       rclone
+      rift-cli
+      rioterm
       ripgrep
+      rtk
       rustup
+      sea-orm-cli
+      secretspec
+      sfw
       starship
+      stuff
       tealdeer
       tmux
       tree-sitter
