@@ -11,28 +11,24 @@
           X-Content-Type-Options nosniff
           X-Frame-Options DENY
         }
-        handle_path /opencode-predator/* {
-          reverse_proxy 127.0.0.1:14096
-        }
-        handle_path /openchamber-predator/* {
-          reverse_proxy 127.0.0.1:14097
-        }
-        handle_path /opencode-main/* {
-          reverse_proxy 192.168.1.131:4096 {
-            header_up Host mirsella.mooo.com
-          }
-        }
-        handle_path /openchamber-main/* {
-          reverse_proxy 192.168.1.131:4097 {
-            header_up Host mirsella.mooo.com
-          }
-        }
         handle_path /nextcloud/* {
           reverse_proxy 127.0.0.1:8080
         }
         handle {
           file_server
         }
+      '';
+      "https://mirsella.mooo.com:4096".extraConfig = ''
+        reverse_proxy 192.168.1.131:4096
+      '';
+      "https://mirsella.mooo.com:4097".extraConfig = ''
+        reverse_proxy 192.168.1.131:4097
+      '';
+      "https://mirsella.mooo.com:14096".extraConfig = ''
+        reverse_proxy 127.0.0.1:14096
+      '';
+      "https://mirsella.mooo.com:14097".extraConfig = ''
+        reverse_proxy 127.0.0.1:14097
       '';
       "http://predator, http://predator.local, http://localhost".extraConfig = ''
         root * ${./site}

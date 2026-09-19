@@ -57,7 +57,7 @@
   networking = {
     hostName = "predator";
     networkmanager.enable = true;
-    firewall.allowedTCPPorts = [ 80 443 4096 4097 ];
+    firewall.allowedTCPPorts = [ 80 443 4096 4097 14096 14097 ];
   };
 
   time.timeZone = "Europe/Paris";
