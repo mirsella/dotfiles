@@ -1,50 +1,49 @@
 { pkgs, ... }:
 {
   systemd.services.night-suspend = {
-    description = "Suspend after midnight unless something is using the box";
+    description = "Suspend during the night window unless something is using the box";
     serviceConfig.Type = "oneshot";
     path = with pkgs; [ coreutils iproute2 ];
     script = ''
       blockers=()
       log() { echo "night-suspend: $1"; }
 
+      hour=$(date +%H)
+      if [ "$hour" -lt 0 ] || [ "$hour" -gt 6 ]; then
+        exit 0
+      fi
+
       users_now=$(users)
       if [ -n "$users_now" ]; then
         blockers+=("sessions: $users_now")
-      else
-        log "no logged-in users (tty or ssh)"
       fi
 
       conns=$(ss -Htn state established '( sport = :80 or sport = :443 or sport = :4096 or sport = :4097 or sport = :14096 or sport = :14097 )' | wc -l)
       if [ "$conns" -gt 0 ]; then
         blockers+=("$conns active service connections (web/apps)")
-      else
-        log "no active connections to web/app ports"
       fi
 
-      devs=()
+      now=$(date +%s)
       for id in wwn-0x5000c500aa3cc143 wwn-0x500003961228993f; do
-        devs+=("$(basename "$(readlink "/dev/disk/by-id/$id")")")
+        state="/var/lib/hdd-sleep/$id"
+        dev=$(readlink "/dev/disk/by-id/$id" 2>/dev/null) || { blockers+=("$id: device missing"); continue; }
+        read -r _ _ rsec _ _ _ wsec _ < "/sys/block/$(basename "$dev")/stat"
+        if [ ! -f "$state" ]; then
+          blockers+=("$id: no idle baseline yet")
+          continue
+        fi
+        read -r prsec pwsec lastActive < "$state"
+        if [ "$rsec" != "$prsec" ] || [ "$wsec" != "$pwsec" ]; then
+          blockers+=("$id: recent disk activity")
+        elif [ $(( (now - lastActive) / 60 )) -lt 45 ]; then
+          blockers+=("$id: only $(( (now - lastActive) / 60 )) min quiet (< 45)")
+        fi
       done
-      snap() {
-        for sd in "''${devs[@]}"; do
-          read -r _ _ r _ _ _ w _ < "/sys/block/$sd/stat"
-          printf '%s %s\n' "$r" "$w"
-        done
-      }
-      before=$(snap)
-      log "disk counters sampled, waiting 5 min"
-      sleep 300
-      if [ "$(snap)" != "$before" ]; then
-        blockers+=("tank HDDs saw reads/writes in the last 5 min")
-      else
-        log "tank HDDs idle for 5 min"
-      fi
 
       if [ "''${#blockers[@]}" -gt 0 ]; then
         log "blocked: $(IFS='; '; echo "''${blockers[*]}")"
       else
-        log "all clear, suspending"
+        log "all clear (00-06 window, idle disks, nobody around), suspending"
         systemctl suspend
       fi
     '';
@@ -52,10 +51,6 @@
 
   systemd.timers.night-suspend = {
     wantedBy = [ "timers.target" ];
-    timerConfig.OnCalendar = [
-      "00:30"
-      "02:30"
-      "04:30"
-    ];
+    timerConfig.OnCalendar = "*-*-* 00..06:*:00";
   };
 }
