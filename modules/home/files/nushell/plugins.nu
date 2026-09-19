@@ -3,6 +3,9 @@
 let $PLUGIN_DIR = $nu.data-dir | path join "plugins"
 
 def ensure-plugin [repo: string] {
+  if (which cargo | is-empty) {
+    return
+  }
   let name = ($repo | path basename | str replace ".git" "")
   let url = $"https://github.com/($repo)"
   let plugin_path = ($PLUGIN_DIR | path join $name)
