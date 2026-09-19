@@ -5,25 +5,43 @@
     homeDirectory = "/home/mirsella";
     stateVersion = "26.05";
     packages = with pkgs; [
+      ast-grep
       atuin
       bat
+      carapace
+      chafa
       delta
+      diffstat
       difftastic
+      dust
       fd
       fzf
       gcc
       gh
+      graphviz
       gtrash
+      inxi
+      jq
       jujutsu
+      kache
       lazygit
       lazyjj
       lsd
       mergiraf
+      mold
       neovim
+      nodejs
       nushell
+      ouch
+      rclone
       ripgrep
       rustup
       starship
+      tealdeer
+      tmux
+      unzip
+      yt-dlp
+      zip
       zoxide
     ];
     activation.rustupNightly = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

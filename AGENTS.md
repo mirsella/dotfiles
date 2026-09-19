@@ -7,7 +7,7 @@ Deploy from another machine looks like:
 Manual files (kept outside this repo):
 - laptop `/etc/systemd/logind.conf.d/nolidsleep.conf` (ignore lid switch), laptop `~/.config/powerdevilrc` (`LidAction=64` = screen off on lid close, all profiles)
 - Arch boxes: system Caddy (`/etc/caddy/Caddyfile`, system `caddy.service`), udev rules, pacman hooks
-- predator: Freebox LAN IP is `192.168.1.1` (not factory `.254`); `hd-idle` must be stopped during SMART long tests or it spins the disk down mid-test (every rebuild restarts it, so stop it again right after)
+- predator: Freebox LAN IP is `192.168.1.1` (not factory `.254`); `hd-idle` must be stopped during SMART long tests or it spins the disk down mid-test (every rebuild restarts it, so stop it again right after). The Toshiba USB bridge aborts extended self-tests ~10 min in regardless; rely on short tests plus the monthly scrub.
 
 ## LAN machine map (`~/.ssh/config` aliases)
 

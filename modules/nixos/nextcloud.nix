@@ -28,6 +28,17 @@
       overwriteprotocol = "https";
       overwritewebroot = "/nextcloud";
       "overwrite.cli.url" = "https://mirsella.mooo.com/nextcloud";
+      enabledPreviewProviders = [
+        "OC\\Preview\\BMP"
+        "OC\\Preview\\GIF"
+        "OC\\Preview\\JPEG"
+        "OC\\Preview\\PNG"
+        "OC\\Preview\\XBM"
+        "OC\\Preview\\MP3"
+        "OC\\Preview\\TXT"
+        "OC\\Preview\\MarkDown"
+        "OC\\Preview\\Movie"
+      ];
     };
     extraApps = {
       inherit (config.services.nextcloud.package.packages.apps) memories;

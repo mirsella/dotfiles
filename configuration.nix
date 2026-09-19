@@ -106,6 +106,7 @@
     ];
   };
   security.sudo.wheelNeedsPassword = false;
+  services.fwupd.enable = true;
 
   nixpkgs.config.allowUnfree = true;
   hardware.enableRedistributableFirmware = true;
@@ -114,6 +115,9 @@
   environment.systemPackages = with pkgs; [
     vim
     git
+    ffmpeg
+    imagemagick
+    ntfs-3g
     curl
     wget
     htop
