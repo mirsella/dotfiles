@@ -4,8 +4,14 @@ buildNpmPackage rec {
   version = "2.0.6";
   src = fetchurl {
     url = "https://registry.npmjs.org/sfw/-/sfw-2.0.6.tgz";
-    hash = lib.fakeHash;
+    hash = "sha256-uHGhPMeKmTuJ7Ur3E00+x+ela4YC1g9mlWn5v/SgK6Q=";
   };
-  npmDepsHash = lib.fakeHash;
+  sourceRoot = "package";
+
+  postPatch = ''
+    cp ${./package-lock.json} package-lock.json
+  '';
+
+  npmDepsHash = "sha256-JDXKDvJ3Y6hVMsE90SfX1N0cSRX2FNFwbwGoKMAlCGg=";
   dontNpmBuild = true;
 }

@@ -1,4 +1,4 @@
-{ lib, osConfig, pkgs, gitSigningKey, ... }:
+{ lib, osConfig ? null, pkgs, gitSigningKey, ... }:
 {
   home = {
     username = "mirsella";
@@ -140,10 +140,17 @@
       Service = {
         Type = "simple";
         WorkingDirectory = "%h";
-        EnvironmentFile = [
-          osConfig.sops.secrets.telegram_env.path
-          osConfig.sops.secrets.opencode_server.path
-        ];
+        EnvironmentFile =
+          if osConfig != null then
+            [
+              osConfig.sops.secrets.telegram_env.path
+              osConfig.sops.secrets.opencode_server.path
+            ]
+          else
+            [
+              "-%h/.config/telegram.env"
+              "-%h/.config/opencode/server.env"
+            ];
         Environment = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin";
         ExecStart = "${pkgs.opencode}/bin/opencode serve --hostname 127.0.0.1 --port 14096";
         Restart = "on-failure";

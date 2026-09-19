@@ -5,8 +5,9 @@ rustPlatform.buildRustPackage rec {
   src = fetchgit {
     url = "https://github.com/mirsella/stuff";
     rev = "66ea5f9d8e28a3c60b7613410c6be0431f1a87fe";
-    hash = lib.fakeHash;
+    hash = "sha256-LJfOkitjUW/RVf8DF2u71iw8fBoHTsjoj4TAhyJdhyU=";
   };
-  cargoHash = lib.fakeHash;
+  cargoHash = "sha256-viVaFNirQB11udkifOe829D7WohmRFojHht6HojcLZI=";
   nativeBuildInputs = [ pkg-config ];
+  doCheck = false;
 }

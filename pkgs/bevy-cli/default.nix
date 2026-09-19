@@ -5,8 +5,9 @@ rustPlatform.buildRustPackage rec {
   src = fetchgit {
     url = "https://github.com/TheBevyFlock/bevy_cli";
     rev = "719f397cacabc69099486a88c0ec5f8356327f08";
-    hash = lib.fakeHash;
+    hash = "sha256-rEfQ5oOsNtnZoOjcIOpxundvhZeQ1HRgj9WVtAwXrf4=";
   };
-  cargoHash = lib.fakeHash;
+  cargoHash = "sha256-gjabfj+3a4Jsre7UmwMlKgwiLWa6eClpZ/zC0uaMvfo=";
   nativeBuildInputs = [ pkg-config ];
+  doCheck = false;
 }

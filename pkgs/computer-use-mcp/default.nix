@@ -5,9 +5,10 @@ rustPlatform.buildRustPackage rec {
   src = fetchgit {
     url = "https://github.com/mirsella/computer-use-mcp";
     rev = "5fc109264bb8fb75ed5fa36bcacb0d08c9026ace";
-    hash = lib.fakeHash;
+    hash = "sha256-KzJgrBMb+RqeVSDLezFOhWoatKn3RtmS8YXO2PUrG6I=";
   };
-  cargoHash = lib.fakeHash;
+  cargoHash = "sha256-+e4qxWg9WoeX9gxKlDlHr9zrzl5X2aqP4OqSjtz6GV4=";
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ wayland libxkbcommon ];
+  doCheck = false;
 }

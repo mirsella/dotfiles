@@ -21,6 +21,24 @@
 
   outputs =
     { nixpkgs, home-manager, sops-nix, disko, ... }@inputs:
+    let
+      mkStandaloneHome = hostName: gitSigningKey: home-manager.lib.homeManagerConfiguration {
+        pkgs = import nixpkgs {
+          system = "x86_64-linux";
+          overlays = [
+            inputs.neovim-nightly-overlay.overlays.default
+            (import ./overlays.nix inputs)
+          ];
+        };
+        extraSpecialArgs = {
+          inherit inputs hostName gitSigningKey;
+        };
+        modules = [
+          ./modules/home/mirsella.nix
+          { targets.genericLinux.enable = true; }
+        ];
+      };
+    in
     {
       nixosConfigurations.predator = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -32,5 +50,8 @@
           disko.nixosModules.disko
         ];
       };
+
+      homeConfigurations."mirsella@laptop" = mkStandaloneHome "laptop" "E88ECCA3AA187BC1";
+      homeConfigurations."mirsella@main" = mkStandaloneHome "main" "E53202A06B2614A4";
     };
 }
