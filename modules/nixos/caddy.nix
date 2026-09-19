@@ -19,19 +19,11 @@
         }
         handle_path /opencode-main/* {
           reverse_proxy 192.168.1.131:4096 {
-            transport http {
-              tls
-              tls_server_name mirsella.mooo.com
-            }
             header_up Host mirsella.mooo.com
           }
         }
         handle_path /openchamber-main/* {
           reverse_proxy 192.168.1.131:4097 {
-            transport http {
-              tls
-              tls_server_name mirsella.mooo.com
-            }
             header_up Host mirsella.mooo.com
           }
         }
