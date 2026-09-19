@@ -45,7 +45,7 @@ def "main sys" [] {
     $h => {
       let attr = $"homeConfigurations.($h).activationPackage"
       let out = (^nix --extra-experimental-features "nix-command flakes" build $"($co)#($attr)" --print-out-paths --no-link | str trim)
-      ^$out
+      ^$"($out)/activate"
     }
   }
 }
