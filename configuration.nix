@@ -119,7 +119,12 @@
 
   nixpkgs.config.allowUnfree = true;
   hardware.enableRedistributableFirmware = true;
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    # 7.6GB RAM: an uncapped rioterm build once OOM-wedged the box.
+    max-jobs = 1;
+    cores = 4;
+  };
 
   environment.systemPackages = with pkgs; [
     vim
