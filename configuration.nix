@@ -98,7 +98,11 @@
     isNormalUser = true;
     linger = true;
     shell = pkgs.nushell;
-    extraGroups = [ "wheel" "networkmanager" ];
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+      "podman"
+    ];
     hashedPassword = "$6$u95TjqJ3iGNjVYkK$uZJx66pXAgvJmSXtNR7oY4dAOUSMyDJVm5CxxDzQnRCu1YTf1bJAkEoKn3VzqdyTWyt7MOBdRxY8DHGdZdLZZ0";
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF"
@@ -113,6 +117,9 @@
     dockerCompat = true;
     defaultNetwork.settings.dns_enabled = true;
   };
+  systemd.tmpfiles.rules = [
+    "L+ /var/run/docker.sock - - - - /run/podman/podman.sock"
+  ];
 
   nixpkgs.config.allowUnfree = true;
   hardware.enableRedistributableFirmware = true;
