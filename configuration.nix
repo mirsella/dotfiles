@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   imports = [
     ./hardware-configuration.nix
@@ -10,9 +10,11 @@
   ];
 
   nixpkgs.overlays = [
+    inputs.neovim-nightly-overlay.overlays.default
     (final: prev: {
       openchamber = final.callPackage ./pkgs/openchamber { };
       zfs-dirty-flag = final.callPackage ./pkgs/zfs-dirty-flag { };
+      nushell = inputs.nixpkgs-unstable.legacyPackages.${final.system}.nushell;
     })
   ];
 
@@ -95,6 +97,7 @@
 
   users.users.mirsella = {
     isNormalUser = true;
+    linger = true;
     shell = pkgs.nushell;
     extraGroups = [ "wheel" "networkmanager" ];
     hashedPassword = "$6$u95TjqJ3iGNjVYkK$uZJx66pXAgvJmSXtNR7oY4dAOUSMyDJVm5CxxDzQnRCu1YTf1bJAkEoKn3VzqdyTWyt7MOBdRxY8DHGdZdLZZ0";
