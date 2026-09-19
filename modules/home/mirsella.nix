@@ -7,6 +7,7 @@
     packages = with pkgs; [
       atuin
       bat
+      cargo
       delta
       difftastic
       fd
@@ -21,6 +22,7 @@
       neovim
       nushell
       ripgrep
+      rustc
       starship
       zoxide
     ];
