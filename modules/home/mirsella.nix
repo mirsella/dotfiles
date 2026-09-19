@@ -52,7 +52,6 @@
       tree-sitter
       unzip
       vimv
-      wild
       wrangler
       yt-dlp
       zip
