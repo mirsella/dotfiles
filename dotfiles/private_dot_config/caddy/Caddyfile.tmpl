@@ -1,0 +1,97 @@
+{{- $host := .chezmoi.hostname -}}
+{{- $domain := "mirsella.mooo.com" -}}
+{{- $bindIP := "" -}}
+{{- if eq $host "main" -}}
+{{- $routes := output "ip" "-j" "-4" "route" "get" "1.1.1.1" | fromJson -}}
+{{- $bindIP = dig "prefsrc" "" (index $routes 0) -}}
+{{- end -}}
+{
+	admin unix//run/caddy/admin.socket
+{{ if eq $host "main" }}
+	servers {{ $bindIP }}:4096 {
+		listener_wrappers {
+			http_redirect
+			tls
+		}
+	}
+	servers {{ $bindIP }}:4097 {
+		listener_wrappers {
+			http_redirect
+			tls
+		}
+	}
+{{ end -}}
+}
+
+(homepage) {
+	root * /srv/mirsella-home
+	encode zstd gzip
+	header {
+		Referrer-Policy no-referrer
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+	}
+	file_server
+}
+
+(opencode) {
+	reverse_proxy 127.0.0.1:14096
+}
+
+(openchamber) {
+	reverse_proxy 127.0.0.1:14097
+}
+
+{{ if eq $host "main" -}}
+http://{{ $host }}, http://localhost {
+	import homepage
+}
+
+https://{{ $domain }} {
+	import homepage
+}
+
+https://:4096 {
+	bind {{ $bindIP }}
+	@public host {{ $domain }}
+	handle @public {
+		import opencode
+	}
+	handle {
+		respond 404
+	}
+}
+
+https://:4097 {
+	bind {{ $bindIP }}
+	@public host {{ $domain }}
+	handle @public {
+		import openchamber
+	}
+	handle {
+		respond 404
+	}
+}
+
+http://{{ $host }}:4096, http://localhost:4096 {
+	bind 127.0.0.1 [::1]
+	import opencode
+}
+
+http://{{ $host }}:4097, http://localhost:4097 {
+	bind 127.0.0.1 [::1]
+	import openchamber
+}
+{{ else -}}
+http://{{ $host }}, http://{{ $host }}.local, http://localhost {
+	import homepage
+}
+
+http://{{ $host }}:4096, http://{{ $host }}.local:4096, http://localhost:4096 {
+	import opencode
+}
+
+http://{{ $host }}:4097, http://{{ $host }}.local:4097, http://localhost:4097 {
+	import openchamber
+}
+{{ end -}}

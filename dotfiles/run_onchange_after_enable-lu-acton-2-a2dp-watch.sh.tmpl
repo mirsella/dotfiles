@@ -1,0 +1,7 @@
+#!/bin/sh
+
+{{- if eq .chezmoi.hostname "laptop" }}
+# service hash: {{ include "private_dot_config/systemd/user/lu-acton-2-a2dp-watch.service" | sha256sum }}
+systemctl --user daemon-reload
+systemctl --user enable --now lu-acton-2-a2dp-watch.service
+{{- end }}

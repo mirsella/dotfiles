@@ -12,6 +12,7 @@
     cargo-update
     cargo-watch
     chafa
+    chezmoi
     computer-use-mcp
     delta
     diffstat

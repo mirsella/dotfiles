@@ -1,0 +1,17 @@
+Host rpi
+  HostName 192.168.1.166
+  User mirsella
+Host laptop
+  HostName 192.168.1.61
+  User mirsella
+Host predator
+  HostName 192.168.1.19
+  User mirsella
+
+Match host main exec "ping -c 1 -W 1 192.168.1.131"
+    HostName 192.168.1.131
+    Port 22
+Host main
+  HostName mirsella.mooo.com
+  Port 2222
+  User mirsella

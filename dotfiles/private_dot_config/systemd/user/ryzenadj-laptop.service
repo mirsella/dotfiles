@@ -1,0 +1,12 @@
+[Unit]
+Description=Apply RyzenAdj performance limits
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/sudo -n /usr/bin/modprobe ryzen_smu
+ExecStart=%h/.local/bin/ryzenadj-laptop --watch
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

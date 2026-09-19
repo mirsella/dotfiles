@@ -1,0 +1,17 @@
+[Unit]
+Description=mount google drive with rclone 
+After=network.target
+
+[Service]
+Type=simple
+; ExecStartPre=-/bin/rm -rf ${HOME}/Documents/gdrive
+ExecStartPre=-mkdir -p ${HOME}/Documents/gdrive
+ExecStart=rclone mount --vfs-cache-mode full gdrive: ${HOME}/Documents/gdrive
+ExecStartPost=sh -c 'while true; do sleep 1 && cat ${HOME}/Documents/gdrive/keepass/keepass.kdbx > /dev/null 2>&1 && break; done &'
+; ExecStartPost=sh -c '/bin/sleep 2 && /bin/stat ${HOME}/Documents/gdrive/keepass/keepass.kdbx'
+ExecStop=/bin/fusermount -u ${HOME}/Documents/gdrive
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

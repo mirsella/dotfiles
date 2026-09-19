@@ -1,0 +1,16 @@
+[".config/zsh/.antidote"]
+type = "git-repo"
+url = "https://github.com/mattmc3/antidote"
+clone.args = ["--depth=1"]
+refreshPeriod = "168h"
+
+[".config/tmux/plugins/tpm"]
+type = "git-repo"
+url = "https://github.com/tmux-plugins/tpm"
+clone.args = ["--depth=1"]
+refreshPeriod = "168h"
+
+[".config/wezterm/lua/rose-pine.lua"]
+type = "file"
+url = "https://raw.githubusercontent.com/neapsix/wezterm/main/plugin/init.lua"
+refreshPeriod = "168h"

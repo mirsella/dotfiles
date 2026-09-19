@@ -18,56 +18,7 @@ in
       fi
       run rustup default nightly
     '';
-    file = {
-      ".config/git/ignore".source = ./files/git/ignore;
-      ".config/git/attributes".source = ./files/git/attributes;
-      ".local/bin".source = ./files/local/bin;
-      ".agents".source = ./files/agents;
-      ".codex".source = ./files/codex;
-    };
   };
-
-  xdg.configFile =
-    let
-      all = builtins.readDir ./files/config;
-      recursive = [
-        "environment.d"
-        "opencode"
-      ];
-      appOwned = lib.optionals (!isNixOS) [ "plasma-workspace" ];
-      dirs = lib.removeAttrs all appOwned;
-      nushell = [
-        "alias.nu"
-        "completions.nu"
-        "config.nu"
-        "env.nu"
-        "functions.nu"
-        "laptop.nu"
-        "notif.nu"
-        "plugins.nu"
-      ];
-    in
-    lib.mapAttrs' (
-      n: _:
-      lib.nameValuePair n (
-        { source = ./files/config + "/${n}"; }
-        // lib.optionalAttrs (lib.elem n recursive) { recursive = true; }
-      )
-    ) dirs
-    // builtins.listToAttrs (
-      map (f: {
-        name = "nushell/${f}";
-        value.source = ./files/nushell/${f};
-      }) nushell
-    )
-    // {
-      "nvim" = {
-        source = ./files/nvim;
-        recursive = true;
-      };
-      "starship.toml".source = ./files/starship.toml;
-      "atuin/config.toml".source = ./files/atuin/config.toml;
-    };
 
   systemd.user.services = {
     opencode = {

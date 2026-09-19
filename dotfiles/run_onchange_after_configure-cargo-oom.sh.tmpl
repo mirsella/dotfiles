@@ -1,0 +1,22 @@
+{{- if and (eq .chezmoi.os "linux") (or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop")) -}}
+#!/bin/sh
+set -eu
+
+# Cargo slice hash: {{ include "private_dot_config/systemd/user/cargo.slice" | sha256sum }}
+# Cargo wrapper hash: {{ include "dot_local/share/cargo/bin/executable_cargo" | sha256sum }}
+
+if ! command -v systemctl >/dev/null 2>&1; then
+  printf 'systemctl not found; cannot configure Cargo OOM protection.\n' >&2
+  exit 1
+fi
+
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  printf 'user systemd manager unavailable; cannot configure Cargo OOM protection.\n' >&2
+  exit 1
+fi
+
+systemctl --user daemon-reload
+systemctl --user start cargo.slice
+sudo systemctl enable --now systemd-oomd.service
+sudo systemctl set-property -- -.slice ManagedOOMSwap=auto
+{{- end }}

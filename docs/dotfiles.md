@@ -11,40 +11,49 @@ Single repo, one `flake.lock`, three targets:
 ## Everyday loop
 
 ```nu
-dots edit modules/home/files/nushell/config.nu
-dots diff
-dots apply
+chezmoi edit ~/.config/nvim/lua/plugins/example.lua
+dots diff            # chezmoi diff, reverse with --reverse
+dots capture         # chezmoi re-add: local versions -> repo
+dots apply           # repo -> this machine (--interactive for decisions)
+dots forget <path>   # stop tracking, keep the live file
 git add <changed files>; git commit -m "..."; git push   # explicit publishing only
 # another machine:
-dots sync
+dots sync            # pull --ff-only, then review; apply explicitly
 ```
 
-`dots apply` tolerates a dirty checkout but refuses untracked files (flakes
-ignore them). `dots sync` requires a clean tree and fast-forwards only.
-`nix flake update` is explicit maintenance: review, then build all three
-targets before committing the new lock.
+`dots sync` never auto-applies. `nix flake update` is explicit maintenance:
+review, then build all three targets before committing the new lock.
+
+## Ownership
+
+chezmoi owns every editable app config (`dotfiles/`, via `.chezmoiroot`).
+Home Manager must not declare files inside chezmoi-owned directories or
+replace one with a symlink. HM keeps: package sets, `programs.git` /
+`programs.ssh` settings (generated files), user services, secret wiring.
 
 ## Roles
 
-- `modules/home/common.nix` — shared files, git/ssh settings, user services.
-  Parameterized by `managedPackages` / `useSystemSops`; never reads the build
-  hostname. Host differences arrive via `extraSpecialArgs`.
+- `modules/home/common.nix` — user services, git/ssh settings, rustup
+  activation. Parameterized by `isNixOS`; never reads the build hostname.
+  Host differences arrive via `extraSpecialArgs`.
 - `modules/home/server.nix` — predator-only Nix package set.
 - `modules/home/workstation.nix` — Arch-only: sops-nix user secrets, no Nix
   packages, no GPU integration (`targets.genericLinux.gpu.enable = false`).
-- `hosts/laptop.nix`, `hosts/main.nix` — thin per-host imports.
+- `hosts/arch.nix` — shared Arch imports (laptop and main differ only by
+  signing key, passed as an arg).
 - Arch stays config-only: pacman/AUR own every application binary
   (`programs.git.package = null`, native `/usr/bin` in service commands).
   Never fake a derivation for a native binary.
+- A NixOS rollback does not roll back chezmoi-owned files; their recovery
+  is git history plus a reviewed `chezmoi apply`.
 
 ## Secrets
 
 Ciphertext in `secrets/` only, recipients in `.sops.yaml`. Predator uses the
 NixOS sops module (host SSH key); Arch uses the Home Manager sops module
 (`~/.ssh/id_ed25519`). Services order after `sops-nix.service` on Arch.
-Never put plaintext in `home.file.text`, interpolation, or build inputs.
-No gitleaks binary on the work machines yet — new files get a manual
-secret review before commit instead.
+Never put plaintext in interpolation or build inputs. Gitleaks scans the repo
+(`gitleaks detect --source .`); keep it clean before every commit.
 
 ## Rollback
 

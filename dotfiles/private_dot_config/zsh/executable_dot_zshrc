@@ -1,0 +1,151 @@
+path_prepend() {
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) PATH="$1${PATH:+:$PATH}" ;;
+  esac
+}
+
+path_append() {
+  case ":$PATH:" in
+    *":$1:"*) ;;
+    *) PATH="${PATH:+$PATH:}$1" ;;
+  esac
+}
+
+android_home="${ANDROID_HOME:-$HOME/.local/share/android/sdk}"
+path_prepend "$android_home/cmdline-tools/latest/bin"
+path_prepend "$android_home/emulator"
+path_prepend "$android_home/platform-tools"
+path_append "$HOME/.local/bin"
+path_append "${GEM_HOME:-$HOME/.local/share/gem}/bin"
+path_append "$HOME/.local/share/npm/bin"
+path_append "${CARGO_HOME:-$HOME/.local/share/cargo}/bin"
+path_append "${GOPATH:-$HOME/.local/share/go}/bin"
+path_append "${XDG_CACHE_HOME:-$HOME/.cache}/.bun/bin"
+path_append "${PNPM_HOME:-$HOME/.local/share/pnpm}/bin"
+path_append "${PNPM_HOME:-$HOME/.local/share/pnpm}"
+export PATH
+
+unset android_home
+unset -f path_prepend path_append 2>/dev/null || true
+
+winboot() {
+	# WINDOWS_TITLE=`grep -i "^menuentry 'Windows" /boot/grub/grub.cfg|head -n 1|cut -d"'" -f2`
+	# sudo grub-reboot "$WINDOWS_TITLE"
+  sudo bootctl set-oneshot auto-windows
+	sudo reboot
+}
+waitforjob() {
+	until ! jobs %${1:-1} >/dev/null 2>&1; do
+		sleep 2
+	done
+}
+notif() {
+	[ -f ~/.config/token/telegram.token ] && source ~/.config/token/telegram.token
+	[ -f ~/Documents/gdrive/token/telegram.token ] && source ~/Documents/gdrive/token/telegram.token
+  data=$(jq -n \
+      --arg chat_id "$TgId" \
+      --arg text "${*:-empty}" \
+      '{chat_id: $chat_id, text: $text}')
+	curl -s -X POST -H 'Content-Type: application/json' -d "$data" "https://api.telegram.org/bot$TgToken/sendMessage" | jq '[.ok, .result.text]' -c
+}
+bak() { cp -r "${1}" "${1}.bak" }
+bakm() { mv "${1}" "${1}.bak" }
+ports() {
+  sudo lsof -iTCP -sTCP:LISTEN -n -P | awk 'NR>1 {print $9, $1, $2}' | sed 's/.*://' | while read port process pid; do echo "Port $port: $(ps -p $pid -o command= | sed 's/^-//') (PID: $pid)"; done | sort -n
+}
+
+([[ -f ~/.gtkrc-2.0 ]] && /bin/rm -v ~/.gtkrc-2.0) &!
+[ -f ~/.config/token/hathora.token ] && source ~/.config/token/hathora.token
+hash -d u=/run/media/mirsella
+export MAIL='mirsella@protonmail.com'
+export DIFFPROG='nvim -d'
+export PATH="$PATH:/opt/osxcross/target/bin"
+export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
+alias -s html="$BROWSER"
+alias -s pdf="$BROWSER"
+alias -s odt='libreoffice'
+alias psaux='ps aux | rg '
+alias journalctlerrors='journalctl -p 3 -xb'
+alias clearnotif='for i in $(seq $(notify-send -p " " -t 1) -1 0); do qdbus6 org.kde.plasmashell /org/freedesktop/Notifications org.freedesktop.Notifications.CloseNotification $i; done'
+alias NU='2> /dev/null ' #Silences stderr
+alias NUL='> /dev/null 2>&1 ' #Silences both stdout and stderr
+alias yt='yt-dlp -x --recode-video mp3 --embed-metadata --embed-thumbnail --fixup warn --sponsorblock-remove all '
+alias mkdir='mkdir -p '
+alias cp='cp -r '
+alias ls='lsd -A --hyperlink=auto'
+alias ll='lsd -Al --hyperlink=auto'
+alias tree='lsd -A --tree -I node_modules -I .git '
+alias bat='bat -pp --color=always --theme="Solarized (dark)" '
+alias q='exit '
+alias dut='du -cksh '
+alias rg='rg --hidden -S '
+alias rga='rga --hidden -S '
+alias lg='lazygit'
+alias g='git'
+alias gbro='gh browse'
+alias gbi='git bisect'
+alias gch='git checkout'
+alias gb='git branch'
+alias gd='git diff HEAD'
+alias gdd='git diff HEAD^'
+alias ga='git add -A'
+alias gt='git stash'
+alias gc='git commit'
+alias gp='git push'
+alias gclipp='git clone $(clipp)'
+alias gcl='git clone'
+gam() { git add -A; nocorrect git commit -m "${*:-quick commit }" }
+gamp() { git add -A; nocorrect git commit -m "${*:-quick commit }"; git push }
+alias lj="lazyjj"
+alias j="jj"
+alias jp="jj git push"
+alias jdi="jj diff"
+jd() { jj describe -m "${*}" }
+jc() { jj commit -m "${*}" }
+jci() { jj commit -i -m "${*}" }
+alias fd='fd -HL -E run -E media -E sys -E proc -E dosdevices'
+alias fda='fd -I '
+alias trapp='trap "exit" SIGINT '
+alias watch='watch '
+alias update='paru -Syu --noconfirm'
+alias chownm='s chown -R $USER: '
+alias S='sudo systemctl '
+alias s='sudo -E '
+alias uefireboot='systemctl reboot --firmware-setup'
+alias arduino-cli='arduino-cli --config-file $XDG_CONFIG_HOME/arduino15/arduino-cli.yaml '
+alias v='nvim -p '
+alias parus='paru -S --noconfirm --needed '
+alias rga='rga --no-ignore --hidden -S '
+alias kdesend='kdeconnect-cli -d $(kdeconnect-cli --list-devices | rg phone | head -n1 | cut -d" " -f3) --share '
+alias colemak='setxkbmap us -variant colemak_dh_iso'
+alias qwerty='setxkbmap us'
+alias c='cargo'
+alias cwt='cargo watch -qc -x test '
+alias cw='cargo watch -qc '
+alias cch='cargo check --all-targets --all-features'
+alias ccyp='cargo clippy -D clippy::pedantic --all-targets --all-features --workspace'
+alias ce='cargo expand --theme "Monokai Extended Light"'
+alias d='docker'
+alias dc='docker compose'
+alias npm='sfw npm'
+alias npx='sfw npx'
+alias pnpm='sfw pnpm'
+alias pnpx='sfw pnpx'
+alias yarn='sfw yarn'
+alias bun='sfw bun'
+alias p='pnpm'
+alias rmf='s /bin/rm -rf '
+alias rm='trash -rf'
+alias clip='wl-copy'
+alias clipp='wl-paste'
+alias ju='just'
+alias dark="darkman set dark"
+alias light="darkman set light"
+
+source ~/.config/zsh/lib/$(hostname)/hostname.zsh
+source ~/.config/zsh/lib/zprofile.zsh
+source ~/.config/zsh/lib/completion.zsh
+source ~/.config/zsh/lib/keybinds.zsh
+source  ~/.config/zsh/lib/fzf/fzf-completion.zsh
+source  ~/.config/zsh/lib/fzf/fzf-key-bindings.zsh

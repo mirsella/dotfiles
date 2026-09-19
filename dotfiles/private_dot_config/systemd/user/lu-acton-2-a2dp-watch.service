@@ -1,0 +1,13 @@
+[Unit]
+Description=Keep LU ACTON 2 on A2DP output
+After=wireplumber.service pipewire.service pipewire-pulse.service
+Wants=wireplumber.service pipewire.service pipewire-pulse.service
+
+[Service]
+Type=simple
+ExecStart=/home/mirsella/.local/bin/lu-acton-2-a2dp-watch
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target
