@@ -49,7 +49,6 @@
     python3Packages.pynvim
     rclone
     rift-cli
-    rioterm
     ripgrep
     rtk
     rustup
