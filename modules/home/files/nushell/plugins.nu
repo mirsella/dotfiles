@@ -34,5 +34,5 @@ if (version | get version | split row "." | get 1 | into int) >= 115 {
   ensure-plugin "FMotalleb/nu_plugin_image"
   ensure-plugin "JosephTLyons/nu_plugin_units"
 } else {
-  print $"Skipping source-built plugins on nushell (version | get version) (needs >= 0.115)"
+  print $"Skipping source-built plugins on nushell (version | get version) \(needs >= 0.115)"
 }
