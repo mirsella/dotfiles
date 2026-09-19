@@ -7,11 +7,11 @@
     packages = with pkgs; [
       atuin
       bat
-      cargo
       delta
       difftastic
       fd
       fzf
+      gcc
       gh
       gtrash
       jujutsu
@@ -22,9 +22,18 @@
       neovim
       nushell
       ripgrep
-      rustc
+      rustup
       starship
       zoxide
+    ];
+    activation.rustupNightly = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      export CARGO_HOME="$HOME/.local/share/cargo" RUSTUP_HOME="$HOME/.local/share/rustup"
+      export PATH="${pkgs.rustup}/bin:$PATH"
+      if ! rustup toolchain list 2>/dev/null | grep -q '^nightly'; then
+        run rustup toolchain install nightly --profile minimal --component rust-src
+      fi
+      run rustup default nightly
+    '';
     ];
     file = {
       ".config/git/ignore".source = ./files/git/ignore;
