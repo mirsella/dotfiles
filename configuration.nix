@@ -134,11 +134,20 @@
     '';
   };
 
-  # ethtool WOL is volatile: re-arm magic-packet wake every boot so a
-  # shutdown or suspend always leaves the NIC listening for it.
+  # ethtool WOL is volatile across reboots and some drivers drop it on
+  # resume, so re-arm magic-packet wake at boot, before sleep, and at
+  # shutdown: whatever state came before, the NIC always ends up listening.
   systemd.services.wol-arm = {
     description = "Arm Wake-on-LAN magic-packet wake on enp3s0f1";
-    wantedBy = [ "multi-user.target" ];
+    wantedBy = [
+      "multi-user.target"
+      "sleep.target"
+      "shutdown.target"
+    ];
+    before = [
+      "sleep.target"
+      "shutdown.target"
+    ];
     after = [ "network-pre.target" ];
     serviceConfig.Type = "oneshot";
     path = with pkgs; [ ethtool ];
