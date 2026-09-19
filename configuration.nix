@@ -7,6 +7,7 @@
     ./modules/nixos/caddy.nix
     ./modules/nixos/nextcloud.nix
     ./modules/nixos/openchamber.nix
+    ./modules/nixos/night-suspend.nix
   ];
 
   nixpkgs.overlays = [
@@ -82,16 +83,14 @@
       jails.sshd.settings.enabled = true;
     };
     # Laptop-as-server: a closed lid or stray sleep key must never suspend it.
+    # (AllowSuspend stays enabled so night-suspend can work; the physical
+    # triggers above being ignored is what protects the box.)
     logind.settings.Login = {
       HandleLidSwitch = "ignore";
       HandleLidSwitchExternalPower = "ignore";
       HandleLidSwitchDocked = "ignore";
       HandleSuspendKey = "ignore";
       HandleHibernateKey = "ignore";
-      AllowSuspend = false;
-      AllowHibernation = false;
-      AllowHybridSleep = false;
-      AllowSuspendThenHibernate = false;
     };
   };
 
