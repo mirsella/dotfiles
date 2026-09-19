@@ -168,7 +168,48 @@ lib.mkMerge [
     description = "Spin down idle tank HDDs";
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
-      ExecStart = "${pkgs.hd-idle}/bin/hd-idle -i 0 -a /dev/disk/by-id/wwn-0x5000c500aa3cc143 -i 2700 -c scsi -a /dev/disk/by-id/wwn-0x500003961228993f -i 2700 -c scsi";
+      ExecStart = "${pkgs.hd-idle}/bin/hd-idle -i 0 -a /dev/disk/by-id/wwn-0x5000c500aa3cc143 -i 2700 -c scsi -a /dev/disk/by-id/wwn-0x500003961228993f -i 2700 -c scsi -l /var/log/hd-idle.log";
+    };
+  };
+
+  systemd.services.hdd-activity-log = {
+    description = "Log tank HDD activity and wakeups without waking disks";
+    serviceConfig = {
+      Type = "oneshot";
+      StateDirectory = "hdd-sleep";
+      ExecStart = pkgs.writeShellScript "hdd-activity-log" ''
+        for id in wwn-0x5000c500aa3cc143 wwn-0x500003961228993f; do
+          dev=$(readlink "/dev/disk/by-id/$id" 2>/dev/null) || continue
+          sd=$(basename "$dev")
+          stat="/sys/block/$sd/stat"
+          [ -r "$stat" ] || continue
+          read -r _ _ rsec _ _ _ wsec _ < "$stat"
+          state="/var/lib/hdd-sleep/$id"
+          now=$(date +%s)
+          if [ -f "$state" ]; then
+            read -r prsec pwsec lastActive < "$state"
+            if [ "$rsec" != "$prsec" ] || [ "$wsec" != "$pwsec" ]; then
+              quiet=$(( (now - lastActive) / 60 ))
+              if [ "$quiet" -ge 15 ]; then
+                echo "WAKE $id after $quiet min quiet (+$((rsec - prsec))r +$((wsec - pwsec))w sectors)"
+              else
+                echo "activity $id (+$((rsec - prsec))r +$((wsec - pwsec))w sectors)"
+              fi
+              echo "$rsec $wsec $now" > "$state"
+            fi
+          else
+            echo "$rsec $wsec $now" > "$state"
+            echo "tracking $id ($sd) r=$rsec w=$wsec"
+          fi
+        done
+      '';
+    };
+  };
+  systemd.timers.hdd-activity-log = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*:0/5";
+      Persistent = true;
     };
   };
   }
