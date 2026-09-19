@@ -13,6 +13,15 @@ let
     autosnap = yes
     autoprune = yes
   '';
+  zfsChanged = pkgs.writeShellScript "zfs-changed" ''
+    dataset=$1
+    for d in $(${pkgs.zfs}/bin/zfs list -r -H -o name "$dataset"); do
+      latest=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name -S creation "$d" | grep '@autosnap_' | head -1)
+      [ -z "$latest" ] && exit 0
+      ${pkgs.zfs}/bin/zfs diff "$latest" "$d" 2>/dev/null | head -1 | grep -q . && exit 0
+    done
+    exit 1
+  '';
   mkConditionalSanoid = name: dataset:
     let
       confDir = pkgs.writeTextDir "sanoid.conf" ''
@@ -33,13 +42,7 @@ let
           echo "no writes flagged for ${dataset}, skipping snapshots"
           exit 0
         fi
-        changed=0
-        for d in $(${pkgs.zfs}/bin/zfs list -r -H -o name ${dataset}); do
-          latest=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name -S creation "$d" | grep '@autosnap_' | head -1)
-          if [ -z "$latest" ]; then changed=1; break; fi
-          if [ -n "$(${pkgs.zfs}/bin/zfs diff "$latest" "$d" 2>/dev/null | head -1)" ]; then changed=1; break; fi
-        done
-        if [ "$changed" = 0 ]; then
+        if ! ${zfsChanged} ${dataset}; then
           rm -f "$flag"
           echo "flag stale for ${dataset}, cleared without snapshotting"
           exit 0
@@ -55,13 +58,7 @@ let
         fi
       '';
       verify = pkgs.writeShellScript "sanoid-verify-${name}" ''
-        changed=0
-        for d in $(${pkgs.zfs}/bin/zfs list -r -H -o name ${dataset}); do
-          latest=$(${pkgs.zfs}/bin/zfs list -t snapshot -H -o name -S creation "$d" | grep '@autosnap_' | head -1)
-          if [ -z "$latest" ]; then changed=1; break; fi
-          if [ -n "$(${pkgs.zfs}/bin/zfs diff "$latest" "$d" 2>/dev/null | head -1)" ]; then changed=1; break; fi
-        done
-        if [ "$changed" = 1 ]; then
+        if ${zfsChanged} ${dataset}; then
           exec ${sanoidRun}
         else
           echo "verify: no changes on ${dataset}, skipping snapshots"

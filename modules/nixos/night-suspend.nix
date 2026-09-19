@@ -9,7 +9,7 @@
       log() { echo "night-suspend: $1"; }
 
       hour=$(date +%H)
-      if [ "$hour" -lt 0 ] || [ "$hour" -gt 6 ]; then
+      if [ "$hour" -gt 6 ]; then
         exit 0
       fi
 
@@ -44,9 +44,13 @@
         log "blocked: $(IFS='; '; echo "''${blockers[*]}")"
       else
         alarm=$(date -d '07:00' +%s)
-        echo 0 > /sys/class/rtc/rtc0/wakealarm 2>/dev/null || true
-        echo "$alarm" > /sys/class/rtc/rtc0/wakealarm
-        log "RTC alarm set for 07:00, suspending"
+        if [ -w /sys/class/rtc/rtc0/wakealarm ]; then
+          echo 0 > /sys/class/rtc/rtc0/wakealarm 2>/dev/null || true
+          echo "$alarm" > /sys/class/rtc/rtc0/wakealarm
+          log "RTC alarm set for 07:00, suspending"
+        else
+          log "no RTC alarm available, suspending without morning wake"
+        fi
         systemctl suspend
       fi
     '';
