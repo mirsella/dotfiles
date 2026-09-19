@@ -108,6 +108,12 @@
   security.sudo.wheelNeedsPassword = false;
   services.fwupd.enable = true;
 
+  virtualisation.podman = {
+    enable = true;
+    dockerCompat = true;
+    defaultNetwork.settings.dns_enabled = true;
+  };
+
   nixpkgs.config.allowUnfree = true;
   hardware.enableRedistributableFirmware = true;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

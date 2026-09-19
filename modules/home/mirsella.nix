@@ -5,6 +5,9 @@
     homeDirectory = "/home/mirsella";
     stateVersion = "26.05";
     packages = with pkgs; [
+      age
+      aspell
+      aspellDicts.en
       ast-grep
       atuin
       bat
@@ -20,25 +23,37 @@
       gh
       graphviz
       gtrash
+      hunspell
+      hunspellDicts.en_US
       inxi
       jq
       jujutsu
       lazygit
       lazyjj
       lsd
+      markdownlint-cli
       mergiraf
+      mermaid-cli
       mold
       neovim
       nodejs
       nushell
       ouch
+      pnpm
+      prettier
+      python3
+      python3Packages.pynvim
       rclone
       ripgrep
       rustup
       starship
       tealdeer
       tmux
+      tree-sitter
       unzip
+      vimv
+      wild
+      wrangler
       yt-dlp
       zip
       zoxide
