@@ -40,8 +40,15 @@
     useUserPackages = true;
     extraSpecialArgs = {
       gitSigningKey = null;
+      managedPackages = true;
+      useSystemSops = true;
     };
-    users.mirsella = import ./modules/home/mirsella.nix;
+    users.mirsella = {
+      imports = [
+        ./modules/home/common.nix
+        ./modules/home/server.nix
+      ];
+    };
   };
 
   boot = {

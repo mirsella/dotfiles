@@ -1,80 +1,24 @@
-{ lib, osConfig ? null, pkgs, gitSigningKey, ... }:
+{ lib, config, osConfig ? null, pkgs, hostName, gitSigningKey, managedPackages, useSystemSops, ... }:
+let
+  secretPath =
+    name:
+    if useSystemSops then
+      osConfig.sops.secrets.${name}.path
+    else
+      config.sops.secrets.${name}.path;
+  exe =
+    pkg: bin:
+    if managedPackages then "${pkgs.${pkg}}/bin/${bin}" else "/usr/bin/${bin}";
+  fusermount = if managedPackages then "${pkgs.fuse}/bin/fusermount" else "/usr/bin/fusermount";
+in
 {
   home = {
     username = "mirsella";
     homeDirectory = "/home/mirsella";
     stateVersion = "26.05";
-    packages = with pkgs; [
-      age
-      aspell
-      aspellDicts.en
-      ast-grep
-      atuin
-      bat
-      carapace
-      cargo-expand
-      cargo-update
-      cargo-watch
-      chafa
-      computer-use-mcp
-      delta
-      diffstat
-      difftastic
-      dioxus-cli
-      dust
-      fd
-      fzf
-      gcc
-      gh
-      graphviz
-      gtrash
-      hunspell
-      hunspellDicts.en_US
-      inxi
-      jq
-      jujutsu
-      kache
-      lazygit
-      lazyjj
-      lsd
-      lspmux
-      markdownlint-cli
-      mergiraf
-      mermaid-cli
-      mold
-      neovim
-      nodejs
-      nodemon
-      nushell
-      ouch
-      pnpm
-      prettier
-      python3
-      python3Packages.pynvim
-      rclone
-      rift-cli
-      rioterm
-      ripgrep
-      rtk
-      rustup
-      sea-orm-cli
-      secretspec
-      sfw
-      starship
-      stuff
-      tealdeer
-      tmux
-      tree-sitter
-      unzip
-      vimv
-      wrangler
-      yt-dlp
-      zip
-      zoxide
-    ];
     activation.rustupNightly = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       export CARGO_HOME="$HOME/.local/share/cargo" RUSTUP_HOME="$HOME/.local/share/rustup"
-      export PATH="${pkgs.rustup}/bin:$PATH"
+      export PATH="${lib.optionalString managedPackages "${pkgs.rustup}/bin:"}$PATH"
       if ! rustup toolchain list 2>/dev/null | grep -q '^nightly'; then
         run rustup toolchain install nightly --profile minimal --component rust-src
       fi
@@ -96,7 +40,8 @@
         "environment.d"
         "opencode"
       ];
-      plain = lib.removeAttrs all merged;
+      appOwned = lib.optionals (!managedPackages) [ "plasma-workspace" ];
+      plain = lib.removeAttrs all (merged ++ appOwned);
       nushell = [
         "alias.nu"
         "completions.nu"
@@ -126,6 +71,7 @@
     )
     // {
       "nvim".source = ./files/nvim;
+      "nvim".recursive = true;
       "starship.toml".source = ./files/starship.toml;
       "atuin/config.toml".source = ./files/atuin/config.toml;
     };
@@ -134,25 +80,18 @@
     opencode = {
       Unit = {
         Description = "OpenCode server";
-        After = [ "network.target" ];
+        After = [ "network.target" ] ++ lib.optional (!useSystemSops) "sops-nix.service";
         PartOf = [ "default.target" ];
       };
       Service = {
         Type = "simple";
         WorkingDirectory = "%h";
-        EnvironmentFile =
-          if osConfig != null then
-            [
-              osConfig.sops.secrets.telegram_env.path
-              osConfig.sops.secrets.opencode_server.path
-            ]
-          else
-            [
-              "-%h/.config/telegram.env"
-              "-%h/.config/opencode/server.env"
-            ];
+        EnvironmentFile = [
+          (secretPath "telegram_env")
+          (secretPath "opencode_server")
+        ];
         Environment = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin";
-        ExecStart = "${pkgs.opencode}/bin/opencode serve --hostname 127.0.0.1 --port 14096";
+        ExecStart = "${exe "opencode" "opencode"} serve --hostname 127.0.0.1 --port 14096";
         Restart = "on-failure";
         RestartSec = "2s";
       };
@@ -162,7 +101,7 @@
       Unit.Description = "Language server multiplexer server";
       Service = {
         Type = "simple";
-        ExecStart = "${pkgs.lspmux}/bin/lspmux server";
+        ExecStart = "${exe "lspmux" "lspmux"} server";
         Restart = "on-failure";
         RestartSec = "5s";
       };
@@ -176,8 +115,8 @@
       Service = {
         Type = "simple";
         ExecStartPre = "-mkdir -p %h/Documents/gdrive";
-        ExecStart = "${pkgs.rclone}/bin/rclone mount --vfs-cache-mode full gdrive: %h/Documents/gdrive";
-        ExecStop = "${pkgs.fuse}/bin/fusermount -u %h/Documents/gdrive";
+        ExecStart = "${exe "rclone" "rclone"} mount --vfs-cache-mode full gdrive: %h/Documents/gdrive";
+        ExecStop = "${fusermount} -u %h/Documents/gdrive";
         Restart = "always";
         RestartSec = 3;
       };
@@ -190,8 +129,8 @@
       Service = {
         Type = "simple";
         ExecStartPre = "-mkdir -p %h/Documents/gdrive-voxride";
-        ExecStart = "${pkgs.rclone}/bin/rclone mount --vfs-cache-mode full gdrive-voxride: %h/Documents/gdrive-voxride";
-        ExecStop = "${pkgs.fuse}/bin/fusermount -u %h/Documents/gdrive-voxride";
+        ExecStart = "${exe "rclone" "rclone"} mount --vfs-cache-mode full gdrive-voxride: %h/Documents/gdrive-voxride";
+        ExecStop = "${fusermount} -u %h/Documents/gdrive-voxride";
         Restart = "always";
         RestartSec = 3;
       };
@@ -201,6 +140,7 @@
   programs = {
     git = {
       enable = true;
+      package = if managedPackages then pkgs.git else null;
       settings = {
       user.name = "mirsella";
       user.email = "mirsella@protonmail.com";      init.defaultBranch = "main";
@@ -246,6 +186,7 @@
     ssh = {
       enable = true;
       enableDefaultConfig = false;
+      package = if managedPackages then pkgs.openssh else null;
       settings = {
         rpi = {
           HostName = "192.168.1.166";
