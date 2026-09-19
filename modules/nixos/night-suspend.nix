@@ -43,7 +43,10 @@
       if [ "''${#blockers[@]}" -gt 0 ]; then
         log "blocked: $(IFS='; '; echo "''${blockers[*]}")"
       else
-        log "all clear (00-06 window, idle disks, nobody around), suspending"
+        alarm=$(date -d '07:00' +%s)
+        echo 0 > /sys/class/rtc/rtc0/wakealarm 2>/dev/null || true
+        echo "$alarm" > /sys/class/rtc/rtc0/wakealarm
+        log "RTC alarm set for 07:00, suspending"
         systemctl suspend
       fi
     '';
