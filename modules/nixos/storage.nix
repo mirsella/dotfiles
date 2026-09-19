@@ -166,9 +166,9 @@ lib.mkMerge [
 
   # Genesys Logic hub autosuspends with delay 0 and takes the pool disks
   # off the bus with it (killed 6 SMART long tests). Keep it awake.
-  services.udev.extraRules = [
-    ''ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="05e3", ATTR{idProduct}=="0626", ATTR{power/control}="on"''
-  ];
+  services.udev.extraRules = ''
+    ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="05e3", ATTR{idProduct}=="0626", ATTR{power/control}="on"
+  '';
 
   systemd.services.hd-idle = {
     description = "Spin down idle tank HDDs";
