@@ -1,4 +1,4 @@
-{ lib, rustPlatform, fetchgit, pkg-config, wayland, libxkbcommon }:
+{ lib, rustPlatform, fetchgit, pkg-config, wayland, libxkbcommon, glib }:
 rustPlatform.buildRustPackage rec {
   pname = "computer-use-mcp";
   version = "2026.09.19";
@@ -9,6 +9,6 @@ rustPlatform.buildRustPackage rec {
   };
   cargoHash = "sha256-+e4qxWg9WoeX9gxKlDlHr9zrzl5X2aqP4OqSjtz6GV4=";
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ wayland libxkbcommon ];
+  buildInputs = [ wayland libxkbcommon glib ];
   doCheck = false;
 }
