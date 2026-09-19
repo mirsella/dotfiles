@@ -79,6 +79,18 @@
       ignoreIP = [ "127.0.0.1/8" "192.168.1.0/24" ];
       jails.sshd.settings.enabled = true;
     };
+    # Laptop-as-server: a closed lid or stray sleep key must never suspend it.
+    logind.settings.Login = {
+      HandleLidSwitch = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+      HandleLidSwitchDocked = "ignore";
+      HandleSuspendKey = "ignore";
+      HandleHibernateKey = "ignore";
+      AllowSuspend = false;
+      AllowHibernation = false;
+      AllowHybridSleep = false;
+      AllowSuspendThenHibernate = false;
+    };
   };
 
   users.users.mirsella = {
