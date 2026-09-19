@@ -35,6 +35,9 @@
             header_up Host mirsella.mooo.com
           }
         }
+        handle_path /nextcloud/* {
+          reverse_proxy 127.0.0.1:8080
+        }
         handle {
           file_server
         }
@@ -43,9 +46,6 @@
         root * ${./site}
         encode zstd gzip
         file_server
-      '';
-      "cloud.mirsella.mooo.com".extraConfig = ''
-        reverse_proxy 127.0.0.1:8080
       '';
     };
   };
