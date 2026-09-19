@@ -1,5 +1,7 @@
 let android_home = ($env.ANDROID_HOME? | default $"($env.HOME)/.local/share/android/sdk")
 let cargo_home = ($env.CARGO_HOME? | default $"($env.HOME)/.local/share/cargo")
+$env.CARGO_HOME = $cargo_home
+$env.RUSTUP_HOME = ($env.RUSTUP_HOME? | default $"($env.HOME)/.local/share/rustup")
 let go_path = ($env.GOPATH? | default $"($env.HOME)/.local/share/go")
 let gem_home = ($env.GEM_HOME? | default $"($env.HOME)/.local/share/gem")
 let pnpm_home = ($env.PNPM_HOME? | default $"($env.HOME)/.local/share/pnpm")
