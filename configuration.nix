@@ -40,8 +40,7 @@
     useUserPackages = true;
     extraSpecialArgs = {
       gitSigningKey = null;
-      managedPackages = true;
-      useSystemSops = true;
+      isNixOS = true;
     };
     users.mirsella = {
       imports = [

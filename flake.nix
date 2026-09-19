@@ -34,11 +34,10 @@
             inherit overlays;
           };
           extraSpecialArgs = {
-            inherit inputs hostName gitSigningKey;
-            managedPackages = false;
-            useSystemSops = false;
+            inherit inputs gitSigningKey;
+            isNixOS = false;
           };
-          modules = [ ./hosts/${hostName}.nix ];
+          modules = [ ./hosts/arch.nix ];
         };
     in
     {

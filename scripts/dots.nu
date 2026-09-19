@@ -35,7 +35,7 @@ def untracked-inputs [] {
     dirty | where ($it | str starts-with "??") | each { $in | str substring 3.. }
 }
 
-def main [] { help dots }
+def main [] { print "usage: dots (edit|diff|apply|sync|re-add|doctor)" }
 
 # Open the repository source for a managed file. Never follows /nix/store links.
 def "main edit" [path: string] {
@@ -58,7 +58,8 @@ def "main edit" [path: string] {
     if not ($full | path exists) {
         error make {msg: $"not in repo: ($path)"}
     }
-    ^$env.EDITOR? | default "nvim" $full
+    let editor = ($env.EDITOR? | default "nvim")
+    ^$editor $full
 }
 
 # Build the selected target without activating; show dirty files and drift.
