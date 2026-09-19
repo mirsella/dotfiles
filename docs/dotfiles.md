@@ -10,15 +10,16 @@ Single repo, one `flake.lock`, three targets:
 
 ## Everyday loop
 
-```nu
+```sh
 chezmoi edit ~/.config/nvim/lua/plugins/example.lua
-dots diff            # chezmoi diff, reverse with --reverse
-dots capture         # chezmoi re-add: local versions -> repo
-dots apply           # repo -> this machine (--interactive for decisions)
-dots forget <path>   # stop tracking, keep the live file
+chezmoi diff                  # --reverse previews the opposite direction
+chezmoi re-add                # local versions -> repo
+chezmoi apply                 # repo -> this machine (--interactive for decisions)
+chezmoi forget <path>         # stop tracking, keep the live file
 git add <changed files>; git commit -m "..."; git push   # explicit publishing only
 # another machine:
-dots sync            # pull --ff-only, then review; apply explicitly
+git pull --ff-only             # then review
+chezmoi status                 # then apply explicitly
 ```
 
 `dots sync` never auto-applies. `nix flake update` is explicit maintenance:
@@ -74,4 +75,5 @@ Never put plaintext in interpolation or build inputs. Gitleaks scans the repo
 4. A normal apply must not repair/update the lock silently.
 5. Never displace a live file with `force = true`; back up displaced files
    timestamped and get approval first.
-6. Test `dots` changes against fixtures, not real profiles.
+6. Never script around chezmoi's managed/status/diff/re-add/forget commands;
+   call its CLI instead of reimplementing the sync engine.
