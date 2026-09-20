@@ -20,9 +20,18 @@
 
   services.onlyoffice = {
     enable = true;
-    port = 8000;
+    port = 8001;
     allowLocalConnections = true;
     jwtSecretFile = config.sops.secrets.onlyoffice-jwt.path;
     securityNonceFile = config.sops.templates."onlyoffice-nonce.conf".path;
   };
+
+  # module defaults the vhost to :80 (caddy owns it); docservice itself
+  # sits on 8001, nginx fronts it on loopback 8000 for caddy :14098.
+  services.nginx.virtualHosts."localhost".listen = [
+    {
+      addr = "127.0.0.1";
+      port = 8000;
+    }
+  ];
 }
