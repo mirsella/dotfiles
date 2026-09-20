@@ -17,6 +17,7 @@ def ensure-plugin [repo: string] {
     let build = do { cargo build --release --manifest-path $"($plugin_path)/Cargo.toml" --locked } | complete
     if $build.exit_code != 0 {
       print --stderr $"($name): build failed, skipping"
+      print --stderr ($build.stderr | str trim)
       return
     }
     let add = do { plugin add $"($plugin_path)/target/release/($name)" } | complete
