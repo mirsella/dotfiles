@@ -4,7 +4,7 @@
     sopsFile = ../../secrets/nextcloud.yaml;
     key = "onlyoffice_jwt";
     owner = "onlyoffice";
-    restartUnits = [ "onlyoffice-documentserver.service" ];
+    restartUnits = [ "onlyoffice-docservice.service" ];
   };
 
   sops.secrets.onlyoffice-nonce = {
