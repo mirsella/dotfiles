@@ -18,6 +18,9 @@ enable-lu-acton-2-a2dp-watch.sh
 # Home Manager owns all user units on predator.
 .config/systemd/user/
 .config/systemd/user/**
+# Home Manager owns generated git and ssh settings on predator.
+.config/git/config
+.ssh/config
 {{- end }}
 
 # opencode commands
