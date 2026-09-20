@@ -12,7 +12,7 @@
     key = "onlyoffice_nonce";
   };
   sops.templates."onlyoffice-nonce.conf" = {
-    content = 'set $secure_link_secret "${config.sops.placeholder.onlyoffice-nonce}";';
+    content = ''set $secure_link_secret "${config.sops.placeholder.onlyoffice-nonce}";'';
     owner = "root";
     group = "onlyoffice";
     mode = "0440";
