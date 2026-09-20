@@ -49,6 +49,7 @@
               type = "zfs_fs";
               mountpoint = "legacy";
             };
+            userdata = zfsFs "/srv/userdata";
           };
         };
         tank = {
