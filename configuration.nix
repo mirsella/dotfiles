@@ -142,6 +142,7 @@
     curl
     wget
     htop
+    lm_sensors
     efibootmgr
     sops
   ];
