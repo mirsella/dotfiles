@@ -19,7 +19,7 @@ in
   virtualisation.oci-containers.backend = "podman";
 
   systemd.tmpfiles.rules = [
-    "d /var/lib/immich-pg 0700 root root -"
+    "d /var/lib/immich-pg 0700 999 999 -"
   ];
 
   virtualisation.oci-containers.containers = {
