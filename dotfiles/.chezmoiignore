@@ -14,6 +14,11 @@ README.md
 .config/systemd/user/lu-acton-2-a2dp-watch.service
 enable-lu-acton-2-a2dp-watch.sh
 {{- end }}
+{{- if eq .chezmoi.hostname "predator" }}
+# Home Manager owns all user units on predator.
+.config/systemd/user/
+.config/systemd/user/**
+{{- end }}
 
 # opencode commands
 plannotator-annotate.md
