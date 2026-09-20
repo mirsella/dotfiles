@@ -1,9 +1,9 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 {
   home.sessionPath = [ "$HOME/.local/share/cargo/bin" ];
 
-  home.file.".rustup".source = "/home/mirsella/.local/share/rustup";
-  home.file.".cargo".source = "/home/mirsella/.local/share/cargo";
+  home.file.".rustup".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/share/rustup";
+  home.file.".cargo".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/share/cargo";
 
   home.packages = with pkgs; [
     age
