@@ -37,31 +37,33 @@ export const stateFile = (dir?: string) =>
     "subagent-mode.json",
   );
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const sanitizeScope = (value: unknown): { scope?: Scope; invalid: boolean } => {
-  if (!isRecord(value)) return { invalid: true };
-  const { mode, models } = value;
+const sanitizeScope = (
+  value: unknown,
+  dropped: { any: boolean },
+): Scope | undefined => {
+  if (typeof value !== "object" || value === null) {
+    dropped.any = true;
+    return undefined;
+  }
+  const { mode, models } = value as Record<string, unknown>;
   const scope: Scope = {};
-  let invalid = false;
   if (mode !== undefined) {
     if (mode === "auto" || mode === "go" || mode === "codex") scope.mode = mode;
-    else invalid = true;
+    else dropped.any = true;
   }
   if (models !== undefined) {
-    if (!isRecord(models)) invalid = true;
+    if (typeof models !== "object" || models === null) dropped.any = true;
     else {
       for (const forced of ["go", "codex"] as const) {
-        const value = models[forced];
+        const value = (models as Record<string, unknown>)[forced];
         if (value === undefined) continue;
         const spec = asModelSpec(value);
-        if (spec === undefined) invalid = true;
+        if (spec === undefined) dropped.any = true;
         else (scope.models ??= {})[forced] = spec;
       }
     }
   }
-  return { scope, invalid };
+  return scope;
 };
 
 export const readState = (file = stateFile()): State => {
@@ -81,31 +83,31 @@ export const readState = (file = stateFile()): State => {
     );
     return {};
   }
+  const dropped = { any: false };
   const state: State = {};
-  let invalid = !isRecord(raw);
-  if (isRecord(raw)) {
-    const { global, sessions } = raw;
+  if (typeof raw !== "object" || raw === null) {
+    dropped.any = true;
+  } else {
+    const { global, sessions } = raw as Record<string, unknown>;
     if (global !== undefined) {
-      const result = sanitizeScope(global);
-      invalid ||= result.invalid;
-      if (result.scope !== undefined) state.global = result.scope;
+      const scope = sanitizeScope(global, dropped);
+      if (scope !== undefined) state.global = scope;
     }
     if (sessions !== undefined) {
-      if (!isRecord(sessions)) invalid = true;
+      if (typeof sessions !== "object" || sessions === null) dropped.any = true;
       else {
         for (const [sessionID, value] of Object.entries(sessions)) {
-          const result = sanitizeScope(value);
-          invalid ||= result.invalid;
-          if (result.scope === undefined) continue;
+          const scope = sanitizeScope(value, dropped);
+          if (scope === undefined) continue;
           state.sessions ??= {};
-          state.sessions[sessionID] = result.scope;
+          state.sessions[sessionID] = scope;
         }
       }
     }
   }
   // A hand-edited or stale file must not break delegation, but the fallback is
   // worth knowing about.
-  if (invalid)
+  if (dropped.any)
     console.warn(`[subagent-mode] ignoring invalid fields in ${file}`);
   return state;
 };
