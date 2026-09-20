@@ -25,28 +25,25 @@
           path = "${config.home.homeDirectory}/.davfs2/secrets";
           mode = "0600";
         };
+        rclone_conf = {
+          sopsFile = ../../secrets/webdav.yaml;
+          path = "${config.home.homeDirectory}/.config/rclone/rclone.conf";
+          mode = "0600";
+        };
       };
   };
 
   home.activation.nextcloudDir =
     lib.hm.dag.entryAfter [ "writeBoundary" ] ''mkdir -p "$HOME/Nextcloud"'';
 
-  systemd.user.mounts."home-mirsella-Nextcloud" = {
-    Unit.Description = "Nextcloud WebDAV";
-    Mount = {
-      What = "https://mirsella.mooo.com/nextcloud/remote.php/dav/files/mirsella/";
-      Where = "%h/Nextcloud";
-      Type = "davfs";
-      Options = "rw,noauto";
-    };
-  };
-
-  systemd.user.automounts."home-mirsella-Nextcloud" = {
-    Unit.Description = "Automount Nextcloud WebDAV";
+  systemd.user.services.rclone-nextcloud = {
+    Unit.Description = "Nextcloud WebDAV mount";
     Install.WantedBy = [ "default.target" ];
-    Automount = {
-      Where = "%h/Nextcloud";
-      TimeoutIdleSec = "300";
+    Service = {
+      ExecStart = "/usr/bin/rclone mount nextcloud: %h/Nextcloud --vfs-cache-mode writes --dir-cache-time 5m --poll-interval 30s";
+      ExecStop = "/usr/bin/fusermount -u %h/Nextcloud";
+      Restart = "always";
+      RestartSec = 10;
     };
   };
 }
