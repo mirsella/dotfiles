@@ -120,9 +120,15 @@ in
 lib.mkMerge [
   {
     networking.hostId = "007f0200";
-  boot.supportedFilesystems = [ "zfs" ];
+    boot.supportedFilesystems = [ "zfs" ];
   boot.zfs.forceImportRoot = false;
   boot.zfs.extraPools = [ "fast" "tank" ];
+
+  boot.initrd.secrets = {
+    "/etc/luks/fast.key" = "/etc/luks/fast.key";
+    "/etc/luks/tank1.key" = "/etc/luks/tank1.key";
+    "/etc/luks/tank2.key" = "/etc/luks/tank2.key";
+  };
 
   fileSystems."/var/lib/nextcloud/data" = {
     device = "fast/ncdata";
