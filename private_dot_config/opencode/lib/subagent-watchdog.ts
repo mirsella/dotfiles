@@ -22,8 +22,8 @@ export interface WatchdogConfig {
 export const DEFAULT_CONFIG: WatchdogConfig = {
 	enabled: true,
 	suspectAfterMs: 60_000,
-	recoverAfterMs: 180_000,
-	toolRecoverAfterMs: 10 * 60_000,
+	recoverAfterMs: 10 * 60_000,
+	toolRecoverAfterMs: 15 * 60_000,
 	pollIntervalMs: 5_000,
 	abortWaitMs: 15_000,
 	maxRecoveriesPerChild: 1,
