@@ -137,6 +137,8 @@
   environment.systemPackages = with pkgs; [
     vim
     git
+    cryptsetup
+    tpm2-tools
     ffmpeg
     imagemagick
     ntfs3g
