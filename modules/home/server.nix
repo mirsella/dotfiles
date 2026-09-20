@@ -18,7 +18,7 @@
     cargo-watch
     chafa
     chezmoi
-    clang
+    (pkgs.lib.lowPrio pkgs.clang)
     delta
     diffstat
     difftastic
