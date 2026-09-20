@@ -6,7 +6,6 @@
     ./modules/nixos/storage.nix
     ./modules/nixos/caddy.nix
     ./modules/nixos/nextcloud.nix
-    ./modules/nixos/onlyoffice.nix
     ./modules/nixos/immich.nix
     ./modules/nixos/openchamber.nix
     ./modules/nixos/night-suspend.nix
@@ -62,7 +61,7 @@
   networking = {
     hostName = "predator";
     networkmanager.enable = true;
-    firewall.allowedTCPPorts = [ 80 443 4096 4097 14096 14097 14098 14099 ];
+    firewall.allowedTCPPorts = [ 80 443 4096 4097 14096 14097 14099 ];
   };
 
   time.timeZone = "Europe/Paris";
