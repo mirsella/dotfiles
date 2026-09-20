@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }:
 let
@@ -142,10 +143,12 @@ lib.mkMerge [
     description = "Unlock and import tank after slow USB disks settle";
     wantedBy = [ "zfs-import-tank.service" ];
     before = [ "zfs-import-tank.service" ];
-    path = [ pkgs.cryptsetup ];
+    after = [ "systemd-udevd.service" ];
+    path = [ pkgs.cryptsetup config.boot.zfs.package ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      DefaultDependencies = false;
     };
     script = ''
       for i in $(seq 1 72); do
