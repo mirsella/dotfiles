@@ -112,6 +112,7 @@
     ];
   };
   security.sudo.wheelNeedsPassword = false;
+  services.envfs.enable = true;
   services.fwupd.enable = true;
 
   virtualisation.podman = {

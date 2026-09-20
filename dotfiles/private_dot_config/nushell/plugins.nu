@@ -9,9 +9,11 @@ def ensure-plugin [repo: string] {
   
   if not ($plugin_path | path exists) {
     print $"Installing ($name)..."
-    git clone $url $plugin_path
-    cargo build --release --manifest-path $"($plugin_path)/Cargo.toml" --locked
-    plugin add $"($plugin_path)/target/release/($name)"
+    try {
+      git clone $url $plugin_path
+      cargo build --release --manifest-path $"($plugin_path)/Cargo.toml" --locked
+      plugin add $"($plugin_path)/target/release/($name)"
+    } catch {|e| print --stderr $"($name) install failed, skipping: ($e.msg)" }
   }
 }
 
