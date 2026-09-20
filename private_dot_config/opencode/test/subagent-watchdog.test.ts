@@ -159,23 +159,23 @@ async function taskBefore(
 }
 
 describe("subagent watchdog", () => {
-	test("normal child activity never becomes suspect", async () => {
+	test("normal child activity never triggers recovery", async () => {
 		const { api, watchdog, logs, setNow } = setup();
 		await watchdog.tick();
-		for (let seconds = 20; seconds <= 240; seconds += 20) {
-			setNow(seconds * 1_000);
+		for (let minutes = 1; minutes <= 12; minutes++) {
+			setNow(minutes * 60_000);
 			watchdog.recordActivity(child.id);
 			await watchdog.tick();
 		}
 		expect(api.aborts).toEqual([]);
-		expect(logs).not.toContain("watchdog.child.suspect");
+		expect(logs).toEqual([]);
 	});
 
 	test("temporary silence resets after activity", async () => {
 		const { api, watchdog, logs, notifications, setNow } = setup();
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, 90_000);
-		expect(logs).toContain("watchdog.child.suspect");
+		await tickAt(watchdog, setNow, 5 * 60_000);
+		expect(logs).toEqual([]);
 		expect(notifications).toEqual([]);
 		watchdog.recordActivity(child.id);
 		await tickAt(watchdog, setNow, RECOVERY_TICK);

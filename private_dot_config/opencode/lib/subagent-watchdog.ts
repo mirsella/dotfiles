@@ -9,7 +9,6 @@ import { dirname, join } from "node:path";
 
 export interface WatchdogConfig {
 	enabled: boolean;
-	suspectAfterMs: number;
 	recoverAfterMs: number;
 	toolRecoverAfterMs: number;
 	pollIntervalMs: number;
@@ -21,7 +20,6 @@ export interface WatchdogConfig {
 
 export const DEFAULT_CONFIG: WatchdogConfig = {
 	enabled: true,
-	suspectAfterMs: 60_000,
 	recoverAfterMs: 10 * 60_000,
 	toolRecoverAfterMs: 15 * 60_000,
 	pollIntervalMs: 5_000,
@@ -138,7 +136,6 @@ export function normalizeConfig(value: unknown): {
 		else warnings.push(`${key} must be a boolean; using the default`);
 	}
 	for (const { key, min, label } of [
-		{ key: "suspectAfterMs", min: 1, label: "positive" },
 		{ key: "recoverAfterMs", min: 1, label: "positive" },
 		{ key: "toolRecoverAfterMs", min: 1, label: "positive" },
 		{ key: "pollIntervalMs", min: 1, label: "positive" },
@@ -154,12 +151,6 @@ export function normalizeConfig(value: unknown): {
 	if ("mode" in value) {
 		if (value.mode === "report" || value.mode === "auto") config.mode = value.mode;
 		else warnings.push('mode must be "report" or "auto"; using the default');
-	}
-	if (config.recoverAfterMs < config.suspectAfterMs) {
-		warnings.push(
-			"recoverAfterMs is lower than suspectAfterMs; using suspectAfterMs for recovery",
-		);
-		config.recoverAfterMs = config.suspectAfterMs;
 	}
 	if (config.toolRecoverAfterMs < config.recoverAfterMs) {
 		warnings.push(
@@ -338,7 +329,7 @@ type TaskInvocation = {
 	background: boolean;
 };
 
-type Notice = "suspect" | "parallel" | "limit" | "report";
+type Notice = "parallel" | "limit" | "report";
 type Child = {
 	id: string;
 	title: string;
@@ -670,15 +661,6 @@ export class SubagentWatchdog {
 				status.type === "retry" ? status.next : 0,
 			);
 			const idleForMs = now - activityAt;
-			if (idleForMs < this.config.suspectAfterMs) continue;
-			if (!child.notices.has("suspect")) {
-				child.notices.add("suspect");
-				await this.logChild("warn", "watchdog.child.suspect", child, {
-					idleForMs,
-					activeTools: [...child.activeTools],
-				});
-			}
-
 			const threshold = child.bashRunning.size
 				? 2 * 60 * 60_000
 				: child.activeTools.size
