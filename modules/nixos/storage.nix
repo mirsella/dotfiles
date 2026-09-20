@@ -136,14 +136,28 @@ lib.mkMerge [
       keyFile = "/etc/luks/fast.key";
       allowDiscards = true;
     };
-    tank1-crypt = {
-      device = "/dev/disk/by-id/wwn-0x5000c500aa3cc143-part1";
-      keyFile = "/etc/luks/tank1.key";
+  };
+
+  systemd.services.tank-unlock = {
+    description = "Unlock and import tank after slow USB disks settle";
+    wantedBy = [ "zfs-import-tank.service" ];
+    before = [ "zfs-import-tank.service" ];
+    path = [ pkgs.cryptsetup ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
     };
-    tank2-crypt = {
-      device = "/dev/disk/by-id/wwn-0x500003961228993f-part1";
-      keyFile = "/etc/luks/tank2.key";
-    };
+    script = ''
+      for i in $(seq 1 72); do
+        if [ -e /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1 ] && [ -e /dev/disk/by-id/wwn-0x500003961228993f-part1 ]; then
+          break
+        fi
+        sleep 5
+      done
+      [ -e /dev/mapper/tank1-crypt ] || cryptsetup open --key-file /etc/luks/tank1.key /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1 tank1-crypt
+      [ -e /dev/mapper/tank2-crypt ] || cryptsetup open --key-file /etc/luks/tank2.key /dev/disk/by-id/wwn-0x500003961228993f-part1 tank2-crypt
+      zpool list -H -o name | grep -qx tank || zpool import tank
+    '';
   };
 
   fileSystems."/var/lib/nextcloud/data" = {
