@@ -14,12 +14,17 @@ def ensure-plugin [repo: string] {
       print --stderr $"($name): clone failed, skipping"
       return
     }
-    let build = do { cargo build --release --manifest-path $"($plugin_path)/Cargo.toml" --locked } | complete
-    if $build.exit_code != 0 {
-      print --stderr $"($name): build failed, skipping"
-      print --stderr ($build.stderr | str trim)
+    # Real cargo binary, not the rustup shim: the shim wraps every call in a
+    # systemd-run transient scope, which fails on headless NixOS sessions.
+    let cargo = (rustup which --toolchain nightly cargo | str trim)
+    # Fresh clones pin whatever nu-plugin the author used; the plugin must
+    # match the running nushell exactly, so align before building.
+    let align = do { ^$cargo update --manifest-path $"($plugin_path)/Cargo.toml" -p nu-plugin -p nu-protocol } | complete
+    if $align.exit_code != 0 {
+      print --stderr $"($name): dep align failed, skipping"
       return
     }
+    let build = do { ^$cargo build --release --manifest-path $"($plugin_path)/Cargo.toml" --locked } | complete
     let add = do { plugin add $"($plugin_path)/target/release/($name)" } | complete
     if $add.exit_code != 0 {
       print --stderr $"($name): register failed, skipping"
