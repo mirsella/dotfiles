@@ -9,11 +9,21 @@ def ensure-plugin [repo: string] {
   
   if not ($plugin_path | path exists) {
     print $"Installing ($name)..."
-    try {
-      git clone $url $plugin_path
-      cargo build --release --manifest-path $"($plugin_path)/Cargo.toml" --locked
-      plugin add $"($plugin_path)/target/release/($name)"
-    } catch {|e| print --stderr $"($name) install failed, skipping: ($e.msg)" }
+    let clone = do { git clone $url $plugin_path } | complete
+    if $clone.exit_code != 0 {
+      print --stderr $"($name): clone failed, skipping"
+      return
+    }
+    let build = do { cargo build --release --manifest-path $"($plugin_path)/Cargo.toml" --locked } | complete
+    if $build.exit_code != 0 {
+      print --stderr $"($name): build failed, skipping"
+      return
+    }
+    let add = do { plugin add $"($plugin_path)/target/release/($name)" } | complete
+    if $add.exit_code != 0 {
+      print --stderr $"($name): register failed, skipping"
+      return
+    }
   }
 }
 
