@@ -59,7 +59,6 @@
       ];
     };
     extraApps = {
-      inherit (config.services.nextcloud.package.packages.apps) memories;
       integration_immich = pkgs.fetchNextcloudApp {
         appName = "integration_immich";
         appVersion = "1.5.1";
