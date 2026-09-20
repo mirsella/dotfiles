@@ -74,6 +74,13 @@
         url = "https://github.com/xXRoxXeRXx/integration_immich/releases/download/v1.5.1/integration_immich.tar.gz";
         license = "agpl3Plus";
       };
+      checksum = pkgs.fetchNextcloudApp {
+        appName = "checksum";
+        appVersion = "2.1.2";
+        sha256 = "6qPZvsml3LBYuuDnMwHg4WssxyQjr6op3AKlsMBLCGk=";
+        url = "https://github.com/westberliner/checksum/releases/download/v2.1.2/checksum.tar.gz";
+        license = "agpl3Plus";
+      };
     };
     # onlyoffice 9.9.0 caps max-version at 31, so the module's plain
     # app:enable would fail setup; both apps are enabled manually via occ.
