@@ -1,25 +1,14 @@
-{{ if eq .chezmoi.hostname "predator" -}}
 sourceDir = "/home/mirsella/dev/nixos"
 encryption = "age"
 
 [age]
+{{ if eq .chezmoi.hostname "predator" -}}
 identity = "/home/mirsella/.ssh/id_ed25519"
+{{ else -}}
+identity = "~/.ssh/id_ed25519"
+{{ end -}}
 recipients = [
 	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF",
-	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe",
-	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO0TM27fa/fDI2DvCsBnVxgVKA7iugQQsSrnsPmyG9Lv",
-]
-
-[git]
-autoCommit = false
-autoPush = false
-{{ else -}}
-encryption = "age"
-
-[age]
-	identity = "~/.ssh/id_ed25519"
-	recipients = [
-		"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF",
 	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe",
 	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO0TM27fa/fDI2DvCsBnVxgVKA7iugQQsSrnsPmyG9Lv",
 	]
@@ -27,4 +16,3 @@ encryption = "age"
 [git]
 	autoCommit = false
 	autoPush = false
-{{ end -}}
