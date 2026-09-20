@@ -61,6 +61,7 @@
             "library/photos" = zfsFs "/srv/storage/photos";
             "library/archive" = zfsFs "/srv/storage/archive";
             backup = zfsFs "/srv/backup";
+            immich = zfsFs "/srv/immich";
           };
         };
       };

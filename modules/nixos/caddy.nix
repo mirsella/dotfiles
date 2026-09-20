@@ -32,6 +32,14 @@
         bind 192.168.1.19
         reverse_proxy 127.0.0.1:14097
       '';
+      "https://mirsella.mooo.com:14098".extraConfig = ''
+        bind 192.168.1.19
+        reverse_proxy 127.0.0.1:8000
+      '';
+      "https://mirsella.mooo.com:14099".extraConfig = ''
+        bind 192.168.1.19
+        reverse_proxy 127.0.0.1:2283
+      '';
       "http://predator, http://predator.local, http://localhost".extraConfig = ''
         root * ${./site}
         encode zstd gzip
