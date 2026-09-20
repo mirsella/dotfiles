@@ -3,7 +3,9 @@ let
   secrets = if isNixOS then osConfig.sops.secrets else config.sops.secrets;
   exe =
     pkg: bin:
-    if isNixOS then "${pkgs.${pkg}}/bin/${bin}" else "/usr/bin/${bin}";
+    if isNixOS then "${pkgs.${pkg}}/bin/${bin}" else
+    # Native Arch paths; cargo-installed tools live outside /usr/bin.
+    { lspmux = "${config.home.homeDirectory}/.local/share/cargo/bin/lspmux"; }.${bin} or "/usr/bin/${bin}";
 in
 {
   home = {
