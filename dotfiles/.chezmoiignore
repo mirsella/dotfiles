@@ -21,6 +21,15 @@ enable-lu-acton-2-a2dp-watch.sh
 # Home Manager owns generated git and ssh settings on predator.
 .config/git/config
 .ssh/config
+# sops-nix owns service secrets on predator (single writer).
+.config/telegram.env
+.config/opencode/server.env
+.config/openchamber/server.env
+.config/environment.d/55-secrets.conf
+.config/stuff/config.toml
+.config/context7-account-broker/accounts.json
+.config/google-drive-mcp/gcp-oauth.keys.json
+.config/google-drive-mcp/tokens.json
 {{- end }}
 
 # opencode commands
