@@ -311,10 +311,29 @@ describe("subagent watchdog", () => {
 		const { api, watchdog, setNow } = setup();
 		await watchdog.tick();
 		await watchdog.handleToolBefore(
-			{ tool: "bash", sessionID: child.id, callID: "call_tool" },
+			{ tool: "fetch", sessionID: child.id, callID: "call_tool" },
 			{ args: {} },
 		);
 		await tickAt(watchdog, setNow, 12 * 60_000);
+		expect(api.aborts).toEqual([]);
+	});
+
+	test("running bash command uses the extended 2-hour timeout", async () => {
+		const { api, watchdog, setNow } = setup();
+		await watchdog.tick();
+		await watchdog.handleEvent({
+			type: "message.part.updated",
+			properties: {
+				part: {
+					type: "tool",
+					tool: "bash",
+					sessionID: child.id,
+					callID: "call_bash",
+					state: { status: "running", time: { start: 0 } },
+				},
+			},
+		});
+		await tickAt(watchdog, setNow, 90 * 60_000);
 		expect(api.aborts).toEqual([]);
 	});
 

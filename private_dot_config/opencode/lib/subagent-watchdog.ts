@@ -101,6 +101,7 @@ export type Notify = (
 const STATE_RETENTION_MS = 30 * 24 * 60 * 60_000;
 const STATE_CLEANUP_INTERVAL_MS = 24 * 60 * 60_000;
 const TASK_RETENTION_MS = 60 * 60_000;
+const BASH_RECOVER_AFTER_MS = 2 * 60 * 60_000;
 const WAIT_POLL_MS = 250;
 const IDLE_STATUS: SessionStatus = { type: "idle" };
 const RECOVERY_PROMPT =
@@ -662,7 +663,7 @@ export class SubagentWatchdog {
 			);
 			const idleForMs = now - activityAt;
 			const threshold = child.bashRunning.size
-				? 2 * 60 * 60_000
+				? BASH_RECOVER_AFTER_MS
 				: child.activeTools.size
 					? this.config.toolRecoverAfterMs
 					: this.config.recoverAfterMs;
