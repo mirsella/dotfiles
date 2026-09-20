@@ -18,6 +18,7 @@
     cargo-watch
     chafa
     chezmoi
+    clang
     delta
     diffstat
     difftastic
