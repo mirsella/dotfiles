@@ -14,14 +14,14 @@ README.md
 .config/systemd/user/lu-acton-2-a2dp-watch.service
 enable-lu-acton-2-a2dp-watch.sh
 {{- end }}
-{{- if eq .chezmoi.hostname "predator" }}
-# Home Manager owns all user units on predator.
+{{- if or (eq .chezmoi.hostname "predator") (eq .chezmoi.hostname "laptop") (eq .chezmoi.hostname "main") }}
+# Home Manager owns all user units on HM hosts.
 .config/systemd/user/
 .config/systemd/user/**
-# Home Manager owns generated git and ssh settings on predator.
+# Home Manager owns generated git and ssh settings on HM hosts.
 .config/git/config
 .ssh/config
-# sops-nix owns service secrets on predator (single writer).
+# sops-nix owns service secrets on HM hosts (single writer).
 .config/telegram.env
 .config/opencode/server.env
 .config/openchamber/server.env
@@ -30,6 +30,7 @@ enable-lu-acton-2-a2dp-watch.sh
 .config/context7-account-broker/accounts.json
 .config/google-drive-mcp/gcp-oauth.keys.json
 .config/google-drive-mcp/tokens.json
+{{- if eq .chezmoi.hostname "predator" }}
 # Home Manager owns the plain cargo config on predator (no laptop bevy tuning).
 .local/share/cargo/config.toml
 {{- end }}
