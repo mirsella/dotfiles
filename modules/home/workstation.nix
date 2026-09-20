@@ -3,7 +3,7 @@
   targets.genericLinux.gpu.enable = false;
 
   sops = {
-    age.keyFile = "/home/mirsella/.ssh/id_ed25519";
+    age.sshKeyPaths = [ "/home/mirsella/.ssh/id_ed25519" ];
     defaultSopsFile = ../../secrets/services.yaml;
     secrets =
       let
