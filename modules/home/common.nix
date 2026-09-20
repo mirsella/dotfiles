@@ -151,6 +151,10 @@ in
           HostName = "192.168.1.131";
           User = "mirsella";
         };
+        predator = {
+          HostName = "192.168.1.19";
+          User = "mirsella";
+        };
       };
     };
   };
