@@ -20,6 +20,10 @@ in
     '';
   };
 
+  # On Arch, activation only installs units; running instances are never
+  # started, restarted, or stopped, and take over on next login instead.
+  systemd.user.startServices = isNixOS;
+
   systemd.user.services = {
     opencode = {
       Unit = {
