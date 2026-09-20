@@ -30,6 +30,8 @@ enable-lu-acton-2-a2dp-watch.sh
 .config/context7-account-broker/accounts.json
 .config/google-drive-mcp/gcp-oauth.keys.json
 .config/google-drive-mcp/tokens.json
+# Home Manager owns the plain cargo config on predator (no laptop bevy tuning).
+.local/share/cargo/config.toml
 {{- end }}
 
 # opencode commands

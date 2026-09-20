@@ -2,8 +2,17 @@
 {
   home.sessionPath = [ "$HOME/.local/share/cargo/bin" ];
 
+  home.sessionVariables = {
+    CARGO_HOME = "$HOME/.local/share/cargo";
+    RUSTUP_HOME = "$HOME/.local/share/rustup";
+  };
+
   home.file.".rustup".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/share/rustup";
-  home.file.".cargo".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/share/cargo";
+
+  home.file.".cargo/config.toml".text = ''
+    [build]
+    jobs = 4
+  '';
 
   home.packages = with pkgs; [
     age
@@ -18,7 +27,6 @@
     cargo-watch
     chafa
     chezmoi
-    (pkgs.lib.lowPrio pkgs.clang)
     delta
     diffstat
     difftastic
