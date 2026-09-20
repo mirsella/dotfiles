@@ -125,6 +125,8 @@ lib.mkMerge [
   boot.zfs.forceImportRoot = false;
   boot.zfs.extraPools = [ "fast" "tank" ];
 
+  boot.kernelParams = [ "usb-storage.quirks=7825:a2a4:u" ];
+
   boot.initrd.secrets = {
     "/etc/luks/fast.key" = "/etc/luks/fast.key";
   };
@@ -147,10 +149,10 @@ lib.mkMerge [
     wantedBy = [ "multi-user.target" ];
     after = [ "systemd-udevd.service" ];
     path = [ pkgs.cryptsetup config.boot.zfs.package ];
+    unitConfig.DefaultDependencies = false;
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      DefaultDependencies = false;
     };
     script = ''
       unlock() {
