@@ -416,11 +416,11 @@ export class SubagentWatchdog {
 
 	async handleToolBefore(
 		input: { tool: string; sessionID: string; callID: string },
-		output: { args: unknown },
+		output?: { args?: unknown },
 	): Promise<void> {
 		this.recordActivity(input.sessionID);
 		this.children.get(input.sessionID)?.activeTools.add(input.callID);
-		if (input.tool !== "task" || !isRecord(output.args)) return;
+		if (input.tool !== "task" || !isRecord(output?.args)) return;
 		const args = output.args;
 
 		const recovery = this.recoveries.get(input.sessionID);
@@ -469,7 +469,7 @@ export class SubagentWatchdog {
 
 	async handleToolAfter(
 		input: { tool: string; sessionID: string; callID: string },
-		output: { metadata?: unknown },
+		output?: { metadata?: unknown },
 	): Promise<void> {
 		this.recordActivity(input.sessionID);
 		const ch = this.children.get(input.sessionID);
@@ -480,7 +480,7 @@ export class SubagentWatchdog {
 		if (input.tool !== "task") return;
 
 		try {
-			const metadata = isRecord(output.metadata) ? output.metadata : {};
+			const metadata = isRecord(output?.metadata) ? output.metadata : {};
 			const childID =
 				typeof metadata.sessionId === "string" ? metadata.sessionId : undefined;
 			if (childID)
@@ -677,10 +677,6 @@ export class SubagentWatchdog {
 					idleForMs,
 					activeTools: [...child.activeTools],
 				});
-				await this.notify(
-					`Subagent ${child.id} has made no progress for ${Math.round(idleForMs / 1_000)}s`,
-					"warning",
-				);
 			}
 
 			const threshold = child.bashRunning.size

@@ -96,6 +96,7 @@ function setup(initialRecoveries = 0, overrides: Partial<typeof DEFAULT_CONFIG> 
 	const store = new MemoryStore();
 	if (initialRecoveries) store.counts.set(child.id, initialRecoveries);
 	const logs: string[] = [];
+	const notifications: Array<{ message: string; variant?: string }> = [];
 	const watchdog = new SubagentWatchdog(
 		{ ...DEFAULT_CONFIG, ...overrides },
 		api,
@@ -103,7 +104,9 @@ function setup(initialRecoveries = 0, overrides: Partial<typeof DEFAULT_CONFIG> 
 		async (_level, event) => {
 			logs.push(event);
 		},
-		async () => {},
+		async (message, variant) => {
+			notifications.push({ message, variant });
+		},
 		() => now,
 		async (ms) => {
 			now += ms;
@@ -112,7 +115,7 @@ function setup(initialRecoveries = 0, overrides: Partial<typeof DEFAULT_CONFIG> 
 	const setNow = (value: number) => {
 		now = value;
 	};
-	return { api, watchdog, store, logs, setNow };
+	return { api, watchdog, store, logs, notifications, setNow };
 }
 
 async function tickAt(watchdog: SubagentWatchdog, setNow: (value: number) => void, now: number) {
@@ -167,17 +170,18 @@ describe("subagent watchdog", () => {
 	});
 
 	test("temporary silence resets after activity", async () => {
-		const { api, watchdog, logs, setNow } = setup();
+		const { api, watchdog, logs, notifications, setNow } = setup();
 		await watchdog.tick();
 		await tickAt(watchdog, setNow, 90_000);
 		expect(logs).toContain("watchdog.child.suspect");
+		expect(notifications).toEqual([]);
 		watchdog.recordActivity(child.id);
 		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([]);
 	});
 
 	test("stalled child aborts once and resumes the exact task ID", async () => {
-		const { api, watchdog, logs, setNow } = setup();
+		const { api, watchdog, logs, notifications, setNow } = setup();
 		await watchdog.tick();
 		await taskBefore(watchdog, "call_original", {
 			description: "Investigate networking",
@@ -189,6 +193,10 @@ describe("subagent watchdog", () => {
 		expect(api.aborts).toEqual([parent.id]);
 		expect(api.prompts).toHaveLength(1);
 		expect(api.prompts[0].prompt).toContain("Resume your existing subagent");
+		expect(notifications).toContainEqual({
+			message: `Recovering stalled subagent ${child.id}`,
+			variant: "warning",
+		});
 		await taskPart(watchdog, "call_original", 0);
 		expect(logs).not.toContain("watchdog.child.recovered");
 
@@ -203,6 +211,10 @@ describe("subagent watchdog", () => {
 		});
 		await taskPart(watchdog, "call_resume");
 		expect(logs).toContain("watchdog.child.recovered");
+		expect(notifications).toContainEqual({
+			message: `Resumed existing subagent ${child.id}`,
+			variant: "success",
+		});
 	});
 
 	test("progress during revalidation cancels the abort", async () => {
