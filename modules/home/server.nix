@@ -13,7 +13,6 @@
     cargo-watch
     chafa
     chezmoi
-    computer-use-mcp
     delta
     diffstat
     difftastic
