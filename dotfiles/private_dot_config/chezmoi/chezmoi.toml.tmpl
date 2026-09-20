@@ -1,14 +1,13 @@
 {{ if eq .chezmoi.hostname "predator" -}}
-sourceDir = "/home/mirsella/nixos"
+sourceDir = "/home/mirsella/dev/nixos"
 encryption = "age"
 
 [age]
-identity = "/home/mirsella/.config/chezmoi/key.txt"
+identity = "/home/mirsella/.ssh/id_ed25519"
 recipients = [
 	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF",
 	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe",
-	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOVWDzTVbUexDBuLJHr2aZOd7pS8p1zRugyd001WQMqD",
-	"age1aaxrhvtykqymc73zhrrxc5wlcw56sf37zt3l4zlk0ejgfzq3q9as5r8z32",
+	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO0TM27fa/fDI2DvCsBnVxgVKA7iugQQsSrnsPmyG9Lv",
 ]
 
 [git]
@@ -21,9 +20,8 @@ encryption = "age"
 	identity = "~/.ssh/id_ed25519"
 	recipients = [
 		"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF",
-		"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe",
-		"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOVWDzTVbUexDBuLJHr2aZOd7pS8p1zRugyd001WQMqD",
-		"age1aaxrhvtykqymc73zhrrxc5wlcw56sf37zt3l4zlk0ejgfzq3q9as5r8z32",
+	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe",
+	"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO0TM27fa/fDI2DvCsBnVxgVKA7iugQQsSrnsPmyG9Lv",
 	]
 
 [git]

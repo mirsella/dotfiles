@@ -1,8 +1,8 @@
 Declarative NixOS config for **predator**.
 
 Deploy from another machine looks like:
-`rsync -a --delete . predator:~/nixos/ && ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/nixos#predator'`
-(predator has no chezmoi — Nix only. Long rebuilds: launch detached, poll the log.)
+`rsync -a --delete . predator:~/dev/nixos/ && ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/dev/nixos#predator'`
+(repo lives at `~/dev/nixos` on every machine; chezmoi `sourceDir` points there. Long rebuilds: launch detached, poll the log.)
 
 Manual files (kept outside this repo):
 - laptop `/etc/systemd/logind.conf.d/nolidsleep.conf` (ignore lid switch), laptop `~/.config/powerdevilrc` (`LidAction=64` = screen off on lid close, all profiles)
