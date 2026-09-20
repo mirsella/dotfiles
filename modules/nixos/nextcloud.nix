@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 {
   sops.secrets.nextcloud-adminpass = {
     sopsFile = ../../secrets/nextcloud.yaml;
