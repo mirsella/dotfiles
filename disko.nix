@@ -49,7 +49,7 @@
               type = "zfs_fs";
               mountpoint = "legacy";
             };
-            userdata = zfsFs "/srv/userdata";
+            data = zfsFs "/srv/data/fast";
           };
         };
         tank = {
@@ -58,11 +58,8 @@
           options.ashift = "12";
           rootFsOptions = commonRootFsOptions;
           datasets = {
-            library = zfsFs "/srv/storage";
-            "library/photos" = zfsFs "/srv/storage/photos";
-            "library/archive" = zfsFs "/srv/storage/archive";
+            archive = zfsFs "/srv/data/archive";
             backup = zfsFs "/srv/backup";
-            immich = zfsFs "/srv/immich";
           };
         };
       };

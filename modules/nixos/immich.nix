@@ -52,7 +52,7 @@ in
       };
       environmentFiles = [ config.sops.templates."immich.env".path ];
       volumes = [
-        "/srv/immich:/data"
+        "/srv/data/fast/Photos:/data"
         "/etc/localtime:/etc/localtime:ro"
       ];
     };

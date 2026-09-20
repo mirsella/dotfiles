@@ -5,10 +5,11 @@ use std::fs::{self, OpenOptions};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-const ROOTS: [(&str, &str); 3] = [
-    ("/srv/storage", "tank"),
+const ROOTS: [(&str, &str); 4] = [
+    ("/srv/data/archive", "tank"),
     ("/srv/backup", "backup"),
     ("/var/lib/nextcloud/data", "fast"),
+    ("/srv/data/fast", "fastdata"),
 ];
 
 const INTEREST: WatchMask = WatchMask::CREATE

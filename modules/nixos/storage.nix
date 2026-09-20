@@ -215,8 +215,9 @@ lib.mkMerge [
   };
   }
 
-  (mkConditionalSanoid "tank" "tank/library")
+  (mkConditionalSanoid "tank" "tank/archive")
   (mkConditionalSanoid "backup" "tank/backup")
   (mkConditionalSanoid "fast" "fast/ncdata")
+  (mkConditionalSanoid "fastdata" "fast/data")
   dirtyFlagDaemon
 ]
