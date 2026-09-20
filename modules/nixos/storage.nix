@@ -130,6 +130,22 @@ lib.mkMerge [
     "/etc/luks/tank2.key" = "/etc/luks/tank2.key";
   };
 
+  boot.initrd.luks.devices = {
+    fast-crypt = {
+      device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68-part1";
+      keyFile = "/etc/luks/fast.key";
+      allowDiscards = true;
+    };
+    tank1-crypt = {
+      device = "/dev/disk/by-id/wwn-0x5000c500aa3cc143-part1";
+      keyFile = "/etc/luks/tank1.key";
+    };
+    tank2-crypt = {
+      device = "/dev/disk/by-id/wwn-0x500003961228993f-part1";
+      keyFile = "/etc/luks/tank2.key";
+    };
+  };
+
   fileSystems."/var/lib/nextcloud/data" = {
     device = "fast/ncdata";
     fsType = "zfs";
