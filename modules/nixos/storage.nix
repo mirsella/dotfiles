@@ -154,8 +154,16 @@ lib.mkMerge [
         fi
         sleep 5
       done
-      [ -e /dev/mapper/tank1-crypt ] || cryptsetup open --key-file /etc/luks/tank1.key /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1 tank1-crypt
-      [ -e /dev/mapper/tank2-crypt ] || cryptsetup open --key-file /etc/luks/tank2.key /dev/disk/by-id/wwn-0x500003961228993f-part1 tank2-crypt
+      try_open() {
+        cryptsetup status "$1" >/dev/null 2>&1 && return 0
+        for j in $(seq 1 12); do
+          cryptsetup open --key-file "$2" "$3" "$1" && return 0
+          sleep 5
+        done
+        return 1
+      }
+      try_open tank1-crypt /etc/luks/tank1.key /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
+      try_open tank2-crypt /etc/luks/tank2.key /dev/disk/by-id/wwn-0x500003961228993f-part1
       zpool list -H -o name | grep -qx tank || zpool import tank
     '';
   };
