@@ -127,8 +127,6 @@ lib.mkMerge [
 
   boot.initrd.secrets = {
     "/etc/luks/fast.key" = "/etc/luks/fast.key";
-    "/etc/luks/tank1.key" = "/etc/luks/tank1.key";
-    "/etc/luks/tank2.key" = "/etc/luks/tank2.key";
   };
 
   boot.initrd.luks.devices = {
@@ -155,22 +153,20 @@ lib.mkMerge [
       DefaultDependencies = false;
     };
     script = ''
-      for i in $(seq 1 72); do
-        if [ -e /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1 ] && [ -e /dev/disk/by-id/wwn-0x500003961228993f-part1 ]; then
-          break
-        fi
-        sleep 5
-      done
-      try_open() {
+      unlock() {
+        for i in $(seq 1 72); do
+          [ -e "$3" ] && break
+          sleep 5
+        done
         cryptsetup status "$1" >/dev/null 2>&1 && return 0
-        for j in $(seq 1 12); do
+        for i in $(seq 1 12); do
           cryptsetup open --key-file "$2" "$3" "$1" && return 0
           sleep 5
         done
         return 1
       }
-      try_open tank1-crypt /etc/luks/tank1.key /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
-      try_open tank2-crypt /etc/luks/tank2.key /dev/disk/by-id/wwn-0x500003961228993f-part1
+      unlock tank1-crypt /etc/luks/tank1.key /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
+      unlock tank2-crypt /etc/luks/tank2.key /dev/disk/by-id/wwn-0x500003961228993f-part1
       zpool list -H -o name | grep -qx tank || zpool import tank
     '';
   };

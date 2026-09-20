@@ -58,7 +58,6 @@ in
     };
     immich_ml = {
       image = "ghcr.io/immich-app/immich-machine-learning:${version}";
-      dependsOn = [ "immich_server" ];
       environmentFiles = [ config.sops.templates."immich.env".path ];
       volumes = [ "immich-model-cache:/cache" ];
     };
