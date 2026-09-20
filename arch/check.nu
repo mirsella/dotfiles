@@ -14,7 +14,7 @@ if (which nix | is-empty) {
     }
 }
 
-for b in [git, nu, nvim, delta, difft, mergiraf, git-lfs, atuin, starship, zoxide, opencode, lspmux, rclone, age, ssh] {
+for b in [git, nu, nvim, delta, difft, mergiraf, git-lfs, atuin, starship, zoxide, opencode, lspmux, rclone, age, ssh, mount.davfs] {
     if (which $b | is-empty) {
         $missing ++= [$"native program missing: ($b) \(pacman/AUR provides it)"]
     }
