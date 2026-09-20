@@ -139,10 +139,14 @@ lib.mkMerge [
     };
   };
 
+  systemd.services.zfs-import-tank = {
+    after = [ "tank-unlock.service" ];
+    wants = [ "tank-unlock.service" ];
+  };
+
   systemd.services.tank-unlock = {
     description = "Unlock and import tank after slow USB disks settle";
-    wantedBy = [ "zfs-import-tank.service" ];
-    before = [ "zfs-import-tank.service" ];
+    wantedBy = [ "multi-user.target" ];
     after = [ "systemd-udevd.service" ];
     path = [ pkgs.cryptsetup config.boot.zfs.package ];
     serviceConfig = {
