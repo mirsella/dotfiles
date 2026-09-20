@@ -91,7 +91,7 @@ in
     git = {
       enable = true;
       package = if isNixOS then pkgs.git else null;
-      settings = {
+      settings = lib.recursiveUpdate {
         user.name = "mirsella";
         user.email = "mirsella@protonmail.com";
         init.defaultBranch = "main";
@@ -129,10 +129,10 @@ in
           side-by-side = true;
         };
         interactive.diffFilter = "delta --color-only";
-      } // lib.optionalAttrs (gitSigningKey != null) {
+      } (lib.optionalAttrs (gitSigningKey != null) {
         commit.gpgsign = true;
         user.signingkey = gitSigningKey;
-      };
+      });
     };
     ssh = {
       enable = true;
