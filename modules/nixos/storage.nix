@@ -136,6 +136,7 @@ lib.mkMerge [
     crypt-root = {
       device = lib.mkForce "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part2";
       keyFile = "/etc/luks/root.key";
+      # tpm2 unseal currently fails on this sha1-only ftpm ("State not recoverable"); keyfile carries the boot until the bios offers a sha256 pcr bank
       crypttabExtraOpts = [ "tpm2-device=auto" ];
       allowDiscards = true;
     };
