@@ -56,8 +56,6 @@
     loader.systemd-boot.enable = lib.mkForce false;
     loader.systemd-boot.editor = false;
     loader.efi.canTouchEfiVariables = true;
-    # TEMPORARY one-boot TPM forensics: capture the ESYS error behind boot-time unseal failure. Remove after.
-    kernelParams = [ "systemd.log_level=debug" ];
     lanzaboote = {
       enable = true;
       pkiBundle = "/var/lib/sbctl";

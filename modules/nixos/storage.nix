@@ -136,14 +136,16 @@ lib.mkMerge [
     crypt-root = {
       device = lib.mkForce "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part2";
       keyFile = "/etc/luks/root.key";
-      # tpm2 unseal currently fails on this sha1-only ftpm ("State not recoverable"); keyfile carries the boot until the bios offers a sha256 pcr bank
+      # initrd tpm2 unseal fails on this 2016 ftpm even solo ("State not recoverable");
+      # runtime unseal of the same policy works. keyfile carries the boot, tpm2 stays
+      # as a no-op for the day a bios update fixes initrd-time unseal.
       crypttabExtraOpts = [ "tpm2-device=auto" ];
       allowDiscards = true;
     };
     fast-crypt = {
       device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68-part1";
       keyFile = "/etc/luks/fast.key";
-      # TEMPORARY tpm race test: tpm attempt disabled here so crypt-root unseals alone at boot
+      crypttabExtraOpts = [ "tpm2-device=auto" ];
       allowDiscards = true;
     };
   };
