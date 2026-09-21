@@ -77,6 +77,7 @@
     unzip
     vimv
     wrangler
+    wtp
     yt-dlp
     zip
     zoxide

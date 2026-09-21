@@ -15,4 +15,5 @@ in
   rioterm = final.callPackage ./pkgs/rioterm { rustPlatform = unstable.rustPlatform; };
   sfw = final.callPackage ./pkgs/sfw { };
   nodemon = final.callPackage ./pkgs/nodemon { };
+  wtp = final.callPackage ./pkgs/wtp { };
 }
