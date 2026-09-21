@@ -1,7 +1,7 @@
 { pkgs, inputs, ... }:
 {
   imports = [
-    ./hardware-configuration.nix
+    ./hosts/predator-hardware.nix
     ./acer-wmi-ph31751-module.nix
     ./modules/nixos/storage.nix
     ./modules/nixos/caddy.nix
