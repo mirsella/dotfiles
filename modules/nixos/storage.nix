@@ -136,11 +136,13 @@ lib.mkMerge [
     crypt-root = {
       device = lib.mkForce "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part2";
       keyFile = "/etc/luks/root.key";
+      crypttabExtraOpts = [ "tpm2-device=auto" ];
       allowDiscards = true;
     };
     fast-crypt = {
       device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68-part1";
       keyFile = "/etc/luks/fast.key";
+      crypttabExtraOpts = [ "tpm2-device=auto" ];
       allowDiscards = true;
     };
   };
