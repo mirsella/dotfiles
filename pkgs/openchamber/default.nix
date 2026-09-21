@@ -19,9 +19,13 @@ buildNpmPackage rec {
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
     sed -i '/"prepack"/d' package.json
+    # Dependabot alert 16: @simplewebauthn/server attestation-chain issue fixed
+    # in 13.3.2, upstream still pins 13.3.1. Drop when upstream bumps past it
+    # (npm ci fails loudly if the pin no longer matches).
+    sed -i 's/"@simplewebauthn\/server": "13.3.1"/"@simplewebauthn\/server": "13.3.2"/' package.json
   '';
 
-  npmDepsHash = "sha256-T/rokk+gUa0UusZPpaiphP59KSxXpb13ttFICWT4Kpg=";
+  npmDepsHash = "sha256-laehQz21+DAV1qTESZZCbNrRYwp0DEOdx7P1LHdRO7M=";
 
   npmFlags = [ "--legacy-peer-deps" "--dangerously-allow-all-scripts" ];
 
