@@ -5,7 +5,7 @@
 #   nix shell nixpkgs/nixos-26.05#nodejs --command bash -c \
 #     "npm install --package-lock-only --ignore-scripts --no-audit --no-fund --legacy-peer-deps"
 #   copy package-lock.json here, update version + hashes below (build errors print the right ones).
-{ lib, buildNpmPackage, fetchurl, jq }:
+{ lib, buildNpmPackage, fetchurl }:
 buildNpmPackage rec {
   pname = "openchamber";
   version = "1.24.1";
@@ -18,15 +18,12 @@ buildNpmPackage rec {
 
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
-    jq '.allowScripts = {"node-pty": true} | del(.scripts.prepack, .scripts.prepare)' package.json > package.json.tmp
-    mv package.json.tmp package.json
+    node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json"));p.allowScripts={"node-pty":true};delete p.scripts.prepack;delete p.scripts.prepare;fs.writeFileSync("package.json",JSON.stringify(p,null,2));'
   '';
 
   npmDepsHash = "sha256-T/rokk+gUa0UusZPpaiphP59KSxXpb13ttFICWT4Kpg=";
 
   npmFlags = [ "--legacy-peer-deps" ];
-
-  nativeBuildInputs = [ jq ];
 
   dontNpmBuild = true;
 
