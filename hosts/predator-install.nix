@@ -12,14 +12,7 @@
   };
   boot.initrd.secrets."/etc/luks/root.key" = "/etc/luks/root.key";
 
-  fileSystems."/" = {
-    device = "/dev/mapper/crypt-root";
-    fsType = "ext4";
-  };
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part1";
-    fsType = "vfat";
-  };
+  fileSystems."/".device = lib.mkForce "/dev/mapper/crypt-root";
 
   networking.hostName = "predator";
   networking.networkmanager.enable = true;
