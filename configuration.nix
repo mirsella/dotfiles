@@ -53,6 +53,7 @@
 
   boot = {
     loader.systemd-boot.enable = lib.mkForce false;
+    loader.systemd-boot.editor = false;
     loader.efi.canTouchEfiVariables = true;
     lanzaboote = {
       enable = true;
@@ -136,12 +137,17 @@
     # 7.6GB RAM: an uncapped rioterm build once OOM-wedged the box.
     max-jobs = 1;
     cores = 4;
-    # Heavy closures are built on main and copied over; trust its key.
     trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "main-copy:ffHmA9AO/DRnU3OsF4z0ZuMGJN5hkTsun7zvGP9Tn0g="
     ];
   };
+
+  # Builds run on this box: cap the daemon so a hungry compile fails instead of wedging the system.
+  systemd.services.nix-daemon.serviceConfig.MemoryMax = "6G";
+
+  # 8G swapfile on the encrypted NVMe root as OOM breathing room.
+  swapDevices = [ { device = "/swapfile"; size = 8 * 1024; } ];
 
   environment.systemPackages = with pkgs; [
     vim
