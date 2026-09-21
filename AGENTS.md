@@ -1,8 +1,8 @@
-Declarative NixOS config for **predator**.
+Dotfiles (chezmoi source under `dotfiles/`, `.chezmoiroot`) plus declarative NixOS config for **predator**.
 
 Deploy from another machine looks like:
-`rsync -a --delete . predator:~/dev/nixos/ && ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/dev/nixos#predator'`
-(repo lives at `~/dev/nixos` on every machine; chezmoi `sourceDir` points there. Long rebuilds: launch detached, poll the log.)
+`rsync -a --delete . predator:~/dev/dotfiles/ && ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/dev/dotfiles#predator'`
+(repo lives at `~/dev/dotfiles` on every machine; chezmoi `sourceDir` points there. Long rebuilds: launch detached, poll the log.)
 
 Manual files (kept outside this repo):
 - laptop `/etc/systemd/logind.conf.d/nolidsleep.conf` (ignore lid switch), laptop `~/.config/powerdevilrc` (`LidAction=64` = screen off on lid close, all profiles)
