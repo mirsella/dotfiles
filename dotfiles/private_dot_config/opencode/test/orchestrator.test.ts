@@ -122,8 +122,16 @@ const setup = async (messages: SessionMessagesResponse = [user(), assistant()]) 
     await hooks["tool.definition"]({ toolID }, output);
     return output.description;
   };
+  const system = async (providerID = "openai", modelID = "gpt-6-astra") => {
+    const output = { system: [] as string[] };
+    await hooks["experimental.chat.system.transform"](
+      { model: { providerID, modelID } as Model },
+      output,
+    );
+    return output.system;
+  };
   const setState = (subagentState: State) => writeState(subagentState, file);
-  return { hooks, state, histories, requests, task, prompt, definition, setState };
+  return { hooks, state, histories, requests, task, prompt, definition, system, setState };
 };
 
 test("registers astra defaults and leaves other agents untouched", async () => {
@@ -179,6 +187,25 @@ test("leaves unrelated tool definitions unchanged", async () => {
   const { definition, requests } = await setup();
   expect(await definition("read", "Read files")).toBe("Read files");
   expect(requests).toEqual([]);
+});
+
+test("system prompt allows astra only in OpenAI sessions", async () => {
+  const { system } = await setup();
+  expect(await system("openai")).toEqual([
+    expect.stringContaining("you are in an OpenAI main session"),
+  ]);
+  expect((await system("openai"))[0]).toContain("choose astra yourself");
+});
+
+test("system prompt forbids astra for other providers unless explicitly named", async () => {
+  const { system } = await setup();
+  for (const providerID of ["openrouter", "opencode-go", "unknown"]) {
+    const injected = await system(providerID);
+    expect(injected).toHaveLength(1);
+    expect(injected[0]).toContain(`you are in a ${providerID} main session, not OpenAI`);
+    expect(injected[0]).toContain('NEVER delegate to astra unless the latest user message explicitly names "astra"');
+    expect(injected[0]).toContain("unavailable from child sessions");
+  }
 });
 
 test("OpenAI main sessions tag every worker with the current speed", async () => {
