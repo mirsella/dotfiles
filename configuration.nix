@@ -149,6 +149,18 @@
   # 8G swapfile on the encrypted NVMe root as OOM breathing room.
   swapDevices = [ { device = "/swapfile"; size = 8 * 1024; } ];
 
+  # Weekly patch cadence: update nixpkgs alone (security fixes, minimal churn),
+  # rebuild and switch in place. No auto-reboot: the new kernel waits for a
+  # manual reboot, and the laptop is the primary place for `nix flake update`.
+  system.autoUpgrade = {
+    enable = true;
+    flake = "/home/mirsella/dev/nixos#predator";
+    flags = [ "--update-input" "nixpkgs" "--max-jobs" "1" "--cores" "2" ];
+    dates = "Sun 04:00";
+    randomizedDelaySec = "30min";
+    allowReboot = false;
+  };
+
   environment.systemPackages = with pkgs; [
     vim
     git
