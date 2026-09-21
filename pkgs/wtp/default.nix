@@ -16,7 +16,7 @@ buildGoModule rec {
   subPackages = [ "cmd/wtp" ];
 
   # Upstream integration test asserts on git CLI error wording that
-  # differs in nixpkgs' git; same as pkgs/rift-cli.
+  # differs in nixpkgs' git, so checks stay off for this package.
   doCheck = false;
 
   ldflags = [

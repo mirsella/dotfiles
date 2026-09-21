@@ -62,7 +62,6 @@
     python3
     python3Packages.pynvim
     rclone
-    rift-cli
     ripgrep
     rtk
     rustup

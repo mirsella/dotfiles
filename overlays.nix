@@ -9,7 +9,6 @@ in
   rtk = final.callPackage ./pkgs/rtk { };
   stuff = final.callPackage ./pkgs/stuff { };
   bevy-cli = final.callPackage ./pkgs/bevy-cli { };
-  rift-cli = final.callPackage ./pkgs/rift-cli { };
   kache = final.callPackage ./pkgs/kache { };
   computer-use-mcp = final.callPackage ./pkgs/computer-use-mcp { rustPlatform = unstable.rustPlatform; };
   rioterm = final.callPackage ./pkgs/rioterm { rustPlatform = unstable.rustPlatform; };
