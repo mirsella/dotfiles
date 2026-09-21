@@ -18,12 +18,12 @@ buildNpmPackage rec {
 
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
-    node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json"));p.allowScripts={"node-pty":true};delete p.scripts.prepack;delete p.scripts.prepare;fs.writeFileSync("package.json",JSON.stringify(p,null,2));'
+    sed -i '/"prepack"/d' package.json
   '';
 
   npmDepsHash = "sha256-T/rokk+gUa0UusZPpaiphP59KSxXpb13ttFICWT4Kpg=";
 
-  npmFlags = [ "--legacy-peer-deps" ];
+  npmFlags = [ "--legacy-peer-deps" "--dangerously-allow-all-scripts" ];
 
   dontNpmBuild = true;
 
