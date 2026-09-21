@@ -8,7 +8,12 @@ export default (async () => {
   return {
     config: async (config) => {
       for (const [name, command] of Object.entries(config.command ?? {})) {
-        if (command.model === undefined || command.subtask === true) continue;
+        if (
+          command.model === undefined ||
+          command.subtask === true ||
+          (command as { subagent?: boolean }).subagent === true
+        )
+          continue;
         const model = parseModel(command.model);
         if (model === undefined) {
           throw new Error(`Invalid model for /${name}: expected provider/model[#variant]`);

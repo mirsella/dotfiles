@@ -1,5 +1,6 @@
 ---
 description: Commit, land on main or queue for later, and clean up
+model: openai/gpt-5.6-luna#max
 ---
 
 If there's still uncommitted changes see `/home/mirsella/.config/opencode/commands/commit.md` . Create a task branch if HEAD is detached.
