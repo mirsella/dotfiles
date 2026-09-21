@@ -1,5 +1,0 @@
-[Unit]
-Description=Cargo build scopes
-
-[Slice]
-ManagedOOMSwap=kill
