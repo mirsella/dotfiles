@@ -143,7 +143,7 @@ lib.mkMerge [
     fast-crypt = {
       device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68-part1";
       keyFile = "/etc/luks/fast.key";
-      crypttabExtraOpts = [ "tpm2-device=auto" ];
+      # TEMPORARY tpm race test: tpm attempt disabled here so crypt-root unseals alone at boot
       allowDiscards = true;
     };
   };
