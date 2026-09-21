@@ -6,7 +6,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.initrd.luks.devices."crypt-root" = {
-    device = "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part2";
+    device = lib.mkForce "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part2";
     keyFile = "/etc/luks/root.key";
     allowDiscards = true;
   };
