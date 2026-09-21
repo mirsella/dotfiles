@@ -52,8 +52,12 @@
   };
 
   boot = {
-    loader.systemd-boot.enable = true;
+    loader.systemd-boot.enable = lib.mkForce false;
     loader.efi.canTouchEfiVariables = true;
+    lanzaboote = {
+      enable = true;
+      pkiBundle = "/var/lib/sbctl";
+    };
     kernelModules = [ "ec_sys" ];
     extraModprobeConfig = "options ec_sys write_support=1";
   };
@@ -144,6 +148,7 @@
     git
     cryptsetup
     tpm2-tools
+    sbctl
     ffmpeg
     imagemagick
     ntfs3g
