@@ -7,6 +7,7 @@
     ./modules/nixos/caddy.nix
     ./modules/nixos/nextcloud.nix
     ./modules/nixos/immich.nix
+    ./modules/nixos/db-backup.nix
     ./modules/nixos/openchamber.nix
     ./modules/nixos/night-suspend.nix
   ];
