@@ -132,6 +132,11 @@
     # 7.6GB RAM: an uncapped rioterm build once OOM-wedged the box.
     max-jobs = 1;
     cores = 4;
+    # Heavy closures are built on main and copied over; trust its key.
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "main-copy:ffHmA9AO/DRnU3OsF4z0ZuMGJN5hkTsun7zvGP9Tn0g="
+    ];
   };
 
   environment.systemPackages = with pkgs; [
