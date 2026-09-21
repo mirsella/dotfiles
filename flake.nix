@@ -24,7 +24,7 @@
   };
 
   outputs =
-    { nixpkgs, home-manager, sops-nix, disko, ... }@inputs:
+    { nixpkgs, home-manager, sops-nix, disko, lanzaboote, ... }@inputs:
     let
       overlays = [
         inputs.neovim-nightly-overlay.overlays.default
