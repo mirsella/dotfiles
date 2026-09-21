@@ -52,6 +52,15 @@
         ];
       };
 
+      nixosConfigurations.predator-install = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [
+          ./hosts/predator-install.nix
+          disko.nixosModules.disko
+        ];
+      };
+
       homeConfigurations = {
         laptop = mkStandaloneHome "laptop" "E88ECCA3AA187BC1";
         main = mkStandaloneHome "main" "E53202A06B2614A4";
