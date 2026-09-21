@@ -5,6 +5,7 @@
 #   nix shell nixpkgs/nixos-26.05#nodejs --command bash -c \
 #     "npm install --package-lock-only --ignore-scripts --no-audit --no-fund --legacy-peer-deps"
 #   copy package-lock.json here, update version + hashes below (build errors print the right ones).
+#   Keep the @simplewebauthn pin in postPatch below until upstream moves past 13.3.2.
 { lib, buildNpmPackage, fetchurl }:
 buildNpmPackage rec {
   pname = "openchamber";

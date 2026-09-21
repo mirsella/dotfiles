@@ -1,3 +1,9 @@
+# Refreshing the lock (must resolve with nixpkgs nodejs, the build's npm):
+#   nix store prefetch-file https://registry.npmjs.org/nodemon/-/nodemon-$ver.tgz
+#   tar -xzf <store-path> -C /tmp/nd-lock && cp /tmp/nd-lock/package/package.json /tmp/nd-lock/
+#   apply the same overrides as postPatch below, then in /tmp/nd-lock:
+#     npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+#   copy package-lock.json here, put lib.fakeHash below, copy the got: hash back.
 { lib, buildNpmPackage, fetchurl, nodejs }:
 buildNpmPackage rec {
   pname = "nodemon";
@@ -10,12 +16,10 @@ buildNpmPackage rec {
 
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
-    # Dependabot: force patched transitive dev deps. mocha pulls minimist
-    # 0.0.8 and growl 1.9.2; glob@3 pulls minimatch 0.3.0 (matches the
-    # unbounded <3.1.3 range of GHSA-7r86); nyc chain pulls uuid 8.3.2
-    # (matches the unbounded <11.1.1 range of GHSA-w5hq). $minimatch dedupes
-    # to the direct ^10.2.1 spec (exact override would EOVERRIDE it).
-    # The lock above was generated with these same overrides.
+    # Dev-only transitive deps pinned past Dependabot's unbounded ranges:
+    # mocha's minimist 0.0.8 / growl 1.9.2, glob@3's minimatch 0.3.0 (<3.1.3),
+    # nyc's uuid 8.3.2 (<11.1.1). $minimatch dedupes to the direct spec
+    # (an exact override would EOVERRIDE it).
     ${lib.getExe nodejs} -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.overrides={'growl':'1.10.0','minimist':'1.2.8','minimatch':'\$minimatch','uuid':'11.1.1'};fs.writeFileSync('package.json',JSON.stringify(p,null,2))"
   '';
 
