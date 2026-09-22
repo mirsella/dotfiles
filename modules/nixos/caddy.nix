@@ -32,6 +32,18 @@ in
         handle_path /nextcloud/* {
           reverse_proxy 127.0.0.1:8080
         }
+        handle_path /beszel* {
+          # Agent bulk uploads need a bigger body; the dashboard holds a
+          # long-lived connection for live updates.
+          request_body {
+            max_size 10MB
+          }
+          reverse_proxy 127.0.0.1:8090 {
+            transport http {
+              read_timeout 360s
+            }
+          }
+        }
         handle {
           ${serveIndex}
         }

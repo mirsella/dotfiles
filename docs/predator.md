@@ -71,6 +71,31 @@ Caddy redirects DAV and discovery URLs into `/nextcloud`, preserves Nextcloud's
 frame policy, and serves HTTP/1.1 and HTTP/2. HTTP/3 is disabled because the
 firewall and idle policy use TCP.
 
+## Monitoring (Beszel)
+
+The hub serves at `https://mirsella.mooo.com/beszel` (Caddy `handle_path`
+plus `APP_URL`; no extra firewall port, no basic-auth — the hub login is the
+gate). Hub and agent both bind localhost only. The agent reports the root
+disk plus `EXTRA_FILESYSTEMS`: `Fast-SSD`, `Archive-HDD`, and `Nextcloud`
+(ZFS dataset usage via `zfs list`). It runs with `PrivateDevices` relaxed
+just for `/dev/zfs`; SMART polling stays off so the dashboard never spins up
+the tank HDDs.
+
+`beszel-setup.service` converges the state PocketBase keeps out of NixOS
+options on every switch: Resend SMTP (key shared with Nextcloud, sender
+`Beszel <noreply@voxride.com>`), the hub admin account, and the `predator`
+system entry. Secrets live in `secrets/beszel.yaml` (`heartbeat_env`,
+`superuser_password`). First-ever bootstrap (empty state dir) still needs
+`beszel-hub superuser upsert` with the hub stopped; the login itself is in
+Proton Pass under `Beszel (predator)`.
+
+Heartbeat to Healthchecks.io is live: `HEARTBEAT_URL` in `heartbeat_env`
+(empty value disables it). The Healthchecks side is a cron check
+`* 7-23 * * *`, `Europe/Paris`, 5 minute grace: predator only suspends in
+the 00:00–07:00 window, so night silence means asleep, not down.
+Notifications go to both email (`mirsella@protonmail.com`) and Telegram
+(paired via `@HealthchecksBot` to the `predator` project, same as voxride).
+
 ## Checks
 
 ```sh

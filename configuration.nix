@@ -14,6 +14,7 @@ in
     ./modules/nixos/db-backup.nix
     ./modules/nixos/openchamber.nix
     ./modules/nixos/night-suspend.nix
+    ./modules/nixos/monitoring.nix
   ];
 
   nixpkgs.overlays = [
