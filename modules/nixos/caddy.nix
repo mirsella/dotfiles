@@ -46,7 +46,7 @@
       "photos.mirsella.mooo.com".extraConfig = ''
         reverse_proxy 127.0.0.1:2283
       '';
-      "http://predator, http://predator.local, http://localhost".extraConfig = ''
+      "http://predator, http://predator.local, http://localhost, http://192.168.1.19".extraConfig = ''
         root * ${./site}
         encode zstd gzip
         file_server
