@@ -1,10 +1,9 @@
 inputs: final: prev:
 let
-  unstable = inputs.nixpkgs-unstable.legacyPackages.${final.system};
+  unstable = inputs.nixpkgs-unstable.legacyPackages.${final.stdenv.hostPlatform.system};
 in
 {
   openchamber = final.callPackage ./pkgs/openchamber { };
-  zfs-dirty-flag = final.callPackage ./pkgs/zfs-dirty-flag { };
   nushell = unstable.nushell;
   rtk = final.callPackage ./pkgs/rtk { };
   stuff = final.callPackage ./pkgs/stuff { };

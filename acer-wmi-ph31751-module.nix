@@ -16,7 +16,7 @@
           version = "0.1";
           src = ./acer-wmi-ph31751.c;
           dontUnpack = true;
-          nativeBuildInputs = [ kernel.moduleBuildDependencies ];
+          nativeBuildInputs = kernel.moduleBuildDependencies;
           buildPhase = ''
             cp $src acer-wmi-ph31751.c
             echo "obj-m += acer-wmi-ph31751.o" > Makefile

@@ -32,6 +32,7 @@ in
         Description = "OpenCode server";
         After = [ "network.target" ] ++ lib.optional (!isNixOS) "sops-nix.service";
         PartOf = [ "default.target" ];
+        X-SwitchMethod = "keep-old";
       };
       Service = {
         Type = "simple";
@@ -40,7 +41,11 @@ in
           secrets.telegram_env.path
           secrets.opencode_server.path
         ];
-        Environment = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin";
+        Environment = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:"
+          + (if isNixOS then
+            "/etc/profiles/per-user/%u/bin:/run/wrappers/bin:/run/current-system/sw/bin"
+          else
+            "/usr/local/sbin:/usr/local/bin:/usr/bin");
         ExecStart = "${exe "opencode" "opencode"} serve --hostname 127.0.0.1 --port 14096";
         Restart = "on-failure";
         RestartSec = "2s";
@@ -57,34 +62,24 @@ in
       };
       Install.WantedBy = [ "default.target" ];
     };
-    rclone-gdrive = {
-      Unit = {
-        Description = "mount google drive with rclone";
-        After = [ "network.target" ];
-      };
-      Service = {
-        Type = "simple";
-        ExecStartPre = "-mkdir -p %h/Documents/gdrive";
-        ExecStart = "${exe "rclone" "rclone"} mount --vfs-cache-mode full gdrive: %h/Documents/gdrive";
-        ExecStop = "${exe "fuse" "fusermount"} -u %h/Documents/gdrive";
-        Restart = "always";
-        RestartSec = 3;
-      };
+  } // lib.mapAttrs' (remote: description: lib.nameValuePair "rclone-${remote}" {
+    Unit = {
+      Description = "${description} mount";
+      After = [ "network.target" ] ++ lib.optional (!isNixOS) "sops-nix.service";
+      Wants = lib.optional (!isNixOS) "sops-nix.service";
     };
-    rclone-gdrive-voxride = {
-      Unit = {
-        Description = "mount Voxride Google Drive with rclone";
-        After = [ "network.target" ];
-      };
-      Service = {
-        Type = "simple";
-        ExecStartPre = "-mkdir -p %h/Documents/gdrive-voxride";
-        ExecStart = "${exe "rclone" "rclone"} mount --vfs-cache-mode full gdrive-voxride: %h/Documents/gdrive-voxride";
-        ExecStop = "${exe "fuse" "fusermount"} -u %h/Documents/gdrive-voxride";
-        Restart = "always";
-        RestartSec = 3;
-      };
+    Service = {
+      # rclone reports readiness and unmounts on SIGTERM itself.
+      Type = "notify";
+      ExecStartPre = "${exe "coreutils" "mkdir"} -p %h/Documents/${remote}";
+      ExecStart = "${exe "rclone" "rclone"} mount --vfs-cache-mode full ${remote}: %h/Documents/${remote}";
+      SuccessExitStatus = "143";
+      Restart = "always";
+      RestartSec = 3;
     };
+  }) {
+    gdrive = "Google Drive";
+    gdrive-voxride = "Voxride Google Drive";
   };
 
   programs = {

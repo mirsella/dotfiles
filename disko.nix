@@ -2,14 +2,15 @@
 # hdd1: Seagate 1TB,   wwn-0x5000c500aa3cc143  (USB bridge)
 # hdd2: Toshiba 750GB, wwn-0x500003961228993f (USB bridge)
 #
-# All data disks are LUKS2 (aes-xts) with keyfiles in /etc/luks/
-# (generated once per machine, never committed). ZFS pools sit on
-# the decrypted mappers. Fresh machine: create /etc/luks/*.key
-# (head -c 64 /dev/urandom), then disko --mode disko.
+# Standalone fresh-install layout for ALL THREE data disks, excluding root/ESP.
+# Neither NixOS target imports this file. Runtime unlock is in storage.nix.
+# Formatting prompts for recovery passphrases; enroll TPM and HDD keyfiles later.
+# Reinstalling onto existing disks uses mounts, not this formatter.
+# See docs/predator-reinstall.md for both procedures.
 {
   disko.devices =
     let
-      luksZfsDisk = device: cryptName: pool: allowDiscards: keyFile: {
+      luksZfsDisk = device: cryptName: pool: allowDiscards: {
         type = "disk";
         inherit device;
         content = {
@@ -19,9 +20,11 @@
             content = {
               type = "luks";
               name = cryptName;
-              initrdUnlock = true;
+              initrdUnlock = false;
+              askPassword = true;
+              extraFormatArgs = [ "--type" "luks2" ];
               settings = {
-                inherit keyFile allowDiscards;
+                inherit allowDiscards;
               };
               content = {
                 type = "zfs";
@@ -45,9 +48,9 @@
     in
     {
       disk = {
-        ssd = luksZfsDisk "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68" "fast-crypt" "fast" true "/etc/luks/fast.key";
-        hdd1 = luksZfsDisk "/dev/disk/by-id/wwn-0x5000c500aa3cc143" "tank1-crypt" "tank" false "/etc/luks/tank1.key";
-        hdd2 = luksZfsDisk "/dev/disk/by-id/wwn-0x500003961228993f" "tank2-crypt" "tank" false "/etc/luks/tank2.key";
+        ssd = luksZfsDisk "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68" "fast-crypt" "fast" true;
+        hdd1 = luksZfsDisk "/dev/disk/by-id/wwn-0x5000c500aa3cc143" "tank1-crypt" "tank" false;
+        hdd2 = luksZfsDisk "/dev/disk/by-id/wwn-0x500003961228993f" "tank2-crypt" "tank" false;
       };
       zpool = {
         fast = {
@@ -60,7 +63,8 @@
           datasets = {
             ncdata = {
               type = "zfs_fs";
-              mountpoint = "legacy";
+              mountpoint = "/var/lib/nextcloud/data";
+              options.mountpoint = "legacy";
             };
             data = zfsFs "/srv/data/fast";
           };

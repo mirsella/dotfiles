@@ -1,7 +1,11 @@
-{ pkgs, inputs, lib, ... }:
+{ config, pkgs, inputs, ... }:
+let
+  # Predator's deployed checkout; the local working tree is ~/dev/dotfiles.
+  flakeDir = "/home/mirsella/dev/nixos";
+in
 {
   imports = [
-    ./hosts/predator-hardware.nix
+    ./hosts/predator-boot.nix
     ./acer-wmi-ph31751-module.nix
     ./modules/nixos/storage.nix
     ./modules/nixos/caddy.nix
@@ -18,24 +22,12 @@
   ];
 
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-  sops.secrets =
-    let
-      userSecret = path: {
-        sopsFile = ./secrets/services.yaml;
-        owner = "mirsella";
-        inherit path;
-      };
-    in
-    {
-      telegram_env = userSecret "/home/mirsella/.config/telegram.env";
-      opencode_server = userSecret "/home/mirsella/.config/opencode/server.env";
-      openchamber_server = userSecret "/home/mirsella/.config/openchamber/server.env";
-      env_secrets = userSecret "/home/mirsella/.config/environment.d/55-secrets.conf";
-      stuff_config = userSecret "/home/mirsella/.config/stuff/config.toml";
-      context7_accounts = userSecret "/home/mirsella/.config/context7-account-broker/accounts.json";
-      gdrive_gcp = userSecret "/home/mirsella/.config/google-drive-mcp/gcp-oauth.keys.json";
-      gdrive_tokens = userSecret "/home/mirsella/.config/google-drive-mcp/tokens.json";
-    };
+  sops.useSystemdActivation = true;
+  sops.secrets = builtins.mapAttrs (_: path: {
+    sopsFile = ./secrets/services.yaml;
+    owner = "mirsella";
+    path = "${config.users.users.mirsella.home}/.config/${path}";
+  }) (import ./modules/user-secrets.nix);
 
   home-manager = {
     useGlobalPkgs = true;
@@ -53,26 +45,21 @@
   };
 
   boot = {
-    loader.systemd-boot.enable = lib.mkForce false;
-    loader.systemd-boot.editor = false;
-    loader.efi.canTouchEfiVariables = true;
-    lanzaboote = {
-      enable = true;
-      pkiBundle = "/var/lib/sbctl";
-    };
     kernelModules = [ "ec_sys" ];
     extraModprobeConfig = "options ec_sys write_support=1";
+    kernelParams = [ "consoleblank=60" ];
   };
 
   networking = {
     hostName = "predator";
     networkmanager.enable = true;
+    # NetworkManager.conf uses the numeric enum, not nmcli's "magic" alias.
+    networkmanager.connectionConfig."ethernet.wake-on-lan" = 64;
     firewall.allowedTCPPorts = [ 80 443 4096 4097 14096 14097 ];
   };
 
   time.timeZone = "Europe/Paris";
   i18n.defaultLocale = "en_US.UTF-8";
-  console.keyMap = "fr";
 
   services = {
     openssh = {
@@ -91,9 +78,7 @@
       ignoreIP = [ "127.0.0.1/8" "192.168.1.0/24" ];
       jails.sshd.settings.enabled = true;
     };
-    # Laptop-as-server: a closed lid or stray sleep key must never suspend it.
-    # (AllowSuspend stays enabled so night-suspend can work; the physical
-    # triggers above being ignored is what protects the box.)
+    # Nightly suspend is controlled by the idle checks, not the laptop lid.
     logind.settings.Login = {
       HandleLidSwitch = "ignore";
       HandleLidSwitchExternalPower = "ignore";
@@ -125,11 +110,9 @@
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
+    dockerSocket.enable = true;
     defaultNetwork.settings.dns_enabled = true;
   };
-  systemd.tmpfiles.rules = [
-    "L+ /var/run/docker.sock - - - - /run/podman/podman.sock"
-  ];
 
   nixpkgs.config.allowUnfree = true;
   hardware.enableRedistributableFirmware = true;
@@ -147,27 +130,38 @@
   # Builds run on this box: cap the daemon so a hungry compile fails instead of wedging the system.
   systemd.services.nix-daemon.serviceConfig.MemoryMax = "6G";
 
-  # 8G swapfile on the encrypted NVMe root as OOM breathing room.
+  # Swap remains inside the encrypted root filesystem.
   swapDevices = [ { device = "/swapfile"; size = 8 * 1024; } ];
 
-  # Weekly patch cadence: update nixpkgs alone (security fixes, minimal churn),
-  # rebuild and switch in place. No auto-reboot: the new kernel waits for a
-  # manual reboot, and the laptop is the primary place for `nix flake update`.
+  # Update only the stable nixpkgs input, during the server's awake window.
   system.autoUpgrade = {
     enable = true;
-    flake = "/home/mirsella/dev/nixos#predator";
-    flags = [ "--update-input" "nixpkgs" "--max-jobs" "1" "--cores" "2" ];
-    dates = "Sun 04:00";
+    flake = "path:${flakeDir}#predator";
+    upgrade = false;
+    flags = [ "--no-update-lock-file" ];
+    dates = "Sun 10:00";
     randomizedDelaySec = "30min";
     allowReboot = false;
+  };
+  systemd.services.nixos-upgrade = {
+    serviceConfig.WorkingDirectory = flakeDir;
+    preStart = ''
+      ${pkgs.util-linux}/bin/runuser -u mirsella -- ${config.nix.package}/bin/nix flake update nixpkgs
+    '';
+  };
+  services.fstrim.interval = "Sun 11:00";
+
+  # Order secret installation first without stopping user sessions on rotation.
+  systemd.services."user@" = {
+    overrideStrategy = "asDropin";
+    restartIfChanged = false;
+    wants = [ "sops-install-secrets.service" ];
+    after = [ "sops-install-secrets.service" ];
   };
 
   environment.systemPackages = with pkgs; [
     vim
     git
-    cryptsetup
-    tpm2-tools
-    sbctl
     ffmpeg
     imagemagick
     ntfs3g
@@ -191,28 +185,6 @@
       for off in 48 49; do
         printf '\x00' | dd of=/sys/kernel/debug/ec/ec0/io bs=1 seek=$off count=1 conv=notrunc status=none
       done
-    '';
-  };
-
-  # ethtool WOL is volatile across reboots and some drivers drop it on
-  # resume, so re-arm magic-packet wake at boot, before sleep, and at
-  # shutdown: whatever state came before, the NIC always ends up listening.
-  systemd.services.wol-arm = {
-    description = "Arm Wake-on-LAN magic-packet wake on enp3s0f1";
-    wantedBy = [
-      "multi-user.target"
-      "sleep.target"
-      "shutdown.target"
-    ];
-    before = [
-      "sleep.target"
-      "shutdown.target"
-    ];
-    after = [ "network-pre.target" ];
-    serviceConfig.Type = "oneshot";
-    path = with pkgs; [ ethtool ];
-    script = ''
-      ethtool -s enp3s0f1 wol g
     '';
   };
 

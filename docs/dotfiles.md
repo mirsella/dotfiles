@@ -40,8 +40,10 @@ replace one with a symlink. HM keeps: package sets, `programs.git` /
 - `modules/home/server.nix` — predator-only Nix package set.
 - `modules/home/workstation.nix` — Arch-only: sops-nix user secrets, no Nix
   packages, no GPU integration (`targets.genericLinux.gpu.enable = false`).
-- `hosts/arch.nix` — shared Arch imports (laptop and main differ only by
-  signing key, passed as an arg).
+- `hosts/arch.nix` uses shared Arch imports. The flake passes the hostname
+  and signing key; the hostname selects the local inference model.
+- `modules/user-secrets.nix` defines shared SOPS key names and user paths.
+  NixOS and Home Manager apply their own ownership and decryption settings.
 - Arch stays config-only: pacman/AUR own every application binary
   (`programs.git.package = null`, native `/usr/bin` in service commands).
   Never fake a derivation for a native binary.
@@ -57,6 +59,9 @@ Never put plaintext in interpolation or build inputs. Gitleaks scans the repo
 (`gitleaks detect --source .`); keep it clean before every commit.
 
 ## Rollback
+
+For an OS reinstall, disk recovery, or TPM/Secure Boot enrollment, use
+[Predator reinstall and recovery](predator-reinstall.md).
 
 - Predator: boot the previous generation, or
   `sudo nixos-rebuild switch --rollback`.

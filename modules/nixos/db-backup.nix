@@ -1,30 +1,52 @@
 { pkgs, config, ... }:
+let
+  backup = pkgs.writeShellApplication {
+    name = "db-backup";
+    runtimeInputs = [ pkgs.coreutils pkgs.util-linux pkgs.podman pkgs.gnutar ];
+    text = ''
+      if ! findmnt --source tank/backup --mountpoint /srv/backup >/dev/null; then
+        echo "Database backups require tank/backup mounted at /srv/backup" >&2
+        exit 1
+      fi
+
+      out=/srv/backup/db
+      install -d -m 0700 "$out"
+      staging=$(mktemp -d "$out/.incomplete.XXXXXX")
+      trap 'rm -rf -- "$staging"' EXIT
+
+      runuser -u postgres -- ${config.services.postgresql.package}/bin/pg_dump \
+        --format=custom nextcloud > "$staging/nextcloud.dump"
+      podman exec immich_postgres pg_dump \
+        --format=custom -U immich immich > "$staging/immich.dump"
+      tar --create --dereference --file="$staging/nextcloud-config.tar" \
+        --directory=${config.services.nextcloud.home} config
+
+      destination="$out/backup-$(date -u +%Y%m%dT%H%M%S.%NZ)"
+      mv --no-target-directory "$staging" "$destination"
+      echo "Database backup completed: $destination"
+
+      export LC_ALL=C
+      shopt -s nullglob
+      backups=("$out"/backup-*)
+      if (( ''${#backups[@]} > 14 )); then
+        rm -rf -- "''${backups[@]:0:''${#backups[@]}-14}"
+      fi
+    '';
+  };
+in
 {
   systemd.services.db-backup = {
-    description = "Dump Nextcloud and Immich databases to /srv/backup/db";
-    path = with pkgs; [ postgresql podman zstd coreutils findutils ];
-    script = ''
-      set -eu
-      out=/srv/backup/db
-      mkdir -p "$out"
-      stamp=$(date +%Y%m%d-%H%M)
-      runuser -u postgres -- pg_dump nextcloud | zstd -T0 -o "$out/nextcloud-$stamp.sql.zst"
-      PGPASSWORD=$(cat ${config.sops.secrets.immich_db_password.path}) \
-        podman exec immich_postgres pg_dump -U immich immich | zstd -T0 -o "$out/immich-$stamp.sql.zst"
-      ls -t "$out"/nextcloud-*.sql.zst | tail -n +8 | xargs -r rm --
-      ls -t "$out"/immich-*.sql.zst | tail -n +8 | xargs -r rm --
-    '';
+    description = "Back up Nextcloud and Immich databases and Nextcloud configuration";
+    requires = [ "postgresql.service" "podman-immich_postgres.service" "zfs-mount.service" ];
+    after = [ "postgresql.service" "podman-immich_postgres.service" "zfs-mount.service" ];
+    unitConfig.RequiresMountsFor = [ "/srv/backup" ];
+    startAt = "23:00";
     serviceConfig = {
       Type = "oneshot";
+      UMask = "0077";
+      ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=sleep --mode=block --who=db-backup --why='Database backups' ${backup}/bin/db-backup";
     };
   };
 
-  systemd.timers.db-backup = {
-    description = "Nightly database dumps for Nextcloud and Immich";
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "03:00";
-      Persistent = true;
-    };
-  };
+  systemd.timers.db-backup.timerConfig.Persistent = true;
 }

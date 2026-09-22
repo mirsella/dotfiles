@@ -24,7 +24,7 @@
   };
 
   outputs =
-    { nixpkgs, home-manager, sops-nix, disko, lanzaboote, ... }@inputs:
+    { nixpkgs, home-manager, sops-nix, ... }@inputs:
     let
       overlays = [
         inputs.neovim-nightly-overlay.overlays.default
@@ -46,23 +46,18 @@
     in
     {
       nixosConfigurations.predator = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
           ./configuration.nix
           home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
-          disko.nixosModules.disko
-          lanzaboote.nixosModules.lanzaboote
         ];
       };
 
       nixosConfigurations.predator-install = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
           ./hosts/predator-install.nix
-          disko.nixosModules.disko
         ];
       };
 

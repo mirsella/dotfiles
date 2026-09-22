@@ -96,7 +96,6 @@ function setup(initialRecoveries = 0, overrides: Partial<typeof DEFAULT_CONFIG> 
 	const store = new MemoryStore();
 	if (initialRecoveries) store.counts.set(child.id, initialRecoveries);
 	const logs: string[] = [];
-	const notifications: Array<{ message: string; variant?: string }> = [];
 	const watchdog = new SubagentWatchdog(
 		{ ...DEFAULT_CONFIG, ...overrides },
 		api,
@@ -104,9 +103,7 @@ function setup(initialRecoveries = 0, overrides: Partial<typeof DEFAULT_CONFIG> 
 		async (_level, event) => {
 			logs.push(event);
 		},
-		async (message, variant) => {
-			notifications.push({ message, variant });
-		},
+		async () => {},
 		() => now,
 		async (ms) => {
 			now += ms;
@@ -115,7 +112,7 @@ function setup(initialRecoveries = 0, overrides: Partial<typeof DEFAULT_CONFIG> 
 	const setNow = (value: number) => {
 		now = value;
 	};
-	return { api, watchdog, store, logs, notifications, setNow };
+	return { api, watchdog, store, logs, setNow };
 }
 
 async function tickAt(watchdog: SubagentWatchdog, setNow: (value: number) => void, now: number) {
@@ -129,12 +126,10 @@ function addSibling(api: FakeApi) {
 	api.statuses[sibling.id] = { type: "busy" };
 }
 
-const RECOVERY_TICK = DEFAULT_CONFIG.recoverAfterMs + 1_000;
-
 async function taskPart(
 	watchdog: SubagentWatchdog,
 	callID: string,
-	start = RECOVERY_TICK,
+	start = 181_000,
 ) {
 	await watchdog.handleEvent({
 		type: "message.part.updated",
@@ -159,31 +154,30 @@ async function taskBefore(
 }
 
 describe("subagent watchdog", () => {
-	test("normal child activity never triggers recovery", async () => {
+	test("normal child activity never becomes suspect", async () => {
 		const { api, watchdog, logs, setNow } = setup();
 		await watchdog.tick();
-		for (let minutes = 1; minutes <= 12; minutes++) {
-			setNow(minutes * 60_000);
+		for (let seconds = 20; seconds <= 240; seconds += 20) {
+			setNow(seconds * 1_000);
 			watchdog.recordActivity(child.id);
 			await watchdog.tick();
 		}
 		expect(api.aborts).toEqual([]);
-		expect(logs).toEqual([]);
+		expect(logs).not.toContain("watchdog.child.suspect");
 	});
 
 	test("temporary silence resets after activity", async () => {
-		const { api, watchdog, logs, notifications, setNow } = setup();
+		const { api, watchdog, logs, setNow } = setup();
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, 5 * 60_000);
-		expect(logs).toEqual([]);
-		expect(notifications).toEqual([]);
+		await tickAt(watchdog, setNow, 90_000);
+		expect(logs).toContain("watchdog.child.suspect");
 		watchdog.recordActivity(child.id);
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([]);
 	});
 
 	test("stalled child aborts once and resumes the exact task ID", async () => {
-		const { api, watchdog, logs, notifications, setNow } = setup();
+		const { api, watchdog, logs, setNow } = setup();
 		await watchdog.tick();
 		await taskBefore(watchdog, "call_original", {
 			description: "Investigate networking",
@@ -191,14 +185,10 @@ describe("subagent watchdog", () => {
 			subagent_type: "explore",
 			task_id: child.id,
 		});
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([parent.id]);
 		expect(api.prompts).toHaveLength(1);
 		expect(api.prompts[0].prompt).toContain("Resume your existing subagent");
-		expect(notifications).toContainEqual({
-			message: `Recovering stalled subagent ${child.id}`,
-			variant: "warning",
-		});
 		await taskPart(watchdog, "call_original", 0);
 		expect(logs).not.toContain("watchdog.child.recovered");
 
@@ -213,10 +203,6 @@ describe("subagent watchdog", () => {
 		});
 		await taskPart(watchdog, "call_resume");
 		expect(logs).toContain("watchdog.child.recovered");
-		expect(notifications).toContainEqual({
-			message: `Resumed existing subagent ${child.id}`,
-			variant: "success",
-		});
 	});
 
 	test("progress during revalidation cancels the abort", async () => {
@@ -226,7 +212,7 @@ describe("subagent watchdog", () => {
 		api.onSnapshot = () => {
 			if (++snapshots === 2) watchdog.recordActivity(child.id);
 		};
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([]);
 		expect(logs).toContain("watchdog.child.recovery_cancelled");
 	});
@@ -235,7 +221,7 @@ describe("subagent watchdog", () => {
 		const { api, watchdog, store, setNow } = setup();
 		await watchdog.tick();
 		store.onReserve = () => watchdog.recordActivity(child.id);
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([]);
 		expect(store.count(child.id)).toBe(0);
 	});
@@ -247,7 +233,7 @@ describe("subagent watchdog", () => {
 		api.onSnapshot = () => {
 			if (++snapshots === 3) throw new Error("temporary API failure");
 		};
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([]);
 		expect(store.count(child.id)).toBe(0);
 	});
@@ -258,7 +244,7 @@ describe("subagent watchdog", () => {
 		api.onAbort = () => {
 			throw new Error("abort failed");
 		};
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(store.count(child.id)).toBe(0);
 	});
 
@@ -270,7 +256,7 @@ describe("subagent watchdog", () => {
 			const { api, watchdog, setNow } = setup();
 			await watchdog.tick();
 			api.onAbort = () => void mutate(api);
-			await tickAt(watchdog, setNow, RECOVERY_TICK);
+			await tickAt(watchdog, setNow, 181_000);
 			expect(api.aborts).toEqual([parent.id]);
 			expect(api.prompts).toEqual([]);
 		}
@@ -282,7 +268,7 @@ describe("subagent watchdog", () => {
 		api.onAbort = () => {
 			api.statuses[parent.id] = { type: "busy" };
 		};
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([parent.id]);
 		expect(logs).toContain("watchdog.child.parent_not_idle");
 		expect(api.prompts).toHaveLength(1);
@@ -293,17 +279,17 @@ describe("subagent watchdog", () => {
 		const { api, watchdog, setNow } = setup();
 		api.pending.add(parent.id);
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, 15 * 60_000);
+		await tickAt(watchdog, setNow, 10 * 60_000);
 		expect(api.aborts).toEqual([]);
 	});
 
 	test("scheduled provider retry is not treated as a stall", async () => {
 		const { api, watchdog, setNow } = setup();
 		api.statuses[child.id] = {
-			type: "retry", attempt: 1, message: "provider retry", next: 15 * 60_000,
+			type: "retry", attempt: 1, message: "provider retry", next: 5 * 60_000,
 		};
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, 14 * 60_000);
+		await tickAt(watchdog, setNow, 4 * 60_000);
 		expect(api.aborts).toEqual([]);
 	});
 
@@ -311,29 +297,10 @@ describe("subagent watchdog", () => {
 		const { api, watchdog, setNow } = setup();
 		await watchdog.tick();
 		await watchdog.handleToolBefore(
-			{ tool: "fetch", sessionID: child.id, callID: "call_tool" },
+			{ tool: "bash", sessionID: child.id, callID: "call_tool" },
 			{ args: {} },
 		);
-		await tickAt(watchdog, setNow, 12 * 60_000);
-		expect(api.aborts).toEqual([]);
-	});
-
-	test("running bash command uses the extended 2-hour timeout", async () => {
-		const { api, watchdog, setNow } = setup();
-		await watchdog.tick();
-		await watchdog.handleEvent({
-			type: "message.part.updated",
-			properties: {
-				part: {
-					type: "tool",
-					tool: "bash",
-					sessionID: child.id,
-					callID: "call_bash",
-					state: { status: "running", time: { start: 0 } },
-				},
-			},
-		});
-		await tickAt(watchdog, setNow, 90 * 60_000);
+		await tickAt(watchdog, setNow, 5 * 60_000);
 		expect(api.aborts).toEqual([]);
 	});
 
@@ -341,7 +308,7 @@ describe("subagent watchdog", () => {
 		const { api, watchdog, logs, setNow } = setup();
 		addSibling(api);
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([]);
 		expect(logs).toContain("watchdog.child.parallel_skip");
 	});
@@ -350,7 +317,7 @@ describe("subagent watchdog", () => {
 		const { api, watchdog, setNow } = setup(0, { recoverParallelChildren: true });
 		addSibling(api);
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([parent.id]);
 		expect(api.prompts).toHaveLength(1);
 	});
@@ -374,7 +341,7 @@ describe("subagent watchdog", () => {
 		api.sessions.set(child.id, child);
 		api.statuses[child.id] = { type: "busy" };
 		await watchdog.handleEvent({ type: "session.created", properties: { info: child } });
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([]);
 		api.statuses[parent.id] = { type: "idle" };
 		await watchdog.tick();
@@ -384,8 +351,8 @@ describe("subagent watchdog", () => {
 	test("expired resume expectation cannot rewrite a later task", async () => {
 		const { watchdog, logs, setNow } = setup();
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
-		await tickAt(watchdog, setNow, RECOVERY_TICK * 2);
+		await tickAt(watchdog, setNow, 181_000);
+		await tickAt(watchdog, setNow, 362_000);
 		expect(logs).toContain("watchdog.child.recovery_failed");
 		const output = {
 			args: { description: "Different task", prompt: "Start new work", subagent_type: "general" },
@@ -400,7 +367,7 @@ describe("subagent watchdog", () => {
 	test("task-part metadata confirms recovery when the before hook was missed", async () => {
 		const { watchdog, setNow, logs } = setup();
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		await taskPart(watchdog, "call_event_only");
 		expect(logs).toContain("watchdog.child.recovered");
 	});
@@ -408,7 +375,7 @@ describe("subagent watchdog", () => {
 	test("a second stall is reported but not recovered", async () => {
 		const { api, watchdog, logs, setNow } = setup(1);
 		await watchdog.tick();
-		await tickAt(watchdog, setNow, RECOVERY_TICK);
+		await tickAt(watchdog, setNow, 181_000);
 		expect(api.aborts).toEqual([]);
 		expect(logs).toContain("watchdog.child.recovery_limit");
 	});

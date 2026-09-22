@@ -1,5 +1,7 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 {
+  imports = [ ./nextcloud-preferences.nix ];
+
   sops.secrets.nextcloud-adminpass = {
     sopsFile = ../../secrets/nextcloud.yaml;
     owner = "nextcloud";
@@ -21,17 +23,31 @@
 
   services.nextcloud = {
     enable = true;
+    package = pkgs.nextcloud33;
     hostName = "mirsella.mooo.com";
     https = true;
     database.createLocally = true;
     configureRedis = true;
     maxUploadSize = "16G";
+    phpOptions.memory_limit = lib.mkForce "512M";
+    cli.memoryLimit = "1G";
+    poolSettings = {
+      "pm" = "dynamic";
+      "pm.max_children" = 4;
+      "pm.start_servers" = 1;
+      "pm.min_spare_servers" = 1;
+      "pm.max_spare_servers" = 2;
+      "pm.max_requests" = 500;
+    };
     config = {
       dbtype = "pgsql";
       adminuser = "admin";
       adminpassFile = config.sops.secrets.nextcloud-adminpass.path;
     };
     settings = {
+      # UTC, so expensive jobs run after the 07:00 local wake-up year-round.
+      maintenance_window_start = 6;
+      default_phone_region = "FR";
       trusted_proxies = [ "127.0.0.1" ];
       trusted_domains = [ "mirsella.mooo.com" ];
       overwritehost = "mirsella.mooo.com";
@@ -74,10 +90,19 @@
         license = "agpl3Plus";
       };
     };
-    # extraAppsEnable stays off; apps were enabled manually via occ.
-    extraAppsEnable = false;
     secrets.mail_smtppassword = config.sops.secrets.nextcloud-resend.path;
   };
+
+  systemd.services.nextcloud-setup = {
+    requires = [ "sops-install-secrets.service" ];
+    after = [ "sops-install-secrets.service" ];
+    unitConfig.RequiresMountsFor = [ "/var/lib/nextcloud/data" ];
+    script = lib.mkAfter ''
+      nextcloud-occ app:enable twofactor_totp suspicious_login
+    '';
+  };
+  systemd.services.phpfpm-nextcloud.unitConfig.RequiresMountsFor = [ "/var/lib/nextcloud/data" ];
+  systemd.services.nextcloud-cron.unitConfig.RequiresMountsFor = [ "/var/lib/nextcloud/data" ];
 
   services.nginx.virtualHosts."mirsella.mooo.com".listen = [
     {

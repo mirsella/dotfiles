@@ -87,6 +87,7 @@ const SubagentWatchdogPlugin: Plugin = async ({ client, directory }) => {
 		.then(() =>
 			log("info", "watchdog.started", {
 				mode: loaded.config.mode,
+				suspectAfterMs: loaded.config.suspectAfterMs,
 				recoverAfterMs: loaded.config.recoverAfterMs,
 				toolRecoverAfterMs: loaded.config.toolRecoverAfterMs,
 			}),

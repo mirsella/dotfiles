@@ -2,19 +2,30 @@
 {
   services.caddy = {
     enable = true;
+    # The idle policy tracks TCP sessions; do not advertise blocked HTTP/3 ports.
+    globalConfig = ''
+      servers {
+        protocols h1 h2
+      }
+    '';
     virtualHosts = {
       "mirsella.mooo.com".extraConfig = ''
         root * ${./site}
         encode zstd gzip
-        header {
-          Referrer-Policy no-referrer
-          X-Content-Type-Options nosniff
-          X-Frame-Options DENY
-        }
+        redir /nextcloud /nextcloud/ 308
+        @dav path /.well-known/carddav /.well-known/caldav
+        redir @dav /nextcloud/remote.php/dav/ 301
+        @discovery path /.well-known/webfinger /.well-known/nodeinfo
+        redir @discovery /nextcloud/index.php{uri} 301
         handle_path /nextcloud/* {
           reverse_proxy 127.0.0.1:8080
         }
         handle {
+          header {
+            Referrer-Policy no-referrer
+            X-Content-Type-Options nosniff
+            X-Frame-Options DENY
+          }
           file_server
         }
       '';

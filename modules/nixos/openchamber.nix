@@ -3,8 +3,8 @@
   systemd.services.openchamber = {
     description = "OpenChamber web server";
     documentation = [ "https://github.com/openchamber/openchamber" ];
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
+    after = [ "sops-install-secrets.service" ];
+    requires = [ "sops-install-secrets.service" ];
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.opencode ];
     environment.HOME = "/home/mirsella";

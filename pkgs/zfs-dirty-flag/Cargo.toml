@@ -1,7 +1,0 @@
-[package]
-name = "zfs-dirty-flag"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-inotify = "0.11"

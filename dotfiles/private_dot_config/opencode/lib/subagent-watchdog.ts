@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 
 export interface WatchdogConfig {
 	enabled: boolean;
+	suspectAfterMs: number;
 	recoverAfterMs: number;
 	toolRecoverAfterMs: number;
 	pollIntervalMs: number;
@@ -20,8 +21,9 @@ export interface WatchdogConfig {
 
 export const DEFAULT_CONFIG: WatchdogConfig = {
 	enabled: true,
-	recoverAfterMs: 10 * 60_000,
-	toolRecoverAfterMs: 15 * 60_000,
+	suspectAfterMs: 60_000,
+	recoverAfterMs: 180_000,
+	toolRecoverAfterMs: 10 * 60_000,
 	pollIntervalMs: 5_000,
 	abortWaitMs: 15_000,
 	maxRecoveriesPerChild: 1,
@@ -101,7 +103,6 @@ export type Notify = (
 const STATE_RETENTION_MS = 30 * 24 * 60 * 60_000;
 const STATE_CLEANUP_INTERVAL_MS = 24 * 60 * 60_000;
 const TASK_RETENTION_MS = 60 * 60_000;
-const BASH_RECOVER_AFTER_MS = 2 * 60 * 60_000;
 const WAIT_POLL_MS = 250;
 const IDLE_STATUS: SessionStatus = { type: "idle" };
 const RECOVERY_PROMPT =
@@ -137,6 +138,7 @@ export function normalizeConfig(value: unknown): {
 		else warnings.push(`${key} must be a boolean; using the default`);
 	}
 	for (const { key, min, label } of [
+		{ key: "suspectAfterMs", min: 1, label: "positive" },
 		{ key: "recoverAfterMs", min: 1, label: "positive" },
 		{ key: "toolRecoverAfterMs", min: 1, label: "positive" },
 		{ key: "pollIntervalMs", min: 1, label: "positive" },
@@ -152,6 +154,12 @@ export function normalizeConfig(value: unknown): {
 	if ("mode" in value) {
 		if (value.mode === "report" || value.mode === "auto") config.mode = value.mode;
 		else warnings.push('mode must be "report" or "auto"; using the default');
+	}
+	if (config.recoverAfterMs < config.suspectAfterMs) {
+		warnings.push(
+			"recoverAfterMs is lower than suspectAfterMs; using suspectAfterMs for recovery",
+		);
+		config.recoverAfterMs = config.suspectAfterMs;
 	}
 	if (config.toolRecoverAfterMs < config.recoverAfterMs) {
 		warnings.push(
@@ -330,7 +338,7 @@ type TaskInvocation = {
 	background: boolean;
 };
 
-type Notice = "parallel" | "limit" | "report";
+type Notice = "suspect" | "parallel" | "limit" | "report";
 type Child = {
 	id: string;
 	title: string;
@@ -408,11 +416,11 @@ export class SubagentWatchdog {
 
 	async handleToolBefore(
 		input: { tool: string; sessionID: string; callID: string },
-		output?: { args?: unknown },
+		output: { args: unknown },
 	): Promise<void> {
 		this.recordActivity(input.sessionID);
 		this.children.get(input.sessionID)?.activeTools.add(input.callID);
-		if (input.tool !== "task" || !isRecord(output?.args)) return;
+		if (input.tool !== "task" || !isRecord(output.args)) return;
 		const args = output.args;
 
 		const recovery = this.recoveries.get(input.sessionID);
@@ -461,7 +469,7 @@ export class SubagentWatchdog {
 
 	async handleToolAfter(
 		input: { tool: string; sessionID: string; callID: string },
-		output?: { metadata?: unknown },
+		output: { metadata?: unknown },
 	): Promise<void> {
 		this.recordActivity(input.sessionID);
 		const ch = this.children.get(input.sessionID);
@@ -472,7 +480,7 @@ export class SubagentWatchdog {
 		if (input.tool !== "task") return;
 
 		try {
-			const metadata = isRecord(output?.metadata) ? output.metadata : {};
+			const metadata = isRecord(output.metadata) ? output.metadata : {};
 			const childID =
 				typeof metadata.sessionId === "string" ? metadata.sessionId : undefined;
 			if (childID)
@@ -662,8 +670,21 @@ export class SubagentWatchdog {
 				status.type === "retry" ? status.next : 0,
 			);
 			const idleForMs = now - activityAt;
+			if (idleForMs < this.config.suspectAfterMs) continue;
+			if (!child.notices.has("suspect")) {
+				child.notices.add("suspect");
+				await this.logChild("warn", "watchdog.child.suspect", child, {
+					idleForMs,
+					activeTools: [...child.activeTools],
+				});
+				await this.notify(
+					`Subagent ${child.id} has made no progress for ${Math.round(idleForMs / 1_000)}s`,
+					"warning",
+				);
+			}
+
 			const threshold = child.bashRunning.size
-				? BASH_RECOVER_AFTER_MS
+				? 2 * 60 * 60_000
 				: child.activeTools.size
 					? this.config.toolRecoverAfterMs
 					: this.config.recoverAfterMs;

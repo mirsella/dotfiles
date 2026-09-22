@@ -1,18 +1,9 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, ... }:
 
 {
-  imports = [ ./predator-hardware.nix ];
-
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.initrd.luks.devices."crypt-root" = {
-    device = lib.mkForce "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part2";
-    keyFile = "/etc/luks/root.key";
-    allowDiscards = true;
-  };
-  boot.initrd.secrets."/etc/luks/root.key" = "/etc/luks/root.key";
-
-  fileSystems."/".device = lib.mkForce "/dev/mapper/crypt-root";
+  # Minimal installed system for restoring state before enabling server services.
+  # Mount the disks first; see docs/predator-reinstall.md.
+  imports = [ ./predator-boot.nix ];
 
   networking.hostName = "predator";
   networking.networkmanager.enable = true;
@@ -31,12 +22,10 @@
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe"
     ];
   };
-  users.users.root.openssh.authorizedKeys.keys = [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF"
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe"
-  ];
+  users.users.root.openssh.authorizedKeys.keys = config.users.users.mirsella.openssh.authorizedKeys.keys;
   security.sudo.wheelNeedsPassword = false;
 
+  environment.systemPackages = [ pkgs.git ];
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   system.stateVersion = "26.05";
 }

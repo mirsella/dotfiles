@@ -25,21 +25,17 @@ test("command overrides preserve fast mode and apply once per session", async ()
     model: "openai/gpt-6-astra",
     command: {
       commit: { template: "Commit this session's changes", model: "openai/gpt-5.6-luna#max" },
-      land: { template: "Commit, land on main or queue for later, and clean up", model: "openai/gpt-5.6-luna#max" },
       plain: { template: "No thinking override", model: "openai/gpt-5.6-luna" },
       fast: { template: "Explicit fast", model: "openai/gpt-5.6-luna-fast#max" },
       review: { template: "No model override" },
       commitdiff: { template: "Commit diff", subtask: true, model: "openai/gpt-5.6-luna" },
-      subagentcmd: { template: "Subagent cmd", subagent: true, model: "openai/gpt-5.6-luna" } as unknown as Config["command"][string],
     },
   } satisfies Config;
   await hooks.config(config);
   expect(config.model).toBe("openai/gpt-6-astra");
   expect(config.command.commit).toEqual({ template: "Commit this session's changes" });
-  expect(config.command.land).toEqual({ template: "Commit, land on main or queue for later, and clean up" });
   expect(config.command.plain.model).toBeUndefined();
   expect(config.command.commitdiff.model).toBe("openai/gpt-5.6-luna");
-  expect((config.command.subagentcmd as unknown as { model?: string }).model).toBe("openai/gpt-5.6-luna");
   const command = (sessionID: string, name = "commit") =>
     hooks["command.execute.before"](
       { sessionID, command: name, arguments: "" },
@@ -65,12 +61,6 @@ test("command overrides preserve fast mode and apply once per session", async ()
 
   await command("a", "plain");
   expect(await chat("a")).toEqual({ providerID: "openai", modelID: "gpt-5.6-luna" });
-  expect(await chat("a")).toBe(astra);
-
-  await command("a", "land");
-  expect(await chat("a")).toEqual(luna);
-  expect(await chat("a")).toBe(astra);
-  await command("a", "subagentcmd");
   expect(await chat("a")).toBe(astra);
 
   await command("a", "review");

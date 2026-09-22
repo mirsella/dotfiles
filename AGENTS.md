@@ -1,11 +1,14 @@
 Dotfiles (chezmoi source under `dotfiles/`, `.chezmoiroot`) plus declarative NixOS config for **predator**.
 
-Deploy from another machine looks like:
-`rsync -a --delete . predator:~/dev/dotfiles/ && ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/dev/dotfiles#predator'`
-(repo lives at `~/dev/dotfiles` on every machine; chezmoi `sourceDir` points there. Long rebuilds: launch detached, poll the log.)
+Edit in `~/dev/dotfiles`. Predator's configured rebuild checkout is still
+`~/dev/nixos`; check its local changes and copy only reviewed files. Avoid
+whole-tree `rsync --delete` over concurrent work. After syncing, rebuild with:
+`ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/nixos#predator'`
+The explicit path flake lets root build the user-owned checkout. Launch long
+rebuilds detached and poll their logs.
 
 Manual files (kept outside this repo):
-- laptop `/etc/systemd/logind.conf.d/nolidsleep.conf` (ignore lid switch), laptop `~/.config/powerdevilrc` (`LidAction=64` = screen off on lid close, all profiles)
+- laptop uses plasma defaults (sleep on lid close), no special lid config; predator ignores the lid switch via `configuration.nix` logind settings (screen off instead of sleep)
 - Arch boxes: system Caddy (`/etc/caddy/Caddyfile`, system `caddy.service`), udev rules, pacman hooks
 - predator: Freebox LAN IP is `192.168.1.1` (not factory `.254`); `hd-idle` must be stopped during SMART long tests or it spins the disk down mid-test (every rebuild restarts it, so stop it again right after). The Toshiba USB bridge aborts extended self-tests ~10 min in regardless; rely on short tests plus the monthly scrub.
 
