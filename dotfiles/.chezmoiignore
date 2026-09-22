@@ -52,5 +52,8 @@ plannotator-review.md
 .codex/skills/.system
 .codex/skills/.system/**
 
+# Handy rewrites its settings at runtime; managing it is pure churn.
+.local/share/com.pais.handy/settings_store.json
+
 # Never manage dependency trees.
 node_modules/
