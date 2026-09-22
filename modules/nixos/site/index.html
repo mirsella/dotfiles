@@ -81,7 +81,7 @@
       grid-template-rows: auto 1fr auto;
       width: min(1180px, calc(100% - 40px));
       margin: 0 auto;
-      padding: 30px 0 24px;
+      padding: 16px 0 14px;
     }
 
     header,
@@ -92,7 +92,7 @@
       gap: 20px;
       border-top: 1px solid var(--line);
       border-bottom: 1px solid var(--line);
-      padding: 12px 0;
+      padding: 8px 0;
       color: var(--paper-dim);
       font-size: 0.72rem;
       letter-spacing: 0.12em;
@@ -117,21 +117,21 @@
 
     .hero {
       display: grid;
-      align-content: center;
-      gap: clamp(42px, 7vw, 92px);
-      padding: clamp(64px, 10vw, 130px) 0;
+      align-content: start;
+      gap: clamp(18px, 3vw, 32px);
+      padding: clamp(20px, 3vw, 40px) 0;
     }
 
     .heading {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: end;
-      gap: 40px;
+      gap: 20px;
       animation: enter 600ms cubic-bezier(.2,.8,.2,1) both;
     }
 
     .eyebrow {
-      margin: 0 0 14px;
+      margin: 0 0 8px;
       color: var(--signal);
       font-size: 0.72rem;
       letter-spacing: 0.18em;
@@ -142,28 +142,28 @@
       max-width: 880px;
       margin: 0;
       font-family: var(--display);
-      font-size: clamp(3.9rem, 11vw, 9.6rem);
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
       font-weight: 400;
       letter-spacing: -0.065em;
-      line-height: 0.78;
+      line-height: 0.85;
     }
 
     h1 span {
       display: block;
-      margin-left: clamp(30px, 10vw, 140px);
+      margin-left: clamp(16px, 5vw, 64px);
       color: transparent;
       -webkit-text-stroke: 1px var(--paper-dim);
     }
 
     .node-mark {
       display: grid;
-      width: 96px;
-      height: 96px;
+      width: 64px;
+      height: 64px;
       place-items: center;
       border: 1px solid var(--line);
       border-radius: 50%;
       color: var(--lime);
-      font-size: 2rem;
+      font-size: 1.4rem;
       transform: rotate(-12deg);
     }
 
@@ -186,11 +186,11 @@
     .service {
       position: relative;
       display: grid;
-      grid-template-columns: 70px minmax(0, 1fr) auto;
+      grid-template-columns: 56px minmax(0, 1fr) auto;
       align-items: center;
-      min-height: 154px;
-      gap: 22px;
-      padding: 28px;
+      min-height: 0;
+      gap: 14px;
+      padding: 13px 18px;
       color: inherit;
       text-decoration: none;
       overflow: hidden;
@@ -236,34 +236,34 @@
     .service-name {
       display: block;
       font-family: var(--display);
-      font-size: clamp(2rem, 4vw, 3.4rem);
+      font-size: clamp(1.3rem, 2.5vw, 1.9rem);
       letter-spacing: -0.04em;
-      line-height: 1;
+      line-height: 1.1;
     }
 
     .service-desc {
       display: block;
-      margin-top: 10px;
+      margin-top: 4px;
       color: var(--paper-dim);
       font-size: 0.75rem;
-      line-height: 1.6;
+      line-height: 1.4;
     }
 
     .service:hover .service-desc,
     .service:focus-visible .service-desc { color: var(--hover-muted); }
 
     .arrow {
-      font-size: 2.2rem;
+      font-size: 1.5rem;
       transition: transform 180ms ease;
     }
 
     .service:hover .arrow,
     .service:focus-visible .arrow { transform: translate(5px, -5px); }
 
-    .telemetry { padding: 28px; }
+    .telemetry { padding: 16px 18px; }
 
     .telemetry h2 {
-      margin: 0 0 28px;
+      margin: 0 0 12px;
       color: var(--paper-dim);
       font-size: 0.7rem;
       font-weight: 400;
@@ -274,12 +274,12 @@
     dl { margin: 0; }
 
     .datum {
-      padding: 17px 0;
+      padding: 9px 0;
       border-top: 1px solid var(--line);
     }
 
     dt {
-      margin-bottom: 7px;
+      margin-bottom: 3px;
       color: var(--paper-dim);
       font-size: 0.63rem;
       letter-spacing: 0.12em;
@@ -313,8 +313,8 @@
       .heading { grid-template-columns: 1fr; }
       .node-mark { display: none; }
       .console { grid-template-columns: 1fr; }
-      .service { min-height: 132px; grid-template-columns: 48px 1fr auto; padding: 20px; gap: 16px; }
-      .telemetry { padding: 22px; }
+      .service { min-height: 0; grid-template-columns: 40px 1fr auto; padding: 12px 16px; gap: 12px; }
+      .telemetry { padding: 16px; }
       header span:last-child { display: none; }
       footer { align-items: flex-start; flex-direction: column; }
       footer span:last-child { text-align: left; }
