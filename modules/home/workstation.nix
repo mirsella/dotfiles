@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, ... }:
 {
   targets.genericLinux.gpu.enable = false;
 
@@ -33,15 +33,19 @@
       };
   };
 
-  home.activation.nextcloudDir =
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''mkdir -p "$HOME/Nextcloud"'';
-
   systemd.user.services.rclone-nextcloud = {
-    Unit.Description = "Nextcloud WebDAV mount";
+    Unit = {
+      Description = "Nextcloud WebDAV mount";
+      After = [ "sops-nix.service" ];
+      # Home Manager restarts sops-nix on activation; keep mounted files available.
+      Wants = [ "sops-nix.service" ];
+    };
     Install.WantedBy = [ "default.target" ];
     Service = {
-      ExecStart = "/usr/bin/rclone mount nextcloud: %h/Nextcloud --vfs-cache-mode writes --dir-cache-time 5m --poll-interval 30s";
-      ExecStop = "/usr/bin/fusermount -u %h/Nextcloud";
+      Type = "notify";
+      ExecStartPre = "/usr/bin/mkdir -p %h/Documents/Nextcloud";
+      ExecStart = "/usr/bin/rclone mount nextcloud: %h/Documents/Nextcloud --vfs-cache-mode writes --poll-interval 0";
+      SuccessExitStatus = "143";
       Restart = "always";
       RestartSec = 10;
     };

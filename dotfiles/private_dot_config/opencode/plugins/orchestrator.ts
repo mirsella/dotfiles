@@ -171,7 +171,9 @@ export default (async ({ client }) => {
     },
     "experimental.chat.system.transform": async ({ model }, output) => {
       const providerID = (model as { providerID?: unknown } | undefined)?.providerID;
-      output.system.push(systemPolicy(typeof providerID === "string" && providerID ? providerID : "unknown"));
+      const policy = systemPolicy(typeof providerID === "string" && providerID ? providerID : "unknown");
+      // Qwen templates require a single initial system message.
+      output.system.splice(0, output.system.length, [...output.system, policy].join("\n\n"));
     },
     "tool.execute.before": async ({ tool, sessionID, callID }, output) => {
       if (tool !== "task") return;

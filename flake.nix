@@ -34,7 +34,7 @@
             inherit overlays;
           };
           extraSpecialArgs = {
-            inherit inputs gitSigningKey;
+            inherit inputs gitSigningKey hostName;
             isNixOS = false;
           };
           modules = [ ./hosts/arch.nix ];

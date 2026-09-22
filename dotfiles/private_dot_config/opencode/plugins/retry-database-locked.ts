@@ -1,219 +1,99 @@
 import type { Plugin } from "@opencode-ai/plugin";
-import type { AssistantMessage, Message, UserMessage } from "@opencode-ai/sdk";
+import type { AssistantMessage } from "@opencode-ai/sdk";
+import timers from "node:timers/promises";
 
-const RETRY_PROMPT = "continue";
 const RETRY_DELAY_MS = 10_000;
-const MESSAGE_FETCH_LIMIT = 24;
 
-type Client = Parameters<Plugin>[0]["client"];
-type Log = (
-	level: "debug" | "info" | "warn" | "error",
-	message: string,
-	extra?: Record<string, unknown>,
-) => Promise<void>;
-
-type MessageEntry = {
-	info: Message;
-	parts: Array<{ type: string; text?: string }>;
-};
-
-type RetryState = {
-	token?: symbol;
-	timer?: ReturnType<typeof setTimeout>;
-};
-
-const globalState = globalThis as typeof globalThis & {
-	__opencodeRetryDatabaseLocked?: Map<string, RetryState>;
-};
-
-if (!globalState.__opencodeRetryDatabaseLocked) {
-	globalState.__opencodeRetryDatabaseLocked = new Map<string, RetryState>();
-}
-const states = globalState.__opencodeRetryDatabaseLocked;
-
-const stateFor = (sessionID: string): RetryState => {
-	const existing = states.get(sessionID);
-	if (existing) return existing;
-
-	const created: RetryState = {};
-	states.set(sessionID, created);
-	return created;
-};
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null;
-
-const isDatabaseLockedError = (
-	error: AssistantMessage["error"] | undefined,
-): boolean => {
-	if (!error) return false;
-
-	const parts: string[] = [];
-	if ("name" in error && typeof error.name === "string") parts.push(error.name);
-	if ("data" in error && isObject(error.data)) {
-		const data = error.data as Record<string, unknown>;
-		for (const key of ["message", "code", "type", "responseBody"] as const) {
-			const value = data[key];
-			if (typeof value === "string") parts.push(value);
-		}
-	}
-
-	const text = parts.join("\n").toLowerCase();
-	return (
-		text.includes("database is locked") ||
-		text.includes("database locked") ||
-		text.includes("sqlite_busy") ||
-		text.includes("sqlite_locked")
+const isDatabaseLockedError = (error: AssistantMessage["error"]) =>
+	error !== undefined && [error.name, ...Object.values(error.data)].some(
+		value => typeof value === "string" && /database(?: is)? locked|sqlite_(?:busy|locked)/i.test(value),
 	);
-};
-
-const messages = async (client: Client, sessionID: string) => {
-	const response = await client.session.messages({
-		path: { id: sessionID },
-		query: { limit: MESSAGE_FETCH_LIMIT },
-	});
-	return response.data ?? [];
-};
-
-const messageEntry = async (
-	client: Client,
-	sessionID: string,
-	messageID: string,
-): Promise<MessageEntry | undefined> => {
-	const response = await client.session.message({
-		path: { id: sessionID, messageID },
-	});
-	return response.data as MessageEntry | undefined;
-};
-
-const latestEntry = (
-	entries: Awaited<ReturnType<typeof messages>>,
-): MessageEntry | undefined =>
-	[...entries].sort((a, b) => b.info.time.created - a.info.time.created)[0];
-
-const parentUserFor = async (
-	client: Client,
-	sessionID: string,
-	entry: MessageEntry | undefined,
-): Promise<UserMessage | undefined> => {
-	if (!entry) return undefined;
-	if (entry.info.role === "user") return entry.info;
-	if (entry.info.role !== "assistant") return undefined;
-
-	const parent = await messageEntry(
-		client,
-		sessionID,
-		entry.info.parentID,
-	).catch(() => undefined);
-	return parent?.info.role === "user" ? parent.info : undefined;
-};
 
 export const RetryDatabaseLockedPlugin: Plugin = async ({ client }) => {
-	const log: Log = async (level, message, extra) => {
-		await client.app
-			.log({
-				body: { service: "retry-database-locked", level, message, extra },
-			})
-			.catch(() => undefined);
+	const pending = new Map<string, AbortController>();
+	const log = (level: "info" | "warn" | "error", message: string, extra: Record<string, unknown>) =>
+		client.app.log({ body: { service: "retry-database-locked", level, message, extra }, throwOnError: true });
+
+	const latest = async (sessionID: string) => {
+		const { data } = await client.session.messages({
+			path: { id: sessionID }, query: { limit: 1 }, throwOnError: true,
+		});
+		const message = data[0]?.info;
+		if (!message) throw new Error(`Cannot retry session ${sessionID}: no message to resume`);
+		return message;
 	};
 
-	const toast = async (
-		message: string,
-		variant: "info" | "warning" | "error" = "warning",
-	) => {
-		await client.tui
-			.showToast({ body: { message, variant, duration: 2500 } })
-			.catch(() => undefined);
+	const retry = async (sessionID: string, controller: AbortController) => {
+		const { signal } = controller;
+		try {
+			const entry = await latest(sessionID);
+			const parent = entry.role === "user" ? entry : (
+				await client.session.message({
+					path: { id: sessionID, messageID: entry.parentID }, throwOnError: true,
+				})
+			).data.info;
+			if (parent.role !== "user") throw new Error(`Message ${entry.id} has no user parent`);
+			if (signal.aborted) return;
+			await log("warn", "database locked; retrying in 10s", { sessionID, messageID: entry.id });
+			await client.tui.showToast({
+				body: { message: "Database locked; retrying in 10s", variant: "warning", duration: 2500 },
+				throwOnError: true,
+			});
+
+			while (!signal.aborted) {
+				await timers.setTimeout(RETRY_DELAY_MS, undefined, { signal });
+				try {
+					if ((await latest(sessionID)).id !== entry.id) {
+						await log("info", "skipped retry because the session moved forward", { sessionID });
+						return;
+					}
+					if (signal.aborted) return;
+					await client.session.promptAsync({
+						path: { id: sessionID },
+						body: {
+							agent: parent.agent,
+							model: parent.model,
+							parts: [{ type: "text", text: "continue" }],
+						},
+						throwOnError: true,
+					});
+				} catch (error) {
+					if (signal.aborted) return;
+					await log("error", "retry failed; retrying in 10s", {
+						sessionID, error: error instanceof Error ? error.message : error,
+					});
+					continue;
+				}
+				await log("info", "resumed after database lock", { sessionID, messageID: entry.id });
+				return;
+			}
+		} catch (error) {
+			if (!signal.aborted) {
+				await log("error", "database lock recovery failed", {
+					sessionID, error: error instanceof Error ? error.message : error,
+				});
+			}
+		} finally {
+			if (pending.get(sessionID) === controller) pending.delete(sessionID);
+		}
 	};
 
 	return {
 		event: async ({ event }) => {
+			if (event.type === "session.deleted") {
+				pending.get(event.properties.info.id)?.abort();
+				return;
+			}
 			if (event.type !== "session.error") return;
-
 			const { sessionID, error } = event.properties;
 			if (!sessionID || !isDatabaseLockedError(error)) return;
-
-			const state = stateFor(sessionID);
-			const entry = latestEntry(await messages(client, sessionID));
-			const messageID = entry?.info.id;
-			const token = Symbol(messageID ?? sessionID);
-
-			if (state.timer) {
-				clearTimeout(state.timer);
-				state.timer = undefined;
-			}
-			state.token = token;
-
-			const finish = () => {
-				if (state.token !== token) return;
-				state.token = undefined;
-				if (state.timer) {
-					clearTimeout(state.timer);
-					state.timer = undefined;
-				}
-			};
-
-			const retry = async () => {
-				if (state.token !== token) return;
-
-				try {
-					if (
-						entry &&
-						(await messages(client, sessionID)).some(
-							(candidate) =>
-								candidate.info.time.created > entry.info.time.created,
-						)
-					) {
-						await log(
-							"info",
-							"skipped database locked retry because the session moved forward",
-							{ sessionID, messageID },
-						);
-						finish();
-						return;
-					}
-
-					const parentUser = await parentUserFor(client, sessionID, entry);
-					await client.session.promptAsync({
-						path: { id: sessionID },
-						body: {
-							agent: parentUser?.agent,
-							model: parentUser?.model,
-							parts: [{ type: "text", text: RETRY_PROMPT }],
-						},
-					});
-
-					await log("info", "sent continue after database locked error", {
-						sessionID,
-						messageID,
-						agent: parentUser?.agent,
-					});
-					finish();
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					await log("error", "failed to send continue after database locked", {
-						sessionID,
-						messageID,
-						error: message,
-						nextDelayMs: RETRY_DELAY_MS,
-					});
-					await toast(
-						`Database locked retry failed; retrying in 10s: ${message}`,
-						"error",
-					);
-					if (state.token === token)
-						state.timer = setTimeout(retry, RETRY_DELAY_MS);
-				}
-			};
-
-			await toast("Database locked; retrying in 10s", "warning");
-			await log("info", "scheduled database locked retry", {
-				sessionID,
-				messageID,
-				delayMs: RETRY_DELAY_MS,
+			pending.get(sessionID)?.abort();
+			const controller = new AbortController();
+			pending.set(sessionID, controller);
+			void retry(sessionID, controller).catch(error => {
+				// Recovery uses the API too; its logging endpoint can also be unavailable.
+				console.error("database lock recovery could not log its failure", error);
 			});
-			state.timer = setTimeout(retry, RETRY_DELAY_MS);
 		},
 	};
 };

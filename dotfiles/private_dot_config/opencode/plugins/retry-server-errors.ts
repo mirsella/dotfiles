@@ -18,19 +18,27 @@ const errorMessage = (error: unknown) =>
 const isObject = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null;
 
-const TRANSIENT_UNKNOWN_ERROR_PATTERNS = ["expected 'id' to be a string"];
+const NON_RETRYABLE_ERROR_PATTERN = /the usage limit has been reached/i;
+const TRANSIENT_UNKNOWN_ERROR_PATTERN = /expected 'id' to be a string/i;
 
 const isRetryableProviderError = (message: AssistantMessage) => {
 	const error = message.error;
 	if (!error) return false;
-	if (error.name === "APIError") return error.data.isRetryable === true;
+	if (error.name === "APIError") {
+		if (!error.data.isRetryable) return false;
+		if (NON_RETRYABLE_ERROR_PATTERN.test(error.data.message)) return false;
+		if (
+			typeof error.data.responseBody === "string" &&
+			NON_RETRYABLE_ERROR_PATTERN.test(error.data.responseBody)
+		) {
+			return false;
+		}
+		return true;
+	}
 	if (error.name === "UnknownError") {
-		const text =
-			typeof error.data.message === "string"
-				? error.data.message.toLowerCase()
-				: "";
-		return TRANSIENT_UNKNOWN_ERROR_PATTERNS.some((pattern) =>
-			text.includes(pattern),
+		return (
+			typeof error.data.message === "string" &&
+			TRANSIENT_UNKNOWN_ERROR_PATTERN.test(error.data.message)
 		);
 	}
 	return false;

@@ -5,6 +5,7 @@ source $host_config
 source alias.nu
 source plugins.nu
 source notif.nu
+source ~/.cache/wtp-init.nu
 
 $env.config.buffer_editor = "nvim"
 $env.config.show_banner = false
