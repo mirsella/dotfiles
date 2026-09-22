@@ -91,23 +91,53 @@
 
   environment.systemPackages = with pkgs; [ smartmontools ];
 
-  services.smartd = {
-    enable = true;
-    autodetect = false;
-    devices = [
-      { device = "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68"; }
-      { device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68"; }
-      # Neither USB bridge reliably reports standby, so avoid frequent polling.
-      {
-        device = "/dev/disk/by-id/wwn-0x5000c500aa3cc143";
-        options = "-d sat -n standby,q -c interval=43200";
-      }
-      {
-        device = "/dev/disk/by-id/wwn-0x500003961228993f";
-        options = "-d sat -n standby,q -c interval=43200";
-      }
-    ];
-  };
+  services.smartd =
+    let
+      # Failure mail via the Resend key shared with Nextcloud/Beszel.
+      # smartd runs this as root with SMARTD_* env vars on failure events.
+      alert = pkgs.writeShellScript "smartd-resend-alert" ''
+        set -u
+        key=$(cat ${config.sops.secrets.nextcloud-resend.path})
+        subject="SMART ''${SMARTD_FAILTYPE:-alert}: ''${SMARTD_DEVICE:-unknown} on predator"
+        body=$(printf '%s\n' "SMART event on predator at $(date -Is)" "" "Device: ''${SMARTD_DEVICE:-?}" "Type: ''${SMARTD_FAILTYPE:-?}" "" "''${SMARTD_MESSAGE:-}")
+        payload=$(${pkgs.jq}/bin/jq -n \
+          --arg from 'SMART <noreply@voxride.com>' \
+          --arg to 'mirsella@protonmail.com' \
+          --arg subject "$subject" \
+          --arg text "$body" \
+          '{from:$from,to:[$to],subject:$subject,text:$text}')
+        ${pkgs.curl}/bin/curl -sS --max-time 30 -X POST https://api.resend.com/emails \
+          -H "Authorization: Bearer $key" \
+          -H 'Content-Type: application/json' \
+          --data "$payload"
+      '';
+      # Noon short test: the 02:00 module default never runs, predator
+      # sleeps at night. Failures mail once via the script above.
+      notify = "-s (S/../.././12) -M once -M exec ${alert}";
+    in
+    {
+      enable = true;
+      autodetect = false;
+      devices = [
+        {
+          device = "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68";
+          options = "-a -o on -S on ${notify}";
+        }
+        {
+          device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68";
+          options = "-a -o on -S on ${notify}";
+        }
+        # Neither USB bridge reliably reports standby, so avoid frequent polling.
+        {
+          device = "/dev/disk/by-id/wwn-0x5000c500aa3cc143";
+          options = "-d sat -n standby,q -c interval=43200 ${notify}";
+        }
+        {
+          device = "/dev/disk/by-id/wwn-0x500003961228993f";
+          options = "-d sat -n standby,q -c interval=43200 ${notify}";
+        }
+      ];
+    };
 
   # Genesys Logic hub autosuspends with delay 0 and takes the pool disks
   # off the bus with it (killed 6 SMART long tests). Keep it awake.

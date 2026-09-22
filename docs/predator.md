@@ -78,8 +78,14 @@ plus `APP_URL`; no extra firewall port, no basic-auth — the hub login is the
 gate). Hub and agent both bind localhost only. The agent reports the root
 disk plus `EXTRA_FILESYSTEMS`: `Fast-SSD`, `Archive-HDD`, and `Nextcloud`
 (ZFS dataset usage via `zfs list`). It runs with `PrivateDevices` relaxed
-just for `/dev/zfs`; SMART polling stays off so the dashboard never spins up
-the tank HDDs.
+just for `/dev/zfs`, plus a `nextcloud` supplementary group so it can stat
+the 0750 Nextcloud datadir; per-minute SMART polling stays off so the
+dashboard never spins up the tank HDDs.
+
+S.M.A.R.T. runs once a day instead (`services.smartd` in
+`modules/nixos/storage.nix`): short self-test at 12:00 on all four disks,
+12h attribute polling on the USB bridges (they don't reliably report
+standby), failures mail `mirsella@protonmail.com` once via Resend.
 
 `beszel-setup.service` converges the state PocketBase keeps out of NixOS
 options on every switch: Resend SMTP (key shared with Nextcloud, sender
