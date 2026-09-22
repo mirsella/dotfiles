@@ -29,6 +29,9 @@
   systemd.services.beszel-agent.serviceConfig = {
     PrivateDevices = lib.mkForce false;
     DeviceAllow = [ "/dev/zfs rw" ];
+    # /var/lib/nextcloud is 0750 nextcloud:nextcloud; the agent needs the
+    # group to stat the Nextcloud datadir entry.
+    SupplementaryGroups = [ "nextcloud" ];
   };
 
   # Hub credentials and heartbeat live in sops; the Resend key is shared
