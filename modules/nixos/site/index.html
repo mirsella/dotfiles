@@ -188,7 +188,6 @@
       display: grid;
       grid-template-columns: 56px minmax(0, 1fr) auto;
       align-items: center;
-      min-height: 0;
       gap: 14px;
       padding: 13px 18px;
       color: inherit;
@@ -209,11 +208,9 @@
       transition: transform 360ms cubic-bezier(.2,.8,.2,1);
     }
 
-    .service:hover,
-    .service:focus-visible { color: var(--ink); }
+    .service:is(:hover, :focus-visible) { color: var(--ink); }
 
-    .service:hover::before,
-    .service:focus-visible::before { transform: translateX(0); }
+    .service:is(:hover, :focus-visible)::before { transform: translateX(0); }
 
     .service:focus-visible { outline: 3px solid var(--lime); outline-offset: -3px; }
 
@@ -230,8 +227,7 @@
       letter-spacing: 0.12em;
     }
 
-    .service:hover .port,
-    .service:focus-visible .port { color: var(--hover-signal); }
+    .service:is(:hover, :focus-visible) .port { color: var(--hover-signal); }
 
     .service-name {
       display: block;
@@ -249,16 +245,14 @@
       line-height: 1.4;
     }
 
-    .service:hover .service-desc,
-    .service:focus-visible .service-desc { color: var(--hover-muted); }
+    .service:is(:hover, :focus-visible) .service-desc { color: var(--hover-muted); }
 
     .arrow {
       font-size: 1.5rem;
       transition: transform 180ms ease;
     }
 
-    .service:hover .arrow,
-    .service:focus-visible .arrow { transform: translate(5px, -5px); }
+    .service:is(:hover, :focus-visible) .arrow { transform: translate(5px, -5px); }
 
     .telemetry { padding: 16px 18px; }
 
@@ -313,7 +307,7 @@
       .heading { grid-template-columns: 1fr; }
       .node-mark { display: none; }
       .console { grid-template-columns: 1fr; }
-      .service { min-height: 0; grid-template-columns: 40px 1fr auto; padding: 12px 16px; gap: 12px; }
+      .service { grid-template-columns: 40px 1fr auto; padding: 12px 16px; gap: 12px; }
       .telemetry { padding: 16px; }
       header span:last-child { display: none; }
       footer { align-items: flex-start; flex-direction: column; }
@@ -414,14 +408,14 @@
   <script>
     const accessHost = window.location.hostname || "predator";
 
-    document.querySelector("#access-host").textContent = accessHost;
-    document.querySelector("#route").textContent = `${window.location.protocol.replace(":", "").toUpperCase()} / ${accessHost}`;
-    document.querySelector("#transport").textContent = window.location.protocol === "https:" ? "Let's Encrypt / public" : "Plain HTTP / local";
+    document.getElementById("access-host").textContent = accessHost;
+    document.getElementById("route").textContent = `${window.location.protocol.replace(":", "").toUpperCase()} / ${accessHost}`;
+    document.getElementById("transport").textContent = window.location.protocol === "https:" ? "Let's Encrypt / public" : "Plain HTTP / local";
 
-    const clock = document.querySelector("#clock");
+    const clock = document.getElementById("clock");
     const updateClock = () => {
       const now = new Date();
-      clock.dateTime = now.toISOString();
+      clock.setAttribute("datetime", now.toISOString());
       clock.textContent = now.toLocaleTimeString([], { hour12: false });
     };
     updateClock();

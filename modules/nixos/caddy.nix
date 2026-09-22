@@ -1,4 +1,16 @@
 { ... }:
+let
+  serveIndex = ''
+    root * ${./site}
+    encode zstd gzip
+    header {
+      Referrer-Policy no-referrer
+      X-Content-Type-Options nosniff
+      X-Frame-Options DENY
+    }
+    file_server
+  '';
+in
 {
   services.caddy = {
     enable = true;
@@ -21,12 +33,7 @@
           reverse_proxy 127.0.0.1:8080
         }
         handle {
-          header {
-            Referrer-Policy no-referrer
-            X-Content-Type-Options nosniff
-            X-Frame-Options DENY
-          }
-          file_server
+          ${serveIndex}
         }
       '';
       "https://mirsella.mooo.com:4096".extraConfig = ''
@@ -46,11 +53,7 @@
       "photos.mirsella.mooo.com".extraConfig = ''
         reverse_proxy 127.0.0.1:2283
       '';
-      "http://:80".extraConfig = ''
-        root * ${./site}
-        encode zstd gzip
-        file_server
-      '';
+      "http://:80".extraConfig = serveIndex;
     };
   };
 }
