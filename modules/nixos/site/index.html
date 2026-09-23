@@ -421,10 +421,16 @@
     document.getElementById("transport").textContent = window.location.protocol === "https:" ? "Let's Encrypt / public" : "Plain HTTP / local";
 
     const clock = document.getElementById("clock");
+    const timeFormatter = new Intl.DateTimeFormat([], {
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false,
+    });
     const updateClock = () => {
       const now = new Date();
       clock.setAttribute("datetime", now.toISOString());
-      clock.textContent = now.toLocaleTimeString([], { hour12: false });
+      clock.textContent = timeFormatter.format(now);
     };
     updateClock();
     setInterval(updateClock, 1000);
