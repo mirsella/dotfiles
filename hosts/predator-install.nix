@@ -1,8 +1,7 @@
 { config, pkgs, ... }:
 
 {
-  # Minimal installed system for restoring state before enabling server services.
-  # Mount the disks first; see docs/predator-reinstall.md.
+  # Minimal boot target for restoring existing disks before enabling server services.
   imports = [ ./predator-boot.nix ];
 
   networking.hostName = "predator";

@@ -2,11 +2,9 @@
 # hdd1: Seagate 1TB,   wwn-0x5000c500aa3cc143  (USB bridge)
 # hdd2: Toshiba 750GB, wwn-0x500003961228993f (USB bridge)
 #
-# Standalone fresh-install layout for ALL THREE data disks, excluding root/ESP.
-# Neither NixOS target imports this file. Runtime unlock is in storage.nix.
-# Formatting prompts for recovery passphrases; enroll TPM and HDD keyfiles later.
-# Reinstalling onto existing disks uses mounts, not this formatter.
-# See docs/predator-reinstall.md for both procedures.
+# Standalone fresh-install formatter for all three data disks, excluding root/ESP.
+# Neither installed target imports it. Recover existing disks by mounting them;
+# formatting destroys their data and requires re-enrolling TPM/HDD keys.
 {
   disko.devices =
     let

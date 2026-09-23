@@ -1,16 +1,41 @@
-Dotfiles (chezmoi source under `dotfiles/`, `.chezmoiroot`) plus declarative NixOS config for **predator**.
+# Repository workflow
 
-Edit in `~/dev/dotfiles`. Predator's configured rebuild checkout is still
-`~/dev/nixos`; check its local changes and copy only reviewed files. Avoid
-whole-tree `rsync --delete` over concurrent work. After syncing, rebuild with:
-`ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/nixos#predator'`
-The explicit path flake lets root build the user-owned checkout. Launch long
-rebuilds detached and poll their logs.
+The checkout is `~/dev/dotfiles` on every machine. `.chezmoiroot` selects
+`dotfiles/` as the chezmoi source; the flake at the repo root defines NixOS
+`predator`, minimal recovery target `predator-install`, and standalone Home
+Manager homes for Arch `laptop` and `main`.
 
-Manual files (kept outside this repo):
-- laptop uses plasma defaults (sleep on lid close), no special lid config; predator ignores the lid switch via `configuration.nix` logind settings (screen off instead of sleep)
-- Arch boxes: system Caddy (`/etc/caddy/Caddyfile`, system `caddy.service`), udev rules, pacman hooks
-- predator: Freebox LAN IP is `192.168.1.1` (not factory `.254`); the Toshiba USB bridge aborts extended SMART self-tests ~10 min in regardless, so rely on short tests plus the monthly scrub.
+- Chezmoi owns editable app configuration. Home Manager owns packages, generated
+  Git/SSH settings, user services and SOPS wiring. Keep each path under one
+  owner; `.chezmoiignore` lists the HM-owned paths.
+- Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include
+  unrelated changes in this shared repository, including staged Nix changes.
+  Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
+- On Arch, pacman/AUR own application binaries; the HM profiles install config
+  and services. On Predator, only rebuild the NixOS target, never activate a
+  standalone HM profile for the same user.
+- Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
+  especially `flake.lock` (the weekly upgrade updates nixpkgs there). Sync only
+  reviewed changes; do not use whole-tree `rsync --delete` over concurrent work.
+  Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles#predator'`.
+  Run long rebuilds detached and poll the unit log and exit status.
+- `nix flake check --no-build --no-update-lock-file` evaluates the flake;
+  `nix eval --impure --json --file tests/recovery.nix` checks recovery invariants.
+  Run the relevant Python tests for changed monitoring, unlock or suspend code.
+- `disko.nix` formats **all three data disks** only for a fresh, intentional
+  installation. For recovery, use `predator-install` and preserve the existing
+  LUKS headers, ZFS pools, Secure Boot signing bundle (`/var/lib/sbctl`), HDD
+  keys (`/etc/luks/`), and SOPS host identity (`/etc/ssh/ssh_host_ed25519_key`).
+  The database dumps and ZFS snapshots on `tank/backup` are on-machine only.
+
+Manual files outside the repo:
+- Laptop uses Plasma lid defaults; Predator ignores lid-close via
+  `configuration.nix` (screen off instead of sleep).
+- Arch boxes: system Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules
+  and pacman hooks.
+- Predator: Freebox LAN IP is `192.168.1.1`; the Toshiba USB bridge aborts
+  extended SMART tests after about 10 minutes, so use short tests and the
+  monthly scrub.
 
 ## LAN machine map (`~/.ssh/config` aliases)
 

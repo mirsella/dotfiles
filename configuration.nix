@@ -1,7 +1,6 @@
 { config, pkgs, inputs, ... }:
 let
-  # Predator's deployed checkout; the local working tree is ~/dev/dotfiles.
-  flakeDir = "/home/mirsella/dev/nixos";
+  flakeDir = "/home/mirsella/dev/dotfiles";
 in
 {
   imports = [
