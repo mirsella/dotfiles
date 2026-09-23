@@ -7,7 +7,10 @@
       Type = "oneshot";
       ExecStart = "${pkgs.python3}/bin/python3 ${./night-suspend.py}";
     };
-    startAt = "*-*-* 00..06:*:00";
+    startAt = [
+      "*-*-* 00:30..59:00"
+      "*-*-* 01..06:*:00"
+    ];
   };
   # Do not replay missed overnight checks on boot.
   systemd.timers.night-suspend.timerConfig.Persistent = false;

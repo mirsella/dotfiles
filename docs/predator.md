@@ -13,7 +13,7 @@ Times use Europe/Paris unless noted. List actual deadlines with
 | --- | --- | --- |
 | Database/configuration backup | Daily 23:00 | 14 complete sets on `tank/backup`; catches up after downtime |
 | Sanoid snapshots | Daily 23:30 | 7 daily and 4 weekly snapshots of `fast/ncdata`, `fast/data`, `tank/archive`, `tank/backup` |
-| Conditional suspend | Every minute from 00:00 through 06:59 | Skip if someone is logged in, a web connection is open, a web request arrived in the last 30 minutes, or maintenance is active; wake by RTC at 07:00 |
+| Conditional suspend | Every minute from 00:30 through 06:59 | Skip if someone is logged in, a web connection is open, a web request arrived in the last 30 minutes, or maintenance is active; wake by RTC at 07:00 |
 | NixOS updates | Sunday 10:00, up to 30 minutes later | Update stable `nixpkgs` as the checkout owner, build and switch; no automatic reboot |
 | Root SSD trim | Sunday 11:00 | Native fstrim service |
 | ZFS trim | Sunday 11:30, up to 15 minutes later | Native ZFS trim service |
@@ -30,7 +30,7 @@ off-machine backup. Database dumps and restore details are in [immich.md](immich
 The screen blanks after 60 seconds of console inactivity; a keypress restores
 the TTY. The Intel display driver remains available. NVIDIA runtime power
 management is left to its driver.
-Closing the lid does not suspend predator. From midnight to 07:00,
+Closing the lid does not suspend predator. From 00:30 to 07:00,
 `night-suspend` runs once a minute and checks SSH and local logins, external
 SSH/web connections (not internal loopback connections), Caddy access logs
 for the preceding 30 minutes, backup/maintenance units and Nix builds.
