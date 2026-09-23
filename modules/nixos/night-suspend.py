@@ -24,10 +24,6 @@ def output(*args):
 
 
 def last_request(path):
-    # Caddy's NixOS module writes one JSON access record per line. A rotated
-    # compressed log means requests were still arriving when it rolled over.
-    if path.suffix == ".gz":
-        return path.stat().st_mtime
     with path.open("rb") as log:
         size = log.seek(0, 2)
         log.seek(max(0, size - 131072))
@@ -54,7 +50,10 @@ def blocker(now):
         raise RuntimeError(f"missing Caddy access log directory: {LOGS}")
     cutoff = now - 30 * 60
     for path in LOGS.glob("access-*.log*"):
-        if path.stat().st_mtime >= cutoff and last_request(path) >= cutoff:
+        if path.stat().st_mtime < cutoff:
+            continue
+        # A fresh compressed rotation may contain recent requests; fail closed.
+        if path.suffix == ".gz" or last_request(path) >= cutoff:
             return "web request within 30 minutes"
 
     busy = output(

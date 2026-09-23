@@ -79,6 +79,10 @@ class MidnightCheck(unittest.TestCase):
         night.main()
         self.assertEqual(self.calls, [])
 
+    def test_fresh_rotated_log_blocks_without_decompressing(self):
+        (self.logs / "access-rotated.log.gz").write_bytes(b"compressed log")
+        self.assertEqual(night.blocker(time.time()), "web request within 30 minutes")
+
     def test_late_timer_after_morning_wake_does_not_suspend(self):
         night.datetime.now.return_value = datetime(2026, 9, 24, 7, 0)
         night.main()
