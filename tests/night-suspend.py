@@ -1,4 +1,4 @@
-"""The midnight check must never suspend a server with a user or recent traffic."""
+"""The overnight check must never suspend a server with recent activity."""
 
 import importlib.util
 import json
@@ -27,6 +27,8 @@ class MidnightCheck(unittest.TestCase):
         self.logs = root / "caddy"
         self.logs.mkdir()
         self.enterContext(patch.object(night, "LOGS", self.logs))
+        clock = self.enterContext(patch.object(night, "datetime"))
+        clock.now.return_value = datetime(2026, 9, 24, 0, 1)
         self.sessions = [{"class": "manager"}]
         self.connections = ""
         self.maintenance = ""
@@ -72,6 +74,11 @@ class MidnightCheck(unittest.TestCase):
 
     def test_recent_request_blocks_after_connection_closed(self):
         self.request(29 * 60)
+        night.main()
+        self.assertEqual(self.calls, [])
+
+    def test_late_timer_after_morning_wake_does_not_suspend(self):
+        night.datetime.now.return_value = datetime(2026, 9, 24, 7, 0)
         night.main()
         self.assertEqual(self.calls, [])
 

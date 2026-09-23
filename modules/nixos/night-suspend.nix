@@ -1,14 +1,14 @@
 { pkgs, ... }:
 {
   systemd.services.night-suspend = {
-    description = "Suspend at midnight when nobody has used the server recently";
+    description = "Suspend overnight when nobody has used the server recently";
     path = with pkgs; [ iproute2 procps util-linux ];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.python3}/bin/python3 ${./night-suspend.py}";
     };
-    startAt = "00:00";
+    startAt = "*-*-* 00..06:*:00";
   };
-  # Never run an overdue midnight check on boot or wake.
+  # Do not replay missed overnight checks on boot.
   systemd.timers.night-suspend.timerConfig.Persistent = false;
 }

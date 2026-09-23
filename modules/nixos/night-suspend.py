@@ -1,7 +1,7 @@
-"""One midnight attempt to suspend predator if nobody used it recently."""
+"""Suspend predator during the night once users and web traffic are gone."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 import subprocess
 import time
@@ -73,16 +73,18 @@ def blocker(now):
 
 
 def main():
+    now = datetime.now()
+    # A calendar timer can run late after wake; never suspend in the daytime.
+    if now.hour >= 7:
+        print("night-suspend: outside the overnight window")
+        return
+
     reason = blocker(time.time())
     if reason:
         print(f"night-suspend: blocked: {reason}")
         return
 
-    now = datetime.now()
-    wake = now.replace(hour=7, minute=0, second=0, microsecond=0)
-    if wake <= now:
-        wake += timedelta(days=1)
-    alarm = int(wake.timestamp())
+    alarm = int(now.replace(hour=7, minute=0, second=0, microsecond=0).timestamp())
     subprocess.run(("rtcwake", "--mode=no", "--time", str(alarm)), check=True)
     print("night-suspend: RTC alarm set for 07:00, requesting suspend", flush=True)
     subprocess.run(("systemctl", "--check-inhibitors=yes", "suspend"), check=True)
