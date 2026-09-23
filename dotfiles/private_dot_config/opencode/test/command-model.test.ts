@@ -20,22 +20,26 @@ const messageFor = (sessionID: string, model: ModelRef): Parameters<Hooks["chat.
 test("command overrides preserve fast mode and apply once per session", async () => {
   const hooks = await commandModel();
   const astra = { providerID: "openai", modelID: "gpt-6-astra", variant: "high" };
-  const luna = { providerID: "openai", modelID: "gpt-5.6-luna", variant: "max" };
+  const luna = { providerID: "openai", modelID: "gpt-6-luna", variant: "max" };
   const config = {
     model: "openai/gpt-6-astra",
     command: {
-      commit: { template: "Commit this session's changes", model: "openai/gpt-5.6-luna#max" },
-      plain: { template: "No thinking override", model: "openai/gpt-5.6-luna" },
-      fast: { template: "Explicit fast", model: "openai/gpt-5.6-luna-fast#max" },
+      commit: { template: "Commit this session's changes", model: "openai/gpt-6-luna#max" },
+      land: { template: "Commit, land on main or queue for later, and clean up", model: "openai/gpt-6-luna#max" },
+      plain: { template: "No thinking override", model: "openai/gpt-6-luna" },
+      fast: { template: "Explicit fast", model: "openai/gpt-6-luna-fast#max" },
       review: { template: "No model override" },
-      commitdiff: { template: "Commit diff", subtask: true, model: "openai/gpt-5.6-luna" },
+      commitdiff: { template: "Commit diff", subtask: true, model: "openai/gpt-6-luna" },
+      subagentcmd: { template: "Subagent cmd", subagent: true, model: "openai/gpt-6-luna" } as unknown as Config["command"][string],
     },
   } satisfies Config;
   await hooks.config(config);
   expect(config.model).toBe("openai/gpt-6-astra");
   expect(config.command.commit).toEqual({ template: "Commit this session's changes" });
+  expect(config.command.land).toEqual({ template: "Commit, land on main or queue for later, and clean up" });
   expect(config.command.plain.model).toBeUndefined();
-  expect(config.command.commitdiff.model).toBe("openai/gpt-5.6-luna");
+  expect(config.command.commitdiff.model).toBe("openai/gpt-6-luna");
+  expect((config.command.subagentcmd as unknown as { model?: string }).model).toBe("openai/gpt-6-luna");
   const command = (sessionID: string, name = "commit") =>
     hooks["command.execute.before"](
       { sessionID, command: name, arguments: "" },
@@ -60,7 +64,13 @@ test("command overrides preserve fast mode and apply once per session", async ()
   expect(astra.variant).toBe("high");
 
   await command("a", "plain");
-  expect(await chat("a")).toEqual({ providerID: "openai", modelID: "gpt-5.6-luna" });
+  expect(await chat("a")).toEqual({ providerID: "openai", modelID: "gpt-6-luna" });
+  expect(await chat("a")).toBe(astra);
+
+  await command("a", "land");
+  expect(await chat("a")).toEqual(luna);
+  expect(await chat("a")).toBe(astra);
+  await command("a", "subagentcmd");
   expect(await chat("a")).toBe(astra);
 
   await command("a", "review");
@@ -77,12 +87,12 @@ test("command overrides preserve fast mode and apply once per session", async ()
 
   // openai command overrides preserve the source model's fast mode.
   for (const [name, modelID, expectedModelID, variant] of [
-    ["commit", "gpt-6-astra-fast", "gpt-5.6-luna-fast", "max"],
-    ["commit", "gpt-5.6-sol-fast", "gpt-5.6-luna-fast", "max"],
-    ["commit", "gpt-6-astra", "gpt-5.6-luna", "max"],
-    ["fast", "gpt-6-astra-fast", "gpt-5.6-luna-fast", "max"],
-    ["fast", "gpt-6-astra", "gpt-5.6-luna-fast", "max"],
-    ["plain", "gpt-6-astra-fast", "gpt-5.6-luna-fast", undefined],
+    ["commit", "gpt-6-astra-fast", "gpt-6-luna-fast", "max"],
+    ["commit", "gpt-5.6-sol-fast", "gpt-6-luna-fast", "max"],
+    ["commit", "gpt-6-astra", "gpt-6-luna", "max"],
+    ["fast", "gpt-6-astra-fast", "gpt-6-luna-fast", "max"],
+    ["fast", "gpt-6-astra", "gpt-6-luna-fast", "max"],
+    ["plain", "gpt-6-astra-fast", "gpt-6-luna-fast", undefined],
   ] as const) {
     const source = Object.freeze({ providerID: "openai", modelID, variant: "medium" });
     await command("a", name);
@@ -96,7 +106,7 @@ test("command overrides never switch the session to another provider", async () 
   const hooks = await commandModel();
   const config = {
     command: {
-      commit: { template: "Commit this session's changes", model: "openai/gpt-5.6-luna#max" },
+      commit: { template: "Commit this session's changes", model: "openai/gpt-6-luna#max" },
       other: { template: "Other provider", model: "other/model#high" },
     },
   } satisfies Config;
@@ -117,7 +127,7 @@ test("command overrides never switch the session to another provider", async () 
 
   const openai = Object.freeze({ providerID: "openai", modelID: "gpt-6-astra", variant: "high" });
   expect(await run("other", openai)).toBe(openai);
-  expect(await run("commit", openai)).toEqual({ providerID: "openai", modelID: "gpt-5.6-luna", variant: "max" });
+  expect(await run("commit", openai)).toEqual({ providerID: "openai", modelID: "gpt-6-luna", variant: "max" });
 });
 
 test("rejects malformed command models", async () => {

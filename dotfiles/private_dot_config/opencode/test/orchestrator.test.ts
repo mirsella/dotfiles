@@ -11,7 +11,7 @@ import orchestrator from "../plugins/orchestrator";
 type Model = { providerID: string; modelID: string; variant?: string };
 type Marker = { fast: boolean } | { model: Model };
 
-const luna: Model = { providerID: "openai", modelID: "gpt-5.6-luna", variant: "max" };
+const luna: Model = { providerID: "openai", modelID: "gpt-6-luna", variant: "max" };
 const deepseek: Model = MODE_MODELS.go;
 const solFast = (variant: "high" | "low"): Model => ({ providerID: "openai", modelID: "gpt-5.6-sol-fast", variant });
 const astra: Model = { providerID: "openai", modelID: "gpt-6-astra" };
@@ -122,8 +122,16 @@ const setup = async (messages: SessionMessagesResponse = [user(), assistant()]) 
     await hooks["tool.definition"]({ toolID }, output);
     return output.description;
   };
+  const system = async (providerID = "openai", modelID = "gpt-6-astra") => {
+    const output = { system: [] as string[] };
+    await hooks["experimental.chat.system.transform"](
+      { model: { providerID, modelID } as Model },
+      output,
+    );
+    return output.system;
+  };
   const setState = (subagentState: State) => writeState(subagentState, file);
-  return { hooks, state, histories, requests, task, prompt, definition, setState };
+  return { hooks, state, histories, requests, task, prompt, definition, system, setState };
 };
 
 test("registers astra defaults and leaves other agents untouched", async () => {
@@ -179,6 +187,25 @@ test("leaves unrelated tool definitions unchanged", async () => {
   const { definition, requests } = await setup();
   expect(await definition("read", "Read files")).toBe("Read files");
   expect(requests).toEqual([]);
+});
+
+test("system prompt allows astra only in OpenAI sessions", async () => {
+  const { system } = await setup();
+  expect(await system("openai")).toEqual([
+    expect.stringContaining("you are in an OpenAI main session"),
+  ]);
+  expect((await system("openai"))[0]).toContain("choose astra yourself");
+});
+
+test("system prompt forbids astra for other providers unless explicitly named", async () => {
+  const { system } = await setup();
+  for (const providerID of ["openrouter", "opencode-go", "unknown"]) {
+    const injected = await system(providerID);
+    expect(injected).toHaveLength(1);
+    expect(injected[0]).toContain(`you are in a ${providerID} main session, not OpenAI`);
+    expect(injected[0]).toContain('NEVER delegate to astra unless the latest user message explicitly names "astra"');
+    expect(injected[0]).toContain("unavailable from child sessions");
+  }
 });
 
 test("OpenAI main sessions tag every worker with the current speed", async () => {
@@ -349,7 +376,7 @@ test("forced Go mode rewrites general and explore from any provider", async () =
     for (const agent of ["general", "explore"]) {
       const marked = await task(agent);
       expect(markerOf(marked)).toEqual(forced(deepseek));
-      expect(await prompt("child", agent, "gpt-5.6-luna", marked)).toMatchObject(deepseek);
+      expect(await prompt("child", agent, "gpt-6-luna", marked)).toMatchObject(deepseek);
     }
   }
 });
@@ -448,7 +475,7 @@ test("astra follows fast mode and keeps explicit custom models authoritative", a
 test("unrelated prompts and non-worker agents are unchanged", async () => {
   const { task, prompt } = await setup();
   expect((await prompt("session", "build", "gpt-6-astra-fast")).modelID).toBe("gpt-6-astra-fast");
-  expect((await prompt("child", "luna", "gpt-5.6-luna", await task("astra"))).modelID).toBe("gpt-5.6-luna");
+  expect((await prompt("child", "luna", "gpt-6-luna", await task("astra"))).modelID).toBe("gpt-6-luna");
   expect((await prompt("child", "astra", "gpt-6-astra-fast", await task("astra"), "other")).modelID).toBe("gpt-6-astra-fast");
 });
 
@@ -510,8 +537,8 @@ test("later hook corrections keep the parent's speed without pinning the origina
     state.messages = [user(), fast ? fastAssistant() : assistant()];
     const source = await task("astra");
     // The watchdog rewrites subagent_type when resuming a different original worker.
-    expect(await prompt("child", "general", "gpt-5.6-luna", source)).toMatchObject(fast ? solFast("high") : luna);
-    expect(await prompt("child", "explore", "gpt-5.6-luna", source)).toMatchObject(fast ? solFast("low") : luna);
+    expect(await prompt("child", "general", "gpt-6-luna", source)).toMatchObject(fast ? solFast("high") : luna);
+    expect(await prompt("child", "explore", "gpt-6-luna", source)).toMatchObject(fast ? solFast("low") : luna);
   }
 });
 
@@ -522,7 +549,7 @@ test("corrupted model markers fail explicitly", async () => {
   const corrupted = [
     `${prefix}{not json}>\n${taskPrompt}`,
     `${prefix}{"fast":"yes"}>\n${taskPrompt}`,
-    `${prefix}{"fast":false,"model":{"providerID":"openai","modelID":"gpt-5.6-luna"}}>\n${taskPrompt}`,
+    `${prefix}{"fast":false,"model":{"providerID":"openai","modelID":"gpt-6-luna"}}>\n${taskPrompt}`,
     `${prefix}{"model":{"providerID":"openai"}}>\n${taskPrompt}`,
     `${prefix}{}>\n${taskPrompt}`,
     `${prefix}{"fast":false}${taskPrompt}`,

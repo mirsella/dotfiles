@@ -1,6 +1,6 @@
 ---
 description: Git commit
-model: openai/gpt-5.6-luna#max
+model: openai/gpt-6-luna#max
 ---
 
 Commit the changes made in this session. Inspect status, the diff, and recent commit

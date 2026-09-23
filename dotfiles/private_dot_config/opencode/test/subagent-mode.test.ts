@@ -54,7 +54,7 @@ test("invalid fields are dropped without discarding the scope", () => {
   writeFileSync(
     file,
     JSON.stringify({
-      global: { mode: "nope", models: { go: { providerID: "", modelID: "x" }, codex: { providerID: "openai", modelID: "gpt-5.6-luna", variant: 7 } } },
+      global: { mode: "nope", models: { go: { providerID: "", modelID: "x" }, codex: { providerID: "openai", modelID: "gpt-6-luna", variant: 7 } } },
       sessions: { one: { mode: "go", models: { go: "deepseek" } }, two: { mode: "codex" } },
     }),
   );

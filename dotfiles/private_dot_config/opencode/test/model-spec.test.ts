@@ -4,15 +4,15 @@ import { asModelSpec, formatModel, parseModel } from "../lib/model-spec";
 test("parses and formats provider/model[#variant] specs", () => {
   const specs = [
     { providerID: "opencode-go", modelID: "deepseek-v4.1-flash", variant: "max" },
-    { providerID: "openai", modelID: "gpt-5.6-luna" },
+    { providerID: "openai", modelID: "gpt-6-luna" },
   ];
   for (const spec of specs) expect(parseModel(formatModel(spec))).toEqual(spec);
-  expect(formatModel({ providerID: "openai", modelID: "gpt-5.6-luna", variant: "max" })).toBe(
-    "openai/gpt-5.6-luna#max",
+  expect(formatModel({ providerID: "openai", modelID: "gpt-6-luna", variant: "max" })).toBe(
+    "openai/gpt-6-luna#max",
   );
-  expect(parseModel("  openai/gpt-5.6-luna#max  ")).toEqual({
+  expect(parseModel("  openai/gpt-6-luna#max  ")).toEqual({
     providerID: "openai",
-    modelID: "gpt-5.6-luna",
+    modelID: "gpt-6-luna",
     variant: "max",
   });
 });

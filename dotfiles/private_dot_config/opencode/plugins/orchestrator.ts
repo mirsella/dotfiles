@@ -14,7 +14,7 @@ type Worker = {
   reasoningEffort?: string;
 };
 
-const lunaMax = { providerID: "openai", modelID: "gpt-5.6-luna", variant: "max" } satisfies ModelSpec;
+const lunaMax = { providerID: "openai", modelID: "gpt-6-luna", variant: "max" } satisfies ModelSpec;
 const solFast = (variant: "high" | "low"): ModelSpec => ({
   providerID: "openai",
   modelID: "gpt-5.6-sol-fast",
@@ -36,11 +36,22 @@ const workers = {
 } satisfies Record<WorkerName, Worker>;
 
 const workerFor = (name?: string): Worker | undefined =>
-  name === undefined ? undefined : (workers as Record<string, Worker | undefined>)[name];
+  name !== undefined && name in workers ? workers[name as WorkerName] : undefined;
+
+const childSuffix = "These workers are unavailable from child sessions.";
 
 const taskPolicy = `Delegation policy for task calls:
 general and explore are the default workers. Choose astra yourself only in OpenAI main sessions; from any other provider, call it only when the user explicitly requests it.
-These workers are unavailable from child sessions.`;
+${childSuffix}`;
+
+const systemPolicy = (providerID: string) =>
+  providerID === "openai"
+    ? `Delegation policy for task calls (you are in an OpenAI main session):
+general and explore are the default workers. You may choose astra yourself for difficult or high-stakes subtasks.
+${childSuffix}`
+    : `Delegation policy for task calls (you are in a ${providerID} main session, not OpenAI):
+your only workers are general and explore. NEVER delegate to astra unless the latest user message explicitly names "astra".
+${childSuffix}`;
 
 // The task prompt is the only channel that reaches the child session, so the
 // routing decision rides along as a marker and is stripped again in chat.message.
@@ -50,24 +61,23 @@ export default (async ({ client }) => {
   const prefix = `<opencode-orchestrator-${crypto.randomUUID()}:`;
   const encodeMarker = (marker: Marker) => `${prefix}${JSON.stringify(marker)}>\n`;
   const decodeMarker = (agent: string | undefined, text: string): { marker: Marker; length: number } => {
-    const invalid = () => new Error(`Invalid orchestrator model marker for agent ${agent}`);
     const end = text.indexOf(">\n", prefix.length);
-    if (end === -1) throw invalid();
-    let raw: unknown;
-    try {
-      raw = JSON.parse(text.slice(prefix.length, end));
-    } catch {
-      throw invalid();
+    const raw = (() => {
+      if (end === -1) return undefined;
+      try {
+        return JSON.parse(text.slice(prefix.length, end)) as { fast?: unknown; model?: unknown };
+      } catch {
+        return undefined;
+      }
+    })();
+    if (raw !== undefined) {
+      if (typeof raw.fast === "boolean" && raw.model === undefined)
+        return { marker: { fast: raw.fast }, length: end + 2 };
+      const spec = asModelSpec(raw.model);
+      if (raw.fast === undefined && spec !== undefined)
+        return { marker: { model: spec }, length: end + 2 };
     }
-    if (typeof raw !== "object" || raw === null) throw invalid();
-    const { fast, model } = raw as Record<string, unknown>;
-    if (fast === undefined) {
-      const spec = asModelSpec(model);
-      if (spec === undefined) throw invalid();
-      return { marker: { model: spec }, length: end + 2 };
-    }
-    if (model !== undefined || typeof fast !== "boolean") throw invalid();
-    return { marker: { fast }, length: end + 2 };
+    throw new Error(`Invalid orchestrator model marker for agent ${agent}`);
   };
 
   // The assistant that invoked a task owns its model. Queued user messages can be
@@ -138,16 +148,13 @@ export default (async ({ client }) => {
   return {
     config: async (config) => {
       config.agent ??= {};
-      const existing = config.agent.astra;
+      const existing = config.agent.astra as { options?: Record<string, unknown> } | undefined;
       config.agent.astra = {
         description: workers.astra.description,
         mode: "subagent",
         model: `${workers.astra.auto.normal.providerID}/${workers.astra.auto.normal.modelID}`,
         ...existing,
-        options: {
-          reasoningEffort: workers.astra.reasoningEffort,
-          ...(existing?.options as Record<string, unknown> | undefined),
-        },
+        options: { reasoningEffort: workers.astra.reasoningEffort, ...existing?.options },
       };
     },
     // Overrides live in a state file owned by the /subagents dialog; keep it from
@@ -161,6 +168,12 @@ export default (async ({ client }) => {
     },
     "tool.definition": async ({ toolID }, output) => {
       if (toolID === "task") output.description += `\n\n${taskPolicy}`;
+    },
+    "experimental.chat.system.transform": async ({ model }, output) => {
+      const providerID = (model as { providerID?: unknown } | undefined)?.providerID;
+      const policy = systemPolicy(typeof providerID === "string" && providerID ? providerID : "unknown");
+      // Qwen templates require a single initial system message.
+      output.system.splice(0, output.system.length, [...output.system, policy].join("\n\n"));
     },
     "tool.execute.before": async ({ tool, sessionID, callID }, output) => {
       if (tool !== "task") return;
@@ -186,9 +199,10 @@ export default (async ({ client }) => {
     },
     "chat.message": async ({ agent }, { message, parts }) => {
       const part = parts.find(
-        (part) => part.type === "text" && part.text.startsWith(prefix),
+        (part): part is Extract<typeof part, { type: "text" }> =>
+          part.type === "text" && part.text.startsWith(prefix),
       );
-      if (part?.type !== "text") return;
+      if (!part) return;
       const { marker, length } = decodeMarker(agent, part.text);
       // Remove transport metadata before the child message is persisted or sent to an LLM.
       part.text = part.text.slice(length);

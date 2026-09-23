@@ -1,6 +1,6 @@
 ---
 description: Git commit
-model: openai/gpt-5.6-luna#max
+model: openai/gpt-6-luna#max
 ---
 
 Use the existing conversation context to identify the changes performed by this session that have not yet been committed. Stay in this session; do not delegate to a subagent.
