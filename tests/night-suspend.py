@@ -31,6 +31,7 @@ class MidnightCheck(unittest.TestCase):
         clock.now.return_value = datetime(2026, 9, 24, 0, 1)
         self.sessions = [{"class": "manager"}]
         self.connections = ""
+        self.connection_filter = ""
         self.maintenance = ""
         self.worker_status = 1
         self.calls = []
@@ -39,6 +40,7 @@ class MidnightCheck(unittest.TestCase):
             if args[0] == "loginctl":
                 return json.dumps(self.sessions)
             if args[0] == "ss":
+                self.connection_filter = args[-1]
                 return self.connections
             if args[0] == "systemctl":
                 return self.maintenance
@@ -89,6 +91,8 @@ class MidnightCheck(unittest.TestCase):
     def test_live_web_connection_blocks(self):
         self.connections = "0 0 192.168.1.19:443 192.168.1.61:55222"
         self.assertEqual(night.blocker(time.time()), "active SSH or web connection")
+        self.assertIn("not dst 127.0.0.0/8", self.connection_filter)
+        self.assertIn("not dst ::1/128", self.connection_filter)
 
     def test_backup_and_build_workers_block(self):
         self.maintenance = "db-backup.service loaded active running Backup\n"

@@ -42,7 +42,11 @@ def blocker(now):
     if any(session["class"].startswith("user") for session in sessions):
         return "SSH or local login session"
 
-    ports = "( sport = :22 or sport = :80 or sport = :443 or sport = :4096 or sport = :4097 or sport = :14096 or sport = :14097 or sport = :2283 )"
+    ports = (
+        "( sport = :22 or sport = :80 or sport = :443 or sport = :4096"
+        " or sport = :4097 or sport = :14096 or sport = :14097 or sport = :2283 )"
+        " and not dst 127.0.0.0/8 and not dst ::1/128"
+    )
     if output("ss", "-Htn", "state", "established", ports).strip():
         return "active SSH or web connection"
 

@@ -31,9 +31,9 @@ The screen blanks after 60 seconds of console inactivity; a keypress restores
 the TTY. The Intel display driver remains available. NVIDIA runtime power
 management is left to its driver.
 Closing the lid does not suspend predator. From midnight to 07:00,
-`night-suspend` runs once a minute and checks SSH and local logins, open SSH/web
-connections, Caddy access logs for the preceding 30 minutes, running
-backups/maintenance and Nix builds.
+`night-suspend` runs once a minute and checks SSH and local logins, external
+SSH/web connections (not internal loopback connections), Caddy access logs
+for the preceding 30 minutes, backup/maintenance units and Nix builds.
 It does not inspect disk activity. If busy, it tries again the next minute.
 When idle, it sets the 07:00 local RTC wake alarm before requesting suspend.
 The Raspberry Pi sends a wake-on-LAN packet at 07:00 as a fallback if the RTC
