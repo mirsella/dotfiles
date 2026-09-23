@@ -56,10 +56,18 @@ class FakeHub(BaseHTTPRequestHandler):
 
     def do_PATCH(self):
         body = self._read_body()
-        self.calls.append(("PATCH", "settings"))
-        for section, values in body.items():
-            self.state["settings"][section].update(values)
-        return self._json(204, {})
+        if self.path == "/api/settings":
+            self.calls.append(("PATCH", "settings"))
+            for section, values in body.items():
+                self.state["settings"][section].update(values)
+            return self._json(204, {})
+        collection = self.path.split("/")[3]
+        self.calls.append(("PATCH", collection))
+        record = next(
+            r for r in self.state[collection] if r["id"] == self.path.rsplit("/", 1)[1]
+        )
+        record.update(body)
+        return self._json(200, record)
 
 
 def fresh_state():
@@ -151,6 +159,20 @@ class BeszelSetup(unittest.TestCase):
         proc = self.run_script(password="wrong")
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("superuser upsert", proc.stderr)
+
+    def test_repairs_existing_records_without_resetting_password(self):
+        self.assertEqual(self.run_script().returncode, 0)
+        FakeHub.state["users"][0].update(role="user", password="changed-by-user")
+        FakeHub.state["systems"][0].update(port="9999", users=[])
+        FakeHub.calls = []
+
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(FakeHub.calls, [("PATCH", "users"), ("PATCH", "systems")])
+        self.assertEqual(FakeHub.state["users"][0]["role"], "admin")
+        self.assertEqual(FakeHub.state["users"][0]["password"], "changed-by-user")
+        self.assertEqual(FakeHub.state["systems"][0]["port"], "45876")
+        self.assertEqual(FakeHub.state["systems"][0]["users"], ["users-1"])
 
 
 if __name__ == "__main__":

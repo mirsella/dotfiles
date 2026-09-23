@@ -16,7 +16,6 @@ chezmoi diff                  # --reverse previews the opposite direction
 chezmoi re-add                # local versions -> repo
 chezmoi apply                 # repo -> this machine (--interactive for decisions)
 chezmoi forget <path>         # stop tracking, keep the live file
-git add <changed files>; git commit -m "..."; git push   # explicit publishing only
 # another machine:
 git pull --ff-only             # then review
 chezmoi status                 # then apply explicitly
@@ -24,6 +23,12 @@ chezmoi status                 # then apply explicitly
 
 `dots sync` never auto-applies. `nix flake update` is explicit maintenance:
 review, then build all three targets before committing the new lock.
+
+`chezmoi add` and `chezmoi re-add` auto-commit and push after changing the
+source. Run `chezmoi init` once after updating the config template to regenerate
+`~/.config/chezmoi/chezmoi.toml`. Because `sourceDir` is this entire repo,
+chezmoi also stages other local repo changes in the same commit. Review or
+finish those changes first, and pull remote commits before pushing.
 
 ## Ownership
 

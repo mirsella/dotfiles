@@ -73,21 +73,20 @@ firewall and idle policy use TCP.
 
 ## Monitoring (Beszel)
 
-The hub serves at `https://mirsella.mooo.com/beszel` (Caddy `handle_path`
-plus `APP_URL`; no extra firewall port, no basic-auth — the hub login is the
-gate). Hub and agent both bind localhost only. The agent reports the root
-disk plus `EXTRA_FILESYSTEMS`: `Fast-SSD`, `Archive-HDD`, and `Nextcloud`
-(ZFS dataset usage via `zfs list`). It runs with `PrivateDevices` relaxed
-just for `/dev/zfs`, plus a `nextcloud` supplementary group so it can stat
-the 0750 Nextcloud datadir; per-minute SMART polling stays off so the
-dashboard never spins up the tank HDDs.
+The hub serves at `https://mirsella.mooo.com/beszel` through Caddy; hub and
+agent bind localhost only. The agent reports root, `Fast-SSD`, `Archive-HDD`,
+and `Nextcloud` usage (the ZFS datasets via `zfs list`). The `nextcloud`
+group grants access to the 0750 datadir. SMART monitoring shows the four
+disks on `/beszel/smart`. Device cgroup rules permit the disks and `/dev/zfs`;
+the USB bridges require `:sat` passthrough. Beszel reads SMART attributes
+hourly, which can wake disks but does not schedule self-tests.
 
-S.M.A.R.T. runs once a day instead (`services.smartd` in
-`modules/nixos/storage.nix`): short self-test at 12:00 on all four disks,
-12h attribute polling on the USB bridges (they don't reliably report
-standby), failures mail `mirsella@protonmail.com` once via Resend.
+`services.smartd` in `modules/nixos/storage.nix` schedules short self-tests
+at 12:00 on all four disks and polls the USB bridges every 12 hours (their
+standby reporting is unreliable). Failures mail `mirsella@protonmail.com`
+once via Resend.
 
-`beszel-setup.service` converges the state PocketBase keeps out of NixOS
+`beszel-setup.service` configures the state PocketBase keeps out of NixOS
 options on every switch: Resend SMTP (key shared with Nextcloud, sender
 `Beszel <noreply@voxride.com>`), the hub admin account, and the `predator`
 system entry. Secrets live in `secrets/beszel.yaml` (`heartbeat_env`,
