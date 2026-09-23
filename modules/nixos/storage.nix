@@ -96,7 +96,7 @@
       # Failure mail via the Resend key shared with Nextcloud/Beszel.
       # smartd runs this as root with SMARTD_* env vars on failure events.
       alert = pkgs.writeShellScript "smartd-resend-alert" ''
-        set -u
+        set -eu
         key=$(cat ${config.sops.secrets.nextcloud-resend.path})
         subject="SMART ''${SMARTD_FAILTYPE:-alert}: ''${SMARTD_DEVICE:-unknown} on predator"
         body=$(printf '%s\n' "SMART event on predator at $(date -Is)" "" "Device: ''${SMARTD_DEVICE:-?}" "Type: ''${SMARTD_FAILTYPE:-?}" "" "''${SMARTD_MESSAGE:-}")
@@ -111,7 +111,7 @@
           -H 'Content-Type: application/json' \
           --data "$payload"
       '';
-      # Predator sleeps through the upstream example's 02:00 self-test.
+      # Run short self-tests at noon.
       monitored = "-a -o on -S on -s (S/../.././12) -M once -M exec ${alert}";
     in
     {
@@ -121,14 +121,13 @@
       devices = [
         { device = "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68"; }
         { device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68"; }
-        # Neither USB bridge reliably reports standby, so avoid frequent polling.
         {
           device = "/dev/disk/by-id/wwn-0x5000c500aa3cc143";
-          options = "-d sat -n standby,q -c interval=43200";
+          options = "-d sat";
         }
         {
           device = "/dev/disk/by-id/wwn-0x500003961228993f";
-          options = "-d sat -n standby,q -c interval=43200";
+          options = "-d sat";
         }
       ];
     };

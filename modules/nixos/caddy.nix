@@ -14,7 +14,7 @@ in
 {
   services.caddy = {
     enable = true;
-    # The idle policy tracks TCP sessions; do not advertise blocked HTTP/3 ports.
+    # The firewall only allows TCP/443, so do not advertise HTTP/3.
     globalConfig = ''
       servers {
         protocols h1 h2

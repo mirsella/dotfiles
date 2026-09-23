@@ -11,43 +11,37 @@ Times use Europe/Paris unless noted. List actual deadlines with
 
 | Job | Schedule | Policy |
 | --- | --- | --- |
-| Database/configuration backup | Daily 23:00 | 14 complete sets on `tank/backup`; catches up after downtime; inhibits sleep |
+| Database/configuration backup | Daily 23:00 | 14 complete sets on `tank/backup`; catches up after downtime |
 | Sanoid snapshots | Daily 23:30 | 7 daily and 4 weekly snapshots of `fast/ncdata`, `fast/data`, `tank/archive`, `tank/backup` |
+| Conditional suspend | Daily 00:00 | Skip if someone is logged in, a web connection is open, a web request arrived in the last 30 minutes, or maintenance is active; wake by RTC at 07:00 |
 | NixOS updates | Sunday 10:00, up to 30 minutes later | Update stable `nixpkgs` as the checkout owner, build and switch; no automatic reboot |
 | Root SSD trim | Sunday 11:00 | Native fstrim service |
 | ZFS trim | Sunday 11:30, up to 15 minutes later | Native ZFS trim service |
-| ZFS scrub | First of each month, 10:00, up to 30 minutes later | Both pools; blocks nightly suspend while running |
-| Nextcloud heavy background work | Starts 06:00 UTC | Nextcloud maintenance window, after the local morning wake time |
+| ZFS scrub | First of each month, 10:00, up to 30 minutes later | Both pools |
+| Nextcloud heavy background work | Starts 06:00 UTC | Nextcloud maintenance window |
 
 Sanoid snapshots unchanged datasets as well. ZFS shares their existing data
 blocks. Snapshot retention no longer depends on filesystem events or dirty flags.
 Snapshots live on the same pools as their source data and do not replace an
 off-machine backup. Database dumps and restore details are in [immich.md](immich.md).
 
-## Sleep and local access
+## Local access
 
 The screen blanks after 60 seconds of console inactivity; a keypress restores
 the TTY. The Intel display driver remains available. NVIDIA runtime power
 management is left to its driver.
-
-The idle check samples the two HDDs and the media SSD every five minutes during
-the day and every minute between midnight and 07:00. Media I/O keeps the machine
-awake during background photo processing, including I/O still in flight. One
-shared idle clock uses kernel uptime, so wall-clock corrections cannot shorten
-the quiet period. State lives under `/run/night-suspend`; each reboot starts a
-fresh 45-minute quiet period.
-It blocks sleep for user login sessions, established SSH/application TCP
-connections, Nix build workers, and the configured maintenance services.
-The final suspend request honors system sleep inhibitors and requires a
-successfully programmed 07:00 RTC alarm.
-
-Both USB HDDs use 12-hour SMART polling because their bridges cannot reliably
-report standby. SMART checks can still spin up a disk; the idle monitor itself
-only reads kernel counters.
+Closing the lid does not suspend predator. At midnight, `night-suspend`
+checks SSH and local logins, open SSH/web connections, Caddy access logs
+for the preceding 30 minutes, running backups/maintenance and Nix builds.
+It does not inspect disk activity. If busy, it stays awake until the next
+night's attempt; it does not suspend in the middle of a session. When idle,
+it sets the 07:00 local RTC wake alarm before requesting suspend. The Raspberry
+Pi sends a wake-on-LAN packet at 07:00 as a fallback if the RTC wake fails.
 
 Ethernet magic-packet wake is a NetworkManager connection default. A saved
 connection's explicit wake-on-LAN setting takes precedence. Changing this
-default does not require disconnecting an active interface.
+default does not require disconnecting an active interface. The Raspberry Pi's
+scheduled wake and manual wake-on-LAN are available.
 
 OpenCode's Home Manager unit uses `X-SwitchMethod=keep-old`. Rebuilds install
 new unit definitions while retaining a running instance. Restart it explicitly
@@ -69,7 +63,7 @@ preferences are documented in [Nextcloud preferences](nextcloud.md).
 
 Caddy redirects DAV and discovery URLs into `/nextcloud`, preserves Nextcloud's
 frame policy, and serves HTTP/1.1 and HTTP/2. HTTP/3 is disabled because the
-firewall and idle policy use TCP.
+firewall only permits TCP/443.
 
 ## Monitoring (Beszel)
 
@@ -79,12 +73,11 @@ and `Nextcloud` usage (the ZFS datasets via `zfs list`). The `nextcloud`
 group grants access to the 0750 datadir. SMART monitoring shows the four
 disks on `/beszel/smart`. Device cgroup rules permit the disks and `/dev/zfs`;
 the USB bridges require `:sat` passthrough. Beszel reads SMART attributes
-hourly, which can wake disks but does not schedule self-tests.
+hourly; it does not schedule self-tests.
 
 `services.smartd` in `modules/nixos/storage.nix` schedules short self-tests
-at 12:00 on all four disks and polls the USB bridges every 12 hours (their
-standby reporting is unreliable). Failures mail `mirsella@protonmail.com`
-once via Resend.
+at 12:00 on all four disks and checks SMART every 30 minutes by default.
+Failures mail `mirsella@protonmail.com` once via Resend.
 
 `beszel-setup.service` configures the state PocketBase keeps out of NixOS
 options on every switch: Resend SMTP (key shared with Nextcloud, sender
@@ -96,8 +89,8 @@ Proton Pass under `Beszel (predator)`.
 
 Heartbeat to Healthchecks.io is live: `HEARTBEAT_URL` in `heartbeat_env`
 (empty value disables it). The Healthchecks side is a cron check
-`* 7-23 * * *`, `Europe/Paris`, 5 minute grace: predator only suspends in
-the 00:00–07:00 window, so night silence means asleep, not down.
+`* 7-23 * * *`, `Europe/Paris`, 5 minute grace, excluding the overnight
+suspend window (even when activity keeps the machine awake).
 Notifications go to both email (`mirsella@protonmail.com`) and Telegram
 (paired via `@HealthchecksBot` to the `predator` project, same as voxride).
 
@@ -107,14 +100,11 @@ Notifications go to both email (`mirsella@protonmail.com`) and Telegram
 nix flake check --no-build --no-update-lock-file
 nix build --no-update-lock-file --max-jobs 1 --cores 4 \
   .#nixosConfigurations.predator.config.system.build.toplevel
-python3 tests/night-suspend.py "$(nix eval --raw \
-  .#nixosConfigurations.predator.config.systemd.services.night-suspend.serviceConfig.ExecStart)"
+python3 tests/night-suspend.py
 sudo systemctl --failed
 sudo nextcloud-occ setupchecks
 curl --fail https://photos.mirsella.mooo.com/api/server/ping
 ```
 
-The sleep regression tests use fake devices, clocks, sessions and systemctl;
-they never suspend the host. Flake checking without a build only evaluates
-configuration. Changes to boot parameters and EFI permissions also need a
-later boot or mount verification.
+Flake checking without a build only evaluates configuration. Changes to boot
+parameters and EFI permissions also need a later boot or mount verification.

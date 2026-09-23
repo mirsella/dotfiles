@@ -59,7 +59,7 @@ def wait_for_hub():
         try:
             if request("GET", "/api/health"):
                 return
-        except OSError:
+        except (OSError, ApiError):
             pass
         time.sleep(2)
     sys.exit("beszel-setup: hub not reachable at " + HUB)

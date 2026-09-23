@@ -10,7 +10,7 @@ rebuilds detached and poll their logs.
 Manual files (kept outside this repo):
 - laptop uses plasma defaults (sleep on lid close), no special lid config; predator ignores the lid switch via `configuration.nix` logind settings (screen off instead of sleep)
 - Arch boxes: system Caddy (`/etc/caddy/Caddyfile`, system `caddy.service`), udev rules, pacman hooks
-- predator: Freebox LAN IP is `192.168.1.1` (not factory `.254`); `hd-idle` must be stopped during SMART long tests or it spins the disk down mid-test (every rebuild restarts it, so stop it again right after). The Toshiba USB bridge aborts extended self-tests ~10 min in regardless; rely on short tests plus the monthly scrub.
+- predator: Freebox LAN IP is `192.168.1.1` (not factory `.254`); the Toshiba USB bridge aborts extended SMART self-tests ~10 min in regardless, so rely on short tests plus the monthly scrub.
 
 ## LAN machine map (`~/.ssh/config` aliases)
 

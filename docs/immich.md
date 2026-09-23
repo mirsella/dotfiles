@@ -41,8 +41,8 @@ tree, including hidden files, before starting the server.
 
 ## Backups
 
-`db-backup.service` runs at 23:00 in the host timezone, catches up after downtime,
-and inhibits sleep while running. Immich's internal backup scheduler is disabled.
+`db-backup.service` runs at 23:00 in the host timezone and catches up after
+downtime. Immich's internal backup scheduler is disabled.
 The job retains 14 timestamped directories on `tank/backup` under `/srv/backup/db`.
 Each contains `immich.dump`, `nextcloud.dump`, and `nextcloud-config.tar`.
 

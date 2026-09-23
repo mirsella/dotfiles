@@ -35,6 +35,9 @@ class FakeHub(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/api/health":
+            if self.state["health_failures"]:
+                self.state["health_failures"] -= 1
+                return self._json(503, {"message": "Starting"})
             return self._json(200, {"message": "ok"})
         if self.path.startswith("/api/settings"):
             return self._json(200, self.state["settings"])
@@ -86,6 +89,7 @@ def fresh_state():
         },
         "users": [],
         "systems": [],
+        "health_failures": 0,
     }
 
 
@@ -159,6 +163,12 @@ class BeszelSetup(unittest.TestCase):
         proc = self.run_script(password="wrong")
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("superuser upsert", proc.stderr)
+
+    def test_waits_for_hub_readiness_after_http_503(self):
+        FakeHub.state["health_failures"] = 1
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(FakeHub.state["health_failures"], 0)
 
     def test_repairs_existing_records_without_resetting_password(self):
         self.assertEqual(self.run_script().returncode, 0)

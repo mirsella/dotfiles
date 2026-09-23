@@ -44,7 +44,7 @@ in
     serviceConfig = {
       Type = "oneshot";
       UMask = "0077";
-      ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=sleep --mode=block --who=db-backup --why='Database backups' ${backup}/bin/db-backup";
+      ExecStart = "${backup}/bin/db-backup";
     };
   };
 

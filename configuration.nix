@@ -79,7 +79,7 @@ in
       ignoreIP = [ "127.0.0.1/8" "192.168.1.0/24" ];
       jails.sshd.settings.enabled = true;
     };
-    # Nightly suspend is controlled by the idle checks, not the laptop lid.
+    # Only the midnight timer may suspend the server, not the lid.
     logind.settings.Login = {
       HandleLidSwitch = "ignore";
       HandleLidSwitchExternalPower = "ignore";
@@ -134,7 +134,7 @@ in
   # Swap remains inside the encrypted root filesystem.
   swapDevices = [ { device = "/swapfile"; size = 8 * 1024; } ];
 
-  # Update only the stable nixpkgs input, during the server's awake window.
+  # Update only the stable nixpkgs input.
   system.autoUpgrade = {
     enable = true;
     flake = "path:${flakeDir}#predator";
