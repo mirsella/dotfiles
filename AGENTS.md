@@ -2,8 +2,7 @@
 
 The checkout is `~/dev/dotfiles` on every machine. `.chezmoiroot` selects
 `dotfiles/` as the chezmoi source; the flake at the repo root defines NixOS
-`predator`, minimal recovery target `predator-install`, and standalone Home
-Manager homes for Arch `laptop` and `main`.
+`predator` and standalone Home Manager homes for Arch `laptop` and `main`.
 
 - Chezmoi owns editable app configuration. Home Manager owns packages, generated
   Git/SSH settings, user services and SOPS wiring. Keep each path under one
@@ -20,19 +19,21 @@ Manager homes for Arch `laptop` and `main`.
   Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles#predator'`.
   Run long rebuilds detached and poll the unit log and exit status.
 - `nix flake check --no-build --no-update-lock-file` evaluates the flake;
-  `nix eval --impure --json --file tests/recovery.nix` checks recovery invariants.
+  `nix eval --impure --json --file tests/invariants.nix` checks boot and disk invariants.
   Run the relevant Python tests for changed monitoring, unlock or suspend code.
 - `disko.nix` formats **all three data disks** only for a fresh, intentional
-  installation. For recovery, use `predator-install` and preserve the existing
-  LUKS headers, ZFS pools, Secure Boot signing bundle (`/var/lib/sbctl`), HDD
-  keys (`/etc/luks/`), and SOPS host identity (`/etc/ssh/ssh_host_ed25519_key`).
+  installation. To reinstall on existing disks, mount them without running disko,
+  preserve the LUKS headers, ZFS pools, Secure Boot signing bundle (`/var/lib/sbctl`),
+  HDD keys (`/etc/luks/`), and SOPS host identity (`/etc/ssh/ssh_host_ed25519_key`),
+  then install `#predator`.
   The database dumps and ZFS snapshots on `tank/backup` are on-machine only.
 
 Manual files outside the repo:
 - Laptop uses Plasma lid defaults; Predator ignores lid-close via
   `configuration.nix` (screen off instead of sleep).
-- Arch boxes: system Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules
-  and pacman hooks.
+- Arch boxes: Nix daemon cache (`/etc/nix/nix.conf`), system Caddy
+  (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks. The
+  daemon ignores cache settings from an untrusted Home Manager user config.
 - Predator: Freebox LAN IP is `192.168.1.1`; the Toshiba USB bridge aborts
   extended SMART tests after about 10 minutes, so use short tests and the
   monthly scrub.

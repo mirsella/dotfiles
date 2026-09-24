@@ -54,13 +54,6 @@
             fi
           done
           nix flake check --no-build --no-update-lock-file
-      nixosConfigurations.predator-install = nixpkgs.lib.nixosSystem {
-        specialArgs = { inherit inputs; };
-        modules = [
-          ./hosts/predator-install.nix
-        ];
-      };
-
 
           store_paths=$(nix eval --raw --apply '
             c: builtins.concatStringsSep "\n" [

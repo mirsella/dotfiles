@@ -1,11 +1,9 @@
 # Evaluate only; never build, activate, mount, or format a disk.
-# nix eval --impure --json --file tests/recovery.nix
+# nix eval --impure --json --file tests/invariants.nix
 let
   flake = builtins.getFlake "path:${toString ../.}";
   inherit (flake.inputs.nixpkgs) lib;
   server = flake.nixosConfigurations.predator.config;
-  recovery = flake.nixosConfigurations.predator-install.config;
-  systems = [ server recovery ];
   layout = import ../disko.nix;
   disks = layout.disko.devices.disk;
   ncdata = layout.disko.devices.zpool.fast.datasets.ncdata;
@@ -13,26 +11,13 @@ let
   disko = import flake.inputs.disko { inherit lib; };
 in
 assert lib.assertMsg (
-  server.boot.initrd.luks.devices.crypt-root == recovery.boot.initrd.luks.devices.crypt-root
-  && server.fileSystems."/" == recovery.fileSystems."/"
-  && server.fileSystems."/boot" == recovery.fileSystems."/boot"
-  && server.boot.lanzaboote.pkiBundle == recovery.boot.lanzaboote.pkiBundle
-  && server.networking.hostId == recovery.networking.hostId
-) "Recovery and server must boot the same encrypted root with the same signing keys and ZFS identity";
-assert lib.assertMsg (lib.all (c:
-  c.boot.lanzaboote.enable
-  && c.boot.initrd.systemd.enable
-  && c.boot.initrd.secrets == { }
+  server.boot.lanzaboote.enable
+  && server.boot.initrd.systemd.enable
+  && server.boot.initrd.secrets == { }
   && lib.all (d: d.keyFile == null && builtins.elem "tpm2-device=auto" d.crypttabExtraOpts)
-    (builtins.attrValues c.boot.initrd.luks.devices)
-  && lib.all (fs: !fs.autoFormat) (builtins.attrValues c.fileSystems)
-) systems) "Installed targets must use signed TPM boot without embedded keys or automatic formatting";
-assert lib.assertMsg (
-  builtins.attrNames recovery.boot.initrd.luks.devices == [ "crypt-root" ]
-  && recovery.boot.zfs.extraPools == [ ]
-  && !recovery.services.nextcloud.enable
-  && recovery.virtualisation.oci-containers.containers == { }
-) "Recovery must leave data disks and application services for the operator to restore";
+    (builtins.attrValues server.boot.initrd.luks.devices)
+  && lib.all (fs: !fs.autoFormat) (builtins.attrValues server.fileSystems)
+) "Installed system must use signed TPM boot without embedded keys or automatic formatting";
 assert lib.assertMsg (
   builtins.elem "tank-unlock.service" server.systemd.services.zfs-import-tank.requires
   && builtins.elem "tank-unlock.service" server.systemd.services.zfs-import-tank.after
@@ -49,7 +34,6 @@ assert lib.assertMsg (
 ) "Fresh provisioning must match runtime mounts and leave credential enrollment explicit";
 {
   inherit (server.system.build.toplevel) drvPath;
-  recovery = recovery.system.build.toplevel.drvPath;
   formatter = (disko._cliDestroyFormatMount layout pkgs).drvPath;
   workstations = builtins.mapAttrs (_: home:
     let unit = home.config.systemd.user.services.rclone-nextcloud;
