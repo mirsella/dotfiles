@@ -1,11 +1,10 @@
-{ lib, config, osConfig ? null, pkgs, gitSigningKey, isNixOS, ... }:
+{ lib, config, pkgs, gitSigningKey, isNixOS, ... }:
 let
-  secrets = if isNixOS then osConfig.sops.secrets else config.sops.secrets;
-  exe =
-    pkg: bin:
-    if isNixOS then "${pkgs.${pkg}}/bin/${bin}" else
-    # Native Arch paths; cargo-installed tools live outside /usr/bin.
-    { lspmux = "${config.home.homeDirectory}/.local/share/cargo/bin/lspmux"; }.${bin} or "/usr/bin/${bin}";
+  lspmuxBin =
+    if isNixOS then "${pkgs.lspmux}/bin/lspmux"
+    else "${config.home.homeDirectory}/.local/share/cargo/bin/lspmux";
+  mkdirBin = if isNixOS then "${pkgs.coreutils}/bin/mkdir" else "/usr/bin/mkdir";
+  rcloneBin = if isNixOS then "${pkgs.rclone}/bin/rclone" else "/usr/bin/rclone";
 in
 {
   home = {
@@ -27,36 +26,11 @@ in
   systemd.user.startServices = isNixOS;
 
   systemd.user.services = {
-    opencode = {
-      Unit = {
-        Description = "OpenCode server";
-        After = [ "network.target" ] ++ lib.optional (!isNixOS) "sops-nix.service";
-        PartOf = [ "default.target" ];
-        X-SwitchMethod = "keep-old";
-      };
-      Service = {
-        Type = "simple";
-        WorkingDirectory = "%h";
-        EnvironmentFile = [
-          secrets.telegram_env.path
-          secrets.opencode_server.path
-        ];
-        Environment = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:"
-          + (if isNixOS then
-            "/etc/profiles/per-user/%u/bin:/run/wrappers/bin:/run/current-system/sw/bin"
-          else
-            "/usr/local/sbin:/usr/local/bin:/usr/bin");
-        ExecStart = "${exe "opencode" "opencode"} serve --hostname 127.0.0.1 --port 14096";
-        Restart = "on-failure";
-        RestartSec = "2s";
-      };
-      Install.WantedBy = [ "default.target" ];
-    };
     lspmux = {
       Unit.Description = "Language server multiplexer server";
       Service = {
         Type = "simple";
-        ExecStart = "${exe "lspmux" "lspmux"} server";
+        ExecStart = "${lspmuxBin} server";
         Restart = "on-failure";
         RestartSec = "5s";
       };
@@ -71,8 +45,8 @@ in
     Service = {
       # rclone reports readiness and unmounts on SIGTERM itself.
       Type = "notify";
-      ExecStartPre = "${exe "coreutils" "mkdir"} -p %h/Documents/${remote}";
-      ExecStart = "${exe "rclone" "rclone"} mount --vfs-cache-mode full ${remote}: %h/Documents/${remote}";
+      ExecStartPre = "${mkdirBin} -p %h/Documents/${remote}";
+      ExecStart = "${rcloneBin} mount --vfs-cache-mode full ${remote}: %h/Documents/${remote}";
       SuccessExitStatus = "143";
       Restart = "always";
       RestartSec = 3;

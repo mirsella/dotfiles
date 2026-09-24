@@ -32,6 +32,23 @@ assert lib.assertMsg (
     in luks.askPassword && !luks.initrdUnlock && !(luks.settings ? keyFile)
   ) (builtins.attrValues disks)
 ) "Fresh provisioning must match runtime mounts and leave credential enrollment explicit";
+assert lib.assertMsg (
+  lib.all (name:
+    !(builtins.hasAttr name server.systemd.services)
+    && !(builtins.hasAttr name server.home-manager.users.mirsella.systemd.user.services)
+  ) [ "opencode" "openchamber" ]
+  && lib.all (name: !(builtins.hasAttr name server.sops.secrets)) [
+    "telegram_env" "opencode_server" "openchamber_server"
+  ]
+  && lib.all (home:
+    home.config.systemd.user.services ? opencode
+    && home.config.systemd.user.services ? openchamber
+  ) (builtins.attrValues flake.homeConfigurations)
+  && lib.all (name:
+    flake.homeConfigurations.main.config.systemd.user.services.${name}
+    == flake.homeConfigurations.laptop.config.systemd.user.services.${name}
+  ) [ "opencode" "openchamber" ]
+) "OpenCode and OpenChamber must run on Arch workstations, not Predator";
 {
   inherit (server.system.build.toplevel) drvPath;
   formatter = (disko._cliDestroyFormatMount layout pkgs).drvPath;

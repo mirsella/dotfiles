@@ -48,11 +48,11 @@ in
       '';
       "https://mirsella.mooo.com:14096".extraConfig = ''
         bind 192.168.1.19
-        reverse_proxy 127.0.0.1:14096
+        reverse_proxy 192.168.1.131:4096
       '';
       "https://mirsella.mooo.com:14097".extraConfig = ''
         bind 192.168.1.19
-        reverse_proxy 127.0.0.1:14097
+        reverse_proxy 192.168.1.131:4097
       '';
       "photos.mirsella.mooo.com".extraConfig = ''
         reverse_proxy 127.0.0.1:2283

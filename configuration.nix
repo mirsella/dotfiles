@@ -11,7 +11,6 @@ in
     ./modules/nixos/nextcloud.nix
     ./modules/nixos/immich.nix
     ./modules/nixos/db-backup.nix
-    ./modules/nixos/openchamber.nix
     ./modules/nixos/night-suspend.nix
     ./modules/nixos/monitoring.nix
   ];

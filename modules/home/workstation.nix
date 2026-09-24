@@ -17,7 +17,11 @@
     defaultSopsFile = ../../secrets/services.yaml;
     secrets = builtins.mapAttrs (_: path: {
       path = "${config.home.homeDirectory}/.config/${path}";
-    }) (import ../user-secrets.nix) // {
+    }) ((import ../user-secrets.nix) // {
+      telegram_env = "telegram.env";
+      opencode_server = "opencode/server.env";
+      openchamber_server = "openchamber/server.env";
+    }) // {
       davfs2_secrets = {
         sopsFile = ../../secrets/webdav.yaml;
         path = "${config.home.homeDirectory}/.davfs2/secrets";
@@ -29,6 +33,51 @@
         mode = "0600";
       };
     };
+  };
+
+  systemd.user.services.opencode = {
+    Unit = {
+      Description = "OpenCode server";
+      After = [ "network.target" "sops-nix.service" ];
+      PartOf = [ "default.target" ];
+      X-SwitchMethod = "keep-old";
+    };
+    Service = {
+      Type = "simple";
+      WorkingDirectory = "%h";
+      EnvironmentFile = [
+        config.sops.secrets.telegram_env.path
+        config.sops.secrets.opencode_server.path
+      ];
+      Environment = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin";
+      ExecStart = "/usr/bin/opencode serve --hostname 127.0.0.1 --port 14096";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
+  # Both Arch hosts run the AUR binary behind their local OpenCode service.
+  systemd.user.services.openchamber = {
+    Unit = {
+      Description = "OpenChamber web server";
+      After = [ "network.target" "opencode.service" "sops-nix.service" ];
+      Wants = [ "opencode.service" "sops-nix.service" ];
+      PartOf = [ "default.target" ];
+    };
+    Service = {
+      Type = "simple";
+      WorkingDirectory = "%h";
+      EnvironmentFile = [
+        config.sops.secrets.opencode_server.path
+        config.sops.secrets.openchamber_server.path
+      ];
+      Environment = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin";
+      ExecStart = "/usr/bin/openchamber serve --host 127.0.0.1 --port 14097 --foreground";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
+    Install.WantedBy = [ "default.target" ];
   };
 
   systemd.user.services.rclone-nextcloud = let
