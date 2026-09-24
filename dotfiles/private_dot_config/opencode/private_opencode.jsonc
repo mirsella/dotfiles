@@ -28,11 +28,6 @@
         "BLENDER_PORT": "9876",
       },
     },
-    "computer_use": {
-      "type": "local",
-      "command": ["computer-use-mcp", "mcp"],
-      "enabled": false,
-    },
     // "cloudflare": {
     //   "type": "remote",
     //   "url": "https://mcp.cloudflare.com/mcp",

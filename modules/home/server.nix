@@ -9,7 +9,7 @@
 
   home.file.".rustup".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/share/rustup";
 
-  home.file.".cargo/config.toml".text = ''
+  home.file.".local/share/cargo/config.toml".text = ''
     [build]
     jobs = 4
   '';
@@ -21,8 +21,11 @@
     ast-grep
     atuin
     bat
+    bevy-cli
     carapace
+    cargo-binstall
     cargo-expand
+    cargo-ndk
     cargo-update
     cargo-watch
     chafa
@@ -54,7 +57,6 @@
     mold
     neovim
     nodejs
-    nodemon
     nushell
     ouch
     pnpm
@@ -63,7 +65,6 @@
     python3Packages.pynvim
     rclone
     ripgrep
-    rtk
     rustup
     sea-orm-cli
     secretspec
@@ -75,6 +76,9 @@
     tree-sitter
     unzip
     vimv
+    wasm-bindgen-cli
+    wasm-tools
+    wild
     wrangler
     wtp
     yt-dlp
