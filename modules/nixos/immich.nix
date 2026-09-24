@@ -101,6 +101,8 @@ in
       image = "ghcr.io/immich-app/immich-machine-learning:${version}@sha256:390453a571ca73b563cc3d9a12a37a4d71217b12608de72f26884f5e2ebc4896";
       volumes = [ "immich-model-cache:/cache" ];
       networks = [ "podman" ];
+      podman.sdnotify = "healthy";
+      extraOptions = healthcheckOptions "python3 healthcheck.py";
     };
   };
 }
