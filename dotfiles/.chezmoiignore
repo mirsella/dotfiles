@@ -13,7 +13,7 @@ kde shortcuts.kksrc
 .config/opencode/plugins/local-llama.ts
 {{- end }}
 {{- if or (eq .chezmoi.hostname "predator") (eq .chezmoi.hostname "laptop") (eq .chezmoi.hostname "main") }}
-# Home Manager owns all user units on HM hosts.
+# User units on HM hosts are managed outside chezmoi.
 .config/systemd/user/
 .config/systemd/user/**
 # Home Manager owns generated git and ssh settings on HM hosts.
