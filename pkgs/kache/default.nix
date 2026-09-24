@@ -1,13 +1,13 @@
 { lib, rustPlatform, fetchgit, pkg-config }:
 rustPlatform.buildRustPackage rec {
   pname = "kache";
-  version = "2026.09.19";
+  version = "0.26.3-unstable-2026-09-24";
   src = fetchgit {
     url = "https://github.com/kunobi-ninja/kache";
-    rev = "af30b9102f538f8ceebc974ec9dc827e2feef0d8";
-    hash = "sha256-6Nu3f8noKZbrxV6+2ozQhHetl4uWWhIXfgfCeY7v1qU=";
+    rev = "abefc0cc74467cae54681187e2688b5d8b17fe37";
+    hash = "sha256-k/gutaiWhMBMcbiuHombFohiyoDMaFN9dxPsOGLplsE=";
   };
-  cargoHash = "sha256-KPi6H1YuaDDK0JEYWEJOGi4HIaD32w2VGRarYql7HBA=";
+  cargoHash = "sha256-z+A8e2vPOyRKy5Ng2gYiubrrsS+q+/f4pJEgMMRtEKQ=";
   nativeBuildInputs = [ pkg-config ];
   doCheck = false;
 }

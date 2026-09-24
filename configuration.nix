@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, inputs, overlays, ... }:
 let
   flakeDir = "/home/mirsella/dev/dotfiles";
 in
@@ -16,10 +16,10 @@ in
     ./modules/nixos/monitoring.nix
   ];
 
-  nixpkgs.overlays = [
-    inputs.neovim-nightly-overlay.overlays.default
-    (import ./overlays.nix inputs)
-  ];
+  nixpkgs.overlays = [ inputs.nix-cachyos-kernel.overlays.pinned ] ++ overlays;
+
+  boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
+  boot.zfs.package = config.boot.kernelPackages.zfs_cachyos;
 
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
   sops.useSystemdActivation = true;
@@ -133,7 +133,7 @@ in
   # Swap remains inside the encrypted root filesystem.
   swapDevices = [ { device = "/swapfile"; size = 8 * 1024; } ];
 
-  # Update only the stable nixpkgs input.
+  # Update nixpkgs weekly; update the kernel input separately after checking ZFS compatibility.
   system.autoUpgrade = {
     enable = true;
     flake = "path:${flakeDir}#predator";

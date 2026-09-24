@@ -1,7 +1,7 @@
 { lib, buildGoModule, fetchFromGitHub }:
 buildGoModule rec {
   pname = "wtp";
-  version = "2.10.3+2026.09.21";
+  version = "2.10.3-unstable-2026-09-21";
 
   # Fork with nushell support until https://github.com/satococoa/wtp/issues/120 is resolved.
   src = fetchFromGitHub {
@@ -24,6 +24,6 @@ buildGoModule rec {
     "-w"
     "-X main.version=${version}"
     "-X main.commit=${src.rev}"
-    "-X main.date=2026-09-21"
+    "-X main.date=${builtins.substring (builtins.stringLength version - 10) 10 version}"
   ];
 }
