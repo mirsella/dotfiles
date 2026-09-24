@@ -50,4 +50,6 @@ if ("ANDROID_HOME" in $env) {
     print --stderr $"No Android NDK found under '($env.ANDROID_HOME)/ndk'; unsetting Android NDK environment"
     hide-env ANDROID_NDK_HOME ANDROID_NDK_ROOT NDK_HOME
   }
+} else {
+  print --stderr "ANDROID_HOME is not set; skipping Android NDK environment"
 }
