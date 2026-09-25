@@ -936,7 +936,7 @@ const tui = async (api, _options, _meta) => {
                   var _c$5 = _$memo(() => !!refreshInFlight());
                   return () => _c$5() ? "Sending..." : (() => {
                     var _c$6 = _$memo(() => refreshStack() > 0);
-                    return () => _c$6() ? `Auto ${refreshStack()}` : "Off";
+                    return () => _c$6() ? `↻ Auto ${refreshStack()}` : "↻ Off";
                   })();
                 })());
                 _$effect(_p$ => {

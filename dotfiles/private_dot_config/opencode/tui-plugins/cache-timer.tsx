@@ -953,7 +953,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
                 paddingRight={1}
               >
                 <text fg={refreshInFlight() ? "#9CA3AF" : "#F3F4F6"}>
-                  {refreshInFlight() ? "Sending..." : (refreshStack() > 0 ? `Auto ${refreshStack()}` : "Off")}
+                  {refreshInFlight() ? "Sending..." : (refreshStack() > 0 ? `↻ Auto ${refreshStack()}` : "↻ Off")}
                 </text>
               </box>
             )}
