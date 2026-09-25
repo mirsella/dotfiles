@@ -94,24 +94,19 @@ function getCacheDuration(modelId: string | undefined): number {
   return defaultDuration;
 }
 
-// Newest message carrying a model providerID (user messages carry
-// model.providerID; assistant messages may not). Undefined when unknown.
-function currentProviderID(messages: ReadonlyArray<any> | undefined): string | undefined {
-  if (!messages) return undefined;
+// True when the widget must stay hidden for these messages: the session runs
+// on a provider outside the whitelist. Empty whitelist allows all
+// (backwards compatible); unknown provider defaults to visible.
+function isHiddenFor(messages: ReadonlyArray<any> | undefined): boolean {
+  if (enabledProviders.length === 0) return false;
+  if (!messages) return false;
   for (let i = messages.length - 1; i >= 0; i--) {
     const provider = (messages[i] as any)?.model?.providerID;
-    if (typeof provider === "string" && provider) return provider;
+    if (typeof provider !== "string" || !provider) continue;
+    const normalized = provider.toLowerCase();
+    return !enabledProviders.some((p) => normalized.includes(p.toLowerCase()));
   }
-  return undefined;
-}
-
-// True when the timer may show for this provider. Empty whitelist allows
-// all (backwards compatible). Unknown provider defaults to visible.
-function isProviderEnabled(providerId: string | undefined): boolean {
-  if (enabledProviders.length === 0) return true;
-  if (!providerId) return true;
-  const normalized = providerId.toLowerCase();
-  return enabledProviders.some((p) => normalized.includes(p.toLowerCase()));
+  return false;
 }
 
 // Slot-independent remaining-seconds calc for the global interaction watcher
@@ -421,7 +416,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
           const remaining = remainingCacheSecondsFor(api, sid);
           if (remaining === undefined) continue;
           try {
-            if (!isProviderEnabled(currentProviderID(api.state.session.messages(sid)))) continue;
+            if (isHiddenFor(api.state.session.messages(sid))) continue;
           } catch {
             // Unknown provider defaults to visible.
           }
@@ -482,7 +477,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
         // Whether the source session has anything to seed a New chat from.
         const [hasMessages, setHasMessages] = createSignal(messagesOnMount && messagesOnMount.length > 0)
         // Hidden entirely on providers with no prompt-cache pricing.
-        const [timerHidden, setTimerHidden] = createSignal(!isProviderEnabled(currentProviderID(messagesOnMount)))
+        const [timerHidden, setTimerHidden] = createSignal(isHiddenFor(messagesOnMount))
 
         // Per-button in-flight flags debounce double-clicks (async APIs).
         const [refreshInFlight, setRefreshInFlight] = createSignal(false)
@@ -696,7 +691,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
             }
 
             setHasMessages(!!messages && messages.length > 0)
-            setTimerHidden(!isProviderEnabled(currentProviderID(messages)))
+            setTimerHidden(isHiddenFor(messages))
 
             // Keep the countdown live while busy: the cache clock ticks during
             // long local tool calls even though the provider went silent.
