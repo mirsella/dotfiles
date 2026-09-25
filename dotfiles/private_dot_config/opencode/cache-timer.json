@@ -1,5 +1,5 @@
 {
-  "enableAutoPrompt": true,
+  "enableAutoPrompt": false,
   "durations": {
     "claude": 300,
     "gemini": 3600,

@@ -13,6 +13,7 @@
     "session_move": "ctrl+alt+w",
   },
   "plugin": [
+    "./tui-plugins/cache-timer-tui.js",
     "./tui-plugins/suppress-ctrl-u.ts",
     "./tui-plugins/subagent-mode.ts",
   ],
