@@ -1,7 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "cache-timer",
     "@pieliesdie/opencode-antigravity-auth@latest",
     "@plannotator/opencode",
     "opencode-queue",
