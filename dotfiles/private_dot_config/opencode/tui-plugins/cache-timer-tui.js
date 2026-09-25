@@ -208,6 +208,8 @@ const triggeredSessions = new Set();
 // Banked auto-refreshes per session: left-click adds one keep-alive ping,
 // the ticker fires one as the cache nears expiry; right-click clears.
 const refreshStacks = new Map();
+// Seconds of remaining cache life at which one banked refresh auto-fires.
+const AUTO_REFRESH_SEC = 60;
 const healthySessions = new Set();
 const lastUserMsgIds = new Map();
 const autoPromptIds = new Set(); // Immutable ledger of all generated auto-prompt message IDs
@@ -471,36 +473,39 @@ const tui = async (api, _options, _meta) => {
             refreshStacks.delete(session_id);
             setRefreshStack(0);
           };
-          const fireStackedRefresh = () => {
+          const fireStackedRefresh = async () => {
             if (!session_id || refreshInFlight()) return;
             const pending = refreshStacks.get(session_id) ?? 0;
             if (pending <= 0) return;
             refreshStacks.set(session_id, pending - 1);
             setRefreshStack(pending - 1);
+            // try/finally (not .finally on the chain): a synchronous throw
+            // from session.prompt must not wedge refreshInFlight on forever.
             setRefreshInFlight(true);
-            api.client.session.prompt({
-              sessionID: session_id,
-              parts: [{
-                type: "text",
-                text: "Output only and exactly the words 'Refreshed cache.'"
-              }]
-            }).then(() => {
+            try {
+              await api.client.session.prompt({
+                sessionID: session_id,
+                parts: [{
+                  type: "text",
+                  text: "Output only and exactly the words 'Refreshed cache.'"
+                }]
+              });
               api.ui.toast({
                 variant: "success",
                 title: "Refresh Sent",
                 message: "Cache refresh prompt dispatched.",
                 duration: 3000
               });
-            }).catch(err => {
+            } catch (err) {
               api.ui.toast({
                 variant: "error",
                 title: "Refresh Failed",
                 message: String(err?.message || err),
                 duration: 5000
               });
-            }).finally(() => {
+            } finally {
               setRefreshInFlight(false);
-            });
+            }
           };
           const handleRefreshClick = e => {
             // Right-click clears the stack instead of banking.
@@ -782,9 +787,10 @@ const tui = async (api, _options, _meta) => {
                 }
 
                 // Auto-fire one banked refresh while idle as the cache nears
-                // expiry. Busy turns are skipped: the fresh reply re-anchors
+                // expiry (same boundary as the sub-minute warning tint).
+                // Busy turns are skipped: the fresh reply re-anchors
                 // the timer anyway once the turn completes.
-                if (!timerHidden() && remainingMs <= 60 * 1000 && !refreshInFlight()) {
+                if (!timerHidden() && remainingMs <= AUTO_REFRESH_SEC * 1000 && !refreshInFlight()) {
                   fireStackedRefresh();
                 }
 
