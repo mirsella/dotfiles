@@ -1,9 +1,9 @@
-import { effect as _$effect } from "@opentui/solid";
-import { insertNode as _$insertNode } from "@opentui/solid";
-import { insert as _$insert } from "@opentui/solid";
-import { memo as _$memo } from "@opentui/solid";
-import { setProp as _$setProp } from "@opentui/solid";
-import { createElement as _$createElement } from "@opentui/solid";
+import { effect as _$effect } from "solid-js/web";
+import { insertNode as _$insertNode } from "solid-js/web";
+import { insert as _$insert } from "solid-js/web";
+import { memo as _$memo } from "solid-js/web";
+import { setProp as _$setProp } from "solid-js/web";
+import { createElement as _$createElement } from "solid-js/web";
 /** @jsxImportSource @opentui/solid */
 
 import { createSignal, onCleanup } from "solid-js";
@@ -54,6 +54,10 @@ function loadCacheTimerConfig() {
             ...(merged.durations ?? {})
           };
         }
+        // Disabled-provider list: first config wins wholesale (no per-key merge).
+        if (merged.disabledProviders === undefined && Array.isArray(parsed.disabledProviders)) {
+          merged.disabledProviders = parsed.disabledProviders.filter(p => typeof p === "string");
+        }
       }
     } catch (err) {
       debugLog(`failed to read/parse ${path}: ${String(err)}`);
@@ -70,7 +74,10 @@ let cacheDurations = {
   "gpt": 300
 };
 let defaultDuration = 300; // Fallback to 5 minutes (300s)
-
+// Providers with no prompt-cache pricing (no cold-start tax, so the timer and
+// its fork/refresh advice are meaningless there). Substring-matched against
+// the message's model providerID, so "opencode-go" covers that whole provider.
+let disabledProviders = [];
 function getCacheDuration(modelId) {
   if (!modelId) return defaultDuration;
   const normalizedId = modelId.toLowerCase();
@@ -80,6 +87,25 @@ function getCacheDuration(modelId) {
     }
   }
   return defaultDuration;
+}
+
+// Newest message carrying a model providerID (user messages carry
+// model.providerID; assistant messages may not). Undefined when unknown.
+function currentProviderID(messages) {
+  if (!messages) return undefined;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const provider = messages[i]?.model?.providerID;
+    if (typeof provider === "string" && provider) return provider;
+  }
+  return undefined;
+}
+
+// True when the session runs on a provider with no prompt-cache pricing.
+// Unknown provider defaults to visible (the timer is only informational).
+function isTimerDisabled(providerId) {
+  if (!providerId) return false;
+  const normalized = providerId.toLowerCase();
+  return disabledProviders.some(p => normalized.includes(p.toLowerCase()));
 }
 
 // Slot-independent remaining-seconds calc for the global interaction watcher
@@ -239,7 +265,10 @@ const tui = async (api, _options, _meta) => {
   if (typeof userConfig.enableAutoPrompt === "boolean") {
     enableAutoPrompt = userConfig.enableAutoPrompt;
   }
-  debugLog(`post-merge cacheDurations=${JSON.stringify(cacheDurations)} enableAutoPrompt=${enableAutoPrompt} defaultDuration=${defaultDuration}`);
+  if (Array.isArray(userConfig.disabledProviders)) {
+    disabledProviders = userConfig.disabledProviders;
+  }
+  debugLog(`post-merge cacheDurations=${JSON.stringify(cacheDurations)} enableAutoPrompt=${enableAutoPrompt} defaultDuration=${defaultDuration} disabledProviders=${JSON.stringify(disabledProviders)}`);
 
   // Defensive wrap: OpenCode's TUI API has been adding required fields between
   // minor versions (e.g. `message` became mandatory on toasts in v1.15.x).
@@ -353,6 +382,11 @@ const tui = async (api, _options, _meta) => {
           if (!set || set.size === 0) continue;
           const remaining = remainingCacheSecondsFor(api, sid);
           if (remaining === undefined) continue;
+          try {
+            if (isTimerDisabled(currentProviderID(api.state.session.messages(sid)))) continue;
+          } catch {
+            // Unknown provider defaults to visible.
+          }
           if (remaining <= 0) {
             if (!coldToastFiredSessions.has(sid)) {
               coldToastFiredSessions.add(sid);
@@ -407,6 +441,8 @@ const tui = async (api, _options, _meta) => {
           const [cacheState, setCacheState] = createSignal("hot");
           // Whether the source session has anything to seed a New chat from.
           const [hasMessages, setHasMessages] = createSignal(messagesOnMount && messagesOnMount.length > 0);
+          // Hidden entirely on providers with no prompt-cache pricing.
+          const [timerHidden, setTimerHidden] = createSignal(isTimerDisabled(currentProviderID(messagesOnMount)));
 
           // Per-button in-flight flags debounce double-clicks (async APIs).
           const [refreshInFlight, setRefreshInFlight] = createSignal(false);
@@ -616,6 +652,7 @@ const tui = async (api, _options, _meta) => {
                 }
               }
               setHasMessages(!!messages && messages.length > 0);
+              setTimerHidden(isTimerDisabled(currentProviderID(messages)));
 
               // Keep the countdown live while busy: the cache clock ticks during
               // long local tool calls even though the provider went silent.
@@ -728,7 +765,7 @@ const tui = async (api, _options, _meta) => {
                 }
 
                 // Opt-in auto-summary 15s before expiry, while the cache is still hot.
-                if (enableAutoPrompt && healthySessions.has(session_id) && remainingMs <= 15 * 1000 && remainingMs > 0 && !triggeredSessions.has(session_id)) {
+                if (!timerHidden() && enableAutoPrompt && healthySessions.has(session_id) && remainingMs <= 15 * 1000 && remainingMs > 0 && !triggeredSessions.has(session_id)) {
                   triggeredSessions.add(session_id);
                   healthySessions.delete(session_id); // require a fresh healthy cycle before re-firing
 
@@ -791,94 +828,96 @@ const tui = async (api, _options, _meta) => {
           const showRefresh = () => cacheState() !== "cold" && cacheState() !== "busy-cold";
           const showNewChat = () => hasMessages() && cacheState() === "cold";
           const showInterrupt = () => cacheState() === "busy-cold";
-          return (// row layout keeps buttons + timer on one line (OpenTUI defaults to column).
-            (() => {
-              var _el$ = _$createElement("box"),
-                _el$2 = _$createElement("text"),
-                _el$3 = _$createElement("b");
-              _$insertNode(_el$, _el$2);
-              _$setProp(_el$, "flexDirection", "row");
-              _$setProp(_el$, "paddingLeft", 1);
-              _$setProp(_el$, "paddingRight", 1);
-              _$setProp(_el$, "gap", 1);
-              _$insert(_el$, (() => {
-                var _c$ = _$memo(() => !!showInterrupt());
-                return () => _c$() && (() => {
-                  var _el$4 = _$createElement("box"),
-                    _el$5 = _$createElement("text");
-                  _$insertNode(_el$4, _el$5);
-                  _$setProp(_el$4, "onMouseUp", handleInterruptClick);
-                  _$setProp(_el$4, "paddingLeft", 1);
-                  _$setProp(_el$4, "paddingRight", 1);
-                  _$insert(_el$5, () => interruptInFlight() ? "Stopping..." : "✨ Stop & fork");
-                  _$effect(_p$ => {
-                    var _v$ = interruptInFlight() ? "#1E3A5F" : "#2563EB",
-                      _v$2 = interruptInFlight() ? "#93C5FD" : "#F3F4F6";
-                    _v$ !== _p$.e && (_p$.e = _$setProp(_el$4, "backgroundColor", _v$, _p$.e));
-                    _v$2 !== _p$.t && (_p$.t = _$setProp(_el$5, "fg", _v$2, _p$.t));
-                    return _p$;
-                  }, {
-                    e: undefined,
-                    t: undefined
-                  });
-                  return _el$4;
-                })();
-              })(), _el$2);
-              _$insert(_el$, (() => {
-                var _c$2 = _$memo(() => !!showNewChat());
-                return () => _c$2() && (() => {
-                  var _el$6 = _$createElement("box"),
-                    _el$7 = _$createElement("text");
-                  _$insertNode(_el$6, _el$7);
-                  _$setProp(_el$6, "onMouseUp", handleNewChatClick);
-                  _$setProp(_el$6, "paddingLeft", 1);
-                  _$setProp(_el$6, "paddingRight", 1);
-                  _$insert(_el$7, (() => {
-                    var _c$4 = _$memo(() => !!newChatInFlight());
-                    return () => _c$4() ? `Starting... ${SPINNER_FRAMES[spinnerFrame()]}` : "✨ New chat";
-                  })());
-                  _$effect(_p$ => {
-                    var _v$3 = newChatInFlight() ? "#1E3A5F" : "#2563EB",
-                      _v$4 = newChatInFlight() ? "#93C5FD" : "#F3F4F6";
-                    _v$3 !== _p$.e && (_p$.e = _$setProp(_el$6, "backgroundColor", _v$3, _p$.e));
-                    _v$4 !== _p$.t && (_p$.t = _$setProp(_el$7, "fg", _v$4, _p$.t));
-                    return _p$;
-                  }, {
-                    e: undefined,
-                    t: undefined
-                  });
-                  return _el$6;
-                })();
-              })(), _el$2);
-              _$insert(_el$, (() => {
-                var _c$3 = _$memo(() => !!showRefresh());
-                return () => _c$3() && (() => {
-                  var _el$8 = _$createElement("box"),
-                    _el$9 = _$createElement("text");
-                  _$insertNode(_el$8, _el$9);
-                  _$setProp(_el$8, "onMouseUp", handleRefreshClick);
-                  _$setProp(_el$8, "paddingLeft", 1);
-                  _$setProp(_el$8, "paddingRight", 1);
-                  _$insert(_el$9, () => refreshInFlight() ? "Sending..." : "↻ Refresh");
-                  _$effect(_p$ => {
-                    var _v$5 = refreshInFlight() ? "#374151" : "#4B5563",
-                      _v$6 = refreshInFlight() ? "#9CA3AF" : "#F3F4F6";
-                    _v$5 !== _p$.e && (_p$.e = _$setProp(_el$8, "backgroundColor", _v$5, _p$.e));
-                    _v$6 !== _p$.t && (_p$.t = _$setProp(_el$9, "fg", _v$6, _p$.t));
-                    return _p$;
-                  }, {
-                    e: undefined,
-                    t: undefined
-                  });
-                  return _el$8;
-                })();
-              })(), _el$2);
-              _$insertNode(_el$2, _el$3);
-              _$insert(_el$3, timeText);
-              _$effect(_$p => _$setProp(_el$2, "fg", color(), _$p));
-              return _el$;
-            })()
-          );
+
+          // Providers without cache pricing get no widget at all (no timer text,
+          // no Refresh/New-chat buttons; Refresh would even waste tokens there).
+          return timerHidden() ? null : // row layout keeps buttons + timer on one line (OpenTUI defaults to column).
+          (() => {
+            var _el$ = _$createElement("box"),
+              _el$2 = _$createElement("text"),
+              _el$3 = _$createElement("b");
+            _$insertNode(_el$, _el$2);
+            _$setProp(_el$, "flexDirection", "row");
+            _$setProp(_el$, "paddingLeft", 1);
+            _$setProp(_el$, "paddingRight", 1);
+            _$setProp(_el$, "gap", 1);
+            _$insert(_el$, (() => {
+              var _c$ = _$memo(() => !!showInterrupt());
+              return () => _c$() && (() => {
+                var _el$4 = _$createElement("box"),
+                  _el$5 = _$createElement("text");
+                _$insertNode(_el$4, _el$5);
+                _$setProp(_el$4, "onMouseUp", handleInterruptClick);
+                _$setProp(_el$4, "paddingLeft", 1);
+                _$setProp(_el$4, "paddingRight", 1);
+                _$insert(_el$5, () => interruptInFlight() ? "Stopping..." : "✨ Stop & fork");
+                _$effect(_p$ => {
+                  var _v$ = interruptInFlight() ? "#1E3A5F" : "#2563EB",
+                    _v$2 = interruptInFlight() ? "#93C5FD" : "#F3F4F6";
+                  _v$ !== _p$.e && (_p$.e = _$setProp(_el$4, "backgroundColor", _v$, _p$.e));
+                  _v$2 !== _p$.t && (_p$.t = _$setProp(_el$5, "fg", _v$2, _p$.t));
+                  return _p$;
+                }, {
+                  e: undefined,
+                  t: undefined
+                });
+                return _el$4;
+              })();
+            })(), _el$2);
+            _$insert(_el$, (() => {
+              var _c$2 = _$memo(() => !!showNewChat());
+              return () => _c$2() && (() => {
+                var _el$6 = _$createElement("box"),
+                  _el$7 = _$createElement("text");
+                _$insertNode(_el$6, _el$7);
+                _$setProp(_el$6, "onMouseUp", handleNewChatClick);
+                _$setProp(_el$6, "paddingLeft", 1);
+                _$setProp(_el$6, "paddingRight", 1);
+                _$insert(_el$7, (() => {
+                  var _c$4 = _$memo(() => !!newChatInFlight());
+                  return () => _c$4() ? `Starting... ${SPINNER_FRAMES[spinnerFrame()]}` : "✨ New chat";
+                })());
+                _$effect(_p$ => {
+                  var _v$3 = newChatInFlight() ? "#1E3A5F" : "#2563EB",
+                    _v$4 = newChatInFlight() ? "#93C5FD" : "#F3F4F6";
+                  _v$3 !== _p$.e && (_p$.e = _$setProp(_el$6, "backgroundColor", _v$3, _p$.e));
+                  _v$4 !== _p$.t && (_p$.t = _$setProp(_el$7, "fg", _v$4, _p$.t));
+                  return _p$;
+                }, {
+                  e: undefined,
+                  t: undefined
+                });
+                return _el$6;
+              })();
+            })(), _el$2);
+            _$insert(_el$, (() => {
+              var _c$3 = _$memo(() => !!showRefresh());
+              return () => _c$3() && (() => {
+                var _el$8 = _$createElement("box"),
+                  _el$9 = _$createElement("text");
+                _$insertNode(_el$8, _el$9);
+                _$setProp(_el$8, "onMouseUp", handleRefreshClick);
+                _$setProp(_el$8, "paddingLeft", 1);
+                _$setProp(_el$8, "paddingRight", 1);
+                _$insert(_el$9, () => refreshInFlight() ? "Sending..." : "↻ Refresh");
+                _$effect(_p$ => {
+                  var _v$5 = refreshInFlight() ? "#374151" : "#4B5563",
+                    _v$6 = refreshInFlight() ? "#9CA3AF" : "#F3F4F6";
+                  _v$5 !== _p$.e && (_p$.e = _$setProp(_el$8, "backgroundColor", _v$5, _p$.e));
+                  _v$6 !== _p$.t && (_p$.t = _$setProp(_el$9, "fg", _v$6, _p$.t));
+                  return _p$;
+                }, {
+                  e: undefined,
+                  t: undefined
+                });
+                return _el$8;
+              })();
+            })(), _el$2);
+            _$insertNode(_el$2, _el$3);
+            _$insert(_el$3, timeText);
+            _$effect(_$p => _$setProp(_el$2, "fg", color(), _$p));
+            return _el$;
+          })();
         }
       }
     });

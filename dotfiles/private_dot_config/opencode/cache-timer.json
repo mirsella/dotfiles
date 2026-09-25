@@ -6,5 +6,6 @@
     "gpt": 1800,
     "codex": 1800
   },
-  "defaultDuration": 300
+  "defaultDuration": 300,
+  "disabledProviders": ["opencode-go"]
 }

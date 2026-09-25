@@ -36,9 +36,9 @@ test("rejects malformed specs", () => {
 });
 
 test("accepts complete JSON shapes", () => {
-  expect(asModelSpec({ providerID: "openai", modelID: "gpt-5.6-sol-fast", variant: "high" })).toEqual({
+  expect(asModelSpec({ providerID: "openai", modelID: "gpt-6-sol-fast", variant: "high" })).toEqual({
     providerID: "openai",
-    modelID: "gpt-5.6-sol-fast",
+    modelID: "gpt-6-sol-fast",
     variant: "high",
   });
   expect(asModelSpec({ providerID: "opencode-go", modelID: "kimi-k3" })).toEqual({

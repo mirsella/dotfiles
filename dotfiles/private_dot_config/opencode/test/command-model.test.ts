@@ -88,7 +88,7 @@ test("command overrides preserve fast mode and apply once per session", async ()
   // openai command overrides preserve the source model's fast mode.
   for (const [name, modelID, expectedModelID, variant] of [
     ["commit", "gpt-6-astra-fast", "gpt-6-luna-fast", "max"],
-    ["commit", "gpt-5.6-sol-fast", "gpt-6-luna-fast", "max"],
+    ["commit", "gpt-6-sol-fast", "gpt-6-luna-fast", "max"],
     ["commit", "gpt-6-astra", "gpt-6-luna", "max"],
     ["fast", "gpt-6-astra-fast", "gpt-6-luna-fast", "max"],
     ["fast", "gpt-6-astra", "gpt-6-luna-fast", "max"],

@@ -17,7 +17,7 @@ type Worker = {
 const lunaMax = { providerID: "openai", modelID: "gpt-6-luna", variant: "max" } satisfies ModelSpec;
 const solFast = (variant: "high" | "low"): ModelSpec => ({
   providerID: "openai",
-  modelID: "gpt-5.6-sol-fast",
+  modelID: "gpt-6-sol-fast",
   variant,
 });
 const astra = { providerID: "openai", modelID: "gpt-6-astra" } satisfies ModelSpec;

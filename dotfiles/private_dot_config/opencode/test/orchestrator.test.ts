@@ -13,7 +13,7 @@ type Marker = { fast: boolean } | { model: Model };
 
 const luna: Model = { providerID: "openai", modelID: "gpt-6-luna", variant: "max" };
 const deepseek: Model = MODE_MODELS.go;
-const solFast = (variant: "high" | "low"): Model => ({ providerID: "openai", modelID: "gpt-5.6-sol-fast", variant });
+const solFast = (variant: "high" | "low"): Model => ({ providerID: "openai", modelID: "gpt-6-sol-fast", variant });
 const astra: Model = { providerID: "openai", modelID: "gpt-6-astra" };
 const astraFast: Model = { providerID: "openai", modelID: "gpt-6-astra-fast" };
 const allWorkers = ["general", "explore", "astra"] as const;
@@ -136,7 +136,7 @@ const setup = async (messages: SessionMessagesResponse = [user(), assistant()]) 
 
 test("registers astra defaults and leaves other agents untouched", async () => {
   const general = { mode: "subagent" as const };
-  const explore = { model: "openai/gpt-5.6-sol#high" };
+  const explore = { model: "openai/gpt-6-sol#high" };
   const config: Config = { model: "openai/gpt-6-astra", agent: { general, explore } };
   const { hooks } = await setup();
   await hooks.config(config);

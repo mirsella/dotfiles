@@ -66,7 +66,7 @@ test("invalid fields are dropped without discarding the scope", () => {
 
 test("session scope overrides the global scope, which overrides the defaults", () => {
   const state: State = {
-    global: { mode: "go", models: { codex: { providerID: "openai", modelID: "gpt-5.6-sol", variant: "high" } } },
+    global: { mode: "go", models: { codex: { providerID: "openai", modelID: "gpt-6-sol", variant: "high" } } },
     sessions: { one: { mode: "codex", models: { codex: { providerID: "openai", modelID: "gpt-6-astra" } } } },
   };
   const session = resolveScope(state, "one");
@@ -75,7 +75,7 @@ test("session scope overrides the global scope, which overrides the defaults", (
   expect(session.models.codex).toEqual({ providerID: "openai", modelID: "gpt-6-astra" });
   const global = resolveScope(state, "two");
   expect(global.mode).toBe("go");
-  expect(global.models.codex).toEqual({ providerID: "openai", modelID: "gpt-5.6-sol", variant: "high" });
+  expect(global.models.codex).toEqual({ providerID: "openai", modelID: "gpt-6-sol", variant: "high" });
   const unset = resolveScope({}, "one");
   expect(unset.mode).toBe("auto");
   expect(unset.models).toEqual(MODE_MODELS);
