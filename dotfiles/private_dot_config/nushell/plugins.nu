@@ -1,40 +1,48 @@
-# plugins.nu - Minimal Nushell Plugin Manager
+def nu-plugins-update [] {
+  let plugin_dir = ($nu.data-dir | path join "plugins")
+  let nu_version = (version | get version)
+  # Bypass the rustup shim, which starts a transient systemd scope for each call.
+  let cargo = (rustup which --toolchain nightly cargo | str trim)
+  let rustc = (rustup which --toolchain nightly rustc | str trim)
 
-let $PLUGIN_DIR = $nu.data-dir | path join "plugins"
+  for repo in [
+    "yybit/nu_plugin_compress"
+    "FMotalleb/nu_plugin_clipboard"
+    "FMotalleb/nu_plugin_image"
+    "JosephTLyons/nu_plugin_units"
+  ] {
+    let name = ($repo | path basename)
+    let plugin_path = ($plugin_dir | path join $name)
+    let manifest = ($plugin_path | path join "Cargo.toml")
+    let binary = ($plugin_path | path join "target" "release" $name)
 
-def ensure-plugin [repo: string] {
-  let name = ($repo | path basename | str replace ".git" "")
-  let url = $"https://github.com/($repo)"
-  let plugin_path = ($PLUGIN_DIR | path join $name)
-  
-  if not ($plugin_path | path exists) {
-    print $"Installing ($name)..."
-    let clone = do { git clone $url $plugin_path } | complete
-    if $clone.exit_code != 0 {
-      print --stderr $"($name): clone failed, skipping"
-      return
+    if not ($plugin_path | path exists) {
+      print $"Cloning ($name)..."
+      let clone = do { git clone $"https://github.com/($repo)" $plugin_path } | complete
+      if $clone.exit_code != 0 {
+        error make { msg: $"($name): clone failed: ($clone.stderr | str trim)" }
+      }
     }
-    # Real cargo binary, not the rustup shim: the shim wraps every call in a
-    # systemd-run transient scope, which fails on headless NixOS sessions.
-    let cargo = (rustup which --toolchain nightly cargo | str trim)
-    # Fresh clones pin whatever nu-plugin the author used; the plugin must
-    # match the running nushell exactly, so align before building.
-    let align = do { ^$cargo update --manifest-path $"($plugin_path)/Cargo.toml" -p nu-plugin -p nu-protocol } | complete
+
+    if not ($manifest | path exists) {
+      error make { msg: $"($name): missing Cargo.toml in ($plugin_path)" }
+    }
+
+    let align = do { ^$cargo add --manifest-path $manifest $"nu-plugin@($nu_version)" $"nu-protocol@($nu_version)" } | complete
     if $align.exit_code != 0 {
-      print --stderr $"($name): dep align failed, skipping"
-      return
+      error make { msg: $"($name): dependency update failed: ($align.stderr | str trim)" }
     }
-    let build = do { ^$cargo build --release --manifest-path $"($plugin_path)/Cargo.toml" --locked } | complete
-    let add = do { plugin add $"($plugin_path)/target/release/($name)" } | complete
-    if $add.exit_code != 0 {
-      print --stderr $"($name): register failed, skipping"
-      return
+
+    print $"Building ($name)..."
+    let build = do { with-env { RUSTC: $rustc } { ^$cargo build --release --manifest-path $manifest } } | complete
+    if $build.exit_code != 0 {
+      error make { msg: $"($name): build failed: ($build.stderr | str trim)" }
+    }
+
+    try {
+      plugin add $binary
+    } catch {|err|
+      error make { msg: $"($name): register failed: ($err.msg)" }
     }
   }
 }
-
-ensure-plugin "yybit/nu_plugin_compress"
-# ensure-plugin "fdncred/nu_plugin_file"
-ensure-plugin "FMotalleb/nu_plugin_clipboard"
-ensure-plugin "FMotalleb/nu_plugin_image"
-ensure-plugin "JosephTLyons/nu_plugin_units"
