@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { type JSX } from "@opentui/solid"
+import { type JSX, useTerminalDimensions } from "@opentui/solid"
 import { createSignal, onCleanup } from "solid-js"
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
 import { appendFileSync, readFileSync, existsSync } from "node:fs"
@@ -929,14 +929,17 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
         // New chat shown only on COLD with messages. Interrupt only on BUSY-COLD.
         const showAutoRefresh = () =>
           cacheState() !== "cold" && cacheState() !== "busy-cold"
+        // Narrow terminals (<100 cols): take our own stacked rows instead
+        // of squeezing one row and wrapping mid-word.
+        const dimensions = useTerminalDimensions()
         const showNewChat = () => hasMessages() && cacheState() === "cold"
         const showInterrupt = () => cacheState() === "busy-cold"
 
         // Providers without cache pricing get no widget at all (no timer text,
         // no Refresh/New-chat buttons; Refresh would even waste tokens there).
         return timerHidden() ? null : (
-          // row layout keeps buttons + timer on one line (OpenTUI defaults to column).
-          <box flexDirection="row" paddingLeft={1} paddingRight={1} gap={1}>
+          // Wide: buttons + timer on one line. Narrow: our own stacked rows.
+          <box flexDirection={dimensions().width < 100 ? "column" : "row"} paddingLeft={1} paddingRight={1} gap={1}>
             {showInterrupt() && (
               <box
                 onMouseUp={handleInterruptClick}

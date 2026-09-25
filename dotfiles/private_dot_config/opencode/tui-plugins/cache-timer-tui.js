@@ -5,7 +5,7 @@ import { memo as _$memo } from "@opentui/solid";
 import { setProp as _$setProp } from "@opentui/solid";
 import { createElement as _$createElement } from "@opentui/solid";
 /** @jsxImportSource @opentui/solid */
-
+import { useTerminalDimensions } from "@opentui/solid";
 import { createSignal, onCleanup } from "solid-js";
 import { appendFileSync, readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
@@ -877,18 +877,20 @@ const tui = async (api, _options, _meta) => {
           // firing now would pay cold tax for nothing).
           // New chat shown only on COLD with messages. Interrupt only on BUSY-COLD.
           const showAutoRefresh = () => cacheState() !== "cold" && cacheState() !== "busy-cold";
+          // Narrow terminals (<100 cols): take our own stacked rows instead
+          // of squeezing one row and wrapping mid-word.
+          const dimensions = useTerminalDimensions();
           const showNewChat = () => hasMessages() && cacheState() === "cold";
           const showInterrupt = () => cacheState() === "busy-cold";
 
           // Providers without cache pricing get no widget at all (no timer text,
           // no Refresh/New-chat buttons; Refresh would even waste tokens there).
-          return timerHidden() ? null : // row layout keeps buttons + timer on one line (OpenTUI defaults to column).
+          return timerHidden() ? null : // Wide: buttons + timer on one line. Narrow: our own stacked rows.
           (() => {
             var _el$ = _$createElement("box"),
               _el$2 = _$createElement("text"),
               _el$3 = _$createElement("b");
             _$insertNode(_el$, _el$2);
-            _$setProp(_el$, "flexDirection", "row");
             _$setProp(_el$, "paddingLeft", 1);
             _$setProp(_el$, "paddingRight", 1);
             _$setProp(_el$, "gap", 1);
@@ -903,10 +905,10 @@ const tui = async (api, _options, _meta) => {
                 _$setProp(_el$4, "paddingRight", 1);
                 _$insert(_el$5, () => interruptInFlight() ? "Stopping..." : "✨ Stop & fork");
                 _$effect(_p$ => {
-                  var _v$ = interruptInFlight() ? "#1E3A5F" : "#2563EB",
-                    _v$2 = interruptInFlight() ? "#93C5FD" : "#F3F4F6";
-                  _v$ !== _p$.e && (_p$.e = _$setProp(_el$4, "backgroundColor", _v$, _p$.e));
-                  _v$2 !== _p$.t && (_p$.t = _$setProp(_el$5, "fg", _v$2, _p$.t));
+                  var _v$3 = interruptInFlight() ? "#1E3A5F" : "#2563EB",
+                    _v$4 = interruptInFlight() ? "#93C5FD" : "#F3F4F6";
+                  _v$3 !== _p$.e && (_p$.e = _$setProp(_el$4, "backgroundColor", _v$3, _p$.e));
+                  _v$4 !== _p$.t && (_p$.t = _$setProp(_el$5, "fg", _v$4, _p$.t));
                   return _p$;
                 }, {
                   e: undefined,
@@ -929,10 +931,10 @@ const tui = async (api, _options, _meta) => {
                   return () => _c$4() ? `Starting... ${SPINNER_FRAMES[spinnerFrame()]}` : "✨ New chat";
                 })());
                 _$effect(_p$ => {
-                  var _v$3 = newChatInFlight() ? "#1E3A5F" : "#2563EB",
-                    _v$4 = newChatInFlight() ? "#93C5FD" : "#F3F4F6";
-                  _v$3 !== _p$.e && (_p$.e = _$setProp(_el$6, "backgroundColor", _v$3, _p$.e));
-                  _v$4 !== _p$.t && (_p$.t = _$setProp(_el$7, "fg", _v$4, _p$.t));
+                  var _v$5 = newChatInFlight() ? "#1E3A5F" : "#2563EB",
+                    _v$6 = newChatInFlight() ? "#93C5FD" : "#F3F4F6";
+                  _v$5 !== _p$.e && (_p$.e = _$setProp(_el$6, "backgroundColor", _v$5, _p$.e));
+                  _v$6 !== _p$.t && (_p$.t = _$setProp(_el$7, "fg", _v$6, _p$.t));
                   return _p$;
                 }, {
                   e: undefined,
@@ -958,10 +960,10 @@ const tui = async (api, _options, _meta) => {
                   })();
                 })());
                 _$effect(_p$ => {
-                  var _v$5 = refreshInFlight() ? "#374151" : "#4B5563",
-                    _v$6 = refreshInFlight() ? "#9CA3AF" : "#F3F4F6";
-                  _v$5 !== _p$.e && (_p$.e = _$setProp(_el$8, "backgroundColor", _v$5, _p$.e));
-                  _v$6 !== _p$.t && (_p$.t = _$setProp(_el$9, "fg", _v$6, _p$.t));
+                  var _v$7 = refreshInFlight() ? "#374151" : "#4B5563",
+                    _v$8 = refreshInFlight() ? "#9CA3AF" : "#F3F4F6";
+                  _v$7 !== _p$.e && (_p$.e = _$setProp(_el$8, "backgroundColor", _v$7, _p$.e));
+                  _v$8 !== _p$.t && (_p$.t = _$setProp(_el$9, "fg", _v$8, _p$.t));
                   return _p$;
                 }, {
                   e: undefined,
@@ -972,7 +974,16 @@ const tui = async (api, _options, _meta) => {
             })(), _el$2);
             _$insertNode(_el$2, _el$3);
             _$insert(_el$3, timeText);
-            _$effect(_$p => _$setProp(_el$2, "fg", color(), _$p));
+            _$effect(_p$ => {
+              var _v$ = dimensions().width < 100 ? "column" : "row",
+                _v$2 = color();
+              _v$ !== _p$.e && (_p$.e = _$setProp(_el$, "flexDirection", _v$, _p$.e));
+              _v$2 !== _p$.t && (_p$.t = _$setProp(_el$2, "fg", _v$2, _p$.t));
+              return _p$;
+            }, {
+              e: undefined,
+              t: undefined
+            });
             return _el$;
           })();
         }
