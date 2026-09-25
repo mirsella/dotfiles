@@ -555,8 +555,8 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
             clearRefreshStack()
             return
           }
-          // No banking on COLD: a ping firing now would pay cold tax for nothing.
-          if (cacheState() === "cold" || cacheState() === "busy-cold") return
+          // No cold-guard: banked pings only fire while hot, and the
+          // button hides on cold anyway.
           bankRefresh()
         }
 
