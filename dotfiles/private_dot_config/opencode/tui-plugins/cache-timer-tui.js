@@ -205,6 +205,9 @@ function formatTimeText(totalSeconds) {
 
 // Module-level session-keyed states to ensure absolute isolation across multiple sessions
 const triggeredSessions = new Set();
+// Banked auto-refreshes per session: left-click adds one keep-alive ping,
+// the ticker fires one as the cache nears expiry; right-click clears.
+const refreshStacks = new Map();
 const healthySessions = new Set();
 const lastUserMsgIds = new Map();
 const autoPromptIds = new Set(); // Immutable ledger of all generated auto-prompt message IDs
@@ -431,6 +434,8 @@ const tui = async (api, _options, _meta) => {
 
           // Per-button in-flight flags debounce double-clicks (async APIs).
           const [refreshInFlight, setRefreshInFlight] = createSignal(false);
+          // Mirrors refreshStacks for this session so the button label is reactive.
+          const [refreshStack, setRefreshStack] = createSignal(session_id ? refreshStacks.get(session_id) ?? 0 : 0);
           const [newChatInFlight, setNewChatInFlight] = createSignal(false);
           const [interruptInFlight, setInterruptInFlight] = createSignal(false);
 
@@ -452,9 +457,26 @@ const tui = async (api, _options, _meta) => {
             }
             setSpinnerFrame(0);
           };
-          const handleRefreshClick = () => {
+
+          // Auto-refresh stack: left-click banks one keep-alive ping, the ticker
+          // fires one whenever the cache nears expiry; right-click clears.
+          const bankRefresh = () => {
             if (!session_id) return;
-            if (refreshInFlight()) return; // debounce: ignore if already sending
+            const next = (refreshStacks.get(session_id) ?? 0) + 1;
+            refreshStacks.set(session_id, next);
+            setRefreshStack(next);
+          };
+          const clearRefreshStack = () => {
+            if (!session_id) return;
+            refreshStacks.delete(session_id);
+            setRefreshStack(0);
+          };
+          const fireStackedRefresh = () => {
+            if (!session_id || refreshInFlight()) return;
+            const pending = refreshStacks.get(session_id) ?? 0;
+            if (pending <= 0) return;
+            refreshStacks.set(session_id, pending - 1);
+            setRefreshStack(pending - 1);
             setRefreshInFlight(true);
             api.client.session.prompt({
               sessionID: session_id,
@@ -479,6 +501,16 @@ const tui = async (api, _options, _meta) => {
             }).finally(() => {
               setRefreshInFlight(false);
             });
+          };
+          const handleRefreshClick = e => {
+            // Right-click clears the stack instead of banking.
+            if (e && e.button === 2) {
+              clearRefreshStack();
+              return;
+            }
+            // No banking on COLD: a ping firing now would pay cold tax for nothing.
+            if (cacheState() === "cold" || cacheState() === "busy-cold") return;
+            bankRefresh();
           };
 
           // Fork a fresh session seeded from the last exchange, avoiding the
@@ -749,6 +781,13 @@ const tui = async (api, _options, _meta) => {
                   healthySessions.add(session_id);
                 }
 
+                // Auto-fire one banked refresh while idle as the cache nears
+                // expiry. Busy turns are skipped: the fresh reply re-anchors
+                // the timer anyway once the turn completes.
+                if (!timerHidden() && remainingMs <= 60 * 1000 && !refreshInFlight()) {
+                  fireStackedRefresh();
+                }
+
                 // Opt-in auto-summary 15s before expiry, while the cache is still hot.
                 if (!timerHidden() && enableAutoPrompt && healthySessions.has(session_id) && remainingMs <= 15 * 1000 && remainingMs > 0 && !triggeredSessions.has(session_id)) {
                   triggeredSessions.add(session_id);
@@ -806,11 +845,12 @@ const tui = async (api, _options, _meta) => {
             // The watcher is the sole owner; it reaps them when the prompt resolves.
           });
 
-          // Visibility thesis: hot cache → keep going (Refresh), cold cache → fork
-          // (New chat / Interrupt). Each state shows exactly the recommended action.
-          // Refresh hidden on COLD/BUSY-COLD (would pay cold tax for nothing).
+          // Visibility thesis: hot cache → keep going (auto-refresh bank),
+          // cold cache → fork (New chat / Interrupt). Each state shows exactly
+          // the recommended action. Auto hidden on COLD/BUSY-COLD (a ping
+          // firing now would pay cold tax for nothing).
           // New chat shown only on COLD with messages. Interrupt only on BUSY-COLD.
-          const showRefresh = () => cacheState() !== "cold" && cacheState() !== "busy-cold";
+          const showAutoRefresh = () => cacheState() !== "cold" && cacheState() !== "busy-cold";
           const showNewChat = () => hasMessages() && cacheState() === "cold";
           const showInterrupt = () => cacheState() === "busy-cold";
 
@@ -876,7 +916,7 @@ const tui = async (api, _options, _meta) => {
               })();
             })(), _el$2);
             _$insert(_el$, (() => {
-              var _c$3 = _$memo(() => !!showRefresh());
+              var _c$3 = _$memo(() => !!showAutoRefresh());
               return () => _c$3() && (() => {
                 var _el$8 = _$createElement("box"),
                   _el$9 = _$createElement("text");
@@ -884,7 +924,13 @@ const tui = async (api, _options, _meta) => {
                 _$setProp(_el$8, "onMouseUp", handleRefreshClick);
                 _$setProp(_el$8, "paddingLeft", 1);
                 _$setProp(_el$8, "paddingRight", 1);
-                _$insert(_el$9, () => refreshInFlight() ? "Sending..." : "↻ Refresh");
+                _$insert(_el$9, (() => {
+                  var _c$5 = _$memo(() => !!refreshInFlight());
+                  return () => _c$5() ? "Sending..." : (() => {
+                    var _c$6 = _$memo(() => refreshStack() > 0);
+                    return () => _c$6() ? `↻ Auto (${refreshStack()})` : "↻ Auto";
+                  })();
+                })());
                 _$effect(_p$ => {
                   var _v$5 = refreshInFlight() ? "#374151" : "#4B5563",
                     _v$6 = refreshInFlight() ? "#9CA3AF" : "#F3F4F6";
