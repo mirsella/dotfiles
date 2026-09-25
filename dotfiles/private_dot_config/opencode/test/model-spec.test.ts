@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { asModelSpec, formatModel, parseModel } from "../lib/model-spec";
+import { asModelSpec, formatModel, parseModel, sameModel } from "../lib/model-spec";
 
 test("parses and formats provider/model[#variant] specs", () => {
   const specs = [
@@ -45,4 +45,19 @@ test("accepts complete JSON shapes", () => {
     providerID: "opencode-go",
     modelID: "kimi-k3",
   });
+});
+
+test("compares models by provider and model, ignoring variant", () => {
+  expect(
+    sameModel(
+      { providerID: "openai", modelID: "gpt-6-sol-fast", variant: "high" },
+      { providerID: "openai", modelID: "gpt-6-sol-fast", variant: "low" },
+    ),
+  ).toBe(true);
+  expect(sameModel({ providerID: "openai", modelID: "gpt-6-luna" }, { providerID: "openai", modelID: "gpt-6-astra" })).toBe(
+    false,
+  );
+  expect(
+    sameModel({ providerID: "openai", modelID: "gpt-6-luna" }, { providerID: "opencode-go", modelID: "gpt-6-luna" }),
+  ).toBe(false);
 });

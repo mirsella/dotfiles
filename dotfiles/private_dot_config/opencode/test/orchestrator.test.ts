@@ -580,3 +580,116 @@ test.each(["", "\n@src/main.ts\n\u00e9\r\n", "<opencode-orchestrator-user:sol:fa
     }
   },
 );
+
+const startChild = async (
+  hooks: Awaited<ReturnType<typeof setup>>["hooks"],
+  subagent_type = "general",
+  callID = "call-1",
+  childID = "child-1",
+) => {
+  const args = { subagent_type, prompt: taskPrompt };
+  await hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID }, { args });
+  await hooks["tool.execute.after"](
+    { tool: "task", sessionID: "session", callID },
+    { metadata: { sessionId: childID } },
+  );
+  return args;
+};
+
+test("resuming a child with the same worker keeps its model", async () => {
+  const { hooks } = await setup();
+  await startChild(hooks);
+  const resume = { subagent_type: "general", prompt: taskPrompt, task_id: "child-1" };
+  await hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-2" }, { args: resume });
+  expect(markerOf(resume.prompt)).toEqual(auto(false));
+});
+
+test("switching workers on the same child session is blocked", async () => {
+  const { hooks } = await setup();
+  await startChild(hooks);
+  const switched = { subagent_type: "astra", prompt: taskPrompt, task_id: "child-1" };
+  await expect(
+    hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-2" }, { args: switched }),
+  ).rejects.toThrow(/without task_id/);
+  expect(switched.prompt).toBe(taskPrompt);
+});
+
+test("switching from astra back to general on the same child is blocked", async () => {
+  const { hooks } = await setup();
+  await startChild(hooks, "astra");
+  const switched = { subagent_type: "general", prompt: taskPrompt, task_id: "child-1" };
+  await expect(
+    hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-2" }, { args: switched }),
+  ).rejects.toThrow(/pinned to openai\/gpt-6-astra/);
+});
+
+test("switching speed on the same child session is blocked", async () => {
+  const { hooks, state } = await setup([user(), fastAssistant()]);
+  await startChild(hooks);
+  state.messages = [user(), assistant()];
+  const resume = { subagent_type: "general", prompt: taskPrompt, task_id: "child-1" };
+  await expect(
+    hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-2" }, { args: resume }),
+  ).rejects.toThrow(/same worker and speed/);
+});
+
+test("forced mode allows mirror workers sharing one model on the same child", async () => {
+  const { hooks, setState } = await setup();
+  setState({ global: { mode: "go" } });
+  await startChild(hooks);
+  const resume = { subagent_type: "explore", prompt: taskPrompt, task_id: "child-1" };
+  await hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-2" }, { args: resume });
+  expect(markerOf(resume.prompt)).toEqual(forced(deepseek));
+});
+
+test("resuming with an explicit model that differs from the pin is blocked", async () => {
+  const { hooks } = await setup();
+  await startChild(hooks);
+  const resume = {
+    subagent_type: "general",
+    prompt: taskPrompt,
+    task_id: "child-1",
+    model: "openai/gpt-6-astra",
+  };
+  await expect(
+    hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-2" }, { args: resume }),
+  ).rejects.toThrow(/explicit model/);
+});
+
+test("deleted child sessions release their model pin", async () => {
+  const { hooks } = await setup();
+  await startChild(hooks);
+  await hooks.event({ event: { type: "session.deleted", properties: { info: { id: "child-1" } } } });
+  const switched = { subagent_type: "astra", prompt: taskPrompt, task_id: "child-1" };
+  await hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-2" }, { args: switched });
+  expect(markerOf(switched.prompt)).toEqual(auto(false));
+});
+
+test("resume keys beyond task_id share the same model pin", async () => {
+  const { hooks } = await setup();
+  await startChild(hooks);
+  const same = { subagent_type: "general", prompt: taskPrompt, sessionID: "child-1" };
+  await hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-2" }, { args: same });
+  expect(markerOf(same.prompt)).toEqual(auto(false));
+  const switched = { subagent_type: "astra", prompt: taskPrompt, sessionId: "child-1" };
+  await expect(
+    hooks["tool.execute.before"]({ tool: "task", sessionID: "session", callID: "call-3" }, { args: switched }),
+  ).rejects.toThrow(/without task_id/);
+  expect(switched.prompt).toBe(taskPrompt);
+});
+
+test("null model markers fail explicitly", async () => {
+  const { task, prompt } = await setup();
+  const source = await task("astra");
+  const prefix = source.slice(0, source.indexOf("{"));
+  await expect(
+    prompt("child", "astra", "gpt-6-astra", `${prefix}null>\n${taskPrompt}`),
+  ).rejects.toThrow("Invalid orchestrator model marker");
+});
+
+test("system prompt pins resumed children to their original model", async () => {
+  const { system } = await setup();
+  for (const text of [...(await system("openai")), ...(await system("opencode-go"))]) {
+    expect(text).toContain("without task_id");
+  }
+});
