@@ -101,7 +101,9 @@ function isHiddenFor(messages: ReadonlyArray<any> | undefined): boolean {
   if (enabledProviders.length === 0) return true;
   if (!messages) return false;
   for (let i = messages.length - 1; i >= 0; i--) {
-    const provider = (messages[i] as any)?.model?.providerID;
+    // TUI state shape varies: user messages nest it under model,
+    // assistant rows often carry it flat. Accept either.
+    const provider = (messages[i] as any)?.model?.providerID ?? (messages[i] as any)?.providerID;
     if (typeof provider !== "string" || !provider) continue;
     const normalized = provider.toLowerCase();
     return !enabledProviders.some((p) => normalized.includes(p.toLowerCase()));
