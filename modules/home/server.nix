@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ pkgs, config, lib, ... }:
 {
   home.sessionPath = [ "$HOME/.local/share/cargo/bin" ];
 
@@ -78,7 +78,7 @@
     vimv
     wasm-bindgen-cli
     wasm-tools
-    wild
+    (lib.hiPrio wild)
     wrangler
     wtp
     yt-dlp
