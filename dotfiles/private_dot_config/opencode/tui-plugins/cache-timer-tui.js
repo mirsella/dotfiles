@@ -230,6 +230,8 @@ const refreshStacks = new Map();
 // Seconds of remaining cache life at which one banked refresh auto-fires.
 // 30s maximizes each window's coverage; a slow reply risks a brief cold gap.
 const AUTO_REFRESH_SEC = 30;
+// Terminals narrower than this get the stacked widget layout.
+const NARROW_WIDTH_COLS = 100;
 const healthySessions = new Set();
 const lastUserMsgIds = new Map();
 const autoPromptIds = new Set(); // Immutable ledger of all generated auto-prompt message IDs
@@ -877,7 +879,7 @@ const tui = async (api, _options, _meta) => {
           // firing now would pay cold tax for nothing).
           // New chat shown only on COLD with messages. Interrupt only on BUSY-COLD.
           const showAutoRefresh = () => cacheState() !== "cold" && cacheState() !== "busy-cold";
-          // Narrow terminals (<100 cols): take our own stacked rows instead
+          // Narrow terminals take our own stacked rows instead
           // of squeezing one row and wrapping mid-word.
           const dimensions = useTerminalDimensions();
           const showNewChat = () => hasMessages() && cacheState() === "cold";
@@ -975,7 +977,7 @@ const tui = async (api, _options, _meta) => {
             _$insertNode(_el$2, _el$3);
             _$insert(_el$3, timeText);
             _$effect(_p$ => {
-              var _v$ = dimensions().width < 100 ? "column" : "row",
+              var _v$ = dimensions().width < NARROW_WIDTH_COLS ? "column" : "row",
                 _v$2 = color();
               _v$ !== _p$.e && (_p$.e = _$setProp(_el$, "flexDirection", _v$, _p$.e));
               _v$2 !== _p$.t && (_p$.t = _$setProp(_el$2, "fg", _v$2, _p$.t));

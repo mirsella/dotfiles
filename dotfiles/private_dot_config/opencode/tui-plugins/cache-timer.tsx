@@ -259,6 +259,8 @@ const refreshStacks = new Map<string, number>();
 // Seconds of remaining cache life at which one banked refresh auto-fires.
 // 30s maximizes each window's coverage; a slow reply risks a brief cold gap.
 const AUTO_REFRESH_SEC = 30;
+// Terminals narrower than this get the stacked widget layout.
+const NARROW_WIDTH_COLS = 100;
 const healthySessions = new Set<string>();
 const lastUserMsgIds = new Map<string, string>();
 const autoPromptIds = new Set<string>(); // Immutable ledger of all generated auto-prompt message IDs
@@ -929,7 +931,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
         // New chat shown only on COLD with messages. Interrupt only on BUSY-COLD.
         const showAutoRefresh = () =>
           cacheState() !== "cold" && cacheState() !== "busy-cold"
-        // Narrow terminals (<100 cols): take our own stacked rows instead
+        // Narrow terminals take our own stacked rows instead
         // of squeezing one row and wrapping mid-word.
         const dimensions = useTerminalDimensions()
         const showNewChat = () => hasMessages() && cacheState() === "cold"
@@ -939,7 +941,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
         // no Refresh/New-chat buttons; Refresh would even waste tokens there).
         return timerHidden() ? null : (
           // Wide: buttons + timer on one line. Narrow: our own stacked rows.
-          <box flexDirection={dimensions().width < 100 ? "column" : "row"} paddingLeft={1} paddingRight={1} gap={1}>
+          <box flexDirection={dimensions().width < NARROW_WIDTH_COLS ? "column" : "row"} paddingLeft={1} paddingRight={1} gap={1}>
             {showInterrupt() && (
               <box
                 onMouseUp={handleInterruptClick}
