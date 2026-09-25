@@ -1,0 +1,10 @@
+{
+  "enableAutoPrompt": true,
+  "durations": {
+    "claude": 300,
+    "gemini": 3600,
+    "gpt": 1800,
+    "codex": 1800
+  },
+  "defaultDuration": 300
+}
