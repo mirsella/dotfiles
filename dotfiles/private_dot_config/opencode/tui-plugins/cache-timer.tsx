@@ -238,11 +238,12 @@ function formatWarmTime(totalSeconds: number): string {
   return `${Math.floor(totalSeconds)}s`
 }
 
-// Countdown label, with banked total appended when the stack is non-empty:
-// "Cache: HOT (04:20 +1h04)" (remaining + stack × TTL).
+// Countdown label. No stack: bare "Cache: HOT 04:20". Banked: the total
+// warm time is spelled out so nobody adds it up themselves —
+// "Cache: HOT 04:20 (total 1h04)" (remaining + stack × TTL).
 function warmLabel(exact: string, remainingSec: number, ttlSec: number, banked: number): string {
-  if (banked <= 0) return `Cache: HOT (${exact})`
-  return `Cache: HOT (${exact} +${formatWarmTime(remainingSec + banked * ttlSec)})`
+  if (banked <= 0) return `Cache: HOT ${exact}`
+  return `Cache: HOT ${exact} (total ${formatWarmTime(remainingSec + banked * ttlSec)})`
 }
 
 // Semantic state the ticker writes each second; UI text/color/button visibility
@@ -256,8 +257,8 @@ const triggeredSessions = new Set<string>();
 // the ticker fires one as the cache nears expiry; right-click clears.
 const refreshStacks = new Map<string, number>();
 // Seconds of remaining cache life at which one banked refresh auto-fires.
-// 120s keeps a full TTL-plus margin on codex without firing wastefully early.
-const AUTO_REFRESH_SEC = 120;
+// 30s maximizes each window's coverage; a slow reply risks a brief cold gap.
+const AUTO_REFRESH_SEC = 30;
 const healthySessions = new Set<string>();
 const lastUserMsgIds = new Map<string, string>();
 const autoPromptIds = new Set<string>(); // Immutable ledger of all generated auto-prompt message IDs
