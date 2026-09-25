@@ -1,9 +1,9 @@
-import { effect as _$effect } from "solid-js/web";
-import { insertNode as _$insertNode } from "solid-js/web";
-import { insert as _$insert } from "solid-js/web";
-import { memo as _$memo } from "solid-js/web";
-import { setProp as _$setProp } from "solid-js/web";
-import { createElement as _$createElement } from "solid-js/web";
+import { effect as _$effect } from "@opentui/solid";
+import { insertNode as _$insertNode } from "@opentui/solid";
+import { insert as _$insert } from "@opentui/solid";
+import { memo as _$memo } from "@opentui/solid";
+import { setProp as _$setProp } from "@opentui/solid";
+import { createElement as _$createElement } from "@opentui/solid";
 /** @jsxImportSource @opentui/solid */
 
 import { createSignal, onCleanup } from "solid-js";
