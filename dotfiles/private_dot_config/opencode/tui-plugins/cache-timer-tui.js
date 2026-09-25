@@ -201,6 +201,22 @@ function formatTimeText(totalSeconds) {
   return `${String(minutes).padStart(2, "0")}:${String(calculatedSeconds).padStart(2, "0")}`;
 }
 
+// Human total: 5400 -> "1h30", 1800 -> "30min", 45 -> "45s".
+function formatWarmTime(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor(totalSeconds % 3600 / 60);
+  if (h > 0) return `${h}h${String(m).padStart(2, "0")}`;
+  if (m > 0) return `${m}min`;
+  return `${Math.floor(totalSeconds)}s`;
+}
+
+// Countdown label, with banked total appended when the stack is non-empty:
+// "Cache: HOT (04:20 +1h04)" (remaining + stack × TTL).
+function warmLabel(exact, remainingSec, ttlSec, banked) {
+  if (banked <= 0) return `Cache: HOT (${exact})`;
+  return `Cache: HOT (${exact} +${formatWarmTime(remainingSec + banked * ttlSec)})`;
+}
+
 // Semantic state the ticker writes each second; UI text/color/button visibility
 // all read from it. "busy-cold" = turn running but cache already expired (COLD
 // wins over busy; only action is Interrupt-then-fork).
@@ -211,7 +227,8 @@ const triggeredSessions = new Set();
 // the ticker fires one as the cache nears expiry; right-click clears.
 const refreshStacks = new Map();
 // Seconds of remaining cache life at which one banked refresh auto-fires.
-const AUTO_REFRESH_SEC = 60;
+// 120s keeps a full TTL-plus margin on codex without firing wastefully early.
+const AUTO_REFRESH_SEC = 120;
 const healthySessions = new Set();
 const lastUserMsgIds = new Map();
 const autoPromptIds = new Set(); // Immutable ledger of all generated auto-prompt message IDs
@@ -729,7 +746,7 @@ const tui = async (api, _options, _meta) => {
                   const busyMinutes = Math.floor(busyRemainingMs / 1000 / 60);
                   const busySeconds = Math.floor(busyRemainingMs / 1000 % 60);
                   const busyFormatted = `${String(busyMinutes).padStart(2, "0")}:${String(busySeconds).padStart(2, "0")}`;
-                  setTimeText(`Cache: HOT (${busyFormatted})`);
+                  setTimeText(warmLabel(busyFormatted, busyRemainingMs / 1000, busyDurationSec, refreshStack()));
                   setColor(busyRemainingMs < 60 * 1000 ? "#FBBF24" : "#EF4444"); // Yellow <1min, else Red
                   setCacheState("busy");
                 }
@@ -772,7 +789,7 @@ const tui = async (api, _options, _meta) => {
                 const minutes = Math.floor(remainingMs / 1000 / 60);
                 const seconds = Math.floor(remainingMs / 1000 % 60);
                 const formattedTime = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-                setTimeText(`Cache: HOT (${formattedTime})`);
+                setTimeText(warmLabel(formattedTime, remainingMs / 1000, totalDurationSec, refreshStack()));
 
                 // Yellow under 1 minute (almost cold).
                 if (remainingMs < 60 * 1000) {
