@@ -54,9 +54,10 @@ function loadCacheTimerConfig() {
             ...(merged.durations ?? {})
           };
         }
-        // Disabled-provider list: first config wins wholesale (no per-key merge).
-        if (merged.disabledProviders === undefined && Array.isArray(parsed.disabledProviders)) {
-          merged.disabledProviders = parsed.disabledProviders.filter(p => typeof p === "string");
+        // Provider whitelist: first config wins wholesale (no per-key merge).
+        // Empty or absent means all providers (backwards compatible).
+        if (merged.enabledProviders === undefined && Array.isArray(parsed.enabledProviders)) {
+          merged.enabledProviders = parsed.enabledProviders.filter(p => typeof p === "string");
         }
       }
     } catch (err) {
@@ -74,10 +75,10 @@ let cacheDurations = {
   "gpt": 300
 };
 let defaultDuration = 300; // Fallback to 5 minutes (300s)
-// Providers with no prompt-cache pricing (no cold-start tax, so the timer and
-// its fork/refresh advice are meaningless there). Substring-matched against
-// the message's model providerID, so "opencode-go" covers that whole provider.
-let disabledProviders = [];
+// Provider whitelist: when non-empty, the timer only shows for these.
+// Substring-matched against the message's model providerID, so "openai"
+// covers the codex-backed provider. Empty means all providers.
+let enabledProviders = [];
 function getCacheDuration(modelId) {
   if (!modelId) return defaultDuration;
   const normalizedId = modelId.toLowerCase();
@@ -100,12 +101,13 @@ function currentProviderID(messages) {
   return undefined;
 }
 
-// True when the session runs on a provider with no prompt-cache pricing.
-// Unknown provider defaults to visible (the timer is only informational).
-function isTimerDisabled(providerId) {
-  if (!providerId) return false;
+// True when the timer may show for this provider. Empty whitelist allows
+// all (backwards compatible). Unknown provider defaults to visible.
+function isProviderEnabled(providerId) {
+  if (enabledProviders.length === 0) return true;
+  if (!providerId) return true;
   const normalized = providerId.toLowerCase();
-  return disabledProviders.some(p => normalized.includes(p.toLowerCase()));
+  return enabledProviders.some(p => normalized.includes(p.toLowerCase()));
 }
 
 // Slot-independent remaining-seconds calc for the global interaction watcher
@@ -265,10 +267,10 @@ const tui = async (api, _options, _meta) => {
   if (typeof userConfig.enableAutoPrompt === "boolean") {
     enableAutoPrompt = userConfig.enableAutoPrompt;
   }
-  if (Array.isArray(userConfig.disabledProviders)) {
-    disabledProviders = userConfig.disabledProviders;
+  if (Array.isArray(userConfig.enabledProviders)) {
+    enabledProviders = userConfig.enabledProviders;
   }
-  debugLog(`post-merge cacheDurations=${JSON.stringify(cacheDurations)} enableAutoPrompt=${enableAutoPrompt} defaultDuration=${defaultDuration} disabledProviders=${JSON.stringify(disabledProviders)}`);
+  debugLog(`post-merge cacheDurations=${JSON.stringify(cacheDurations)} enableAutoPrompt=${enableAutoPrompt} defaultDuration=${defaultDuration} enabledProviders=${JSON.stringify(enabledProviders)}`);
 
   // Defensive wrap: OpenCode's TUI API has been adding required fields between
   // minor versions (e.g. `message` became mandatory on toasts in v1.15.x).
@@ -383,7 +385,7 @@ const tui = async (api, _options, _meta) => {
           const remaining = remainingCacheSecondsFor(api, sid);
           if (remaining === undefined) continue;
           try {
-            if (isTimerDisabled(currentProviderID(api.state.session.messages(sid)))) continue;
+            if (!isProviderEnabled(currentProviderID(api.state.session.messages(sid)))) continue;
           } catch {
             // Unknown provider defaults to visible.
           }
@@ -442,7 +444,7 @@ const tui = async (api, _options, _meta) => {
           // Whether the source session has anything to seed a New chat from.
           const [hasMessages, setHasMessages] = createSignal(messagesOnMount && messagesOnMount.length > 0);
           // Hidden entirely on providers with no prompt-cache pricing.
-          const [timerHidden, setTimerHidden] = createSignal(isTimerDisabled(currentProviderID(messagesOnMount)));
+          const [timerHidden, setTimerHidden] = createSignal(!isProviderEnabled(currentProviderID(messagesOnMount)));
 
           // Per-button in-flight flags debounce double-clicks (async APIs).
           const [refreshInFlight, setRefreshInFlight] = createSignal(false);
@@ -652,7 +654,7 @@ const tui = async (api, _options, _meta) => {
                 }
               }
               setHasMessages(!!messages && messages.length > 0);
-              setTimerHidden(isTimerDisabled(currentProviderID(messages)));
+              setTimerHidden(!isProviderEnabled(currentProviderID(messages)));
 
               // Keep the countdown live while busy: the cache clock ticks during
               // long local tool calls even though the provider went silent.

@@ -7,5 +7,5 @@
     "codex": 1800
   },
   "defaultDuration": 300,
-  "disabledProviders": ["opencode-go"]
+  "enabledProviders": ["openai"]
 }
