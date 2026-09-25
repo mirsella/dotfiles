@@ -24,6 +24,7 @@
     description = "Unlock tank disks after USB initialization";
     after = [ "systemd-udevd.service" ];
     path = [ pkgs.cryptsetup config.systemd.package ];
+    restartIfChanged = false;
     unitConfig.DefaultDependencies = false;
     serviceConfig = {
       Type = "oneshot";
@@ -31,7 +32,6 @@
     };
     script = ''
       unlock() {
-        cryptsetup status "$1" >/dev/null 2>&1 && return 0
         udevadm wait --timeout=360 --initialized=yes "$3"
         for attempt in {1..12}; do
           cryptsetup open --key-file "$2" "$3" "$1" && return 0
@@ -39,8 +39,8 @@
           sleep 5
         done
       }
-      unlock tank1-crypt /etc/luks/tank1.key /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
-      unlock tank2-crypt /etc/luks/tank2.key /dev/disk/by-id/wwn-0x500003961228993f-part1
+      unlock tank1-crypt /etc/luks/tank1.key /dev/disk/by-uuid/e2eef868-fc6e-4f7b-864d-8c8235c7df37
+      unlock tank2-crypt /etc/luks/tank2.key /dev/disk/by-uuid/16c6cbcd-79fd-4dbd-bdfe-fc94ef3d3221
     '';
   };
 
@@ -89,51 +89,7 @@
   };
   systemd.timers.sanoid.timerConfig.Persistent = true;
 
-  environment.systemPackages = with pkgs; [ smartmontools ];
-
-  services.smartd =
-    let
-      # Failure mail via the Resend key shared with Nextcloud/Beszel.
-      # smartd runs this as root with SMARTD_* env vars on failure events.
-      alert = pkgs.writeShellScript "smartd-resend-alert" ''
-        set -eu
-        key=$(cat ${config.sops.secrets.nextcloud-resend.path})
-        subject="SMART ''${SMARTD_FAILTYPE:-alert}: ''${SMARTD_DEVICE:-unknown} on predator"
-        body=$(printf '%s\n' "SMART event on predator at $(date -Is)" "" "Device: ''${SMARTD_DEVICE:-?}" "Type: ''${SMARTD_FAILTYPE:-?}" "" "''${SMARTD_MESSAGE:-}")
-        payload=$(${pkgs.jq}/bin/jq -n \
-          --arg from 'SMART <noreply@voxride.com>' \
-          --arg to 'mirsella@protonmail.com' \
-          --arg subject "$subject" \
-          --arg text "$body" \
-          '{from:$from,to:[$to],subject:$subject,text:$text}')
-        ${pkgs.curl}/bin/curl --fail-with-body -sS --max-time 30 https://api.resend.com/emails \
-          -H "Authorization: Bearer $key" \
-          -H 'Content-Type: application/json' \
-          --data "$payload"
-      '';
-      # Run short self-tests at noon.
-      monitored = "-a -o on -S on -s (S/../.././12) -M once -M exec ${alert}";
-    in
-    {
-      enable = true;
-      autodetect = false;
-      defaults.monitored = monitored;
-      devices = [
-        { device = "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68"; }
-        { device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68"; }
-        {
-          device = "/dev/disk/by-id/wwn-0x5000c500aa3cc143";
-          options = "-d sat";
-        }
-        {
-          device = "/dev/disk/by-id/wwn-0x500003961228993f";
-          options = "-d sat";
-        }
-      ];
-    };
-
-  # Genesys Logic hub autosuspends with delay 0 and takes the pool disks
-  # off the bus with it (killed 6 SMART long tests). Keep it awake.
+  # Keep the Genesys Logic hub awake for its downstream pool disk.
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="05e3", ATTR{idProduct}=="0626", ATTR{power/control}="on"
   '';

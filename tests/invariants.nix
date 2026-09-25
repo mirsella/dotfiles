@@ -22,7 +22,8 @@ assert lib.assertMsg (
   builtins.elem "tank-unlock.service" server.systemd.services.zfs-import-tank.requires
   && builtins.elem "tank-unlock.service" server.systemd.services.zfs-import-tank.after
   && server.systemd.services.tank-unlock.wantedBy == [ ]
-) "The native ZFS import service must require successful HDD unlocking";
+  && !server.systemd.services.tank-unlock.restartIfChanged
+) "ZFS import must require boot-only HDD unlocking";
 assert lib.assertMsg (
   "${disks.ssd.device}-part1" == server.boot.initrd.luks.devices.fast-crypt.device
   && ncdata.options.mountpoint == "legacy"
