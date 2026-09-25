@@ -11,7 +11,7 @@ import { appendFileSync, readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-// Displayed in the load toast to verify which build is running. Keep in sync
+// Logged at init to verify which build is running. Keep in sync
 // with package.json on release.
 const CACHE_TIMER_VERSION = "1.2.0";
 
@@ -247,7 +247,7 @@ const pendingAutoPromptUserCount = new Map();
 const tui = async (api, _options, _meta) => {
   // Auto-prompt is opt-in. Defaults stay safe.
   let enableAutoPrompt = false;
-  debugLog("=== tui() invoked ===");
+  debugLog(`=== cache-timer v${CACHE_TIMER_VERSION} tui() invoked ===`);
   const userConfig = loadCacheTimerConfig();
   debugLog(`resolved userConfig=${JSON.stringify(userConfig)}`);
   if (typeof userConfig.defaultDuration === "number") {
@@ -267,20 +267,8 @@ const tui = async (api, _options, _meta) => {
   }
   debugLog(`post-merge cacheDurations=${JSON.stringify(cacheDurations)} enableAutoPrompt=${enableAutoPrompt} defaultDuration=${defaultDuration} enabledProviders=${JSON.stringify(enabledProviders)}`);
 
-  // Defensive wrap: OpenCode's TUI API has been adding required fields between
-  // minor versions (e.g. `message` became mandatory on toasts in v1.15.x).
-  // If validation throws here, swallow it so the slot registration below still
-  // runs — losing a load toast is better than losing the entire countdown.
-  try {
-    api.ui.toast({
-      variant: "success",
-      title: `Cache Timer v${CACHE_TIMER_VERSION} loaded`,
-      message: `Auto-prompt: ${enableAutoPrompt ? "on" : "off"}`,
-      duration: 3000
-    });
-  } catch (e) {
-    debugLog(`api.ui.toast THREW: ${e?.message || e}`);
-  }
+  // No startup toast by design; init is recorded in the debug log above.
+
   try {
     // Question lifecycle: question.asked -> question.replied|rejected.
     api.event.on("question.asked", event => {
