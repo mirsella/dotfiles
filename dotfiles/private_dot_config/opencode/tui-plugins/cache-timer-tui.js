@@ -107,6 +107,28 @@ function isHiddenFor(messages) {
   return false;
 }
 
+// Current context size: newest assistant message's input tokens (each
+// request resends full history, so that equals the live context).
+function currentContextTokens(messages) {
+  if (!messages) return 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== "assistant") continue;
+    const t = m?.tokens?.input;
+    if (typeof t === "number" && t > 0) return t;
+  }
+  return 0;
+}
+
+// Max bankable refreshes: 3/4 of break-even, rounded down, so warming can
+// never cost more than the cold resume it prevents.
+function maxStackFor(contextTokens) {
+  if (contextTokens <= 0) return FALLBACK_MAX_STACK;
+  const refreshCost = 0.1 * contextTokens + REFRESH_REPLY_TOKENS * OUTPUT_COST_RATIO;
+  if (refreshCost <= 0) return FALLBACK_MAX_STACK;
+  return Math.max(0, Math.floor(BREAK_EVEN_FRACTION * (1.15 * contextTokens) / refreshCost));
+}
+
 // Slot-independent remaining-seconds calc for the global interaction watcher
 // (the per-slot ticker is suspended while a prompt modal is open — exactly when
 // the toasts matter). Same time.created anchor as the ticker.
@@ -232,6 +254,15 @@ const refreshStacks = new Map();
 const AUTO_REFRESH_SEC = 30;
 // Terminals narrower than this get the stacked widget layout.
 const NARROW_WIDTH_COLS = 100;
+// Break-even math (credit ratios; subscription meters like the API):
+// a cold resume wastes ~1.15C (0.9C lost cache discount + 0.25C rewrite
+// premium); one refresh costs ~0.1C cached re-read plus a short reply
+// (REFRESH_REPLY_TOKENS at OUTPUT_COST_RATIO input-equiv each).
+const OUTPUT_COST_RATIO = 6;
+const REFRESH_REPLY_TOKENS = 12;
+const BREAK_EVEN_FRACTION = 0.75;
+// Used when the context size can't be measured.
+const FALLBACK_MAX_STACK = 6;
 const healthySessions = new Set();
 const lastUserMsgIds = new Map();
 const autoPromptIds = new Set(); // Immutable ledger of all generated auto-prompt message IDs
@@ -486,7 +517,23 @@ const tui = async (api, _options, _meta) => {
           // fires one whenever the cache nears expiry; right-click clears.
           const bankRefresh = () => {
             if (!session_id) return;
-            const next = (refreshStacks.get(session_id) ?? 0) + 1;
+            let cap = FALLBACK_MAX_STACK;
+            try {
+              cap = maxStackFor(currentContextTokens(api.state.session.messages(session_id)));
+            } catch {
+              // Unmeasurable context: fall through with the fallback cap.
+            }
+            const stacked = refreshStacks.get(session_id) ?? 0;
+            if (stacked >= cap) {
+              api.ui.toast({
+                variant: "info",
+                title: "Stack full",
+                message: cap > 0 ? `Banked refreshes already cover the break-even window; more would cost more than a cold resume.` : "Context too small to price; banking paused so warming can't cost more than a cold resume.",
+                duration: 4000
+              });
+              return;
+            }
+            const next = stacked + 1;
             refreshStacks.set(session_id, next);
             setRefreshStack(next);
           };
