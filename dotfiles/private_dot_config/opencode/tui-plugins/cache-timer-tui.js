@@ -75,9 +75,9 @@ let cacheDurations = {
   "gpt": 300
 };
 let defaultDuration = 300; // Fallback to 5 minutes (300s)
-// Provider whitelist: when non-empty, the timer only shows for these.
-// Substring-matched against the message's model providerID, so "openai"
-// covers the codex-backed provider. Empty means all providers.
+// Provider whitelist: the timer only shows for these. Substring-matched
+// against the message's model providerID, so "openai" covers the
+// codex-backed provider. Empty or absent means off everywhere.
 let enabledProviders = [];
 function getCacheDuration(modelId) {
   if (!modelId) return defaultDuration;
@@ -90,11 +90,11 @@ function getCacheDuration(modelId) {
   return defaultDuration;
 }
 
-// True when the widget must stay hidden for these messages: the session runs
-// on a provider outside the whitelist. Empty whitelist allows all
-// (backwards compatible); unknown provider defaults to visible.
+// True when the widget must stay hidden for these messages: no whitelist
+// configured, or the session runs on a provider outside it. Unknown
+// provider defaults to visible (no info to match against yet).
 function isHiddenFor(messages) {
-  if (enabledProviders.length === 0) return false;
+  if (enabledProviders.length === 0) return true;
   if (!messages) return false;
   for (let i = messages.length - 1; i >= 0; i--) {
     const provider = messages[i]?.model?.providerID;
@@ -928,7 +928,7 @@ const tui = async (api, _options, _meta) => {
                   var _c$5 = _$memo(() => !!refreshInFlight());
                   return () => _c$5() ? "Sending..." : (() => {
                     var _c$6 = _$memo(() => refreshStack() > 0);
-                    return () => _c$6() ? `↻ Auto (${refreshStack()})` : "↻ Auto";
+                    return () => _c$6() ? `Auto ${refreshStack()}` : "Off";
                   })();
                 })());
                 _$effect(_p$ => {

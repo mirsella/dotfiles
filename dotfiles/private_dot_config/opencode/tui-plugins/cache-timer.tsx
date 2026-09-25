@@ -77,9 +77,9 @@ let cacheDurations: Record<string, number> = {
   "gpt": 300,
 };
 let defaultDuration = 300; // Fallback to 5 minutes (300s)
-// Provider whitelist: when non-empty, the timer only shows for these.
-// Substring-matched against the message's model providerID, so "openai"
-// covers the codex-backed provider. Empty means all providers.
+// Provider whitelist: the timer only shows for these. Substring-matched
+// against the message's model providerID, so "openai" covers the
+// codex-backed provider. Empty or absent means off everywhere.
 let enabledProviders: string[] = [];
 
 function getCacheDuration(modelId: string | undefined): number {
@@ -94,11 +94,11 @@ function getCacheDuration(modelId: string | undefined): number {
   return defaultDuration;
 }
 
-// True when the widget must stay hidden for these messages: the session runs
-// on a provider outside the whitelist. Empty whitelist allows all
-// (backwards compatible); unknown provider defaults to visible.
+// True when the widget must stay hidden for these messages: no whitelist
+// configured, or the session runs on a provider outside it. Unknown
+// provider defaults to visible (no info to match against yet).
 function isHiddenFor(messages: ReadonlyArray<any> | undefined): boolean {
-  if (enabledProviders.length === 0) return false;
+  if (enabledProviders.length === 0) return true;
   if (!messages) return false;
   for (let i = messages.length - 1; i >= 0; i--) {
     const provider = (messages[i] as any)?.model?.providerID;
@@ -946,7 +946,7 @@ const tui: TuiPlugin = async (api, _options, _meta) => {
                 paddingRight={1}
               >
                 <text fg={refreshInFlight() ? "#9CA3AF" : "#F3F4F6"}>
-                  {refreshInFlight() ? "Sending..." : (refreshStack() > 0 ? `↻ Auto (${refreshStack()})` : "↻ Auto")}
+                  {refreshInFlight() ? "Sending..." : (refreshStack() > 0 ? `Auto ${refreshStack()}` : "Off")}
                 </text>
               </box>
             )}
