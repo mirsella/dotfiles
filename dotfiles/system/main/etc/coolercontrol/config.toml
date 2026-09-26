@@ -24,7 +24,7 @@ fb9a73695715e8f47c246fc9c90107d58573d8685f198d032305cf04167f2aaa = "amdgpu"
 00a4da18625f56275c89e2fcd25a83c08c5ad3326452fa7e252fcc8a89c92493 = "nct6798"
 19e098e312e1b1b39163a343ea22b6ea17f18ec1a803ffe0ce44f5bacd6076ee = "Custom Sensors"
 f226946857a3141b80fefa0bae8de91cdba1c6eedf91d96ea7bef76ce88b4e90 = "ASUS Aura LED Controller"
-f42333b13a2853dfb8e516c576470622e74a4659bfffe7ca229f68733beae979 = "iwlwifi_1"
+f42333b13a2853dfb8e516c576470622e74a4659bfffe7ca229f68733beae979 = "iwlwifi_1_0"
 
 
 # Legacy690 Option for devices
@@ -79,7 +79,7 @@ function = "0"
 uid = "0840dd7f-04cb-4c72-9303-4d78f0e92a55"
 name = "My Profile"
 p_type = "Graph"
-speed_profile = [[0.0, 30], [40.0, 30], [55.0, 40], [65.0, 55], [75.0, 75], [85.0, 100], [100.0, 100]]
+speed_profile = [[0.0, 20], [65.0, 20], [70.0, 50], [85.0, 50], [90.0, 100], [100.0, 100]]
 function_uid = "02ba5ea0-89cc-4085-808f-c3b1cc97963b"
 temp_source = { temp_name = "temp1", device_uid = "e7a379142766ef8adca8fc914ac73c9e8cb0e557122bac280848a0303a384735" }
 temp_min = 0.0
