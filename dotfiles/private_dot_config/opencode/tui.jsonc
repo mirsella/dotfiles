@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/tui.json",
-  "theme": "rosepine",
+  // "theme": "rosepine",
   "keybinds": {
     "editor_open": "<leader>e,ctrl+o",
     "model_cycle_recent": "f4",
@@ -16,5 +16,6 @@
     "./tui-plugins/cache-timer-tui.js",
     "./tui-plugins/suppress-ctrl-u.ts",
     "./tui-plugins/subagent-mode.ts",
+    "./tui-plugins/system-theme.ts",
   ],
 }
