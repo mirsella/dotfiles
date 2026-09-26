@@ -1,9 +1,19 @@
 # Repository workflow
 
 The checkout is `~/dev/dotfiles` on every machine. `.chezmoiroot` selects
-`dotfiles/` as the chezmoi source; the flake at the repo root defines NixOS
-`predator` and standalone Home Manager homes for Arch `laptop` and `main`.
+`dotfiles/` as the chezmoi source. `hosts/<hostname>/default.nix` selects each
+machine's NixOS role; `home.nix` adds its workstation Home Manager settings.
+The flake discovers these directories and sets hostnames automatically.
 
+- `main` and `laptop` share the Plasma desktop module; `predator` is headless.
+  All three share `modules/nixos/common.nix`. Keep hardware and machine-specific
+  settings in their host directory, not hostname branches in shared modules.
+- Each host directory becomes a complete `nixosModules.<hostname>` and
+  `nixosConfigurations.<hostname>`, including its required `hardware-configuration.nix`.
+  See `README.md` for installation and rebuild commands.
+- Main's CoolerControl service installs the tracked TOML before each daemon start.
+  Config changes change the systemd unit and trigger a restart on rebuild.
+  Save permanent curve edits in `dotfiles/system/main/etc/coolercontrol/config.toml`.
 - Chezmoi owns editable app configuration. Home Manager owns packages, generated
   Git/SSH settings, user services and SOPS wiring. Keep each path under one
   owner; `.chezmoiignore` lists the HM-owned paths.
@@ -11,15 +21,15 @@ The checkout is `~/dev/dotfiles` on every machine. `.chezmoiroot` selects
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
 - On Arch, pacman/AUR own application binaries; the HM profiles install config
-  and services. On Predator, only rebuild the NixOS target, never activate a
-  standalone HM profile for the same user.
+  and services. On NixOS, rebuild the system target, never activate a standalone
+  HM profile for the same user. The standalone homes remain available for Arch.
 - Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
   especially `flake.lock` (the weekly upgrade updates nixpkgs there). Sync only
   reviewed changes; do not use whole-tree `rsync --delete` over concurrent work.
   Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles#predator'`.
   Run long rebuilds detached and poll the unit log and exit status.
-- `nix flake check --no-build --no-update-lock-file` evaluates the flake;
-  `nix eval --impure --json --file tests/invariants.nix` checks boot and disk invariants.
+- `nix flake check path:. --no-build --no-update-lock-file` evaluates all profiles
+  and runs the host-isolation and Predator boot/storage invariants through `checks`.
   Run the relevant Python tests for changed monitoring, unlock or suspend code.
 - `disko.nix` formats **all three data disks** only for a fresh, intentional
   installation. To reinstall on existing disks, mount them without running disko,
@@ -30,7 +40,7 @@ The checkout is `~/dev/dotfiles` on every machine. `.chezmoiroot` selects
 
 Manual files outside the repo:
 - Laptop uses Plasma lid defaults; Predator ignores lid-close via
-  `configuration.nix` (screen off instead of sleep).
+  `hosts/predator/default.nix` (screen off instead of sleep).
 - Arch boxes: Nix daemon cache (`/etc/nix/nix.conf`), system Caddy
   (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks. The
   daemon ignores cache settings from an untrusted Home Manager user config.

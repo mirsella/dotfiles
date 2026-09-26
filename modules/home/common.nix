@@ -1,10 +1,11 @@
-{ lib, config, pkgs, gitSigningKey, isNixOS, ... }:
+{ lib, config, pkgs, isNixOS, ... }:
 let
   lspmuxBin =
     if isNixOS then "${pkgs.lspmux}/bin/lspmux"
     else "${config.home.homeDirectory}/.local/share/cargo/bin/lspmux";
   mkdirBin = if isNixOS then "${pkgs.coreutils}/bin/mkdir" else "/usr/bin/mkdir";
   rcloneBin = if isNixOS then "${pkgs.rclone}/bin/rclone" else "/usr/bin/rclone";
+  secretServices = lib.optional (config.sops.secrets != { }) "sops-nix.service";
 in
 {
   home = {
@@ -39,8 +40,8 @@ in
   } // lib.mapAttrs' (remote: description: lib.nameValuePair "rclone-${remote}" {
     Unit = {
       Description = "${description} mount";
-      After = [ "network.target" ] ++ lib.optional (!isNixOS) "sops-nix.service";
-      Wants = lib.optional (!isNixOS) "sops-nix.service";
+      After = [ "network.target" ] ++ secretServices;
+      Wants = secretServices;
     };
     Service = {
       # rclone reports readiness and unmounts on SIGTERM itself.
@@ -60,7 +61,7 @@ in
     git = {
       enable = true;
       package = if isNixOS then pkgs.git else null;
-      settings = lib.recursiveUpdate {
+      settings = {
         user.name = "mirsella";
         user.email = "mirsella@protonmail.com";
         init.defaultBranch = "main";
@@ -98,10 +99,7 @@ in
           side-by-side = true;
         };
         interactive.diffFilter = "delta --color-only";
-      } (lib.optionalAttrs (gitSigningKey != null) {
-        commit.gpgsign = true;
-        user.signingkey = gitSigningKey;
-      });
+      };
     };
     ssh = {
       enable = true;

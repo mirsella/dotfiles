@@ -24,7 +24,7 @@
   };
 
   outputs =
-    { nixpkgs, home-manager, sops-nix, ... }@inputs:
+    { self, nixpkgs, home-manager, sops-nix, ... }@inputs:
     let
       cachyosCache = "https://attic.xuyh0120.win/lantian";
       overlays = [
@@ -67,36 +67,63 @@
           done <<< "$store_paths"
         '';
       };
-      mkStandaloneHome =
-        hostName: gitSigningKey:
-        home-manager.lib.homeManagerConfiguration {
-          inherit pkgs;
-          extraSpecialArgs = {
-            inherit inputs gitSigningKey hostName;
-            isNixOS = false;
-          };
-          modules = [ ./hosts/arch.nix ];
-        };
+      hostDirs = nixpkgs.lib.mapAttrs (name: _: ./hosts + "/${name}") (
+        nixpkgs.lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./hosts)
+      );
+      homeModules = builtins.mapAttrs (_: directory: directory + "/home.nix") (
+        nixpkgs.lib.filterAttrs
+          (_: directory: builtins.pathExists (directory + "/home.nix")) hostDirs
+      );
+      hostModules = builtins.mapAttrs (hostName: directory: {
+        imports = [
+          ./modules/nixos/common.nix
+          directory
+          (directory + "/hardware-configuration.nix")
+          home-manager.nixosModules.home-manager
+          sops-nix.nixosModules.sops
+          inputs.lanzaboote.nixosModules.lanzaboote
+        ];
+        _module.args.inputs = inputs;
+        networking.hostName = hostName;
+        nixpkgs.overlays = overlays;
+        home-manager.sharedModules = [ inputs.sops-nix.homeManagerModules.sops ];
+        home-manager.users.mirsella.imports = nixpkgs.lib.optional
+          (builtins.hasAttr hostName homeModules) homeModules.${hostName};
+      }) hostDirs;
     in
     {
       packages.x86_64-linux = customPackages // { update-packages = updatePackages; };
 
-      nixosConfigurations.predator = nixpkgs.lib.nixosSystem {
-        specialArgs = { inherit inputs overlays; };
-        modules = [
-          {
-            nix.settings.extra-substituters = [ cachyosCache ];
-            nix.settings.extra-trusted-public-keys = [ "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc=" ];
-          }
-          ./configuration.nix
-          home-manager.nixosModules.home-manager
-          sops-nix.nixosModules.sops
-        ];
-      };
+      nixosModules = hostModules;
+      nixosConfigurations = builtins.mapAttrs (_: module: nixpkgs.lib.nixosSystem {
+        modules = [ module ];
+      }) hostModules;
 
-      homeConfigurations = {
-        laptop = mkStandaloneHome "laptop" "E88ECCA3AA187BC1";
-        main = mkStandaloneHome "main" "E53202A06B2614A4";
+      homeConfigurations = builtins.mapAttrs (hostName: module:
+        home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          extraSpecialArgs = {
+            inherit hostName;
+            isNixOS = false;
+          };
+          modules = [
+            ./modules/home/common.nix
+            module
+            sops-nix.homeManagerModules.sops
+            {
+              targets.genericLinux.enable = true;
+              targets.genericLinux.gpu.enable = false;
+            }
+          ];
+        }
+      ) homeModules;
+
+      checks.x86_64-linux = builtins.mapAttrs (name: test:
+        builtins.deepSeq (import test self)
+          (pkgs.runCommand "${name}-invariants" { } ''touch "$out"'')
+      ) {
+        hosts = ./tests/hosts.nix;
+        predator = ./tests/predator.nix;
       };
     };
 }

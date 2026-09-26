@@ -1,7 +1,6 @@
 # Evaluate only; never build, activate, mount, or format a disk.
-# nix eval --impure --json --file tests/invariants.nix
+flake:
 let
-  flake = builtins.getFlake "path:${toString ../.}";
   inherit (flake.inputs.nixpkgs) lib;
   server = flake.nixosConfigurations.predator.config;
   layout = import ../disko.nix;
@@ -33,36 +32,7 @@ assert lib.assertMsg (
     in luks.askPassword && !luks.initrdUnlock && !(luks.settings ? keyFile)
   ) (builtins.attrValues disks)
 ) "Fresh provisioning must match runtime mounts and leave credential enrollment explicit";
-assert lib.assertMsg (
-  lib.all (name:
-    !(builtins.hasAttr name server.systemd.services)
-    && !(builtins.hasAttr name server.home-manager.users.mirsella.systemd.user.services)
-  ) [ "opencode" "openchamber" ]
-  && lib.all (name: !(builtins.hasAttr name server.sops.secrets)) [
-    "telegram_env" "opencode_server" "openchamber_server"
-  ]
-  && lib.all (home:
-    home.config.systemd.user.services ? opencode
-    && home.config.systemd.user.services ? openchamber
-  ) (builtins.attrValues flake.homeConfigurations)
-  && lib.all (name:
-    flake.homeConfigurations.main.config.systemd.user.services.${name}
-    == flake.homeConfigurations.laptop.config.systemd.user.services.${name}
-  ) [ "opencode" "openchamber" ]
-) "OpenCode and OpenChamber must run on Arch workstations, not Predator";
 {
   inherit (server.system.build.toplevel) drvPath;
   formatter = (disko._cliDestroyFormatMount layout pkgs).drvPath;
-  workstations = builtins.mapAttrs (_: home:
-    let unit = home.config.systemd.user.services.rclone-nextcloud;
-    in assert lib.assertMsg (
-      builtins.elem "sops-nix.service" unit.Unit.After
-      && builtins.elem "sops-nix.service" unit.Unit.Wants
-      && !(builtins.elem "sops-nix.service" (unit.Unit.Requires or [ ]))
-      && unit.Service.Type == "notify"
-      && !(unit.Service ? ExecStop)
-      && unit.Service.SuccessExitStatus == "143"
-    ) "WebDAV must wait for credentials and let rclone own mount readiness and shutdown";
-    home.activationPackage.drvPath
-  ) flake.homeConfigurations;
 }

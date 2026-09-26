@@ -6,11 +6,11 @@ PLATFORM_PROFILE=/sys/firmware/acpi/platform_profile
 
 run_ryzenadj() {
   if [ "$(id -u)" -eq 0 ]; then
-    /usr/bin/ryzenadj "$@"
+    ryzenadj "$@"
     return
   fi
 
-  sudo -n /usr/bin/ryzenadj "$@"
+  sudo -n ryzenadj "$@"
 }
 
 if [ ! -r "$AC_ONLINE" ] || [ ! -r "$PLATFORM_PROFILE" ]; then
@@ -19,7 +19,7 @@ if [ ! -r "$AC_ONLINE" ] || [ ! -r "$PLATFORM_PROFILE" ]; then
 fi
 
 enabled() {
-  /usr/bin/grep -qx 1 "$AC_ONLINE" && /usr/bin/grep -qx performance "$PLATFORM_PROFILE"
+  grep -qx 1 "$AC_ONLINE" && grep -qx performance "$PLATFORM_PROFILE"
 }
 
 apply_limits() {
@@ -37,7 +37,7 @@ fi
 
 while :; do
   if enabled; then
-    actual=$(run_ryzenadj -i 2>/dev/null | /usr/bin/awk '
+    actual=$(run_ryzenadj -i 2>/dev/null | awk '
       /PPT LIMIT FAST/ { fast = $6 }
       /PPT LIMIT SLOW/ { slow = $6 }
       /PPT LIMIT APU/ { apu = $6 }

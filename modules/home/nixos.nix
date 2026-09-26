@@ -9,11 +9,6 @@
 
   home.file.".rustup".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.local/share/rustup";
 
-  home.file.".local/share/cargo/config.toml".text = ''
-    [build]
-    jobs = 4
-  '';
-
   home.packages = with pkgs; [
     age
     aspell

@@ -1,21 +1,21 @@
-{ config, pkgs, inputs, overlays, ... }:
+{ config, pkgs, inputs, ... }:
 let
   flakeDir = "/home/mirsella/dev/dotfiles";
 in
 {
   imports = [
-    ./hosts/predator-boot.nix
-    ./acer-wmi-ph31751-module.nix
-    ./modules/nixos/storage.nix
-    ./modules/nixos/caddy.nix
-    ./modules/nixos/nextcloud.nix
-    ./modules/nixos/immich.nix
-    ./modules/nixos/db-backup.nix
-    ./modules/nixos/night-suspend.nix
-    ./modules/nixos/monitoring.nix
+    ./boot.nix
+    ./acer-wmi.nix
+    ../../modules/nixos/storage.nix
+    ../../modules/nixos/caddy.nix
+    ../../modules/nixos/nextcloud.nix
+    ../../modules/nixos/immich.nix
+    ../../modules/nixos/db-backup.nix
+    ../../modules/nixos/night-suspend.nix
+    ../../modules/nixos/monitoring.nix
   ];
 
-  nixpkgs.overlays = [ inputs.nix-cachyos-kernel.overlays.pinned ] ++ overlays;
+  nixpkgs.overlays = [ inputs.nix-cachyos-kernel.overlays.pinned ];
 
   boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
   boot.zfs.package = config.boot.kernelPackages.zfs_cachyos;
@@ -23,25 +23,15 @@ in
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
   sops.useSystemdActivation = true;
   sops.secrets = builtins.mapAttrs (_: path: {
-    sopsFile = ./secrets/services.yaml;
+    sopsFile = ../../secrets/services.yaml;
     owner = "mirsella";
     path = "${config.users.users.mirsella.home}/.config/${path}";
-  }) (import ./modules/user-secrets.nix);
+  }) (import ../../modules/user-secrets.nix);
 
-  home-manager = {
-    useGlobalPkgs = true;
-    useUserPackages = true;
-    extraSpecialArgs = {
-      gitSigningKey = null;
-      isNixOS = true;
-    };
-    users.mirsella = {
-      imports = [
-        ./modules/home/common.nix
-        ./modules/home/server.nix
-      ];
-    };
-  };
+  home-manager.users.mirsella.home.file.".local/share/cargo/config.toml".text = ''
+    [build]
+    jobs = 4
+  '';
 
   boot = {
     kernelModules = [ "ec_sys" ];
@@ -50,26 +40,12 @@ in
   };
 
   networking = {
-    hostName = "predator";
-    networkmanager.enable = true;
     # NetworkManager.conf uses the numeric enum, not nmcli's "magic" alias.
     networkmanager.connectionConfig."ethernet.wake-on-lan" = 64;
     firewall.allowedTCPPorts = [ 80 443 4096 4097 14096 14097 ];
   };
 
-  time.timeZone = "Europe/Paris";
-  i18n.defaultLocale = "en_US.UTF-8";
-
   services = {
-    openssh = {
-      enable = true;
-      openFirewall = true;
-      settings = {
-        PasswordAuthentication = true;
-        KbdInteractiveAuthentication = true;
-        PermitRootLogin = "no";
-      };
-    };
     fail2ban = {
       enable = true;
       maxretry = 5;
@@ -87,41 +63,13 @@ in
     };
   };
 
-  users.users.mirsella = {
-    isNormalUser = true;
-    linger = true;
-    shell = pkgs.nushell;
-    extraGroups = [
-      "wheel"
-      "networkmanager"
-      "podman"
-    ];
-    hashedPassword = "$6$u95TjqJ3iGNjVYkK$uZJx66pXAgvJmSXtNR7oY4dAOUSMyDJVm5CxxDzQnRCu1YTf1bJAkEoKn3VzqdyTWyt7MOBdRxY8DHGdZdLZZ0";
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF"
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe mirsella@main"
-    ];
-  };
-  security.sudo.wheelNeedsPassword = false;
-  services.envfs.enable = true;
-  services.fwupd.enable = true;
-
-  virtualisation.podman = {
-    enable = true;
-    dockerCompat = true;
-    dockerSocket.enable = true;
-    defaultNetwork.settings.dns_enabled = true;
-  };
-
-  nixpkgs.config.allowUnfree = true;
-  hardware.enableRedistributableFirmware = true;
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
+    extra-substituters = [ "https://attic.xuyh0120.win/lantian" ];
+    extra-trusted-public-keys = [ "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc=" ];
     # 7.6GB RAM: an uncapped rioterm build once OOM-wedged the box.
     max-jobs = 1;
     cores = 4;
     trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "main-copy:ffHmA9AO/DRnU3OsF4z0ZuMGJN5hkTsun7zvGP9Tn0g="
     ];
   };
@@ -135,7 +83,7 @@ in
   # Update nixpkgs weekly; update the kernel input separately after checking ZFS compatibility.
   system.autoUpgrade = {
     enable = true;
-    flake = "path:${flakeDir}#predator";
+    flake = "path:${flakeDir}#${config.networking.hostName}";
     upgrade = false;
     flags = [ "--no-update-lock-file" ];
     dates = "Sun 10:00";
@@ -157,20 +105,6 @@ in
     wants = [ "sops-install-secrets.service" ];
     after = [ "sops-install-secrets.service" ];
   };
-
-  environment.systemPackages = with pkgs; [
-    vim
-    git
-    ffmpeg
-    imagemagick
-    ntfs3g
-    curl
-    wget
-    htop
-    lm_sensors
-    efibootmgr
-    sops
-  ];
 
   # EC-owned keyboard backlight, no sysfs knob: EC RAM 0x30/0x31 read 01 when
   # lit (Fn+F9 flips them). Zero them at boot so it stays off.

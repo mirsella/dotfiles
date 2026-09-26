@@ -1,10 +1,5 @@
-{ inputs, lib, pkgs, ... }:
+{ lib, pkgs, ... }:
 {
-  imports = [
-    ./predator-hardware.nix
-    inputs.lanzaboote.nixosModules.lanzaboote
-  ];
-
   boot = {
     loader.systemd-boot.enable = lib.mkForce false;
     loader.systemd-boot.editor = false;
