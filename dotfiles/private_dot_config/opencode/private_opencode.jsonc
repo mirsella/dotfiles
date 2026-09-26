@@ -29,54 +29,16 @@
         "BLENDER_PORT": "9876",
       },
     },
-    // "cloudflare": {
-    //   "type": "remote",
-    //   "url": "https://mcp.cloudflare.com/mcp",
-    //   "enabled": false,
-    // },
     "composio": {
       "type": "remote",
       "url": "https://connect.composio.dev/mcp",
       "enabled": true,
     },
-    // "deepwiki": {
-    //   "type": "remote",
-    //   "url": "https://mcp.deepwiki.com/mcp",
-    //   "enabled": false,
-    // },
-    // "posthog": {
-    //   "type": "remote",
-    //   "url": "https://mcp-eu.posthog.com/mcp",
-    //   "enabled": false,
-    // },
-    // "railway": {
-    //   "type": "local",
-    //   "command": ["npx", "-y", "@railway/mcp-server"],
-    //   "enabled": false,
-    // },
-    // "linear": {
-    //   "type": "remote",
-    //   "url": "https://mcp.linear.app/mcp",
-    //   "enabled": false,
-    // },
-    // "google-drive": {
-    //   "type": "local",
-    //   "command": ["npx", "-y", "@piotr-agier/google-drive-mcp"],
-    //   "enabled": false,
-    // },
     "planetscale": {
       "type": "remote",
       "url": "https://mcp.pscale.dev/mcp/planetscale",
       "enabled": false,
     },
-    // "resend": {
-    //   "type": "local",
-    //   "command": ["npx", "-y", "resend-mcp"],
-    //   "enabled": false,
-    //   "environment": {
-    //     "RESEND_API_KEY": "{env:RESEND_API_KEY}",
-    //   },
-    // },
   },
   "lsp": false,
   "permission": {
