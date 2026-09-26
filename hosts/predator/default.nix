@@ -6,6 +6,7 @@ in
   imports = [
     ./boot.nix
     ./acer-wmi.nix
+    ./lid-screen.nix
     ../../modules/nixos/storage.nix
     ../../modules/nixos/caddy.nix
     ../../modules/nixos/nextcloud.nix
@@ -36,7 +37,6 @@ in
   boot = {
     kernelModules = [ "ec_sys" ];
     extraModprobeConfig = "options ec_sys write_support=1";
-    kernelParams = [ "consoleblank=60" ];
   };
 
   networking = {
@@ -53,11 +53,8 @@ in
       ignoreIP = [ "127.0.0.1/8" "192.168.1.0/24" ];
       jails.sshd.settings.enabled = true;
     };
-    # Only the midnight timer may suspend the server, not the lid.
+    # Only the midnight timer may suspend the server.
     logind.settings.Login = {
-      HandleLidSwitch = "ignore";
-      HandleLidSwitchExternalPower = "ignore";
-      HandleLidSwitchDocked = "ignore";
       HandleSuspendKey = "ignore";
       HandleHibernateKey = "ignore";
     };
