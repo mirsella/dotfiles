@@ -5,7 +5,10 @@
   ...
 }:
 {
-  boot.zfs.extraPools = [ "fast" "tank" ];
+  boot.zfs.extraPools = [
+    "fast"
+    "tank"
+  ];
 
   boot.initrd.luks.devices = {
     fast-crypt = {
@@ -23,7 +26,10 @@
   systemd.services.tank-unlock = {
     description = "Unlock tank disks after USB initialization";
     after = [ "systemd-udevd.service" ];
-    path = [ pkgs.cryptsetup config.systemd.package ];
+    path = [
+      pkgs.cryptsetup
+      config.systemd.package
+    ];
     restartIfChanged = false;
     unitConfig.DefaultDependencies = false;
     serviceConfig = {
@@ -55,7 +61,10 @@
       enable = true;
       interval = "*-*-01 10:00";
       randomizedDelaySec = "30min";
-      pools = [ "fast" "tank" ];
+      pools = [
+        "fast"
+        "tank"
+      ];
     };
     trim = {
       enable = true;
@@ -85,13 +94,10 @@
   };
   systemd.services.sanoid = {
     requires = [ "zfs-mount.service" ];
-    after = [ "zfs-mount.service" "db-backup.service" ];
+    after = [
+      "zfs-mount.service"
+      "db-backup.service"
+    ];
   };
   systemd.timers.sanoid.timerConfig.Persistent = true;
-
-  # Keep the Genesys Logic hub awake for its downstream pool disk.
-  services.udev.extraRules = ''
-    ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="05e3", ATTR{idProduct}=="0626", ATTR{power/control}="on"
-  '';
-
 }

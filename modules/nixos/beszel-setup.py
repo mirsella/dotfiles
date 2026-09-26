@@ -122,17 +122,14 @@ def main(superuser_pw_file, resend_key_file):
         )
     token = auth["token"]
 
-    settings = request("GET", "/api/settings", token=token)
-    patch = {}
-    if any(settings["smtp"].get(k) != v for k, v in SMTP.items()):
-        patch["smtp"] = {**SMTP, "password": resend_key}
-    if any(settings["meta"].get(k) != v for k, v in SENDER.items()):
-        patch["meta"] = {**settings["meta"], **SENDER}
-    if patch:
-        request("PATCH", "/api/settings", token=token, body=patch)
-        print("beszel-setup: settings patched", sorted(patch))
-    else:
-        print("beszel-setup: settings already converged")
+    # PocketBase omits the SMTP password from GET /api/settings.
+    request(
+        "PATCH",
+        "/api/settings",
+        token=token,
+        body={"smtp": {**SMTP, "password": resend_key}, "meta": SENDER},
+    )
+    print("beszel-setup: mail settings applied")
 
     uid = ensure_record(
         token,

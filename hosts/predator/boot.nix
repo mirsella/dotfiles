@@ -17,11 +17,17 @@
     };
     supportedFilesystems = [ "zfs" ];
     zfs.forceImportRoot = false;
-    kernelParams = [ "usb-storage.quirks=7825:a2a4:u" ];
   };
 
-  fileSystems."/boot".options = lib.mkForce [ "fmask=0077" "dmask=0077" ];
+  fileSystems."/boot".options = lib.mkForce [
+    "fmask=0077"
+    "dmask=0077"
+  ];
   networking.hostId = "007f0200";
   console.keyMap = "fr";
-  environment.systemPackages = with pkgs; [ cryptsetup tpm2-tools sbctl ];
+  environment.systemPackages = with pkgs; [
+    cryptsetup
+    tpm2-tools
+    sbctl
+  ];
 }

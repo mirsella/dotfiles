@@ -39,8 +39,17 @@ class FakeHub(BaseHTTPRequestHandler):
                 self.state["health_failures"] -= 1
                 return self._json(503, {"message": "Starting"})
             return self._json(200, {"message": "ok"})
-        if self.path.startswith("/api/settings"):
-            return self._json(200, self.state["settings"])
+        if self.path == "/api/settings":
+            settings = self.state["settings"]
+            return self._json(
+                200,
+                {
+                    **settings,
+                    "smtp": {
+                        k: v for k, v in settings["smtp"].items() if k != "password"
+                    },
+                },
+            )
         collection = self.path.split("/")[3]
         records = self.state[collection]
         return self._json(200, {"totalItems": len(records), "items": records})
@@ -85,7 +94,11 @@ def fresh_state():
                 "tls": False,
                 "localName": "",
             },
-            "meta": {"senderName": "", "senderAddress": "support@example.com"},
+            "meta": {
+                "appName": "Existing hub",
+                "senderName": "",
+                "senderAddress": "support@example.com",
+            },
         },
         "users": [],
         "systems": [],
@@ -125,10 +138,10 @@ class BeszelSetup(unittest.TestCase):
             env=self.env,
         )
 
-    def test_converges_empty_hub_then_noops(self):
+    def test_configures_mail_and_converges_records(self):
         first = self.run_script()
         self.assertEqual(first.returncode, 0, first.stderr)
-        self.assertIn("settings patched", first.stdout)
+        self.assertIn("mail settings applied", first.stdout)
         self.assertIn("hub user created", first.stdout)
         self.assertIn("system created", first.stdout)
         smtp = FakeHub.state["settings"]["smtp"]
@@ -143,6 +156,7 @@ class BeszelSetup(unittest.TestCase):
             (True, "smtp.resend.com", 465, "resend", True),
         )
         meta = FakeHub.state["settings"]["meta"]
+        self.assertEqual(meta["appName"], "Existing hub")
         self.assertEqual(
             (meta["senderName"], meta["senderAddress"]),
             ("Beszel", "noreply@voxride.com"),
@@ -154,10 +168,20 @@ class BeszelSetup(unittest.TestCase):
         FakeHub.calls = []
         second = self.run_script()
         self.assertEqual(second.returncode, 0, second.stderr)
-        self.assertIn("settings already converged", second.stdout)
+        self.assertIn("mail settings applied", second.stdout)
         self.assertIn("hub user exists", second.stdout)
         self.assertIn("system exists", second.stdout)
-        self.assertEqual(FakeHub.calls, [])
+        self.assertEqual(FakeHub.calls, [("PATCH", "settings")])
+
+    def test_refreshes_mail_password_with_unchanged_public_settings(self):
+        self.assertEqual(self.run_script().returncode, 0)
+        self.key.write_text("re_updatedkey\n")
+        FakeHub.calls = []
+
+        proc = self.run_script()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(FakeHub.state["settings"]["smtp"]["password"], "re_updatedkey")
+        self.assertEqual(FakeHub.calls, [("PATCH", "settings")])
 
     def test_bad_superuser_password_hints_bootstrap(self):
         proc = self.run_script(password="wrong")
@@ -178,7 +202,10 @@ class BeszelSetup(unittest.TestCase):
 
         proc = self.run_script()
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertEqual(FakeHub.calls, [("PATCH", "users"), ("PATCH", "systems")])
+        self.assertEqual(
+            FakeHub.calls,
+            [("PATCH", "settings"), ("PATCH", "users"), ("PATCH", "systems")],
+        )
         self.assertEqual(FakeHub.state["users"][0]["role"], "admin")
         self.assertEqual(FakeHub.state["users"][0]["password"], "changed-by-user")
         self.assertEqual(FakeHub.state["systems"][0]["port"], "45876")
