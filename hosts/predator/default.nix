@@ -7,6 +7,7 @@ in
     ./boot.nix
     ./acer-wmi.nix
     ./lid-screen.nix
+    ./storage-alerts.nix
     ../../modules/nixos/storage.nix
     ../../modules/nixos/caddy.nix
     ../../modules/nixos/nextcloud.nix
