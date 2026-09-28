@@ -3,9 +3,6 @@ let
   lspmuxBin =
     if isNixOS then "${pkgs.lspmux}/bin/lspmux"
     else "${config.home.homeDirectory}/.local/share/cargo/bin/lspmux";
-  mkdirBin = if isNixOS then "${pkgs.coreutils}/bin/mkdir" else "/usr/bin/mkdir";
-  rcloneBin = if isNixOS then "${pkgs.rclone}/bin/rclone" else "/usr/bin/rclone";
-  secretServices = lib.optional (config.sops.secrets != { }) "sops-nix.service";
 in
 {
   home = {
@@ -26,35 +23,15 @@ in
   # started, restarted, or stopped, and take over on next login instead.
   systemd.user.startServices = isNixOS;
 
-  systemd.user.services = {
-    lspmux = {
-      Unit.Description = "Language server multiplexer server";
-      Service = {
-        Type = "simple";
-        ExecStart = "${lspmuxBin} server";
-        Restart = "on-failure";
-        RestartSec = "5s";
-      };
-      Install.WantedBy = [ "default.target" ];
-    };
-  } // lib.mapAttrs' (remote: description: lib.nameValuePair "rclone-${remote}" {
-    Unit = {
-      Description = "${description} mount";
-      After = [ "network.target" ] ++ secretServices;
-      Wants = secretServices;
-    };
+  systemd.user.services.lspmux = {
+    Unit.Description = "Language server multiplexer server";
     Service = {
-      # rclone reports readiness and unmounts on SIGTERM itself.
-      Type = "notify";
-      ExecStartPre = "${mkdirBin} -p %h/Documents/${remote}";
-      ExecStart = "${rcloneBin} mount --vfs-cache-mode full ${remote}: %h/Documents/${remote}";
-      SuccessExitStatus = "143";
-      Restart = "always";
-      RestartSec = 3;
+      Type = "simple";
+      ExecStart = "${lspmuxBin} server";
+      Restart = "on-failure";
+      RestartSec = "5s";
     };
-  }) {
-    gdrive = "Google Drive";
-    gdrive-voxride = "Voxride Google Drive";
+    Install.WantedBy = [ "default.target" ];
   };
 
   programs = {

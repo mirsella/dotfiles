@@ -76,8 +76,6 @@ assert lib.assertMsg (
       && home.programs.git.settings.user.signingkey == arch.programs.git.settings.user.signingkey
       && home.sops.secrets != { }
       && desktops.${name}.sops.secrets == { }
-      && builtins.elem "sops-nix.service" home.systemd.user.services.rclone-gdrive.Unit.After
-      && builtins.elem "sops-nix.service" home.systemd.user.services.rclone-gdrive.Unit.Wants
       && lib.all (h:
         let unit = h.systemd.user.services.rclone-nextcloud;
         in lib.assertMsg (
