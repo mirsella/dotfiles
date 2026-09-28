@@ -115,7 +115,8 @@ in
           User = "mirsella";
         };
         main = {
-          HostName = "192.168.1.131";
+          HostName = "mirsella.mooo.com";
+          Port = 2222;
           User = "mirsella";
         };
         predator = {
