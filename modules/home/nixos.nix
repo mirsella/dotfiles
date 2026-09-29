@@ -17,6 +17,8 @@
     atuin
     bat
     bevy-cli
+    biome
+    bun
     carapace
     cargo-binstall
     cargo-expand
@@ -25,22 +27,31 @@
     cargo-watch
     chafa
     chezmoi
+    clang_18
+    cmake
     delta
+    deno
     diffstat
     difftastic
     dioxus-cli
     dust
     fd
+    fish
     fzf
     gcc
     gh
+    go
     graphviz
     gtrash
     hunspell
     hunspellDicts.en_US
     inxi
+    jdk21
     jq
     jujutsu
+    julia
+    just
+    kotlin
     lazygit
     lazyjj
     lsd
@@ -53,10 +64,12 @@
     nodejs
     nushell
     ouch
+    php
     pnpm
     prettier
     python3
     python3Packages.pynvim
+    pyright
     rclone
     ripgrep
     rustup
@@ -69,6 +82,8 @@
     tmux
     tree-sitter
     unzip
+    uv
+    valgrind
     vimv
     wasm-bindgen-cli
     wasm-tools
@@ -78,5 +93,6 @@
     yt-dlp
     zip
     zoxide
+    zsh
   ];
 }

@@ -39,6 +39,7 @@
     wayland.enable = true;
   };
   services.power-profiles-daemon.enable = true;
+  services.printing.enable = true;
   services.fstrim.enable = true;
   services.xserver.xkb = {
     layout = "us";
@@ -59,8 +60,37 @@
     enable32Bit = true;
   };
   hardware.bluetooth.enable = true;
+  virtualisation.libvirtd.enable = true;
 
-  programs.firefox.enable = true;
   programs.gnupg.agent.enable = true;
-  environment.systemPackages = [ pkgs.wezterm ];
+  environment.systemPackages = with pkgs; [
+    wezterm
+    nerd-fonts.jetbrains-mono
+    nvtopPackages.amd
+    chromium
+    helium
+    zen-browser
+    pear-desktop
+    android-studio
+    keepassxc
+    qemu_full
+    virt-manager
+    bottles
+    wine
+    gimp
+    blender
+    libreoffice
+    obs-studio
+    audacity
+    mpv
+    vlc
+    transmission_4-qt
+    kdePackages.filelight
+    kdePackages.kcalc
+    kdePackages.kdeconnect-kde
+    kdePackages.kdenlive
+    kdePackages.krdc
+    kdePackages.partitionmanager
+    krita
+  ];
 }
