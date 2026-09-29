@@ -1,8 +1,8 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 {
   systemd.services.night-suspend = {
     description = "Suspend overnight when nobody has used the server recently";
-    path = with pkgs; [ iproute2 procps util-linux ];
+    path = with pkgs; [ iproute2 procps util-linux config.boot.zfs.package ];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.python3}/bin/python3 ${./night-suspend.py}";

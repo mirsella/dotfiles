@@ -34,6 +34,12 @@ class MidnightCheck(unittest.TestCase):
         self.connection_filter = ""
         self.maintenance = ""
         self.worker_status = 1
+        self.pools = "fast\ntank\n"
+        self.pool_health = {"fast": True, "tank": True}
+        self.pool_status = {"fast": "", "tank": ""}
+        self.clear_effective = True
+        self.clears = []
+        self.storage_faults = ""
         self.calls = []
 
         def output(*args):
@@ -44,6 +50,21 @@ class MidnightCheck(unittest.TestCase):
                 return self.connections
             if args[0] == "systemctl":
                 return self.maintenance
+            if args[0] == "zpool" and args[1] == "list":
+                return self.pools
+            if args[0] == "zpool" and args[1] == "status" and "-x" in args:
+                name = args[-1]
+                if self.pool_health[name]:
+                    return f"pool '{name}' is healthy\n"
+                return f"  pool: {name}\n state: ONLINE\n"
+            if args[0] == "zpool" and args[1] == "status":
+                return self.pool_status[args[-1]]
+            if args[0] == "zpool" and args[1] == "clear":
+                self.clears.append(args[-1])
+                self.pool_health[args[-1]] = self.clear_effective
+                return ""
+            if args[0] == "journalctl":
+                return self.storage_faults
             raise AssertionError(args)
 
         def run(args, **kwargs):
@@ -63,6 +84,17 @@ class MidnightCheck(unittest.TestCase):
         path = self.logs / "access-mirsella.mooo.com.log"
         path.write_text(
             json.dumps({"ts": time.time() - seconds_ago, "request": {}}) + "\n"
+        )
+
+    def pool_status_text(self, state="ONLINE", read=0, write=0, cksum=0, scan=None):
+        text = "  pool: tank\n state: ONLINE\n"
+        if scan:
+            text += f"  scan: {scan}\n"
+        return text + (
+            "config:\n\n"
+            "\tNAME        STATE     READ WRITE CKSUM\n"
+            "\ttank        ONLINE       0     0     0\n"
+            f"\t  mirror-0  {state}       {read}     {write}     {cksum}\n"
         )
 
     def test_idle_server_suspends_and_programs_morning_wake(self):
@@ -104,6 +136,61 @@ class MidnightCheck(unittest.TestCase):
         self.maintenance = ""
         self.worker_status = 0
         self.assertEqual(night.blocker(time.time()), "Nix build workers")
+
+    def test_corrected_pool_errors_are_cleared_and_suspend_proceeds(self):
+        self.pool_health["tank"] = False
+        self.pool_status["tank"] = self.pool_status_text(cksum=4)
+        night.main()
+        self.assertEqual(self.clears, ["tank"])
+        self.assertEqual(
+            self.calls[-1], ("systemctl", "--check-inhibitors=yes", "suspend")
+        )
+
+    def test_read_write_errors_block_without_clearing(self):
+        self.pool_health["tank"] = False
+        self.pool_status["tank"] = self.pool_status_text(write=3)
+        self.assertEqual(
+            night.blocker(time.time()), "ZFS tank has read or write errors"
+        )
+        self.assertEqual(self.clears, [])
+
+    def test_offline_vdev_blocks_without_clearing(self):
+        self.pool_health["tank"] = False
+        self.pool_status["tank"] = self.pool_status_text(state="FAULTED")
+        self.assertEqual(
+            night.blocker(time.time()), "ZFS tank vdevs not online: FAULTED"
+        )
+        self.assertEqual(self.clears, [])
+
+    def test_recent_storage_faults_skip_clearing(self):
+        self.pool_health["tank"] = False
+        self.pool_status["tank"] = self.pool_status_text(cksum=4)
+        self.storage_faults = "uas_eh_abort_handler tag 8\n"
+        self.assertEqual(
+            night.blocker(time.time()), "recent storage faults, not clearing tank"
+        )
+        self.assertEqual(self.clears, [])
+
+    def test_ineffective_clear_blocks(self):
+        self.pool_health["tank"] = False
+        self.pool_status["tank"] = self.pool_status_text(cksum=4)
+        self.clear_effective = False
+        self.assertEqual(
+            night.blocker(time.time()), "ZFS tank still unhealthy after zpool clear"
+        )
+        self.assertEqual(self.clears, ["tank"])
+
+    def test_scan_in_progress_blocks(self):
+        self.pool_health["tank"] = False
+        self.pool_status["tank"] = self.pool_status_text(
+            scan="resilver in progress since Tue Sep 29 09:14:33 2026"
+        )
+        self.assertEqual(night.blocker(time.time()), "ZFS tank scan in progress")
+        self.assertEqual(self.clears, [])
+
+    def test_missing_pool_blocks(self):
+        self.pools = "fast\n"
+        self.assertEqual(night.blocker(time.time()), "missing ZFS pools: tank")
 
     def test_malformed_recent_log_fails_closed(self):
         (self.logs / "access-invalid.log").write_text("not JSON\n")
