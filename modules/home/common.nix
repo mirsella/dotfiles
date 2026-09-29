@@ -84,7 +84,8 @@ in
       package = if isNixOS then pkgs.openssh else null;
       settings = {
         rpi = {
-          HostName = "192.168.1.166";
+          HostName = "mirsella.mooo.com";
+          Port = 222;
           User = "mirsella";
         };
         laptop = {
@@ -97,7 +98,8 @@ in
           User = "mirsella";
         };
         predator = {
-          HostName = "192.168.1.19";
+          HostName = "mirsella.mooo.com";
+          Port = 22;
           User = "mirsella";
         };
       };
