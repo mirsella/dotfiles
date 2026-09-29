@@ -23,3 +23,6 @@ UUID=3613-BAFF      	/boot     	vfat      	rw,relatime,fmask=0077,dmask=0077,cod
 UUID="58D9ECF16BCE7A8E"        /run/media/mirsella/data       ntfs-3g    defaults,rw,relatime        0       0
 
 /swap/swapfile none swap defaults,discard,pri=-1 0 0
+
+# tmpfs for /tmp
+tmpfs	/tmp	tmpfs	defaults,size=32G,mode=1777,nosuid,nodev	0	0
