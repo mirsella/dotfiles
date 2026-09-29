@@ -38,6 +38,28 @@ in
   boot = {
     kernelModules = [ "ec_sys" ];
     extraModprobeConfig = "options ec_sys write_support=1";
+    # Reboot after a detected CPU lockup or panic instead of waiting for a person.
+    kernel.sysctl = {
+      "kernel.hardlockup_panic" = 1;
+      "kernel.softlockup_panic" = 1;
+      "kernel.panic" = 10;
+    };
+  };
+
+  # Use ordinary suspend for the overnight idle timer.
+  systemd.sleep.settings.Sleep = {
+    AllowSuspend = true;
+    AllowHibernation = false;
+  };
+
+  # Select the TCO watchdog by identity; watchdog0/1 numbering can change at boot.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="watchdog", ATTR{identity}=="iTCO_wdt", SYMLINK+="watchdog-itco"
+  '';
+  systemd.settings.Manager = {
+    WatchdogDevice = "/dev/watchdog-itco";
+    RuntimeWatchdogSec = "60s";
+    RebootWatchdogSec = "2min";
   };
 
   networking = {
@@ -54,7 +76,7 @@ in
       ignoreIP = [ "127.0.0.1/8" "192.168.1.0/24" ];
       jails.sshd.settings.enabled = true;
     };
-    # Only the midnight timer may suspend the server.
+    # Power-saving keys must not interrupt the server.
     logind.settings.Login = {
       HandleSuspendKey = "ignore";
       HandleHibernateKey = "ignore";
@@ -62,6 +84,7 @@ in
   };
 
   nix.settings = {
+    # The CachyOS kernel and ZFS packages must be present here before the next rebuild.
     extra-substituters = [ "https://attic.xuyh0120.win/lantian" ];
     extra-trusted-public-keys = [ "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc=" ];
     # 7.6GB RAM: an uncapped rioterm build once OOM-wedged the box.
