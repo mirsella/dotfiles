@@ -1,0 +1,8 @@
+[Unit]
+Description=Discard old unused Docker build cache
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker builder prune --force --filter until=720h --max-used-space 10GB

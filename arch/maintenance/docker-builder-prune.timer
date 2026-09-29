@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly Docker build cache prune
+
+[Timer]
+OnCalendar=monthly
+Persistent=true
+RandomizedDelaySec=12h
+
+[Install]
+WantedBy=timers.target

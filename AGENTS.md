@@ -41,9 +41,12 @@ The flake discovers these directories and sets hostnames automatically.
 Manual files outside the repo:
 - Laptop uses Plasma lid defaults; Predator ignores lid-close via
   `hosts/predator/default.nix` (screen off instead of sleep).
-- Arch boxes: Nix daemon cache (`/etc/nix/nix.conf`), system Caddy
-  (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks. The
-  daemon ignores cache settings from an untrusted Home Manager user config.
+- Arch boxes: root-owned Nix daemon GC/cache settings, Timeshift retention and
+  storage timers are installed from `arch/maintenance/apply.py`; mount migration
+  is a separate one-time `arch/maintenance/migrate-subvolumes.py` step. System
+  Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks
+  remain manual. The Nix daemon ignores cache settings from an untrusted Home
+  Manager user config.
 - Predator: Freebox LAN IP is `192.168.1.1`; the Toshiba USB bridge aborts
   extended SMART tests after about 10 minutes, so use short tests and the
   monthly scrub.

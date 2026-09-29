@@ -9,6 +9,13 @@ in
 {
   programs.git.settings.commit.gpgsign = true;
   home.packages = lib.optionals isNixOS [ pkgs.opencode pkgs.openchamber ];
+  xdg.configFile."kache/config.toml" = {
+    force = true;
+    text = ''
+      [cache]
+      local_max_size = "150GiB"
+    '';
+  };
 
   systemd.user.slices.cargo = {
     Unit.Description = "Cargo build scopes";
@@ -117,5 +124,22 @@ in
       Environment = "KACHE_LOG=kache=info";
     };
     Install.WantedBy = [ "default.target" ];
+  };
+
+  systemd.user.services.btrfs-space-notify = {
+    Unit.Description = "Notify when Btrfs metadata headroom is low";
+    Service = {
+      Type = "oneshot";
+      Environment = "PATH=${lib.makeBinPath [ pkgs.btrfs-progs pkgs.libnotify ]}:/usr/bin";
+      ExecStart = "${lib.getExe' pkgs.python3 "python3"} ${../../arch/maintenance/btrfs-space-check.py} --notify /";
+    };
+  };
+  systemd.user.timers.btrfs-space-notify = {
+    Unit.Description = "Daily desktop warning for Btrfs metadata pressure";
+    Timer = {
+      OnCalendar = "daily";
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
   };
 }

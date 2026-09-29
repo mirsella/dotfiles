@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily Btrfs space check
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

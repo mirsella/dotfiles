@@ -17,6 +17,12 @@
       options = [ "subvol=@" ];
     };
 
+  fileSystems."/nix" =
+    { device = "/dev/mapper/root";
+      fsType = "btrfs";
+      options = [ "subvol=@nix" ];
+    };
+
   boot.initrd.luks.devices."root".device = "/dev/disk/by-uuid/b05803cd-53dd-4796-9be2-40242e4d30bc";
 
   fileSystems."/.snapshots" =

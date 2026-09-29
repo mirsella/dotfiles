@@ -1,0 +1,7 @@
+[Unit]
+Description=Check Btrfs metadata and unallocated space
+RequiresMountsFor=/
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/libexec/btrfs-space-check.py /

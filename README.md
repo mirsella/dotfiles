@@ -26,12 +26,16 @@ exposes the standalone Arch `homeConfigurations.<hostname>`.
 All three install targets are available. Main and laptop's hardware configurations
 were generated from their live Arch installations using the pinned NixOS scanner.
 They record the existing Btrfs subvolumes and EFI partitions; laptop also records
-its LUKS root mapping. Host modules preserve compression, existing swap files,
-tmpfs sizes, laptop's TPM unlock option and main's NTFS data mount. Both desktops
+its LUKS root mapping and the migrated `@nix` mount. Main's `@nix` entry should
+only be added after its one-time Arch subvolume migration creates it. Host modules
+preserve compression, existing swap files, tmpfs sizes, laptop's TPM unlock option
+and main's NTFS data mount. Both desktops
 use zstd zram at 50% of RAM, ahead of disk swap.
 
 From the NixOS installer, mount the intended root and boot filesystems under
-`/mnt`, then run from this checkout. Select `main` or `laptop`:
+`/mnt`. On laptop, also mount the existing `@nix` subvolume at `/mnt/nix` before
+installing so the store is populated on the same subvolume used after boot. Then
+run from this checkout. Select `main` or `laptop`:
 
 ```sh
 host=main
@@ -67,6 +71,52 @@ For the current Arch installations, use `homeConfigurations.main` or
 their application binaries. NixOS supplies those binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
+
+Arch's root-owned maintenance is installed separately on both workstations:
+
+```sh
+sudo python3 arch/maintenance/apply.py
+```
+
+On an existing Arch installation with `/nix` and `/var/lib/docker` still inside
+the root subvolume, run `sudo python3 arch/maintenance/migrate-subvolumes.py`
+once. It stops the two daemons, copies their state to new Btrfs subvolumes, adds
+fstab mounts, then starts the daemons. It retains the `.before-subvolume`
+directories for rollback; the job below checks the new mounts and services
+before deleting them on a later boot. Run the migration separately on each Arch
+Btrfs workstation. NixOS uses Podman
+instead of Docker, so its hardware file needs the `@nix` mount but not an
+automatic `/var/lib/docker` mount.
+
+To remove the retained rollback copies on the next boot, without touching them
+in the current session, arm the one-shot service after migration:
+
+```sh
+sudo install -Dm644 arch/maintenance/cleanup-rollback.py /usr/local/libexec/cleanup-rollback.py
+sudo install -Dm644 arch/maintenance/arch-rollback-cleanup.service /etc/systemd/system/arch-rollback-cleanup.service
+sudo touch /run/arch-rollback-cleanup-defer
+sudo systemctl daemon-reload
+sudo systemctl enable arch-rollback-cleanup.service
+```
+
+It checks both subvolume mounts and the Nix and Docker daemons before removing
+the old directories. It disables itself on success and stays enabled for another
+boot if a check fails. Review `journalctl -u arch-rollback-cleanup.service` after
+reboot. A Timeshift snapshot can retain the old blocks until that snapshot expires.
+
+The installer preserves machine-specific Nix and Timeshift settings. It schedules
+14-day Nix GC, two weekly and one monthly Timeshift snapshot plus two pre-upgrade
+snapshots, a 1 GiB journal cap, weekly pacman cache pruning, old Docker builder
+cache pruning, and limited Btrfs maintenance. Arch uses btrfs-progs' monthly
+scrub timer. The desktop Home Manager profile caps the kache build cache at
+150 GiB. NixOS uses the equivalent shared Nix GC and journal settings; its
+Btrfs desktops also scrub monthly and check space daily. At 22:00, a root job
+checks unallocated device space; below 8 GiB it runs bounded, limited data
+balances to reach 12 GiB. The root check logs a failed unit and the desktop
+timer notifies at 90% Btrfs metadata usage or below 8 GiB unallocated,
+regardless of ordinary disk free space. Inspect
+`systemctl status btrfs-balance-limited.service btrfs-space-check.service` and
+`btrfs filesystem usage /` if reclamation fails.
 
 ## Checks
 

@@ -17,6 +17,31 @@
     wayland.enable = true;
   };
   services.power-profiles-daemon.enable = true;
+  services.btrfs.autoScrub = {
+    enable = true;
+    interval = "monthly";
+    fileSystems = [ "/" ];
+  };
+  systemd.services.btrfs-balance-limited = {
+    description = "Reclaim device space for Btrfs metadata when headroom runs low";
+    path = [ pkgs.btrfs-progs ];
+    serviceConfig = {
+      Type = "oneshot";
+      Nice = 19;
+      IOSchedulingClass = "idle";
+      ExecStart = "${pkgs.python3}/bin/python3 ${../../arch/maintenance/btrfs-space-check.py} --reclaim /";
+    };
+    startAt = "*-*-* 22:00";
+  };
+  systemd.services.btrfs-space-check = {
+    description = "Check Btrfs metadata and unallocated space";
+    path = [ pkgs.btrfs-progs ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.python3}/bin/python3 ${../../arch/maintenance/btrfs-space-check.py} /";
+    };
+    startAt = "daily";
+  };
   services.xserver.xkb = {
     layout = "us";
     variant = "colemak_dh_iso";

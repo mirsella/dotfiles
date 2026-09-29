@@ -16,6 +16,7 @@ kde shortcuts.kksrc
 # User units on HM hosts are managed outside chezmoi.
 .config/systemd/user/
 .config/systemd/user/**
+.config/kache/config.toml
 # Home Manager owns generated git and ssh settings on HM hosts.
 .config/git/config
 .ssh/config
