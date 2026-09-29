@@ -34,7 +34,7 @@
     startAt = "*-*-* 22:00";
   };
   systemd.services.btrfs-space-check = {
-    description = "Check Btrfs metadata and unallocated space";
+    description = "Check filesystem usage and Btrfs device headroom";
     path = [ pkgs.btrfs-progs ];
     serviceConfig = {
       Type = "oneshot";

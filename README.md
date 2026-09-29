@@ -113,8 +113,9 @@ scrub timer. The desktop Home Manager profile caps the kache build cache at
 Btrfs desktops also scrub monthly and check space daily. At 22:00, a root job
 checks unallocated device space; below 8 GiB it runs bounded, limited data
 balances to reach 12 GiB. The root check logs a failed unit and the desktop
-timer notifies at 90% Btrfs metadata usage or below 8 GiB unallocated,
-regardless of ordinary disk free space. Inspect
+timer checks hourly and notifies at 90% filesystem usage or below 8 GiB
+device-unallocated. Free space within allocated data chunks alone cannot
+grow metadata chunks. Inspect
 `systemctl status btrfs-balance-limited.service btrfs-space-check.service` and
 `btrfs filesystem usage /` if reclamation fails.
 

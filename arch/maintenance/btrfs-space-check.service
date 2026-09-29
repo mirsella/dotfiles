@@ -1,5 +1,5 @@
 [Unit]
-Description=Check Btrfs metadata and unallocated space
+Description=Check filesystem usage and Btrfs device headroom
 RequiresMountsFor=/
 
 [Service]

@@ -3,6 +3,7 @@
 
 import argparse
 import re
+import shutil
 import subprocess
 
 
@@ -11,30 +12,28 @@ RECLAIM_BELOW = 8 * GIB
 RECLAIM_TARGET = 12 * GIB
 
 
-def usage(path: str) -> tuple[float, int]:
-    usage = subprocess.check_output(
+def device_unallocated(path: str) -> int:
+    output = subprocess.check_output(
         ["btrfs", "filesystem", "usage", "-b", path], text=True
     )
-    unallocated = re.search(r"^\s*Device unallocated:\s*(\d+)\s*$", usage, re.M)
-    metadata = re.findall(r"^Metadata,\w+: Size:(\d+), Used:(\d+)", usage, re.M)
-    if not unallocated or not metadata:
+    unallocated = re.search(r"^\s*Device unallocated:\s*(\d+)\s*$", output, re.M)
+    if not unallocated:
         raise ValueError("Unexpected btrfs filesystem usage output")
-    remaining = int(unallocated.group(1))
-    allocated = sum(int(size) for size, _ in metadata)
-    used = sum(int(occupied) for _, occupied in metadata)
-    return 100 * used / allocated, remaining
+    return int(unallocated.group(1))
 
 
 def check(path: str, notify: bool = False) -> None:
-    percent, remaining = usage(path)
+    remaining = device_unallocated(path)
+    disk = shutil.disk_usage(path)
+    percent = 100 * (disk.total - disk.free) / disk.total
     print(
-        f"Btrfs {path}: metadata {percent:.1f}% used, {remaining / GIB:.2f} GiB unallocated"
+        f"Btrfs {path}: filesystem {percent:.1f}% full, {remaining / GIB:.2f} GiB device-unallocated"
     )
     if percent >= 90 or remaining < RECLAIM_BELOW:
         message = (
-            f"Btrfs {path}: metadata {percent:.1f}% used; "
-            f"{remaining / GIB:.2f} GiB unallocated. "
-            "Inspect btrfs filesystem usage and the limited-balance service."
+            f"Btrfs {path}: filesystem {percent:.1f}% full; "
+            f"{remaining / GIB:.2f} GiB device-unallocated. "
+            "Inspect filesystem usage and the limited-balance service."
         )
         if notify:
             try:
@@ -42,7 +41,7 @@ def check(path: str, notify: bool = False) -> None:
                     [
                         "notify-send",
                         "--urgency=critical",
-                        "Btrfs metadata headroom low",
+                        "Filesystem space pressure",
                         message,
                     ],
                     check=True,
@@ -55,7 +54,7 @@ def check(path: str, notify: bool = False) -> None:
 
 
 def reclaim(path: str) -> None:
-    _, remaining = usage(path)
+    remaining = device_unallocated(path)
     if remaining >= RECLAIM_BELOW:
         print(f"Btrfs {path}: {remaining / GIB:.2f} GiB unallocated; no balance needed")
         return
@@ -63,7 +62,7 @@ def reclaim(path: str) -> None:
         subprocess.run(
             ["btrfs", "balance", "start", "-dusage=75,limit=5", path], check=True
         )
-        _, available = usage(path)
+        available = device_unallocated(path)
         print(
             f"Btrfs {path}: {available / GIB:.2f} GiB unallocated after limited balance"
         )

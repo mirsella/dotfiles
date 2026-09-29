@@ -127,7 +127,7 @@ in
   };
 
   systemd.user.services.btrfs-space-notify = {
-    Unit.Description = "Notify when Btrfs metadata headroom is low";
+    Unit.Description = "Notify when filesystem space or Btrfs headroom is low";
     Service = {
       Type = "oneshot";
       Environment = "PATH=${lib.makeBinPath [ pkgs.btrfs-progs pkgs.libnotify ]}:/usr/bin";
@@ -135,9 +135,9 @@ in
     };
   };
   systemd.user.timers.btrfs-space-notify = {
-    Unit.Description = "Daily desktop warning for Btrfs metadata pressure";
+    Unit.Description = "Hourly desktop warning for filesystem space pressure";
     Timer = {
-      OnCalendar = "daily";
+      OnCalendar = "hourly";
       Persistent = true;
     };
     Install.WantedBy = [ "timers.target" ];

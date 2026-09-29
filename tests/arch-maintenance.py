@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -50,47 +51,47 @@ class ArchConfig(unittest.TestCase):
 
 
 class BtrfsHeadroom(unittest.TestCase):
-    def test_alerts_on_aggregate_metadata_or_low_unallocated_space(self):
+    def test_alerts_on_full_filesystem_or_low_device_unallocated_space(self):
         with (
             patch.object(space.subprocess, "check_output") as usage,
             patch.object(space.subprocess, "run") as notify,
+            patch.object(space.shutil, "disk_usage") as disk,
         ):
-            usage.return_value = (
-                "Device unallocated: 8589934592\n"
-                "Metadata,DUP: Size:100, Used:90\n"
-                "Metadata,single: Size:100, Used:89\n"
-            )
+            usage.return_value = "Device unallocated: 8589934592\n"
+            disk.return_value = SimpleNamespace(total=100, free=11)
             space.check("/", notify=True)
             notify.assert_not_called()
 
-            usage.return_value = usage.return_value.replace("Used:89", "Used:90")
-            with self.assertRaisesRegex(RuntimeError, "90.0% used"):
+            disk.return_value = SimpleNamespace(total=100, free=10)
+            with self.assertRaisesRegex(RuntimeError, "90.0% full"):
                 space.check("/", notify=True)
             notify.assert_called_once()
 
             notify.reset_mock()
-            usage.return_value = usage.return_value.replace(
-                "Device unallocated: 8589934592", "Device unallocated: 7516192768"
-            ).replace("Used:90", "Used:80")
-            with self.assertRaisesRegex(RuntimeError, "7.00 GiB unallocated"):
+            disk.return_value = SimpleNamespace(total=100, free=20)
+            usage.return_value = "Device unallocated: 7516192768\n"
+            with self.assertRaisesRegex(RuntimeError, "7.00 GiB device-unallocated"):
                 space.check("/", notify=True)
             notify.assert_called_once()
 
     def test_unrecognized_output_fails_instead_of_reporting_healthy(self):
         with patch.object(
-            space.subprocess, "check_output", return_value="Device unallocated: 0\n"
+            space.subprocess, "check_output", return_value="not a Btrfs report\n"
         ):
             with self.assertRaisesRegex(ValueError, "Unexpected btrfs"):
                 space.check("/")
 
-    def test_notification_failure_keeps_the_metadata_alert(self):
+    def test_notification_failure_keeps_the_filesystem_alert(self):
         with (
             patch.object(
                 space.subprocess,
                 "check_output",
-                return_value=(
-                    "Device unallocated: 8589934592\nMetadata,DUP: Size:100, Used:90\n"
-                ),
+                return_value="Device unallocated: 8589934592\n",
+            ),
+            patch.object(
+                space.shutil,
+                "disk_usage",
+                return_value=SimpleNamespace(total=100, free=10),
             ),
             patch.object(
                 space.subprocess,
@@ -99,7 +100,7 @@ class BtrfsHeadroom(unittest.TestCase):
             ),
         ):
             with self.assertRaisesRegex(
-                RuntimeError, "90.0% used.*Desktop notification failed"
+                RuntimeError, "90.0% full.*Desktop notification failed"
             ):
                 space.check("/", notify=True)
 
@@ -108,8 +109,8 @@ class BtrfsHeadroom(unittest.TestCase):
         with (
             patch.object(
                 space,
-                "usage",
-                side_effect=[(54, 5 * gib), (54, 9 * gib), (54, 12 * gib)],
+                "device_unallocated",
+                side_effect=[5 * gib, 9 * gib, 12 * gib],
             ),
             patch.object(space.subprocess, "run") as balance,
         ):
@@ -121,7 +122,7 @@ class BtrfsHeadroom(unittest.TestCase):
 
     def test_reclaim_skips_balance_when_headroom_is_healthy(self):
         with (
-            patch.object(space, "usage", return_value=(54, 12 * space.GIB)),
+            patch.object(space, "device_unallocated", return_value=12 * space.GIB),
             patch.object(space.subprocess, "run") as balance,
         ):
             space.reclaim("/")
@@ -130,7 +131,7 @@ class BtrfsHeadroom(unittest.TestCase):
     def test_reclaim_fails_when_limited_balance_makes_no_progress(self):
         gib = space.GIB
         with (
-            patch.object(space, "usage", side_effect=[(54, 5 * gib), (54, 5 * gib)]),
+            patch.object(space, "device_unallocated", side_effect=[5 * gib, 5 * gib]),
             patch.object(space.subprocess, "run") as balance,
         ):
             with self.assertRaisesRegex(RuntimeError, "did not free device space"):
