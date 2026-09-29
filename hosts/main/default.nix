@@ -13,7 +13,7 @@ in
     fsType = "ntfs-3g";
     options = [ "rw" "relatime" ];
   };
-  swapDevices = [ { device = "/swap/swapfile"; discardPolicy = "both"; } ];
+  swapDevices = [ { device = "/swap/swapfile"; size = 16 * 1024; discardPolicy = "both"; } ];
   boot.tmp.tmpfsSize = "32G";
 
   # NCT6798 motherboard fan controller.

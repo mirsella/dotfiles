@@ -12,7 +12,7 @@ in
 
   boot.initrd.luks.devices.root.crypttabExtraOpts = [ "tpm2-device=auto" ];
   fileSystems."/".options = [ "compress=zstd:3" ];
-  swapDevices = [ { device = "/swap/swapfile"; } ];
+  swapDevices = [ { device = "/swap/swapfile"; size = 16 * 1024; } ];
   boot.tmp.tmpfsSize = "16G";
 
   hardware.cpu.amd.ryzen-smu.enable = true;

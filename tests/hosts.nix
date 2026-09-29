@@ -89,6 +89,12 @@ assert lib.assertMsg (
       ) [ home arch ]
   ) [ "main" "laptop" ]
 ) "Desktop homes must use the right binaries and one user-level secret installer on both operating systems";
+assert lib.assertMsg (
+  lib.all (c:
+    builtins.elem "hibernate.compressor=lzo" c.boot.kernelParams
+    && lib.any (sw: sw.device == "/swap/swapfile" && sw.size == 16 * 1024) c.swapDevices
+  ) (builtins.attrValues desktops)
+) "Desktop hibernation needs the 16 GiB swapfile and the LZO image compressor";
 {
   nixos = builtins.mapAttrs (_: c: c.system.build.toplevel.drvPath) desktops;
   arch = builtins.mapAttrs (_: home: home.activationPackage.drvPath) flake.homeConfigurations;

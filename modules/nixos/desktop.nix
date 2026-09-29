@@ -5,7 +5,7 @@
   boot.initrd.systemd.enable = true;
 
   boot.tmp.useTmpfs = true;
-  boot.kernelParams = [ "zswap.enabled=0" ];
+  boot.kernelParams = [ "zswap.enabled=0" "hibernate.compressor=lzo" ];
   zramSwap = {
     enable = true;
     priority = 100;
