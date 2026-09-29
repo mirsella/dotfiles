@@ -90,6 +90,17 @@ assert lib.assertMsg (
   ) [ "main" "laptop" ]
 ) "Desktop homes must use the right binaries and one user-level secret installer on both operating systems";
 assert lib.assertMsg (
+  lib.all (name:
+    let
+      home = desktops.${name}.home-manager.users.mirsella;
+      arch = flake.homeConfigurations.${name}.config;
+    in
+      lib.all (h:
+        lib.hasPrefix "/nix/store/" (builtins.head h.systemd.user.services.kache.Service.ExecStart)
+      ) [ home arch ]
+  ) [ "main" "laptop" ]
+) "kache must run from the flake package on NixOS and Arch workstations";
+assert lib.assertMsg (
   lib.all (c:
     builtins.elem "hibernate.compressor=lzo" c.boot.kernelParams
     && lib.any (sw: sw.device == "/swap/swapfile" && sw.size == 16 * 1024) c.swapDevices

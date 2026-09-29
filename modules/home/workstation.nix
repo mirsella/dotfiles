@@ -3,12 +3,12 @@ let
   bin = package: name: if isNixOS then lib.getExe' package name else "/usr/bin/${name}";
   servicePath = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:" + (
     if isNixOS then "%h/.nix-profile/bin:/etc/profiles/per-user/%u/bin:/run/current-system/sw/bin"
-    else "/usr/local/sbin:/usr/local/bin:/usr/bin"
+    else "%h/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/bin"
   );
 in
 {
   programs.git.settings.commit.gpgsign = true;
-  home.packages = lib.optionals isNixOS [ pkgs.opencode pkgs.openchamber ];
+  home.packages = [ pkgs.kache ] ++ lib.optionals isNixOS [ pkgs.opencode pkgs.openchamber ];
   xdg.configFile."kache/config.toml" = {
     force = true;
     text = ''
@@ -118,7 +118,7 @@ in
     Unit.Description = "kache build cache daemon";
     Service = {
       Type = "simple";
-      ExecStart = (if isNixOS then lib.getExe' pkgs.kache "kache" else "%h/.local/share/cargo/bin/kache") + " daemon run";
+      ExecStart = "${lib.getExe' pkgs.kache "kache"} daemon run";
       Restart = "on-failure";
       RestartSec = "5s";
       Environment = "KACHE_LOG=kache=info";

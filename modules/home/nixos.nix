@@ -41,7 +41,6 @@
     inxi
     jq
     jujutsu
-    kache
     lazygit
     lazyjj
     lsd

@@ -21,7 +21,8 @@ The flake discovers these directories and sets hostnames automatically.
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
 - On Arch, pacman/AUR own application binaries; the HM profiles install config
-  and services. On NixOS, rebuild the system target, never activate a standalone
+  and services, and kache from the flake so the daemon and cargo wrapper always
+  match. On NixOS, rebuild the system target, never activate a standalone
   HM profile for the same user. The standalone homes remain available for Arch.
 - Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
   especially `flake.lock` (the weekly upgrade updates nixpkgs there). Sync only
