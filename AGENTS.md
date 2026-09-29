@@ -60,3 +60,16 @@ Manual files outside the repo:
 | laptop   | 192.168.1.61                          | Framework 13, Arch Linux — work laptop                         |
 | main     | `mirsella.mooo.com:2222` (LAN `.131`) | main tower, Arch Linux — powerful desktop                      |
 | predator | 192.168.1.19                          | NixOS — next home server (drive, Nextcloud, …), this repo's box |
+
+## SSH public keys (user identity)
+
+`~/.ssh/id_ed25519.pub` of each machine, to copy into an `authorized_keys`
+file, a service account or a Git host. Main, laptop and predator are also
+registered on the GitHub account; rpi is not.
+
+| device | public key | SHA256 fingerprint |
+|---|---|---|
+| main | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe` | `SHA256:Mcc/nTQqdEAlOiPFRj6yHYf4exhB/iM5CwoxcckKpPg` |
+| laptop | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF` | `SHA256:Y8Xmd8d+/SfbsiyozITkC13MVP5MKrwlllz1cw58z4E` |
+| predator | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHALDtwhSj8AF8NdRRjcWcDkD/EeDnRcWYjRSbXSznTo` | `SHA256:/6MNKC1SnVco8IlGO6Xe3FDh0BWlE6U7y+fPrAUK82c` |
+| rpi | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJRadFVhpJRbD98sHFgcVAaMDL48x27On4XAe//Yx6Vm` | `SHA256:4vEJhi7Q5OOw8M4jArYQLG/0x4EID933Ohxsc0Jf6vQ` |
