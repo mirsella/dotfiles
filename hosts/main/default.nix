@@ -6,14 +6,12 @@ in
 {
   imports = [ ../../modules/nixos/desktop.nix ];
 
-  fileSystems."/".options = [ "compress=zstd:3" ];
   # The scanner omits mounts under /run and existing swap files.
   fileSystems."/run/media/mirsella/data" = {
     device = "/dev/disk/by-uuid/58D9ECF16BCE7A8E";
     fsType = "ntfs-3g";
     options = [ "rw" "relatime" ];
   };
-  swapDevices = [ { device = "/swap/swapfile"; size = 16 * 1024; discardPolicy = "both"; } ];
   boot.tmp.tmpfsSize = "32G";
 
   # NCT6798 motherboard fan controller.

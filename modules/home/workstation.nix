@@ -126,20 +126,4 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
-  systemd.user.services.btrfs-space-notify = {
-    Unit.Description = "Notify when filesystem space or Btrfs headroom is low";
-    Service = {
-      Type = "oneshot";
-      Environment = "PATH=${lib.makeBinPath [ pkgs.btrfs-progs pkgs.libnotify ]}:/usr/bin";
-      ExecStart = "${lib.getExe' pkgs.python3 "python3"} ${../../arch/maintenance/btrfs-space-check.py} --notify /";
-    };
-  };
-  systemd.user.timers.btrfs-space-notify = {
-    Unit.Description = "Hourly desktop warning for filesystem space pressure";
-    Timer = {
-      OnCalendar = "hourly";
-      Persistent = true;
-    };
-    Install.WantedBy = [ "timers.target" ];
-  };
 }

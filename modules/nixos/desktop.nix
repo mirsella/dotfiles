@@ -4,6 +4,28 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.initrd.systemd.enable = true;
 
+  # LUKS2 containers unlock through the TPM once each host is enrolled.
+  boot.initrd.luks.devices = {
+    cryptroot = {
+      device = "/dev/disk/by-partlabel/nixos-root";
+      allowDiscards = true;
+      crypttabExtraOpts = [ "tpm2-device=auto" ];
+    };
+    cryptswap = {
+      device = "/dev/disk/by-partlabel/nixos-swap";
+      allowDiscards = true;
+      crypttabExtraOpts = [ "tpm2-device=auto" ];
+    };
+  };
+  boot.resumeDevice = "/dev/mapper/cryptswap";
+
+  boot.supportedFilesystems = [ "xfs" ];
+  fileSystems."/" = {
+    device = "/dev/mapper/cryptroot";
+    fsType = "xfs";
+  };
+  swapDevices = [ { device = "/dev/mapper/cryptswap"; } ];
+
   boot.tmp.useTmpfs = true;
   boot.kernelParams = [ "zswap.enabled=0" "hibernate.compressor=lzo" ];
   zramSwap = {
@@ -17,31 +39,7 @@
     wayland.enable = true;
   };
   services.power-profiles-daemon.enable = true;
-  services.btrfs.autoScrub = {
-    enable = true;
-    interval = "monthly";
-    fileSystems = [ "/" ];
-  };
-  systemd.services.btrfs-balance-limited = {
-    description = "Reclaim device space for Btrfs metadata when headroom runs low";
-    path = [ pkgs.btrfs-progs ];
-    serviceConfig = {
-      Type = "oneshot";
-      Nice = 19;
-      IOSchedulingClass = "idle";
-      ExecStart = "${pkgs.python3}/bin/python3 ${../../arch/maintenance/btrfs-space-check.py} --reclaim /";
-    };
-    startAt = "*-*-* 22:00";
-  };
-  systemd.services.btrfs-space-check = {
-    description = "Check filesystem usage and Btrfs device headroom";
-    path = [ pkgs.btrfs-progs ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.python3}/bin/python3 ${../../arch/maintenance/btrfs-space-check.py} /";
-    };
-    startAt = "daily";
-  };
+  services.fstrim.enable = true;
   services.xserver.xkb = {
     layout = "us";
     variant = "colemak_dh_iso";

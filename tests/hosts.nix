@@ -101,11 +101,24 @@ assert lib.assertMsg (
   ) [ "main" "laptop" ]
 ) "kache must run from the flake package on NixOS and Arch workstations";
 assert lib.assertMsg (
-  lib.all (c:
-    builtins.elem "hibernate.compressor=lzo" c.boot.kernelParams
-    && lib.any (sw: sw.device == "/swap/swapfile" && sw.size == 16 * 1024) c.swapDevices
+  lib.all (config:
+    let
+      luks = config.boot.initrd.luks.devices;
+      expected = name: partlabel:
+        luks.${name}.device == "/dev/disk/by-partlabel/${partlabel}"
+        && luks.${name}.allowDiscards
+        && luks.${name}.crypttabExtraOpts == [ "tpm2-device=auto" ];
+    in
+      expected "cryptroot" "nixos-root"
+      && expected "cryptswap" "nixos-swap"
+      && config.boot.resumeDevice == "/dev/mapper/cryptswap"
+      && config.fileSystems."/".device == "/dev/mapper/cryptroot"
+      && config.fileSystems."/".fsType == "xfs"
+      && builtins.map (s: s.device) config.swapDevices == [ "/dev/mapper/cryptswap" ]
+      && config.services.fstrim.enable
+      && builtins.elem "hibernate.compressor=lzo" config.boot.kernelParams
   ) (builtins.attrValues desktops)
-) "Desktop hibernation needs the 16 GiB swapfile and the LZO image compressor";
+) "The desktops must be TPM2-unlocked XFS with LUKS-backed hibernation";
 {
   nixos = builtins.mapAttrs (_: c: c.system.build.toplevel.drvPath) desktops;
   arch = builtins.mapAttrs (_: home: home.activationPackage.drvPath) flake.homeConfigurations;

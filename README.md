@@ -15,43 +15,67 @@ exposes the standalone Arch `homeConfigurations.<hostname>`.
 | `predator` | Headless server | Secure Boot, encrypted storage, ZFS, server services and scheduled suspend |
 
 - `modules/nixos/common.nix` owns the shared user, networking, Nix settings and Home Manager integration.
-- `modules/nixos/desktop.nix` owns Plasma, audio, Bluetooth and power profiles.
+- `modules/nixos/desktop.nix` owns Plasma, audio, Bluetooth, power profiles and the shared encrypted root layout.
 - `hosts/<hostname>/default.nix` selects roles and holds machine-specific system settings.
 - `hosts/<hostname>/home.nix` holds workstation home settings, including the Git signing key.
 - `modules/home/` contains shared home settings, NixOS packages and workstation services.
-- `hardware-configuration.nix` records the installed disk layout and detected hardware.
+- `hardware-configuration.nix` records each machine's detected hardware and EFI partition.
 
 ## Install main or laptop
 
-All three install targets are available. Main and laptop's hardware configurations
-were generated from their live Arch installations using the pinned NixOS scanner.
-They record the existing Btrfs subvolumes and EFI partitions; laptop also records
-its LUKS root mapping and the migrated `@nix` mount. Main's `@nix` entry should
-only be added after its one-time Arch subvolume migration creates it. Host modules
-preserve compression, existing swap files, tmpfs sizes, laptop's TPM unlock option
-and main's NTFS data mount. Both desktops
-use zstd zram at 50% of RAM, ahead of disk swap.
+Both desktops install onto a LUKS2-encrypted XFS root with TPM2 auto-unlock and a
+16 GiB encrypted swap partition used for hibernation. Main keeps its EFI and
+Windows partitions; only the old Linux partition is replaced. Laptop keeps its EFI
+partition. The single XFS filesystem holds `/`, `/home` and `/nix`;
+`modules/nixos/desktop.nix` records the LUKS containers and the resume device.
+Both desktops use zstd zram at 50% of RAM ahead of the swap partition, run weekly
+`fstrim` through the encrypted root, and main keeps its NTFS data mount.
 
-From the NixOS installer, mount the intended root and boot filesystems under
-`/mnt`. On laptop, also mount the existing `@nix` subvolume at `/mnt/nix` before
-installing so the store is populated on the same subvolume used after boot. Then
-run from this checkout. Select `main` or `laptop`:
+Partitioning is destructive for the Linux partition only. Delete it, create a
+16 GiB swap partition plus one large root partition, then create the containers
+and the filesystem:
 
 ```sh
+# main: /dev/nvme0n1, old Linux partition p2; p1 (EFI) and p3-p5 (Windows) stay.
+sudo sgdisk --delete=2 /dev/nvme0n1
+sudo sgdisk --new=2:0:+16G --change-name=2:nixos-swap /dev/nvme0n1
+sudo sgdisk --new=6:0:0 --change-name=6:nixos-root /dev/nvme0n1
+
+# laptop: old LUKS root is p2; p1 (EFI) stays, the new root partition is p3.
+sudo sgdisk --delete=2 /dev/nvme0n1
+sudo sgdisk --new=2:0:+16G --change-name=2:nixos-swap /dev/nvme0n1
+sudo sgdisk --new=3:0:0 --change-name=3:nixos-root /dev/nvme0n1
+
+sudo cryptsetup luksFormat --type luks2 /dev/disk/by-partlabel/nixos-swap
+sudo cryptsetup luksFormat --type luks2 /dev/disk/by-partlabel/nixos-root
+sudo cryptsetup open /dev/disk/by-partlabel/nixos-swap cryptswap
+sudo cryptsetup open /dev/disk/by-partlabel/nixos-root cryptroot
+sudo mkswap /dev/mapper/cryptswap
+sudo mkfs.xfs /dev/mapper/cryptroot
+```
+
+Mount the new root under `/mnt` and install from this checkout. Use the existing
+EFI UUIDs: main `3613-BAFF`, laptop `F513-ECCB`.
+
+```sh
+sudo mount /dev/mapper/cryptroot /mnt
+sudo mkdir /mnt/boot
+sudo mount /dev/disk/by-uuid/3613-BAFF /mnt/boot
 host=main
 sudo nixos-install --flake "path:$PWD#$host"
 ```
 
-If repartitioning or recreating filesystems, regenerate the hardware file after
-mounting the new layout and review storage settings in the host's `default.nix`:
+On the first boot, enter the LUKS passphrase when prompted, then enroll the TPM so
+later boots unlock without it. `--tpm2-pcrs=7` binds the key to the secure-boot
+state, so firmware updates keep working and only secure-boot changes re-prompt.
 
 ```sh
-sudo nixos-generate-config --root /mnt --show-hardware-config > "hosts/$host/hardware-configuration.nix"
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-partlabel/nixos-swap
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-partlabel/nixos-root
 ```
 
-Use `path:` while the hardware file is untracked. These commands do not partition
-or format disks. `disko.nix` is Predator's separate, destructive provisioning
-layout and does not apply to the desktops.
+Use `path:` while the hardware file is untracked. `disko.nix` is Predator's
+separate, destructive provisioning layout and does not apply to the desktops.
 
 Preserve `~/.ssh/id_ed25519` and the host's GPG signing key when reinstalling.
 Workstation SOPS secrets use the user's SSH key; Predator uses its system SSH
@@ -84,9 +108,8 @@ once. It stops the two daemons, copies their state to new Btrfs subvolumes, adds
 fstab mounts, then starts the daemons. It retains the `.before-subvolume`
 directories for rollback; the job below checks the new mounts and services
 before deleting them on a later boot. Run the migration separately on each Arch
-Btrfs workstation. NixOS uses Podman
-instead of Docker, so its hardware file needs the `@nix` mount but not an
-automatic `/var/lib/docker` mount.
+Btrfs workstation. Reinstalling a desktop on the XFS layout replaces that root,
+so its old migrations and snapshots go away with it.
 
 To remove the retained rollback copies on the next boot, without touching them
 in the current session, arm the one-shot service after migration:
@@ -108,16 +131,9 @@ The installer preserves machine-specific Nix and Timeshift settings. It schedule
 14-day Nix GC, two weekly and one monthly Timeshift snapshot plus two pre-upgrade
 snapshots, a 1 GiB journal cap, weekly pacman cache pruning, old Docker builder
 cache pruning, and limited Btrfs maintenance. Arch uses btrfs-progs' monthly
-scrub timer. The desktop Home Manager profile caps the kache build cache at
-150 GiB. NixOS uses the equivalent shared Nix GC and journal settings; its
-Btrfs desktops also scrub monthly and check space daily. At 22:00, a root job
-checks unallocated device space; below 8 GiB it runs bounded, limited data
-balances to reach 12 GiB. The root check logs a failed unit and the desktop
-timer checks hourly and notifies at 90% filesystem usage or below 8 GiB
-device-unallocated. Free space within allocated data chunks alone cannot
-grow metadata chunks. Inspect
-`systemctl status btrfs-balance-limited.service btrfs-space-check.service` and
-`btrfs filesystem usage /` if reclamation fails.
+scrub timer and its own balance and space-check units. The desktop Home Manager
+profile caps the kache build cache at 150 GiB. NixOS uses the equivalent shared
+Nix GC and journal settings, and the desktops trim their encrypted SSDs weekly.
 
 ## Checks
 
