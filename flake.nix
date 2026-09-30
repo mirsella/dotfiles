@@ -37,6 +37,20 @@
       customPackages = import ./pkgs pkgs;
       # nix-update follows each package's own versioning: npm releases regenerate the lock, release tarballs use the stable version, and VCS packages track their branch.
       releaseTarballs = [ "helium" "zen-browser" ];
+      # Keep OpenChamber on 1.x while the workstations run OpenCode 1.x; unpin both together.
+      pinnedPackages = [ "openchamber" ];
+      updateVersionFlag = name:
+        if builtins.elem name releaseTarballs then
+          "--version stable"
+        else if builtins.pathExists (./pkgs + "/${name}/package-lock.json") then
+          "--version stable --generate-lockfile"
+        else
+          "--version branch";
+      updateCommands = builtins.concatStringsSep "\n" (
+        builtins.map
+          (name: "nix-update --flake ${updateVersionFlag name} ${nixpkgs.lib.escapeShellArg name}")
+          (nixpkgs.lib.subtractLists pinnedPackages (builtins.attrNames customPackages))
+      );
       updatePackages = pkgs.writeShellApplication {
         name = "update-packages";
         runtimeInputs = [ pkgs.nix pkgs.nix-update ];
@@ -47,15 +61,7 @@
           fi
 
           nix flake update
-          for package in ${nixpkgs.lib.escapeShellArgs (builtins.attrNames customPackages)}; do
-            if [[ " ${builtins.concatStringsSep " " releaseTarballs} " == *" $package "* ]]; then
-              nix-update --flake --version stable "$package"
-            elif [[ -f "pkgs/$package/package-lock.json" ]]; then
-              nix-update --flake --version stable --generate-lockfile "$package"
-            else
-              nix-update --flake --version branch "$package"
-            fi
-          done
+          ${updateCommands}
           nix flake check --no-build --no-update-lock-file
         '';
       };

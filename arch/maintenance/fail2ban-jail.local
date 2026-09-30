@@ -1,0 +1,15 @@
+# Installed to /etc/fail2ban/jail.d/sshd.local by apply.py. Fragments there load
+# after jail.local, so this file wins.
+[DEFAULT]
+backend = systemd
+bantime = 1m
+bantime.increment = true
+# Ban for 1m, 5m, 10m, 20m, ... doubling on every further ban.
+bantime.formula = ban.Time * (1 if ban.Count <= 0 else 5 * (1 << (ban.Count - 1)))
+bantime.maxtime = 1w
+findtime = 10m
+maxretry = 3
+ignoreip = 127.0.0.1/8 ::1 192.168.1.0/24
+
+[sshd]
+enabled = true

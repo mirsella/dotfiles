@@ -2,12 +2,11 @@
 flake:
 let
   inherit (flake.inputs.nixpkgs) lib;
-  desktops = lib.genAttrs [ "main" "laptop" ] (name:
-    flake.nixosConfigurations.${name}.config
-  );
-  server = flake.nixosConfigurations.predator.config;
-  main = desktops.main;
-  laptop = desktops.laptop;
+  hosts = lib.mapAttrs (_: host: host.config) flake.nixosConfigurations;
+  desktops = { inherit (hosts) main laptop; };
+  server = hosts.predator;
+  main = hosts.main;
+  laptop = hosts.laptop;
   cooling = main.systemd.services.coolercontrold;
 in
 assert lib.assertMsg (
@@ -63,6 +62,26 @@ assert lib.assertMsg (
     == flake.homeConfigurations.laptop.config.systemd.user.services.${name}
   ) [ "opencode" "openchamber" ]
 ) "OpenCode and OpenChamber must share the workstation configuration and stay off Predator";
+assert lib.assertMsg (
+  lib.all (name:
+    lib.any (package: lib.hasPrefix "openchamber-1." package.name)
+      desktops.${name}.home-manager.users.mirsella.home.packages
+  ) [ "main" "laptop" ]
+) "OpenChamber must stay on 1.x while the workstations run OpenCode 1.x";
+assert lib.assertMsg (
+  lib.all (c:
+    c.services.fail2ban.enable
+    && c.services.fail2ban.maxretry == 3
+    && c.services.fail2ban.bantime == "1m"
+    && c.services.fail2ban.bantime-increment.enable
+    && c.services.fail2ban.bantime-increment.maxtime == "1w"
+    && c.services.fail2ban.bantime-increment.formula
+    == "ban.Time * (1 if ban.Count <= 0 else 5 * (1 << (ban.Count - 1)))"
+    && c.services.fail2ban.jails.DEFAULT.settings.findtime == "10m"
+    && c.services.fail2ban.jails.sshd.settings.enabled
+    && builtins.elem "192.168.1.0/24" c.services.fail2ban.ignoreIP
+  ) (builtins.attrValues hosts)
+) "Every host must ban SSH brute force after three failures and keep the LAN trusted";
 assert lib.assertMsg (
   lib.all (name:
     let

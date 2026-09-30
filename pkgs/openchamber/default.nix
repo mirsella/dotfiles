@@ -1,11 +1,12 @@
 { lib, buildNpmPackage, fetchurl }:
+# Pinned to 1.x: OpenChamber 2.x requires OpenCode 2.x, and the workstations still run OpenCode 1.x.
 buildNpmPackage rec {
   pname = "openchamber";
-  version = "2.0.0";
+  version = "1.24.2";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/@openchamber/web/-/web-${version}.tgz";
-    hash = "sha256-aER6fbGWOSJd0TzHqotuBU3CoS9OIzYEr3PX8qpMREs=";
+    hash = "sha256-mrefb1ENRZj3ZNlCCKRCAqUFFVW58l/6K+YSLqeJ6zQ=";
   };
   sourceRoot = "package";
 
@@ -14,7 +15,7 @@ buildNpmPackage rec {
     sed -i '/"prepack"/d' package.json
   '';
 
-  npmDepsHash = "sha256-zTa4N2Dc5SD2vMmu+Eaxa1wabza8TZ98oBzDh8lCvmo=";
+  npmDepsHash = "sha256-DUD+EaH1xgNqhV5PhIhG/a/NpzJ7TWSSnAk2jEozTyc=";
 
   npmFlags = [ "--legacy-peer-deps" "--dangerously-allow-all-scripts" ];
 

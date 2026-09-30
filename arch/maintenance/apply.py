@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install root-owned Arch storage maintenance on Btrfs workstations."""
+"""Install root-owned Arch maintenance on Btrfs workstations."""
 
 import json
 import os
@@ -120,6 +120,16 @@ def main() -> None:
         unit_names.append("docker-builder-prune")
     else:
         print("Docker not installed; skipping build cache pruning")
+
+    if shutil.which("fail2ban-client"):
+        changed = write_if_changed(
+            Path("/etc/fail2ban/jail.d/sshd.local"),
+            (SOURCE / "fail2ban-jail.local").read_text(),
+        )
+        run("systemctl", "enable", "fail2ban.service")
+        run("systemctl", "restart" if changed else "start", "fail2ban.service")
+    else:
+        print("fail2ban not installed; skipping SSH brute-force jail")
 
     units_changed = False
     for name in unit_names:

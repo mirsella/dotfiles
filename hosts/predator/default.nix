@@ -69,13 +69,6 @@ in
   };
 
   services = {
-    fail2ban = {
-      enable = true;
-      maxretry = 5;
-      bantime = "1h";
-      ignoreIP = [ "127.0.0.1/8" "192.168.1.0/24" ];
-      jails.sshd.settings.enabled = true;
-    };
     # Power-saving keys must not interrupt the server.
     logind.settings.Login = {
       HandleSuspendKey = "ignore";

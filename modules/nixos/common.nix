@@ -46,6 +46,23 @@
         PermitRootLogin = "no";
       };
     };
+    fail2ban = {
+      enable = true;
+      maxretry = 3;
+      bantime = "1m";
+      # First failure costs a minute; each return doubles from five minutes.
+      bantime-increment = {
+        enable = true;
+        maxtime = "1w";
+        formula = "ban.Time * (1 if ban.Count <= 0 else 5 * (1 << (ban.Count - 1)))";
+      };
+      # The module already trusts loopback; only the LAN needs adding.
+      ignoreIP = [ "192.168.1.0/24" ];
+      jails = {
+        DEFAULT.settings.findtime = "10m";
+        sshd.settings.enabled = true;
+      };
+    };
     envfs.enable = true;
     fwupd.enable = true;
   };
