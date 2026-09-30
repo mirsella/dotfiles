@@ -20,6 +20,9 @@
   time.timeZone = "Europe/Paris";
   i18n.defaultLocale = "en_US.UTF-8";
 
+  # Nix owns accounts: passwd changes revert on rebuild, and the password below comes from
+  # pass-cli ("mirsella@predator").
+  users.mutableUsers = false;
   users.users.mirsella = {
     isNormalUser = true;
     linger = true;
