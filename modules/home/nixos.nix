@@ -67,6 +67,8 @@
     php
     pnpm
     prettier
+    proton-pass-cli
+    protonmail-cli
     python3
     python3Packages.pynvim
     pyright
