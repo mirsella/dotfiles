@@ -1,0 +1,38 @@
+#!/bin/sh
+# Import the age-encrypted protonmail-cli session secrets into the OS keychain.
+# Re-runs only when the decrypted secrets change.
+# secrets-sha256: {{ include "private_dot_config/protonmail-cli/encrypted_private_session-secrets.json.age" | decrypt | sha256sum }}
+set -eu
+
+SECRETS="$HOME/.config/protonmail-cli/session-secrets.json"
+if [ ! -f "$SECRETS" ]; then
+  exit 0
+fi
+if ! command -v secret-tool >/dev/null 2>&1; then
+  echo "protonmail-cli session import: secret-tool not found, skipping" >&2
+  exit 0
+fi
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+  echo "protonmail-cli session import: no D-Bus session, skipping (re-run chezmoi apply in a desktop session)" >&2
+  exit 0
+fi
+
+python3 - "$SECRETS" <<'EOF'
+import json
+import subprocess
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as f:
+    secrets = json.load(f)
+
+for key in ("access_token", "refresh_token", "skp"):
+    account = f"default:{key}"
+    attrs = ["service", "protonmail-cli", "username", account]
+    subprocess.run(["secret-tool", "clear", *attrs], check=False,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(
+        ["secret-tool", "store", "--label", f"protonmail-cli {account}", *attrs],
+        input=secrets[key].encode("utf-8"), check=True,
+    )
+print(f"protonmail-cli: imported {len(secrets)} session secrets into keychain")
+EOF
