@@ -56,7 +56,8 @@
     lsd
     lspmux
     markdownlint-cli
-    mergiraf
+    # mergiraf 0.19.1's test suite aborts on the current nixpkgs; install without checks.
+    (mergiraf.overrideAttrs { doCheck = false; })
     mermaid-cli
     mold
     neovim
