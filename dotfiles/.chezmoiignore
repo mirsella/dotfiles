@@ -17,6 +17,8 @@ kde shortcuts.kksrc
 .config/systemd/user/
 .config/systemd/user/**
 .config/kache/config.toml
+# Home Manager owns the generated Atuin config on HM hosts.
+.config/atuin/config.toml
 # Home Manager owns generated git and ssh settings on HM hosts.
 .config/git/config
 .ssh/config

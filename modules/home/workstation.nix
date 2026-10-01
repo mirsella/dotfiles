@@ -114,6 +114,12 @@ in
     };
   };
 
+  # The daemon loads the key on startup; wait for sops-nix to install it.
+  systemd.user.services.atuin-daemon = lib.mkIf config.programs.atuin.daemon.enable {
+    Unit.Wants = [ "sops-nix.service" ];
+    Unit.After = [ "sops-nix.service" ];
+  };
+
   systemd.user.services.kache = {
     Unit.Description = "kache build cache daemon";
     Service = {

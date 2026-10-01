@@ -14,7 +14,6 @@
     aspell
     aspellDicts.en
     ast-grep
-    atuin
     bat
     bevy-cli
     biome

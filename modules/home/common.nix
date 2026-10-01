@@ -3,6 +3,22 @@ let
   lspmuxBin =
     if isNixOS then "${pkgs.lspmux}/bin/lspmux"
     else "${config.home.homeDirectory}/.local/share/cargo/bin/lspmux";
+
+  userSecrets = import ../user-secrets.nix;
+
+  # Arch's pacman owns the atuin binary; this shim only needs a version that
+  # satisfies Home Manager's daemon feature gates (>= 18.13.0).
+  atuinPkg =
+    if isNixOS then
+      pkgs.atuin
+    else
+      pkgs.runCommand "atuin" {
+        version = "18.23.0";
+        meta.mainProgram = "atuin";
+      } ''
+        mkdir -p $out/bin
+        ln -s /usr/bin/atuin $out/bin/atuin
+      '';
 in
 {
   home = {
@@ -102,6 +118,53 @@ in
           Port = 22;
           User = "mirsella";
         };
+      };
+    };
+    atuin = {
+      enable = true;
+      package = atuinPkg;
+      # Atuin writes a default config on first run; Home Manager must replace it.
+      forceOverwriteSettings = true;
+      daemon.enable = true;
+      settings = {
+        auto_sync = true;
+        # The daemon owns syncing; never sync from the client.
+        sync_frequency = "0";
+        key_path = "${config.home.homeDirectory}/.config/${userSecrets.atuin_key}";
+        search_mode = "fuzzy";
+        filter_mode_shell_up_key_binding = "directory";
+        enter_accept = true;
+        keymap_mode = "vim-insert";
+        prefers_reduced_motion = true;
+        stats = {
+          common_subcommands = [
+            "apt"
+            "cargo"
+            "composer"
+            "dnf"
+            "docker"
+            "git"
+            "go"
+            "ip"
+            "jj"
+            "kubectl"
+            "nix"
+            "nmcli"
+            "npm"
+            "pecl"
+            "pnpm"
+            "podman"
+            "port"
+            "systemctl"
+            "tmux"
+            "yarn"
+          ];
+          common_prefix = [ "sudo" "s" ];
+        };
+        sync.records = true;
+        # Integer seconds; the daemon in nixpkgs accepts only u64.
+        daemon.sync_frequency = 5;
+        dotfiles.enabled = true;
       };
     };
   };
