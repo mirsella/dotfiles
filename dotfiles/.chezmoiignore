@@ -27,8 +27,6 @@ kde shortcuts.kksrc
 .config/environment.d/55-secrets.conf
 .config/stuff/config.toml
 .config/context7-account-broker/accounts.json
-.config/google-drive-mcp/gcp-oauth.keys.json
-.config/google-drive-mcp/tokens.json
 {{- end }}
 {{- if eq .chezmoi.hostname "predator" }}
 # Home Manager owns the plain cargo config on predator (no laptop bevy tuning).
