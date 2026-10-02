@@ -4,3 +4,4 @@
 - Prefer pnpm or bun over npm.
 - Make invariant violations obvious. Do not silently fall back from an impossible state; justify and log any necessary fallback.
 - Never rotate credentials or secrets solely because an agent read or displayed them; sessions are private.
+- Always end your response with follow ups and recommendations on next tasks and what to do next.

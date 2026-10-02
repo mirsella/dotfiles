@@ -78,7 +78,6 @@ def refresh-autoload [name: string, output_path: path, command: closure, transfo
 if $nu.is-interactive {
   job spawn {
     refresh-autoload starship ($autoload_path | path join "starship.nu") {|| starship init nu }
-    refresh-autoload zoxide ($autoload_path | path join "zoxide.nu") {|| zoxide init --cmd cd nushell }
     refresh-autoload jj ($autoload_path | path join "jj.nu") {|| jj util completion nushell }
     refresh-autoload atuin ($autoload_path | path join "atuin.nu") {|| atuin init nu --disable-up-arrow } {|output|
       $output | str replace 'let ATUIN_KEYBINDING_TOKEN = $"# ' 'let ATUIN_KEYBINDING_TOKEN = $" # '
