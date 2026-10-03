@@ -8,6 +8,7 @@ changes and work you delegated. Focus on concrete defects introduced by this
 work that are worth fixing before merge, not style preferences, speculative
 hardening, or pre-existing issues.
 Other agents may be working in the same worktree — only review your own changes, never theirs. If ownership of a hunk is shared or uncertain, exclude it. Formatting is fine.
+Delegate to sub agents to audit and review the code so it has a fresh context.
 
 $ARGUMENTS
 
