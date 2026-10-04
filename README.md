@@ -149,6 +149,65 @@ This evaluates all NixOS and Arch Home Manager profiles and checks host isolatio
 service lifecycle rules, and Predator's boot/storage invariants. The checks are
 pure evaluations and do not activate a system or run the disk formatter.
 
+## Predator storage
+
+`fast` is the separate 240 GB encrypted SSD. `tank` combines the Seagate 1 TB,
+Toshiba 750 GB and WD 1 TB HDDs in one RAIDZ1 vdev, each inside LUKS.
+Usable capacity is roughly 1.36 TiB before ZFS overhead. The pool tolerates one
+failed HDD; replace it promptly and let ZFS resilver. `tank/archive` mounts at `/srv/data/archive` and
+`tank/backup` at `/srv/backup`.
+
+`hosts/predator/disks.nix` defines the physical drive identities shared by
+boot, provisioning, unlocking and monitoring. `disko.nix` defines the data mount
+layout consumed by the installed system without importing its formatter.
+Native systemd crypttab units open data
+disks in parallel by persistent disk ID. Only the OS disk unlocks in initrd;
+data devices use bounded, noninteractive, optional unlocking. RAIDZ1 import can
+continue when one HDD is missing. All data mounts use `legacy` and `nofail`, so
+data-disk failures leave the OS and SSH available. Data-dependent services require
+their mounts and refuse the bare OS filesystem. Preserve
+the keys under `/etc/luks/` when reinstalling. `disko.nix` is only for a fresh
+installation and formats the SSD and all three HDDs.
+
+SMART checks all five physical disks, runs daily short self-tests at noon and
+weekly long tests on Sunday: SSDs and WD at 13:00, Seagate at 14:00 and Toshiba
+at 15:00. Temperature emails start at 55 C for HDDs and 65 C for SSDs.
+SMART sends warnings through Resend to
+`mirsella@protonmail.com`. USB disks can reconnect
+without stopping monitoring of the other disks. ZED emails device faults,
+I/O errors, checksum errors and scrub failures using the same Resend key as
+Nextcloud. The kernel-journal watcher also sends USB connection errors to Telegram.
+Both pools receive a monthly scrub; Sanoid retains daily and weekly snapshots.
+Snapshots and database dumps on `tank` do not survive loss of that pool.
+
+Syncoid replicates `fast/data` and `fast/ncdata` to `tank/replica/data` and
+`tank/replica/ncdata` nightly at 23:45. Replicas are read-only and unmounted;
+Sanoid prunes their daily and weekly snapshots without taking destination
+snapshots. Syncoid also takes a fresh synchronization snapshot for each run.
+The overnight idle check waits for replication and recovery jobs to finish.
+
+`recovery-backup.service` runs at 23:10 and retains 14 root-only bundles in the
+separate `tank/backup/recovery` dataset at `/srv/backup/recovery/`; `latest`
+points to the newest complete bundle. Each
+contains all five current LUKS headers and UUIDs plus `system-secrets.tar` with
+`/etc/luks/`, the SOPS SSH host identity and `/var/lib/sbctl`. These archives
+contain private keys. Restore them as root with their original permissions.
+
+`db-backup.service` uses the same private dataset, publishing database dumps and
+Nextcloud configuration under `/srv/backup/recovery/db/latest` at 23:00. Both
+backup jobs stage complete bundles, atomically publish `latest`, and retain 14
+bundles. Before deploying this path change, move any existing dumps from
+`/srv/backup/db/` into the protected `db/` directory.
+
+`fast/tank-pre-raidz1-20261003` holds a read-only, unmounted migration copy,
+including the older snapshots. It is a fixed recovery point and does not track
+later writes.
+
+SMART lifetime counters cannot generally be cleared. The post-cable baseline and
+migration snapshot manifest are saved under
+`/var/lib/storage-baselines/post-cable-20261003/` on Predator. Compare future
+readings with these values to distinguish new errors from the drive's history.
+
 ## Main's fan configuration
 
 Only `hosts/main/default.nix` enables CoolerControl. It loads `nct6775` and installs

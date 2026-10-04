@@ -32,12 +32,25 @@ The flake discovers these directories and sets hostnames automatically.
 - `nix flake check path:. --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`.
   Run the relevant Python tests for changed monitoring, unlock or suspend code.
-- `disko.nix` formats **all three data disks** only for a fresh, intentional
+- `disko.nix` formats **all four data disks** only for a fresh, intentional
   installation. To reinstall on existing disks, mount them without running disko,
   preserve the LUKS headers, ZFS pools, Secure Boot signing bundle (`/var/lib/sbctl`),
   HDD keys (`/etc/luks/`), and SOPS host identity (`/etc/ssh/ssh_host_ed25519_key`),
   then install `#predator`.
   The database dumps and ZFS snapshots on `tank/backup` are on-machine only.
+  `tank` uses three encrypted HDDs in RAIDZ1 and tolerates one failed HDD.
+  The read-only migration copy `fast/tank-pre-raidz1-20261003` is a fixed recovery point on the separate
+  SSD, not an ongoing backup. SMART and ZED send storage warnings via Resend.
+- Syncoid replicates the two live SSD datasets to read-only, unmounted
+  `tank/replica/{data,ncdata}` at 23:45. Recovery bundles run at 23:10 under
+  `/srv/backup/recovery/latest`: current LUKS headers and a private archive of
+  HDD keys, the SOPS host identity and Secure Boot signing keys. Keep this directory root-only.
+  Database dumps use `/srv/backup/recovery/db/latest` on the same private dataset;
+  both jobs publish atomically and retain 14 complete bundles. Existing dumps in
+  `/srv/backup/db/` need moving before deploying the new path.
+- Data disks unlock through optional runtime crypttab units, not initrd. All data
+  datasets use systemd-managed legacy mounts with `nofail`. Keep missing data disks
+  nonfatal to boot, allow degraded RAIDZ1 imports, and gate writers on their mounts.
 
 Manual files outside the repo:
 - Laptop uses Plasma lid defaults; Predator ignores lid-close via
@@ -50,9 +63,10 @@ Manual files outside the repo:
   remain manual. `pacman.conf` also pins `IgnorePkg = openchamber` so the AUR
   package stays on 1.x with OpenCode 1.x. The Nix daemon ignores cache settings
   from an untrusted Home Manager user config.
-- Predator: Freebox LAN IP is `192.168.1.1`; the Toshiba USB bridge aborts
-  extended SMART tests after about 10 minutes, so use short tests and the
-  monthly scrub.
+- Predator: Freebox LAN IP is `192.168.1.1`; SMART runs daily short and weekly
+  long tests on all five physical drives. Toshiba's earlier USB setup had repeated
+  host-aborted long tests after about 10 minutes; check its adapter, cable and power
+  if this recurs.
 - rpi (Debian) is outside the flake; its fail2ban SSH jail is tuned by hand in
   `/etc/fail2ban/jail.d/sshd.local` with the same values as the workstations.
 
