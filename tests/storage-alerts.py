@@ -6,12 +6,15 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
+import tracemalloc
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "hosts/predator"))
 spec = importlib.util.spec_from_file_location(
     "storage_alerts",
     Path(__file__).resolve().parents[1] / "hosts/predator/storage-alerts.py",
@@ -48,6 +51,8 @@ class StorageAlerts(unittest.TestCase):
             CACHE_FAILURE,
             "usb 2-4: reset SuperSpeed USB device number 3 using xhci_hcd",
             "usb 2-2.1: USB disconnect, device number 5",
+            "usb 2-3.3: USB disconnect, device number 6",
+            "usb 2-3: USB disconnect, device number 4",
             "usb 2-2: device descriptor read/64, error -71",
             "sd 3:0:0:0: [sdc] tag#0 uas_eh_abort_handler 0 uas-tag 1 inflight: CMD",
             "I/O error, dev sde, sector 123 op 0x1:(WRITE)",
@@ -128,6 +133,21 @@ class StorageAlerts(unittest.TestCase):
         ]
         alerts.check(self.cursor)
         self.assertIn(DISCONNECT, self.send.call_args.args[0])
+        self.assertEqual(self.cursor.read_text(), "after\n")
+
+    def test_single_oversized_message_has_bounded_formatting_memory(self):
+        self.cursor.write_text("before\n")
+        self.journal.return_value = [entry("after", DISCONNECT + "🙂" * 1_000_000)]
+        tracemalloc.start()
+        try:
+            alerts.check(self.cursor)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        self.assertLess(peak, 1024 * 1024)
+        text = self.send.call_args.args[0]
+        self.assertLessEqual(len(text.encode("utf-16-le")), alerts.MESSAGE_BYTES)
+        self.assertIn("Details truncated", text)
         self.assertEqual(self.cursor.read_text(), "after\n")
 
     def test_empty_checkpoint_does_not_reset_to_journal_tail(self):

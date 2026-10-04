@@ -35,13 +35,12 @@ in
       serviceConfig.RestartSec = "5s";
     };
     podman-immich_server = {
-      requires = [ "sops-install-secrets.service" "zfs-mount.service" ];
-      after = [ "sops-install-secrets.service" "zfs-mount.service" ];
+      requires = [ "sops-install-secrets.service" ];
+      after = [ "sops-install-secrets.service" ];
       unitConfig.RequiresMountsFor = [ mediaPath ];
       serviceConfig.RestartSec = "5s";
       path = [ pkgs.util-linux ];
       preStart = ''
-        # Native ZFS mounts are not declared in fstab. Refuse the bare root filesystem.
         if ! findmnt --source fast/data --mountpoint /srv/data/fast >/dev/null; then
           echo "Immich requires fast/data mounted at /srv/data/fast" >&2
           exit 1

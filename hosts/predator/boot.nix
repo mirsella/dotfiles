@@ -1,4 +1,7 @@
 { lib, pkgs, ... }:
+let
+  physical = import ./disks.nix;
+in
 {
   boot = {
     loader.systemd-boot.enable = lib.mkForce false;
@@ -10,7 +13,7 @@
     };
     initrd.systemd.enable = true;
     initrd.luks.devices.crypt-root = {
-      device = lib.mkForce "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part2";
+      device = lib.mkForce "${physical.ssds.root}-part2";
       # A keyFile with tpm2-device means a sealed blob, not a fallback LUKS key.
       crypttabExtraOpts = [ "tpm2-device=auto" ];
       allowDiscards = true;

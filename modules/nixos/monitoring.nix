@@ -5,31 +5,45 @@
   ...
 }:
 let
-  disks = [
-    "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68"
-    "/dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68"
-    "/dev/disk/by-id/wwn-0x500003961228993f"
-    "/dev/disk/by-id/wwn-0x5000c500aa3cc143"
-  ];
-  # Failure mail via the Resend key shared with Nextcloud/Beszel.
-  alert = pkgs.writeShellApplication {
-    name = "smartd-resend-alert";
+  physical = import ../../hosts/predator/disks.nix;
+  ssds = builtins.attrValues physical.ssds;
+  hdds = builtins.attrValues physical.hdds;
+  recipient = "mirsella@protonmail.com";
+  # Sunday afternoon avoids overnight suspend and separates the HDD tests.
+  hddLongHours = {
+    tank1 = "14";
+    tank2 = "15";
+    tank3 = "13";
+  };
+  smartDevice = flags: longHour: device: {
+    inherit device;
+    options = "${flags} -s (S/../.././12|L/../../7/${longHour})";
+  };
+  # SMART and ZED share the Resend key used by Nextcloud/Beszel.
+  mail = pkgs.writeShellApplication {
+    name = "storage-resend-mail";
     runtimeInputs = [
       pkgs.curl
       pkgs.jq
     ];
     text = ''
       key=$(<${config.sops.secrets.nextcloud-resend.path})
-      payload=$(jq -n \
-        --arg from 'SMART <noreply@voxride.com>' \
-        --arg to 'mirsella@protonmail.com' \
-        --arg subject "$SMARTD_SUBJECT" \
-        --arg text "$SMARTD_FULLMESSAGE" \
-        '{from:$from,to:[$to],subject:$subject,text:$text}')
+      jq -n \
+        --arg from 'Predator storage <noreply@voxride.com>' \
+        --arg to ${lib.escapeShellArg recipient} \
+        --arg subject "$1" \
+        --rawfile text /dev/stdin \
+        '{from:$from,to:[$to],subject:$subject,text:$text}' |
       curl --fail-with-body -sS --max-time 30 https://api.resend.com/emails \
         -H "Authorization: Bearer $key" \
         -H 'Content-Type: application/json' \
-        --data "$payload"
+        --data-binary @-
+    '';
+  };
+  alert = pkgs.writeShellApplication {
+    name = "smartd-resend-alert";
+    text = ''
+      exec ${lib.getExe mail} "$SMARTD_SUBJECT" <<< "$SMARTD_FULLMESSAGE"
     '';
   };
 in
@@ -41,9 +55,44 @@ in
     autodetect = false;
     # Use the Resend callback instead of the module's wall notification callback.
     notifications.wall.enable = false;
-    # Schedule short self-tests without toggling vendor-specific offline collection.
-    defaults.monitored = "-a -d sat -S on -s (S/../.././12) -m <nomailer> -M once -M exec ${lib.getExe alert}";
-    devices = map (device: { inherit device; }) disks;
+    notifications.mail.enable = false;
+    # Avoid toggling vendor-specific offline collection.
+    # Missing data disks must not stop health monitoring of available disks.
+    defaults.monitored = "-a -d sat -d removable -S on -m <nomailer> -M daily -M exec ${lib.getExe alert}";
+    devices = map (smartDevice "-W 0,0,65" "13") ssds
+      ++ lib.mapAttrsToList (name: device:
+        smartDevice "-W 0,0,55" hddLongHours.${name} device
+      ) physical.hdds;
+  };
+
+  systemd.services.smartd = {
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" "sops-install-secrets.service" ];
+    serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "1min";
+    };
+  };
+
+  services.zfs.zed = {
+    # The callback sends directly through Resend, without a local MTA.
+    enableMail = false;
+    settings = {
+      ZED_EMAIL_ADDR = [ recipient ];
+      ZED_EMAIL_PROG = lib.getExe mail;
+      ZED_EMAIL_OPTS = "'@SUBJECT@'";
+      ZED_NOTIFY_DATA = true;
+      ZED_NOTIFY_INTERVAL_SECS = 3600;
+    };
+  };
+  # ZED's data handler also works for individual I/O and checksum error events.
+  environment.etc = lib.genAttrs [ "zfs/zed.d/io-notify.sh" "zfs/zed.d/checksum-notify.sh" ] (_: {
+    source = "${config.boot.zfs.package}/etc/zfs/zed.d/data-notify.sh";
+  });
+  systemd.services.zfs-zed = {
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" "sops-install-secrets.service" ];
+    restartTriggers = [ config.environment.etc."zfs/zed.d/zed.rc".source ];
   };
 
   services.beszel.hub = {
@@ -58,7 +107,7 @@ in
     extraPath = [ config.boot.zfs.package ];
     smartmon.enable = true;
     # Beszel scans whole disks; partition-only permissions do not cover them.
-    smartmon.deviceAllow = disks;
+    smartmon.deviceAllow = ssds ++ hdds;
     environment.KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO6dTO3k45VaN7Xjt4cKpNF2Fw5TvZEoMW+pmgTjqk6A";
   };
   systemd.services.beszel-agent.serviceConfig.DeviceAllow = [ "/dev/zfs rw" ];

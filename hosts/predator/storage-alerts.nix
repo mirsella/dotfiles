@@ -5,6 +5,7 @@
     wants = [ "network-online.target" ];
     after = [ "network-online.target" "sops-install-secrets.service" ];
     path = [ config.systemd.package ];
+    environment.PYTHONPATH = "${pkgs.writeTextDir "storage_events.py" (builtins.readFile ./storage_events.py)}";
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.python3}/bin/python3 ${./storage-alerts.py}";

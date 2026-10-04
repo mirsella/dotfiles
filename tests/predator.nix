@@ -5,8 +5,16 @@ let
   server = flake.nixosConfigurations.predator.config;
   layout = import ../disko.nix;
   disks = layout.disko.devices.disk;
+  physical = import ../hosts/predator/disks.nix;
+  hddNames = builtins.attrNames physical.hdds;
+  smartOptions = builtins.listToAttrs (map (d: lib.nameValuePair d.device d.options)
+    server.services.smartd.devices);
   ncdata = layout.disko.devices.zpool.fast.datasets.ncdata;
   pkgs = flake.inputs.nixpkgs.legacyPackages.x86_64-linux;
+  utils = import (flake.inputs.nixpkgs + "/nixos/lib/utils.nix") {
+    inherit lib pkgs;
+    config = server;
+  };
   disko = import flake.inputs.disko { inherit lib; };
 in
 assert lib.assertMsg (
@@ -18,20 +26,111 @@ assert lib.assertMsg (
   && lib.all (fs: !fs.autoFormat) (builtins.attrValues server.fileSystems)
 ) "Installed system must use signed TPM boot without embedded keys or automatic formatting";
 assert lib.assertMsg (
-  builtins.elem "tank-unlock.service" server.systemd.services.zfs-import-tank.requires
-  && builtins.elem "tank-unlock.service" server.systemd.services.zfs-import-tank.after
-  && server.systemd.services.tank-unlock.wantedBy == [ ]
-  && !server.systemd.services.tank-unlock.restartIfChanged
-) "ZFS import must require boot-only HDD unlocking";
+  lib.all (name:
+    let unit = "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
+    in builtins.elem unit server.systemd.services.zfs-import-tank.wants
+      && builtins.elem unit server.systemd.services.zfs-import-tank.after
+      && !(builtins.elem unit server.systemd.services.zfs-import-tank.requires)
+  ) hddNames
+  && server.systemd.services."systemd-cryptsetup@".serviceConfig.TimeoutSec == "2min"
+) "HDD unlocking must be bounded and parallel, allowing degraded import when a member fails";
 assert lib.assertMsg (
-  "${disks.ssd.device}-part1" == server.boot.initrd.luks.devices.fast-crypt.device
+  builtins.attrNames server.boot.initrd.luks.devices == [ "crypt-root" ]
+  && lib.hasInfix "fast-crypt ${disks.ssd.device}-part1 - tpm2-device=auto,discard,nofail,headless=true,x-systemd.device-timeout=30s"
+    server.environment.etc.crypttab.text
+  && builtins.elem "systemd-cryptsetup@fast\\x2dcrypt.service" server.systemd.services.zfs-import-fast.requires
   && ncdata.options.mountpoint == "legacy"
+  && lib.all (dataset:
+    dataset.options.mountpoint == "legacy"
+    && builtins.elem "nofail" dataset.mountOptions
+    && builtins.elem "nofail" server.fileSystems.${dataset.mountpoint}.options
+  ) ([ layout.disko.devices.zpool.fast.datasets.data ncdata ]
+    ++ map (name: layout.disko.devices.zpool.tank.datasets.${name}) [ "archive" "backup" "backup/recovery" ])
   && server.fileSystems.${ncdata.mountpoint}.device == "fast/ncdata"
   && lib.all (d:
     let luks = d.content.partitions.crypt.content;
     in luks.askPassword && !luks.initrdUnlock && !(luks.settings ? keyFile)
   ) (builtins.attrValues disks)
 ) "Fresh provisioning must match runtime mounts and leave credential enrollment explicit";
+assert lib.assertMsg (
+  layout.disko.devices.zpool.tank.mode == "raidz"
+  && layout.disko.devices.zpool.tank.options.autoexpand == "on"
+  && layout.disko.devices.zpool.tank.options.autoreplace == "off"
+  && layout.disko.devices.zpool.tank.options.ashift == "12"
+  && hddNames == [ "tank1" "tank2" "tank3" ]
+  && builtins.attrNames disks == [ "ssd" "tank1" "tank2" "tank3" ]
+  && lib.all (name:
+    disks.${name}.device == physical.hdds.${name}
+    && disks.${name}.content.partitions.crypt.content.name == "${name}-crypt"
+    && lib.hasInfix "${name}-crypt ${disks.${name}.device}-part1 /etc/luks/${name}.key nofail,headless=true,x-systemd.device-timeout=30s"
+      server.environment.etc.crypttab.text
+  ) hddNames
+) "Three-disk RAIDZ1 must provision and unlock every HDD using the same physical identities";
+assert lib.assertMsg (
+  lib.sort builtins.lessThan (map (d: d.device) server.services.smartd.devices)
+    == lib.sort builtins.lessThan (builtins.attrValues physical.ssds ++ builtins.attrValues physical.hdds)
+  && builtins.attrNames smartOptions
+    == lib.sort builtins.lessThan server.services.beszel.agent.smartmon.deviceAllow
+  && server.systemd.services.smartd.serviceConfig.Restart == "on-failure"
+  && server.services.zfs.zed.settings.ZED_NOTIFY_DATA
+) "SMART and Beszel must monitor every physical disk and ZED must report ZFS errors";
+assert lib.assertMsg (
+  !(lib.hasInfix "-W" server.services.smartd.defaults.monitored)
+  && lib.hasInfix "-d removable" server.services.smartd.defaults.monitored
+  && lib.all (device:
+    lib.hasInfix "-W 0,0,65" smartOptions.${device}
+    && lib.hasInfix "-s (S/../.././12|L/../../7/13)" smartOptions.${device}
+  ) (builtins.attrValues physical.ssds)
+  && lib.all (name:
+    let options = smartOptions.${physical.hdds.${name}};
+        schedule = {
+          tank1 = "S/../.././12|L/../../7/14";
+          tank2 = "S/../.././12|L/../../7/15";
+          tank3 = "S/../.././12|L/../../7/13";
+        }.${name};
+    in lib.hasInfix "-W 0,0,55" options
+      && lib.hasInfix "-s (${schedule})" options
+  ) hddNames
+  && server.services.zfs.autoScrub.enable
+  && server.services.zfs.autoScrub.pools == [ "fast" "tank" ]
+) "SMART must schedule daily short tests, weekly long tests, high-temperature-only warnings and pool scrubs";
+assert lib.assertMsg (
+  server.services.syncoid.enable
+  && server.services.syncoid.interval == "23:45"
+  && builtins.elem "--no-rollback" server.services.syncoid.commonArgs
+  && lib.all (permission: builtins.elem permission server.services.syncoid.localTargetAllow)
+    ([ "readonly" "canmount" "acltype" "aclinherit" "destroy" ]
+      ++ flake.nixosConfigurations.predator.options.services.syncoid.localTargetAllow.default)
+  && layout.disko.devices.zpool.tank.datasets.replica.options
+    == { mountpoint = "none"; canmount = "off"; readonly = "on"; }
+  && !server.services.sanoid.datasets."tank/replica".autosnap
+  && lib.all (name: server.services.sanoid.datasets.${name}.autosnap)
+    [ "fast/data" "fast/ncdata" "tank/archive" "tank/backup" ]
+  && lib.all (dataset: dataset.recursive) (builtins.attrValues server.services.sanoid.datasets)
+  && lib.all (name:
+    let command = server.services.syncoid.commands.${name};
+    in command.source == "fast/${name}" && command.target == "tank/replica/${name}"
+      && command.recursive && command.sendOptions == "Lc p"
+      && command.recvOptions == "u o mountpoint=none o canmount=off o readonly=on"
+      && server.systemd.timers."syncoid-${name}".timerConfig.Persistent
+  ) [ "data" "ncdata" ]
+) "SSD data must replicate nightly to unmounted read-only HDD datasets, without destination snapshots";
+assert lib.assertMsg (
+  lib.all (name:
+    server.systemd.services.${name}.serviceConfig.UMask == "0077"
+    && server.systemd.timers.${name}.timerConfig.Persistent
+    && server.systemd.services.${name}.unitConfig.RequiresMountsFor == [ "/srv/backup/recovery" ]
+  ) [ "db-backup" "recovery-backup" ]
+  && lib.toList server.systemd.timers.recovery-backup.timerConfig.OnCalendar == [ "23:10" ]
+  && lib.toList server.systemd.timers.db-backup.timerConfig.OnCalendar == [ "23:00" ]
+  && server.fileSystems."/srv/backup/recovery".device == "tank/backup/recovery"
+  && layout.disko.devices.zpool.tank.datasets."backup/recovery".mountpoint == "/srv/backup/recovery"
+  && layout.disko.devices.zpool.tank.datasets."backup/recovery".options.mountpoint == "legacy"
+  && builtins.elem "nofail" server.fileSystems."/srv/backup/recovery".options
+) "Database and recovery bundles must share a private legacy mount without blocking boot on failure";
+assert lib.assertMsg (
+  server.systemd.services.caddy.serviceConfig.Restart == "on-failure"
+) "The server's web proxy must retry transient startup failures";
 {
   inherit (server.system.build.toplevel) drvPath;
   formatter = (disko._cliDestroyFormatMount layout pkgs).drvPath;

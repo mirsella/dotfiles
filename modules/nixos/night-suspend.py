@@ -1,37 +1,25 @@
 """Suspend predator during the night once users and web traffic are gone."""
 
 import json
-import re
 from datetime import datetime
 from pathlib import Path
 import subprocess
 import time
+from storage_events import STORAGE_EVENT
 
 
 LOGS = Path("/var/log/caddy")
 POOLS = ("fast", "tank")
 MAINTENANCE = (
     "db-backup.service",
+    "recovery-backup.service",
     "sanoid.service",
+    "syncoid-*.service",
     "zfs-scrub.service",
     "zpool-trim.service",
     "nixos-upgrade.service",
     "nextcloud-setup.service",
     "nextcloud-cron.service",
-)
-# Keep in sync with the storage alert patterns in hosts/predator/storage-alerts.py.
-STORAGE_EVENT = re.compile(
-    r"\busb 2-(?:2|4)(?:\.\d+)*: (?:USB disconnect\b|reset .* USB device\b|"
-    r"device descriptor read/.*error|device not accepting address|"
-    r"unable to enumerate USB device)|"
-    r"\buas_(?:eh_\w+|zap_pending)\b|"
-    r"\bsd \S+: \[sd[a-z]+\] Synchronize Cache.*failed|"
-    r"\bI/O error.*\bdev (?:sd[a-z]+\d*|dm-\d+)\b|"
-    r"\bxhci_hcd\b.*(?:HC died|host controller not responding)"
-)
-STATUS_ROW = re.compile(
-    r"^\s+(\S+)\s+(ONLINE|DEGRADED|FAULTED|UNAVAIL|OFFLINE|REMOVED|SUSPENDED)"
-    r"\s+(\d+)\s+(\d+)\s+(\d+)\s*$"
 )
 STORAGE_QUIET = 30 * 60
 
@@ -57,22 +45,20 @@ def recent_storage_fault(now):
     return any(STORAGE_EVENT.search(line) for line in lines.splitlines())
 
 
-def pool_repair(now, name):
-    status = output("zpool", "status", name)
-    if " in progress" in status:
+def pool_repair(now, pool):
+    name = pool["name"]
+    if pool.get("scan_stats", {}).get("state") == "SCANNING":
         return f"ZFS {name} scan in progress"
-    rows = []
-    for line in status.splitlines():
-        match = STATUS_ROW.match(line)
-        if match:
-            rows.append(match.groups())
-    if not rows:
-        return f"cannot parse zpool status for {name}"
-    offline = sorted({row[1] for row in rows} - {"ONLINE"})
+    vdevs = pool["vdevs"].values()
+    offline = sorted({pool["state"], *(vdev["state"] for vdev in vdevs)} - {"ONLINE"})
     if offline:
         return f"ZFS {name} vdevs not online: {', '.join(offline)}"
-    if any(int(row[2]) or int(row[3]) for row in rows):
+    if any(vdev["read_errors"] or vdev["write_errors"] for vdev in vdevs):
         return f"ZFS {name} has read or write errors"
+    if pool["error_count"]:
+        return f"ZFS {name} has permanent data errors"
+    if not any(vdev["checksum_errors"] for vdev in vdevs):
+        return f"ZFS {name} requires attention"
     if recent_storage_fault(now):
         return f"recent storage faults, not clearing {name}"
     output("zpool", "clear", name)
@@ -87,11 +73,13 @@ def pool_problem(now):
     missing = [name for name in POOLS if name not in imported]
     if missing:
         return f"missing ZFS pools: {', '.join(missing)}"
+    unhealthy = json.loads(
+        output("zpool", "status", "-xj", "--json-int", "--json-flat-vdevs")
+    )["pools"]
     for name in POOLS:
-        health = output("zpool", "status", "-x", name).strip()
-        if health == f"pool '{name}' is healthy":
+        if name not in unhealthy:
             continue
-        problem = pool_repair(now, name)
+        problem = pool_repair(now, unhealthy[name])
         if problem:
             return problem
     return None
@@ -142,6 +130,24 @@ def blocker(now):
     return None
 
 
+def warm_storage():
+    disks = [
+        disk["name"]
+        for disk in json.loads(output("lsblk", "-Jdp", "-o", "NAME,TRAN"))[
+            "blockdevices"
+        ]
+        if disk["tran"] == "usb"
+    ]
+    for disk in disks:
+        subprocess.run(
+            ("dd", f"if={disk}", "of=/dev/null", "bs=512", "count=1", "iflag=direct"),
+            check=True,
+            timeout=90,
+        )
+    if disks:
+        print(f"night-suspend: warmed {' '.join(disks)}", flush=True)
+
+
 def main():
     now = datetime.now()
     # A calendar timer can run late after wake; never suspend in the daytime.
@@ -153,6 +159,8 @@ def main():
     if reason:
         print(f"night-suspend: blocked: {reason}")
         return
+
+    warm_storage()
 
     alarm = int(now.replace(hour=7, minute=0, second=0, microsecond=0).timestamp())
     subprocess.run(("rtcwake", "--mode=no", "--time", str(alarm)), check=True)

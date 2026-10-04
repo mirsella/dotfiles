@@ -5,23 +5,13 @@ from datetime import datetime
 import json
 import os
 from pathlib import Path
-import re
 import socket
 import subprocess
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from storage_events import STORAGE_EVENT
 
 
-# Toshiba and Seagate USB ports; sdX names change when a disk reconnects.
-STORAGE_EVENT = re.compile(
-    r"\busb 2-(?:2|4)(?:\.\d+)*: (?:USB disconnect\b|reset .* USB device\b|"
-    r"device descriptor read/.*error|device not accepting address|"
-    r"unable to enumerate USB device)|"
-    r"\buas_(?:eh_\w+|zap_pending)\b|"
-    r"\bsd \S+: \[sd[a-z]+\] Synchronize Cache.*failed|"
-    r"\bI/O error.*\bdev (?:sd[a-z]+\d*|dm-\d+)\b|"
-    r"\bxhci_hcd\b.*(?:HC died|host controller not responding)"
-)
 MESSAGE_BYTES = 4096 * 2  # Telegram's limit measured in UTF-16 code units.
 
 
@@ -103,8 +93,9 @@ def check(cursor_file):
                     .astimezone()
                     .isoformat(timespec="seconds")
                 )
-                line = f"\n\n{stamp}  {message}".encode("utf-16-le")
-                details.extend(line[: MESSAGE_BYTES - len(details)])
+                remaining = MESSAGE_BYTES - len(details)
+                line = f"\n\n{stamp}  {message[: remaining // 2]}".encode("utf-16-le")
+                details.extend(line[:remaining])
 
     if last_cursor is None:
         if cursor is None:

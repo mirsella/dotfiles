@@ -60,4 +60,9 @@ in
       "http://:80".extraConfig = serveIndex;
     };
   };
+  # DHCP may not have assigned the LAN bind address when Caddy first starts.
+  systemd.services.caddy.serviceConfig = {
+    Restart = "on-failure";
+    RestartSec = "5s";
+  };
 }

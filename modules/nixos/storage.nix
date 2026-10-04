@@ -1,70 +1,53 @@
 {
-  pkgs,
   lib,
   config,
+  utils,
   ...
 }:
+let
+  physical = import ../../hosts/predator/disks.nix;
+  pools = (import ../../disko.nix).disko.devices.zpool;
+  replicated = builtins.attrNames pools.fast.datasets;
+  unlockUnit = name: "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
+  tankUnlocks = map unlockUnit (builtins.attrNames physical.hdds);
+in
 {
-  boot.zfs.extraPools = [
-    "fast"
-    "tank"
-  ];
+  boot.zfs.extraPools = builtins.attrNames pools;
 
-  boot.initrd.luks.devices = {
-    fast-crypt = {
-      device = "/dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68-part1";
-      crypttabExtraOpts = [ "tpm2-device=auto" ];
-      allowDiscards = true;
-    };
+  # Only the OS disk belongs in initrd; optional data must not block root boot.
+  environment.etc.crypttab.text = ''
+    fast-crypt ${physical.ssds.fast}-part1 - tpm2-device=auto,discard,nofail,headless=true,x-systemd.device-timeout=30s
+  '' + lib.concatStringsSep "\n" (lib.mapAttrsToList (name: device:
+    "${name}-crypt ${device}-part1 /etc/luks/${name}.key nofail,headless=true,x-systemd.device-timeout=30s"
+  ) physical.hdds) + "\n";
+  systemd.services."systemd-cryptsetup@" = {
+    overrideStrategy = "asDropin";
+    serviceConfig.TimeoutSec = "2min";
+  };
+  systemd.services.zfs-import-fast = {
+    after = [ (unlockUnit "fast") ];
+    requires = [ (unlockUnit "fast") ];
   };
 
   systemd.services.zfs-import-tank = {
-    after = [ "tank-unlock.service" ];
-    requires = [ "tank-unlock.service" ];
+    after = tankUnlocks;
+    wants = tankUnlocks;
   };
 
-  systemd.services.tank-unlock = {
-    description = "Unlock tank disks after USB initialization";
-    after = [ "systemd-udevd.service" ];
-    path = [
-      pkgs.cryptsetup
-      config.systemd.package
-    ];
-    restartIfChanged = false;
-    unitConfig.DefaultDependencies = false;
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      unlock() {
-        udevadm wait --timeout=360 --initialized=yes "$3"
-        for attempt in {1..12}; do
-          cryptsetup open --key-file "$2" "$3" "$1" && return 0
-          (( attempt < 12 )) || return 1
-          sleep 5
-        done
-      }
-      unlock tank1-crypt /etc/luks/tank1.key /dev/disk/by-uuid/e2eef868-fc6e-4f7b-864d-8c8235c7df37
-      unlock tank2-crypt /etc/luks/tank2.key /dev/disk/by-uuid/16c6cbcd-79fd-4dbd-bdfe-fc94ef3d3221
-    '';
-  };
-
-  fileSystems."/var/lib/nextcloud/data" = {
-    device = "fast/ncdata";
-    fsType = "zfs";
-    options = [ "nofail" ];
-  };
+  fileSystems = builtins.listToAttrs (lib.concatLists (lib.mapAttrsToList (pool: spec:
+    lib.mapAttrsToList (name: dataset: lib.nameValuePair dataset.mountpoint {
+      device = "${pool}/${name}";
+      fsType = "zfs";
+      options = dataset.mountOptions;
+    }) (lib.filterAttrs (_: dataset: dataset ? mountpoint) spec.datasets)
+  ) pools));
 
   services.zfs = {
     autoScrub = {
       enable = true;
       interval = "*-*-01 10:00";
       randomizedDelaySec = "30min";
-      pools = [
-        "fast"
-        "tank"
-      ];
+      pools = config.boot.zfs.extraPools;
     };
     trim = {
       enable = true;
@@ -84,20 +67,37 @@
       weekly = 4;
       monthly = 0;
       yearly = 0;
-      autosnap = true;
       autoprune = true;
     };
-    datasets = lib.genAttrs [ "fast/ncdata" "fast/data" "tank/archive" "tank/backup" ] (_: {
+    datasets = lib.genAttrs (map (name: "fast/${name}") replicated ++ [ "tank/archive" "tank/backup" "tank/replica" ]) (name: {
       use_template = [ "keep" ];
       recursive = true;
+      autosnap = name != "tank/replica";
     });
   };
   systemd.services.sanoid = {
-    requires = [ "zfs-mount.service" ];
     after = [
-      "zfs-mount.service"
+      "zfs-import.target"
       "db-backup.service"
     ];
   };
   systemd.timers.sanoid.timerConfig.Persistent = true;
+
+  services.syncoid = {
+    enable = true;
+    interval = "23:45";
+    commonArgs = [ "--no-rollback" ];
+    localTargetAllow = lib.mkOptionDefault [ "readonly" "canmount" "acltype" "aclinherit" "destroy" ];
+    commands = lib.genAttrs replicated (name: {
+      source = "fast/${name}";
+      target = "tank/replica/${name}";
+      recursive = true;
+      sendOptions = "Lc p";
+      recvOptions = "u o mountpoint=none o canmount=off o readonly=on";
+    });
+    service = {
+      requires = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
+      after = [ "zfs-import-fast.service" "zfs-import-tank.service" "sanoid.service" ];
+    };
+  };
 }
