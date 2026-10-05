@@ -9,7 +9,7 @@ Read mail with `protonmail-cli` (default profile `default`; `--profile <NAME>` i
 
 ## Session
 
-- `protonmail-cli whoami` shows the active account. If unauthorized, log in: credentials come from env (`PROTON_USER`, `PROTON_PASSWORD`, `PROTON_TOTP`), fetched via the password-manager skill. A first login from a new device may trigger Proton human verification (CAPTCHA in the user's browser) — ask the user to solve it, then continue.
+- `protonmail-cli whoami` shows the active account. If unauthorized, log in: credentials come from env (`PROTON_USER`, `PROTON_PASSWORD`, `PROTON_TOTP`), fetched via the pass skill. A first login from a new device may trigger Proton human verification (CAPTCHA in the user's browser) — ask the user to solve it, then continue.
 
 ## Finding a verification code
 

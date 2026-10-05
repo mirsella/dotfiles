@@ -8,7 +8,10 @@ changes and work you delegated. Focus on concrete defects introduced by this
 work that are worth fixing before merge, not style preferences, speculative
 hardening, or pre-existing issues.
 Other agents may be working in the same worktree — only review your own changes, never theirs. If ownership of a hunk is shared or uncertain, exclude it. Formatting is fine.
-Delegate to sub agents to audit and review the code so it has a fresh context.
+Delegate read-only reviews to subagents for fresh context. Give them the owned
+diff, relevant context, and existing verification results. They should report
+concrete defects and verification gaps without editing files or running builds,
+linters, or tests. The parent agent owns fixes and any needed verification.
 
 $ARGUMENTS
 
@@ -31,9 +34,14 @@ recommendation and wait for approval, even when the best option seems clear.
 
 ## Verification and reporting
 
-Keep checks lightweight: usually formatting and scoped Clippy, with focused
-tests or measurements for sensitive or uncertain changes.
-Report the checks made in a single line: "checks: "
+Review code by default; this command does not automatically run formatting,
+Clippy, builds, or tests. Reuse valid results from implementation. After fixes,
+follow repository requirements and run only the smallest checks needed for the
+affected behavior or a concrete uncertainty. Finish the fixes before checking;
+do not repeat a successful check unless later changes invalidate it. A release
+gate is not a routine review step.
+Report performed checks, reused results, or review-only verification in a single
+line: "checks: ". State any remaining verification gap.
 
 Without jumping a line, briefly report improvement with one line: `diff: Total <counts> | Code <counts> | Tests <counts>`.
 Counts are `+/-net (+added/-deleted)`, with only net numbers bold. Count only your

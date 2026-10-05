@@ -159,11 +159,16 @@ speculative gains or trade a substantial performance benefit for cosmetic cleanu
 
 ## Finish
 
-Follow repository requirements; otherwise keep checks lightweight. Routine Rust
-cleanup usually needs only `cargo fmt` and/or scoped `cargo clippy`. Use focused
-tests for uncertain or behavior-sensitive changes and test edits; measure
-performance when a consequential tradeoff needs evidence.
-Report the checks made in a single line: "checks: "
+Review the completed cleanup and reuse existing verification where it still
+applies. Obvious nonbehavioral cleanup usually needs only review and formatting
+of touched code. For substantial refactors, follow repository requirements and
+run one final scoped compilation check; do not automatically stack Clippy,
+builds, and tests. Use focused tests for changed behavior, test edits, or a named
+failure mode that review cannot resolve. Measure consequential performance
+tradeoffs when evidence is needed. Do not repeat checks after each patch or run
+a release gate merely to finish cleanup.
+Report performed checks, reused results, or review-only verification in a single
+line: "checks: ". State any remaining verification gap.
 
 Without jumping a line, briefly report improvement with one line: `diff: Total <counts> | Code <counts> | Tests <counts>`.
 Counts are `+/-net (+added/-deleted)`, with only net numbers bold. Count only your
