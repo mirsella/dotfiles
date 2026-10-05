@@ -2,8 +2,7 @@
 name: humanizer
 description: |
   Write or edit public text and text for other people, including GitHub issues,
-  pull requests, emails, documentation, and agent prompts. Use unslop for replies
-  to the user.
+  pull requests, emails, documentation, and agent prompts.
 license: MIT
 compatibility: claude-code opencode
 metadata:
@@ -21,7 +20,7 @@ When given text to humanize:
 
 1. **Identify AI patterns** - Scan for the patterns listed below.
 2. **Rewrite, don't delete** - Replace AI-isms with natural alternatives. Preserve all substantive points; change paragraph structure when it improves clarity.
-3. **Preserve meaning** - Keep the core message intact.
+3. **Preserve meaning** - Keep the core message intact. Preserve literal quotations and code unless the user asks to edit them.
 4. **Match the voice** - Fit the intended tone (formal, casual, technical). Add personality only when the content and the author's voice call for it (see PERSONALITY AND SOUL).
 
 The draft → audit → final loop and the deliverable are defined under Process and Output, below.
@@ -250,7 +249,7 @@ Avoiding AI patterns is only half the job. Sterile, voiceless writing is just as
 
 ### 14. Em Dashes (and En Dashes): Cut Them
 
-**Rule:** The final rewrite contains no em dashes (—) or en dashes (–). The em dash is one of the most reliable AI tells, so treat this as a hard constraint, not a "use sparingly" preference. Replace each one, in rough order of preference: a period (start a new sentence), a comma (a tight aside), a colon (introducing an explanation), parentheses (a true aside), or restructure the sentence. Also catch spaced em dashes (` — `) and double hyphens (` -- `) used the same way.
+**Rule:** In prose you rewrite, replace em dashes (—) and en dashes (–) with periods or commas, or restructure the sentence. Do not substitute parentheses, colons, or hyphens merely to preserve the same interruption. Keep colons for genuine introductions to lists or examples. Preserve punctuation inside literal quotations and code.
 
 **Before:**
 > The term is primarily promoted by Dutch institutions—not by the people themselves. You don't say "Netherlands, Europe" as an address—yet this mislabeling continues—even in official documents.
@@ -264,7 +263,7 @@ Avoiding AI patterns is only half the job. Sterile, voiceless writing is just as
 **After:**
 > The new policy, announced without warning, affects thousands of workers. The changes, long overdue according to critics, will take effect immediately.
 
-Before returning the final rewrite, scan it for `—` and `–`. Any hit means the draft isn't done.
+Before returning the final rewrite, scan it for `—` and `–` outside preserved quotations and code.
 
 
 ### 15. Overuse of Boldface
@@ -280,7 +279,7 @@ Before returning the final rewrite, scan it for `—` and `–`. Any hit means t
 
 ### 16. Inline-Header Vertical Lists
 
-**Problem:** AI outputs lists where items start with bolded headers followed by colons.
+**Problem:** AI outputs lists where items start with bolded headers followed by colons, then repeat the header in the sentence. A useful lead-in followed by new detail is fine, such as "**Schema in TypeScript.** Tables live in one file."
 
 **Before:**
 > - **User Experience:** The user experience has been significantly improved with a new interface.
@@ -512,6 +511,15 @@ Before returning the final rewrite, scan it for `—` and `–`. Any hit means t
 > Whether it's worth the price depends on how often you'll use it.
 
 
+## Plain technical writing
+
+- Prefer concrete words to abstract metaphors. Use "base" instead of "substrate", "method" instead of "vector", and "move" instead of "evacuate" when that is the meaning. Keep technical terms when they name something precisely.
+- Describe behavior the reader can check. Replace "types that follow your schema" with "a column rename fails the build" if that is what the system does. Use actual mechanisms, examples, or measurements; do not invent details to make the prose sound specific.
+- Split sentences that require rereading. Give each sentence a clear main point and remove clauses that bury it.
+- Replace vague adverbs with a precise verb or evidence. "Significantly improves performance" needs a measured result, or a more limited claim that the evidence supports.
+- Prefer plain words: "use" over "utilize" or "leverage", "help" over "facilitate", and "many" over "numerous". Keep a more specialized word when the distinction matters.
+
+
 ## DETECTION GUIDANCE
 
 ### What NOT to flag (false positives)
@@ -554,7 +562,7 @@ When you see these, lean toward leaving the prose alone — they are evidence of
 1. Read the input carefully and identify every instance of the patterns above.
 2. Write a **draft rewrite**. Check that it reads naturally aloud, varies sentence length, prefers specific details and simple constructions (is/are/has), and keeps the appropriate register.
 3. Ask internally: **"What makes the below so obviously AI generated?"** Identify any remaining tells.
-4. Revise into a **final rewrite** that addresses them and contains no em or en dashes (see §14).
+4. Revise into a **final rewrite** that addresses them and follows the punctuation rules in §14, preserving literal quotations and code.
 
 Perform the draft and audit internally. Return the final rewrite. Show the draft, audit, or summary of changes only when requested.
 

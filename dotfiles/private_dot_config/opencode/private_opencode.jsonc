@@ -31,8 +31,13 @@
     },
     "composio": {
       "type": "remote",
-      "url": "https://connect.composio.dev/mcp",
+      "url": "https://backend.composio.dev/tool_router/trs_uiw6Hb4fJ8rr/mcp",
       "enabled": true,
+      "oauth": false,
+      "headers": {
+        "x-org-id": "ok_UWjDVhCpLy46",
+        "x-project-id": "pr_ZEY9cNibczW1",
+      },
     },
     "planetscale": {
       "type": "remote",
@@ -47,6 +52,7 @@
   },
   "tools": {
     "todowrite": false,
+    "lsp": false,
   },
   "compaction": {
     "prune": false,
