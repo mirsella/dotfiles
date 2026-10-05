@@ -36,7 +36,7 @@
       };
       customPackages = import ./pkgs pkgs;
       # nix-update follows each package's own versioning: npm releases regenerate the lock, release tarballs use the stable version, and VCS packages track their branch.
-      releaseTarballs = [ "helium" "zen-browser" ];
+      releaseTarballs = [ "helium" "kache" "zen-browser" ];
       # Keep OpenChamber on 1.x while the workstations run OpenCode 1.x; unpin both together.
       pinnedPackages = [ "openchamber" ];
       updateVersionFlag = name:

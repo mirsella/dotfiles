@@ -1,13 +1,20 @@
-{ lib, rustPlatform, fetchgit, pkg-config }:
+{ lib, rustPlatform, fetchFromGitHub, pkg-config }:
 rustPlatform.buildRustPackage rec {
   pname = "kache";
-  version = "0.26.3-unstable-2026-09-24";
-  src = fetchgit {
-    url = "https://github.com/kunobi-ninja/kache";
-    rev = "abefc0cc74467cae54681187e2688b5d8b17fe37";
-    hash = "sha256-k/gutaiWhMBMcbiuHombFohiyoDMaFN9dxPsOGLplsE=";
+  version = "1.0.0";
+  src = fetchFromGitHub {
+    owner = "kunobi-ninja";
+    repo = "kache";
+    tag = "v${version}";
+    hash = "sha256-Kbww7mmdUAASh1sbjdoqoosSA76EALJata+Aa8SJUnE=";
   };
-  cargoHash = "sha256-z+A8e2vPOyRKy5Ng2gYiubrrsS+q+/f4pJEgMMRtEKQ=";
+  cargoHash = "sha256-/qpQMj48/wp+Ui8OWpdCdqptv1ON/xLLdslVmumZhIY=";
   nativeBuildInputs = [ pkg-config ];
   doCheck = false;
+  meta = {
+    description = "Zero-copy, content-addressed build cache for Rust and C/C++";
+    homepage = "https://kunobi.ninja/kache";
+    license = lib.licenses.asl20;
+    mainProgram = "kache";
+  };
 }
