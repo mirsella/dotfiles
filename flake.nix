@@ -53,7 +53,7 @@
       );
       updatePackages = pkgs.writeShellApplication {
         name = "update-packages";
-        runtimeInputs = [ pkgs.nix pkgs.nix-update ];
+        runtimeInputs = [ pkgs.nix pkgs.nix-update pkgs.python3 ];
         text = ''
           if [[ ! -f flake.nix || ! -d pkgs ]]; then
             echo "Run from the dotfiles repository root" >&2
@@ -62,6 +62,7 @@
 
           nix flake update
           ${updateCommands}
+          python3 ${./scripts/update-immich.py}
           nix flake check --no-build --no-update-lock-file
         '';
       };
