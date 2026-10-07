@@ -1,7 +1,7 @@
 { config, isNixOS, lib, pkgs, ... }:
 let
   bin = package: name: if isNixOS then lib.getExe' package name else "/usr/bin/${name}";
-  servicePath = "PATH=%h/.local/bin:%h/.local/share/cargo/bin:" + (
+  servicePath = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:" + (
     if isNixOS then "%h/.nix-profile/bin:/etc/profiles/per-user/%u/bin:/run/current-system/sw/bin"
     else "%h/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/bin"
   );
@@ -18,16 +18,6 @@ in
       [cache]
       local_max_size = "150GiB"
     '';
-  };
-
-  systemd.user.slices.cargo = {
-    Unit.Description = "Build scopes";
-    Slice = {
-      # Temporarily test kernel OOM handling alone. Set swap back to "kill"
-      # to restore oomd's configured 95% RAM-and-swap threshold.
-      ManagedOOMSwap = "auto";
-      ManagedOOMMemoryPressure = "auto";
-    };
   };
 
   xdg.configFile."systemd/user/app-org.wezfurlong.wezterm@.service.d/override.conf".text = ''

@@ -30,7 +30,17 @@
   boot.kernelParams = [ "zswap.enabled=0" "hibernate.compressor=lzo" ];
   zramSwap = {
     enable = true;
+    algorithm = "zstd";
+    memoryPercent = 100;
     priority = 100;
+  };
+
+  systemd.oomd = {
+    settings.OOM.SwapUsedLimit = "95%";
+    # Leave victim selection to the kernel instead of monitoring whole sessions.
+    enableRootSlice = false;
+    enableSystemSlice = false;
+    enableUserSlices = false;
   };
 
   services.desktopManager.plasma6.enable = true;
