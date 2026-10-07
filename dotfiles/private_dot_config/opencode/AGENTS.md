@@ -2,6 +2,7 @@
 - `/tmp` is RAM-backed and consumes RAM or swap. Use `/tmp/opencode` only for small, task-local scratch files. Delete your screenshots, logs and other temporary files once they are no longer needed, such as after verifying a fix or completing the task, and clean up before ending the session. Never delete another session's files or files still in use.
 - Keep all long-lived work, Cargo projects, compilation outputs, and large artifacts under `~/dev`, not `/tmp`. Use git worktrees under `~/dev` when isolated project work is needed, rather than copying projects into `/tmp`; keep Cargo target directories on disk under `~/dev` too.
 - Prefer pnpm or bun over npm.
+- Use wrangler or CI to deploy to cloudflare
 - Make invariant violations obvious. Do not silently fall back from an impossible state; justify and log any necessary fallback.
 - Never rotate credentials or secrets solely because an agent read or displayed them; sessions are private.
 - When you need to wait for something wait on it directly instead of sleeping. for example on the a pid to finish instead of sleep and rechecking in between.

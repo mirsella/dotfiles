@@ -3,8 +3,6 @@ name: mail
 description: "Use Proton Mail to read or search messages and retrieve emailed verification codes. Use the pass skill for saved passwords and TOTP codes."
 ---
 
-# Proton Mail
-
 Use `protonmail-cli` (profile `default`; override with `--profile <NAME>`). Most commands accept `--json`.
 
 ## CLI reference
@@ -17,3 +15,5 @@ Use `protonmail-cli` (profile `default`; override with `--profile <NAME>`). Most
 If login is needed, get `PROTON_USER`, `PROTON_PASSWORD`, and `PROTON_TOTP` through the pass skill. Let the user handle any CAPTCHA, then continue.
 
 For verification codes, read the newest matching message and return only the code.
+
+i also have my @voxride.com and secondary @gmail account redirecting to the protonmail inbox.

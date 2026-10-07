@@ -6,7 +6,7 @@
     "opencode-queue",
     "opencode-goal",
     "@mirsella/opencode-browser-mcp",
-    "@mirsella/opencode-computer-use-mcp@0.5.2",
+    "@mirsella/opencode-computer-use-mcp",
     "@mirsella/context7-account-broker",
   ],
   "autoupdate": false,
