@@ -1,6 +1,8 @@
 .config/systemd/user/caddy.service
 .config/opencode/plugins/rtk.ts
 .config/opencode/plugins/notify-send.ts
+.config/opencode/plugins/local-llama.ts
+.config/opencode/test/local-llama.test.ts
 .local/bin/rio-shell-scope
 .local/share/applications/rio.desktop
 .local/share/icons/rio-2024.svg

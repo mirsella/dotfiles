@@ -8,13 +8,12 @@ kde shortcuts.kksrc
 {{- if ne .chezmoi.hostname "laptop" }}
 .config/nushell/laptop.nu
 {{- end }}
-{{- if not (or (eq .chezmoi.hostname "laptop") (eq .chezmoi.hostname "main")) }}
-.config/opencode/plugins/local-llama.ts
-{{- end }}
 {{- if or (eq .chezmoi.hostname "predator") (eq .chezmoi.hostname "laptop") (eq .chezmoi.hostname "main") }}
 # User units on HM hosts are managed outside chezmoi.
 .config/systemd/user/
 .config/systemd/user/**
+# Home Manager owns the host-specific local model provider.
+.config/opencode/opencode.json
 .config/kache/config.toml
 # Home Manager owns the generated Atuin config on HM hosts.
 .config/atuin/config.toml
