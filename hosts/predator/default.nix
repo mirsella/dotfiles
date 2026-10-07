@@ -44,6 +44,9 @@ in
       "kernel.softlockup_panic" = 1;
       "kernel.panic" = 10;
     };
+    # Prefer lower CPU power and heat on this always-on server; turbo stays enabled.
+    kernel.sysfs.devices.system.cpu.cpufreq."policy[0-9]*".energy_performance_preference =
+      "balance_power";
   };
 
   # Use ordinary suspend for the overnight idle timer.
