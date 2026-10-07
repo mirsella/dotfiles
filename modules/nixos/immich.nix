@@ -40,13 +40,7 @@ in
       unitConfig.RequiresMountsFor = [ mediaPath ];
       serviceConfig.RestartSec = "5s";
       path = [ pkgs.util-linux ];
-      preStart = ''
-        if ! findmnt --source fast/data --mountpoint /srv/data/fast >/dev/null; then
-          echo "Immich requires fast/data mounted at /srv/data/fast" >&2
-          exit 1
-        fi
-        mkdir -p ${mediaPath}
-      '';
+      serviceConfig.ExecStartPre = "${pkgs.host-tools}/bin/host-tools require-mount fast/data /srv/data/fast ${mediaPath}";
     };
     podman-immich_redis.serviceConfig.RestartSec = "5s";
     podman-immich_ml.serviceConfig.RestartSec = "5s";

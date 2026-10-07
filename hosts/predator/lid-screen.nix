@@ -24,22 +24,9 @@ in
     after = [ "acpid.service" "getty@tty1.service" ];
     # Rapid lid events must not exhaust the service start-rate limit.
     startLimitIntervalSec = 0;
-    enableStrictShellChecks = true;
     path = [ pkgs.util-linux ];
-    script = ''
-      read -r _ state < /proc/acpi/button/lid/LID0/state
-      case "$state" in
-        open) blank=poke ;;
-        closed) blank=force ;;
-        *)
-          echo "Unexpected lid state: $state" >&2
-          exit 1
-          ;;
-      esac
-      setterm --term linux --blank "$blank" < /dev/tty0 > /dev/tty0
-      echo "Lid $state: console blank $blank"
-    '';
     serviceConfig = {
+      ExecStart = "${pkgs.host-tools}/bin/host-tools lid-screen";
       Type = "oneshot";
       RemainAfterExit = true;
       # A newer lid event can cancel an in-flight update.

@@ -97,9 +97,6 @@
     requires = [ "sops-install-secrets.service" ];
     after = [ "sops-install-secrets.service" ];
     unitConfig.RequiresMountsFor = [ "/var/lib/nextcloud/data" ];
-    script = lib.mkAfter ''
-      nextcloud-occ app:enable twofactor_totp suspicious_login
-    '';
   };
   systemd.services.phpfpm-nextcloud.unitConfig.RequiresMountsFor = [ "/var/lib/nextcloud/data" ];
   systemd.services.nextcloud-cron.unitConfig.RequiresMountsFor = [ "/var/lib/nextcloud/data" ];

@@ -1,12 +1,4 @@
 { lib, pkgs, ... }:
-let
-  ryzenadjWatch = pkgs.writeShellApplication {
-    name = "ryzenadj-laptop";
-    runtimeInputs = with pkgs; [ ryzenadj coreutils gnugrep gawk ];
-    text = lib.removePrefix "#!/bin/sh\n"
-      (builtins.readFile ../../dotfiles/dot_local/bin/executable_ryzenadj-laptop);
-  };
-in
 {
   imports = [ ../../modules/nixos/desktop.nix ];
 
@@ -17,8 +9,9 @@ in
     description = "Apply RyzenAdj performance limits";
     wantedBy = [ "multi-user.target" ];
     after = [ "power-profiles-daemon.service" ];
+    path = [ pkgs.ryzenadj ];
     serviceConfig = {
-      ExecStart = "${lib.getExe ryzenadjWatch} --watch";
+      ExecStart = "${lib.getExe pkgs.host-tools} ryzenadj --watch";
       Restart = "on-failure";
       RestartSec = 5;
     };

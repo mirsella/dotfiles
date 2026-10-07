@@ -3,10 +3,9 @@
   systemd.services.night-suspend = {
     description = "Suspend overnight when nobody has used the server recently";
     path = with pkgs; [ iproute2 procps util-linux coreutils config.boot.zfs.package ];
-    environment.PYTHONPATH = "${pkgs.writeTextDir "storage_events.py" (builtins.readFile ../../hosts/predator/storage_events.py)}";
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.python3}/bin/python3 ${./night-suspend.py}";
+      ExecStart = "${pkgs.host-tools}/bin/host-tools night-suspend";
     };
     startAt = [
       "*-*-* 00:30..59:00"

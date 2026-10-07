@@ -89,5 +89,6 @@
 
   environment.systemPackages = with pkgs; [
     vim git ffmpeg imagemagick ntfs3g curl wget htop lm_sensors efibootmgr sops
+    host-tools
   ];
 }

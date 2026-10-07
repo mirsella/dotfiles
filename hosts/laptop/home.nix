@@ -1,12 +1,4 @@
 { isNixOS, lib, pkgs, ... }:
-let
-  audioWatch = pkgs.writeShellApplication {
-    name = "lu-acton-2-a2dp-watch";
-    runtimeInputs = with pkgs; [ pulseaudio ripgrep systemd ];
-    text = lib.removePrefix "#!/usr/bin/env bash\n"
-      (builtins.readFile ../../dotfiles/dot_local/bin/executable_lu-acton-2-a2dp-watch);
-  };
-in
 {
   imports = [
     ../../modules/home/workstation.nix
@@ -18,13 +10,15 @@ in
     })
   ];
   programs.git.settings.user.signingkey = "E88ECCA3AA187BC1";
+  home.packages = [ pkgs.host-tools ];
 
   systemd.user.services.ryzenadj-laptop = lib.mkIf (!isNixOS) {
     Unit.Description = "Apply RyzenAdj performance limits";
     Service = {
       Type = "simple";
       ExecStartPre = "/usr/bin/sudo -n /usr/bin/modprobe ryzen_smu";
-      ExecStart = "%h/.local/bin/ryzenadj-laptop --watch";
+      ExecStart = "${lib.getExe pkgs.host-tools} ryzenadj --watch";
+      Environment = "PATH=/usr/bin:/bin";
       Restart = "on-failure";
       RestartSec = 5;
     };
@@ -39,7 +33,8 @@ in
     };
     Service = {
       Type = "simple";
-      ExecStart = if isNixOS then lib.getExe audioWatch else "%h/.local/bin/lu-acton-2-a2dp-watch";
+      ExecStart = "${lib.getExe pkgs.host-tools} audio-watch";
+      Environment = "PATH=${if isNixOS then lib.makeBinPath [ pkgs.pulseaudio ] else "/usr/bin:/bin"}";
       Restart = "always";
       RestartSec = 2;
     };

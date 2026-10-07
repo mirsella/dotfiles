@@ -6,4 +6,4 @@ RequiresMountsFor=/
 Type=oneshot
 Nice=19
 IOSchedulingClass=idle
-ExecStart=/usr/bin/python3 /usr/local/libexec/btrfs-space-check.py --reclaim /
+ExecStart=/usr/local/libexec/host-tools btrfs-space-check --reclaim /

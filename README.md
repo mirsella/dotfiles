@@ -208,6 +208,65 @@ migration snapshot manifest are saved under
 `/var/lib/storage-baselines/post-cable-20261003/` on Predator. Compare future
 readings with these values to distinguish new errors from the drive's history.
 
+## Predator overnight suspend
+
+The timer checks every minute from 00:30 through 06:59 local time. It requires
+30 minutes without authenticated application activity, no logged-in SSH/local
+users, and no active maintenance or storage blocker. It warms the USB disks,
+sets a 07:00 RTC alarm and requests deep suspend with systemd inhibitors enabled.
+
+`pkgs/host-tools/src/activity.rs` recognizes Nextcloud's response-side
+`X-User-Id` header and successful protected API requests for Immich, OpenCode
+and OpenChamber. Valid API keys and authorized shared-photo access also count.
+Public pages, health checks, failed logins, scanner requests and unauthenticated
+SSH connections do not reset the quiet period. Keeping an app logged in without
+requests does not count as activity by itself.
+
+Caddy's connections to the actual app backends also block suspend while a
+transfer or event stream may be in progress. This guard is deliberately broader
+than authenticated completed requests: a request's authentication result is not
+available in the access log until it finishes. Short backend keepalives can
+therefore delay a check, but do not reset the 30-minute clock. Public listening
+sockets and local container health checks do not trigger this guard.
+
+Inspect decisions with `sudo journalctl -u night-suspend.service`. Blocked checks
+name the app, login, proxy connection or maintenance job. Run the activity-only
+diagnostic with:
+
+```sh
+sudo host-tools night-suspend --activity-only
+CARGO_TARGET_DIR="$HOME/dev/host-tools-target" cargo test --locked --manifest-path pkgs/host-tools/Cargo.toml
+```
+
+The protected API route lists need review when upgrading these applications or
+changing Caddy's hostnames and upstreams.
+
+## Custom service programs
+
+`pkgs/host-tools` contains the Rust implementations of our recurring host jobs.
+Nix and systemd define their schedules, dependencies, users and permissions.
+The subcommands cover overnight suspend, storage alerts and mail, database and
+recovery backups, Beszel and Nextcloud setup, lid/backlight handling, Ryzen power
+limits, Bluetooth audio profiles, Btrfs headroom checks, Wake-on-LAN and netconsole.
+
+Build the Nix package with `nix build path:.#host-tools`. A native build for Arch
+or Debian is also supported:
+
+```sh
+CARGO_TARGET_DIR="$HOME/dev/host-tools-target" cargo build --release --locked --manifest-path pkgs/host-tools/Cargo.toml
+sudo HOST_TOOLS_BINARY="$HOME/dev/host-tools-target/release/host-tools" python3 arch/maintenance/apply.py
+```
+
+The Arch installer copies that binary to `/usr/local/libexec/host-tools` for its
+system units. On the Pi, build for its architecture, install the binary as
+`/usr/local/bin/host-tools`, and use the units in `aux/rpi`. Replace the old cron
+entry when enabling the WoL timer; do not schedule both. Keep that timer disabled
+during RTC-only wake comparisons.
+
+Tests for the recurring programs live in `pkgs/host-tools/src/tests.rs` and run
+as part of the Nix package build. Python remains only in manual/one-time tools
+and their tests; upstream application internals are managed by their packages.
+
 ## Main's fan configuration
 
 Only `hosts/main/default.nix` enables CoolerControl. It loads `nct6775` and installs

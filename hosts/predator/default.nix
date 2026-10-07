@@ -109,9 +109,7 @@ in
   };
   systemd.services.nixos-upgrade = {
     serviceConfig.WorkingDirectory = flakeDir;
-    preStart = ''
-      ${pkgs.util-linux}/bin/runuser -u mirsella -- ${config.nix.package}/bin/nix flake update nixpkgs
-    '';
+    serviceConfig.ExecStartPre = "${pkgs.util-linux}/bin/runuser -u mirsella -- ${config.nix.package}/bin/nix flake update nixpkgs";
   };
   services.fstrim.interval = "Sun 11:00";
 
@@ -130,12 +128,7 @@ in
     wantedBy = [ "multi-user.target" ];
     after = [ "systemd-modules-load.service" ];
     serviceConfig.Type = "oneshot";
-    path = with pkgs; [ coreutils ];
-    script = ''
-      for off in 48 49; do
-        printf '\x00' | dd of=/sys/kernel/debug/ec/ec0/io bs=1 seek=$off count=1 conv=notrunc status=none
-      done
-    '';
+    serviceConfig.ExecStart = "${pkgs.host-tools}/bin/host-tools keyboard-off";
   };
 
   system.stateVersion = "26.05";

@@ -31,7 +31,10 @@ The flake discovers these directories and sets hostnames automatically.
   Run long rebuilds detached and poll the unit log and exit status.
 - `nix flake check path:. --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`.
-  Run the relevant Python tests for changed monitoring, unlock or suspend code.
+  Custom recurring services are Rust subcommands in `pkgs/host-tools`; add new
+  recurring logic there rather than in Python or shell. Run its focused Cargo
+  tests for monitoring, backups and suspend changes. Unlock and one-time installer
+  checks remain under `tests/`.
 - `disko.nix` formats **all four data disks** only for a fresh, intentional
   installation. To reinstall on existing disks, mount them without running disko,
   preserve the LUKS headers, ZFS pools, Secure Boot signing bundle (`/var/lib/sbctl`),

@@ -4,4 +4,4 @@ RequiresMountsFor=/
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /usr/local/libexec/btrfs-space-check.py /
+ExecStart=/usr/local/libexec/host-tools btrfs-space-check /

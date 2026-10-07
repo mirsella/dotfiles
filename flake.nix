@@ -39,6 +39,7 @@
       releaseTarballs = [ "helium" "kache" "zen-browser" ];
       # Keep OpenChamber on 1.x while the workstations run OpenCode 1.x; unpin both together.
       pinnedPackages = [ "openchamber" ];
+      localPackages = [ "host-tools" ];
       updateVersionFlag = name:
         if builtins.elem name releaseTarballs then
           "--version stable"
@@ -49,7 +50,7 @@
       updateCommands = builtins.concatStringsSep "\n" (
         builtins.map
           (name: "nix-update --flake ${updateVersionFlag name} ${nixpkgs.lib.escapeShellArg name}")
-          (nixpkgs.lib.subtractLists pinnedPackages (builtins.attrNames customPackages))
+          (nixpkgs.lib.subtractLists (pinnedPackages ++ localPackages) (builtins.attrNames customPackages))
       );
       updatePackages = pkgs.writeShellApplication {
         name = "update-packages";

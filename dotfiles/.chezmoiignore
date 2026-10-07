@@ -7,7 +7,6 @@ update-system-backup.sh
 kde shortcuts.kksrc
 {{- if ne .chezmoi.hostname "laptop" }}
 .config/nushell/laptop.nu
-.local/bin/ryzenadj-laptop
 {{- end }}
 {{- if not (or (eq .chezmoi.hostname "laptop") (eq .chezmoi.hostname "main")) }}
 .config/opencode/plugins/local-llama.ts

@@ -1,0 +1,15 @@
+[Unit]
+Description=Capture Predator kernel messages with arrival timestamps
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+User=mirsella
+UMask=0077
+ExecStart=/usr/local/bin/host-tools netconsole --bind 192.168.1.166:16666 --sender 192.168.1.19 --output /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

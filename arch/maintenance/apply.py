@@ -56,6 +56,16 @@ def set_values(path: Path, values: dict[str, str], separator: str) -> bool:
 def main() -> None:
     if os.geteuid() != 0:
         raise PermissionError("Run this installer with sudo")
+    binary = Path(
+        os.environ.get(
+            "HOST_TOOLS_BINARY",
+            SOURCE.parent.parent / "pkgs/host-tools/target/release/host-tools",
+        )
+    )
+    if not binary.is_file():
+        raise FileNotFoundError(
+            "Build pkgs/host-tools with cargo build --release, or set HOST_TOOLS_BINARY"
+        )
     if (
         subprocess.check_output(
             ["findmnt", "-n", "-o", "FSTYPE", "/"], text=True
@@ -139,10 +149,7 @@ def main() -> None:
                 SYSTEMD / unit, (SOURCE / unit).read_text()
             )
         timers.append(f"{name}.timer")
-    units_changed |= write_if_changed(
-        Path("/usr/local/libexec/btrfs-space-check.py"),
-        (SOURCE / "btrfs-space-check.py").read_text(),
-    )
+    run("install", "-Dm755", str(binary), "/usr/local/libexec/host-tools")
     journal_changed = write_if_changed(
         Path("/etc/systemd/journald.conf.d/50-maintenance.conf"),
         (SOURCE / "journald.conf").read_text(),

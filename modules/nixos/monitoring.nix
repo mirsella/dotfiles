@@ -22,28 +22,18 @@ let
   # SMART and ZED share the Resend key used by Nextcloud/Beszel.
   mail = pkgs.writeShellApplication {
     name = "storage-resend-mail";
-    runtimeInputs = [
-      pkgs.curl
-      pkgs.jq
-    ];
     text = ''
-      key=$(<${config.sops.secrets.nextcloud-resend.path})
-      jq -n \
-        --arg from 'Predator storage <noreply@voxride.com>' \
-        --arg to ${lib.escapeShellArg recipient} \
-        --arg subject "$1" \
-        --rawfile text /dev/stdin \
-        '{from:$from,to:[$to],subject:$subject,text:$text}' |
-      curl --fail-with-body -sS --max-time 30 https://api.resend.com/emails \
-        -H "Authorization: Bearer $key" \
-        -H 'Content-Type: application/json' \
-        --data-binary @-
+      exec ${pkgs.host-tools}/bin/host-tools storage-mail \
+        ${lib.escapeShellArg config.sops.secrets.nextcloud-resend.path} \
+        ${lib.escapeShellArg recipient} "$@"
     '';
   };
   alert = pkgs.writeShellApplication {
     name = "smartd-resend-alert";
     text = ''
-      exec ${lib.getExe mail} "$SMARTD_SUBJECT" <<< "$SMARTD_FULLMESSAGE"
+      exec ${pkgs.host-tools}/bin/host-tools smart-alert \
+        ${lib.escapeShellArg config.sops.secrets.nextcloud-resend.path} \
+        ${lib.escapeShellArg recipient}
     '';
   };
 in
@@ -139,11 +129,7 @@ in
       Type = "oneshot";
       # sops-nix uses try-restart, so successful setup must remain active.
       RemainAfterExit = true;
+      ExecStart = "${pkgs.host-tools}/bin/host-tools beszel-setup ${config.sops.secrets.beszel-superuser.path} ${config.sops.secrets.nextcloud-resend.path}";
     };
-    script = ''
-      ${pkgs.python3}/bin/python3 ${./beszel-setup.py} \
-        ${config.sops.secrets.beszel-superuser.path} \
-        ${config.sops.secrets.nextcloud-resend.path}
-    '';
   };
 }

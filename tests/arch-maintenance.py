@@ -1,10 +1,9 @@
-"""Guard the on-disk config syntax and Btrfs alert boundary."""
+"""Guard the one-time installer's config edits and rollback cleanup."""
 
 import importlib.util
 from pathlib import Path
 import subprocess
 import tempfile
-from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -20,7 +19,6 @@ def load(name: str, filename: str):
 
 
 installer = load("arch_apply", "apply.py")
-space = load("btrfs_space", "btrfs-space-check.py")
 rollback = load("arch_rollback", "cleanup-rollback.py")
 
 
@@ -48,95 +46,6 @@ class ArchConfig(unittest.TestCase):
             path.write_text("deleteSnapshots=true\nmaxSnapshots = 3\n")
             installer.set_values(path, {"maxSnapshots": "2"}, "=")
             self.assertEqual(path.read_text(), "deleteSnapshots=true\nmaxSnapshots=2\n")
-
-
-class BtrfsHeadroom(unittest.TestCase):
-    def test_alerts_on_full_filesystem_or_low_device_unallocated_space(self):
-        with (
-            patch.object(space.subprocess, "check_output") as usage,
-            patch.object(space.subprocess, "run") as notify,
-            patch.object(space.shutil, "disk_usage") as disk,
-        ):
-            usage.return_value = "Device unallocated: 8589934592\n"
-            disk.return_value = SimpleNamespace(total=100, free=11)
-            space.check("/", notify=True)
-            notify.assert_not_called()
-
-            disk.return_value = SimpleNamespace(total=100, free=10)
-            with self.assertRaisesRegex(RuntimeError, "90.0% full"):
-                space.check("/", notify=True)
-            notify.assert_called_once()
-
-            notify.reset_mock()
-            disk.return_value = SimpleNamespace(total=100, free=20)
-            usage.return_value = "Device unallocated: 7516192768\n"
-            with self.assertRaisesRegex(RuntimeError, "7.00 GiB device-unallocated"):
-                space.check("/", notify=True)
-            notify.assert_called_once()
-
-    def test_unrecognized_output_fails_instead_of_reporting_healthy(self):
-        with patch.object(
-            space.subprocess, "check_output", return_value="not a Btrfs report\n"
-        ):
-            with self.assertRaisesRegex(ValueError, "Unexpected btrfs"):
-                space.check("/")
-
-    def test_notification_failure_keeps_the_filesystem_alert(self):
-        with (
-            patch.object(
-                space.subprocess,
-                "check_output",
-                return_value="Device unallocated: 8589934592\n",
-            ),
-            patch.object(
-                space.shutil,
-                "disk_usage",
-                return_value=SimpleNamespace(total=100, free=10),
-            ),
-            patch.object(
-                space.subprocess,
-                "run",
-                side_effect=subprocess.CalledProcessError(1, "notify-send"),
-            ),
-        ):
-            with self.assertRaisesRegex(
-                RuntimeError, "90.0% full.*Desktop notification failed"
-            ):
-                space.check("/", notify=True)
-
-    def test_reclaim_is_bounded_and_stops_at_target(self):
-        gib = space.GIB
-        with (
-            patch.object(
-                space,
-                "device_unallocated",
-                side_effect=[5 * gib, 9 * gib, 12 * gib],
-            ),
-            patch.object(space.subprocess, "run") as balance,
-        ):
-            space.reclaim("/")
-            self.assertEqual(balance.call_count, 2)
-            balance.assert_called_with(
-                ["btrfs", "balance", "start", "-dusage=75,limit=5", "/"], check=True
-            )
-
-    def test_reclaim_skips_balance_when_headroom_is_healthy(self):
-        with (
-            patch.object(space, "device_unallocated", return_value=12 * space.GIB),
-            patch.object(space.subprocess, "run") as balance,
-        ):
-            space.reclaim("/")
-            balance.assert_not_called()
-
-    def test_reclaim_fails_when_limited_balance_makes_no_progress(self):
-        gib = space.GIB
-        with (
-            patch.object(space, "device_unallocated", side_effect=[5 * gib, 5 * gib]),
-            patch.object(space.subprocess, "run") as balance,
-        ):
-            with self.assertRaisesRegex(RuntimeError, "did not free device space"):
-                space.reclaim("/")
-            balance.assert_called_once()
 
 
 class RollbackCleanup(unittest.TestCase):
