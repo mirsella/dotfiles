@@ -1,6 +1,6 @@
 { pkgs, config, lib, ... }:
 {
-  home.sessionPath = [ "$HOME/.local/share/cargo/bin" ];
+  home.sessionPath = [ "$HOME/.local/bin" "$HOME/.local/share/cargo/bin" ];
 
   home.sessionVariables = {
     CARGO_HOME = "$HOME/.local/share/cargo";

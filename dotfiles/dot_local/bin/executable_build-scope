@@ -1,0 +1,101 @@
+#!/bin/sh
+set -eu
+
+# Symlinks wrap build tools; direct invocation accepts any build command.
+program=${0##*/}
+if [ "$program" = build-scope ]; then
+  if [ "$#" -eq 0 ]; then
+    printf 'Usage: build-scope COMMAND [ARGUMENT...]\n' >&2
+    exit 2
+  fi
+  program=$1
+  shift
+fi
+
+case $program in
+  */*) command=$program ;;
+  *)
+    remaining=${PATH-}
+    while :; do
+      directory=${remaining%%:*}
+      candidate=${directory:-.}/$program
+      # Skip our symlinks without removing their directory from the child's PATH.
+      if [ -f "$candidate" ] && [ -x "$candidate" ] && ! [ "$candidate" -ef "$0" ]; then
+        command=$candidate
+        break
+      fi
+      case $remaining in
+        *:*) remaining=${remaining#*:} ;;
+        *)
+          printf 'build-scope: command not found: %s\n' "$program" >&2
+          exit 127
+          ;;
+      esac
+    done
+    ;;
+esac
+
+# Keep nested Cargo, native builds and WASM optimizers in their pipeline's scope.
+while IFS=: read -r hierarchy controllers cgroup; do
+  case "$hierarchy:$controllers:$cgroup" in
+    0::*/cargo.slice/*.scope|0::*/cargo.slice/*.scope/*)
+      exec "$command" "$@"
+      ;;
+  esac
+done < /proc/self/cgroup
+
+action='command'
+manifest=
+expect_manifest=false
+for arg do
+  if [ "$expect_manifest" = true ]; then
+    manifest=$arg
+    expect_manifest=false
+    continue
+  fi
+  case $arg in
+    --manifest-path) expect_manifest=true ;;
+    --manifest-path=*) manifest=${arg#--manifest-path=} ;;
+    +*|-*) ;;
+    *) if [ "$action" = command ]; then action=$arg; fi ;;
+  esac
+done
+
+if [ -n "$manifest" ]; then
+  case $manifest in
+    */*) project_dir=${manifest%/*} ;;
+    *) project_dir=$PWD ;;
+  esac
+  project_dir=$(realpath -m -- "$project_dir")
+else
+  project_dir=$PWD
+  while [ "$project_dir" != / ]; do
+    if [ -f "$project_dir/Cargo.toml" ] || [ -f "$project_dir/Makefile" ] ||
+       [ -f "$project_dir/CMakeLists.txt" ] || [ -f "$project_dir/build.ninja" ]; then
+      break
+    fi
+    project_dir=${project_dir%/*}
+    [ -n "$project_dir" ] || project_dir=/
+  done
+  [ "$project_dir" != / ] || project_dir=$PWD
+fi
+
+project=${project_dir##*/}
+project=$(printf '%.48s' "${project:-root}")
+program=${program##*/}
+escaped_program=$(systemd-escape -- "$(printf '%.32s' "$program")")
+escaped_project=$(systemd-escape -- "$project")
+escaped_action=$(systemd-escape -- "$(printf '%.32s' "$action")")
+
+exec systemd-run \
+  --user \
+  --scope \
+  --unit="$escaped_program-$escaped_project-$escaped_action-p$$.scope" \
+  --slice=cargo.slice \
+  --property=OOMPolicy=continue \
+  --quiet \
+  --collect \
+  --same-dir \
+  --expand-environment=no \
+  --description="$program $action in $project" \
+  choom -n 500 -- "$command" "$@"

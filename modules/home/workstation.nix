@@ -1,14 +1,17 @@
 { config, isNixOS, lib, pkgs, ... }:
 let
   bin = package: name: if isNixOS then lib.getExe' package name else "/usr/bin/${name}";
-  servicePath = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:" + (
+  servicePath = "PATH=%h/.local/bin:%h/.local/share/cargo/bin:" + (
     if isNixOS then "%h/.nix-profile/bin:/etc/profiles/per-user/%u/bin:/run/current-system/sw/bin"
     else "%h/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/bin"
   );
 in
 {
   programs.git.settings.commit.gpgsign = true;
-  home.packages = [ pkgs.kache ] ++ lib.optionals isNixOS [ pkgs.opencode pkgs.openchamber ];
+  home.packages = [ pkgs.kache ] ++ lib.optionals isNixOS [
+    pkgs.opencode pkgs.openchamber
+    pkgs.binaryen pkgs.gnumake pkgs.ninja pkgs.trunk pkgs.wasm-pack
+  ];
   xdg.configFile."kache/config.toml" = {
     force = true;
     text = ''
@@ -18,11 +21,21 @@ in
   };
 
   systemd.user.slices.cargo = {
-    Unit.Description = "Cargo build scopes";
-    Slice.ManagedOOMSwap = "kill";
+    Unit.Description = "Build scopes";
+    Slice = {
+      # Temporarily test kernel OOM handling alone. Set swap back to "kill"
+      # to restore oomd's configured 95% RAM-and-swap threshold.
+      ManagedOOMSwap = "auto";
+      ManagedOOMMemoryPressure = "auto";
+    };
   };
 
   xdg.configFile."systemd/user/app-org.wezfurlong.wezterm@.service.d/override.conf".text = ''
+    [Service]
+    OOMPolicy=continue
+  '';
+
+  xdg.configFile."systemd/user/app-rio\\x2dcargo@.service.d/override.conf".text = ''
     [Service]
     OOMPolicy=continue
   '';

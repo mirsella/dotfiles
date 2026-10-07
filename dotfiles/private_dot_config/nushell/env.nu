@@ -6,9 +6,7 @@ let pnpm_home = ($env.PNPM_HOME? | default $"($env.HOME)/.local/share/pnpm")
 let xdg_cache_home = ($env.XDG_CACHE_HOME? | default $"($env.HOME)/.cache")
 
 let cargo_bin = $"($cargo_home)/bin"
-if not ($cargo_bin in $env.PATH) {
-  $env.PATH = [$cargo_bin] ++ $env.PATH
-}
+let local_bin = $"($env.HOME)/.local/bin"
 
 $env.GTRASH_HOME_TRASH_FALLBACK_COPY = "true"
 $env.COPILOT_ALLOW_ALL = "true"
@@ -24,8 +22,9 @@ for path in ([
   }
 }
 
+$env.PATH = [$local_bin $cargo_bin] ++ ($env.PATH | where {|path| $path != $local_bin and $path != $cargo_bin })
+
 for path in [
-  $"($env.HOME)/.local/bin"
   $"($gem_home)/bin"
   $"($env.HOME)/.local/share/npm/bin"
   $"($go_path)/bin"
