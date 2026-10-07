@@ -15,6 +15,9 @@ recipients = [
 	]
 
 [git]
-	command = "/home/mirsella/.local/bin/chezmoi-git"
 	autoCommit = true
 	autoPush = true
+	# .chezmoiroot leaves Nix files outside the paths targetRelPath can handle.
+	commitMessageTemplate = {{ `Update dotfiles
+
+{{ output "git" "-C" .chezmoi.workingTree "diff" "--cached" "--name-status" }}` | quote }}

@@ -12,12 +12,13 @@ buildNpmPackage rec {
 
   postPatch = ''
     cp ${./package-lock.json} package-lock.json
-    sed -i '/"prepack"/d' package.json
   '';
 
   npmDepsHash = "sha256-DUD+EaH1xgNqhV5PhIhG/a/NpzJ7TWSSnAk2jEozTyc=";
 
   npmFlags = [ "--legacy-peer-deps" "--dangerously-allow-all-scripts" ];
+  # Published assets are built; prepack refers to the upstream monorepo.
+  npmPackFlags = [ "--ignore-scripts" ];
 
   dontNpmBuild = true;
 
