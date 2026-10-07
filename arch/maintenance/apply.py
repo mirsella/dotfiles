@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Install root-owned Arch maintenance on Btrfs workstations."""
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ import tempfile
 
 
 SOURCE = Path(__file__).resolve().parent
+ROOT = SOURCE.parents[1]
 SYSTEMD = Path("/etc/systemd/system")
 
 
@@ -53,19 +55,36 @@ def set_values(path: Path, values: dict[str, str], separator: str) -> bool:
     return write_if_changed(path, "\n".join(lines) + "\n")
 
 
+def install_oom_protection(binary: Path) -> None:
+    run("install", "-Dm755", str(binary), "/usr/local/libexec/host-tools")
+    unit = "workstation-oom-protect.service"
+    write_if_changed(SYSTEMD / unit, (ROOT / "modules" / unit).read_text())
+    run("systemctl", "daemon-reload")
+    run("systemctl", "enable", unit)
+    run("systemctl", "restart", unit)
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--oom-only", action="store_true", help="Install only process OOM protection"
+    )
+    args = parser.parse_args()
     if os.geteuid() != 0:
         raise PermissionError("Run this installer with sudo")
     binary = Path(
         os.environ.get(
             "HOST_TOOLS_BINARY",
-            SOURCE.parent.parent / "pkgs/host-tools/target/release/host-tools",
+            ROOT / "pkgs/host-tools/target/release/host-tools",
         )
     )
     if not binary.is_file():
         raise FileNotFoundError(
             "Build pkgs/host-tools with cargo build --release, or set HOST_TOOLS_BINARY"
         )
+    if args.oom_only:
+        install_oom_protection(binary)
+        return
     if (
         subprocess.check_output(
             ["findmnt", "-n", "-o", "FSTYPE", "/"], text=True
@@ -141,21 +160,16 @@ def main() -> None:
     else:
         print("fail2ban not installed; skipping SSH brute-force jail")
 
-    units_changed = False
     for name in unit_names:
         for suffix in ("service", "timer"):
             unit = f"{name}.{suffix}"
-            units_changed |= write_if_changed(
-                SYSTEMD / unit, (SOURCE / unit).read_text()
-            )
+            write_if_changed(SYSTEMD / unit, (SOURCE / unit).read_text())
         timers.append(f"{name}.timer")
-    run("install", "-Dm755", str(binary), "/usr/local/libexec/host-tools")
+    install_oom_protection(binary)
     journal_changed = write_if_changed(
         Path("/etc/systemd/journald.conf.d/50-maintenance.conf"),
         (SOURCE / "journald.conf").read_text(),
     )
-    if units_changed:
-        run("systemctl", "daemon-reload")
     run("systemctl", "enable", "--now", *timers)
     if journal_changed:
         run("systemctl", "restart", "systemd-journald.service")

@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 {
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -41,6 +41,14 @@
     enableRootSlice = false;
     enableSystemSlice = false;
     enableUserSlices = false;
+  };
+
+  systemd.units."workstation-oom-protect.service" = {
+    text = lib.replaceStrings
+      [ "/usr/local/libexec/host-tools" ]
+      [ "${pkgs.host-tools}/bin/host-tools" ]
+      (builtins.readFile ../workstation-oom-protect.service);
+    wantedBy = [ "multi-user.target" ];
   };
 
   services.desktopManager.plasma6.enable = true;

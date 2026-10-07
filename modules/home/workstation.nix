@@ -12,23 +12,22 @@ in
     pkgs.opencode pkgs.openchamber
     pkgs.binaryen pkgs.gnumake pkgs.ninja pkgs.trunk pkgs.wasm-pack
   ];
-  xdg.configFile."kache/config.toml" = {
+  xdg.configFile = {
+    "kache/config.toml" = {
+      force = true;
+      text = ''
+        [cache]
+        local_max_size = "150GiB"
+      '';
+    };
+  } // lib.genAttrs [
+    "systemd/user/opencode.service.d/override.conf"
+    "systemd/user/app-org.wezfurlong.wezterm@.service.d/override.conf"
+    "systemd/user/app-rio\\x2dcargo@.service.d/override.conf"
+  ] (_: {
+    source = ./oom-survival.conf;
     force = true;
-    text = ''
-      [cache]
-      local_max_size = "150GiB"
-    '';
-  };
-
-  xdg.configFile."systemd/user/app-org.wezfurlong.wezterm@.service.d/override.conf".text = ''
-    [Service]
-    OOMPolicy=continue
-  '';
-
-  xdg.configFile."systemd/user/app-rio\\x2dcargo@.service.d/override.conf".text = ''
-    [Service]
-    OOMPolicy=continue
-  '';
+  });
 
   sops = {
     age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];

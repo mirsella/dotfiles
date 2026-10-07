@@ -28,7 +28,7 @@ Both desktops install onto a LUKS2-encrypted XFS root with TPM2 auto-unlock and 
 Windows partitions; only the old Linux partition is replaced. Laptop keeps its EFI
 partition. The single XFS filesystem holds `/`, `/home` and `/nix`;
 `modules/nixos/desktop.nix` records the LUKS containers and the resume device.
-Both desktops use zstd zram at 50% of RAM ahead of the swap partition, run weekly
+Both desktops use zstd zram at 100% of RAM ahead of the swap partition, run weekly
 `fstrim` through the encrypted root, and main keeps its NTFS data mount.
 
 Partitioning is destructive for the Linux partition only. Delete it, create a
@@ -138,6 +138,50 @@ uses btrfs-progs' monthly scrub timer and its own balance and space-check units.
 The desktop Home Manager profile caps the kache build cache at 150 GiB. NixOS
 uses the equivalent shared Nix GC, journal and fail2ban settings, and the
 desktops trim their encrypted SSDs weekly.
+
+## Workstation build memory
+
+`workstation-oom-protect.service` runs the root-owned `host-tools oom-protect`
+process policy on the desktops. Every 250 ms it sets `oom_score_adj=-900` for
+mirsella's OpenCode, Rio and WezTerm executables. They remain eligible for kernel
+OOM killing, but are strongly deprioritized. Compilers and WASM build tools get
+`+800`; Cargo gets `+500`. The kernel considers memory usage along with these
+adjustments, so they express a preference rather than a strict kill order.
+The policy uses executable names, so changing a thread's name does not change
+its priority. Newly started processes receive the policy on the next scan.
+
+Linux inherits OOM scores across fork and exec. The policy resets inherited
+`-900` scores to `+200` when a child runs another executable, so browsers,
+shells and build scripts do not retain their parent's protection. This reserves
+`-900` for the listed interactive executables within this user's processes.
+Home Manager sets
+`OOMPolicy=continue` and `ManagedOOMPreference=avoid` on OpenCode's service and
+the Rio/WezTerm application templates. An OOM-killed child must not stop the
+whole service; oomd prefers other cgroups if monitoring is enabled.
+
+On Arch, the maintenance installer installs the policy. To install just this
+service after building `host-tools`, without running storage maintenance:
+
+```sh
+sudo env HOST_TOOLS_BINARY=/path/to/host-tools python3 arch/maintenance/apply.py --oom-only
+```
+
+Apply the Home Manager profile for the user-service drop-ins. On NixOS, the
+desktop system rebuild installs both the process policy and the drop-ins.
+
+The NixOS desktop module sets zstd zram's logical capacity to 100% of RAM and
+`SwapUsedLimit=95%`. It leaves root, system and user-wide oomd monitoring disabled.
+Main's current Arch installation has the same zram and oomd settings in `/etc`,
+backed up under `dotfiles/system/main/` by `dotfiles/update-system-backup.sh`.
+The 95% threshold is dormant because no cgroups are opted into oomd monitoring.
+On NixOS, activate through the system rebuild, not standalone Home Manager.
+Zram size changes on the current Arch installation take effect on reboot; avoid
+draining a full swap device during builds.
+
+The previous build-scope helper, tool wrappers and tests are archived in Git
+commit `37a0c44` (`chore(memory): preserve build wrappers before simplification`).
+A one-time Chezmoi migration removes those installed wrappers when applying the
+dotfiles; it preserves actual tool binaries and unrelated symlinks.
 
 ## Checks
 

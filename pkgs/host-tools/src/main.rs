@@ -2,6 +2,7 @@ mod activity;
 mod backup;
 mod hardware;
 mod maintenance;
+mod memory;
 mod monitoring;
 mod setup;
 mod suspend;
@@ -61,6 +62,10 @@ enum Commands {
         watch: bool,
     },
     AudioWatch,
+    OomProtect {
+        #[arg(long)]
+        user: String,
+    },
     BtrfsSpaceCheck {
         #[arg(long, conflicts_with = "reclaim")]
         notify: bool,
@@ -135,6 +140,7 @@ fn run() -> Result<()> {
         Commands::KeyboardOff => hardware::keyboard_off(),
         Commands::Ryzenadj { watch } => hardware::ryzenadj(watch),
         Commands::AudioWatch => hardware::audio_watch(),
+        Commands::OomProtect { user } => memory::run(&user),
         Commands::BtrfsSpaceCheck {
             notify,
             reclaim,
