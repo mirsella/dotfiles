@@ -5,6 +5,17 @@ The checkout is `~/dev/dotfiles` on every machine. `.chezmoiroot` selects
 machine's NixOS role; `home.nix` adds its workstation Home Manager settings.
 The flake discovers these directories and sets hostnames automatically.
 
+- Put system setup, packages, service units, timers and their configuration in
+  Nix/NixOS modules; use Home Manager for the user settings it owns. Reproduce
+  the setup from this flake instead of relying on imperative machine edits.
+- Write custom daemons, automation and administrative scripts in Rust. Use
+  `pkgs/host-tools` for shared host operations; do not add Python or shell programs
+  for this logic. Keep unavoidable adapters to an upstream API in its required
+  language small, with the operational logic in Rust.
+- Nightly Cargo's `-Zscript` is available for small Rust scripts and one-off
+  tasks. Deployed services and scheduled scripts must be compiled during the
+  Nix build with pinned dependencies, not on their first invocation. They should
+  start without a compiler, network dependency downloads or writable build caches.
 - `main` and `laptop` share the Plasma desktop module; `predator` is headless.
   All three share `modules/nixos/common.nix`. Keep hardware and machine-specific
   settings in their host directory, not hostname branches in shared modules.

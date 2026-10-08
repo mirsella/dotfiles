@@ -8,6 +8,7 @@ in
     ./acer-wmi.nix
     ./lid-screen.nix
     ./storage-alerts.nix
+    ./hermes
     ../../modules/nixos/storage.nix
     ../../modules/nixos/caddy.nix
     ../../modules/nixos/nextcloud.nix
@@ -16,6 +17,9 @@ in
     ../../modules/nixos/night-suspend.nix
     ../../modules/nixos/monitoring.nix
   ];
+
+  predator.hermes.enable = true;
+  predator.hermes.messaging = true;
 
   nixpkgs.overlays = [ inputs.nix-cachyos-kernel.overlays.pinned ];
 

@@ -21,6 +21,11 @@
       url = "github:nix-community/lanzaboote/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent/865ba906c1a8d93de65839ee7af487204d42e873";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
   };
 
   outputs =
@@ -82,7 +87,7 @@
           home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
           inputs.lanzaboote.nixosModules.lanzaboote
-        ];
+        ] ++ nixpkgs.lib.optional (hostName == "predator") inputs.hermes-agent.nixosModules.default;
         _module.args.inputs = inputs;
         networking.hostName = hostName;
         nixpkgs.overlays = overlays;

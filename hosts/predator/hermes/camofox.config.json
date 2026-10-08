@@ -1,0 +1,7 @@
+{
+  "plugins": {
+    "youtube": { "enabled": false },
+    "persistence": { "enabled": true, "profileDir": "/var/lib/camofox/profiles", "indexedDB": false },
+    "vnc": { "enabled": true, "resolution": "1600x900", "viewOnly": false }
+  }
+}

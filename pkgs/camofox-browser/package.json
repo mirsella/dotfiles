@@ -1,0 +1,21 @@
+{
+  "name": "@askjo/camofox-browser",
+  "version": "1.18.1",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "better-sqlite3": "13.0.1",
+    "camoufox-js": "0.11.5",
+    "express": "^5.2.1",
+    "playwright-core": "^1.58.0",
+    "prom-client": "^15.1.3",
+    "swagger-jsdoc": "^6.2.8"
+  },
+  "overrides": {
+    "swagger-jsdoc": { "glob": "13.0.6" },
+    "qs": "6.16.0",
+    "fast-uri": "3.1.8",
+    "hono": "4.13.7"
+  }
+}

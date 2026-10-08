@@ -131,6 +131,33 @@ assert lib.assertMsg (
 assert lib.assertMsg (
   server.systemd.services.caddy.serviceConfig.Restart == "on-failure"
 ) "The server's web proxy must retry transient startup failures";
+assert lib.assertMsg (
+  server.services.hermes-agent.user == "hermes-agent"
+  && server.services.hermes-agent.settings.terminal.backend == "local"
+  && server.services.hermes-agent.settings.fallback_providers == []
+  && server.services.hermes-agent.settings.gateway.unauthorized_dm_behavior == "ignore"
+  && server.services.hermes-agent.settings.platforms.telegram.extra.group_allow_from == []
+  && !server.services.hermes-agent.settings.platforms.telegram.extra.guest_mode
+  && server.services.hermes-agent.extraPlugins == []
+  && server.services.hermes-agent.package.drvPath
+    == flake.inputs.hermes-agent.packages.x86_64-linux.messaging.drvPath
+  && server.services.hermes-agent.documents ? "AGENTS.md"
+  && !(server.services.hermes-agent.settings ? hooks)
+  && !(server.services.hermes-agent.settings ? approvals)
+  && !(server.services.hermes-agent.settings ? toolsets)
+  && server.systemd.services.hermes-agent.serviceConfig.BindReadOnlyPaths
+    == [ "/var/lib/camofox-downloads:/var/lib/hermes/workspace/downloads" ]
+  && lib.all (unit:
+    server.systemd.services.${unit}.serviceConfig.NoNewPrivileges
+    && server.systemd.services.${unit}.serviceConfig.ProtectHome
+    && server.systemd.services.${unit}.serviceConfig.ProtectSystem == "strict"
+  ) [ "hermes-agent" "hermes-browser-control" "camofox-browser" ]
+  && server.systemd.services.camofox-browser.environment.CAMOFOX_BIND_HOST == "127.0.0.1"
+  && server.systemd.services.camofox-browser.environment.VNC_RFB_BIND == "127.0.0.1"
+  && server.systemd.services.camofox-browser.environment.NOVNC_PORT == "6080"
+  && lib.all (port: !(builtins.elem port server.networking.firewall.allowedTCPPorts))
+    [ 5900 6080 9377 9378 ]
+) "Stock Hermes must retain its separate users, private messaging and browser ports";
 {
   inherit (server.system.build.toplevel) drvPath;
   formatter = (disko._cliDestroyFormatMount layout pkgs).drvPath;

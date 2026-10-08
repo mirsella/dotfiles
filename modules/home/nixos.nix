@@ -32,12 +32,14 @@
     deno
     diffstat
     difftastic
-    dioxus-cli
+    # Deno also ships a dx alias; keep dx as the Dioxus CLI.
+    (lib.hiPrio dioxus-cli)
     dust
     fd
     fish
     fzf
-    gcc
+    # Prefer GNU's cc/c++/cpp; Clang remains available as clang/clang++.
+    (lib.setPrio 0 gcc)
     gh
     go
     graphviz

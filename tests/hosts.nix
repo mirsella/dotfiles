@@ -31,6 +31,13 @@ assert lib.assertMsg (
   ) (builtins.attrValues desktops)
 ) "Desktop and server roles must remain separate";
 assert lib.assertMsg (
+  server.predator.hermes.enable
+  && lib.all (c:
+    lib.all (name: !(builtins.hasAttr name c.systemd.services))
+      [ "hermes-agent" "hermes-browser-control" "camofox-browser" "hermes-network-isolation" ]
+  ) (builtins.attrValues desktops)
+) "Hermes and its browser must stay on Predator";
+assert lib.assertMsg (
   main.programs.coolercontrol.enable
   && !laptop.programs.coolercontrol.enable
   && builtins.elem "nct6775" main.boot.kernelModules
