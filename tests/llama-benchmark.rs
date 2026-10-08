@@ -12,6 +12,7 @@ serde_json = "=1.0.145"
 //! CARGO_TARGET_DIR=$HOME/dev/llama-benchmarks/target cargo +nightly -Zscript \
 //!   tests/llama-benchmark.rs LABEL http://127.0.0.1:8081 PID RESULTS_DIRECTORY
 //! LABEL must be new: each run owns its responses, provenance, and compiled checks.
+//! Completed samples/checks are saved individually so later failures retain evidence.
 
 use serde_json::{Value, json};
 use std::{
@@ -137,6 +138,13 @@ fn rust_source(text: &str) -> Result<&str> {
 
 fn save(path: &Path, value: &Value) -> Result<()> {
     fs::write(path, serde_json::to_vec_pretty(value)?)?;
+    Ok(())
+}
+
+fn record_check(directory: &Path, checks: &mut Vec<Value>, check: Value) -> Result<()> {
+    let name = check["name"].as_str().expect("named quality check");
+    save(&directory.join(format!("{name}-result.json")), &check)?;
+    checks.push(check);
     Ok(())
 }
 
@@ -349,6 +357,10 @@ fn main() -> Result<()> {
             "gtt_bytes": after.gtt, "device_vram_used_bytes": after.device_used,
             "timings": response["timings"],
         });
+        save(
+            &directory.join(format!("decode-{run}-sample.json")),
+            &sample,
+        )?;
         eprintln!(
             "{label} decode {run}: {tps:.2} tokens/s, {:.2} CPU cores, {:.1}% GPU compute duty",
             cpu_seconds / seconds,
@@ -409,7 +421,11 @@ fn main() -> Result<()> {
         ),
     ] {
         eprintln!("{label} quality: {name}");
-        quality.push(rust_check(base, &directory, name, specification, tests)?);
+        record_check(
+            &directory,
+            &mut quality,
+            rust_check(base, &directory, name, specification, tests)?,
+        )?;
     }
     let response = request(
         base,
@@ -418,15 +434,19 @@ fn main() -> Result<()> {
         None,
     )?;
     save(&directory.join("json-response.json"), &response)?;
-    quality.push(model_check(
-        "json",
-        content(&response).and_then(|text| {
-            Ok(serde_json::from_str::<Value>(text)?
-                == json!({
-                    "host":"127.0.0.1","port":8080,"tags":["local","gpu"],"enabled":true
-                }))
-        }),
-    ));
+    record_check(
+        &directory,
+        &mut quality,
+        model_check(
+            "json",
+            content(&response).and_then(|text| {
+                Ok(serde_json::from_str::<Value>(text)?
+                    == json!({
+                        "host":"127.0.0.1","port":8080,"tags":["local","gpu"],"enabled":true
+                    }))
+            }),
+        ),
+    )?;
     let response = request(
         base,
         "Call lookup_timezone for Paris. Use the tool instead of answering directly.",
@@ -436,7 +456,7 @@ fn main() -> Result<()> {
         ),
     )?;
     save(&directory.join("tool-response.json"), &response)?;
-    quality.push(tool_check(&response));
+    record_check(&directory, &mut quality, tool_check(&response))?;
     let mut prompt = String::from("Read these records and answer the question after them.\n");
     for i in 0..512 {
         prompt.push_str(&format!("record-{i:04} = {}\n", (i * 37 + 11) % 9973));
@@ -450,7 +470,7 @@ fn main() -> Result<()> {
             .and_then(|text| Ok(text.trim().parse::<u64>()? == (353 * 37 + 11) % 9973)),
     );
     retrieval["timings"] = response["timings"].clone();
-    quality.push(retrieval);
+    record_check(&directory, &mut quality, retrieval)?;
     let mut speeds: Vec<_> = decode
         .iter()
         .map(|value| value["tokens_per_second"].as_f64().expect("recorded speed"))
@@ -469,6 +489,29 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_failed_checkpoint_preserves_completed_results() {
+        let directory = env::temp_dir().join("opencode").join(format!(
+            "llama-benchmark-checkpoints-{}",
+            std::process::id()
+        ));
+        fs::create_dir(&directory).unwrap();
+        let mut checks = Vec::new();
+        let completed = model_check("json", Ok(true));
+        record_check(&directory, &mut checks, completed.clone()).unwrap();
+
+        // Make the next result unwritable without losing the previous checkpoint.
+        fs::create_dir(directory.join("tool-call-result.json")).unwrap();
+        assert!(
+            record_check(&directory, &mut checks, model_check("tool-call", Ok(false))).is_err()
+        );
+        let saved: Value =
+            serde_json::from_slice(&fs::read(directory.join("json-result.json")).unwrap()).unwrap();
+        fs::remove_dir_all(&directory).unwrap();
+        assert_eq!(checks, vec![completed.clone()]);
+        assert_eq!(saved, completed);
+    }
 
     #[test]
     fn decode_rate_requires_a_full_run_and_a_positive_finite_rate() {
