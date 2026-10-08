@@ -1,0 +1,28 @@
+/* Preserve noVNC's layout and controls; only adapt its palette to the system. */
+:root {
+    color-scheme: light dark;
+    --viewer-background: #f5f7f5;
+    --viewer-foreground: #243129;
+    --viewer-panel: #e7ece7;
+    --novnc-blue: #6e84a3;
+    --novnc-darkblue: #53637a;
+}
+body { background: var(--viewer-background); color: var(--viewer-foreground); }
+.noVNC_panel {
+    background: var(--viewer-panel);
+    color: var(--viewer-foreground);
+    border-color: var(--novnc-lightgrey);
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --viewer-background: #090c0a;
+        --viewer-foreground: #d8ded9;
+        --viewer-panel: #181d19;
+        --novnc-blue: #28332b;
+        --novnc-darkblue: #181d19;
+        --novnc-lightblue: #62866b;
+        --novnc-lightgrey: #4d5b50;
+        --novnc-buttongrey: #344d3b;
+    }
+    input, textarea, select, button { color: var(--viewer-foreground); }
+}

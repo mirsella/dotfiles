@@ -4,6 +4,7 @@
   fetchurl,
   unzip,
   autoPatchelfHook,
+  patchelfUnstable,
   alsa-lib,
   atk,
   cairo,
@@ -31,7 +32,10 @@ stdenv.mkDerivation {
     url = "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.28/camoufox-152.0.4-beta.28-lin.x86_64.zip";
     hash = "sha256-kk8xCczW1HzWoDhNZ6NF+t+XXUi2MZ+Nu9WVTFiJgr0=";
   };
-  nativeBuildInputs = [ unzip autoPatchelfHook ];
+  nativeBuildInputs = [ unzip autoPatchelfHook patchelfUnstable ];
+  # Firefox's relrhack loader reads relocations at fixed offsets. Preserve the
+  # original sections, as nixpkgs does for firefox-bin, when adding Nix runpaths.
+  patchelfFlags = [ "--no-clobber-old-sections" ];
   buildInputs = [
     alsa-lib atk cairo cups dbus dbus-glib fontconfig freetype gdk-pixbuf
     glib gtk3 libdrm libGL libxkbcommon mesa nspr nss pango
@@ -55,6 +59,12 @@ stdenv.mkDerivation {
     printf '%s\n' '{"version":"152.0.4","release":"beta.28"}' > "$out/lib/camoufox/version.json"
     ln -s "$out/lib/camoufox/camoufox-bin" "$out/bin/camoufox"
     runHook postInstall
+  '';
+  doInstallCheck = true;
+  installCheckPhase = ''
+    runHook preInstallCheck
+    timeout 20 "$out/bin/camoufox" --version
+    runHook postInstallCheck
   '';
   meta = {
     description = "Pinned Camoufox engine for Predator's private browser";

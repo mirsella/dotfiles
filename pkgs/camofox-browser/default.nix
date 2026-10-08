@@ -40,9 +40,9 @@ buildNpmPackage {
       '} // Registered tabs are retained until the deployment controller stops them.
       // Orphan page reaper -- force-closes Playwright pages that survived a safePageClose' \
       --replace-fail "log('warn', 'xvfb not available, falling back to headless', { error: err.message, attempt });" \
-      'throw new Error("Virtual display unavailable; refusing an invisible browser", { cause: err });'
+      'throw new Error("Virtual display unavailable; refusing an invisible browser: " + err.message, { cause: err });'
     substituteInPlace plugins/vnc/vnc-watcher.sh \
-      --replace-fail 'NOVNC_DIR="/usr/share/novnc"' 'NOVNC_DIR="${novnc}/share/novnc"'
+      --replace-fail 'NOVNC_DIR="/usr/share/novnc"' 'NOVNC_DIR="${novnc}/share/webapps/novnc"'
     # Upstream writes downloads into its private tmp beside browser profiles.
     # Put only downloads in the shared temporary directory, without copies or
     # changing upstream's session cleanup. The setgid directory grants agent
@@ -69,6 +69,12 @@ buildNpmPackage {
     # Only this native runtime dependency needs a build. Browser installation
     # and unrelated upstream postinstall hooks never run on the target.
     npm rebuild better-sqlite3 --offline --build-from-source --ignore-scripts=false
+    # The pinned Camoufox Juggler schema predates this Playwright option.
+    # Storage-state restore enables interception; preserve the supported call
+    # rather than dropping saved cookies/localStorage on a protocol error.
+    substituteInPlace node_modules/playwright-core/lib/coreBundle.js \
+      --replace-fail 'this._session.send("Network.setRequestInterception", { enabled, bypassServiceWorker })' \
+      'this._session.send("Network.setRequestInterception", { enabled })'
   '';
   installPhase = ''
     runHook preInstall
