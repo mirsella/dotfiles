@@ -1,6 +1,6 @@
 //! Run a command after every other opencode session has gone idle.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::env;
 use std::ffi::OsString;
 use std::fmt::Write as _;
@@ -403,17 +403,6 @@ struct OpenCodeApi<'a> {
     directory: Option<&'a str>,
 }
 
-fn encode_directory(directory: &str) -> String {
-    directory.bytes().fold(String::new(), |mut encoded, byte| {
-        if byte.is_ascii_alphanumeric() || b"-_.!~*'()".contains(&byte) {
-            encoded.push(byte as char);
-        } else {
-            write!(encoded, "%{byte:02X}").expect("writing to a string cannot fail");
-        }
-        encoded
-    })
-}
-
 fn is_transient(error: &ureq::Error) -> bool {
     match error {
         ureq::Error::Timeout(_)
@@ -427,20 +416,14 @@ fn is_transient(error: &ureq::Error) -> bool {
 
 impl OpenCodeApi<'_> {
     fn get(&self, path: &str) -> Result<Value> {
-        let mut url = format!("{}{path}", self.url.trim_end_matches('/'));
-        if let Some(directory) = self.directory {
-            write!(
-                url,
-                "{}directory={}",
-                if path.contains('?') { '&' } else { '?' },
-                encode_directory(directory)
-            )
-            .expect("writing to a string cannot fail");
-        }
+        let url = format!("{}{path}", self.url.trim_end_matches('/'));
         let mut attempt = 0u32;
         let mut response = loop {
             attempt += 1;
             let mut request = self.client.get(&url).header("Accept", "application/json");
+            if let Some(directory) = self.directory {
+                request = request.query("directory", directory);
+            }
             if let Some(authorization) = self.authorization {
                 request = request.header("Authorization", authorization);
             }
@@ -462,7 +445,7 @@ impl OpenCodeApi<'_> {
     fn global_directories(&self) -> Result<Vec<String>> {
         const LIMIT: usize = 1_000;
         let mut cursor = None;
-        let mut directories = Vec::new();
+        let mut directories = BTreeSet::new();
         loop {
             let path = cursor.map_or_else(
                 || format!("/experimental/session?limit={LIMIT}"),
@@ -482,20 +465,17 @@ impl OpenCodeApi<'_> {
                         .context("global session has no numeric update time")?,
                 )
             };
-            directories.extend(
-                sessions
-                    .into_iter()
-                    .map(|session| {
-                        session
-                            .get("directory")
-                            .and_then(Value::as_str)
-                            .map(str::to_owned)
-                            .context("global session has no directory")
-                    })
-                    .collect::<Result<Vec<_>>>()?,
-            );
+            for session in &sessions {
+                let directory = session
+                    .get("directory")
+                    .and_then(Value::as_str)
+                    .context("global session has no directory")?;
+                if !directories.contains(directory) {
+                    directories.insert(directory.to_owned());
+                }
+            }
             if cursor.is_none() {
-                return Ok(directories);
+                return Ok(directories.into_iter().collect());
             }
         }
     }
@@ -529,20 +509,22 @@ fn active_part(part: &Value) -> bool {
     )
 }
 
-fn waiting_sessions(
-    status: &serde_json::Map<String, Value>,
-    questions: &[Value],
-    permissions: &[Value],
-    assistants: &serde_json::Map<String, Value>,
-    excluded_sessions: &HashSet<String>,
-) -> HashSet<String> {
-    let mut waiting = excluded_sessions.clone();
+fn waiting_sessions<'a>(
+    status: &'a serde_json::Map<String, Value>,
+    questions: &'a [Value],
+    permissions: &'a [Value],
+    assistants: &'a serde_json::Map<String, Value>,
+    excluded_sessions: &'a HashSet<String>,
+) -> HashSet<&'a str> {
+    let mut waiting = excluded_sessions
+        .iter()
+        .map(String::as_str)
+        .collect::<HashSet<_>>();
     waiting.extend(
         [questions, permissions]
             .into_iter()
             .flatten()
-            .filter_map(|request| request.get("sessionID").and_then(Value::as_str))
-            .map(str::to_owned),
+            .filter_map(|request| request.get("sessionID").and_then(Value::as_str)),
     );
     waiting.extend(
         assistants
@@ -558,13 +540,13 @@ fn waiting_sessions(
                         })
                     })
             })
-            .map(|(session, _)| session.clone()),
+            .map(|(session, _)| session.as_str()),
     );
     loop {
         let parents: Vec<_> = status
             .iter()
             .filter_map(|(parent, state)| {
-                if waiting.contains(parent) || status_kind(state) != "busy" {
+                if waiting.contains(parent.as_str()) || status_kind(state) != "busy" {
                     return None;
                 }
                 let parts = assistants.get(parent)?.get("parts")?.as_array()?;
@@ -585,7 +567,7 @@ fn waiting_sessions(
                                     .is_some_and(|child| waiting.contains(child))
                             })
                     })
-                    .then(|| parent.clone())
+                    .then_some(parent.as_str())
             })
             .collect();
         if parents.is_empty() {
@@ -601,62 +583,68 @@ struct SessionVerdict {
     label: &'static str,
     color: Color,
     blocker: Option<String>,
+    title: String,
+    created: Option<u64>,
+    updated: Option<u64>,
 }
 
-fn classify_snapshot(
-    state: &WorkspaceState,
-    excluded_sessions: &HashSet<String>,
-    stuck: &HashSet<String>,
-) -> Vec<SessionVerdict> {
-    let waiting = waiting_sessions(
-        &state.status,
-        &state.questions,
-        &state.permissions,
-        &state.assistants,
-        excluded_sessions,
-    );
+fn classify_snapshot<'a>(
+    state: &'a WorkspaceState,
+    excluded_sessions: &'a HashSet<String>,
+    stuck: &'a HashSet<String>,
+    waiting: &'a HashSet<&str>,
+) -> impl Iterator<Item = SessionVerdict> + 'a {
     let unresolved: HashSet<&str> = state
         .unresolved_busy
         .iter()
         .map(|unresolved| unresolved.session.as_str())
         .collect();
-    state
-        .status
-        .iter()
-        .map(|(session, value)| {
-            let kind = status_kind(value);
-            let (label, color, blocker) = if excluded_sessions.contains(session) {
-                ("SELF", Color::Cyan, None)
-            } else if stuck.contains(session) {
-                ("STUCK", Color::DarkGrey, None)
-            } else if waiting.contains(session.as_str()) {
-                // Membership via /question or /permission proves the wait even when
-                // the message detail fetch failed, so these never block.
-                ("WAITING", Color::Blue, None)
-            } else if unresolved.contains(session.as_str()) {
-                // The detail fetch failed and nothing proves idleness, so fail
-                // closed. Only busy sessions are fetched, so these are busy.
-                (
-                    "RUNNING",
-                    Color::Yellow,
-                    Some(format!("{session}:busy-unresolved")),
-                )
-            } else {
-                match kind {
-                    "idle" => ("IDLE", Color::Green, None),
-                    "busy" => ("RUNNING", Color::Yellow, Some(format!("{session}:busy"))),
-                    "retry" => ("RETRY", Color::Magenta, Some(format!("{session}:retry"))),
-                    _ => ("UNKNOWN", Color::Red, Some(format!("{session}:unknown"))),
-                }
-            };
-            SessionVerdict {
-                session: session.clone(),
-                label,
-                color,
-                blocker,
+    state.status.iter().map(move |(session, value)| {
+        let kind = status_kind(value);
+        let (label, color, blocker) = if excluded_sessions.contains(session) {
+            ("SELF", Color::Cyan, None)
+        } else if stuck.contains(session) {
+            ("STUCK", Color::DarkGrey, None)
+        } else if waiting.contains(session.as_str()) {
+            // Membership via /question or /permission proves the wait even when
+            // the message detail fetch failed, so these never block.
+            ("WAITING", Color::Blue, None)
+        } else if unresolved.contains(session.as_str()) {
+            // The detail fetch failed and nothing proves idleness, so fail
+            // closed. Only busy sessions are fetched, so these are busy.
+            (
+                "RUNNING",
+                Color::Yellow,
+                Some(format!("{session}:busy-unresolved")),
+            )
+        } else {
+            match kind {
+                "idle" => ("IDLE", Color::Green, None),
+                "busy" => ("RUNNING", Color::Yellow, Some(format!("{session}:busy"))),
+                "retry" => ("RETRY", Color::Magenta, Some(format!("{session}:retry"))),
+                _ => ("UNKNOWN", Color::Red, Some(format!("{session}:unknown"))),
             }
-        })
-        .collect()
+        };
+        let details = state.sessions.get(session.as_str());
+        SessionVerdict {
+            session: session.clone(),
+            label,
+            color,
+            blocker,
+            title: clean_text(
+                details
+                    .and_then(|value| value.get("title"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("Untitled session"),
+            ),
+            created: details
+                .and_then(|value| value.pointer("/time/created"))
+                .and_then(Value::as_u64),
+            updated: details
+                .and_then(|value| value.pointer("/time/updated"))
+                .and_then(Value::as_u64),
+        }
+    })
 }
 
 fn has_running_watchdog(message: &Value) -> bool {
@@ -838,15 +826,13 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
                 })
                 .map(|directory| vec![directory])
         };
-        let mut directories = match directories {
+        let directories = match directories {
             Ok(directories) => directories,
             Err(error) => {
                 failures.push(format!("pid={} directories:{error:#}", process.pid));
                 continue;
             }
         };
-        directories.sort_unstable();
-        directories.dedup();
         for directory in directories {
             jobs.push((
                 process.pid,
@@ -872,9 +858,14 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
     }
 }
 
+struct WorkspaceVerdicts {
+    directory: String,
+    sessions: Vec<SessionVerdict>,
+}
+
 struct ScanEvaluation {
     excluded_sessions: HashSet<String>,
-    stuck: HashSet<String>,
+    workspaces: Vec<WorkspaceVerdicts>,
     blockers: Vec<String>,
     active: usize,
 }
@@ -911,29 +902,37 @@ fn evaluate(
                     .map(|(session, _)| session.clone())
             }),
     );
+    // Reuse the same wait closure for stuck tracking, classification and redraws.
+    let waiting: Vec<_> = scan
+        .snapshots
+        .iter()
+        .map(|snapshot| match &snapshot.state {
+            Ok(state) => waiting_sessions(
+                &state.status,
+                &state.questions,
+                &state.permissions,
+                &state.assistants,
+                &excluded_sessions,
+            ),
+            Err(_) => HashSet::new(),
+        })
+        .collect();
     let mut stuck = HashSet::new();
     if stuck_after.is_zero() {
         tracker.clear();
     } else {
         let mut current: HashMap<&str, (Option<u64>, &str)> = HashMap::new();
         let mut observed: HashSet<&str> = HashSet::new();
-        for snapshot in &scan.snapshots {
+        for (snapshot, waiting) in scan.snapshots.iter().zip(&waiting) {
             let Ok(state) = &snapshot.state else {
                 continue;
             };
             observed.extend(state.status.keys().map(String::as_str));
             // Sessions that cannot block (excluded or waiting on the user) need no
             // stuck tracking; claiming they block would contradict the verdicts.
-            let waiting = waiting_sessions(
-                &state.status,
-                &state.questions,
-                &state.permissions,
-                &state.assistants,
-                &excluded_sessions,
-            );
             for unresolved in &state.unresolved_busy {
                 if excluded_sessions.contains(&unresolved.session)
-                    || waiting.contains(&unresolved.session)
+                    || waiting.contains(unresolved.session.as_str())
                 {
                     continue;
                 }
@@ -984,7 +983,8 @@ fn evaluate(
     }
     let mut blockers = scan.failures.clone();
     let mut active = 0;
-    for snapshot in &scan.snapshots {
+    let mut workspaces = Vec::with_capacity(scan.snapshots.len());
+    for (snapshot, waiting) in scan.snapshots.iter().zip(&waiting) {
         let state = match &snapshot.state {
             Ok(state) => state,
             Err(error) => {
@@ -995,9 +995,11 @@ fn evaluate(
                 continue;
             }
         };
-        let current: Vec<String> = classify_snapshot(state, &excluded_sessions, &stuck)
-            .into_iter()
-            .filter_map(|verdict| verdict.blocker)
+        let classified: Vec<_> =
+            classify_snapshot(state, &excluded_sessions, &stuck, waiting).collect();
+        let current: Vec<_> = classified
+            .iter()
+            .filter_map(|verdict| verdict.blocker.as_deref())
             .collect();
         active += current.len();
         if !current.is_empty() {
@@ -1006,13 +1008,17 @@ fn evaluate(
                 snapshot.pid,
                 snapshot.url,
                 snapshot.directory,
-                current.into_iter().take(4).collect::<Vec<_>>().join(" ")
+                current[..current.len().min(4)].join(" ")
             ));
         }
+        workspaces.push(WorkspaceVerdicts {
+            directory: clean_text(&snapshot.directory),
+            sessions: classified,
+        });
     }
     ScanEvaluation {
         excluded_sessions,
-        stuck,
+        workspaces,
         blockers,
         active,
     }
@@ -1127,21 +1133,21 @@ impl Dashboard {
         duration: Duration,
         mut on_resize: impl FnMut(),
     ) -> Option<i32> {
+        if self.termios.is_none() {
+            return cancellation.wait(duration);
+        }
         let started = Instant::now();
         loop {
-            if self.termios.is_some() {
-                let mut byte = 0_u8;
-                if unsafe {
-                    libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1)
-                } == 1
-                    && byte == b'q'
-                {
-                    return Some(0);
-                }
-                let terminal_size = Self::terminal_size();
-                if terminal_size != self.terminal_size.replace(terminal_size) {
-                    on_resize();
-                }
+            let mut byte = 0_u8;
+            if unsafe { libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1) }
+                == 1
+                && byte == b'q'
+            {
+                return Some(0);
+            }
+            let terminal_size = Self::terminal_size();
+            if terminal_size != self.terminal_size.replace(terminal_size) {
+                on_resize();
             }
             let remaining = duration.saturating_sub(started.elapsed());
             if let Some(signal) = cancellation.wait(remaining.min(Duration::from_millis(25))) {
@@ -1206,7 +1212,6 @@ impl Dashboard {
 
     fn draw(
         &self,
-        scan: &ApiScan,
         evaluation: &ScanEvaluation,
         check: u32,
         idle: u32,
@@ -1217,37 +1222,25 @@ impl Dashboard {
             return;
         }
         let mut rows = Vec::new();
-        for snapshot in &scan.snapshots {
-            let Ok(state) = &snapshot.state else {
-                continue;
-            };
-            for verdict in
-                classify_snapshot(state, &evaluation.excluded_sessions, &evaluation.stuck)
-            {
-                let details = state.sessions.get(verdict.session.as_str());
-                let age = details
-                    .and_then(|value| value.pointer("/time/created"))
-                    .and_then(Value::as_u64)
+        for workspace in &evaluation.workspaces {
+            for verdict in &workspace.sessions {
+                let age = verdict
+                    .created
                     .map(elapsed)
                     .unwrap_or_else(|| "-".to_owned());
-                let updated = details
-                    .and_then(|value| value.pointer("/time/updated"))
-                    .and_then(Value::as_u64)
+                let updated = verdict
+                    .updated
                     .map(elapsed)
                     .unwrap_or_else(|| "-".to_owned());
-                let title = details
-                    .and_then(|value| value.get("title"))
-                    .and_then(Value::as_str)
-                    .unwrap_or("Untitled session");
                 rows.push((
                     verdict.color,
                     [
                         verdict.label.to_owned(),
                         age,
                         updated,
-                        clean_text(&snapshot.directory),
-                        verdict.session,
-                        clean_text(title),
+                        workspace.directory.clone(),
+                        verdict.session.clone(),
+                        verdict.title.clone(),
                     ],
                 ));
             }
@@ -1360,22 +1353,24 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         move || collect_scan(&client)
     };
     dashboard.loading();
-    let mut scan = match dashboard.run_work(&cancellation, || dashboard.loading(), scan_work()) {
-        Ok(result) => result?,
-        Err(signal) => {
-            drop(dashboard);
-            return Ok(signal_exit(state, signal));
-        }
-    };
     let stuck_after = Duration::from_secs(options.stuck_after);
     let mut stuck_tracker: HashMap<String, StuckEntry> = HashMap::new();
-    let mut evaluation = evaluate(
-        &scan,
-        &options.ignored_sessions,
-        stuck_after,
-        &mut stuck_tracker,
-        &report,
-    );
+    let mut evaluation = {
+        let scan = match dashboard.run_work(&cancellation, || dashboard.loading(), scan_work()) {
+            Ok(result) => result?,
+            Err(signal) => {
+                drop(dashboard);
+                return Ok(signal_exit(state, signal));
+            }
+        };
+        evaluate(
+            &scan,
+            &options.ignored_sessions,
+            stuck_after,
+            &mut stuck_tracker,
+            &report,
+        )
+    };
     let mut excluded_sessions: Vec<_> = evaluation.excluded_sessions.iter().cloned().collect();
     excluded_sessions.sort_unstable();
     let started = format!(
@@ -1426,7 +1421,6 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         }
         let draw = |next_scan| {
             dashboard.draw(
-                &scan,
                 &evaluation,
                 check,
                 consecutive_idle,
@@ -1459,7 +1453,6 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             if final_evaluation.blockers.is_empty() {
                 break None;
             }
-            scan = final_scan;
             evaluation = final_evaluation;
             consecutive_idle = 0;
             continue;
@@ -1482,9 +1475,8 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         }
         match dashboard.run_work(&cancellation, || draw(0), scan_work()) {
             Ok(result) => {
-                scan = result?;
                 evaluation = evaluate(
-                    &scan,
+                    &result?,
                     &options.ignored_sessions,
                     stuck_after,
                     &mut stuck_tracker,
@@ -1597,6 +1589,173 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use std::io::{BufRead, BufReader};
+    use std::net::TcpListener;
+
+    fn serve_json(responses: Vec<Value>) -> (String, JoinHandle<Vec<String>>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let server = thread::spawn(move || {
+            let mut requests = Vec::new();
+            for body in responses {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                let mut reader = BufReader::new(&stream);
+                let mut request = String::new();
+                loop {
+                    let mut line = String::new();
+                    assert_ne!(reader.read_line(&mut line).unwrap(), 0);
+                    if line == "\r\n" {
+                        break;
+                    }
+                    request.push_str(&line);
+                }
+                requests.push(request);
+                let body = serde_json::to_vec(&body).unwrap();
+                write!(stream,
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    body.len(),
+                ).unwrap();
+                stream.write_all(&body).unwrap();
+            }
+            requests
+        });
+        (url, server)
+    }
+
+    fn test_client() -> ureq::Agent {
+        ureq::Agent::config_builder()
+            .timeout_global(Some(Duration::from_secs(5)))
+            .build()
+            .into()
+    }
+
+    #[test]
+    fn workspace_query_preserves_existing_parameters_and_authentication() {
+        let (url, server) = serve_json(vec![json!({ "ok": true })]);
+        let client = test_client();
+        let authorization = basic_authorization("opencode", "secret");
+        let api = OpenCodeApi {
+            client: &client,
+            url: &url,
+            authorization: Some(&authorization),
+            directory: Some("/tmp/a b%+é"),
+        };
+        assert_eq!(api.get("/session?limit=1").unwrap(), json!({ "ok": true }));
+        let requests = server.join().unwrap();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(
+            requests[0].lines().next().unwrap(),
+            "GET /session?limit=1&directory=%2Ftmp%2Fa%20b%25%2B%C3%A9 HTTP/1.1"
+        );
+        assert!(requests[0].lines().any(|line| {
+            let Some((name, value)) = line.split_once(':') else {
+                return false;
+            };
+            name.eq_ignore_ascii_case("authorization") && value.trim() == authorization
+        }));
+    }
+
+    #[test]
+    fn global_directories_exhaust_pages_and_deduplicate_across_them() {
+        let mut first = vec![json!({"directory": "/z", "time": {"updated": 20}}); 1_000];
+        first[0] = json!({"directory": "/a", "time": {"updated": 21}});
+        let (url, server) = serve_json(vec![
+            json!(first),
+            json!([{"directory": "/a"}, {"directory": "/m"}, {"directory": "/z"}]),
+        ]);
+        let client = test_client();
+        let api = OpenCodeApi {
+            client: &client,
+            url: &url,
+            authorization: None,
+            directory: None,
+        };
+        assert_eq!(api.global_directories().unwrap(), ["/a", "/m", "/z"]);
+        let requests = server.join().unwrap();
+        assert_eq!(requests.len(), 2);
+        assert_eq!(
+            requests[0].lines().next().unwrap(),
+            "GET /experimental/session?limit=1000 HTTP/1.1"
+        );
+        assert_eq!(
+            requests[1].lines().next().unwrap(),
+            "GET /experimental/session?limit=1000&cursor=20 HTTP/1.1"
+        );
+    }
+
+    #[test]
+    fn malformed_global_rows_do_not_return_partial_directories() {
+        let (url, server) = serve_json(vec![json!([{"directory": "/valid"}, {"directory": 42}])]);
+        let client = test_client();
+        let api = OpenCodeApi {
+            client: &client,
+            url: &url,
+            authorization: None,
+            directory: None,
+        };
+        assert_eq!(
+            api.global_directories().unwrap_err().to_string(),
+            "global session has no directory"
+        );
+        assert_eq!(server.join().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn cached_verdicts_keep_workspace_metadata_and_failed_scans_blocking() {
+        let mut running = workspace_state(&json!({
+            "status": {"busy": {"type": "busy"}}, "assistants": {"busy": {"parts": []}}
+        }));
+        running.sessions.insert(
+            "busy".to_owned(),
+            json!({
+                "title": "busy\nwork", "time": {"created": 10, "updated": 20}
+            }),
+        );
+        let scan = ApiScan {
+            failures: Vec::new(),
+            snapshots: vec![
+                ApiSnapshot {
+                    pid: 1,
+                    url: "http://localhost".to_owned(),
+                    directory: "/running\n".to_owned(),
+                    state: Ok(running),
+                },
+                ApiSnapshot {
+                    pid: 1,
+                    url: "http://localhost".to_owned(),
+                    directory: "/failed".to_owned(),
+                    state: Err(anyhow::anyhow!("unavailable")),
+                },
+                ApiSnapshot {
+                    pid: 1,
+                    url: "http://localhost".to_owned(),
+                    directory: "/idle".to_owned(),
+                    state: Ok(workspace_state(
+                        &json!({"status": {"idle": {"type": "idle"}}}),
+                    )),
+                },
+            ],
+        };
+        let result = evaluate(&scan, &[], Duration::ZERO, &mut HashMap::new(), &|_| {});
+        assert_eq!(result.active, 1);
+        assert_eq!(result.blockers.len(), 2);
+        assert!(result.blockers[1].contains("directory=/failed workspace-scan:unavailable"));
+        assert_eq!(result.workspaces.len(), 2);
+        assert_eq!(result.workspaces[0].directory, "/running");
+        let busy = &result.workspaces[0].sessions[0];
+        assert_eq!(
+            (busy.session.as_str(), busy.label, busy.title.as_str()),
+            ("busy", "RUNNING", "busywork")
+        );
+        assert_eq!((busy.created, busy.updated), (Some(10), Some(20)));
+        assert_eq!(result.workspaces[1].directory, "/idle");
+        assert_eq!(result.workspaces[1].sessions[0].label, "IDLE");
+        assert_eq!(result.workspaces[1].sessions[0].title, "Untitled session");
+    }
 
     fn workspace_state(fixture: &Value) -> WorkspaceState {
         WorkspaceState {
@@ -1620,8 +1779,14 @@ mod tests {
         excluded: &HashSet<String>,
         stuck: &HashSet<String>,
     ) -> Vec<String> {
-        classify_snapshot(state, excluded, stuck)
-            .into_iter()
+        let waiting = waiting_sessions(
+            &state.status,
+            &state.questions,
+            &state.permissions,
+            &state.assistants,
+            excluded,
+        );
+        classify_snapshot(state, excluded, stuck, &waiting)
             .filter_map(|verdict| verdict.blocker)
             .collect()
     }
@@ -1648,7 +1813,6 @@ mod tests {
             "[::1]"
         );
         assert!(listener_host("not-an-address").is_err());
-        assert_eq!(encode_directory("/tmp/a b%"), "%2Ftmp%2Fa%20b%25");
     }
 
     #[test]
@@ -1779,10 +1943,6 @@ mod tests {
             updated: Some(1),
             reason: "timeout".to_owned(),
         }];
-        let verdicts = classify_snapshot(&state, &HashSet::new(), &HashSet::new());
-        assert_eq!(verdicts.len(), 1);
-        assert_eq!(verdicts[0].label, "WAITING");
-        assert!(verdicts[0].blocker.is_none());
         // A proven wait is never tracked as stuck, so no event can claim it blocks.
         let scan = ApiScan {
             snapshots: vec![ApiSnapshot {
@@ -1797,7 +1957,9 @@ mod tests {
         let report = |_: String| {};
         let evaluation = evaluate(&scan, &[], Duration::from_secs(60), &mut tracker, &report);
         assert!(evaluation.blockers.is_empty());
-        assert!(evaluation.stuck.is_empty());
+        assert_eq!(evaluation.workspaces[0].sessions.len(), 1);
+        assert_eq!(evaluation.workspaces[0].sessions[0].label, "WAITING");
+        assert!(evaluation.workspaces[0].sessions[0].blocker.is_none());
         assert!(tracker.is_empty());
     }
 
@@ -1836,11 +1998,11 @@ mod tests {
         let after = Duration::from_secs(60);
         let report = |_: String| {};
         let evaluation = evaluate(&scan, &[], after, &mut tracker, &report);
-        assert!(evaluation.stuck.is_empty());
+        assert_eq!(evaluation.workspaces[0].sessions[0].label, "RUNNING");
         assert!(!evaluation.blockers.is_empty());
         tracker.get_mut("wedged").unwrap().first_seen -= after;
         let evaluation = evaluate(&scan, &[], after, &mut tracker, &report);
-        assert!(evaluation.stuck.contains("wedged"));
+        assert_eq!(evaluation.workspaces[0].sessions[0].label, "STUCK");
         assert!(evaluation.blockers.is_empty());
         // A failed scan observes nothing: the entry survives with its timer intact.
         let failed = ApiScan {
@@ -1854,11 +2016,11 @@ mod tests {
         };
         let evaluation = evaluate(&failed, &[], after, &mut tracker, &report);
         assert!(!evaluation.blockers.is_empty());
-        assert!(evaluation.stuck.is_empty());
+        assert!(evaluation.workspaces.is_empty());
         assert!(tracker.contains_key("wedged"));
         // The surviving timer still concedes the session on the next good scan.
         let evaluation = evaluate(&scan, &[], after, &mut tracker, &report);
-        assert!(evaluation.stuck.contains("wedged"));
+        assert_eq!(evaluation.workspaces[0].sessions[0].label, "STUCK");
         // A session the scan sees idle is affirmatively resolved and dropped.
         if let Ok(resolved) = &mut scan.snapshots[0].state {
             resolved.status = serde_json::from_str(r#"{"wedged":{"type":"idle"}}"#).unwrap();
