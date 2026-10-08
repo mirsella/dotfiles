@@ -1,6 +1,5 @@
 model:
 {
-  config,
   lib,
   pkgs,
   hostName,
@@ -8,47 +7,23 @@ model:
   ...
 }:
 let
-  contextSize = model.contextSize or 65536;
-  gpuOnly = model.gpuOnly or false;
+  contextSize = 32768;
   host = "127.0.0.1";
   port = "8080";
   baseURL = "http://${host}:${port}";
-  runtime =
-    if model ? package || isNixOS then
-      {
-        executable = lib.getExe' (model.package or (pkgs.llama-cpp.override { vulkanSupport = true; })
-        ) "llama-server";
-        environment = [ ];
-      }
-    else
-      {
-        executable = "/usr/bin/llama-server";
-        environment = [ "VK_DRIVER_FILES=/usr/share/vulkan/icd.d/radeon_icd.json" ];
-      };
-  modelUrl = "https://huggingface.co/${model.repo}/resolve/${model.revision}/${model.file}";
   # Checksummed models belong to the Nix closure and are fetched before activation.
-  modelSource =
-    if model ? hash then
-      {
-        model = toString (
-          pkgs.fetchurl {
-            url = modelUrl;
-            hash = model.hash;
-          }
-        );
-      }
-    else
-      {
-        model = "${config.home.homeDirectory}/dev/models/${model.alias}/${model.revision}/${model.file}";
-        model-url = modelUrl;
-      };
+  modelFile = pkgs.fetchurl {
+    url = "https://huggingface.co/${model.repo}/resolve/${model.revision}/${model.file}";
+    hash = model.hash;
+  };
   preset = (pkgs.formats.ini { }).generate "llama-server-models.ini" {
-    ${model.alias} = modelSource // {
+    ${model.alias} = {
+      model = "${modelFile}";
       load-on-startup = false;
       device = "Vulkan0";
-      # GPU-only hosts fail visibly on insufficient VRAM instead of spilling into CPU math.
-      n-gpu-layers = if gpuOnly then "all" else "auto";
-      fit = if gpuOnly then "off" else "on";
+      # Fail visibly on insufficient GPU memory instead of spilling into CPU math.
+      n-gpu-layers = "all";
+      fit = "off";
       ctx-size = contextSize;
       parallel = 1;
       flash-attn = "on";
@@ -101,7 +76,7 @@ in
     Unit = {
       Description = "Local ${model.alias} inference (Vulkan/RADV)";
       ConditionHost = hostName;
-      # Stop repeated GPU failures instead of continuously loading and dumping cores.
+      # Bound router restart loops; model failures are reported by the inference API.
       StartLimitIntervalSec = "5min";
       StartLimitBurst = 3;
     };
@@ -111,10 +86,9 @@ in
       CacheDirectory = "llama-server";
       Environment = [
         "LLAMA_CACHE=%C/llama-server"
-      ]
-      ++ runtime.environment;
+      ];
       ExecStart = lib.escapeShellArgs [
-        runtime.executable
+        (lib.getExe' pkgs.llama-vulkan "llama-server")
         "--models-preset"
         "${preset}"
         "--models-max"

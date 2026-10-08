@@ -1,4 +1,9 @@
-{ isNixOS, lib, pkgs, ... }:
+{
+  isNixOS,
+  lib,
+  pkgs,
+  ...
+}:
 {
   imports = [
     ../../modules/home/workstation.nix
@@ -7,6 +12,7 @@
       repo = "Bahushruth/Qwen3.6-35B-A3B-abliterated-v4-GGUF";
       revision = "b8a9ab20c8bde880621a7bab65073c0078ef33f7";
       file = "Qwen3.6-35B-A3B-abliterated-v4-IQ3_M.gguf";
+      hash = "sha256-cKtfQv8JUt7aKfyA8ze/Sz/7PguQbAofcY2EyYF1ldo=";
     })
   ];
   programs.git.settings.user.signingkey = "E88ECCA3AA187BC1";
@@ -28,8 +34,16 @@
   systemd.user.services.lu-acton-2-a2dp-watch = {
     Unit = {
       Description = "Keep LU ACTON 2 on A2DP output";
-      After = [ "wireplumber.service" "pipewire.service" "pipewire-pulse.service" ];
-      Wants = [ "wireplumber.service" "pipewire.service" "pipewire-pulse.service" ];
+      After = [
+        "wireplumber.service"
+        "pipewire.service"
+        "pipewire-pulse.service"
+      ];
+      Wants = [
+        "wireplumber.service"
+        "pipewire.service"
+        "pipewire-pulse.service"
+      ];
     };
     Service = {
       Type = "simple";
