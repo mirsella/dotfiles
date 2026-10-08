@@ -43,19 +43,24 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   checkPhase = ''
     runHook preCheck
     bun test
-    bun -e 'for (const file of new Bun.Glob("dist/plugins/*.js").scanSync(".")) {
-      const plugin = await import(`./''${file}`);
-      if (!Object.keys(plugin).length || Object.values(plugin).some(value => typeof value !== "function")) {
-        throw new Error(`Invalid compiled plugin exports: ''${file}`);
-      }
-    }'
     runHook postCheck
   '';
   installPhase = ''
     runHook preInstall
     mkdir -p "$out/share/opencode"
-    cp -r dist/plugins dist/tui-plugins "$out/share/opencode/"
+    cp -r dist/. "$out/share/opencode/"
     runHook postInstall
+  '';
+  doInstallCheck = true;
+  installCheckPhase = ''
+    runHook preInstallCheck
+    bun -e 'for (const file of new Bun.Glob("plugins/*.js").scanSync(process.argv[1])) {
+      const plugin = await import(`''${process.argv[1]}/''${file}`);
+      if (!Object.keys(plugin).length || Object.values(plugin).some(value => typeof value !== "function")) {
+        throw new Error(`Invalid installed plugin exports: ''${file}`);
+      }
+    }' "$out/share/opencode"
+    runHook postInstallCheck
   '';
   meta = {
     description = "Local OpenCode server and TUI extensions";

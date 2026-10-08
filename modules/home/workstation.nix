@@ -16,15 +16,12 @@ in
     source = lib.getExe pkgs.opencode-idle-watchdog;
     force = true;
   };
-  xdg.configFile = {
-    "opencode/plugins" = {
-      source = "${pkgs.opencode-extensions}/share/opencode/plugins";
+  xdg.configFile = lib.genAttrs
+    (map (directory: "opencode/${directory}") [ "plugins" "tui-plugins" "chunks" ])
+    (path: {
+      source = "${pkgs.opencode-extensions}/share/${path}";
       force = true;
-    };
-    "opencode/tui-plugins" = {
-      source = "${pkgs.opencode-extensions}/share/opencode/tui-plugins";
-      force = true;
-    };
+    }) // {
     "kache/config.toml" = {
       force = true;
       text = ''

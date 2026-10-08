@@ -1,5 +1,6 @@
 node_modules/
 __pycache__/
 /pkgs/*/target/
+/pkgs/opencode-extensions/dist/
 /result
 /result-*

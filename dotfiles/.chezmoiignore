@@ -19,6 +19,8 @@ kde shortcuts.kksrc
 .config/opencode/plugins/**
 .config/opencode/tui-plugins/
 .config/opencode/tui-plugins/**
+.config/opencode/chunks/
+.config/opencode/chunks/**
 .local/bin/opencode-idle-watchdog
 .config/kache/config.toml
 # Home Manager owns the generated Atuin config on HM hosts.

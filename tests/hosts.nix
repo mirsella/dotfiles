@@ -129,10 +129,10 @@ assert lib.assertMsg (
 assert lib.assertMsg (
   lib.all (name:
     lib.all (home:
-      home.xdg.configFile."opencode/plugins".source
-        == "${flake.packages.x86_64-linux.opencode-extensions}/share/opencode/plugins"
-      && home.xdg.configFile."opencode/tui-plugins".source
-        == "${flake.packages.x86_64-linux.opencode-extensions}/share/opencode/tui-plugins"
+      lib.all (directory:
+        home.xdg.configFile."opencode/${directory}".source
+          == "${flake.packages.x86_64-linux.opencode-extensions}/share/opencode/${directory}"
+      ) [ "plugins" "tui-plugins" "chunks" ]
       && home.home.file.".local/bin/opencode-idle-watchdog".source
         == "${flake.packages.x86_64-linux.opencode-idle-watchdog}/bin/opencode-idle-watchdog"
     ) [ desktops.${name}.home-manager.users.mirsella flake.homeConfigurations.${name}.config ]
