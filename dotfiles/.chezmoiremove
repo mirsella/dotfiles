@@ -32,3 +32,6 @@
 # Same: skills that duplicate an OpenCode command.
 .config/opencode/skills/commit
 .config/opencode/skills/commitdiff
+
+# Renamed to the `pass` skill.
+.config/opencode/skills/password-manager
