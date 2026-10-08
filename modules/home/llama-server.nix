@@ -1,15 +1,54 @@
 model:
-{ config, lib, pkgs, hostName, isNixOS, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  hostName,
+  isNixOS,
+  ...
+}:
 let
-  contextSize = 65536;
+  contextSize = model.contextSize or 65536;
+  gpuOnly = model.gpuOnly or false;
+  host = "127.0.0.1";
+  port = "8080";
+  baseURL = "http://${host}:${port}";
+  runtime =
+    if model ? package || isNixOS then
+      {
+        executable = lib.getExe' (model.package or (pkgs.llama-cpp.override { vulkanSupport = true; })
+        ) "llama-server";
+        environment = [ ];
+      }
+    else
+      {
+        executable = "/usr/bin/llama-server";
+        environment = [ "VK_DRIVER_FILES=/usr/share/vulkan/icd.d/radeon_icd.json" ];
+      };
+  modelUrl = "https://huggingface.co/${model.repo}/resolve/${model.revision}/${model.file}";
+  # Checksummed models belong to the Nix closure and are fetched before activation.
+  modelSource =
+    if model ? hash then
+      {
+        model = toString (
+          pkgs.fetchurl {
+            url = modelUrl;
+            hash = model.hash;
+          }
+        );
+      }
+    else
+      {
+        model = "${config.home.homeDirectory}/dev/models/${model.alias}/${model.revision}/${model.file}";
+        model-url = modelUrl;
+      };
   preset = (pkgs.formats.ini { }).generate "llama-server-models.ini" {
-    ${model.alias} = {
-      model = "${config.home.homeDirectory}/dev/models/${model.alias}/${model.revision}/${model.file}";
-      model-url = "https://huggingface.co/${model.repo}/resolve/${model.revision}/${model.file}";
+    ${model.alias} = modelSource // {
       load-on-startup = false;
       device = "Vulkan0";
-      n-gpu-layers = "auto";
-      fit = "on";
+      # GPU-only hosts fail visibly on insufficient VRAM instead of spilling into CPU math.
+      n-gpu-layers = if gpuOnly then "all" else "auto";
+      fit = if gpuOnly then "off" else "on";
       ctx-size = contextSize;
       parallel = 1;
       flash-attn = "on";
@@ -24,30 +63,38 @@ let
 in
 {
   # OpenCode merges this generated provider with chezmoi's editable opencode.jsonc.
-  xdg.configFile."opencode/opencode.json".source = (pkgs.formats.json { }).generate "opencode-local-llama.json" {
-    "$schema" = "https://opencode.ai/config.json";
-    provider."llama.cpp" = {
-      npm = "@ai-sdk/openai-compatible";
-      name = "Local llama.cpp";
-      options.baseURL = "http://127.0.0.1:8080/v1";
-      models.${model.alias} = {
-        name = model.alias;
-        tool_call = true;
-        reasoning = true;
-        interleaved.field = "reasoning_content";
-        options.reasoning_format = "deepseek";
-        variants = {
-          thinking.chat_template_kwargs.enable_thinking = true;
-          # Qwen uses a thinking toggle, not OpenAI's effort levels.
-          low.disabled = true;
-          medium.disabled = true;
-          high.disabled = true;
+  xdg.configFile."opencode/opencode.json".source =
+    (pkgs.formats.json { }).generate "opencode-local-llama.json"
+      {
+        "$schema" = "https://opencode.ai/config.json";
+        provider."llama.cpp" = {
+          npm = "@ai-sdk/openai-compatible";
+          name = "Local llama.cpp";
+          options.baseURL = "${baseURL}/v1";
+          models.${model.alias} = {
+            name = model.alias;
+            tool_call = true;
+            reasoning = true;
+            interleaved.field = "reasoning_content";
+            options.reasoning_format = "deepseek";
+            variants = {
+              thinking.chat_template_kwargs.enable_thinking = true;
+              # Qwen uses a thinking toggle, not OpenAI's effort levels.
+              low.disabled = true;
+              medium.disabled = true;
+              high.disabled = true;
+            };
+            limit = {
+              context = contextSize;
+              output = 8192;
+            };
+            modalities = {
+              input = [ "text" ];
+              output = [ "text" ];
+            };
+          };
         };
-        limit = { context = contextSize; output = 8192; };
-        modalities = { input = [ "text" ]; output = [ "text" ]; };
       };
-    };
-  };
 
   # The router lists the model at login; only an inference request loads its weights.
   systemd.user.services.llama-server = {
@@ -62,27 +109,41 @@ in
       Type = "exec";
       # Keep unrelated cached GGUFs (such as Handy's speech model) out of this router.
       CacheDirectory = "llama-server";
-      Environment = [ "LLAMA_CACHE=%C/llama-server" ]
-        ++ lib.optional (!isNixOS) "VK_DRIVER_FILES=/usr/share/vulkan/icd.d/radeon_icd.json";
+      Environment = [
+        "LLAMA_CACHE=%C/llama-server"
+      ]
+      ++ runtime.environment;
       ExecStart = lib.escapeShellArgs [
-        (if isNixOS then lib.getExe' (pkgs.llama-cpp.override { vulkanSupport = true; }) "llama-server"
-         else "/usr/bin/llama-server")
-        "--models-preset" "${preset}"
-        "--models-max" "1"
+        runtime.executable
+        "--models-preset"
+        "${preset}"
+        "--models-max"
+        "1"
         "--models-autoload"
-        "--host" "127.0.0.1"
-        "--port" "8080"
+        "--host"
+        host
+        "--port"
+        port
         "--no-ui"
-        "--cors-origins" "http://127.0.0.1:8080"
+        "--cors-origins"
+        baseURL
       ];
       # Wait for the inference API to be ready before OpenCode starts.
       ExecStartPost = lib.escapeShellArgs [
         (if isNixOS then lib.getExe pkgs.curl else "/usr/bin/curl")
-        "--fail" "--silent" "--show-error"
-        "--retry" "15" "--retry-connrefused" "--retry-delay" "1"
-        "--retry-max-time" "20" "--max-time" "2"
-        "http://127.0.0.1:8080/health"
+        "--fail"
+        "--silent"
+        "--show-error"
+        "--retry"
+        "30"
+        "--retry-connrefused"
+        "--retry-delay"
+        "1"
+        "--max-time"
+        "2"
+        "${baseURL}/health"
       ];
+      # systemd owns the total readiness deadline; curl bounds each probe.
       TimeoutStartSec = "30s";
       Restart = "on-failure";
       RestartSec = 10;
