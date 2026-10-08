@@ -26,16 +26,18 @@ use std::{
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-fn request(base: &str, prompt: &str, tokens: u32, extra: Value) -> Result<Value> {
+const DECODE_TOKENS: u32 = 128;
+
+fn request(base: &str, prompt: &str, tokens: u32, tools: Option<Value>) -> Result<Value> {
     let mut body = json!({
         "model": "benchmark", "messages": [{"role": "user", "content": prompt}],
         "temperature": 0, "max_tokens": tokens, "cache_prompt": false,
         "reasoning_format": "deepseek", "chat_template_kwargs": {"enable_thinking": false}
     });
-    let Value::Object(extra) = extra else {
-        return Err("request overrides must be an object".into());
-    };
-    body.as_object_mut().expect("request object").extend(extra);
+    if let Some(tools) = tools {
+        body["tools"] = tools;
+        body["tool_choice"] = "required".into();
+    }
     let payload = serde_json::to_vec(&body)?;
     let mut child = Command::new("curl")
         .args([
@@ -76,6 +78,20 @@ fn content(response: &Value) -> Result<&str> {
     response["choices"][0]["message"]["content"]
         .as_str()
         .ok_or_else(|| "missing assistant content".into())
+}
+
+fn decode_rate(response: &Value) -> Result<f64> {
+    let timings = &response["timings"];
+    let tokens = timings["predicted_n"]
+        .as_u64()
+        .ok_or("missing decode token count")?;
+    if tokens != u64::from(DECODE_TOKENS) {
+        return Err(format!("decode produced {tokens} tokens, expected {DECODE_TOKENS}").into());
+    }
+    timings["predicted_per_second"]
+        .as_f64()
+        .filter(|rate| rate.is_finite() && *rate > 0.0)
+        .ok_or_else(|| "missing or invalid decode rate".into())
 }
 
 // A bad model answer fails its check; transport and compiler-launch errors abort the run.
@@ -233,7 +249,7 @@ fn rust_check(
     let prompt = format!(
         "Implement the following in Rust 2024 using only the standard library. Return only Rust source, without explanations, main, or tests. {specification}"
     );
-    let response = request(base, &prompt, 1536, json!({}))?;
+    let response = request(base, &prompt, 1536, None)?;
     save(&directory.join(format!("{name}-response.json")), &response)?;
     let source = match content(&response).and_then(rust_source) {
         Ok(source) => source,
@@ -288,7 +304,7 @@ fn main() -> Result<()> {
             directory.display()
         )
     })?;
-    let warmup = request(base, "Reply with OK.", 8, json!({}))?;
+    let warmup = request(base, "Reply with OK.", 8, None)?;
     save(&directory.join("warmup.json"), &warmup)?;
     let command = String::from_utf8(fs::read(format!("/proc/{pid}/cmdline"))?)?;
     save(
@@ -302,16 +318,20 @@ fn main() -> Result<()> {
     let sensors = Sensors::new(pid)?;
     let mut decode = Vec::new();
     for run in 0..3 {
-        let before = sensors.read()?;
+        // Bound the whole counter interval, including both sensor snapshots.
         let started = Instant::now();
+        let before = sensors.read()?;
         let response = request(
             base,
             "List the integers from 1 to 500, separated by commas, without explanations.",
-            128,
-            json!({}),
+            DECODE_TOKENS,
+            None,
         )?;
+        let after = sensors.read();
         let seconds = started.elapsed().as_secs_f64();
-        let after = sensors.read()?;
+        // Sample before disk I/O, but preserve the response even if counters or timing fail.
+        save(&directory.join(format!("decode-{run}.json")), &response)?;
+        let after = after?;
         let gpu_seconds = after
             .compute_ns
             .checked_sub(before.compute_ns)
@@ -322,10 +342,7 @@ fn main() -> Result<()> {
             .checked_sub(before.cpu_ticks)
             .ok_or("CPU counter reset")? as f64
             / sensors.ticks_per_second;
-        let tps = response["timings"]["predicted_per_second"]
-            .as_f64()
-            .ok_or("missing decode timing")?;
-        save(&directory.join(format!("decode-{run}.json")), &response)?;
+        let tps = decode_rate(&response)?;
         let sample = json!({
             "tokens_per_second": tps, "wall_seconds": seconds, "cpu_cores": cpu_seconds / seconds,
             "gpu_compute_duty": gpu_seconds / seconds, "vram_bytes": after.vram,
@@ -398,7 +415,7 @@ fn main() -> Result<()> {
         base,
         "Return only JSON, no markdown: an object with host='127.0.0.1', port=8080, tags=['local','gpu'], and enabled=true.",
         128,
-        json!({}),
+        None,
     )?;
     save(&directory.join("json-response.json"), &response)?;
     quality.push(model_check(
@@ -414,10 +431,9 @@ fn main() -> Result<()> {
         base,
         "Call lookup_timezone for Paris. Use the tool instead of answering directly.",
         128,
-        json!({
-            "tools": [{"type":"function","function":{"name":"lookup_timezone","description":"Get a city's timezone","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"],"additionalProperties":false}}}],
-            "tool_choice":"required"
-        }),
+        Some(
+            json!([{"type":"function","function":{"name":"lookup_timezone","description":"Get a city's timezone","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"],"additionalProperties":false}}}]),
+        ),
     )?;
     save(&directory.join("tool-response.json"), &response)?;
     quality.push(tool_check(&response));
@@ -426,7 +442,7 @@ fn main() -> Result<()> {
         prompt.push_str(&format!("record-{i:04} = {}\n", (i * 37 + 11) % 9973));
     }
     prompt.push_str("\nWhat is the value of record-0353? Return only its integer value.");
-    let response = request(base, &prompt, 16, json!({}))?;
+    let response = request(base, &prompt, 16, None)?;
     save(&directory.join("retrieval-response.json"), &response)?;
     let mut retrieval = model_check(
         "context-retrieval",
@@ -453,6 +469,27 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn decode_rate_requires_a_full_run_and_a_positive_finite_rate() {
+        assert_eq!(
+            decode_rate(&json!({"timings": {
+                "predicted_n": DECODE_TOKENS, "predicted_per_second": 30.0,
+            }}))
+            .unwrap(),
+            30.0
+        );
+        for timings in [
+            json!({}),
+            json!({"predicted_n": 32, "predicted_per_second": 30.0}),
+            json!({"predicted_n": DECODE_TOKENS}),
+            json!({"predicted_n": DECODE_TOKENS, "predicted_per_second": 0}),
+            json!({"predicted_n": DECODE_TOKENS, "predicted_per_second": -1}),
+            json!({"predicted_n": DECODE_TOKENS, "predicted_per_second": null}),
+        ] {
+            assert!(decode_rate(&json!({"timings": timings})).is_err());
+        }
+    }
 
     #[test]
     fn proc_cpu_fields_ignore_the_command_name_and_trailing_fields() {
