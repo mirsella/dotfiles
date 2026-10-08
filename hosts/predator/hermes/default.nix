@@ -9,6 +9,11 @@ let
     paths = with pkgs; [ bashInteractive coreutils findutils gnugrep gnused gawk git ripgrep curl jq python3 nodejs_22 cacert ];
   };
   package = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.messaging;
+  upstreamCommon = import "${inputs.hermes-agent}/nix/moduleCommon.nix" { inherit lib; };
+  gatewayEnvironment = upstreamCommon.mkEnvScript {
+    inherit pkgs;
+    inherit (config.services.hermes-agent) environment;
+  };
   controllerConfig = pkgs.writeText "hermes-browser-control.json" (builtins.toJSON {
     listen = "127.0.0.1:9378";
     backend = "http://127.0.0.1:9377";
@@ -61,6 +66,10 @@ in {
     sops.secrets = lib.genAttrs [ "hermes_gateway_env" "hermes_browser_env" "hermes_control_env" "hermes_caddy_env" ] (name: {
       sopsFile = ../../../secrets/hermes.yaml;
       restartUnits = if name == "hermes_caddy_env" then [ "caddy.service" ] else [ "camofox-browser.service" "hermes-browser-control.service" ] ++ lib.optional cfg.messaging "hermes-agent.service";
+    } // lib.optionalAttrs (name == "hermes_gateway_env") {
+      owner = config.services.hermes-agent.user;
+      group = config.services.hermes-agent.group;
+      mode = "0400";
     });
     users.groups.camofox = {};
     users.groups.hermes-browser-control = {};
@@ -116,14 +125,21 @@ in {
     };
     systemd.services.hermes-agent = {
       wantedBy = lib.mkForce (lib.optional cfg.messaging "multi-user.target");
-      requires = [ "hermes-network-isolation.service" "hermes-browser-control.service" ];
+      requires = [ "hermes-network-isolation.service" "hermes-browser-control.service" "sops-install-secrets.service" ];
       after = [ "hermes-network-isolation.service" "hermes-browser-control.service" "sops-install-secrets.service" ];
+      # Predator installs SOPS through systemd, after native Nix activation.
+      # Reuse upstream's env renderer after installation, including on restart.
+      preStart = lib.mkBefore ''
+        test -r ${lib.escapeShellArg config.sops.secrets.hermes_gateway_env.path}
+        ${gatewayEnvironment} ${state}/.hermes/.env 0640 ${lib.escapeShellArgs config.services.hermes-agent.environmentFiles}
+      '';
       serviceConfig = hardening // {
-        ProtectHome = lib.mkForce true;
+        # Mask personal homes while exposing the user bus for native cron scopes.
+        ProtectHome = lib.mkForce "tmpfs";
         UMask = lib.mkForce "0077";
         Restart = lib.mkForce "on-failure";
         RestartSec = lib.mkForce "5s";
-        BindReadOnlyPaths = [ "/var/lib/camofox-downloads:${state}/workspace/downloads" ];
+        BindReadOnlyPaths = [ "/run/user" "/var/lib/camofox-downloads:${state}/workspace/downloads" ];
       };
     };
     systemd.services.hermes-network-isolation = {

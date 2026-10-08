@@ -145,11 +145,16 @@ assert lib.assertMsg (
   && !(server.services.hermes-agent.settings ? hooks)
   && !(server.services.hermes-agent.settings ? approvals)
   && !(server.services.hermes-agent.settings ? toolsets)
+  && server.sops.secrets.hermes_gateway_env.owner == "hermes-agent"
+  && server.sops.secrets.hermes_gateway_env.mode == "0400"
+  && builtins.elem "sops-install-secrets.service" server.systemd.services.hermes-agent.requires
+  && lib.hasInfix server.sops.secrets.hermes_gateway_env.path server.systemd.services.hermes-agent.preStart
+  && server.systemd.services.hermes-agent.serviceConfig.ProtectHome == "tmpfs"
   && server.systemd.services.hermes-agent.serviceConfig.BindReadOnlyPaths
-    == [ "/var/lib/camofox-downloads:/var/lib/hermes/workspace/downloads" ]
+    == [ "/run/user" "/var/lib/camofox-downloads:/var/lib/hermes/workspace/downloads" ]
   && lib.all (unit:
     server.systemd.services.${unit}.serviceConfig.NoNewPrivileges
-    && server.systemd.services.${unit}.serviceConfig.ProtectHome
+    && server.systemd.services.${unit}.serviceConfig.ProtectHome != false
     && server.systemd.services.${unit}.serviceConfig.ProtectSystem == "strict"
   ) [ "hermes-agent" "hermes-browser-control" "camofox-browser" ]
   && server.systemd.services.camofox-browser.environment.CAMOFOX_BIND_HOST == "127.0.0.1"

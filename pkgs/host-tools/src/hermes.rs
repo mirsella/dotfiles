@@ -131,9 +131,44 @@ fn private_write(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+fn stage_private(path: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFile> {
+    let parent = path.parent().context("Private file has no parent")?;
+    fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(parent)?;
+    let mut staged = tempfile::NamedTempFile::new_in(parent)?;
+    staged.write_all(bytes)?;
+    staged.as_file().sync_all()?;
+    Ok(staged)
+}
+
+// These outputs live in different directories. Stage both before publishing,
+// and roll back only this attempt's newly published login if secrets fail.
+fn publish_fresh_credentials(login: (&Path, &[u8]), secrets: (&Path, &[u8])) -> Result<()> {
+    let staged_login = stage_private(login.0, login.1)?;
+    let staged_secrets = stage_private(secrets.0, secrets.1)?;
+    let _login = staged_login
+        .persist_noclobber(login.0)
+        .map_err(|error| error.error)
+        .context("Cannot publish private viewer login")?;
+    if let Err(error) = staged_secrets.persist_noclobber(secrets.0) {
+        let error =
+            anyhow::Error::new(error.error).context("Cannot publish encrypted service secrets");
+        if let Err(cleanup) = fs::remove_file(login.0) {
+            return Err(error.context(format!(
+                "Could not roll back this attempt's viewer login: {cleanup}"
+            )));
+        }
+        return Err(error);
+    }
+    Ok(())
+}
+
 pub fn provision(root: &Path, converter: &Path, reuse: bool) -> Result<()> {
     let root = root.canonicalize()?;
     let destination = root.join("secrets/hermes.yaml");
+    let mut pending_login = None;
     let mut values = if destination.exists() {
         ensure!(
             reuse,
@@ -164,13 +199,12 @@ pub fn provision(root: &Path, converter: &Path, reuse: bool) -> Result<()> {
             "Caddy did not return a bcrypt hash"
         );
         let credentials = home.join(".config/hermes/viewer.json");
-        private_write(
-            &credentials,
-            &serde_json::to_vec_pretty(
+        pending_login = Some((
+            credentials,
+            serde_json::to_vec_pretty(
                 &json!({"url":"https://mirsella.mooo.com/browser/","username":"mirsella","password":password}),
             )?,
-        )?;
-        println!("Private viewer login: {}", credentials.display());
+        ));
         let env_block = |pairs: &[(&str, &str)]| -> Result<String> {
             environment(
                 &pairs
@@ -261,12 +295,14 @@ pub fn provision(root: &Path, converter: &Path, reuse: bool) -> Result<()> {
         ]),
         Some(&serde_json::to_vec(&values)?),
     )?;
-    if destination.exists() {
-        let temporary = destination.with_extension("yaml.new");
-        private_write(&temporary, &encrypted)?;
-        fs::rename(temporary, &destination)?;
+    if let Some((credentials, bytes)) = pending_login {
+        publish_fresh_credentials((&credentials, &bytes), (&destination, &encrypted))?;
+        println!("Private viewer login: {}", credentials.display());
     } else {
-        private_write(&destination, &encrypted)?;
+        stage_private(&destination, &encrypted)?
+            .persist(&destination)
+            .map_err(|error| error.error)
+            .context("Cannot replace encrypted service secrets")?;
     }
     println!("Encrypted service secrets: {}", destination.display());
     Ok(())
@@ -458,6 +494,51 @@ pub fn operations(action: &str, archive: Option<&Path>) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fresh_credential_publication_cleans_failure_and_preserves_existing_outputs() {
+        let directory = tempfile::tempdir().unwrap();
+        let login = directory.path().join("login/viewer.json");
+        let secrets = directory.path().join("secrets/hermes.yaml");
+        private_write(&secrets, b"existing ciphertext").unwrap();
+        assert!(
+            publish_fresh_credentials((&login, b"new login"), (&secrets, b"new ciphertext"))
+                .is_err()
+        );
+        assert!(!login.exists());
+        assert_eq!(fs::read(&secrets).unwrap(), b"existing ciphertext");
+        assert_eq!(fs::read_dir(secrets.parent().unwrap()).unwrap().count(), 1);
+        assert_eq!(fs::read_dir(login.parent().unwrap()).unwrap().count(), 0);
+        fs::remove_file(&secrets).unwrap();
+        publish_fresh_credentials((&login, b"new login"), (&secrets, b"new ciphertext")).unwrap();
+        assert_eq!(
+            fs::metadata(&login).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        assert_eq!(
+            fs::metadata(&secrets).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+        assert!(
+            publish_fresh_credentials((&login, b"replacement"), (&secrets, b"replacement"))
+                .is_err()
+        );
+        assert_eq!(fs::read(&login).unwrap(), b"new login");
+        assert_eq!(fs::read(&secrets).unwrap(), b"new ciphertext");
+    }
+
+    #[test]
+    fn fresh_credential_staging_failure_publishes_nothing() {
+        let directory = tempfile::tempdir().unwrap();
+        let login = directory.path().join("login/viewer.json");
+        let invalid_parent = directory.path().join("not-a-directory");
+        fs::write(&invalid_parent, b"keep").unwrap();
+        let secrets = invalid_parent.join("hermes.yaml");
+        assert!(publish_fresh_credentials((&login, b"login"), (&secrets, b"ciphertext")).is_err());
+        assert!(!login.exists());
+        assert_eq!(fs::read(&invalid_parent).unwrap(), b"keep");
+        assert_eq!(fs::read_dir(login.parent().unwrap()).unwrap().count(), 0);
+    }
 
     #[test]
     fn backup_restores_services_after_failed_stop_or_archive() {

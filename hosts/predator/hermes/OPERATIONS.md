@@ -94,6 +94,10 @@ With existing secrets, this preserves model/browser/viewer credentials and
 only updates the verified bot/owner mapping. Never regenerate secrets merely
 because they were read. Use SOPS for intentional changes. Caddy secret changes
 restart Caddy; other service secret changes restart the private integration.
+Fresh provisioning stages the encrypted secrets and private viewer login before
+publication. Failed attempts clean staged files and roll back their new login;
+existing credentials are never overwritten by fresh provisioning. Bot reuse
+updates the existing encrypted source atomically.
 
 ## Native reminders and automation
 

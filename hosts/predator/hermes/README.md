@@ -95,6 +95,10 @@ The browser has no Go or Telegram credentials; the viewer receives no backend
 keys. Native Hermes requires its private `.env`, readable by its own service
 user and local terminal. The browser profile remains private to `camofox`.
 Plaintext secrets never become Nix derivation inputs.
+Predator installs SOPS through systemd. On every gateway start, the upstream
+environment renderer runs after secret installation and refreshes Hermes's
+private `.env`. Personal homes stay masked; a read-only `/run/user` binding
+preserves the dedicated user's bus for native restart-safe scheduled workers.
 
 ## Lifecycle and handoff
 

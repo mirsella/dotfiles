@@ -24,10 +24,12 @@ overnight auto-sleep test. No reboot or suspend test was requested or performed.
 
 | Result | Check | Evidence |
 | --- | --- | --- |
-| PASS | Viewer/controller refactor | Nine controller tests retain authorization/identity/idle/persistence behavior and cover warm reuse, lost-tab recovery without replay, old-state migration and nonblocking passive status |
+| PASS | Viewer/controller refactor | Ten controller tests retain authorization/identity/idle/persistence behavior and cover blank-tab creation using the pinned endpoint contract, warm reuse, lost-tab recovery without replay, old-state migration and nonblocking passive status |
 | PASS | Managed instructions review | Workspace `AGENTS.md` requires normal stuck reply + viewer link, end turn, wait only for `done`, then fresh snapshot/verification; no browser polling |
 | PASS | Native Telegram intake policy | Isolated fake-message probe against the pinned adapter: owner DM allowed, another user's DM and owner messages in groups/supergroups denied; no Telegram network call |
-| PASS | Current Rust regressions | `cargo test`: 40 passed, zero failed/ignored; includes backup service recovery after failed stop/archive and existing storage/suspend regressions |
+| PASS | Current Rust regressions | `cargo test`: 43 passed, zero failed/ignored; includes credential publication rollback/no-clobber/retry, backup service recovery after failed stop/archive and existing storage/suspend regressions |
+| PASS | Review fixes, static Nix invariants | Gateway secret is readable only by its dedicated owner; start requires SOPS and reuses upstream env merging; personal homes are masked while the user bus remains mounted. Actual first activation and live scheduled-worker behavior remain untested |
+| PASS | Review scoped Nix build | Current host-tools and generated Hermes gateway unit/pre-start environment renderer build successfully; no activation or real-secret execution |
 | PASS | Deterministic warm-path work measurement | 25 mocked-backend snapshots perform 50 backend requests, zero tab/VNC rediscovery and zero state-file replacements; inspected prior healthy warm path required 100 requests/50 replacements. This is work-count evidence, not real Firefox latency or power measurement |
 | PASS | Stock-default Nix evaluation | All profiles and host/Predator invariants pass; verifies exact upstream messaging derivation, native local backend, no extra plugins/hooks/approval/toolset override, private Telegram and read-only download binding |
 | PASS | Stock-default Nix package builds | Unmodified Hermes messaging package and current Rust host-tools built successfully; no activation |

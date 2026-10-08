@@ -207,7 +207,9 @@ impl App {
                     self.backend(
                         Method::POST,
                         "/tabs",
-                        Some(json!({"userId":USER,"listItemId":USER,"url":"about:blank"})),
+                        // Omitting URL creates a blank tab; the pinned API
+                        // rejects about:blank as an explicit navigation URL.
+                        Some(json!({"userId":USER,"listItemId":USER})),
                     )
                     .await?["tabId"]
                         .as_str()
@@ -695,6 +697,8 @@ mod tests {
         vnc_reads: u32,
         snapshots: u32,
         missing_tab: bool,
+        tab_exists: bool,
+        created_tabs: u32,
         delayed_status: Option<Arc<StatusWait>>,
     }
     #[derive(Default)]
@@ -708,7 +712,10 @@ mod tests {
         }
     }
     async fn fixture() -> Fixture {
-        let counts = Arc::new(Mutex::new(Counts::default()));
+        let counts = Arc::new(Mutex::new(Counts {
+            tab_exists: true,
+            ..Counts::default()
+        }));
         let backend = Router::new()
             .route("/", get(|State(counts): State<Arc<Mutex<Counts>>>| async move {
                 let delay = {
@@ -725,8 +732,21 @@ mod tests {
             .route("/start", post(|State(counts): State<Arc<Mutex<Counts>>>| async move { let mut c = counts.lock().await; c.running = true; c.starts += 1; axum::Json(json!({"ok":true})) }))
             .route("/stop", post(|State(counts): State<Arc<Mutex<Counts>>>| async move { let mut c = counts.lock().await; assert!(c.checkpoints > 0); c.running = false; axum::Json(json!({"ok":true})) }))
             .route("/tabs", get(|State(counts): State<Arc<Mutex<Counts>>>| async move {
-                counts.lock().await.tab_reads += 1;
-                axum::Json(json!({"tabs":[{"tabId":"newer-other-tab","listItemId":"other"},{"tabId":"shared-tab","listItemId":USER}]}))
+                let mut counts = counts.lock().await;
+                counts.tab_reads += 1;
+                axum::Json(if counts.tab_exists {
+                    json!({"tabs":[{"tabId":"newer-other-tab","listItemId":"other"},{"tabId":"shared-tab","listItemId":USER}]})
+                } else { json!({"tabs":[]}) })
+            }).post(|State(counts): State<Arc<Mutex<Counts>>>, axum::Json(data): axum::Json<Value>| async move {
+                if data.get("url").is_some_and(|url| !url.as_str().is_some_and(|url| url.starts_with("https://") || url.starts_with("http://"))) {
+                    return (StatusCode::BAD_REQUEST, axum::Json(json!({"error":"Only HTTP(S) URLs allowed"}))).into_response();
+                }
+                assert_eq!(data["userId"], USER);
+                assert_eq!(data["listItemId"], USER);
+                let mut counts = counts.lock().await;
+                counts.created_tabs += 1;
+                counts.tab_exists = true;
+                axum::Json(json!({"tabId":"shared-tab"})).into_response()
             }))
             .route("/tabs/shared-tab/snapshot", get(|State(counts): State<Arc<Mutex<Counts>>>| async move {
                 let mut counts = counts.lock().await;
@@ -843,6 +863,21 @@ mod tests {
         );
         assert!(shared_tab(&tabs, None).is_err());
         assert!(shared_tab(&json!({}), None).is_err());
+    }
+    #[tokio::test]
+    async fn fresh_browser_creates_blank_tab_without_rejected_navigation_url() {
+        let f = fixture().await;
+        f.counts.lock().await.tab_exists = false;
+        open(State(f.app.clone()), viewer_headers()).await.unwrap();
+        assert_eq!(f.counts.lock().await.created_tabs, 1);
+        api(State(f.app.clone()), request(Method::GET, "/tabs", ""))
+            .await
+            .unwrap();
+        assert_eq!(f.counts.lock().await.created_tabs, 1);
+        assert_eq!(
+            f.app.runtime.lock().await.tab.as_deref(),
+            Some("shared-tab")
+        );
     }
     #[tokio::test]
     async fn warm_tools_do_not_rediscover_tabs_poll_vnc_or_write_state() {
