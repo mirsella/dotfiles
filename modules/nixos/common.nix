@@ -10,8 +10,8 @@
   };
   nix.gc = {
     automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
+    dates = "daily";
+    options = "--delete-older-than 7d";
   };
   services.journald.settings.Journal.SystemMaxUse = "1G";
   hardware.enableRedistributableFirmware = true;

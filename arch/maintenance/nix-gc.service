@@ -1,7 +1,7 @@
 [Unit]
-Description=Prune Nix generations older than 14 days
+Description=Prune Nix generations older than 7 days
 RequiresMountsFor=/nix
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/nix-collect-garbage --delete-older-than 14d
+ExecStart=/usr/bin/nix-collect-garbage --delete-older-than 7d

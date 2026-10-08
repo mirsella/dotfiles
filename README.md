@@ -128,8 +128,9 @@ boot if a check fails. Review `journalctl -u arch-rollback-cleanup.service` afte
 reboot. A Timeshift snapshot can retain the old blocks until that snapshot expires.
 
 The installer preserves machine-specific Nix and Timeshift settings. It schedules
-14-day Nix GC, two weekly and one monthly Timeshift snapshot plus two pre-upgrade
-snapshots, a 1 GiB journal cap, weekly pacman cache pruning, old Docker builder
+daily Nix GC with 7-day generation retention, two weekly and one monthly
+Timeshift snapshot plus two pre-upgrade snapshots, a 1 GiB journal cap, weekly
+pacman cache pruning, old Docker builder
 cache pruning, and limited Btrfs maintenance. When `fail2ban` is installed, the
 installer also enables its SSH jail: three failed logins ban an address for a
 minute, then five, ten, twenty minutes for repeat offenders, doubling up to a
@@ -138,6 +139,11 @@ uses btrfs-progs' monthly scrub timer and its own balance and space-check units.
 The desktop Home Manager profile caps the kache build cache at 150 GiB. NixOS
 uses the equivalent shared Nix GC, journal and fail2ban settings, and the
 desktops trim their encrypted SSDs weekly.
+
+On Arch, Home Manager also prunes the user's Nix profiles daily with the same
+7-day retention; the root timer cannot prune profiles in the user's XDG state
+directory. Active profiles and their dependencies stay rooted, including main's
+GGUF model. Builds can also trigger GC below 10 GiB free, targeting 20 GiB free.
 
 ## Workstation build memory
 

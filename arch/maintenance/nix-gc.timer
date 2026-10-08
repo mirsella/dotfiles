@@ -1,8 +1,8 @@
 [Unit]
-Description=Weekly Nix garbage collection
+Description=Daily Nix garbage collection
 
 [Timer]
-OnCalendar=weekly
+OnCalendar=daily
 Persistent=true
 RandomizedDelaySec=1h
 

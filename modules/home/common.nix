@@ -39,6 +39,18 @@ in
   # started, restarted, or stopped, and take over on next login instead.
   systemd.user.startServices = isNixOS;
 
+  # Root GC cannot prune Arch's Home Manager generations in the user's XDG state.
+  nix.gc = {
+    automatic = !isNixOS;
+    dates = "daily";
+    randomizedDelaySec = "1h";
+    options = "--delete-older-than 7d";
+  };
+  systemd.user.services.nix-gc = lib.mkIf (!isNixOS) {
+    # Pacman owns Nix on Arch; use that client rather than pulling in another one.
+    Service.ExecStart = lib.mkForce "/usr/bin/nix-collect-garbage ${config.nix.gc.options}";
+  };
+
   systemd.user.services.lspmux = {
     Unit.Description = "Language server multiplexer server";
     Service = {
