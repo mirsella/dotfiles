@@ -14,6 +14,12 @@ kde shortcuts.kksrc
 .config/systemd/user/**
 # Home Manager owns the host-specific local model provider.
 .config/opencode/opencode.json
+# Home Manager installs compiled extensions and the idle watchdog.
+.config/opencode/plugins/
+.config/opencode/plugins/**
+.config/opencode/tui-plugins/
+.config/opencode/tui-plugins/**
+.local/bin/opencode-idle-watchdog
 .config/kache/config.toml
 # Home Manager owns the generated Atuin config on HM hosts.
 .config/atuin/config.toml

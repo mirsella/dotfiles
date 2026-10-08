@@ -127,6 +127,18 @@ assert lib.assertMsg (
   ) [ "main" "laptop" ]
 ) "kache must run from the flake package on NixOS and Arch workstations";
 assert lib.assertMsg (
+  lib.all (name:
+    lib.all (home:
+      home.xdg.configFile."opencode/plugins".source
+        == "${flake.packages.x86_64-linux.opencode-extensions}/share/opencode/plugins"
+      && home.xdg.configFile."opencode/tui-plugins".source
+        == "${flake.packages.x86_64-linux.opencode-extensions}/share/opencode/tui-plugins"
+      && home.home.file.".local/bin/opencode-idle-watchdog".source
+        == "${flake.packages.x86_64-linux.opencode-idle-watchdog}/bin/opencode-idle-watchdog"
+    ) [ desktops.${name}.home-manager.users.mirsella flake.homeConfigurations.${name}.config ]
+  ) [ "main" "laptop" ]
+) "Home Manager must install the compiled OpenCode extensions and watchdog on both operating systems";
+assert lib.assertMsg (
   lib.all (config:
     let
       luks = config.boot.initrd.luks.devices;

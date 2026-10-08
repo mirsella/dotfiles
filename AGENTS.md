@@ -9,9 +9,9 @@ The flake discovers these directories and sets hostnames automatically.
   Nix/NixOS modules; use Home Manager for the user settings it owns. Reproduce
   the setup from this flake instead of relying on imperative machine edits.
 - Write custom daemons, automation and administrative scripts in Rust. Use
-  `pkgs/host-tools` for shared host operations; do not add Python or shell programs
-  for this logic. Keep unavoidable adapters to an upstream API in its required
-  language small, with the operational logic in Rust.
+  `pkgs/host-tools` for shared host operations and separate packages for application
+  runtimes. Keep unavoidable adapters to an upstream API in its required language
+  small, with the operational logic in Rust.
 - Nightly Cargo's `-Zscript` is available for small Rust scripts and one-off
   tasks. Deployed services and scheduled scripts must be compiled during the
   Nix build with pinned dependencies, not on their first invocation. They should
@@ -28,6 +28,11 @@ The flake discovers these directories and sets hostnames automatically.
 - Chezmoi owns editable app configuration. Home Manager owns packages, generated
   Git/SSH settings, user services and SOPS wiring. Keep each path under one
   owner; `.chezmoiignore` lists the HM-owned paths.
+- OpenCode extensions and their tests live in `pkgs/opencode-extensions`; Home
+  Manager installs the compiled plugins. Its editable JSON settings remain in
+  chezmoi. The idle watchdog is compiled from `pkgs/opencode-idle-watchdog`.
+- Retire one-time migrations after every affected host has completed them. Keep
+  deployment evidence in Git history rather than permanent acceptance reports.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
@@ -42,10 +47,9 @@ The flake discovers these directories and sets hostnames automatically.
   Run long rebuilds detached and poll the unit log and exit status.
 - `nix flake check path:. --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`.
-  Custom recurring services are Rust subcommands in `pkgs/host-tools`; add new
-  recurring logic there rather than in Python or shell. Run its focused Cargo
-  tests for monitoring, backups and suspend changes. Unlock and one-time installer
-  checks remain under `tests/`.
+  Run focused Cargo tests for monitoring, backups and suspend changes. The
+  `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during
+  `nix flake check` without `--no-build`.
 - `disko.nix` formats **all four data disks** only for a fresh, intentional
   installation. To reinstall on existing disks, mount them without running disko,
   preserve the LUKS headers, ZFS pools, Secure Boot signing bundle (`/var/lib/sbctl`),

@@ -1,20 +1,3 @@
-#!/usr/bin/env -S cargo +nightly -Zscript
----
-[package]
-edition = "2024"
-
-[dependencies]
-anyhow = "1.0.98"
-base64 = "0.22.1"
-clap = { version = "4.6.2", features = ["derive"] }
-comfy-table = "8.0.0"
-jiff = "0.2.35"
-libc = "0.2.174"
-serde_json = "1.0.141"
-signal-hook = "0.3.18"
-ureq = { version = "3.3.0", default-features = false }
----
-
 //! Run a command after every other opencode session has gone idle.
 
 use std::collections::{HashMap, HashSet};
@@ -661,11 +644,7 @@ fn classify_snapshot(
             } else {
                 match kind {
                     "idle" => ("IDLE", Color::Green, None),
-                    "busy" => (
-                        "RUNNING",
-                        Color::Yellow,
-                        Some(format!("{session}:busy")),
-                    ),
+                    "busy" => ("RUNNING", Color::Yellow, Some(format!("{session}:busy"))),
                     "retry" => ("RETRY", Color::Magenta, Some(format!("{session}:retry"))),
                     _ => ("UNKNOWN", Color::Red, Some(format!("{session}:unknown"))),
                 }
@@ -1242,7 +1221,9 @@ impl Dashboard {
             let Ok(state) = &snapshot.state else {
                 continue;
             };
-            for verdict in classify_snapshot(state, &evaluation.excluded_sessions, &evaluation.stuck) {
+            for verdict in
+                classify_snapshot(state, &evaluation.excluded_sessions, &evaluation.stuck)
+            {
                 let details = state.sessions.get(verdict.session.as_str());
                 let age = details
                     .and_then(|value| value.pointer("/time/created"))
@@ -1649,7 +1630,9 @@ mod tests {
     fn classifies_disappearing_proc_entries() {
         assert!(proc_entry_gone(&io::Error::from_raw_os_error(libc::ENOENT)));
         assert!(proc_entry_gone(&io::Error::from_raw_os_error(libc::ESRCH)));
-        assert!(!proc_entry_gone(&io::Error::from_raw_os_error(libc::EACCES)));
+        assert!(!proc_entry_gone(&io::Error::from_raw_os_error(
+            libc::EACCES
+        )));
     }
 
     #[test]
@@ -1706,11 +1689,7 @@ mod tests {
           }
         }"#).unwrap();
         assert_eq!(
-            blockers_of(
-                &workspace_state(&fixture),
-                &HashSet::new(),
-                &HashSet::new()
-            ),
+            blockers_of(&workspace_state(&fixture), &HashSet::new(), &HashSet::new()),
             [
                 "background:busy",
                 "busy:busy",

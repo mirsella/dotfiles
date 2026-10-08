@@ -8,11 +8,23 @@ let
 in
 {
   programs.git.settings.commit.gpgsign = true;
-  home.packages = [ pkgs.kache ] ++ lib.optionals isNixOS [
+  home.packages = [ pkgs.kache pkgs.opencode-idle-watchdog ] ++ lib.optionals isNixOS [
     pkgs.opencode pkgs.openchamber
     pkgs.binaryen pkgs.gnumake pkgs.ninja pkgs.trunk pkgs.wasm-pack
   ];
+  home.file.".local/bin/opencode-idle-watchdog" = {
+    source = lib.getExe pkgs.opencode-idle-watchdog;
+    force = true;
+  };
   xdg.configFile = {
+    "opencode/plugins" = {
+      source = "${pkgs.opencode-extensions}/share/opencode/plugins";
+      force = true;
+    };
+    "opencode/tui-plugins" = {
+      source = "${pkgs.opencode-extensions}/share/opencode/tui-plugins";
+      force = true;
+    };
     "kache/config.toml" = {
       force = true;
       text = ''

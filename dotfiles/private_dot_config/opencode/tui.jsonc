@@ -14,8 +14,8 @@
   },
   "plugin": [
     "./tui-plugins/cache-timer-tui.js",
-    "./tui-plugins/suppress-ctrl-u.ts",
-    "./tui-plugins/subagent-mode.ts",
-    "./tui-plugins/system-theme.ts",
+    "./tui-plugins/suppress-ctrl-u.js",
+    "./tui-plugins/subagent-mode.js",
+    "./tui-plugins/system-theme.js",
   ],
 }

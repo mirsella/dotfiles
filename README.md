@@ -184,11 +184,6 @@ On NixOS, activate through the system rebuild, not standalone Home Manager.
 Zram size changes on the current Arch installation take effect on reboot; avoid
 draining a full swap device during builds.
 
-The previous build-scope helper, tool wrappers and tests are archived in Git
-commit `37a0c44` (`chore(memory): preserve build wrappers before simplification`).
-A one-time Chezmoi migration removes those installed wrappers when applying the
-dotfiles; it preserves actual tool binaries and unrelated symlinks.
-
 ## Checks
 
 ```sh
@@ -196,8 +191,30 @@ nix flake check path:. --no-build --no-update-lock-file
 ```
 
 This evaluates all NixOS and Arch Home Manager profiles and checks host isolation,
-service lifecycle rules, and Predator's boot/storage invariants. The checks are
-pure evaluations and do not activate a system or run the disk formatter.
+service lifecycle rules, and Predator's boot/storage invariants. Run the executable
+unlock-generator and Arch maintenance tests with:
+
+```sh
+nix build path:.#checks.x86_64-linux.data-unlock path:.#checks.x86_64-linux.arch-maintenance --no-link
+```
+
+These tests use generated units and disposable files; they do not activate a system.
+
+## OpenCode extensions
+
+`pkgs/opencode-extensions` owns the local plugins, TUI extensions and their tests.
+Its Nix build bundles dependencies and compiles the cache timer from TSX with a
+locked toolchain. Home Manager installs the compiled files; chezmoi owns the JSON
+settings. Build and test the extensions and the compiled idle watchdog with:
+
+```sh
+nix build path:.#opencode-extensions path:.#opencode-idle-watchdog --no-link
+```
+
+On Arch, activate Home Manager before applying updated TUI settings. On NixOS,
+rebuild the system instead. Restart OpenCode to load the compiled plugins. The
+watchdog keeps the `opencode-idle-watchdog` command and no longer compiles itself
+on invocation.
 
 ## Predator storage
 

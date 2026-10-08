@@ -1,0 +1,19 @@
+[package]
+name = "opencode-idle-watchdog"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+base64 = "0.22.1"
+clap = { version = "4.6.2", features = ["derive"] }
+comfy-table = "8.0.0"
+jiff = "0.2.35"
+libc = "0.2.174"
+serde_json = "1.0.141"
+signal-hook = "0.3.18"
+ureq = { version = "3.3.0", default-features = false }
+
+[profile.release]
+lto = "thin"
+strip = true

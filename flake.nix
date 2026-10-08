@@ -44,7 +44,7 @@
       releaseTarballs = [ "helium" "kache" "zen-browser" ];
       # Keep OpenChamber on 1.x while the workstations run OpenCode 1.x; unpin both together.
       pinnedPackages = [ "openchamber" ];
-      localPackages = [ "host-tools" ];
+      localPackages = [ "host-tools" "opencode-extensions" "opencode-idle-watchdog" ];
       updateVersionFlag = name:
         if builtins.elem name releaseTarballs then
           "--version stable"
@@ -129,6 +129,25 @@
       ) {
         hosts = ./tests/hosts.nix;
         predator = ./tests/predator.nix;
+      } // {
+        data-unlock = pkgs.runCommand "data-unlock-tests" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+          python3 ${./tests/data-unlock.py} ${pkgs.systemd} < ${pkgs.writeText "predator-crypttab" self.nixosConfigurations.predator.config.environment.etc.crypttab.text}
+          touch "$out"
+        '';
+        arch-maintenance = pkgs.runCommand "arch-maintenance-tests" {
+          nativeBuildInputs = [ pkgs.python3 ];
+          src = nixpkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = nixpkgs.lib.fileset.unions [
+              ./tests/arch-maintenance.py
+              ./arch/maintenance/apply.py
+              ./arch/maintenance/cleanup-rollback.py
+            ];
+          };
+        } ''
+          PYTHONDONTWRITEBYTECODE=1 python3 "$src/tests/arch-maintenance.py"
+          touch "$out"
+        '';
       };
     };
 }
