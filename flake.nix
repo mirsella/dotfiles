@@ -38,13 +38,14 @@
       pkgs = import nixpkgs {
         system = "x86_64-linux";
         inherit overlays;
+        config.allowUnfreePredicate = package: nixpkgs.lib.getName package == "sleev";
       };
       customPackages = import ./pkgs pkgs;
       # nix-update follows each package's own versioning: npm releases regenerate the lock, release tarballs use the stable version, and VCS packages track their branch.
       releaseTarballs = [ "helium" "kache" "zen-browser" ];
       # Keep OpenChamber on 1.x while the workstations run OpenCode 1.x; unpin both together.
       pinnedPackages = [ "openchamber" ];
-      localPackages = [ "host-tools" "opencode-extensions" "opencode-idle-watchdog" ];
+      localPackages = [ "host-tools" "sleev" "opencode-extensions" "opencode-idle-watchdog" ];
       updateVersionFlag = name:
         if builtins.elem name releaseTarballs then
           "--version stable"

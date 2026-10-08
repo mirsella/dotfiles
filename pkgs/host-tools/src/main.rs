@@ -37,10 +37,21 @@ enum Commands {
         #[arg(long)]
         reuse_mirsellabot: bool,
     },
-    Hermes {
-        action: String,
+    HermesConfigure {
         #[arg(long)]
-        archive: Option<PathBuf>,
+        config: PathBuf,
+        #[arg(long)]
+        defaults: PathBuf,
+    },
+    SecretService {
+        #[arg(long)]
+        daemon: PathBuf,
+        #[arg(long)]
+        password_file: PathBuf,
+    },
+    Hermes {
+        #[command(subcommand)]
+        action: hermes::Operation,
     },
     NightSuspend {
         #[arg(long)]
@@ -117,7 +128,12 @@ fn run() -> Result<()> {
             ssh_to_age,
             reuse_mirsellabot,
         } => hermes::provision(&root, &ssh_to_age, reuse_mirsellabot),
-        Commands::Hermes { action, archive } => hermes::operations(&action, archive.as_deref()),
+        Commands::Hermes { action } => hermes::operations(action),
+        Commands::HermesConfigure { config, defaults } => hermes::configure(&config, &defaults),
+        Commands::SecretService {
+            daemon,
+            password_file,
+        } => hermes::secret_service(&daemon, &password_file),
         Commands::NightSuspend { activity_only } => suspend::run(activity_only),
         Commands::StorageAlerts { test } => monitoring::alerts(test),
         Commands::BeszelSetup {
@@ -186,4 +202,32 @@ fn main() {
         eprintln!("host-tools: {error:#}");
         std::process::exit(1);
     }
+}
+
+#[cfg(test)]
+#[test]
+fn hermes_lifecycle_cli_requires_archive_only_for_restore() {
+    assert!(Cli::try_parse_from(["host-tools", "hermes", "restore"]).is_err());
+    assert!(Cli::try_parse_from(["host-tools", "hermes", "unknown"]).is_err());
+    assert!(
+        Cli::try_parse_from([
+            "host-tools",
+            "hermes",
+            "status",
+            "--archive",
+            "backup.tar.gz"
+        ])
+        .is_err()
+    );
+    let parsed = Cli::try_parse_from([
+        "host-tools",
+        "hermes",
+        "restore",
+        "--archive",
+        "backup.tar.gz",
+    ])
+    .unwrap();
+    assert!(
+        matches!(parsed.command, Commands::Hermes { action: hermes::Operation::Restore { archive } } if archive == PathBuf::from("backup.tar.gz"))
+    );
 }

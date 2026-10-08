@@ -132,12 +132,21 @@ assert lib.assertMsg (
   server.systemd.services.caddy.serviceConfig.Restart == "on-failure"
 ) "The server's web proxy must retry transient startup failures";
 assert lib.assertMsg (
-  server.services.hermes-agent.user == "hermes-agent"
-  && server.services.hermes-agent.settings.terminal.backend == "local"
-  && server.services.hermes-agent.settings.fallback_providers == []
-  && server.services.hermes-agent.settings.gateway.unauthorized_dm_behavior == "ignore"
-  && server.services.hermes-agent.settings.platforms.telegram.extra.group_allow_from == []
-  && !server.services.hermes-agent.settings.platforms.telegram.extra.guest_mode
+  server.services.hermes-agent.user == "mirsella"
+  && server.services.hermes-agent.group == "hermes-private"
+  && server.users.groups.hermes-private.members == [ "mirsella" ]
+  && !server.services.hermes-agent.createUser
+  && server.services.hermes-agent.settings == {}
+  && lib.elem "hermes-agent-setup" server.system.activationScripts.hermes-settings.deps
+  && lib.hasInfix "runuser -u mirsella -g hermes-private" server.system.activationScripts.hermes-settings.text
+  && lib.hasInfix "hermes-configure" server.system.activationScripts.hermes-settings.text
+  && server.systemd.services.hermes-agent.environment.HOME == "/home/mirsella"
+  && server.systemd.services.hermes-agent.environment.HERMES_MANAGED == "false"
+  && server.services.hermes-agent.environment.OPENCODE_GO_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/opencode-go"
+  && server.services.hermes-agent.environment.OPENCODE_ZEN_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/opencode"
+  && server.services.hermes-agent.environment.OPENAI_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/openai"
+  && server.services.hermes-agent.environment.HERMES_CODEX_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/codex"
+  && server.services.hermes-agent.environment.TELEGRAM_ALLOW_ALL_USERS == "false"
   && server.services.hermes-agent.extraPlugins == []
   && server.services.hermes-agent.package.drvPath
     == flake.inputs.hermes-agent.packages.x86_64-linux.messaging.drvPath
@@ -145,24 +154,38 @@ assert lib.assertMsg (
   && !(server.services.hermes-agent.settings ? hooks)
   && !(server.services.hermes-agent.settings ? approvals)
   && !(server.services.hermes-agent.settings ? toolsets)
-  && server.sops.secrets.hermes_gateway_env.owner == "hermes-agent"
+  && server.sops.secrets.hermes_gateway_env.owner == "mirsella"
   && server.sops.secrets.hermes_gateway_env.mode == "0400"
+  && server.sops.secrets.hermes_gateway_env.restartUnits == [ "hermes-agent.service" ]
+  && server.sops.secrets.hermes_control_env.restartUnits == [ "hermes-browser-control.service" "hermes-agent.service" ]
   && builtins.elem "sops-install-secrets.service" server.systemd.services.hermes-agent.requires
   && lib.hasInfix server.sops.secrets.hermes_gateway_env.path server.systemd.services.hermes-agent.preStart
-  && server.systemd.services.hermes-agent.serviceConfig.ProtectHome == "tmpfs"
+  && !server.systemd.services.hermes-agent.serviceConfig.NoNewPrivileges
+  && !server.systemd.services.hermes-agent.serviceConfig.ProtectHome
+  && !server.systemd.services.hermes-agent.serviceConfig.ProtectSystem
+  && !server.systemd.services.hermes-agent.serviceConfig.PrivateTmp
+  && builtins.elem "sleev-gateway.service" server.systemd.services.hermes-agent.requires
+  && server.systemd.services.sleev-gateway.serviceConfig.User == "mirsella"
   && server.systemd.services.hermes-agent.serviceConfig.BindReadOnlyPaths
-    == [ "/run/user" "/var/lib/camofox-downloads:/var/lib/hermes/workspace/downloads" ]
+    == [ "/var/lib/camofox-downloads:/var/lib/hermes/workspace/downloads" ]
   && lib.all (unit:
     server.systemd.services.${unit}.serviceConfig.NoNewPrivileges
     && server.systemd.services.${unit}.serviceConfig.ProtectHome != false
     && server.systemd.services.${unit}.serviceConfig.ProtectSystem == "strict"
-  ) [ "hermes-agent" "hermes-browser-control" "camofox-browser" ]
+  ) [ "hermes-browser-control" "camofox-browser" ]
   && server.systemd.services.camofox-browser.environment.CAMOFOX_BIND_HOST == "127.0.0.1"
   && server.systemd.services.camofox-browser.environment.VNC_RFB_BIND == "127.0.0.1"
   && server.systemd.services.camofox-browser.environment.NOVNC_PORT == "6080"
+  && server.systemd.services.camofox-browser.environment.CAMOUFOX_INSTALL_DIR
+    == "${flake.nixosConfigurations.predator.pkgs.camoufox}/lib/camoufox"
+  && lib.all (name: lib.any (package: lib.getName package == name)
+    server.systemd.services.camofox-browser.path) [ "which" "gawk" ]
   && lib.all (port: !(builtins.elem port server.networking.firewall.allowedTCPPorts))
     [ 5900 6080 9377 9378 ]
-) "Stock Hermes must retain its separate users, private messaging and browser ports";
+  && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
+    [ "handle /browser/*" "basic_auth" "header_up X-Hermes-Viewer-Key" "header_up -Authorization" ]
+  && lib.hasInfix "https://mirsella.mooo.com{uri}" server.services.caddy.virtualHosts."http://:80".extraConfig
+) "Hermes must use the owner account and editable runtime settings while its browser stays private";
 {
   inherit (server.system.build.toplevel) drvPath;
   formatter = (disko._cliDestroyFormatMount layout pkgs).drvPath;
