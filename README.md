@@ -102,30 +102,8 @@ Arch's root-owned maintenance is installed separately on both workstations:
 sudo python3 arch/maintenance/apply.py
 ```
 
-On an existing Arch installation with `/nix` and `/var/lib/docker` still inside
-the root subvolume, run `sudo python3 arch/maintenance/migrate-subvolumes.py`
-once. It stops the two daemons, copies their state to new Btrfs subvolumes, adds
-fstab mounts, then starts the daemons. It retains the `.before-subvolume`
-directories for rollback; the job below checks the new mounts and services
-before deleting them on a later boot. Run the migration separately on each Arch
-Btrfs workstation. Reinstalling a desktop on the XFS layout replaces that root,
-so its old migrations and snapshots go away with it.
-
-To remove the retained rollback copies on the next boot, without touching them
-in the current session, arm the one-shot service after migration:
-
-```sh
-sudo install -Dm644 arch/maintenance/cleanup-rollback.py /usr/local/libexec/cleanup-rollback.py
-sudo install -Dm644 arch/maintenance/arch-rollback-cleanup.service /etc/systemd/system/arch-rollback-cleanup.service
-sudo touch /run/arch-rollback-cleanup-defer
-sudo systemctl daemon-reload
-sudo systemctl enable arch-rollback-cleanup.service
-```
-
-It checks both subvolume mounts and the Nix and Docker daemons before removing
-the old directories. It disables itself on success and stays enabled for another
-boot if a check fails. Review `journalctl -u arch-rollback-cleanup.service` after
-reboot. A Timeshift snapshot can retain the old blocks until that snapshot expires.
+On the Arch Btrfs workstations, `/nix` and `/var/lib/docker` mount from separate
+`@nix` and `@docker` subvolumes, keeping their churn out of Timeshift root snapshots.
 
 The installer preserves machine-specific Nix and Timeshift settings. It schedules
 daily Nix GC with 7-day generation retention, two weekly and one monthly

@@ -141,7 +141,6 @@
             fileset = nixpkgs.lib.fileset.unions [
               ./tests/arch-maintenance.py
               ./arch/maintenance/apply.py
-              ./arch/maintenance/cleanup-rollback.py
             ];
           };
         } ''

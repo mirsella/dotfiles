@@ -75,8 +75,7 @@ Manual files outside the repo:
   `hosts/predator/default.nix` (screen off instead of sleep).
 - Arch boxes: root-owned Nix daemon GC/cache settings, Timeshift retention,
   storage timers and the fail2ban SSH jail are installed from
-  `arch/maintenance/apply.py`; mount migration is a separate one-time
-  `arch/maintenance/migrate-subvolumes.py` step. System
+  `arch/maintenance/apply.py`. System
   Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks
   remain manual. `pacman.conf` also pins `IgnorePkg = openchamber` so the AUR
   package stays on 1.x with OpenCode 1.x. The Nix daemon ignores cache settings
