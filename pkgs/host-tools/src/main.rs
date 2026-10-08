@@ -1,6 +1,8 @@
 mod activity;
 mod backup;
+mod browser;
 mod hardware;
+mod hermes;
 mod maintenance;
 mod memory;
 mod monitoring;
@@ -23,6 +25,23 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    BrowserControl {
+        #[arg(long)]
+        config: PathBuf,
+    },
+    HermesProvision {
+        #[arg(long, default_value = ".")]
+        root: PathBuf,
+        #[arg(long)]
+        ssh_to_age: PathBuf,
+        #[arg(long)]
+        reuse_mirsellabot: bool,
+    },
+    Hermes {
+        action: String,
+        #[arg(long)]
+        archive: Option<PathBuf>,
+    },
     NightSuspend {
         #[arg(long)]
         activity_only: bool,
@@ -92,6 +111,13 @@ enum Commands {
 
 fn run() -> Result<()> {
     match Cli::parse().command {
+        Commands::BrowserControl { config } => browser::run(&config),
+        Commands::HermesProvision {
+            root,
+            ssh_to_age,
+            reuse_mirsellabot,
+        } => hermes::provision(&root, &ssh_to_age, reuse_mirsellabot),
+        Commands::Hermes { action, archive } => hermes::operations(&action, archive.as_deref()),
         Commands::NightSuspend { activity_only } => suspend::run(activity_only),
         Commands::StorageAlerts { test } => monitoring::alerts(test),
         Commands::BeszelSetup {

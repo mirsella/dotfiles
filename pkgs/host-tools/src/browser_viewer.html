@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="hermes-csrf" content="__CSRF__">
+  <title>Predator / browser control</title>
+  <style nonce="__CSRF__">
+    :root{color-scheme:light;--paper:#edece5;--ink:#20221e;--muted:#686b61;--line:#b8b9ad;--accent:#edc34b;--danger:#9a3327}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.6 "Courier New",monospace}
+    header{padding:24px 5vw 20px;border-bottom:1px solid var(--ink);display:flex;align-items:baseline;justify-content:space-between;gap:20px}
+    .eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+    h1{font:normal clamp(32px,5vw,56px)/1 Georgia,serif;margin:8px 0 0;letter-spacing:-.03em}.host{white-space:nowrap}
+    main{padding:30px 5vw 40px}.control{display:grid;grid-template-columns:1fr auto;align-items:center;gap:24px;padding-bottom:24px}
+    .readout{display:flex;align-items:center;gap:10px;font-size:16px}.dot{height:9px;width:9px;border-radius:50%;background:var(--muted)}
+    .dot.live{background:#3d7151}.actions{display:flex;gap:10px;flex-wrap:wrap}button{font:inherit;font-weight:bold;padding:12px 18px;min-height:48px;background:transparent;border:1px solid var(--ink);cursor:pointer;color:var(--ink)}
+    button.primary{background:var(--accent)}button:hover:not(:disabled){box-shadow:3px 3px 0 var(--ink);transform:translate(-1px,-1px)}button:disabled{opacity:.5;cursor:wait}button:focus-visible,a:focus-visible{outline:3px solid #3964b2;outline-offset:4px}
+    #notice{min-height:28px;max-width:850px;margin:0 0 18px;color:var(--muted)}#notice.error{color:var(--danger)}
+    .viewport{border:1px solid var(--ink);background:#161b17;height:clamp(300px,65vh,900px);position:relative;overflow:hidden}
+    #screen{width:100%;height:100%;display:none}.idle{position:absolute;inset:0;display:grid;place-content:center;padding:24px;text-align:center;color:#b9bfb1}
+    .idle strong{font:normal 30px/1.3 Georgia,serif;color:var(--paper)}.idle p{max-width:42ch;margin:16px auto 0}
+    footer{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;margin-top:26px;padding-top:18px;border-top:1px solid var(--line)}footer p{color:var(--muted);margin:7px 0 0;font-size:12px}footer strong{font-size:11px;letter-spacing:.08em}
+    @media(max-width:650px){header{padding-top:18px}.host{font-size:11px}.control{grid-template-columns:1fr;gap:14px}footer{grid-template-columns:1fr;gap:14px}.viewport{height:58vh}.actions button{flex:1}}
+  </style>
+</head>
+<body>
+  <header><div><div class="eyebrow">Private session / manual intervention</div><h1>Browser control.</h1></div><span class="host">PREDATOR · 01</span></header>
+  <main>
+    <section class="control" aria-label="Browser viewer">
+      <div class="readout"><span class="dot" id="dot" aria-hidden="true"></span><span id="state">Checking status…</span></div>
+      <div class="actions"><button class="primary" id="connect">Open browser</button><button id="release" disabled>Disconnect</button></div>
+    </section>
+    <p id="notice" role="status" aria-live="polite">Opening this page does not start the browser.</p>
+    <section class="viewport" aria-label="Remote browser display">
+      <div class="idle" id="idle"><strong>Your browser, on demand.</strong><p>Open the shared session after the agent says it is waiting for your help.</p></div>
+      <div id="screen"></div>
+    </section>
+    <footer>
+      <div><strong>01 / ONE SHARED TAB</strong><p>This is the agent's virtual browser, not Predator's physical desktop. No task tab is selected by recency.</p></div>
+      <div><strong>02 / SAY DONE</strong><p>After finishing, disconnect and tell the agent “done” in your chat. The viewer does not lock out agent tools.</p></div>
+      <div><strong>03 / ON DEMAND</strong><p>The browser stops after 5 minutes without tool or viewer activity. A connected viewer keeps it alive.</p></div>
+    </footer>
+  </main>
+  <script type="module" nonce="__CSRF__">
+    import RFB from './novnc/core/rfb.js';
+    const $=id=>document.getElementById(id);
+    let rfb=null;
+    async function action(name){
+      const response=await fetch(`./${name}`,{method:'POST',headers:{'X-Hermes-CSRF':document.querySelector('meta[name="hermes-csrf"]').content},credentials:'same-origin'});
+      if(!response.ok)throw new Error(await response.text());
+      return response.json();
+    }
+    function notice(message,error=false){$('notice').textContent=message;$('notice').className=error?'error':'';}
+    async function status(){
+      try{
+        const response=await fetch('./status',{cache:'no-store',credentials:'same-origin'});
+        if(!response.ok)throw new Error('Status unavailable. Reload to authenticate again.');
+        const data=await response.json();
+        $('state').textContent=data.running?'browser running':'browser off';
+        $('dot').classList.toggle('live',data.running);
+        if(data.error)notice(data.error,true);
+      }catch(error){notice(error.message,true);}
+    }
+    $('connect').addEventListener('click',async()=>{
+      $('connect').disabled=true;notice('Starting the shared browser and waiting for its real display…');
+      try{
+        await action('start');
+        if(rfb)rfb.disconnect();
+        $('screen').style.display='block';$('idle').style.display='none';
+        const url=new URL('./websockify',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
+        rfb=new RFB($('screen'),url.href,{shared:true});rfb.scaleViewport=true;rfb.resizeSession=false;
+        rfb.addEventListener('connect',()=>{notice('Complete the step, then tell the agent “done” in your chat.');$('release').disabled=false;});
+        rfb.addEventListener('disconnect',()=>{rfb=null;$('screen').style.display='none';$('idle').style.display='grid';$('connect').disabled=false;$('release').disabled=true;notice('Viewer disconnected. Tell the agent when you are ready.');status();});
+        rfb.addEventListener('credentialsrequired',()=>{notice('Unexpected VNC authentication. Check the private server configuration.',true);rfb.disconnect();});
+      }catch(error){notice(error.message,true);$('connect').disabled=false;}
+      status();
+    });
+    $('release').addEventListener('click',async()=>{
+      try{await action('disconnect');if(rfb)rfb.disconnect();notice('Disconnected. Say “done” in your chat when ready.');}catch(error){notice(error.message,true);}
+      status();
+    });
+    status();setInterval(status,5000);
+  </script>
+</body>
+</html>
