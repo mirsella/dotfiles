@@ -1,5 +1,5 @@
 ---
-description: Git commit
+description: Commit this session's changes with a conventional commit message. Use ONLY when the user explicitly requests committing.
 model: openai/gpt-6-luna#max
 ---
 

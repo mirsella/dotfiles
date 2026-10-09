@@ -1,5 +1,5 @@
 ---
-description: Review session changes and fix important defects; ask before substantial fixes
+description: Review only code changed in this session by this agent and fix important defects; ask before substantial fixes. Use when the user asks to review session changes.
 agent: build
 ---
 

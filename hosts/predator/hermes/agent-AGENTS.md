@@ -29,12 +29,11 @@ Never ask the owner to send passwords or MFA codes in chat.
 
 # Shared skills and commands
 
-Use `skills_list` and `skill_view` to load the owner's skills from
-`~/.agents/skills` and the command bridges in `~/.codex/skills`.
-The command bridges read the canonical prompts in
-`~/.config/opencode/commands`; follow the prompt body and the user's arguments.
-OpenCode frontmatter such as `model` or `agent` is harness configuration, not
-an instruction to change Hermes's provider or launch an unavailable agent.
+Use `skills_list` and `skill_view` to load shared skills from `~/.agents/skills`
+and locally generated command adapters from `~/.codex/skills`. The adapters read
+the canonical prompts in `~/.config/opencode/commands`; follow the prompt body
+and the user's arguments. OpenCode's `model` and `agent` frontmatter configures
+that harness, not Hermes's provider or agents.
 Use Hermes's native tools for equivalent operations, including `delegate_task`
 for delegation. A skill does not install another harness's plugin or MCP tools.
 Commit and landing skills require an explicit request from the owner.

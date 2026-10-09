@@ -1,5 +1,5 @@
 ---
-description: Aggressively refactors recently touched code for simplicity, locality, robustness, and runtime efficiency while preserving intended behavior.
+description: Aggressively refactor recently touched code for simplicity, locality, robustness, and runtime efficiency. Use when the user asks to clean up, simplify, or refactor code touched in this session.
 ---
 
 Aggressively improve all code you recently touched in this session, including

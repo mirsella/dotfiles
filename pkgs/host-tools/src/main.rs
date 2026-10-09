@@ -1,4 +1,5 @@
 mod activity;
+mod agent_skills;
 mod backup;
 mod browser;
 mod hardware;
@@ -25,6 +26,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    SyncAgentSkills,
     BrowserControl {
         #[arg(long)]
         config: PathBuf,
@@ -116,6 +118,7 @@ enum Commands {
 
 fn run() -> Result<()> {
     match Cli::parse().command {
+        Commands::SyncAgentSkills => agent_skills::run(),
         Commands::BrowserControl { config } => browser::run(&config),
         Commands::HermesProvision {
             root,

@@ -194,6 +194,28 @@ rebuild the system instead. Restart OpenCode to load the compiled plugins. The
 watchdog keeps the `opencode-idle-watchdog` command and no longer compiles itself
 on invocation.
 
+## Agent prompts
+
+OpenCode's editable files are the canonical prompts:
+
+- Commands: `~/.config/opencode/commands/*.md`, tracked under
+  `dotfiles/private_dot_config/opencode/commands/`.
+- Skills: `~/.config/opencode/skills/*/SKILL.md`, tracked under
+  `dotfiles/private_dot_config/opencode/skills/`.
+
+Edit the live OpenCode files and save them with `chezmoi re-add`. After applying
+the dotfiles on a device, generate its local Codex/Hermes adapters with:
+
+```sh
+nix run path:.#host-tools -- sync-agent-skills
+```
+
+This links `~/.agents/skills` to OpenCode's skills and writes command adapters in
+`~/.codex/skills`. Both paths are ignored by chezmoi. The adapters read the live
+OpenCode commands, so prompt-body edits take effect without copying them again.
+Rerun the command after adding a command or changing its description. Restart
+the agents to reload their skill lists.
+
 ## REA reverse engineering
 
 The workstation Home Manager profiles install [REA](https://rea.tools/) and

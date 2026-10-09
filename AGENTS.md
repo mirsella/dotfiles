@@ -31,6 +31,11 @@ The flake discovers these directories and sets hostnames automatically.
 - OpenCode extensions and their tests live in `pkgs/opencode-extensions`; Home
   Manager installs the compiled plugins. Its editable JSON settings remain in
   chezmoi. The idle watchdog is compiled from `pkgs/opencode-idle-watchdog`.
+- OpenCode's plain command and skill files are the canonical prompts, owned by
+  chezmoi. Edit them in `~/.config/opencode` and use `chezmoi re-add` to save edits.
+  `host-tools sync-agent-skills` creates the local shared-skill link and Codex/Hermes
+  command adapters from that live config. These generated paths are ignored by
+  chezmoi; do not track copies or turn OpenCode prompts into templates.
 - Retire one-time migrations after every affected host has completed them. Keep
   deployment evidence in Git history rather than permanent acceptance reports.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include

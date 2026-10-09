@@ -1,9 +1,10 @@
 ---
-description: Commit, land on main or queue for later, and clean up
+description: Commit and land this session's branch on main, or queue it when another session blocks landing. Use ONLY when the user explicitly requests landing.
 model: openai/gpt-6-luna#max
 ---
 
-If there's still uncommitted changes see `/home/mirsella/.config/opencode/commands/commit.md` . Create a task branch if HEAD is detached.
+If there are still uncommitted changes, read and follow
+`~/.config/opencode/commands/commit.md`. Create a task branch if HEAD is detached.
 Rebase onto local main, resolving conflicts while preserving both branches' intended changes,
 then merge into its checkout with `git merge --ff-only --no-autostash`.
 If main gains new commits, repeat the rebase and merge until landing succeeds.

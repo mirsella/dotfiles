@@ -55,9 +55,11 @@ plannotator-review.md
 .config/opencode/skills/plannotator*
 .config/opencode/skills/plannotator*/**
 
-# Codex-managed bundled skills (installed and updated by codex itself).
-.codex/skills/.system
-.codex/skills/.system/**
+# Agent adapters are generated locally from the editable OpenCode config.
+.agents/skills
+.agents/skills/**
+.codex/skills/
+.codex/skills/**
 
 # Handy rewrites its settings at runtime; managing it is pure churn.
 .local/share/com.pais.handy/settings_store.json
