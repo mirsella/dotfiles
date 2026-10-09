@@ -41,10 +41,13 @@ kde shortcuts.kksrc
 {{- if eq .chezmoi.hostname "predator" }}
 # Home Manager owns the plain cargo config on predator (no laptop bevy tuning).
 .local/share/cargo/config.toml
-# Predator's independent Mail session rotates in its persistent Secret Service.
+{{- end }}
+
+# Proton CLI sessions and encryption state are device-local.
 .config/protonmail-cli/
 .config/protonmail-cli/**
-{{- end }}
+.local/share/proton-pass-cli/
+.local/share/proton-pass-cli/**
 
 # opencode commands
 plannotator-annotate.md
