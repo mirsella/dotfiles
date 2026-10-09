@@ -1,70 +1,123 @@
-{ config, isNixOS, lib, pkgs, ... }:
+{
+  config,
+  isNixOS,
+  lib,
+  pkgs,
+  ...
+}:
 let
   bin = package: name: if isNixOS then lib.getExe' package name else "/usr/bin/${name}";
-  servicePath = "PATH=%h/.local/share/cargo/bin:%h/.local/bin:" + (
-    if isNixOS then "%h/.nix-profile/bin:/etc/profiles/per-user/%u/bin:/run/current-system/sw/bin"
-    else "%h/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/bin"
-  );
+  servicePath =
+    "PATH=%h/.local/share/cargo/bin:%h/.local/bin:"
+    + (
+      if isNixOS then
+        "%h/.nix-profile/bin:/etc/profiles/per-user/%u/bin:/run/current-system/sw/bin"
+      else
+        "%h/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/bin"
+    );
 in
 {
   programs.git.settings.commit.gpgsign = true;
-  home.packages = [ pkgs.kache pkgs.opencode-idle-watchdog ] ++ lib.optionals isNixOS [
-    pkgs.opencode pkgs.openchamber
-    pkgs.binaryen pkgs.gnumake pkgs.ninja pkgs.trunk pkgs.wasm-pack
+  home.packages = [
+    pkgs.kache
+    pkgs.opencode-idle-watchdog
+    pkgs.rea
+    pkgs.ghidra
+  ]
+  ++ lib.optionals isNixOS [
+    pkgs.openchamber
+    pkgs.binaryen
+    pkgs.gnumake
+    pkgs.ninja
+    pkgs.trunk
+    pkgs.wasm-pack
   ];
+  programs.opencode = {
+    enable = true;
+    package = if isNixOS then pkgs.opencode else null;
+    settings.mcp.rea = {
+      type = "local";
+      command = [
+        (lib.getExe pkgs.rea)
+        "mcp"
+      ];
+      enabled = false;
+    };
+    skills.reverse-engineer-anything = "${pkgs.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything";
+  };
   home.file.".local/bin/opencode-idle-watchdog" = {
     source = lib.getExe pkgs.opencode-idle-watchdog;
     force = true;
   };
-  xdg.configFile = lib.genAttrs
-    (map (directory: "opencode/${directory}") [ "plugins" "tui-plugins" "chunks" ])
-    (path: {
-      source = "${pkgs.opencode-extensions}/share/${path}";
-      force = true;
-    }) // {
-    "kache/config.toml" = {
-      force = true;
-      text = ''
-        [cache]
-        local_max_size = "150GiB"
-      '';
-    };
-  } // lib.genAttrs [
-    "systemd/user/opencode.service.d/override.conf"
-    "systemd/user/app-org.wezfurlong.wezterm@.service.d/override.conf"
-    "systemd/user/app-rio\\x2dcargo@.service.d/override.conf"
-  ] (_: {
-    source = ./oom-survival.conf;
-    force = true;
-  });
+  xdg.configFile =
+    lib.genAttrs
+      (map (directory: "opencode/${directory}") [
+        "plugins"
+        "tui-plugins"
+        "chunks"
+      ])
+      (path: {
+        source = "${pkgs.opencode-extensions}/share/${path}";
+        force = true;
+      })
+    // {
+      "kache/config.toml" = {
+        force = true;
+        text = ''
+          [cache]
+          local_max_size = "150GiB"
+        '';
+      };
+    }
+    //
+      lib.genAttrs
+        [
+          "systemd/user/opencode.service.d/override.conf"
+          "systemd/user/app-org.wezfurlong.wezterm@.service.d/override.conf"
+          "systemd/user/app-rio\\x2dcargo@.service.d/override.conf"
+        ]
+        (_: {
+          source = ./oom-survival.conf;
+          force = true;
+        });
 
   sops = {
     age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
     defaultSopsFile = ../../secrets/services.yaml;
-    secrets = builtins.mapAttrs (_: path: {
-      path = "${config.home.homeDirectory}/.config/${path}";
-    }) ((import ../user-secrets.nix) // {
-      telegram_env = "telegram.env";
-      opencode_server = "opencode/server.env";
-      openchamber_server = "openchamber/server.env";
-    }) // {
-      davfs2_secrets = {
-        sopsFile = ../../secrets/webdav.yaml;
-        path = "${config.home.homeDirectory}/.davfs2/secrets";
-        mode = "0600";
+    secrets =
+      builtins.mapAttrs
+        (_: path: {
+          path = "${config.home.homeDirectory}/.config/${path}";
+        })
+        (
+          (import ../user-secrets.nix)
+          // {
+            telegram_env = "telegram.env";
+            opencode_server = "opencode/server.env";
+            openchamber_server = "openchamber/server.env";
+          }
+        )
+      // {
+        davfs2_secrets = {
+          sopsFile = ../../secrets/webdav.yaml;
+          path = "${config.home.homeDirectory}/.davfs2/secrets";
+          mode = "0600";
+        };
+        rclone_conf = {
+          sopsFile = ../../secrets/webdav.yaml;
+          path = "${config.home.homeDirectory}/.config/rclone/rclone.conf";
+          mode = "0600";
+        };
       };
-      rclone_conf = {
-        sopsFile = ../../secrets/webdav.yaml;
-        path = "${config.home.homeDirectory}/.config/rclone/rclone.conf";
-        mode = "0600";
-      };
-    };
   };
 
   systemd.user.services.opencode = {
     Unit = {
       Description = "OpenCode server";
-      After = [ "network.target" "sops-nix.service" ];
+      After = [
+        "network.target"
+        "sops-nix.service"
+      ];
       PartOf = [ "default.target" ];
       X-SwitchMethod = "keep-old";
     };
@@ -86,8 +139,15 @@ in
   systemd.user.services.openchamber = {
     Unit = {
       Description = "OpenChamber web server";
-      After = [ "network.target" "opencode.service" "sops-nix.service" ];
-      Wants = [ "opencode.service" "sops-nix.service" ];
+      After = [
+        "network.target"
+        "opencode.service"
+        "sops-nix.service"
+      ];
+      Wants = [
+        "opencode.service"
+        "sops-nix.service"
+      ];
       PartOf = [ "default.target" ];
     };
     Service = {
@@ -105,25 +165,27 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
-  systemd.user.services.rclone-nextcloud = let
-    mountPoint = "%h/Documents/Nextcloud";
-  in {
-    Unit = {
-      Description = "Nextcloud WebDAV mount";
-      After = [ "sops-nix.service" ];
-      # Home Manager restarts sops-nix on activation; keep mounted files available.
-      Wants = [ "sops-nix.service" ];
+  systemd.user.services.rclone-nextcloud =
+    let
+      mountPoint = "%h/Documents/Nextcloud";
+    in
+    {
+      Unit = {
+        Description = "Nextcloud WebDAV mount";
+        After = [ "sops-nix.service" ];
+        # Home Manager restarts sops-nix on activation; keep mounted files available.
+        Wants = [ "sops-nix.service" ];
+      };
+      Install.WantedBy = [ "default.target" ];
+      Service = {
+        Type = "notify";
+        ExecStartPre = "${bin pkgs.coreutils "mkdir"} -p ${mountPoint}";
+        ExecStart = "${bin pkgs.rclone "rclone"} mount nextcloud: ${mountPoint} --vfs-cache-mode writes --poll-interval 0";
+        SuccessExitStatus = "143";
+        Restart = "always";
+        RestartSec = 10;
+      };
     };
-    Install.WantedBy = [ "default.target" ];
-    Service = {
-      Type = "notify";
-      ExecStartPre = "${bin pkgs.coreutils "mkdir"} -p ${mountPoint}";
-      ExecStart = "${bin pkgs.rclone "rclone"} mount nextcloud: ${mountPoint} --vfs-cache-mode writes --poll-interval 0";
-      SuccessExitStatus = "143";
-      Restart = "always";
-      RestartSec = 10;
-    };
-  };
 
   # The daemon loads the key on startup; wait for sops-nix to install it.
   systemd.user.services.atuin-daemon = lib.mkIf config.programs.atuin.daemon.enable {

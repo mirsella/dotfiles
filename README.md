@@ -194,6 +194,29 @@ rebuild the system instead. Restart OpenCode to load the compiled plugins. The
 watchdog keeps the `opencode-idle-watchdog` command and no longer compiles itself
 on invocation.
 
+## REA reverse engineering
+
+The workstation Home Manager profiles install [REA](https://rea.tools/) and
+Ghidra on Arch and NixOS. `pkgs/rea` pins the published CLI/MCP runtime and its
+dependencies. Its wrappers select Nix-provided Node 24, Ghidra 12.1.x and JDK 21,
+so OpenCode needs no shell environment setup or runtime package downloads.
+Home Manager merges the `rea` MCP registration and local model provider into
+`~/.config/opencode/opencode.json`; chezmoi owns the editable `opencode.jsonc`.
+It also installs the matching `reverse-engineer-anything` skill and references.
+
+The MCP server is disabled by default. Restart OpenCode after a rebuild, then
+enable `rea` in its `/mcp` menu for an investigation. The CLI works independently:
+
+```sh
+rea doctor --provider ghidra --json
+rea mcp doctor --json
+rea function /absolute/path/to/program main --provider ghidra --json
+```
+
+Apply `homeConfigurations.main` or `homeConfigurations.laptop` on Arch. On NixOS,
+use the system rebuild command above. Update this flake to change the installation;
+`rea setup` writes client configuration outside Home Manager.
+
 ## Predator storage
 
 `fast` is the separate 240 GB encrypted SSD. `tank` combines the Seagate 1 TB,

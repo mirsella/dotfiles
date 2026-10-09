@@ -38,38 +38,33 @@ let
 in
 {
   # OpenCode merges this generated provider with chezmoi's editable opencode.jsonc.
-  xdg.configFile."opencode/opencode.json".source =
-    (pkgs.formats.json { }).generate "opencode-local-llama.json"
-      {
-        "$schema" = "https://opencode.ai/config.json";
-        provider."llama.cpp" = {
-          npm = "@ai-sdk/openai-compatible";
-          name = "Local llama.cpp";
-          options.baseURL = "${baseURL}/v1";
-          models.${model.alias} = {
-            name = model.alias;
-            tool_call = true;
-            reasoning = true;
-            interleaved.field = "reasoning_content";
-            options.reasoning_format = "deepseek";
-            variants = {
-              thinking.chat_template_kwargs.enable_thinking = true;
-              # Qwen uses a thinking toggle, not OpenAI's effort levels.
-              low.disabled = true;
-              medium.disabled = true;
-              high.disabled = true;
-            };
-            limit = {
-              context = contextSize;
-              output = 8192;
-            };
-            modalities = {
-              input = [ "text" ];
-              output = [ "text" ];
-            };
-          };
-        };
+  programs.opencode.settings.provider."llama.cpp" = {
+    npm = "@ai-sdk/openai-compatible";
+    name = "Local llama.cpp";
+    options.baseURL = "${baseURL}/v1";
+    models.${model.alias} = {
+      name = model.alias;
+      tool_call = true;
+      reasoning = true;
+      interleaved.field = "reasoning_content";
+      options.reasoning_format = "deepseek";
+      variants = {
+        thinking.chat_template_kwargs.enable_thinking = true;
+        # Qwen uses a thinking toggle, not OpenAI's effort levels.
+        low.disabled = true;
+        medium.disabled = true;
+        high.disabled = true;
       };
+      limit = {
+        context = contextSize;
+        output = 8192;
+      };
+      modalities = {
+        input = [ "text" ];
+        output = [ "text" ];
+      };
+    };
+  };
 
   # The router lists the model at login; only an inference request loads its weights.
   systemd.user.services.llama-server = {

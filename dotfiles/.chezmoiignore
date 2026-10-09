@@ -12,8 +12,10 @@ kde shortcuts.kksrc
 # User units on HM hosts are managed outside chezmoi.
 .config/systemd/user/
 .config/systemd/user/**
-# Home Manager owns the host-specific local model provider.
+# Home Manager owns generated OpenCode providers and the REA registration/skill.
 .config/opencode/opencode.json
+.config/opencode/skills/reverse-engineer-anything/
+.config/opencode/skills/reverse-engineer-anything/**
 # Home Manager installs compiled extensions and the idle watchdog.
 .config/opencode/plugins/
 .config/opencode/plugins/**
