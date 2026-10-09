@@ -1,4 +1,8 @@
 #!/bin/sh
+{{ if eq .chezmoi.hostname "predator" -}}
+# Preserve Predator's independently authenticated, rotating Mail session.
+exit 0
+{{ else -}}
 # Import the age-encrypted protonmail-cli session secrets into the OS keychain.
 # Re-runs only when the decrypted secrets change.
 # secrets-sha256: {{ include "private_dot_config/protonmail-cli/encrypted_private_session-secrets.json.age" | decrypt | sha256sum }}
@@ -36,3 +40,4 @@ for key in ("access_token", "refresh_token", "skp"):
     )
 print(f"protonmail-cli: imported {len(secrets)} session secrets into keychain")
 EOF
+{{ end -}}

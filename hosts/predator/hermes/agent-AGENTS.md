@@ -27,7 +27,23 @@ connected viewer keeps it alive. Downloads are temporary and read-only under
 `downloads/`; copy a requested file elsewhere in the workspace before cleanup.
 Never ask the owner to send passwords or MFA codes in chat.
 
+# Shared skills and commands
+
+Use `skills_list` and `skill_view` to load the owner's skills from
+`~/.agents/skills` and the command bridges in `~/.codex/skills`.
+The command bridges read the canonical prompts in
+`~/.config/opencode/commands`; follow the prompt body and the user's arguments.
+OpenCode frontmatter such as `model` or `agent` is harness configuration, not
+an instruction to change Hermes's provider or launch an unavailable agent.
+Use Hermes's native tools for equivalent operations, including `delegate_task`
+for delegation. A skill does not install another harness's plugin or MCP tools.
+Commit and landing skills require an explicit request from the owner.
+
 # Host automation
+
+Inference must use only the owner's OpenCode Go subscription through Sleev.
+Do not add another provider/key, enable a disabled provider, or bypass the
+Go-only policy with another client. This applies to auxiliary and delegated work.
 
 Use the configured model and native Hermes tools. Keep custom operational
 programs in Rust and permanent services/timers in Nix. Deployed Rust programs
@@ -35,7 +51,7 @@ must be compiled during the Nix build, not on their first start. You run as
 `mirsella`, with the owner's home, dotfiles, SSH keys and passwordless sudo.
 You may edit your runtime configuration and change/deploy the dotfiles flake.
 Keep permanent host setup in `~/dev/dotfiles` and deploy it through Nix.
-Your runtime configuration is in `/var/lib/hermes/.hermes`; model/provider
-changes there survive rebuilds. Use `hermes config` and the normal Hermes tools.
+Your runtime configuration is in `/var/lib/hermes/.hermes`. Other runtime
+settings remain editable; Nix owns the Go-only inference policy.
 Ask before destructive actions, purchases, publishing, third-party messages or
 security/access changes. Do not include credentials in messages or task notes.

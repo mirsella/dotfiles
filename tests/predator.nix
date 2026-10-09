@@ -129,34 +129,57 @@ assert lib.assertMsg (
   && builtins.elem "nofail" server.fileSystems."/srv/backup/recovery".options
 ) "Database and recovery bundles must share a private legacy mount without blocking boot on failure";
 assert lib.assertMsg (
+  lib.toList server.systemd.services.hermes-backup.startAt == [ "23:20" ]
+  && server.systemd.services.hermes-backup.unitConfig.RequiresMountsFor == [ "/srv/backup" ]
+  && server.systemd.services.hermes-backup.serviceConfig.UMask == "0077"
+  && server.systemd.timers.hermes-backup.timerConfig.Persistent
+  && server.fileSystems."/srv/backup".device == "tank/backup"
+  && lib.any (path: lib.hasInfix "util-linux" (toString path)) server.systemd.services.hermes-backup.path
+) "Hermes runtime state must be backed up daily to the mounted Tank dataset";
+assert lib.assertMsg (
   server.systemd.services.caddy.serviceConfig.Restart == "on-failure"
 ) "The server's web proxy must retry transient startup failures";
 assert lib.assertMsg (
   server.services.hermes-agent.user == "mirsella"
   && server.services.hermes-agent.group == "hermes-private"
   && server.users.groups.hermes-private.members == [ "mirsella" ]
+  && server.users.users.mirsella.linger
   && !server.services.hermes-agent.createUser
-  && server.services.hermes-agent.settings == {}
+   && server.services.hermes-agent.settings.skills.external_dirs == [ "/home/mirsella/.agents/skills" "/home/mirsella/.codex/skills" ]
+   && server.services.hermes-agent.settings.model.provider == "opencode-go"
+   && server.services.hermes-agent.settings.model.default == "muse-spark-1.3-contributor"
+   && server.services.hermes-agent.settings.fallback_providers == []
+   && server.services.hermes-agent.settings.custom_providers == []
+   && server.services.hermes-agent.settings.providers.opencode-go.enabled
+   && lib.all (name: !server.services.hermes-agent.settings.providers.${name}.enabled)
+     [ "openrouter" "openai" "openai-api" "openai-codex" "chatgpt" "opencode" "opencode-zen" "zen" "custom" "auto" "anthropic" ]
+   && lib.all (slot: slot.provider == "opencode-go" && slot.model == "muse-spark-1.3-contributor" && slot.api_key == "" && slot.base_url == "")
+     (builtins.attrValues (builtins.removeAttrs server.services.hermes-agent.settings.auxiliary [ "openrouter_model" ]))
   && lib.elem "hermes-agent-setup" server.system.activationScripts.hermes-settings.deps
   && lib.hasInfix "runuser -u mirsella -g hermes-private" server.system.activationScripts.hermes-settings.text
   && lib.hasInfix "hermes-configure" server.system.activationScripts.hermes-settings.text
   && server.systemd.services.hermes-agent.environment.HOME == "/home/mirsella"
   && server.systemd.services.hermes-agent.environment.HERMES_MANAGED == "false"
   && server.services.hermes-agent.environment.OPENCODE_GO_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/opencode-go"
-  && server.services.hermes-agent.environment.OPENCODE_ZEN_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/opencode"
-  && server.services.hermes-agent.environment.OPENAI_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/openai"
-  && server.services.hermes-agent.environment.HERMES_CODEX_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/codex"
+   && !(server.services.hermes-agent.environment ? OPENCODE_ZEN_BASE_URL)
+   && !(server.services.hermes-agent.environment ? OPENAI_BASE_URL)
+   && !(server.services.hermes-agent.environment ? HERMES_CODEX_BASE_URL)
+   && lib.all (name: lib.elem name server.systemd.services.hermes-agent.serviceConfig.UnsetEnvironment && lib.elem name server.systemd.services.hermes-backend.serviceConfig.UnsetEnvironment)
+     [ "OPENROUTER_API_KEY" "OPENAI_API_KEY" "OPENCODE_ZEN_API_KEY" "DEEPINFRA_API_KEY" "MOONSHOT_API_KEY" ]
   && server.services.hermes-agent.environment.TELEGRAM_ALLOW_ALL_USERS == "false"
   && server.services.hermes-agent.extraPlugins == []
-  && server.services.hermes-agent.package.drvPath
-    == flake.inputs.hermes-agent.packages.x86_64-linux.messaging.drvPath
+  && server.services.hermes-agent.package.hermesVenv.drvPath
+    == flake.inputs.hermes-agent.packages.x86_64-linux.messaging.hermesVenv.drvPath
+  && server.services.hermes-agent.package.hermesWeb.drvPath
+    != flake.inputs.hermes-agent.packages.x86_64-linux.messaging.hermesWeb.drvPath
+  && lib.hasInfix "base: \"/hermes/\"" server.services.hermes-agent.package.hermesWeb.postPatch
   && server.services.hermes-agent.documents ? "AGENTS.md"
   && !(server.services.hermes-agent.settings ? hooks)
   && !(server.services.hermes-agent.settings ? approvals)
   && !(server.services.hermes-agent.settings ? toolsets)
   && server.sops.secrets.hermes_gateway_env.owner == "mirsella"
   && server.sops.secrets.hermes_gateway_env.mode == "0400"
-  && server.sops.secrets.hermes_gateway_env.restartUnits == [ "hermes-agent.service" ]
+   && server.sops.secrets.hermes_gateway_env.restartUnits == [ "hermes-backend.service" "hermes-agent.service" ]
   && server.sops.secrets.hermes_control_env.restartUnits == [ "hermes-browser-control.service" "hermes-agent.service" ]
   && builtins.elem "sops-install-secrets.service" server.systemd.services.hermes-agent.requires
   && lib.hasInfix server.sops.secrets.hermes_gateway_env.path server.systemd.services.hermes-agent.preStart
@@ -165,6 +188,25 @@ assert lib.assertMsg (
   && !server.systemd.services.hermes-agent.serviceConfig.ProtectSystem
   && !server.systemd.services.hermes-agent.serviceConfig.PrivateTmp
   && builtins.elem "sleev-gateway.service" server.systemd.services.hermes-agent.requires
+  && builtins.elem "hermes-secret-service.service" server.systemd.services.hermes-agent.requires
+  && server.systemd.services.hermes-secret-service.wantedBy == [ "multi-user.target" ]
+  && lib.all (unit: builtins.elem unit server.systemd.services.hermes-secret-service.requires
+    && builtins.elem unit server.systemd.services.hermes-secret-service.after)
+    [ "user@1000.service" "sops-install-secrets.service" ]
+  && server.systemd.services.hermes-secret-service.environment.DBUS_SESSION_BUS_ADDRESS
+    == "unix:path=/run/user/1000/bus"
+  && server.systemd.services.hermes-secret-service.serviceConfig.ExecStart
+    == "${pkgs.gnome-keyring}/bin/gnome-keyring-daemon --foreground --unlock --components=secrets"
+  && server.systemd.services.hermes-secret-service.serviceConfig.StandardInput
+    == "file:${server.sops.secrets.hermes_keyring_password.path}"
+  && server.systemd.services.sleev-gateway.wantedBy == [ "multi-user.target" ]
+  && server.sops.secrets.hermes_pass_token.owner == "mirsella"
+  && server.sops.secrets.hermes_pass_token.mode == "0400"
+  && server.systemd.services.hermes-pass-login.wantedBy == [ "multi-user.target" ]
+  && builtins.elem "hermes-secret-service.service" server.systemd.services.hermes-pass-login.requires
+  && server.systemd.services.hermes-pass-login.environment.PROTON_PASS_LINUX_KEYRING == "dbus"
+  && lib.toList server.systemd.timers.hermes-pass-login.timerConfig.OnCalendar == [ "hourly" ]
+  && server.systemd.timers.hermes-pass-login.timerConfig.Persistent
   && server.systemd.services.sleev-gateway.serviceConfig.User == "mirsella"
   && server.systemd.services.hermes-agent.serviceConfig.BindReadOnlyPaths
     == [ "/var/lib/camofox-downloads:/var/lib/hermes/workspace/downloads" ]
@@ -181,11 +223,26 @@ assert lib.assertMsg (
   && lib.all (name: lib.any (package: lib.getName package == name)
     server.systemd.services.camofox-browser.path) [ "which" "gawk" ]
   && lib.all (port: !(builtins.elem port server.networking.firewall.allowedTCPPorts))
-    [ 5900 6080 9377 9378 ]
+     [ 5900 6080 9377 9378 9119 ]
   && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
     [ "handle /browser/*" "basic_auth" "header_up X-Hermes-Viewer-Key" "header_up -Authorization" ]
   && lib.hasInfix "https://mirsella.mooo.com{uri}" server.services.caddy.virtualHosts."http://:80".extraConfig
 ) "Hermes must use the owner account and editable runtime settings while its browser stays private";
+assert lib.assertMsg (
+  server.services.hermes-agent.backend.mode == "dashboard"
+  && server.services.hermes-agent.backend.host == "127.0.0.1"
+  && server.services.hermes-agent.backend.port == 9119
+  && server.services.hermes-agent.backend.extraArgs == [ "--skip-build" ]
+  && server.systemd.services.hermes-backend.wantedBy == [ "multi-user.target" ]
+  && server.systemd.services.hermes-backend.environment.HOME == "/home/mirsella"
+  && server.systemd.services.hermes-backend.environment.HERMES_MANAGED == "false"
+  && !server.systemd.services.hermes-backend.serviceConfig.NoNewPrivileges
+  && !server.systemd.services.hermes-backend.serviceConfig.ProtectSystem
+  && lib.elem "hermes-network-isolation.service" server.systemd.services.hermes-backend.requires
+  && lib.elem "network-online.target" server.systemd.services.caddy.wants
+  && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
+    [ "handle_path /hermes/*" "@foreignOrigin" "header_up X-Forwarded-Prefix /hermes" "header_up Origin http://127.0.0.1:9119" ]
+) "Hermes dashboard must boot privately and authenticate every proxy route with a fixed subpath and checked Origin";
 {
   inherit (server.system.build.toplevel) drvPath;
   formatter = (disko._cliDestroyFormatMount layout pkgs).drvPath;

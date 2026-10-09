@@ -30,7 +30,8 @@ issues and checks. Git and SSH use the owner's existing dotfiles configuration.
 
 ## Inference
 
-OpenCode Go, OpenCode Zen, OpenAI API and OpenAI Codex use the local Sleev gateway
-at `127.0.0.1:17321`. Go/Muse remains the initial default with no automatic model
-fallback. Use a separate native Codex login for Hermes rather than copying a
-rotating OAuth refresh token from another application.
+Use only the owner's OpenCode Go subscription through the local Sleev gateway
+at `http://127.0.0.1:17321/sleev/hermes/opencode-go`. Main and auxiliary requests
+use Go/Muse; fallback providers and other inference providers are disabled.
+Do not add Zen, OpenRouter, OpenAI/Codex or other inference credentials, enable
+other providers, or bypass this policy with another client.

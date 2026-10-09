@@ -43,11 +43,11 @@ enum Commands {
         #[arg(long)]
         defaults: PathBuf,
     },
-    SecretService {
+    PassLogin {
         #[arg(long)]
-        daemon: PathBuf,
+        client: PathBuf,
         #[arg(long)]
-        password_file: PathBuf,
+        token_file: PathBuf,
     },
     Hermes {
         #[command(subcommand)]
@@ -130,10 +130,7 @@ fn run() -> Result<()> {
         } => hermes::provision(&root, &ssh_to_age, reuse_mirsellabot),
         Commands::Hermes { action } => hermes::operations(action),
         Commands::HermesConfigure { config, defaults } => hermes::configure(&config, &defaults),
-        Commands::SecretService {
-            daemon,
-            password_file,
-        } => hermes::secret_service(&daemon, &password_file),
+        Commands::PassLogin { client, token_file } => hermes::pass_login(&client, &token_file),
         Commands::NightSuspend { activity_only } => suspend::run(activity_only),
         Commands::StorageAlerts { test } => monitoring::alerts(test),
         Commands::BeszelSetup {

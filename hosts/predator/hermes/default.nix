@@ -12,14 +12,47 @@ let
     XDG_RUNTIME_DIR = ownerRuntime;
     DBUS_SESSION_BUS_ADDRESS = "unix:path=${ownerRuntime}/bus";
   };
+  blockedInferenceEnvironment = [ "OPENROUTER_API_KEY" "OPENAI_API_KEY" "OPENCODE_ZEN_API_KEY" "OPENCODE_API_KEY" "DEEPINFRA_API_KEY" "MOONSHOT_API_KEY" "ANTHROPIC_API_KEY" "ANTHROPIC_TOKEN" "CLAUDE_CODE_OAUTH_TOKEN" ];
   state = "/var/lib/hermes";
   browserState = "/var/lib/camofox";
   controlState = "/var/lib/hermes-browser-control";
+  accountTools = pkgs.runCommand "hermes-account-tools" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
+    mkdir -p "$out/bin"
+    ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: executable: ''
+      makeWrapper ${executable} "$out/bin/${name}" \
+        ${lib.concatStringsSep " \\\n        " (lib.mapAttrsToList (variable: value:
+          "--set ${variable} ${lib.escapeShellArg value}"
+        ) (builtins.removeAttrs ownerEnvironment [ "HOME" ]))} \
+        ${lib.optionalString (name == "pass-cli") ''
+          --add-flags '--shared ${ownerRuntime}/hermes-pass.lock ${lib.getExe pkgs.proton-pass-cli}' \
+          --set PROTON_PASS_LINUX_KEYRING dbus
+        ''}
+    '') {
+      pass-cli = lib.getExe' pkgs.util-linux "flock";
+      protonmail-cli = lib.getExe pkgs.protonmail-cli;
+      gh = lib.getExe pkgs.gh;
+      secret-tool = lib.getExe' pkgs.libsecret "secret-tool";
+    })}
+  '';
   tools = pkgs.buildEnv {
     name = "hermes-workspace-tools";
-    paths = with pkgs; [ bashInteractive coreutils findutils gnugrep gnused gawk git ripgrep curl jq python3 nodejs_22 cacert gh proton-pass-cli protonmail-cli openssh chezmoi sudo nix sleev ];
+    paths = with pkgs; [ bashInteractive coreutils findutils gnugrep gnused gawk git ripgrep curl jq python3 nodejs_22 cacert accountTools openssh chezmoi sudo nix sleev ];
   };
-  package = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.messaging;
+  upstreamPackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.messaging;
+  # Vite's lazy preloads must use the authenticated mount, not site-root assets.
+  dashboard = upstreamPackage.hermesWeb.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace web/vite.config.ts \
+        --replace-fail 'export default defineConfig({' 'export default defineConfig({ base: "/hermes/",'
+    '';
+  });
+  # Upstream injects frontend dependencies through callPackage. Keep its native
+  # assembly until it exposes a direct frontend parameter.
+  package = upstreamPackage.override {
+    callPackage = file: arguments:
+      if toString file == "${inputs.hermes-agent}/nix/web.nix" then dashboard
+      else pkgs.callPackage file arguments;
+  };
   upstreamCommon = import "${inputs.hermes-agent}/nix/moduleCommon.nix" { inherit lib; };
   gatewayEnvironment = upstreamCommon.mkEnvScript {
     inherit pkgs;
@@ -27,10 +60,12 @@ let
   };
   agentUnits = lib.optional cfg.messaging "hermes-agent.service";
   secretUnits = {
-    hermes_gateway_env = agentUnits;
+    hermes_gateway_env = [ "hermes-backend.service" ] ++ agentUnits;
     hermes_browser_env = [ "camofox-browser.service" "hermes-browser-control.service" ] ++ agentUnits;
     hermes_control_env = [ "hermes-browser-control.service" ] ++ agentUnits;
     hermes_caddy_env = [ "caddy.service" ];
+    hermes_keyring_password = [ "hermes-secret-service.service" "hermes-agent.service" "hermes-backend.service" ];
+    hermes_pass_token = [ "hermes-pass-login.service" ];
   };
   controllerConfig = pkgs.writeText "hermes-browser-control.json" (builtins.toJSON {
     listen = "127.0.0.1:9378";
@@ -40,16 +75,35 @@ let
     state = "${controlState}/lifecycle.json";
     novnc = "${pkgs.novnc}/share/webapps/novnc";
   });
-  aux = lib.genAttrs [ "vision" "compression" "skills_hub" "approval" "review" "mcp" "title_generation" "memory_query_rewrite" "tts_tags" "voice_chat" "triage" "kanban_decomposer" "profile_describer" "goal_judge" "curator" "monitor" "background_review" ] (_: {
-    provider = "opencode-go"; model = "muse-spark-1.3-contributor";
+  # Native provider policy is checked before alias expansion. Disable both
+  # canonical providers and their pinned aliases, including generic endpoints.
+  disabledProviders = lib.unique (
+    builtins.attrNames (builtins.readDir "${inputs.hermes-agent}/plugins/model-providers") ++ [
+      "auto" "moa" "openai" "openai-api" "chatgpt" "chatgpt-codex"
+      "opencode" "opencode_zen" "zen" "glm" "z-ai" "z.ai" "zhipu"
+      "x-ai" "x.ai" "grok" "xai-oauth" "grok-oauth" "x-ai-oauth" "xai-grok-oauth"
+      "nim" "nvidia-nim" "build-nvidia" "nemotron" "kimi-for-coding" "kimi" "kimi-coding-cn" "moonshot"
+      "step" "stepfun-coding-plan" "minimax-cn" "minimax-china" "minimax_cn"
+      "claude" "claude-code" "github-copilot" "github" "github-copilot-acp"
+      "vercel" "aigateway" "vercel-ai-gateway" "kilo" "kilo-code" "kilo-gateway" "deep-seek"
+      "dashscope" "aliyun" "qwen" "alibaba-cloud" "alibaba_coding" "alibaba-coding" "alibaba_coding_plan"
+      "hf" "hugging-face" "huggingface-hub" "novita-ai" "novitaai" "mimo" "xiaomi-mimo"
+      "tencent" "tokenhub" "tencent-cloud" "tencentmaas" "tencent-tokenplan" "tokenplan" "tencent-lkeap"
+      "aws" "aws-bedrock" "amazon-bedrock" "amazon" "arcee-ai" "arceeai" "gmi-cloud" "gmicloud"
+      "fireworks-ai" "fw" "solar" "actual-computer" "actualcomputer" "aci"
+      "nebius" "nebius-tokenfactory" "nebius-tf" "token-factory" "tokenfactory"
+      "lm-studio" "lm_studio" "ollama" "local" "vllm" "llamacpp" "llama.cpp" "llama-cpp"
+    ]
+  );
+  aux = lib.genAttrs [ "vision" "compression" "skills_hub" "approval" "review" "mcp" "title_generation" "memory_query_rewrite" "tts_audio_tags" "voice_chat" "triage_specifier" "kanban_decomposer" "profile_describer" "goal_judge" "curator" "monitor" "background_review" "moa_reference" "moa_aggregator" ] (_: {
+    provider = "opencode-go";
+    model = "muse-spark-1.3-contributor";
+    base_url = "";
+    api_key = "";
   });
   defaults = {
-    model = { provider = "opencode-go"; default = "muse-spark-1.3-contributor"; };
-    fallback_providers = [];
-    auth.adopt_external_logins = false;
     terminal = { backend = "local"; cwd = "${state}/workspace"; };
     browser = { backend = "browserbase"; cloud_provider = "camofox"; };
-    auxiliary = aux;
     gateway = { allow_all_users = false; unauthorized_dm_behavior = "ignore"; };
     platforms.telegram.extra = {
       group_allow_from = [];
@@ -61,7 +115,8 @@ let
   ownerCli = pkgs.runCommand "hermes-owner-cli" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
     mkdir -p "$out/bin"
     makeWrapper ${package}/bin/hermes "$out/bin/hermes" \
-      --set HERMES_HOME ${state}/.hermes --set HERMES_MANAGED false
+      --set HERMES_HOME ${state}/.hermes --set HERMES_MANAGED false \
+      ${lib.concatMapStringsSep " \\\n      " (name: "--unset ${name}") blockedInferenceEnvironment}
   '';
   hardening = {
     NoNewPrivileges = true;
@@ -80,6 +135,26 @@ let
     RestartSec = "5s";
     TimeoutStopSec = "90s";
   };
+  ownerService = {
+    # Dashboard chat and terminal tools have the same owner access as Telegram.
+    NoNewPrivileges = lib.mkForce false;
+    ProtectSystem = lib.mkForce false;
+    ProtectHome = lib.mkForce false;
+    PrivateTmp = lib.mkForce false;
+    EnvironmentFile = [ "${ownerHome}/.config/environment.d/55-secrets.conf" ];
+    # Keep personal application credentials, but do not expose unrelated
+    # inference credentials from the owner's general environment to Hermes.
+    UnsetEnvironment = blockedInferenceEnvironment;
+    UMask = lib.mkForce "0077";
+    Restart = lib.mkForce "on-failure";
+    RestartSec = lib.mkForce "5s";
+    MemoryAccounting = true;
+    BindReadOnlyPaths = [ "/var/lib/camofox-downloads:${state}/workspace/downloads" ];
+  };
+  renderEnvironment = ''
+    test -r ${lib.escapeShellArg config.sops.secrets.hermes_gateway_env.path}
+    ${gatewayEnvironment} ${state}/.hermes/.env 0600 ${lib.escapeShellArgs config.services.hermes-agent.environmentFiles}
+  '';
   isolationRules = pkgs.writeText "predator-hermes-network.nft" ''
     destroy table inet predator_hermes
     table inet predator_hermes {
@@ -89,8 +164,8 @@ let
         # and Caddy's configuration API by the initiating socket's UID too.
         ip daddr 127.0.0.0/8 tcp dport { 9377, 6080 } meta skuid != { "root", "hermes-browser-control" } reject
         ip6 daddr ::1 tcp dport { 9377, 6080 } meta skuid != { "root", "hermes-browser-control" } reject
-        ip daddr 127.0.0.0/8 tcp dport { 9378, 2019 } meta skuid != { "root", "${owner}", "caddy" } reject
-        ip6 daddr ::1 tcp dport { 9378, 2019 } meta skuid != { "root", "${owner}", "caddy" } reject
+        ip daddr 127.0.0.0/8 tcp dport { 9378, 2019, 9119 } meta skuid != { "root", "${owner}", "caddy" } reject
+        ip6 daddr ::1 tcp dport { 9378, 2019, 9119 } meta skuid != { "root", "${owner}", "caddy" } reject
         ip daddr 127.0.0.0/8 tcp dport 5900 meta skuid != { "root", "camofox" } reject
         ip6 daddr ::1 tcp dport 5900 meta skuid != { "root", "camofox" } reject
         # Let private servers answer approved clients; only new outbound
@@ -115,18 +190,13 @@ in {
     sops.secrets = lib.mapAttrs (name: restartUnits: {
       sopsFile = ../../../secrets/hermes.yaml;
       inherit restartUnits;
-    } // lib.optionalAttrs (name == "hermes_gateway_env") {
-      owner = config.services.hermes-agent.user;
-      group = config.services.hermes-agent.group;
-      mode = "0400";
-    }) secretUnits // { hermes_keyring_password = {
-      sopsFile = ../../../secrets/hermes.yaml;
-      owner = owner;
+    } // lib.optionalAttrs (builtins.elem name [ "hermes_gateway_env" "hermes_keyring_password" "hermes_pass_token" ]) {
+      inherit owner;
       group = ownerGroup;
       mode = "0400";
-      restartUnits = [ "hermes-secret-service.service" "hermes-agent.service" ];
-    }; };
+    }) secretUnits;
     users.users.${owner}.uid = 1000;
+    home-manager.users.${owner}.home.packages = [ (lib.hiPrio accountTools) ];
     users.groups.camofox = {};
     users.groups.hermes-private.members = [ owner ];
     users.groups.hermes-browser-control = {};
@@ -154,16 +224,19 @@ in {
       stateDir = state;
       workingDirectory = "${state}/workspace";
       addToSystemPackages = false;
+      backend = {
+        mode = "dashboard";
+        host = "127.0.0.1";
+        port = 9119;
+        extraArgs = [ "--skip-build" ];
+      };
       environmentFiles = [ config.sops.secrets.hermes_gateway_env.path ];
       documents."AGENTS.md" = builtins.readFile ./agent-AGENTS.md;
       hermesHomeFiles."skills/personal-accounts/SKILL.md" = builtins.readFile ./personal-accounts.md;
       extraPackages = [ tools ];
       environment = {
         HERMES_MANAGED = "false";
-        OPENCODE_ZEN_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/opencode";
         OPENCODE_GO_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/opencode-go";
-        OPENAI_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/openai";
-        HERMES_CODEX_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/codex";
         CAMOFOX_URL = "http://127.0.0.1:9378";
         CAMOFOX_USER_ID = "home-browser";
         CAMOFOX_SESSION_KEY = "home-browser";
@@ -171,8 +244,16 @@ in {
         TELEGRAM_ALLOW_ALL_USERS = "false";
         GATEWAY_ALLOW_ALL_USERS = "false";
       };
-      # Seed missing settings once; runtime changes survive subsequent rebuilds.
-      settings = {};
+      # Inference policy is Nix-owned; other runtime settings remain editable.
+      settings = {
+        model = { provider = "opencode-go"; default = "muse-spark-1.3-contributor"; base_url = ""; api_key = ""; };
+        auxiliary = aux // { openrouter_model = ""; };
+        fallback_providers = [];
+        custom_providers = [];
+        providers = lib.genAttrs disabledProviders (_: { enabled = false; }) // { opencode-go.enabled = true; };
+        auth.adopt_external_logins = false;
+        skills.external_dirs = [ "${ownerHome}/.agents/skills" "${ownerHome}/.codex/skills" ];
+      };
     };
     system.activationScripts.hermes-settings = lib.stringAfter [ "hermes-agent-setup" ] ''
       ${pkgs.util-linux}/bin/runuser -u ${owner} -g ${ownerGroup} -- \
@@ -205,16 +286,40 @@ in {
       serviceConfig = {
         User = owner;
         Group = ownerGroup;
-        ExecStart = "${pkgs.host-tools}/bin/host-tools secret-service --daemon ${pkgs.gnome-keyring}/bin/gnome-keyring-daemon --password-file ${config.sops.secrets.hermes_keyring_password.path}";
+        ExecStart = "${pkgs.gnome-keyring}/bin/gnome-keyring-daemon --foreground --unlock --components=secrets";
+        StandardInput = "file:${config.sops.secrets.hermes_keyring_password.path}";
         Restart = "on-failure";
         RestartSec = "5s";
         UMask = "0077";
       };
     };
+    # PAT tokens last a year, but their cached sessions last only two hours.
+    # Authenticate at boot and hourly through the vendor's native env API.
+    systemd.services.hermes-pass-login = {
+      description = "Renew the headless Proton Pass session";
+      wantedBy = [ "multi-user.target" ];
+      requires = [ "hermes-secret-service.service" "sops-install-secrets.service" ];
+      after = [ "hermes-secret-service.service" "sops-install-secrets.service" "network-online.target" ];
+      wants = [ "network-online.target" ];
+      environment = ownerEnvironment // { PROTON_PASS_LINUX_KEYRING = "dbus"; };
+      startAt = "hourly";
+      serviceConfig = {
+        Type = "oneshot";
+        User = owner;
+        Group = ownerGroup;
+        ExecStart = "${pkgs.host-tools}/bin/host-tools pass-login --client ${pkgs.proton-pass-cli}/bin/pass-cli --token-file ${config.sops.secrets.hermes_pass_token.path}";
+        Restart = "on-failure";
+        RestartSec = "1min";
+        TimeoutStartSec = "90s";
+        UMask = "0077";
+      };
+    };
+    systemd.timers.hermes-pass-login.timerConfig.Persistent = true;
     systemd.services.hermes-agent = {
       wantedBy = lib.mkForce (lib.optional cfg.messaging "multi-user.target");
       requires = [ "hermes-browser-control.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
-      after = [ "hermes-browser-control.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
+      after = [ "hermes-browser-control.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" "hermes-pass-login.service" ];
+      wants = [ "hermes-pass-login.service" ];
       environment = ownerEnvironment // {
         HOME = lib.mkForce ownerHome;
         HERMES_MANAGED = lib.mkForce "false";
@@ -223,23 +328,16 @@ in {
       };
       # Predator installs SOPS through systemd, after native Nix activation.
       # Reuse upstream's env renderer after installation, including on restart.
-      preStart = lib.mkBefore ''
-        test -r ${lib.escapeShellArg config.sops.secrets.hermes_gateway_env.path}
-        ${gatewayEnvironment} ${state}/.hermes/.env 0600 ${lib.escapeShellArgs config.services.hermes-agent.environmentFiles}
-      '';
-      serviceConfig = {
-        # Run with the owner's ordinary access, including passwordless sudo.
-        NoNewPrivileges = lib.mkForce false;
-        ProtectSystem = lib.mkForce false;
-        ProtectHome = lib.mkForce false;
-        PrivateTmp = lib.mkForce false;
-        EnvironmentFile = [ "${ownerHome}/.config/environment.d/55-secrets.conf" ];
-        UMask = lib.mkForce "0077";
-        Restart = lib.mkForce "on-failure";
-        RestartSec = lib.mkForce "5s";
-        MemoryAccounting = true;
-        BindReadOnlyPaths = [ "/var/lib/camofox-downloads:${state}/workspace/downloads" ];
-      };
+      preStart = lib.mkBefore renderEnvironment;
+      serviceConfig = ownerService;
+    };
+    systemd.services.hermes-backend = {
+      requires = [ "hermes-network-isolation.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
+      after = [ "hermes-network-isolation.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" "hermes-agent.service" ];
+      wants = [ "hermes-agent.service" "hermes-pass-login.service" ];
+      environment = lib.mapAttrs (_: value: lib.mkForce value) config.systemd.services.hermes-agent.environment;
+      preStart = lib.mkBefore renderEnvironment;
+      serviceConfig = ownerService;
     };
     systemd.services.hermes-network-isolation = {
       description = "Deny browser access to private networks and raw browser ports";
@@ -304,9 +402,48 @@ in {
         ReadWritePaths = [ controlState ];
       };
     };
+    systemd.services.hermes-backup = {
+      description = "Back up Hermes runtime state to Tank";
+      startAt = "23:20";
+      path = [ pkgs.gnutar pkgs.util-linux ];
+      unitConfig.RequiresMountsFor = [ "/srv/backup" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.host-tools}/bin/host-tools hermes backup";
+        TimeoutStartSec = "30min";
+        UMask = "0077";
+      };
+    };
+    systemd.timers.hermes-backup.timerConfig.Persistent = true;
     systemd.services.caddy.serviceConfig.EnvironmentFile = [ config.sops.secrets.hermes_caddy_env.path ];
+    # After alone does not pull in the online target during early boot.
+    systemd.services.caddy.wants = [ "network-online.target" ];
     environment.systemPackages = [ pkgs.host-tools pkgs.sops pkgs.ssh-to-age pkgs.sleev ownerCli ];
     services.caddy.virtualHosts."mirsella.mooo.com".extraConfig = lib.mkBefore ''
+      redir /hermes /hermes/ 308
+      handle_path /hermes/* {
+        route {
+          basic_auth {
+            mirsella {$HERMES_VIEWER_PASSWORD_HASH}
+          }
+          @foreignOrigin expression `{http.request.header.Origin} != "" && {http.request.header.Origin} != "https://mirsella.mooo.com"`
+          respond @foreignOrigin "Same-origin access required" 403
+          header {
+            Cache-Control "no-store"
+            Referrer-Policy "no-referrer"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "DENY"
+          }
+          reverse_proxy 127.0.0.1:9119 {
+            header_up Host {upstream_hostport}
+            header_up X-Forwarded-Prefix /hermes
+            # Validate the real Origin above, then present the loopback
+            # authority expected by the native dashboard's Host/WS guard.
+            header_up Origin http://127.0.0.1:9119
+            header_up -Authorization
+          }
+        }
+      }
       redir /browser /browser/ 308
       handle /browser/* {
         basic_auth {
@@ -325,7 +462,7 @@ in {
       }
     '';
     services.caddy.virtualHosts."http://:80".extraConfig = lib.mkBefore ''
-      @hermesViewer path /browser /browser/*
+      @hermesViewer path /browser /browser/* /hermes /hermes/*
       redir @hermesViewer https://mirsella.mooo.com{uri} 308
     '';
   };
