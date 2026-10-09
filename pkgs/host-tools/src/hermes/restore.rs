@@ -1,8 +1,8 @@
 //! Validate private backups and replace whole state directories with rollback.
-use anyhow::{bail, ensure, Context, Result};
-use flate2::read::GzDecoder;
+use anyhow::{Context, Result, bail, ensure};
+use flate2::read::MultiGzDecoder;
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, btree_map::Entry},
     fs,
     io::{self, Seek},
     os::unix::fs::PermissionsExt,
@@ -20,15 +20,13 @@ fn private_directory(root: &Path, prefix: &str) -> Result<tempfile::TempDir> {
 }
 
 fn approved(path: &Path) -> bool {
-    path.components()
-        .all(|component| matches!(component, Component::Normal(_)))
-        && path.components().next().is_some_and(|component| {
-            matches!(component, Component::Normal(name) if ROOTS.iter().any(|root| name == *root))
-        })
+    let mut components = path.components();
+    matches!(components.next(), Some(Component::Normal(name)) if ROOTS.iter().any(|root| name == *root))
+        && components.all(|component| matches!(component, Component::Normal(_)))
 }
 
 fn validate(file: &fs::File) -> Result<()> {
-    let mut archive = tar::Archive::new(GzDecoder::new(file));
+    let mut archive = tar::Archive::new(MultiGzDecoder::new(file));
     let mut members = BTreeMap::new();
     for entry in archive.entries()? {
         let entry = entry?;
@@ -45,12 +43,17 @@ fn validate(file: &fs::File) -> Result<()> {
             path.display()
         );
         let link = entry.link_name()?.map(|name| name.into_owned());
-        ensure!(
-            members.insert(path.clone(), (kind, link)).is_none(),
-            "Duplicate backup member: {}",
-            path.display()
-        );
+        match members.entry(path) {
+            Entry::Vacant(member) => {
+                member.insert((kind, link));
+            }
+            Entry::Occupied(member) => {
+                bail!("Duplicate backup member: {}", member.key().display());
+            }
+        }
     }
+    // Tar iteration stops at its end marker, before gzip's checksum/trailer.
+    io::copy(&mut archive.into_inner(), &mut io::sink())?;
     for root in ROOTS {
         ensure!(
             members
@@ -154,40 +157,50 @@ fn replace_with(
 ) -> Result<()> {
     // Validate all roots before the first rename; never replace a symlink or
     // treat a missing staged tree as an empty backup.
+    let mut roots = Vec::with_capacity(ROOTS.len());
     for name in ROOTS {
         ensure!(
             fs::symlink_metadata(staged.join(name))?.is_dir(),
-            "Staged state root is not a directory"
+            "Staged state root is not a directory: {name}"
         );
-        match fs::symlink_metadata(root.join(name)) {
-            Ok(metadata) => ensure!(metadata.is_dir(), "Live state root is not a directory"),
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        let present = match fs::symlink_metadata(root.join(name)) {
+            Ok(metadata) => {
+                ensure!(
+                    metadata.is_dir(),
+                    "Live state root is not a directory: {name}"
+                );
+                true
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => false,
             Err(error) => return Err(error.into()),
-        }
+        };
+        roots.push((name, present));
     }
-    let mut saved = Vec::new();
-    let mut installed = Vec::new();
+    enum Change {
+        Saved(&'static str),
+        Installed(&'static str),
+    }
+    let mut changes = Vec::new();
     let result = (|| -> Result<()> {
-        for name in ROOTS {
-            if root.join(name).exists() {
+        for (name, present) in roots {
+            if present {
                 rename(&root.join(name), &previous.join(name))?;
-                saved.push(name);
+                changes.push(Change::Saved(name));
             }
             rename(&staged.join(name), &root.join(name))?;
-            installed.push(name);
+            changes.push(Change::Installed(name));
         }
         Ok(())
     })();
     if let Err(error) = result {
         let mut failures = Vec::new();
-        for name in installed.into_iter().rev() {
-            if let Err(error) = rename(&root.join(name), &staged.join(name)) {
-                failures.push(format!("unpublish {name}: {error}"));
-            }
-        }
-        for name in saved.into_iter().rev() {
-            if let Err(error) = rename(&previous.join(name), &root.join(name)) {
-                failures.push(format!("recover {name}: {error}"));
+        for change in changes.into_iter().rev() {
+            let (name, from, to, action) = match change {
+                Change::Installed(name) => (name, root, staged, "unpublish"),
+                Change::Saved(name) => (name, previous, root, "recover"),
+            };
+            if let Err(error) = rename(&from.join(name), &to.join(name)) {
+                failures.push(format!("{action} {name}: {error}"));
             }
         }
         return Err(error.context(if failures.is_empty() {
@@ -224,8 +237,11 @@ pub(super) fn replace(root: &Path, staged: tempfile::TempDir) -> Result<PathBuf>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flate2::{write::GzEncoder, Compression};
-    use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
+    use flate2::{Compression, write::GzEncoder};
+    use std::{
+        io::Write,
+        os::unix::fs::{MetadataExt, PermissionsExt, symlink},
+    };
 
     fn archive(source: &Path, destination: &Path) {
         let gzip = GzEncoder::new(fs::File::create(destination).unwrap(), Compression::fast());
@@ -310,6 +326,94 @@ mod tests {
             assert_eq!(fs::read(staged.join(name).join("state")).unwrap(), b"saved");
         }
         assert_eq!(fs::read_dir(previous).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn failed_rollback_retains_both_saved_and_restored_state() {
+        let directory = tempfile::tempdir().unwrap();
+        let live = directory.path().join("live");
+        let staged = directory.path().join("staged");
+        let previous = directory.path().join("previous");
+        state(&live, b"current");
+        state(&staged, b"saved");
+        fs::create_dir(&previous).unwrap();
+        let mut calls = 0;
+        let error = replace_with(&live, &staged, &previous, &mut |from, to| {
+            calls += 1;
+            if matches!(calls, 4 | 5) {
+                return Err(io::Error::other("injected rename failure"));
+            }
+            fs::rename(from, to)
+        })
+        .unwrap_err();
+        let diagnostic = format!("{error:#}");
+        assert!(diagnostic.contains("recovery errors: recover camofox"));
+        assert!(!live.join("camofox").exists());
+        assert_eq!(
+            fs::read(previous.join("camofox/state")).unwrap(),
+            b"current"
+        );
+        assert_eq!(fs::read(live.join("hermes/state")).unwrap(), b"current");
+        for name in ROOTS {
+            assert_eq!(fs::read(staged.join(name).join("state")).unwrap(), b"saved");
+        }
+    }
+
+    #[test]
+    fn corrupt_or_truncated_gzip_trailers_are_rejected_before_staging() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source");
+        state(&source, b"saved");
+        let backup = directory.path().join("backup.tar.gz");
+        archive(&source, &backup);
+        let bytes = fs::read(&backup).unwrap();
+        let staged = directory.path().join("staged");
+        fs::create_dir(&staged).unwrap();
+        let mut corrupt = bytes.clone();
+        corrupt[bytes.len() - 8] ^= 0xff;
+        for invalid in [&corrupt[..], &bytes[..bytes.len() - 4]] {
+            fs::write(&backup, invalid).unwrap();
+            assert!(validate_backup(&backup).is_err());
+            assert!(stage(&backup, &staged).is_err());
+            assert_eq!(fs::read_dir(&staged).unwrap().count(), 0);
+        }
+    }
+
+    #[test]
+    fn concatenated_gzip_members_share_one_archive_validation() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source");
+        state(&source, b"saved");
+        fs::write(source.join("extra"), b"second gzip member").unwrap();
+        let backup = directory.path().join("backup.tar.gz");
+        for name in ["hermes/extra", "outside/extra"] {
+            let mut tar = tar::Builder::new(Vec::new());
+            for root in ROOTS {
+                tar.append_dir_all(root, source.join(root)).unwrap();
+            }
+            let boundary = tar.get_ref().len();
+            tar.append_path_with_name(source.join("extra"), name)
+                .unwrap();
+            let bytes = tar.into_inner().unwrap();
+            let mut file = fs::File::create(&backup).unwrap();
+            for part in [&bytes[..boundary], &bytes[boundary..]] {
+                let mut gzip = GzEncoder::new(file, Compression::fast());
+                gzip.write_all(part).unwrap();
+                file = gzip.finish().unwrap();
+            }
+            drop(file);
+            if name == "hermes/extra" {
+                validate_backup(&backup).unwrap();
+                let staged = stage(&backup, directory.path()).unwrap();
+                assert_eq!(
+                    fs::read(staged.path().join(name)).unwrap(),
+                    b"second gzip member"
+                );
+            } else {
+                assert!(validate_backup(&backup).is_err());
+                assert!(stage(&backup, directory.path()).is_err());
+            }
+        }
     }
 
     #[test]

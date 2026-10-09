@@ -199,14 +199,16 @@ assert lib.assertMsg (
     == "${pkgs.gnome-keyring}/bin/gnome-keyring-daemon --foreground --unlock --components=secrets"
   && server.systemd.services.hermes-secret-service.serviceConfig.StandardInput
     == "file:${server.sops.secrets.hermes_keyring_password.path}"
+  && lib.hasSuffix "wait --session --timeout 30 org.freedesktop.secrets"
+    server.systemd.services.hermes-secret-service.serviceConfig.ExecStartPost
   && server.systemd.services.sleev-gateway.wantedBy == [ "multi-user.target" ]
-  && server.sops.secrets.hermes_pass_token.owner == "mirsella"
-  && server.sops.secrets.hermes_pass_token.mode == "0400"
-  && server.systemd.services.hermes-pass-login.wantedBy == [ "multi-user.target" ]
-  && builtins.elem "hermes-secret-service.service" server.systemd.services.hermes-pass-login.requires
-  && server.systemd.services.hermes-pass-login.environment.PROTON_PASS_LINUX_KEYRING == "dbus"
-  && lib.toList server.systemd.timers.hermes-pass-login.timerConfig.OnCalendar == [ "hourly" ]
-  && server.systemd.timers.hermes-pass-login.timerConfig.Persistent
+  && server.sops.secrets.hermes_keyring_password.owner == "mirsella"
+  && server.sops.secrets.hermes_keyring_password.mode == "0400"
+  && server.systemd.services.hermes-agent.environment.PROTON_PASS_LINUX_KEYRING == "dbus"
+  && server.systemd.services.hermes-backend.environment == server.systemd.services.hermes-agent.environment
+  && !(server.sops.secrets ? hermes_pass_token)
+  && !(server.systemd.services ? hermes-pass-login)
+  && !(server.systemd.timers ? hermes-pass-login)
   && server.systemd.services.sleev-gateway.serviceConfig.User == "mirsella"
   && server.systemd.services.hermes-agent.serviceConfig.BindReadOnlyPaths
     == [ "/var/lib/camofox-downloads:/var/lib/hermes/workspace/downloads" ]

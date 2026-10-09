@@ -24,11 +24,10 @@ let
           "--set ${variable} ${lib.escapeShellArg value}"
         ) (builtins.removeAttrs ownerEnvironment [ "HOME" ]))} \
         ${lib.optionalString (name == "pass-cli") ''
-          --add-flags '--shared ${ownerRuntime}/hermes-pass.lock ${lib.getExe pkgs.proton-pass-cli}' \
           --set PROTON_PASS_LINUX_KEYRING dbus
         ''}
     '') {
-      pass-cli = lib.getExe' pkgs.util-linux "flock";
+      pass-cli = lib.getExe pkgs.proton-pass-cli;
       protonmail-cli = lib.getExe pkgs.protonmail-cli;
       gh = lib.getExe pkgs.gh;
       secret-tool = lib.getExe' pkgs.libsecret "secret-tool";
@@ -65,7 +64,6 @@ let
     hermes_control_env = [ "hermes-browser-control.service" ] ++ agentUnits;
     hermes_caddy_env = [ "caddy.service" ];
     hermes_keyring_password = [ "hermes-secret-service.service" "hermes-agent.service" "hermes-backend.service" ];
-    hermes_pass_token = [ "hermes-pass-login.service" ];
   };
   controllerConfig = pkgs.writeText "hermes-browser-control.json" (builtins.toJSON {
     listen = "127.0.0.1:9378";
@@ -151,6 +149,12 @@ let
     MemoryAccounting = true;
     BindReadOnlyPaths = [ "/var/lib/camofox-downloads:${state}/workspace/downloads" ];
   };
+  agentEnvironment = ownerEnvironment // {
+    HOME = lib.mkForce ownerHome;
+    HERMES_MANAGED = lib.mkForce "false";
+    PATH = lib.mkForce "/run/wrappers/bin:${ownerHome}/.local/share/cargo/bin:/etc/profiles/per-user/${owner}/bin:/run/current-system/sw/bin:${lib.makeBinPath [ tools package pkgs.systemd ]}";
+    PROTON_PASS_LINUX_KEYRING = "dbus";
+  };
   renderEnvironment = ''
     test -r ${lib.escapeShellArg config.sops.secrets.hermes_gateway_env.path}
     ${gatewayEnvironment} ${state}/.hermes/.env 0600 ${lib.escapeShellArgs config.services.hermes-agent.environmentFiles}
@@ -190,7 +194,7 @@ in {
     sops.secrets = lib.mapAttrs (name: restartUnits: {
       sopsFile = ../../../secrets/hermes.yaml;
       inherit restartUnits;
-    } // lib.optionalAttrs (builtins.elem name [ "hermes_gateway_env" "hermes_keyring_password" "hermes_pass_token" ]) {
+    } // lib.optionalAttrs (builtins.elem name [ "hermes_gateway_env" "hermes_keyring_password" ]) {
       inherit owner;
       group = ownerGroup;
       mode = "0400";
@@ -287,45 +291,18 @@ in {
         User = owner;
         Group = ownerGroup;
         ExecStart = "${pkgs.gnome-keyring}/bin/gnome-keyring-daemon --foreground --unlock --components=secrets";
+        ExecStartPost = "${lib.getExe' pkgs.glib "gdbus"} wait --session --timeout 30 org.freedesktop.secrets";
         StandardInput = "file:${config.sops.secrets.hermes_keyring_password.path}";
         Restart = "on-failure";
         RestartSec = "5s";
         UMask = "0077";
       };
     };
-    # PAT tokens last a year, but their cached sessions last only two hours.
-    # Authenticate at boot and hourly through the vendor's native env API.
-    systemd.services.hermes-pass-login = {
-      description = "Renew the headless Proton Pass session";
-      wantedBy = [ "multi-user.target" ];
-      requires = [ "hermes-secret-service.service" "sops-install-secrets.service" ];
-      after = [ "hermes-secret-service.service" "sops-install-secrets.service" "network-online.target" ];
-      wants = [ "network-online.target" ];
-      environment = ownerEnvironment // { PROTON_PASS_LINUX_KEYRING = "dbus"; };
-      startAt = "hourly";
-      serviceConfig = {
-        Type = "oneshot";
-        User = owner;
-        Group = ownerGroup;
-        ExecStart = "${pkgs.host-tools}/bin/host-tools pass-login --client ${pkgs.proton-pass-cli}/bin/pass-cli --token-file ${config.sops.secrets.hermes_pass_token.path}";
-        Restart = "on-failure";
-        RestartSec = "1min";
-        TimeoutStartSec = "90s";
-        UMask = "0077";
-      };
-    };
-    systemd.timers.hermes-pass-login.timerConfig.Persistent = true;
     systemd.services.hermes-agent = {
       wantedBy = lib.mkForce (lib.optional cfg.messaging "multi-user.target");
       requires = [ "hermes-browser-control.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
-      after = [ "hermes-browser-control.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" "hermes-pass-login.service" ];
-      wants = [ "hermes-pass-login.service" ];
-      environment = ownerEnvironment // {
-        HOME = lib.mkForce ownerHome;
-        HERMES_MANAGED = lib.mkForce "false";
-        PATH = lib.mkForce "/run/wrappers/bin:${ownerHome}/.local/share/cargo/bin:/etc/profiles/per-user/${owner}/bin:/run/current-system/sw/bin:${lib.makeBinPath [ tools package pkgs.systemd ]}";
-        PROTON_PASS_LINUX_KEYRING = "dbus";
-      };
+      after = [ "hermes-browser-control.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
+      environment = agentEnvironment;
       # Predator installs SOPS through systemd, after native Nix activation.
       # Reuse upstream's env renderer after installation, including on restart.
       preStart = lib.mkBefore renderEnvironment;
@@ -334,8 +311,8 @@ in {
     systemd.services.hermes-backend = {
       requires = [ "hermes-network-isolation.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
       after = [ "hermes-network-isolation.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" "hermes-agent.service" ];
-      wants = [ "hermes-agent.service" "hermes-pass-login.service" ];
-      environment = lib.mapAttrs (_: value: lib.mkForce value) config.systemd.services.hermes-agent.environment;
+      wants = [ "hermes-agent.service" ];
+      environment = agentEnvironment;
       preStart = lib.mkBefore renderEnvironment;
       serviceConfig = ownerService;
     };

@@ -217,6 +217,22 @@ Apply `homeConfigurations.main` or `homeConfigurations.laptop` on Arch. On NixOS
 use the system rebuild command above. Update this flake to change the installation;
 `rea setup` writes client configuration outside Home Manager.
 
+## Predator Proton Pass login
+
+Hermes uses the owner's normal `pass-cli` login. The CLI keeps its session in
+`~/.local/share/proton-pass-cli` and its local encryption key in the persistent
+D-Bus Secret Service. `hermes-secret-service.service` unlocks that keyring at boot
+using the SOPS-managed `hermes_keyring_password`.
+
+To authenticate or recover a revoked session, run `pass-cli login` as `mirsella`
+on Predator and open its URL in a browser. Check the login with `pass-cli info`.
+The session survives reboots and the CLI handles token refresh; a scheduled
+logout/login job is unnecessary.
+
+Each device has its own login session and keyring. Keep the CLI's writable session
+and database out of chezmoi and SOPS: a copied session file needs its matching
+keyring key, and refreshed credentials would diverge between devices.
+
 ## Predator storage
 
 `fast` is the separate 240 GB encrypted SSD. `tank` combines the Seagate 1 TB,

@@ -19,6 +19,7 @@ use std::{
 const TANK_BACKUP_DIRECTORY: &str = "/srv/backup/hermes";
 const LEGACY_BACKUP_DIRECTORY: &str = "/var/lib/hermes-backups";
 const BACKUP_RETENTION: usize = 14;
+const BACKUP_TIMESTAMP_FORMAT: &str = "%Y%m%dT%H%M%S%.9fZ";
 
 #[derive(clap::Subcommand)]
 pub enum Operation {
@@ -32,53 +33,6 @@ pub enum Operation {
         #[arg(long)]
         archive: PathBuf,
     },
-}
-
-pub fn pass_login(client: &Path, token_file: &Path) -> Result<()> {
-    let saved = fs::read_to_string(token_file)?;
-    let token = pass_token(&saved)?;
-    let lock_path =
-        PathBuf::from(env::var_os("XDG_RUNTIME_DIR").context("Owner runtime directory missing")?)
-            .join("hermes-pass.lock");
-    let lock = fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .mode(0o600)
-        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
-        .open(lock_path)?;
-    lock.lock().context("Cannot lock the Proton Pass session")?;
-    renew_pass_session(client, token)
-}
-
-fn pass_token(saved: &str) -> Result<&str> {
-    let token = saved.trim();
-    ensure!(
-        token.starts_with("pst_")
-            && token
-                .split_once("::")
-                .is_some_and(|(token, key)| token.len() > 4 && !key.is_empty())
-            && !token.chars().any(char::is_whitespace),
-        "Saved Proton Pass PAT is malformed"
-    );
-    Ok(token)
-}
-
-fn renew_pass_session(client: &Path, token: &str) -> Result<()> {
-    // Login rejects an already-authenticated client. Renew only after a
-    // successful native check; a network failure must not clear a valid cache.
-    let current = Command::new(client).arg("info").output()?;
-    if current.status.success() {
-        capture(Command::new(client).arg("logout"), None)?;
-    }
-    // The vendor's credential provider reads this variable. Never expose the
-    // token in process arguments or credential-bearing native diagnostics.
-    capture(
-        Command::new(client)
-            .arg("login")
-            .env("PROTON_PASS_PERSONAL_ACCESS_TOKEN", token),
-        None,
-    )?;
-    Ok(())
 }
 
 fn fill_defaults(current: &mut Value, defaults: &Value) -> bool {
@@ -185,7 +139,7 @@ fn capture(command: &mut Command, stdin: Option<&[u8]>) -> Result<Vec<u8>> {
     let name = command.get_program().to_string_lossy().into_owned();
     command
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::null())
         .stdin(if stdin.is_some() {
             Stdio::piped()
         } else {
@@ -196,8 +150,7 @@ fn capture(command: &mut Command, stdin: Option<&[u8]>) -> Result<Vec<u8>> {
             .spawn()
             .with_context(|| format!("Cannot start {name}"))?;
         let mut input = child.stdin.take().context("Command stdin was not piped")?;
-        // Drain both output pipes while feeding input. Otherwise a child that
-        // writes before reading can deadlock against a full stdin pipe.
+        // Drain stdout while feeding input to avoid a full-pipe deadlock.
         std::thread::scope(|scope| -> Result<_> {
             let writer = scope.spawn(move || input.write_all(bytes));
             let output = child.wait_with_output();
@@ -210,7 +163,7 @@ fn capture(command: &mut Command, stdin: Option<&[u8]>) -> Result<Vec<u8>> {
         (command.output(), Ok(()))
     };
     let output = output.with_context(|| format!("Cannot run {name}"))?;
-    // Never include subprocess stderr: credential-bearing requests may appear there.
+    // Credential-bearing stderr is discarded, not buffered or reported.
     ensure!(
         output.status.success(),
         "{name} exited {}; diagnostic withheld because it may contain credentials",
@@ -247,6 +200,14 @@ fn decrypt(path: &Path, converter: &Path) -> Result<Value> {
     Ok(serde_json::from_slice(&bytes)?)
 }
 
+fn valid_environment_key(key: &str) -> bool {
+    let mut bytes = key.bytes();
+    bytes
+        .next()
+        .is_some_and(|byte| byte.is_ascii_alphabetic() || byte == b'_')
+        && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+}
+
 fn parse_environment(text: &str) -> Result<BTreeMap<String, String>> {
     text.lines()
         .filter(|line| !line.trim().is_empty() && !line.trim_start().starts_with('#'))
@@ -255,10 +216,7 @@ fn parse_environment(text: &str) -> Result<BTreeMap<String, String>> {
                 .split_once('=')
                 .context("Malformed saved environment")?;
             let key = key.trim().strip_prefix("export ").unwrap_or(key.trim());
-            ensure!(
-                key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'),
-                "Malformed environment key"
-            );
+            ensure!(valid_environment_key(key), "Malformed environment key");
             Ok((
                 key.to_string(),
                 value.trim().trim_matches(['\'', '"']).to_string(),
@@ -267,11 +225,19 @@ fn parse_environment(text: &str) -> Result<BTreeMap<String, String>> {
         .collect()
 }
 
-fn environment(values: &BTreeMap<String, String>) -> Result<String> {
+fn environment<K: AsRef<str>, V: AsRef<str>>(
+    values: impl IntoIterator<Item = (K, V)>,
+) -> Result<String> {
     let mut result = String::new();
     for (key, value) in values {
+        let key = key.as_ref();
+        let value = value.as_ref();
+        ensure!(valid_environment_key(key), "Malformed environment key");
         ensure!(!value.contains(['\n', '\r']), "Multiline value for {key}");
-        result.push_str(&format!("{key}={value}\n"));
+        result.push_str(key);
+        result.push('=');
+        result.push_str(value);
+        result.push('\n');
     }
     Ok(result)
 }
@@ -280,22 +246,6 @@ fn random() -> Result<String> {
     let mut bytes = [0u8; 32];
     fs::File::open("/dev/urandom")?.read_exact(&mut bytes)?;
     Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
-}
-
-fn private_write(path: &Path, bytes: &[u8]) -> Result<()> {
-    let parent = path.parent().context("Private file has no parent")?;
-    fs::DirBuilder::new()
-        .recursive(true)
-        .mode(0o700)
-        .create(parent)?;
-    let mut file = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
-        .open(path)?;
-    file.write_all(bytes)?;
-    file.sync_all()?;
-    Ok(())
 }
 
 fn stage_private(path: &Path, bytes: &[u8]) -> Result<tempfile::NamedTempFile> {
@@ -352,9 +302,12 @@ fn go_gateway_environment(text: &str) -> Result<BTreeMap<String, String>> {
     Ok(gateway)
 }
 
-fn add_owner_credentials(values: &mut Value, pat: impl FnOnce() -> Result<String>) -> Result<()> {
+fn ensure_keyring_password(values: &mut Value) -> Result<()> {
+    let values = values
+        .as_object_mut()
+        .context("Service secrets must be an object")?;
     if values.get("hermes_keyring_password").is_none() {
-        values["hermes_keyring_password"] = json!(random()?);
+        values.insert("hermes_keyring_password".into(), json!(random()?));
     }
     ensure!(
         values["hermes_keyring_password"]
@@ -362,14 +315,6 @@ fn add_owner_credentials(values: &mut Value, pat: impl FnOnce() -> Result<String
             .is_some_and(|password| !password.is_empty() && !password.contains(['\n', '\r'])),
         "Saved keyring password is invalid"
     );
-    if values.get("hermes_pass_token").is_none() {
-        values["hermes_pass_token"] = json!(pass_token(&pat()?)?);
-    }
-    pass_token(
-        values["hermes_pass_token"]
-            .as_str()
-            .context("Saved Pass PAT must be a string")?,
-    )?;
     Ok(())
 }
 
@@ -426,19 +371,11 @@ pub fn provision(root: &Path, converter: &Path, reuse: bool) -> Result<()> {
                 &json!({"url":"https://mirsella.mooo.com/browser/","username":"mirsella","password":password}),
             )?,
         ));
-        let env_block = |pairs: &[(&str, &str)]| -> Result<String> {
-            environment(
-                &pairs
-                    .iter()
-                    .map(|(key, value)| (key.to_string(), value.to_string()))
-                    .collect(),
-            )
-        };
         json!({
-            "hermes_gateway_env":env_block(&[("OPENCODE_GO_API_KEY",model_key),("CAMOFOX_API_KEY",&gate),("HERMES_BROWSER_KEY",&gate),("TELEGRAM_ALLOW_ALL_USERS","false"),("GATEWAY_ALLOW_ALL_USERS","false")])?,
-            "hermes_browser_env":env_block(&[("CAMOFOX_ACCESS_KEY",&access),("CAMOFOX_ADMIN_KEY",&admin),("CAMOFOX_API_KEY",&cookies)])?,
-            "hermes_control_env":env_block(&[("CAMOFOX_ACCESS_KEY",&access),("CAMOFOX_ADMIN_KEY",&admin),("HERMES_BROWSER_KEY",&gate),("HERMES_VIEWER_KEY",&viewer)])?,
-            "hermes_caddy_env":env_block(&[("HERMES_VIEWER_PASSWORD_HASH",hash.trim()),("HERMES_VIEWER_KEY",&viewer)])?
+            "hermes_gateway_env":environment([("OPENCODE_GO_API_KEY",model_key),("CAMOFOX_API_KEY",&gate),("HERMES_BROWSER_KEY",&gate),("TELEGRAM_ALLOW_ALL_USERS","false"),("GATEWAY_ALLOW_ALL_USERS","false")])?,
+            "hermes_browser_env":environment([("CAMOFOX_ACCESS_KEY",access.as_str()),("CAMOFOX_ADMIN_KEY",&admin),("CAMOFOX_API_KEY",&cookies)])?,
+            "hermes_control_env":environment([("CAMOFOX_ACCESS_KEY",access.as_str()),("CAMOFOX_ADMIN_KEY",&admin),("HERMES_BROWSER_KEY",&gate),("HERMES_VIEWER_KEY",&viewer)])?,
+            "hermes_caddy_env":environment([("HERMES_VIEWER_PASSWORD_HASH",hash.trim()),("HERMES_VIEWER_KEY",&viewer)])?
         })
     };
     let mut gateway = go_gateway_environment(
@@ -446,10 +383,7 @@ pub fn provision(root: &Path, converter: &Path, reuse: bool) -> Result<()> {
             .as_str()
             .context("Gateway environment is absent")?,
     )?;
-    add_owner_credentials(&mut values, || {
-        env::var("PROTON_PASS_PERSONAL_ACCESS_TOKEN")
-            .context("Fresh provisioning requires the independent Pass PAT in PROTON_PASS_PERSONAL_ACCESS_TOKEN")
-    })?;
+    ensure_keyring_password(&mut values)?;
     if reuse {
         let saved = decrypt(&root.join("secrets/services.yaml"), converter)?;
         let saved = parse_environment(
@@ -574,23 +508,22 @@ fn operation_lock() -> Result<fs::File> {
 }
 
 fn require_tank_backup_mount() -> Result<()> {
-    let mount = Command::new("findmnt")
-        .args([
+    crate::util::run(
+        "findmnt",
+        &[
             "--noheadings",
             "--source",
             "tank/backup",
             "--mountpoint",
             "/srv/backup",
-        ])
-        .output()?;
-    ensure!(
-        mount.status.success(),
-        "Tank backup dataset is not mounted at /srv/backup"
-    );
-    Ok(())
+        ],
+    )
+    .context("Tank backup dataset is not mounted at /srv/backup")
 }
 
-fn prune_backups(directory: &Path, retain: usize) -> Result<()> {
+fn prune_backups(current: &Path) -> Result<()> {
+    let directory = current.parent().context("Backup has no parent directory")?;
+    let current = current.file_name().context("Backup has no file name")?;
     let mut archives = Vec::new();
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
@@ -598,15 +531,23 @@ fn prune_backups(directory: &Path, retain: usize) -> Result<()> {
             continue;
         }
         let name = entry.file_name();
-        let name = name.to_string_lossy();
-        if name.starts_with("hermes-") && name.ends_with(".tar.gz") {
-            archives.push((name.into_owned(), entry.path()));
+        if name == current {
+            continue;
+        }
+        let timestamp = name
+            .to_str()
+            .and_then(|name| name.strip_prefix("hermes-")?.strip_suffix(".tar.gz"))
+            .and_then(|timestamp| {
+                chrono::NaiveDateTime::parse_from_str(timestamp, BACKUP_TIMESTAMP_FORMAT).ok()
+            });
+        if let Some(timestamp) = timestamp {
+            archives.push((timestamp, name));
         }
     }
-    archives.sort_by(|left, right| left.0.cmp(&right.0));
-    let excess = archives.len().saturating_sub(retain);
-    for (_, path) in archives.into_iter().take(excess) {
-        fs::remove_file(path)?;
+    archives.sort_unstable();
+    let excess = archives.len().saturating_sub(BACKUP_RETENTION - 1);
+    for (_, name) in archives.into_iter().take(excess) {
+        fs::remove_file(directory.join(name))?;
     }
     Ok(())
 }
@@ -681,10 +622,9 @@ pub fn operations(action: Operation) -> Result<()> {
             fs::set_permissions(directory, fs::Permissions::from_mode(0o700))?;
             let name = format!(
                 "hermes-{}.tar.gz",
-                chrono::Utc::now().format("%Y%m%dT%H%M%S%.9fZ")
+                chrono::Utc::now().format(BACKUP_TIMESTAMP_FORMAT)
             );
             let final_path = directory.join(name);
-            let temporary = final_path.with_extension("tar.gz.partial");
             let mut previously_active = Vec::new();
             for unit in UNITS {
                 let status = Command::new("systemctl")
@@ -698,7 +638,11 @@ pub fn operations(action: Operation) -> Result<()> {
                 }
             }
             // Prepare the private destination before changing service state.
-            private_write(&temporary, b"")?;
+            let (file, temporary) = tempfile::Builder::new()
+                .prefix("hermes-")
+                .suffix(".tar.gz.partial")
+                .tempfile_in(directory)?
+                .keep()?;
             with_service_recovery(
                 || {
                     stop(&owner)?;
@@ -741,12 +685,18 @@ pub fn operations(action: Operation) -> Result<()> {
                     Ok(())
                 },
             )?;
-            fs::File::open(&temporary)?.sync_all()?;
+            file.sync_all()?;
             // Publish atomically without replacing an existing backup, even
             // across a clock adjustment or simultaneous administrator run.
             fs::hard_link(&temporary, &final_path)?;
             fs::remove_file(temporary)?;
-            prune_backups(directory, BACKUP_RETENTION)?;
+            fs::File::open(directory)?.sync_all()?;
+            prune_backups(&final_path).with_context(|| {
+                format!(
+                    "Backup saved at {}, but retention failed",
+                    final_path.display()
+                )
+            })?;
             println!("Private backup: {}", final_path.display());
             Ok(())
         }
@@ -782,7 +732,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn credential_capture_drains_both_outputs_while_sending_large_input() {
+    fn credential_capture_drains_stdout_and_discards_stderr_while_sending_large_input() {
         let directory = tempfile::tempdir().unwrap();
         let client = directory.path().join("duplex-client");
         fs::write(&client, "#!/bin/sh\ndd if=/dev/zero bs=65536 count=4 2>/dev/null\ndd if=/dev/zero bs=65536 count=4 >&2 2>/dev/null\ndd bs=65536 2>/dev/null\n").unwrap();
@@ -813,76 +763,6 @@ mod tests {
             assert!(error.contains("exit status: 7"));
             assert!(!error.contains("private-credential-marker"));
         }
-    }
-
-    #[test]
-    fn standard_locks_interoperate_with_native_shared_cli_locks() {
-        use std::os::fd::AsRawFd;
-        let directory = tempfile::tempdir().unwrap();
-        let path = directory.path().join("session.lock");
-        let renewal = fs::File::create(&path).unwrap();
-        let reader = fs::File::open(&path).unwrap();
-        assert_eq!(
-            unsafe { libc::flock(reader.as_raw_fd(), libc::LOCK_SH | libc::LOCK_NB) },
-            0
-        );
-        assert!(matches!(
-            renewal.try_lock(),
-            Err(fs::TryLockError::WouldBlock)
-        ));
-        assert_eq!(unsafe { libc::flock(reader.as_raw_fd(), libc::LOCK_UN) }, 0);
-        renewal.lock().unwrap();
-        assert_eq!(
-            unsafe { libc::flock(reader.as_raw_fd(), libc::LOCK_SH | libc::LOCK_NB) },
-            -1
-        );
-        assert_eq!(
-            std::io::Error::last_os_error().raw_os_error(),
-            Some(libc::EWOULDBLOCK)
-        );
-        renewal.unlock().unwrap();
-        assert_eq!(
-            unsafe { libc::flock(reader.as_raw_fd(), libc::LOCK_SH | libc::LOCK_NB) },
-            0
-        );
-    }
-
-    #[test]
-    fn pass_token_validation_is_shared_by_provisioning_and_renewal() {
-        assert_eq!(
-            pass_token(" pst_fixture::key\n").unwrap(),
-            "pst_fixture::key"
-        );
-        for value in [
-            "",
-            "other::key",
-            "pst_::key",
-            "pst_fixture",
-            "pst_fixture::",
-            "pst_fixture::some key",
-        ] {
-            assert!(pass_token(value).is_err());
-        }
-    }
-
-    #[test]
-    fn pass_session_renewal_uses_native_environment_and_preserves_an_offline_cache() {
-        let directory = tempfile::tempdir().unwrap();
-        let client = directory.path().join("pass-cli");
-        let trace = directory.path().join("calls");
-        for (status, expected) in [(0, "info\nlogout\nlogin\n"), (1, "info\nlogin\n")] {
-            fs::write(&client, format!("#!/bin/sh\nprintf '%s\\n' \"$1\" >> '{}'\ncase \"$1\" in\ninfo) exit {status};;\nlogout) exit 0;;\nlogin) test \"$#\" = 1 && test \"$PROTON_PASS_PERSONAL_ACCESS_TOKEN\" = 'pst_fixture::key';;\n*) exit 2;;\nesac\n", trace.display())).unwrap();
-            fs::set_permissions(&client, fs::Permissions::from_mode(0o700)).unwrap();
-            renew_pass_session(&client, "pst_fixture::key").unwrap();
-            assert_eq!(fs::read_to_string(&trace).unwrap(), expected);
-            fs::remove_file(&trace).unwrap();
-        }
-        fs::write(&client, "#!/bin/sh\nif [ \"$1\" = info ]; then exit 1; fi\nprintf '%s' \"$PROTON_PASS_PERSONAL_ACCESS_TOKEN\" >&2\nexit 1\n").unwrap();
-        let error = format!(
-            "{:#}",
-            renew_pass_session(&client, "pst_fixture::key").unwrap_err()
-        );
-        assert!(!error.contains("pst_fixture::key"));
     }
 
     #[test]
@@ -925,7 +805,9 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         for index in 0..16 {
             fs::write(
-                directory.path().join(format!("hermes-{index:03}.tar.gz")),
+                directory
+                    .path()
+                    .join(format!("hermes-20261009T{index:06}.000000000Z.tar.gz")),
                 b"archive",
             )
             .unwrap();
@@ -936,41 +818,110 @@ mod tests {
         )
         .unwrap();
         fs::write(directory.path().join("unrelated.tar.gz"), b"unrelated").unwrap();
+        fs::write(
+            directory.path().join("hermes-not-a-backup.tar.gz"),
+            b"unrelated",
+        )
+        .unwrap();
+        fs::create_dir(
+            directory
+                .path()
+                .join("hermes-20261010T000000.000000000Z.tar.gz"),
+        )
+        .unwrap();
+        std::os::unix::fs::symlink(
+            "unrelated.tar.gz",
+            directory
+                .path()
+                .join("hermes-20261011T000000.000000000Z.tar.gz"),
+        )
+        .unwrap();
 
-        prune_backups(directory.path(), BACKUP_RETENTION).unwrap();
+        prune_backups(
+            &directory
+                .path()
+                .join("hermes-20261009T000015.000000000Z.tar.gz"),
+        )
+        .unwrap();
 
         let remaining = fs::read_dir(directory.path())
             .unwrap()
             .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
             .collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(remaining.len(), 16);
-        assert!(remaining.contains("hermes-015.tar.gz"));
-        assert!(!remaining.contains("hermes-000.tar.gz"));
+        assert_eq!(remaining.len(), 19);
+        assert!(remaining.contains("hermes-20261009T000015.000000000Z.tar.gz"));
+        assert!(!remaining.contains("hermes-20261009T000000.000000000Z.tar.gz"));
+        assert!(!remaining.contains("hermes-20261009T000001.000000000Z.tar.gz"));
         assert!(remaining.contains("hermes-999.tar.gz.partial"));
         assert!(remaining.contains("unrelated.tar.gz"));
+        assert!(remaining.contains("hermes-not-a-backup.tar.gz"));
+        assert!(remaining.contains("hermes-20261010T000000.000000000Z.tar.gz"));
+        assert!(remaining.contains("hermes-20261011T000000.000000000Z.tar.gz"));
     }
 
     #[test]
-    fn owner_credentials_are_added_once_without_rotating_existing_values() {
+    fn backup_retention_preserves_current_archive_after_clock_moves_backwards() {
+        let directory = tempfile::tempdir().unwrap();
+        for index in 0..16 {
+            fs::write(
+                directory
+                    .path()
+                    .join(format!("hermes-20261009T{index:06}.000000000Z.tar.gz")),
+                b"archive",
+            )
+            .unwrap();
+        }
+        let current = directory
+            .path()
+            .join("hermes-20261009T000000.000000000Z.tar.gz");
+        prune_backups(&current).unwrap();
+        assert!(current.exists());
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 14);
+        assert!(
+            !directory
+                .path()
+                .join("hermes-20261009T000001.000000000Z.tar.gz")
+                .exists()
+        );
+        assert!(
+            !directory
+                .path()
+                .join("hermes-20261009T000002.000000000Z.tar.gz")
+                .exists()
+        );
+        assert!(
+            directory
+                .path()
+                .join("hermes-20261009T000015.000000000Z.tar.gz")
+                .exists()
+        );
+    }
+
+    #[test]
+    fn keyring_password_is_added_once_without_rotating_existing_values() {
         let mut values = json!({"hermes_control_env":"existing-control"});
-        add_owner_credentials(&mut values, || Ok("pst_fixture::key".into())).unwrap();
+        ensure_keyring_password(&mut values).unwrap();
         assert_eq!(values["hermes_control_env"], "existing-control");
-        assert_eq!(values["hermes_pass_token"], "pst_fixture::key");
         assert_eq!(
             values["hermes_keyring_password"].as_str().unwrap().len(),
             64
         );
         let saved = values.clone();
-        add_owner_credentials(&mut values, || {
-            bail!("must not reread or replace existing PAT")
-        })
-        .unwrap();
+        ensure_keyring_password(&mut values).unwrap();
         assert_eq!(values, saved);
-        values["hermes_pass_token"] = json!("invalid");
-        assert!(
-            add_owner_credentials(&mut values, || bail!("must not replace invalid saved PAT"))
-                .is_err()
-        );
+        for invalid in ["", "invalid\npassword", "invalid\rpassword"] {
+            values["hermes_keyring_password"] = json!(invalid);
+            assert!(ensure_keyring_password(&mut values).is_err());
+            assert_eq!(values["hermes_keyring_password"], invalid);
+        }
+        for invalid in [json!(null), json!(false), json!([])] {
+            let mut malformed = invalid.clone();
+            assert!(ensure_keyring_password(&mut malformed).is_err());
+            assert_eq!(malformed, invalid);
+            values["hermes_keyring_password"] = invalid.clone();
+            assert!(ensure_keyring_password(&mut values).is_err());
+            assert_eq!(values["hermes_keyring_password"], invalid);
+        }
     }
 
     #[test]
@@ -1042,7 +993,8 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let login = directory.path().join("login/viewer.json");
         let secrets = directory.path().join("secrets/hermes.yaml");
-        private_write(&secrets, b"existing ciphertext").unwrap();
+        fs::create_dir_all(secrets.parent().unwrap()).unwrap();
+        fs::write(&secrets, b"existing ciphertext").unwrap();
         assert!(
             publish_fresh_credentials((&login, b"new login"), (&secrets, b"new ciphertext"))
                 .is_err()
@@ -1145,6 +1097,10 @@ mod tests {
             parse_environment(&environment(&values).unwrap()).unwrap(),
             values
         );
-        assert!(environment(&BTreeMap::from([("TOKEN".into(), "one\ntwo".into())])).is_err());
+        assert!(environment([("TOKEN", "one\ntwo")]).is_err());
+        for key in ["", "1TOKEN", "BAD-KEY", "TOKEN\nOTHER"] {
+            assert!(environment([(key, "value")]).is_err());
+            assert!(parse_environment(&format!("{key}=value\n")).is_err());
+        }
     }
 }
