@@ -96,6 +96,12 @@ their application binaries. NixOS supplies those binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
+Predator uses Lanzaboote for authenticated boot. Its OS PCR separator remains
+disabled pending compatible TPM enrollments for both SSDs. The canonical
+procedure, including signed-image and unlock-phase policies, is in
+[Secure Predator TODO](secure-predator-todo.md). NixOS activation does not migrate
+LUKS credentials; complete enrollment before the first separator-enabled reboot.
+
 Arch's root-owned maintenance is installed separately on both workstations:
 
 ```sh

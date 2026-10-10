@@ -50,6 +50,10 @@ The flake discovers these directories and sets hostnames automatically.
   reviewed changes; do not use whole-tree `rsync --delete` over concurrent work.
   Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles#predator'`.
   Run long rebuilds detached and poll the unit log and exit status.
+- Predator's `systemd-pcrosseparator` initrd unit is explicitly disabled in
+  `hosts/predator/boot.nix`. Keep it disabled in ordinary deployments until both
+  SSDs have compatible enrollments. Follow `secure-predator-todo.md` for the
+  signed-image/phase policies, enrollment, reboot verification and token cleanup.
 - `nix flake check path:. --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`.
   Run focused Cargo tests for monitoring, backups and suspend changes. The
