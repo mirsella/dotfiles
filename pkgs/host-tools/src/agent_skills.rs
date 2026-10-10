@@ -1,6 +1,7 @@
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::BTreeMap,
     env, fs,
     os::unix::fs::symlink,
     path::{Path, PathBuf},
@@ -17,22 +18,34 @@ struct SkillMetadata<'a> {
     description: &'a str,
 }
 
-struct Adapter {
-    name: String,
-    contents: String,
+fn valid_name(name: &str) -> bool {
+    name.len() <= 64
+        && name.split('-').all(|part| {
+            !part.is_empty()
+                && part
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        })
 }
 
-fn adapter(command: &Path) -> Result<Adapter> {
+fn adapter_contents(command: &Path, name: &str, description: &str) -> Result<String> {
+    let header = serde_yaml::to_string(&SkillMetadata { name, description })?;
+    Ok(format!(
+        "---\n{header}---\n\nOnly run this command when the user explicitly requests the operation.\n\n\
+         Read and follow `{}`.\n\n\
+         The model and agent frontmatter configures OpenCode, not this agent.\n\
+         Treat $ARGUMENTS as the instructions supplied with this skill invocation.\n",
+        crate::util::path(command)?
+    ))
+}
+
+fn adapter(command: &Path) -> Result<(String, String)> {
     let name = command
         .file_stem()
         .and_then(|name| name.to_str())
         .context("Command name is not UTF-8")?;
     ensure!(
-        name.len() <= 64
-            && name.split('-').all(|part| !part.is_empty()
-                && part
-                    .bytes()
-                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())),
+        valid_name(name),
         "Command name is not a valid skill name: {name}"
     );
     let source = crate::util::read(command)?;
@@ -50,21 +63,65 @@ fn adapter(command: &Path) -> Result<Adapter> {
         !metadata.description.trim().is_empty(),
         "Command description is empty"
     );
-    let header = serde_yaml::to_string(&SkillMetadata {
-        name,
-        description: &metadata.description,
-    })?;
-    let contents = format!(
-        "---\n{header}---\n\nOnly run this command when the user explicitly requests the operation.\n\n\
-         Read and follow `{}`.\n\n\
-         The model and agent frontmatter configures OpenCode, not this agent.\n\
-         Treat $ARGUMENTS as the instructions supplied with this skill invocation.\n",
-        crate::util::path(command)?
-    );
-    Ok(Adapter {
-        name: name.to_owned(),
-        contents,
-    })
+    Ok((
+        name.to_owned(),
+        adapter_contents(command, name, &metadata.description)?,
+    ))
+}
+
+fn prune_adapters(
+    destination: &Path,
+    commands: &Path,
+    active: &BTreeMap<String, String>,
+) -> Result<()> {
+    let entries = match fs::read_dir(destination) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error).context("Read generated skills"),
+    };
+    for entry in entries {
+        let entry = entry?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str().filter(|name| valid_name(name)) else {
+            continue;
+        };
+        if active.contains_key(name) || !entry.file_type()?.is_dir() {
+            continue;
+        }
+        let directory = entry.path();
+        let mut files = fs::read_dir(&directory)?;
+        let Some(file) = files.next().transpose()? else {
+            continue;
+        };
+        if file.file_name() != "SKILL.md"
+            || !file.file_type()?.is_file()
+            || files.next().transpose()?.is_some()
+        {
+            continue;
+        }
+        let bytes = fs::read(file.path())?;
+        let Ok(contents) = std::str::from_utf8(&bytes) else {
+            continue;
+        };
+        let Some(metadata) = serde_yaml::Deserializer::from_str(contents)
+            .next()
+            .and_then(|document| CommandMetadata::deserialize(document).ok())
+        else {
+            continue;
+        };
+        if !metadata.description.trim().is_empty()
+            && contents
+                == adapter_contents(
+                    &commands.join(format!("{name}.md")),
+                    name,
+                    &metadata.description,
+                )?
+        {
+            fs::remove_file(file.path())?;
+            fs::remove_dir(directory)?;
+        }
+    }
+    Ok(())
 }
 
 fn sync(home: &Path, config: &Path) -> Result<usize> {
@@ -108,7 +165,7 @@ fn sync(home: &Path, config: &Path) -> Result<usize> {
         .into_iter()
         .collect::<std::io::Result<Vec<_>>>()
         .context("OpenCode configuration is missing; apply the dotfiles first")?;
-    let mut adapters = Vec::new();
+    let mut adapters = BTreeMap::new();
     for entry in fs::read_dir(&commands)? {
         let entry = entry?;
         let command = entry.path();
@@ -126,15 +183,14 @@ fn sync(home: &Path, config: &Path) -> Result<usize> {
             fs::canonicalize(&command)
                 .with_context(|| format!("Resolve command {}", command.display()))?,
         );
-        adapters.push(
-            adapter(&command).with_context(|| format!("Export command {}", command.display()))?,
-        );
+        let (name, contents) =
+            adapter(&command).with_context(|| format!("Export command {}", command.display()))?;
+        adapters.insert(name, contents);
     }
-    let count = adapters.len();
     let destination = output(&home.join(".codex"), &sources)?;
     exists_as(&destination, fs::Metadata::is_dir)?;
     let mut updates = Vec::new();
-    for Adapter { name, contents } in adapters {
+    for (name, contents) in &adapters {
         let directory = destination.join(name);
         exists_as(&directory, fs::Metadata::is_dir)?;
         let file = directory.join("SKILL.md");
@@ -170,7 +226,8 @@ fn sync(home: &Path, config: &Path) -> Result<usize> {
         fs::create_dir_all(&directory)?;
         crate::util::atomic_write(&directory.join("SKILL.md"), contents.as_bytes())?;
     }
-    Ok(count)
+    prune_adapters(&destination, &commands, &adapters)?;
+    Ok(adapters.len())
 }
 
 pub fn run() -> Result<()> {
@@ -252,6 +309,53 @@ mod tests {
     }
 
     #[test]
+    fn renamed_commands_prune_only_unmodified_generated_adapters() {
+        let home = tempfile::tempdir().unwrap();
+        let config = home.path().join(".config");
+        let prompt = "---\ndescription: Old command\n---\nOriginal body\n";
+        for name in ["old", "edited", "with-files", "custom", "linked"] {
+            source(&config, &format!("{name}.md"), prompt);
+        }
+        sync(home.path(), &config).unwrap();
+        let skills = home.path().join(".codex/skills");
+        let edited = skills.join("edited/SKILL.md");
+        let original = fs::read_to_string(&edited).unwrap();
+        fs::write(&edited, format!("{original}\nUser customization\n")).unwrap();
+        fs::write(skills.join("with-files/notes.txt"), "User notes").unwrap();
+        fs::write(skills.join("custom/SKILL.md"), "User-managed skill").unwrap();
+        let linked = skills.join("linked/SKILL.md");
+        let saved = home.path().join("saved-skill.md");
+        fs::rename(&linked, &saved).unwrap();
+        symlink(&saved, &linked).unwrap();
+        let commands = config.join("opencode/commands");
+        fs::rename(commands.join("old.md"), commands.join("new.md")).unwrap();
+        for name in ["edited", "with-files", "custom", "linked"] {
+            fs::remove_file(commands.join(format!("{name}.md"))).unwrap();
+        }
+        assert_eq!(sync(home.path(), &config).unwrap(), 1);
+        assert!(!skills.join("old").exists());
+        assert!(skills.join("new/SKILL.md").is_file());
+        assert_eq!(
+            fs::read_to_string(edited).unwrap(),
+            format!("{original}\nUser customization\n")
+        );
+        assert!(skills.join("with-files/SKILL.md").is_file());
+        assert_eq!(
+            fs::read_to_string(skills.join("custom/SKILL.md")).unwrap(),
+            "User-managed skill"
+        );
+        assert!(
+            fs::symlink_metadata(linked)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
+        fs::remove_file(commands.join("new.md")).unwrap();
+        assert_eq!(sync(home.path(), &config).unwrap(), 0);
+        assert!(!skills.join("new").exists());
+    }
+
+    #[test]
     fn live_config_links_follow_source_changes_without_regenerating_adapters() {
         let home = tempfile::tempdir().unwrap();
         let config = home.path().join(".config");
@@ -301,7 +405,7 @@ mod tests {
                     "---{newline}description: 'Commit: on request'{newline}---{newline}: [}} not YAML{newline}"
                 ),
             );
-            let exported = adapter(&path).unwrap().contents;
+            let (_, exported) = adapter(&path).unwrap();
             assert!(exported.contains("Commit: on request"));
             assert!(!exported.contains("not YAML"));
         }
