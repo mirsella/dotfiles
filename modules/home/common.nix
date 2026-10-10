@@ -39,6 +39,9 @@ in
   # started, restarted, or stopped, and take over on next login instead.
   systemd.user.startServices = isNixOS;
 
+  nix.nixPath = lib.mkIf (!isNixOS) [ "nixpkgs=${pkgs.path}" ];
+  nix.keepOldNixPath = false;
+
   # Root GC cannot prune Arch's Home Manager generations in the user's XDG state.
   nix.gc = {
     automatic = !isNixOS;

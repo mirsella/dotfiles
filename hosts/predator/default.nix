@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 let
   flakeDir = "/home/mirsella/dev/dotfiles";
 in
@@ -49,8 +49,9 @@ in
       "kernel.panic" = 10;
     };
     # Prefer lower CPU power and heat on this always-on server; turbo stays enabled.
-    kernel.sysfs.devices.system.cpu.cpufreq."policy[0-9]*".energy_performance_preference =
-      "balance_power";
+    kernel.sysfs.devices.system.cpu.cpufreq = lib.genAttrs
+      (map (id: "policy${toString id}") (lib.range 0 7))
+      (_: { energy_performance_preference = "balance_power"; });
   };
 
   # Use ordinary suspend for the overnight idle timer.

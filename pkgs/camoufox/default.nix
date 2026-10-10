@@ -23,7 +23,18 @@
   nspr,
   nss,
   pango,
-  xorg,
+  libx11,
+  libxcomposite,
+  libxcursor,
+  libxdamage,
+  libxext,
+  libxfixes,
+  libxi,
+  libxrandr,
+  libxrender,
+  libxt,
+  libxtst,
+  libxcb,
 }:
 stdenv.mkDerivation {
   pname = "camoufox";
@@ -40,9 +51,8 @@ stdenv.mkDerivation {
     alsa-lib atk cairo cups dbus dbus-glib fontconfig freetype gdk-pixbuf
     glib gtk3 libdrm libGL libxkbcommon mesa nspr nss pango
     stdenv.cc.cc.lib
-    xorg.libX11 xorg.libXcomposite xorg.libXcursor xorg.libXdamage
-    xorg.libXext xorg.libXfixes xorg.libXi xorg.libXrandr xorg.libXrender
-    xorg.libXt xorg.libXtst xorg.libxcb
+    libx11 libxcomposite libxcursor libxdamage libxext libxfixes
+    libxi libxrandr libxrender libxt libxtst libxcb
   ];
   unpackPhase = ''
     runHook preUnpack

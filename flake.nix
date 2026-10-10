@@ -20,11 +20,13 @@
     lanzaboote = {
       url = "github:nix-community/lanzaboote/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.url = "github:oxalica/rust-overlay/892c035d7c2ff75acd5da10424a47ab454e1f3dc";
     };
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent/865ba906c1a8d93de65839ee7af487204d42e873";
+      url = "github:mirsella/hermes-agent/9cee56f4b1ab445022eedab4efe22fb00d4208a0";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
+      inputs.uv2nix.url = "github:pyproject-nix/uv2nix/4b59abb2ae1896d2a0e1abfc47fbc9bf985ea730";
     };
   };
 

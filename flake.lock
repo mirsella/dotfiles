@@ -164,17 +164,17 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1791400787,
-        "narHash": "sha256-q4BfE0HYstg+4pPAD7kfrHqNC1o9/LxOkQD7EwYg/cE=",
-        "owner": "NousResearch",
+        "lastModified": 1791631066,
+        "narHash": "sha256-WVB9ao5UE5nkd0api2SccylzwbXqxQW/YHIgRpQpqaQ=",
+        "owner": "mirsella",
         "repo": "hermes-agent",
-        "rev": "865ba906c1a8d93de65839ee7af487204d42e873",
+        "rev": "9cee56f4b1ab445022eedab4efe22fb00d4208a0",
         "type": "github"
       },
       "original": {
-        "owner": "NousResearch",
+        "owner": "mirsella",
         "repo": "hermes-agent",
-        "rev": "865ba906c1a8d93de65839ee7af487204d42e873",
+        "rev": "9cee56f4b1ab445022eedab4efe22fb00d4208a0",
         "type": "github"
       }
     },
@@ -457,16 +457,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1782012058,
-        "narHash": "sha256-9mWUnReOUXfKjZuJAL/bAFH3LUyECTRtXgSNVjRw3UY=",
+        "lastModified": 1786638241,
+        "narHash": "sha256-KJhq0HYg2gIZjpsj47z1kWrjoUUAqSqdD2mMWAsOg4k=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "8534567325bd8a8d2928e6afd81e0a87d19efd3c",
+        "rev": "892c035d7c2ff75acd5da10424a47ab454e1f3dc",
         "type": "github"
       },
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "rev": "892c035d7c2ff75acd5da10424a47ab454e1f3dc",
         "type": "github"
       }
     },
@@ -502,16 +503,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1785277507,
-        "narHash": "sha256-9Tq3UDX2hD/aveW/HvkBlAmEwJTOlY5HQXJM+L5BGmE=",
+        "lastModified": 1786615403,
+        "narHash": "sha256-U++y7nM/6xiEcWI7q4fQoPZjPvRaTwkSqzBOVoEBjUE=",
         "owner": "pyproject-nix",
         "repo": "uv2nix",
-        "rev": "5a836d395cbf5fc22670eb98dd4aa4fc4d406977",
+        "rev": "4b59abb2ae1896d2a0e1abfc47fbc9bf985ea730",
         "type": "github"
       },
       "original": {
         "owner": "pyproject-nix",
         "repo": "uv2nix",
+        "rev": "4b59abb2ae1896d2a0e1abfc47fbc9bf985ea730",
         "type": "github"
       }
     }
