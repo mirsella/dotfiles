@@ -5,6 +5,7 @@ let
   # Upstream state directories are group-writable. Keep private state and
   # downloads out of the shared "users" group.
   ownerGroup = "hermes-private";
+  downloadGroup = "hermes-downloads";
   ownerHome = config.users.users.${owner}.home;
   ownerRuntime = "/run/user/${toString config.users.users.${owner}.uid}";
   ownerEnvironment = {
@@ -202,6 +203,7 @@ in {
     home-manager.users.${owner}.home.packages = [ (lib.hiPrio accountTools) ];
     users.groups.camofox = {};
     users.groups.hermes-private.members = [ owner ];
+    users.groups.${downloadGroup}.members = [ owner ];
     users.groups.hermes-browser-control = {};
     users.users.camofox = { isSystemUser = true; group = "camofox"; home = browserState; };
     users.users.hermes-browser-control = { isSystemUser = true; group = "hermes-browser-control"; home = controlState; };
@@ -214,8 +216,7 @@ in {
       "d ${browserState}/cache 0700 camofox camofox -"
       "d ${controlState} 0700 hermes-browser-control hermes-browser-control -"
       # Only temporary downloaded files are shared, never browser profiles/tmp.
-      # The private group shares downloads only with the owner.
-      "d /var/lib/camofox-downloads 2750 camofox ${ownerGroup} -"
+      "d /var/lib/camofox-downloads 2750 camofox ${downloadGroup} -"
       "d ${state}/workspace/downloads 0750 ${owner} ${ownerGroup} -"
     ];
     services.hermes-agent = {
@@ -236,10 +237,10 @@ in {
       environmentFiles = [ config.sops.secrets.hermes_gateway_env.path ];
       documents."AGENTS.md" = builtins.readFile ./agent-AGENTS.md;
       hermesHomeFiles."SOUL.md" = builtins.readFile ./agent-SOUL.md;
-      extraPlugins = [ (pkgs.runCommand "hermes-browser-policy" {} ''
+      extraPlugins = [ (pkgs.runCommand "hermes-camofox-accounts" {} ''
         mkdir -p "$out"
-        cp ${./browser-policy/plugin.yaml} "$out/plugin.yaml"
-        cp ${./browser-policy/__init__.py} "$out/__init__.py"
+        cp ${./camofox-accounts/plugin.yaml} "$out/plugin.yaml"
+        cp ${./camofox-accounts/__init__.py} "$out/__init__.py"
       '') ];
       extraPackages = [ tools ];
       environment = {
@@ -247,16 +248,15 @@ in {
         OPENCODE_GO_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/opencode-go";
         CAMOFOX_URL = "http://127.0.0.1:9378";
         CAMOFOX_USER_ID = "home-browser";
-        CAMOFOX_SESSION_KEY = "home-browser";
-        CAMOFOX_ADOPT_EXISTING_TAB = "true";
+        CAMOFOX_ADOPT_EXISTING_TAB = "false";
         TELEGRAM_ALLOW_ALL_USERS = "false";
         GATEWAY_ALLOW_ALL_USERS = "false";
       };
       # Inference and browser routing are Nix-owned; other settings remain editable.
       settings = {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
-        agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-evaluation" ];
-        plugins.enabled = [ "browser-policy" ];
+        agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-vault-cdp" ];
+        plugins.enabled = [ "camofox-accounts" ];
         model = { provider = "opencode-go"; default = "muse-spark-1.3-contributor"; base_url = ""; api_key = ""; };
         auxiliary = aux // { openrouter_model = ""; };
         fallback_providers = [];
@@ -361,11 +361,13 @@ in {
         VNC_PORT = "5900";
         NOVNC_PORT = "6080";
         MAX_SESSIONS = "1";
-        MAX_TABS_GLOBAL = "2";
-        MAX_TABS_PER_SESSION = "2";
+        MAX_TABS_GLOBAL = "8";
+        MAX_TABS_PER_SESSION = "8";
+        CAMOFOX_RECYCLE_TABS = "false";
       };
       serviceConfig = hardening // {
         User = "camofox"; Group = "camofox";
+        SupplementaryGroups = [ downloadGroup ];
         EnvironmentFile = config.sops.secrets.hermes_browser_env.path;
         ExecStart = lib.getExe pkgs.camofox-browser;
         WorkingDirectory = browserState;
