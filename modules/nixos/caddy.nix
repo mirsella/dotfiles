@@ -1,20 +1,44 @@
-{ ... }:
+{ config, lib, ... }:
 let
+  index = builtins.readFile ./site/index.html;
+  inlineHash = element:
+    let content = builtins.match ".*<${element}>(.*)</${element}>.*" index;
+    in assert lib.assertMsg (content != null) "Dashboard inline ${element} block is missing";
+    "'sha256-${builtins.convertHash {
+      hash = builtins.hashString "sha256" (builtins.head content);
+      hashAlgo = "sha256";
+      toHashFormat = "base64";
+    }}'";
   serveIndex = ''
-    header {
-      Referrer-Policy no-referrer
-      X-Content-Type-Options nosniff
-      X-Frame-Options DENY
-    }
+    import private_ui
+    header Content-Security-Policy "default-src 'none'; img-src data:; style-src ${inlineHash "style"}; script-src ${inlineHash "script"}; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
     file_server {
       root ${./site}
     }
   '';
 in
 {
+  sops.secrets.hermes_caddy_env = {
+    sopsFile = ../../secrets/hermes.yaml;
+    restartUnits = [ "caddy.service" ];
+  };
+  systemd.services.caddy.serviceConfig.EnvironmentFile = [ config.sops.secrets.hermes_caddy_env.path ];
   networking.firewall.allowedTCPPorts = [ 80 443 ];
   services.caddy = {
     enable = true;
+    extraConfig = ''
+      (private_ui) {
+        basic_auth {
+          mirsella {$HERMES_VIEWER_PASSWORD_HASH}
+        }
+        header {
+          Cache-Control no-store
+          Referrer-Policy no-referrer
+          X-Content-Type-Options nosniff
+          X-Frame-Options DENY
+        }
+      }
+    '';
     # The firewall only allows TCP/443, so do not advertise HTTP/3.
     globalConfig = ''
       servers {
@@ -46,8 +70,7 @@ in
         reverse_proxy 127.0.0.1:2283
       '';
       "http://:80".extraConfig = ''
-        encode zstd gzip
-        ${serveIndex}
+        redir https://mirsella.mooo.com{uri} 308
       '';
     };
   };

@@ -239,7 +239,7 @@ assert lib.assertMsg (
   && lib.all (port: !(builtins.elem port server.networking.firewall.allowedTCPPorts))
      [ 5900 6080 9377 9378 9119 ]
   && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
-    [ "handle /browser/*" "basic_auth" "header_up X-Hermes-Viewer-Key" "header_up -Authorization" ]
+    [ "handle /browser/*" "import private_ui" "header_up X-Hermes-Viewer-Key" "header_up -Authorization" ]
   && lib.hasInfix "https://mirsella.mooo.com{uri}" server.services.caddy.virtualHosts."http://:80".extraConfig
 ) "Hermes must use the owner account and editable runtime settings while its browser stays private";
 assert lib.assertMsg (
@@ -263,6 +263,16 @@ assert lib.assertMsg (
   && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
     [ "handle_path /hermes/*" "@foreignOrigin" "header_up X-Forwarded-Prefix /hermes" "header_up Origin http://127.0.0.1:9119" ]
 ) "Hermes dashboard must boot privately and authenticate every proxy route with a fixed subpath and checked Origin";
+assert lib.assertMsg (
+  lib.all (text: lib.hasInfix text server.services.caddy.extraConfig)
+    [ "(private_ui)" "basic_auth" "{$HERMES_VIEWER_PASSWORD_HASH}" "Cache-Control no-store" ]
+  && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
+    [ "import private_ui" "Content-Security-Policy" "script-src 'sha256-" "style-src 'sha256-" ]
+  && server.services.caddy.virtualHosts."http://:80".extraConfig
+    == "redir https://mirsella.mooo.com{uri} 308\n"
+  && server.systemd.services.caddy.serviceConfig.EnvironmentFile == [ server.sops.secrets.hermes_caddy_env.path ]
+  && server.sops.secrets.hermes_caddy_env.restartUnits == [ "caddy.service" ]
+) "Private dashboard pages must share authenticated HTTPS access, uncached responses, and hash-bound inline scripts/styles";
 {
   inherit (server.system.build.toplevel) drvPath;
   formatter = (disko._cliDestroyFormatMount layout pkgs).drvPath;
