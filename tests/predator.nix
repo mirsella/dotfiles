@@ -147,6 +147,10 @@ assert lib.assertMsg (
   && server.users.users.mirsella.linger
   && !server.services.hermes-agent.createUser
    && server.services.hermes-agent.settings.skills.external_dirs == [ "/home/mirsella/.agents/skills" "/home/mirsella/.codex/skills" ]
+   && server.services.hermes-agent.settings.skills.disabled == [ "personal-accounts" ]
+   && !(server.services.hermes-agent.hermesHomeFiles ? "skills/personal-accounts/SKILL.md")
+   && server.services.hermes-agent.settings.browser == { backend = "browserbase"; cloud_provider = "camofox"; }
+   && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-cdp" "browser-use" ]
    && server.services.hermes-agent.settings.model.provider == "opencode-go"
    && server.services.hermes-agent.settings.model.default == "muse-spark-1.3-contributor"
    && server.services.hermes-agent.settings.fallback_providers == []

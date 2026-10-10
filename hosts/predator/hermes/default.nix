@@ -101,7 +101,6 @@ let
   });
   defaults = {
     terminal = { backend = "local"; cwd = "${state}/workspace"; };
-    browser = { backend = "browserbase"; cloud_provider = "camofox"; };
     gateway = { allow_all_users = false; unauthorized_dm_behavior = "ignore"; };
     platforms.telegram.extra = {
       group_allow_from = [];
@@ -236,7 +235,6 @@ in {
       };
       environmentFiles = [ config.sops.secrets.hermes_gateway_env.path ];
       documents."AGENTS.md" = builtins.readFile ./agent-AGENTS.md;
-      hermesHomeFiles."skills/personal-accounts/SKILL.md" = builtins.readFile ./personal-accounts.md;
       extraPackages = [ tools ];
       environment = {
         HERMES_MANAGED = "false";
@@ -248,8 +246,10 @@ in {
         TELEGRAM_ALLOW_ALL_USERS = "false";
         GATEWAY_ALLOW_ALL_USERS = "false";
       };
-      # Inference policy is Nix-owned; other runtime settings remain editable.
+      # Inference and browser routing are Nix-owned; other settings remain editable.
       settings = {
+        browser = { backend = "browserbase"; cloud_provider = "camofox"; };
+        agent.disabled_toolsets = [ "browser-cdp" "browser-use" ];
         model = { provider = "opencode-go"; default = "muse-spark-1.3-contributor"; base_url = ""; api_key = ""; };
         auxiliary = aux // { openrouter_model = ""; };
         fallback_providers = [];
@@ -257,6 +257,7 @@ in {
         providers = lib.genAttrs disabledProviders (_: { enabled = false; }) // { opencode-go.enabled = true; };
         auth.adopt_external_logins = false;
         skills.external_dirs = [ "${ownerHome}/.agents/skills" "${ownerHome}/.codex/skills" ];
+        skills.disabled = [ "personal-accounts" ];
       };
     };
     system.activationScripts.hermes-settings = lib.stringAfter [ "hermes-agent-setup" ] ''
