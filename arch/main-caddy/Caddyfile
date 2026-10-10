@@ -1,0 +1,58 @@
+{
+	admin unix//run/caddy/admin.socket
+	auto_https disable_redirects
+	skip_install_trust
+	pki {
+		ca main-ui {
+			name "Main Web UI"
+			root_cn "Main Web UI Root CA"
+			intermediate_cn "Main Web UI Intermediate CA"
+			intermediate_lifetime 2160h
+		}
+	}
+	servers {
+		protocols h1 h2
+	}
+}
+
+http://:80 {
+	encode zstd gzip
+	header {
+		Referrer-Policy no-referrer
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+	}
+	file_server {
+		root /srv/mirsella-home
+	}
+}
+
+(main-ui) {
+	bind 192.168.1.131
+	tls {
+		issuer internal {
+			ca main-ui
+			lifetime 720h
+		}
+	}
+}
+
+https://mirsella.mooo.com:4096, https://192.168.1.131:4096 {
+	import main-ui
+	reverse_proxy 127.0.0.1:14096
+}
+
+https://mirsella.mooo.com:4097, https://192.168.1.131:4097 {
+	import main-ui
+	reverse_proxy 127.0.0.1:14097
+}
+
+http://main:4096, http://localhost:4096 {
+	bind 127.0.0.1 [::1]
+	reverse_proxy 127.0.0.1:14096
+}
+
+http://main:4097, http://localhost:4097 {
+	bind 127.0.0.1 [::1]
+	reverse_proxy 127.0.0.1:14097
+}

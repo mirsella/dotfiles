@@ -97,6 +97,9 @@ the flake on both operating systems. NixOS supplies the rest from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
+Main's manual Caddy configuration, service recovery settings and restore steps
+are recorded in [arch/main-caddy](arch/main-caddy/README.md).
+
 ### Laptop authenticated boot (Arch)
 
 `arch/laptop-boot.nix` supplies the root-owned mkinitcpio presets, UKI signing
