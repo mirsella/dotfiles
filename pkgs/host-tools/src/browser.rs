@@ -14,7 +14,7 @@ use axum::{
 };
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use std::{
     future::Future,
     net::SocketAddr,
@@ -421,73 +421,88 @@ async fn close_viewer(State(app): State<Shared>, headers: HeaderMap) -> WebResul
     Ok(axum::Json(json!({"ok":true})).into_response())
 }
 
-fn tab_path(path: &str) -> Option<(&str, &str)> {
-    let (id, suffix) = path.strip_prefix("/tabs/")?.split_once('/')?;
-    (!id.is_empty()
-        && id
-            .bytes()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'-' | b'_')))
-    .then_some((id, suffix))
+#[derive(Debug, PartialEq, Eq)]
+enum ToolRoute<'a> {
+    Tabs,
+    Tab(&'a str),
 }
-fn permitted(method: &Method, path: &str) -> bool {
+
+fn tool_route<'a>(method: &Method, path: &'a str) -> Option<ToolRoute<'a>> {
     if path == "/tabs" {
-        return matches!(*method, Method::GET | Method::POST);
+        return matches!(*method, Method::GET | Method::POST).then_some(ToolRoute::Tabs);
     }
-    let Some((_, suffix)) = tab_path(path) else {
-        return false;
-    };
-    match method.as_str() {
-        "GET" => matches!(suffix, "snapshot" | "screenshot" | "downloads"),
-        "POST" => matches!(
-            suffix,
-            "navigate" | "click" | "type" | "scroll" | "back" | "press"
-        ),
-        _ => false,
+    let (id, suffix) = path.strip_prefix("/tabs/")?.split_once('/')?;
+    if id.is_empty()
+        || !id
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'-' | b'_'))
+    {
+        return None;
     }
+    matches!(
+        (method, suffix),
+        (&Method::GET, "snapshot" | "screenshot" | "downloads")
+            | (
+                &Method::POST,
+                "navigate" | "click" | "type" | "scroll" | "back" | "press"
+            )
+    )
+    .then_some(ToolRoute::Tab(id))
 }
 async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
     agent(&app, request.headers())?;
     let (parts, body) = request.into_parts();
     let method = &parts.method;
     let path = parts.uri.path();
-    if !permitted(method, path) {
-        return Err((
+    let route = tool_route(method, path).ok_or_else(|| {
+        (
             StatusCode::FORBIDDEN,
             "Outside the approved Camofox tool surface".into(),
-        ));
-    }
-    let query = url::form_urlencoded::parse(parts.uri.query().unwrap_or_default().as_bytes());
-    if query
-        .clone()
-        .any(|(key, value)| key == "userId" && value != USER)
-    {
-        return Err((
+        )
+    })?;
+    const IDENTITY_KEYS: [&str; 2] = ["userId", "listItemId"];
+    let identity_error = || {
+        (
             StatusCode::FORBIDDEN,
             "Different browser identity refused".into(),
-        ));
+        )
+    };
+    let mut url = app
+        .config
+        .backend
+        .join(path)
+        .map_err(|error| failure(error.into()))?;
+    {
+        let mut query = url.query_pairs_mut();
+        for (key, value) in
+            url::form_urlencoded::parse(parts.uri.query().unwrap_or_default().as_bytes())
+        {
+            if IDENTITY_KEYS.contains(&key.as_ref()) {
+                if value != USER {
+                    return Err(identity_error());
+                }
+            } else {
+                query.append_pair(&key, &value);
+            }
+        }
+        query.append_pair("userId", USER);
     }
     let bytes = to_bytes(body, 65536)
         .await
         .map_err(|_| (StatusCode::PAYLOAD_TOO_LARGE, "Request too large".into()))?;
-    let mut data: Value = if bytes.is_empty() {
-        json!({})
+    let mut data: Map<String, Value> = if bytes.is_empty() {
+        Map::new()
     } else {
         serde_json::from_slice(&bytes)
-            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".into()))?
+            .map_err(|_| (StatusCode::BAD_REQUEST, "Expected JSON object".into()))?
     };
-    if !data.is_object() {
-        return Err((StatusCode::BAD_REQUEST, "Expected JSON object".into()));
-    }
-    if ["userId", "listItemId"].into_iter().any(|key| {
+    if IDENTITY_KEYS.into_iter().any(|key| {
         data.get(key)
             .is_some_and(|value| value.as_str() != Some(USER))
     }) {
-        return Err((
-            StatusCode::FORBIDDEN,
-            "Different browser identity refused".into(),
-        ));
+        return Err(identity_error());
     }
-    if path == "/tabs" && *method == Method::GET {
+    if route == ToolRoute::Tabs && *method == Method::GET {
         // Hermes's five-second adoption probe must only discover existing
         // tabs. Creating a blank tab here can make its subsequent ensure-tab
         // path skip the requested navigation, or cancel startup mid-creation.
@@ -529,8 +544,12 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
     // an actual HTTP operation. It does not reserve ownership or block viewers.
     let mut runtime = app.started(false).await.map_err(failure)?;
     let tab = runtime.browser.tab().expect("startup selects a tab");
-    if path == "/tabs" {
-        if let Some(url) = data["url"].as_str().filter(|url| *url != "about:blank") {
+    if route == ToolRoute::Tabs {
+        if let Some(url) = data
+            .get("url")
+            .and_then(Value::as_str)
+            .filter(|url| *url != "about:blank")
+        {
             app.backend(
                 Method::POST,
                 &format!("/tabs/{tab}/navigate"),
@@ -541,26 +560,18 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         }
         return Ok(axum::Json(json!({"tabId":tab})).into_response());
     }
-    if tab_path(&path).is_none_or(|(id, _)| id != tab) {
+    if route != ToolRoute::Tab(tab) {
         return Err((
             StatusCode::NOT_FOUND,
             "Live tab was lost; navigate again to reopen the saved task URL".into(),
         ));
     }
-    let mut url = app
-        .config
-        .backend
-        .join(path)
-        .map_err(|error| failure(error.into()))?;
-    url.query_pairs_mut()
-        .extend_pairs(query.filter(|(key, _)| key != "userId"))
-        .append_pair("userId", USER);
     let mut upstream = app
         .client
         .request(method.clone(), url)
         .bearer_auth(&app.access);
     if *method != Method::GET {
-        data["userId"] = json!(USER);
+        data.insert("userId".into(), json!(USER));
         upstream = upstream.json(&data);
     }
     let response = upstream
@@ -641,6 +652,7 @@ async fn websocket(
     if !runtime.browser.running() {
         return Err((StatusCode::CONFLICT, "Open the browser first".into()));
     }
+    let disconnected = app.disconnect.subscribe();
     runtime.viewers += 1;
     drop(runtime);
     let failed = app.clone();
@@ -651,7 +663,7 @@ async fn websocket(
                 viewer_closed(&failed).await;
             });
         })
-        .on_upgrade(move |socket| forward(app, socket))
+        .on_upgrade(move |socket| forward(app, socket, disconnected))
         .into_response())
 }
 async fn viewer_closed(app: &App) {
@@ -675,10 +687,10 @@ where
         .with_context(|| format!("viewer {operation} timed out"))?
         .with_context(|| format!("viewer {operation} failed"))
 }
-async fn forward(app: Shared, mut socket: WebSocket) {
-    let mut disconnected = app.disconnect.subscribe();
+async fn forward(app: Shared, mut socket: WebSocket, mut disconnected: broadcast::Receiver<()>) {
     let result: Result<()> = async {
         let (mut upstream, _) = tokio::select! {
+            biased;
             _ = disconnected.recv() => return Ok(()),
             result = transport("connect", app.transport_timeout, tokio_tungstenite::connect_async(app.config.websocket.as_str())) => result?,
         };
@@ -928,13 +940,13 @@ mod tests {
                 counts.lock().await.navigations.push(url.clone());
                 axum::Json(json!({"ok":true,"url":url}))
             }))
-            .route("/tabs/shared-tab/snapshot", get(|State(counts): State<Arc<Mutex<Counts>>>| async move {
+            .route("/tabs/shared-tab/snapshot", get(|State(counts): State<Arc<Mutex<Counts>>>, axum::extract::OriginalUri(uri): axum::extract::OriginalUri| async move {
                 let mut counts = counts.lock().await;
                 counts.snapshots += 1;
                 if counts.missing_tab {
                     return (StatusCode::NOT_FOUND, axum::Json(json!({"error":"Tab not found"}))).into_response();
                 }
-                axum::Json(json!({"snapshot":"current page"})).into_response()
+                axum::Json(json!({"snapshot":"current page", "query":uri.query()})).into_response()
             }))
             .route("/vnc/status", get(|State(counts): State<Arc<Mutex<Counts>>>| async move {
                 counts.lock().await.vnc_reads += 1;
@@ -1077,16 +1089,21 @@ mod tests {
     }
     #[test]
     fn surface_and_idle_policy() {
-        assert!(permitted(&Method::GET, "/tabs/shared-tab/snapshot"));
-        assert!(permitted(&Method::POST, "/tabs"));
+        assert_eq!(
+            tool_route(&Method::GET, "/tabs/shared-tab/snapshot"),
+            Some(ToolRoute::Tab("shared-tab"))
+        );
+        assert_eq!(tool_route(&Method::POST, "/tabs"), Some(ToolRoute::Tabs));
         for (method, path) in [
             (Method::DELETE, "/sessions/home-browser"),
             (Method::POST, "/stop"),
             (Method::POST, "/agent/claim"),
             (Method::POST, "/tabs/tab/evaluate"),
             (Method::GET, "/tabs/%2e%2e/stop"),
+            (Method::GET, "/tabs/shared-tab/snapshot/extra"),
+            (Method::GET, "/tabs//snapshot"),
         ] {
-            assert!(!permitted(&method, path));
+            assert_eq!(tool_route(&method, path), None);
         }
         let mut runtime = Runtime {
             browser: Browser::Ready("shared-tab".into()),
@@ -1428,6 +1445,13 @@ mod tests {
                 "",
             ),
             request(Method::POST, "/tabs", r#"{"userId":"another"}"#),
+            request(Method::GET, "/tabs?listItemId=another", ""),
+            request(
+                Method::GET,
+                "/tabs?listItemId=home-browser&list%49temId=another",
+                "",
+            ),
+            request(Method::POST, "/tabs", r#"{"listItemId":null}"#),
         ] {
             assert_eq!(
                 api(State(f.app.clone()), req).await.unwrap_err().0,
@@ -1437,57 +1461,110 @@ mod tests {
         assert_eq!(f.counts.lock().await.starts, 0);
     }
     #[tokio::test]
-    async fn stalled_websocket_handshake_releases_viewer_and_idle_cleanup() {
-        use tokio_tungstenite::tungstenite::client::IntoClientRequest;
-        let mut f = fixture().await;
-        let stalled = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let address = stalled.local_addr().unwrap();
-        Arc::get_mut(&mut f.app).unwrap().config.websocket =
-            format!("ws://{address}").parse().unwrap();
-        let stalled_peer = tokio::spawn(async move {
-            let (_socket, _) = stalled.accept().await.unwrap();
-            std::future::pending::<()>().await;
-        });
-        {
-            let mut runtime = f.app.runtime.lock().await;
-            runtime.browser = Browser::Ready("shared-tab".into());
+    async fn non_object_browser_requests_are_rejected_before_startup() {
+        let f = fixture().await;
+        for body in ["[]", "null", "true", "1", "\"text\"", "{invalid"] {
+            assert_eq!(
+                api(State(f.app.clone()), request(Method::POST, "/tabs", body))
+                    .await
+                    .unwrap_err()
+                    .0,
+                StatusCode::BAD_REQUEST
+            );
         }
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let address = listener.local_addr().unwrap();
-        let router = Router::new()
-            .route("/browser/websockify", get(websocket))
-            .with_state(f.app.clone());
-        let server = tokio::spawn(async move {
-            axum::serve(listener, router).await.unwrap();
-        });
-        let mut request = format!("ws://{address}/browser/websockify")
-            .into_client_request()
-            .unwrap();
-        request
-            .headers_mut()
-            .insert("x-hermes-viewer-key", "test-proxy".parse().unwrap());
-        request
-            .headers_mut()
-            .insert(header::ORIGIN, "https://example.test".parse().unwrap());
-        let (mut socket, _) = tokio_tungstenite::connect_async(request).await.unwrap();
-        tokio::time::timeout(Duration::from_secs(2), async {
-            while socket.next().await.is_some_and(|message| {
-                !matches!(
-                    message,
-                    Ok(tokio_tungstenite::tungstenite::Message::Close(_))
-                )
-            }) {}
-            while f.app.runtime.lock().await.viewers != 0 {
-                tokio::task::yield_now().await;
-            }
-        })
+        assert_eq!(f.counts.lock().await.starts, 0);
+    }
+    #[tokio::test]
+    async fn identity_query_fields_are_rebound_without_losing_tool_parameters() {
+        use std::borrow::Cow;
+        let f = fixture().await;
+        let response = api(
+            State(f.app.clone()),
+            request(
+                Method::GET,
+                "/tabs/shared-tab/snapshot?userId=home-browser&user%49d=home-browser&listItemId=home-browser&compact=true&label=a%2Bb%20%26x",
+                "",
+            ),
+        )
         .await
-        .expect("stalled handshake leaked a viewer");
-        let mut runtime = f.app.runtime.lock().await;
-        runtime.last_activity = Instant::now() - Duration::from_secs(IDLE + 1);
-        assert!(idle(&runtime));
-        server.abort();
-        stalled_peer.abort();
+        .unwrap();
+        let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
+        let data: Value = serde_json::from_slice(&bytes).unwrap();
+        let query = url::form_urlencoded::parse(data["query"].as_str().unwrap().as_bytes())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            query,
+            [("compact", "true"), ("label", "a+b &x"), ("userId", USER)]
+                .map(|(key, value)| (Cow::Borrowed(key), Cow::Borrowed(value)))
+        );
+    }
+    #[tokio::test]
+    async fn stalled_or_cancelled_websocket_upgrades_release_viewer_and_idle_cleanup() {
+        use futures_util::FutureExt;
+        use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+        for cancel_before_upgrade in [false, true] {
+            let mut f = fixture().await;
+            // A listening socket that never answers the WebSocket handshake.
+            let stalled = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let address = stalled.local_addr().unwrap();
+            Arc::get_mut(&mut f.app).unwrap().config.websocket =
+                format!("ws://{address}").parse().unwrap();
+            f.app.runtime.lock().await.browser = Browser::Ready("shared-tab".into());
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let address = listener.local_addr().unwrap();
+            let router = Router::new()
+                .route(
+                    "/browser/websockify",
+                    get(
+                        move |State(app): State<Shared>,
+                              headers: HeaderMap,
+                              ws: WebSocketUpgrade| async move {
+                            let response = websocket(State(app.clone()), headers, ws).await?;
+                            if cancel_before_upgrade {
+                                let _ = app.disconnect.send(());
+                            }
+                            WebResult::Ok(response)
+                        },
+                    ),
+                )
+                .with_state(f.app.clone());
+            let server = tokio::spawn(async move {
+                axum::serve(listener, router).await.unwrap();
+            });
+            let mut request = format!("ws://{address}/browser/websockify")
+                .into_client_request()
+                .unwrap();
+            request
+                .headers_mut()
+                .insert("x-hermes-viewer-key", "test-proxy".parse().unwrap());
+            request
+                .headers_mut()
+                .insert(header::ORIGIN, "https://example.test".parse().unwrap());
+            let (mut socket, _) = tokio_tungstenite::connect_async(request).await.unwrap();
+            tokio::time::timeout(Duration::from_secs(2), async {
+                while socket.next().await.is_some_and(|message| {
+                    !matches!(
+                        message,
+                        Ok(tokio_tungstenite::tungstenite::Message::Close(_))
+                    )
+                }) {}
+                while f.app.runtime.lock().await.viewers != 0 {
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .expect("stalled or cancelled upgrade leaked a viewer");
+            if cancel_before_upgrade {
+                assert!(
+                    stalled.accept().now_or_never().is_none(),
+                    "cancelled viewer opened an upstream connection"
+                );
+            }
+            let mut runtime = f.app.runtime.lock().await;
+            runtime.last_activity = Instant::now() - Duration::from_secs(IDLE + 1);
+            assert!(idle(&runtime));
+            server.abort();
+        }
     }
     #[tokio::test]
     async fn websocket_backpressure_has_a_write_deadline() {

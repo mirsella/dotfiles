@@ -17,7 +17,12 @@ struct SkillMetadata<'a> {
     description: &'a str,
 }
 
-fn adapter(command: &Path) -> Result<String> {
+struct Adapter {
+    name: String,
+    contents: String,
+}
+
+fn adapter(command: &Path) -> Result<Adapter> {
     let name = command
         .file_stem()
         .and_then(|name| name.to_str())
@@ -49,13 +54,17 @@ fn adapter(command: &Path) -> Result<String> {
         name,
         description: &metadata.description,
     })?;
-    Ok(format!(
+    let contents = format!(
         "---\n{header}---\n\nOnly run this command when the user explicitly requests the operation.\n\n\
          Read and follow `{}`.\n\n\
          The model and agent frontmatter configures OpenCode, not this agent.\n\
          Treat $ARGUMENTS as the instructions supplied with this skill invocation.\n",
         crate::util::path(command)?
-    ))
+    );
+    Ok(Adapter {
+        name: name.to_owned(),
+        contents,
+    })
 }
 
 fn sync(home: &Path, config: &Path) -> Result<usize> {
@@ -94,7 +103,7 @@ fn sync(home: &Path, config: &Path) -> Result<usize> {
     let opencode = config.join("opencode");
     let commands = opencode.join("commands");
     let skills = opencode.join("skills");
-    let sources = [&opencode, &commands, &skills]
+    let mut sources = [&opencode, &commands, &skills]
         .map(fs::canonicalize)
         .into_iter()
         .collect::<std::io::Result<Vec<_>>>()
@@ -106,16 +115,27 @@ fn sync(home: &Path, config: &Path) -> Result<usize> {
         if entry.file_type()?.is_dir() || command.extension().is_none_or(|ext| ext != "md") {
             continue;
         }
-        let contents =
-            adapter(&command).with_context(|| format!("Export command {}", command.display()))?;
-        adapters.push((command, contents));
+        ensure!(
+            fs::metadata(&command)
+                .with_context(|| format!("Inspect command {}", command.display()))?
+                .is_file(),
+            "OpenCode command must be a regular file: {}",
+            command.display()
+        );
+        sources.push(
+            fs::canonicalize(&command)
+                .with_context(|| format!("Resolve command {}", command.display()))?,
+        );
+        adapters.push(
+            adapter(&command).with_context(|| format!("Export command {}", command.display()))?,
+        );
     }
     let count = adapters.len();
     let destination = output(&home.join(".codex"), &sources)?;
     exists_as(&destination, fs::Metadata::is_dir)?;
     let mut updates = Vec::new();
-    for (command, contents) in adapters {
-        let directory = destination.join(command.file_stem().context("Command has no name")?);
+    for Adapter { name, contents } in adapters {
+        let directory = destination.join(name);
         exists_as(&directory, fs::Metadata::is_dir)?;
         let file = directory.join("SKILL.md");
         if exists_as(&file, fs::Metadata::is_file)?
@@ -281,7 +301,7 @@ mod tests {
                     "---{newline}description: 'Commit: on request'{newline}---{newline}: [}} not YAML{newline}"
                 ),
             );
-            let exported = adapter(&path).unwrap();
+            let exported = adapter(&path).unwrap().contents;
             assert!(exported.contains("Commit: on request"));
             assert!(!exported.contains("not YAML"));
         }
@@ -351,5 +371,48 @@ mod tests {
             assert!(!home.path().join(".codex").exists());
             assert!(!home.path().join(".agents").exists());
         }
+    }
+
+    #[test]
+    fn command_symlinks_cannot_point_back_into_generated_adapters() {
+        let home = tempfile::tempdir().unwrap();
+        let config = home.path().join(".config");
+        let original = "---\ndescription: Commit\n---\nCanonical prompt\n";
+        source(&config, "commit.md", original);
+        let command = config.join("opencode/commands/commit.md");
+        let generated = home.path().join(".codex/skills/commit/SKILL.md");
+        fs::create_dir_all(generated.parent().unwrap()).unwrap();
+        fs::rename(&command, &generated).unwrap();
+        symlink(&generated, &command).unwrap();
+
+        let error = sync(home.path(), &config).unwrap_err();
+        assert!(error.to_string().contains("overlap OpenCode"));
+        assert_eq!(fs::read_to_string(&command).unwrap(), original);
+        assert_eq!(fs::read_to_string(&generated).unwrap(), original);
+        assert!(!home.path().join(".agents").exists());
+    }
+
+    #[test]
+    fn regular_command_symlinks_work_but_special_files_are_rejected() {
+        let home = tempfile::tempdir().unwrap();
+        let config = home.path().join(".config");
+        let original = "---\ndescription: Commit\n---\nCanonical prompt\n";
+        source(&config, "commit.md", original);
+        let command = config.join("opencode/commands/commit.md");
+        let external = home.path().join("external.md");
+        fs::rename(&command, &external).unwrap();
+        symlink(&external, &command).unwrap();
+        assert_eq!(sync(home.path(), &config).unwrap(), 1);
+        assert_eq!(fs::read_to_string(&external).unwrap(), original);
+
+        fs::remove_file(&command).unwrap();
+        let _socket = std::os::unix::net::UnixListener::bind(&command).unwrap();
+        let before = fs::read(home.path().join(".codex/skills/commit/SKILL.md")).unwrap();
+        let error = sync(home.path(), &config).unwrap_err();
+        assert!(error.to_string().contains("regular file"));
+        assert_eq!(
+            fs::read(home.path().join(".codex/skills/commit/SKILL.md")).unwrap(),
+            before
+        );
     }
 }
