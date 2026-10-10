@@ -236,6 +236,11 @@ in {
       environmentFiles = [ config.sops.secrets.hermes_gateway_env.path ];
       documents."AGENTS.md" = builtins.readFile ./agent-AGENTS.md;
       hermesHomeFiles."SOUL.md" = builtins.readFile ./agent-SOUL.md;
+      extraPlugins = [ (pkgs.runCommand "hermes-browser-policy" {} ''
+        mkdir -p "$out"
+        cp ${./browser-policy/plugin.yaml} "$out/plugin.yaml"
+        cp ${./browser-policy/__init__.py} "$out/__init__.py"
+      '') ];
       extraPackages = [ tools ];
       environment = {
         HERMES_MANAGED = "false";
@@ -250,7 +255,8 @@ in {
       # Inference and browser routing are Nix-owned; other settings remain editable.
       settings = {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
-        agent.disabled_toolsets = [ "browser-cdp" "browser-use" ];
+        agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-evaluation" ];
+        plugins.enabled = [ "browser-policy" ];
         model = { provider = "opencode-go"; default = "muse-spark-1.3-contributor"; base_url = ""; api_key = ""; };
         auxiliary = aux // { openrouter_model = ""; };
         fallback_providers = [];
@@ -330,7 +336,7 @@ in {
       wantedBy = [ "multi-user.target" ];
       requires = [ "hermes-network-isolation.service" ];
       after = [ "hermes-network-isolation.service" "sops-install-secrets.service" ];
-      path = with pkgs; [ xorg.xorgserver x11vnc python3Packages.websockify procps coreutils findutils gnugrep gnused gawk fontconfig bash which ];
+      path = with pkgs; [ xorg-server x11vnc python3Packages.websockify procps coreutils findutils gnugrep gnused gawk fontconfig bash which ];
       environment = {
         HOME = browserState;
         CAMOFOX_BIND_HOST = "127.0.0.1";

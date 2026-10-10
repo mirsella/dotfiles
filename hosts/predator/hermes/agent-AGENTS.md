@@ -1,7 +1,9 @@
 # Browser
 
 Hermes's native browser tools use Camofox and the shared `home-browser` session.
-Coordinate access: agents must not drive the same tab simultaneously.
+One agent owns a browser workflow until it finishes or explicitly hands it off.
+Delegate non-browser work in parallel; pass the current tab and state when handing
+the browser to another agent. Tabs share one session, not independent workspaces.
 
 For CAPTCHA, MFA or another owner-only step, explain the blocker and link
 https://mirsella.mooo.com/browser/. Stop browser actions until the owner replies

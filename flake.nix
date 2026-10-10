@@ -131,6 +131,12 @@
         hosts = ./tests/hosts.nix;
         predator = ./tests/predator.nix;
       } // {
+        hermes-browser-policy = pkgs.runCommand "hermes-browser-policy-tests" {
+          nativeBuildInputs = [ self.nixosConfigurations.predator.config.services.hermes-agent.package.hermesVenv ];
+        } ''
+          PYTHONDONTWRITEBYTECODE=1 python3 ${./tests/hermes-browser-policy.py} ${builtins.head self.nixosConfigurations.predator.config.services.hermes-agent.extraPlugins}
+          touch "$out"
+        '';
         data-unlock = pkgs.runCommand "data-unlock-tests" { nativeBuildInputs = [ pkgs.python3 ]; } ''
           python3 ${./tests/data-unlock.py} ${pkgs.systemd} < ${pkgs.writeText "predator-crypttab" self.nixosConfigurations.predator.config.environment.etc.crypttab.text}
           touch "$out"

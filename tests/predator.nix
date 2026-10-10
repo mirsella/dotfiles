@@ -150,7 +150,8 @@ assert lib.assertMsg (
    && server.services.hermes-agent.settings.skills.disabled == [ "personal-accounts" ]
    && !(server.services.hermes-agent.hermesHomeFiles ? "skills/personal-accounts/SKILL.md")
    && server.services.hermes-agent.settings.browser == { backend = "browserbase"; cloud_provider = "camofox"; }
-   && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-cdp" "browser-use" ]
+   && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-cdp" "browser-use" "browser-evaluation" ]
+   && server.services.hermes-agent.settings.plugins.enabled == [ "browser-policy" ]
    && server.services.hermes-agent.settings.model.provider == "opencode-go"
    && server.services.hermes-agent.settings.model.default == "muse-spark-1.3-contributor"
    && server.services.hermes-agent.settings.fallback_providers == []
@@ -172,7 +173,7 @@ assert lib.assertMsg (
    && lib.all (name: lib.elem name server.systemd.services.hermes-agent.serviceConfig.UnsetEnvironment && lib.elem name server.systemd.services.hermes-backend.serviceConfig.UnsetEnvironment)
      [ "OPENROUTER_API_KEY" "OPENAI_API_KEY" "OPENCODE_ZEN_API_KEY" "DEEPINFRA_API_KEY" "MOONSHOT_API_KEY" ]
   && server.services.hermes-agent.environment.TELEGRAM_ALLOW_ALL_USERS == "false"
-  && server.services.hermes-agent.extraPlugins == []
+  && map lib.getName server.services.hermes-agent.extraPlugins == [ "hermes-browser-policy" ]
   && server.services.hermes-agent.package.hermesVenv.drvPath
     == flake.inputs.hermes-agent.packages.x86_64-linux.messaging.hermesVenv.drvPath
   && server.services.hermes-agent.package.hermesWeb.drvPath
