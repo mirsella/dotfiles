@@ -257,7 +257,8 @@ in {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
         agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-vault-cdp" ];
         plugins.enabled = [ "camofox-accounts" ];
-        model = { provider = "opencode-go"; default = "muse-spark-1.3-contributor"; base_url = ""; api_key = ""; };
+        agent.reasoning_overrides."deepseek-v4.1-flash" = "high";
+        model = { provider = "opencode-go"; default = "deepseek-v4.1-flash"; base_url = ""; api_key = ""; };
         auxiliary = aux // { openrouter_model = ""; };
         fallback_providers = [];
         custom_providers = [];

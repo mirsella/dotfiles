@@ -158,7 +158,8 @@ assert lib.assertMsg (
    && server.systemd.services.camofox-browser.environment.MAX_TABS_PER_SESSION == "8"
    && server.systemd.services.camofox-browser.environment.CAMOFOX_RECYCLE_TABS == "false"
    && server.services.hermes-agent.settings.model.provider == "opencode-go"
-   && server.services.hermes-agent.settings.model.default == "muse-spark-1.3-contributor"
+   && server.services.hermes-agent.settings.model.default == "deepseek-v4.1-flash"
+   && server.services.hermes-agent.settings.agent.reasoning_overrides."deepseek-v4.1-flash" == "high"
    && server.services.hermes-agent.settings.fallback_providers == []
    && server.services.hermes-agent.settings.custom_providers == []
    && server.services.hermes-agent.settings.providers.opencode-go.enabled
