@@ -235,6 +235,7 @@ in {
       };
       environmentFiles = [ config.sops.secrets.hermes_gateway_env.path ];
       documents."AGENTS.md" = builtins.readFile ./agent-AGENTS.md;
+      hermesHomeFiles."SOUL.md" = builtins.readFile ./agent-SOUL.md;
       extraPackages = [ tools ];
       environment = {
         HERMES_MANAGED = "false";
