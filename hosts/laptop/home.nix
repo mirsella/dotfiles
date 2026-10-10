@@ -18,6 +18,10 @@
   programs.git.settings.user.signingkey = "E88ECCA3AA187BC1";
   home.packages = [ pkgs.host-tools ];
 
+  home.file.".local/share/arch-uki" = lib.mkIf (!isNixOS) {
+    source = import ../../arch/laptop-boot.nix { inherit pkgs lib; };
+  };
+
   systemd.user.services.ryzenadj-laptop = lib.mkIf (!isNixOS) {
     Unit.Description = "Apply RyzenAdj performance limits";
     Service = {

@@ -11,6 +11,7 @@ mod setup;
 mod suspend;
 #[cfg(test)]
 mod tests;
+mod uki;
 mod util;
 
 use anyhow::Result;
@@ -27,6 +28,10 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     SyncAgentSkills,
+    ArchUki {
+        #[command(subcommand)]
+        action: uki::Operation,
+    },
     BrowserControl {
         #[arg(long)]
         config: PathBuf,
@@ -119,6 +124,7 @@ enum Commands {
 fn run() -> Result<()> {
     match Cli::parse().command {
         Commands::SyncAgentSkills => agent_skills::run(),
+        Commands::ArchUki { action } => uki::run(action),
         Commands::BrowserControl { config } => browser::run(&config),
         Commands::HermesProvision {
             root,

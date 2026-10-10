@@ -96,6 +96,49 @@ their application binaries. NixOS supplies those binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
+### Laptop authenticated boot (Arch)
+
+`arch/laptop-boot.nix` supplies the root-owned mkinitcpio presets, UKI signing
+configuration, embedded command line and systemd-boot defaults. Home Manager
+exposes the generated source at `~/.local/share/arch-uki`. Pacman owns mkinitcpio,
+ukify and the kernels; its existing hooks rebuild and sign each UKI on updates.
+The signing keys stay on the encrypted root filesystem, outside the Nix store.
+The PCR signing key uses RSA-2048, supported by laptop's Pluton TPM. The
+installer tests loading the public key into the TPM before rebuilding images.
+
+Apply changes and verify each generated image with:
+
+```sh
+sudo /usr/local/libexec/host-tools arch-uki prepare ~/.local/share/arch-uki
+```
+
+The first UKI boot runs `systemd-pcrosseparator.service`, changing PCR 7. Unlock
+with the existing LUKS passphrase, then enroll the new TPM policy:
+
+```sh
+sudo /usr/local/libexec/host-tools arch-uki enroll
+```
+
+The policy pins Secure Boot state through PCR 7 and accepts signed PCR 11 values
+only for the `enter-initrd` phase with policy reference `initrd`. Kernel updates
+receive new signatures from the same PCR signing key and do not require
+re-enrollment. The passphrase slot remains available for recovery.
+
+After another reboot confirms automatic TPM unlock, retire the separate-kernel
+boot entries and initramfs images:
+
+```sh
+sudo /usr/local/libexec/host-tools arch-uki finish
+```
+
+The installer keeps previous configuration and the pre-enrollment LUKS header
+under root-only `/var/lib/arch-uki`. CachyOS, stock Linux, its fallback UKI and
+Linux 6.12 LTS remain available as signed boot entries.
+
+`bootctl --variables=no list` shows the current on-disk entries. Plain
+`bootctl list` can retain removed entries as `reported/absent` from the volatile
+EFI inventory until the next normal boot refreshes it.
+
 Predator uses Lanzaboote for authenticated boot. Its OS PCR separator remains
 disabled pending compatible TPM enrollments for both SSDs. The canonical
 procedure, including signed-image and unlock-phase policies, is in
