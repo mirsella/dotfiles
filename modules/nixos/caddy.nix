@@ -23,6 +23,8 @@ in
     virtualHosts = {
       "mirsella.mooo.com".extraConfig = ''
         root * ${./site}
+        # HSTS covers every port; main uses a private CA on 4096/4097.
+        header >Strict-Transport-Security "max-age=0"
         encode zstd gzip
         redir /nextcloud /nextcloud/ 308
         @dav path /.well-known/carddav /.well-known/caldav
