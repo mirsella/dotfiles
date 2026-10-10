@@ -382,7 +382,7 @@ in {
     systemd.services.hermes-backup = {
       description = "Back up Hermes runtime state to Tank";
       startAt = "23:20";
-      path = [ pkgs.gnutar pkgs.util-linux ];
+      path = [ pkgs.gnutar pkgs.gzip pkgs.util-linux ];
       unitConfig.RequiresMountsFor = [ "/srv/backup" ];
       serviceConfig = {
         Type = "oneshot";

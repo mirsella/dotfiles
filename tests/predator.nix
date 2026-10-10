@@ -135,6 +135,7 @@ assert lib.assertMsg (
   && server.systemd.timers.hermes-backup.timerConfig.Persistent
   && server.fileSystems."/srv/backup".device == "tank/backup"
   && lib.any (path: lib.hasInfix "util-linux" (toString path)) server.systemd.services.hermes-backup.path
+  && builtins.elem pkgs.gzip server.systemd.services.hermes-backup.path
 ) "Hermes runtime state must be backed up daily to the mounted Tank dataset";
 assert lib.assertMsg (
   server.systemd.services.caddy.serviceConfig.Restart == "on-failure"
