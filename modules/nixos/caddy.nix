@@ -1,5 +1,13 @@
 { ... }:
 let
+  proxyMainUi = port: ''
+    reverse_proxy https://192.168.1.131:${toString port} {
+      header_up Host {hostport}
+      transport http {
+        tls_trust_pool file ${./main-ui-root.crt}
+      }
+    }
+  '';
   serveIndex = ''
     root * ${./site}
     encode zstd gzip
@@ -42,19 +50,15 @@ in
           ${serveIndex}
         }
       '';
-      "https://mirsella.mooo.com:4096".extraConfig = ''
-        reverse_proxy 192.168.1.131:4096
-      '';
-      "https://mirsella.mooo.com:4097".extraConfig = ''
-        reverse_proxy 192.168.1.131:4097
-      '';
+      "https://mirsella.mooo.com:4096".extraConfig = proxyMainUi 4096;
+      "https://mirsella.mooo.com:4097".extraConfig = proxyMainUi 4097;
       "https://mirsella.mooo.com:14096".extraConfig = ''
         bind 192.168.1.19
-        reverse_proxy 192.168.1.131:4096
+        ${proxyMainUi 4096}
       '';
       "https://mirsella.mooo.com:14097".extraConfig = ''
         bind 192.168.1.19
-        reverse_proxy 192.168.1.131:4097
+        ${proxyMainUi 4097}
       '';
       "photos.mirsella.mooo.com".extraConfig = ''
         reverse_proxy 127.0.0.1:2283
