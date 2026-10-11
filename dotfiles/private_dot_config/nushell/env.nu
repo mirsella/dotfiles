@@ -1,4 +1,5 @@
-let android_home = ($env.ANDROID_HOME? | default $"($env.HOME)/.local/share/android/sdk")
+$env.ANDROID_HOME = ($env.ANDROID_HOME? | default $"($env.HOME)/.local/share/android/sdk")
+$env.ANDROID_SDK_ROOT = ($env.ANDROID_SDK_ROOT? | default $env.ANDROID_HOME)
 let cargo_home = ($env.CARGO_HOME? | default $"($env.HOME)/.local/share/cargo")
 let go_path = ($env.GOPATH? | default $"($env.HOME)/.local/share/go")
 let gem_home = ($env.GEM_HOME? | default $"($env.HOME)/.local/share/gem")
@@ -15,9 +16,9 @@ $env.COPILOT_ALLOW_ALL = "true"
 $env.PROTON_PASS_LINUX_KEYRING = "dbus"
 
 for path in ([
-  $"($android_home)/platform-tools"
-  $"($android_home)/emulator"
-  $"($android_home)/cmdline-tools/latest/bin"
+  $"($env.ANDROID_HOME)/platform-tools"
+  $"($env.ANDROID_HOME)/emulator"
+  $"($env.ANDROID_HOME)/cmdline-tools/latest/bin"
 ] | reverse) {
   if not ($path in $env.PATH) {
     $env.PATH = [$path] ++ $env.PATH
@@ -38,18 +39,16 @@ for path in [
   }
 }
 
-if ("ANDROID_HOME" in $env) {
-  let android_ndk_roots = (glob $"($env.ANDROID_HOME)/ndk/*" | sort --natural | reverse)
+let android_ndk_root = (glob $"($env.ANDROID_HOME)/ndk/*" | sort --natural --reverse).0?
 
-  if (($android_ndk_roots | length) > 0) {
-    let latest_android_ndk_root = ($android_ndk_roots | first)
-    $env.ANDROID_NDK_HOME = $latest_android_ndk_root
-    $env.ANDROID_NDK_ROOT = $latest_android_ndk_root
-    $env.NDK_HOME = $latest_android_ndk_root
-  } else {
-    print --stderr $"No Android NDK found under '($env.ANDROID_HOME)/ndk'; unsetting Android NDK environment"
-    hide-env ANDROID_NDK_HOME ANDROID_NDK_ROOT NDK_HOME
-  }
+if ($android_ndk_root != null) {
+  $env.ANDROID_NDK_HOME = $android_ndk_root
+  $env.ANDROID_NDK_ROOT = $android_ndk_root
+  $env.NDK_HOME = $android_ndk_root
 } else {
-  print --stderr "ANDROID_HOME is not set; skipping Android NDK environment"
+  for var in [ANDROID_NDK_HOME ANDROID_NDK_ROOT NDK_HOME] {
+    if ($var in $env) {
+      hide-env $var
+    }
+  }
 }
