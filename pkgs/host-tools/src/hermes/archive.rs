@@ -1,4 +1,4 @@
-//! Validate private backups and replace whole state directories with rollback.
+//! Archive private runtime state and restore whole directories with rollback.
 use anyhow::{Context, Result, bail, ensure};
 use flate2::read::MultiGzDecoder;
 use std::{
@@ -10,7 +10,38 @@ use std::{
     process::{Command, Stdio},
 };
 
-pub(super) const ROOTS: [&str; 3] = ["hermes", "camofox", "hermes-browser-control"];
+const ROOTS: [&str; 3] = ["hermes", "camofox", "hermes-browser-control"];
+
+pub(super) fn write(root: &Path, file: &mut fs::File) -> Result<()> {
+    file.rewind()?;
+    file.set_len(0)?;
+    ensure!(
+        Command::new("tar")
+            .args([
+                "--create",
+                "--gzip",
+                "--xattrs",
+                "--acls",
+                "--hard-dereference",
+                "--file=-",
+                "--directory",
+            ])
+            .arg(root)
+            .args([
+                "--exclude=hermes/.hermes/cache",
+                "--exclude=camofox/cache",
+                // Nix reinstalls these store symlinks after restore. Keep the
+                // validator strict for every owner-managed file and link.
+                "--exclude=hermes/.hermes/plugins/nix-managed-*",
+            ])
+            .args(ROOTS)
+            .stdout(Stdio::from(file.try_clone()?))
+            .status()?
+            .success(),
+        "Backup archive creation failed"
+    );
+    Ok(())
+}
 
 fn private_directory(root: &Path, prefix: &str) -> Result<tempfile::TempDir> {
     Ok(tempfile::Builder::new()
@@ -25,7 +56,8 @@ fn approved(path: &Path) -> bool {
         && components.all(|component| matches!(component, Component::Normal(_)))
 }
 
-fn validate(file: &fs::File) -> Result<()> {
+pub(super) fn validate(file: &mut fs::File) -> Result<()> {
+    file.rewind()?;
     let mut archive = tar::Archive::new(MultiGzDecoder::new(file));
     let mut members = BTreeMap::new();
     for entry in archive.entries()? {
@@ -120,7 +152,7 @@ fn validate(file: &fs::File) -> Result<()> {
 
 pub(super) fn stage(archive: &Path, root: &Path) -> Result<tempfile::TempDir> {
     let mut file = fs::File::open(archive)?;
-    validate(&file)?;
+    validate(&mut file)?;
     file.rewind()?;
     let staged = private_directory(root, ".hermes-restore-")?;
     // Use the same open file we validated. GNU tar preserves ownership, ACLs
@@ -143,10 +175,6 @@ pub(super) fn stage(archive: &Path, root: &Path) -> Result<tempfile::TempDir> {
         "Backup extraction failed; live state is unchanged"
     );
     Ok(staged)
-}
-
-pub(super) fn validate_backup(archive: &Path) -> Result<()> {
-    validate(&fs::File::open(archive)?)
 }
 
 fn replace_with(
@@ -258,6 +286,35 @@ mod tests {
             fs::create_dir_all(root.join(name)).unwrap();
             fs::write(root.join(name).join("state"), value).unwrap();
         }
+    }
+
+    #[test]
+    fn backup_excludes_only_nix_managed_plugins_and_restores_owner_plugins() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source");
+        state(&source, b"saved");
+        let plugins = source.join("hermes/.hermes/plugins");
+        fs::create_dir_all(plugins.join("owner-plugin")).unwrap();
+        fs::write(plugins.join("owner-plugin/plugin.yaml"), b"owner settings").unwrap();
+        symlink(
+            "/nix/store/missing-managed-plugin",
+            plugins.join("nix-managed-browser-policy"),
+        )
+        .unwrap();
+        let mut backup = tempfile::NamedTempFile::new_in(directory.path()).unwrap();
+        backup.write_all(&vec![b'x'; 64 * 1024]).unwrap();
+        write(&source, backup.as_file_mut()).unwrap();
+        validate(backup.as_file_mut()).unwrap();
+        let staged = stage(backup.path(), directory.path()).unwrap();
+        let restored = staged.path().join("hermes/.hermes/plugins");
+        assert_eq!(fs::read_dir(&restored).unwrap().count(), 1);
+        assert_eq!(
+            fs::read(restored.join("owner-plugin/plugin.yaml")).unwrap(),
+            b"owner settings"
+        );
+        symlink("/etc/passwd", plugins.join("owner-link")).unwrap();
+        write(&source, backup.as_file_mut()).unwrap();
+        assert!(validate(backup.as_file_mut()).is_err());
     }
 
     #[test]
@@ -373,7 +430,7 @@ mod tests {
         corrupt[bytes.len() - 8] ^= 0xff;
         for invalid in [&corrupt[..], &bytes[..bytes.len() - 4]] {
             fs::write(&backup, invalid).unwrap();
-            assert!(validate_backup(&backup).is_err());
+            assert!(validate(&mut fs::File::open(&backup).unwrap()).is_err());
             assert!(stage(&backup, &staged).is_err());
             assert_eq!(fs::read_dir(&staged).unwrap().count(), 0);
         }
@@ -403,14 +460,14 @@ mod tests {
             }
             drop(file);
             if name == "hermes/extra" {
-                validate_backup(&backup).unwrap();
+                validate(&mut fs::File::open(&backup).unwrap()).unwrap();
                 let staged = stage(&backup, directory.path()).unwrap();
                 assert_eq!(
                     fs::read(staged.path().join(name)).unwrap(),
                     b"second gzip member"
                 );
             } else {
-                assert!(validate_backup(&backup).is_err());
+                assert!(validate(&mut fs::File::open(&backup).unwrap()).is_err());
                 assert!(stage(&backup, directory.path()).is_err());
             }
         }

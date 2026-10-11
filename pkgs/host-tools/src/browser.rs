@@ -226,6 +226,33 @@ impl App {
             .as_bool()
             .context("Camofox status is missing its running boolean")
     }
+    async fn initial_status(&self, timeout: Duration) -> Result<bool> {
+        tokio::time::timeout(timeout, async {
+            // systemd starts Node before its HTTP listener is ready. Retry only
+            // transport startup failures; authentication/schema errors are fatal.
+            let mut waiting = false;
+            loop {
+                match self.running().await {
+                    Err(error)
+                        if error
+                            .downcast_ref::<reqwest::Error>()
+                            .is_some_and(|error| error.is_connect() || error.is_timeout()) =>
+                    {
+                        if !waiting {
+                            eprintln!(
+                                "browser-control: waiting for Camofox HTTP readiness: {error:#}"
+                            );
+                            waiting = true;
+                        }
+                        tokio::time::sleep(Duration::from_millis(250)).await;
+                    }
+                    result => return result,
+                }
+            }
+        })
+        .await
+        .context("Camofox HTTP readiness exceeded its startup deadline")?
+    }
     async fn start(&self, runtime: &mut Runtime, viewer: bool) -> Result<()> {
         let result =
             tokio::time::timeout(Duration::from_secs(60), self.start_browser(runtime, viewer))
@@ -812,6 +839,24 @@ async fn housekeeping(app: Shared) {
         stop_if_idle(&app).await;
     }
 }
+fn notify_ready(socket: &std::ffi::OsStr) -> Result<()> {
+    use std::os::{
+        linux::net::SocketAddrExt,
+        unix::{
+            ffi::OsStrExt,
+            net::{SocketAddr, UnixDatagram},
+        },
+    };
+    let address = match socket.as_bytes().strip_prefix(b"@") {
+        Some(name) => SocketAddr::from_abstract_name(name)?,
+        None => SocketAddr::from_pathname(socket)?,
+    };
+    UnixDatagram::unbound()?
+        .send_to_addr(b"READY=1", &address)
+        .context("notify systemd of browser-controller readiness")?;
+    Ok(())
+}
+
 pub fn run(path: &FsPath) -> Result<()> {
     let mut config: Config = serde_json::from_slice(&std::fs::read(path)?)?;
     config.validate()?;
@@ -862,7 +907,7 @@ pub fn run(path: &FsPath) -> Result<()> {
         .build()?
         .block_on(async {
             // Passive recovery preserves an existing live browser; no task replay.
-            let running = app.running().await?;
+            let running = app.initial_status(Duration::from_secs(30)).await?;
             {
                 let mut runtime = app.runtime.lock().await;
                 runtime.browser = if running {
@@ -884,6 +929,9 @@ pub fn run(path: &FsPath) -> Result<()> {
                 .layer(DefaultBodyLimit::max(65536))
                 .with_state(app.clone());
             let listener = tokio::net::TcpListener::bind(app.config.listen).await?;
+            if let Some(socket) = std::env::var_os("NOTIFY_SOCKET") {
+                notify_ready(&socket)?;
+            }
             let disconnect = app.disconnect.clone();
             let shutdown = async move {
                 let mut terminate =
@@ -1585,6 +1633,100 @@ mod tests {
             ]
             .map(|(key, value)| (Cow::Borrowed(key), Cow::Borrowed(value)))
         );
+    }
+    #[test]
+    fn readiness_notifications_support_filesystem_and_abstract_systemd_sockets() {
+        use std::os::{
+            linux::net::SocketAddrExt,
+            unix::net::{SocketAddr, UnixDatagram},
+        };
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("notify.sock");
+        let name = format!(
+            "hermes-{}-{}",
+            std::process::id(),
+            directory.path().file_name().unwrap().to_str().unwrap()
+        );
+        let abstract_socket = format!("@{name}");
+        let abstract_address = SocketAddr::from_abstract_name(name.as_bytes()).unwrap();
+        for (receiver, target) in [
+            (UnixDatagram::bind(&path).unwrap(), path.as_os_str()),
+            (
+                UnixDatagram::bind_addr(&abstract_address).unwrap(),
+                std::ffi::OsStr::new(&abstract_socket),
+            ),
+        ] {
+            receiver
+                .set_read_timeout(Some(Duration::from_secs(1)))
+                .unwrap();
+            notify_ready(target).unwrap();
+            let mut message = [0; 64];
+            let length = receiver.recv(&mut message).unwrap();
+            assert_eq!(&message[..length], b"READY=1");
+        }
+    }
+    #[tokio::test]
+    async fn controller_waits_for_backend_listener_but_rejects_invalid_status() {
+        let mut f = fixture().await;
+        let socket = tokio::net::TcpSocket::new_v4().unwrap();
+        socket.bind("127.0.0.1:0".parse().unwrap()).unwrap();
+        let address = socket.local_addr().unwrap();
+        Arc::get_mut(&mut f.app).unwrap().config.backend =
+            format!("http://{address}").parse().unwrap();
+        let error = f
+            .app
+            .initial_status(Duration::from_millis(20))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("startup deadline"));
+        {
+            let readiness = f.app.initial_status(Duration::from_secs(2));
+            tokio::pin!(readiness);
+            assert!(
+                tokio::time::timeout(Duration::from_millis(30), &mut readiness)
+                    .await
+                    .is_err()
+            );
+            let task = tokio::spawn(async move {
+                let router = Router::new()
+                    .route("/", get(|| async { axum::Json(json!({"running":false})) }));
+                axum::serve(socket.listen(8).unwrap(), router)
+                    .await
+                    .unwrap();
+            });
+            assert!(!readiness.await.unwrap());
+            task.abort();
+        }
+
+        for (status, body, diagnostic) in [
+            (StatusCode::UNAUTHORIZED, json!({}), "401"),
+            (StatusCode::INTERNAL_SERVER_ERROR, json!({}), "500"),
+            (StatusCode::OK, json!({}), "running boolean"),
+            (
+                StatusCode::OK,
+                json!({"running":"false"}),
+                "running boolean",
+            ),
+        ] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let address = listener.local_addr().unwrap();
+            Arc::get_mut(&mut f.app).unwrap().config.backend =
+                format!("http://{address}").parse().unwrap();
+            let task = tokio::spawn(async move {
+                let router = Router::new()
+                    .route("/", get(move || async move { (status, axum::Json(body)) }));
+                axum::serve(listener, router).await.unwrap();
+            });
+            let error = tokio::time::timeout(
+                Duration::from_secs(1),
+                f.app.initial_status(Duration::from_secs(30)),
+            )
+            .await
+            .expect("invalid status was retried")
+            .unwrap_err();
+            assert!(format!("{error:#}").contains(diagnostic));
+            task.abort();
+        }
     }
     #[tokio::test]
     async fn stalled_or_cancelled_websocket_upgrades_release_viewer_and_idle_cleanup() {

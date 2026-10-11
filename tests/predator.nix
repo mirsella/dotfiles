@@ -130,6 +130,7 @@ assert lib.assertMsg (
 ) "Database and recovery bundles must share a private legacy mount without blocking boot on failure";
 assert lib.assertMsg (
   lib.toList server.systemd.services.hermes-backup.startAt == [ "23:20" ]
+  && builtins.elem "multi-user.target" server.systemd.services.hermes-backup.after
   && server.systemd.services.hermes-backup.unitConfig.RequiresMountsFor == [ "/srv/backup" ]
   && server.systemd.services.hermes-backup.serviceConfig.UMask == "0077"
   && server.systemd.timers.hermes-backup.timerConfig.Persistent
@@ -229,6 +230,7 @@ assert lib.assertMsg (
     && server.systemd.services.${unit}.serviceConfig.ProtectHome != false
     && server.systemd.services.${unit}.serviceConfig.ProtectSystem == "strict"
   ) [ "hermes-browser-control" "camofox-browser" ]
+  && server.systemd.services.hermes-browser-control.serviceConfig.Type == "notify"
   && server.systemd.services.camofox-browser.environment.CAMOFOX_BIND_HOST == "127.0.0.1"
   && server.systemd.services.camofox-browser.environment.VNC_RFB_BIND == "127.0.0.1"
   && server.systemd.services.camofox-browser.environment.NOVNC_PORT == "6080"

@@ -1,5 +1,5 @@
 //! Owner-operated Hermes secret provisioning and service/backup operations.
-mod restore;
+mod archive;
 
 use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Value, json};
@@ -559,19 +559,20 @@ pub fn operations(action: Operation) -> Result<()> {
         "hermes-browser-control.service",
         "camofox-browser.service",
     ];
-    let systemctl = |action: &str| -> Result<()> {
+    let systemctl = |action: &str, units: &[&str]| -> Result<()> {
+        let status = Command::new("systemctl")
+            .arg(action)
+            .args(units)
+            .status()
+            .with_context(|| format!("Cannot run systemctl {action}"))?;
         ensure!(
-            Command::new("systemctl")
-                .arg(action)
-                .args(UNITS)
-                .status()?
-                .success(),
-            "Service operation {action} failed"
+            status.success(),
+            "systemctl {action} {units:?} exited {status}"
         );
         Ok(())
     };
     if matches!(action, Operation::Status) {
-        return systemctl("status");
+        return systemctl("status", &UNITS);
     }
     if matches!(action, Operation::Logs) {
         let mut command = Command::new("journalctl");
@@ -600,16 +601,16 @@ pub fn operations(action: Operation) -> Result<()> {
         Ok((user.to_owned(), uid))
     };
     let stop = |(user, uid): &(String, u32)| -> Result<()> {
-        systemctl("stop")?;
+        systemctl("stop", &UNITS)?;
         // Stop native detached worker scopes, never the owner's user manager.
         stop_workers(user, *uid)
     };
     match action {
-        Operation::Start => systemctl("start"),
+        Operation::Start => systemctl("start", &UNITS),
         Operation::Stop => stop(&worker_owner()?),
         Operation::Restart => {
             let owner = worker_owner()?;
-            with_service_recovery(|| stop(&owner), || systemctl("start"))
+            with_service_recovery(|| stop(&owner), || systemctl("start", &UNITS))
         }
         Operation::Backup => {
             require_tank_backup_mount()?;
@@ -638,7 +639,7 @@ pub fn operations(action: Operation) -> Result<()> {
                 }
             }
             // Prepare the private destination before changing service state.
-            let (file, temporary) = tempfile::Builder::new()
+            let (mut file, temporary) = tempfile::Builder::new()
                 .prefix("hermes-")
                 .suffix(".tar.gz.partial")
                 .tempfile_in(directory)?
@@ -646,46 +647,30 @@ pub fn operations(action: Operation) -> Result<()> {
             with_service_recovery(
                 || {
                     stop(&owner)?;
-                    let result = Command::new("tar")
-                        .args([
-                            "--create",
-                            "--gzip",
-                            "--xattrs",
-                            "--acls",
-                            "--hard-dereference",
-                            "--directory",
-                            "/var/lib",
-                            "--exclude=hermes/.hermes/cache",
-                            "--exclude=camofox/cache",
-                            "--file",
-                        ])
-                        .arg(&temporary)
-                        .args(restore::ROOTS)
-                        .status()?;
-                    ensure!(
-                        result.success(),
-                        "Backup failed; partial archive retained at {}",
-                        temporary.display()
-                    );
-                    restore::validate_backup(&temporary)
-                        .context("Backup cannot be restored; partial archive retained")?;
-                    Ok(())
+                    archive::write(Path::new("/var/lib"), &mut file)
                 },
                 || {
                     if !previously_active.is_empty() {
-                        ensure!(
-                            Command::new("systemctl")
-                                .arg("start")
-                                .args(&previously_active)
-                                .status()?
-                                .success(),
-                            "Previously active services could not restart"
-                        );
+                        systemctl("start", &previously_active)?;
                     }
                     Ok(())
                 },
-            )?;
+            )
+            .with_context(|| {
+                format!(
+                    "Backup failed; partial archive retained at {}",
+                    temporary.display()
+                )
+            })?;
+            // Integrity checking needs only the archive, not stopped services.
+            // Validate the same file tar wrote before publishing its name.
             file.sync_all()?;
+            archive::validate(&mut file).with_context(|| {
+                format!(
+                    "Backup cannot be restored; partial archive retained at {}",
+                    temporary.display()
+                )
+            })?;
             // Publish atomically without replacing an existing backup, even
             // across a clock adjustment or simultaneous administrator run.
             fs::hard_link(&temporary, &final_path)?;
@@ -712,9 +697,9 @@ pub fn operations(action: Operation) -> Result<()> {
             }
             // Validate and extract before stopping anything. Replace complete
             // directories, rather than merging old files into the live state.
-            let staged = restore::stage(&archive, Path::new("/var/lib"))?;
+            let staged = archive::stage(&archive, Path::new("/var/lib"))?;
             stop(&worker_owner()?)?;
-            let previous = restore::replace(Path::new("/var/lib"), staged)?;
+            let previous = archive::replace(Path::new("/var/lib"), staged)?;
             println!(
                 "State restored; previous state retained at {}. Rebuild the reviewed flake to reinstall managed configuration, then explicitly start services.",
                 previous.display()

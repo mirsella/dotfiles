@@ -382,6 +382,8 @@ in {
       after = [ "camofox-browser.service" "hermes-network-isolation.service" "sops-install-secrets.service" ];
       serviceConfig = hardening // {
         User = "hermes-browser-control"; Group = "hermes-browser-control";
+        Type = "notify";
+        TimeoutStartSec = 45;
         # Drain the bounded startup/tool request, then checkpoint and stop.
         TimeoutStopSec = 300;
         EnvironmentFile = config.sops.secrets.hermes_control_env.path;
@@ -392,6 +394,8 @@ in {
     systemd.services.hermes-backup = {
       description = "Back up Hermes runtime state to Tank";
       startAt = "23:20";
+      # Persistent catch-up backups must not cancel queued service startup.
+      after = [ "multi-user.target" ];
       path = [ pkgs.gnutar pkgs.gzip pkgs.util-linux ];
       unitConfig.RequiresMountsFor = [ "/srv/backup" ];
       serviceConfig = {
