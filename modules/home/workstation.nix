@@ -18,14 +18,17 @@ let
 in
 {
   programs.git.settings.commit.gpgsign = true;
+  # kache and OpenChamber run from the flake on both operating systems: the AUR
+  # package is 2.x and lacks the message-queue dedupe patch, so the patched 1.x
+  # build comes from the flake.
   home.packages = [
     pkgs.kache
+    pkgs.openchamber
     pkgs.opencode-idle-watchdog
     pkgs.rea
     pkgs.ghidra
   ]
   ++ lib.optionals isNixOS [
-    pkgs.openchamber
     pkgs.binaryen
     pkgs.gnumake
     pkgs.ninja
@@ -158,7 +161,7 @@ in
         config.sops.secrets.openchamber_server.path
       ];
       Environment = servicePath;
-      ExecStart = "${bin pkgs.openchamber "openchamber"} serve --host 127.0.0.1 --port 14097 --foreground";
+      ExecStart = "${lib.getExe' pkgs.openchamber "openchamber"} serve --host 127.0.0.1 --port 14097 --foreground";
       Restart = "on-failure";
       RestartSec = "2s";
     };

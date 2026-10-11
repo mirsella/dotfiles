@@ -1,0 +1,300 @@
+diff -ruN a/server/lib/message-queue/DOCUMENTATION.md b/server/lib/message-queue/DOCUMENTATION.md
+--- a/server/lib/message-queue/DOCUMENTATION.md	2026-10-11 19:23:32.040957251 +0200
++++ b/server/lib/message-queue/DOCUMENTATION.md	2026-10-11 19:23:32.042155818 +0200
+@@ -127,6 +127,17 @@
+    Success removes the item, persists, broadcasts, and marks the user
+    message sent for notifications. Failure keeps the item, backs off
+    2 s → 60 s (doubling per consecutive failure of that item), and re-arms.
++   Each queued item maps to a stable OpenCode message id (`msg_` + the queue
++   item id). A same-id repost is not ignored by OpenCode — it appends the
++   parts again — so a timed-out send must be told apart from a missing one:
++   before every (re)send and right after a failure the runtime probes
++   `GET /session/:id/message/:messageId`. A found message means the ack was
++   lost — the item is removed instead of delivered twice. A probe that fails
++   is unknown, never "missing": the tick re-arms without sending until the
++   message is confirmed absent. One absent probe right after a failed send is
++   not yet proof — the first attempt may still be running before it persists —
++   so a resend also requires the absence to hold across a second probe spaced
++   by the retry backoff.
+ 6. The next item goes out after the next busy → idle cycle.
+ 
+ ## Holds
+diff -ruN a/server/lib/message-queue/runtime.js b/server/lib/message-queue/runtime.js
+--- a/server/lib/message-queue/runtime.js	2026-10-11 19:23:32.040900764 +0200
++++ b/server/lib/message-queue/runtime.js	2026-10-11 19:23:32.041552390 +0200
+@@ -385,6 +385,11 @@
+     return response.json().catch(() => null);
+   };
+ 
++  // Queued items own a stable OpenCode message id derived from their queue id,
++  // so a send whose ack was lost to a timeout is recognized as the same message
++  // instead of being delivered again on retry.
++  const queuedItemMessageId = (item) => `msg_${item.id}`;
++
+   /**
+    * Live idleness, or null when it could not be established. Unknown is never
+    * idle: a fetch failure re-arms instead of sending into a running turn.
+@@ -474,6 +479,7 @@
+ 
+   const sendItem = async (sessionId, directory, item) => {
+     const { providerID, modelID, agent, variant } = item.sendConfig;
++    const messageID = queuedItemMessageId(item);
+     const fileParts = item.attachments.map(toFilePart);
+     const contextParts = item.context.flatMap(toContextParts);
+     // OpenCode's command route takes file parts only, so a command queued
+@@ -483,7 +489,7 @@
+     // explicit instruction) together with the context.
+     const command = await resolveSlashCommand(item.text, directory);
+     if (command && contextParts.length === 0) {
+-      const body = { command: command.name, arguments: command.arguments, model: `${providerID}/${modelID}` };
++      const body = { command: command.name, arguments: command.arguments, model: `${providerID}/${modelID}`, messageID };
+       if (agent) body.agent = agent;
+       if (variant) body.variant = variant;
+       if (fileParts.length > 0) body.parts = fileParts;
+@@ -518,7 +524,7 @@
+     parts.push(...commandParts);
+     if (knowledge.text) parts.push({ type: 'text', text: knowledge.text, synthetic: true });
+     if (item.agentMention) parts.push({ type: 'agent', name: item.agentMention });
+-    const body = { model: { providerID, modelID } };
++    const body = { model: { providerID, modelID }, messageID };
+     if (agent) body.agent = agent;
+     if (variant) body.variant = variant;
+     body.parts = parts;
+@@ -561,6 +567,36 @@
+     return false;
+   };
+ 
++  /**
++   * Drops an item whose user message already sits in OpenCode — its ack was
++   * lost but the delivery happened. 'delivered' removes the item and continues
++   * the queue; 'pending' means the message is missing and 'unknown' that this
++   * could not be established, so the caller must not resend.
++   */
++  const dropIfAlreadyDelivered = async (sessionId, directory, item) => {
++    const messageId = queuedItemMessageId(item);
++    let delivery;
++    try {
++      const message = await openCodeFetch(`/session/${encodeURIComponent(sessionId)}/message/${encodeURIComponent(messageId)}`, { directory });
++      delivery = message?.info?.id === messageId ? 'delivered' : 'unknown';
++    } catch (error) {
++      delivery = error?.status === 404 ? 'pending' : 'unknown';
++    }
++    if (delivery !== 'delivered') return delivery;
++    const queue = queues.get(sessionId);
++    if (queue) setQueueItems(sessionId, queue.directory, queue.items.filter((entry) => entry.id !== item.id));
++    failures.delete(sessionId);
++    commit(sessionId);
++    try {
++      onPromptSent?.(sessionId);
++    } catch {
++      // bookkeeping only
++    }
++    console.log(`[message-queue] queued message for ${sessionId} was already accepted by OpenCode`);
++    armDispatch(sessionId);
++    return 'delivered';
++  };
++
+   async function tick(sessionId) {
+     if (stopped) return;
+     const queue = queues.get(sessionId);
+@@ -573,13 +609,33 @@
+     }
+ 
+     const head = queue.items[0];
+-    const failure = failures.get(sessionId);
+-    if (failure && failure.itemId !== head.id) failures.delete(sessionId);
+-    else if (failure && failure.nextAttemptAt > now()) {
++    let failure = failures.get(sessionId);
++    if (failure && failure.itemId !== head.id) {
++      failures.delete(sessionId);
++      failure = undefined;
++    }
++
++    if (failure && failure.nextAttemptAt > now()) {
+       armDispatch(sessionId, failure.nextAttemptAt - now());
+       return;
+     }
+ 
++    // A timed-out send may have landed anyway: verify before a resend can hand
++    // OpenCode the message twice. One absent probe right after a failed send is
++    // not proof — the first attempt may still be running before it persists —
++    // so the absence must also hold across a second, later probe.
++    const delivery = await dropIfAlreadyDelivered(sessionId, queue.directory, head);
++    if (delivery === 'delivered') return;
++    if (delivery === 'unknown') {
++      armDispatch(sessionId, retryDelayMs(1));
++      return;
++    }
++    if (failure && !failure.absenceConfirmed) {
++      failures.set(sessionId, { ...failure, absenceConfirmed: true });
++      armDispatch(sessionId, retryDelayMs(failure.failures));
++      return;
++    }
++
+     const idle = await isSessionIdle(sessionId, queue.directory);
+     if (idle === null) {
+       armDispatch(sessionId, retryDelayMs(1));
+@@ -609,7 +665,13 @@
+       }
+       console.log(`[message-queue] sent queued message to ${sessionId}`);
+     } catch (error) {
++      // The request may still have reached OpenCode (aborted ack, server under
++      // load): recognize the delivery instead of retrying into a duplicate.
++      // The in-flight guard stays until the probe decides, so no other tick can
++      // start a second send while the outcome is unknown.
++      const delivery = await dropIfAlreadyDelivered(sessionId, current.directory, item);
+       sending.delete(sessionId);
++      if (delivery === 'delivered') return;
+       const count = (failure?.itemId === item.id ? failure.failures : 0) + 1;
+       const nextAttemptAt = now() + retryDelayMs(count);
+       failures.set(sessionId, { itemId: item.id, failures: count, nextAttemptAt });
+diff -ruN a/server/lib/message-queue/runtime.test.js b/server/lib/message-queue/runtime.test.js
+--- a/server/lib/message-queue/runtime.test.js	2026-10-11 19:23:32.040933075 +0200
++++ b/server/lib/message-queue/runtime.test.js	2026-10-11 19:23:32.042105954 +0200
+@@ -37,6 +37,9 @@
+     tail: [],
+     commands: [],
+     sent: [],
++    delivered: new Set(),
++    ackLostAfterDelivery: false,
++    deliveryDelayMs: 0,
+     failNext: null,
+   };
+   const fetchImpl = vi.fn(async (url, init = {}) => {
+@@ -48,9 +51,20 @@
+     }
+     if (pathname === '/session/status') return Response.json(state.statuses);
+     if (pathname.endsWith('/message')) return Response.json(state.tail);
++    const messageMatch = pathname.match(/^\/session\/[^/]+\/message\/(.+)$/);
++    if (method === 'GET' && messageMatch) {
++      const messageID = decodeURIComponent(messageMatch[1]);
++      return state.delivered.has(messageID) ? Response.json({ info: { id: messageID } }) : new Response('not found', { status: 404 });
++    }
+     if (pathname === '/command') return Response.json(state.commands);
+     if (method === 'POST' && (pathname.endsWith('/prompt_async') || pathname.endsWith('/command'))) {
+-      state.sent.push({ path: pathname, body: JSON.parse(init.body) });
++      const body = JSON.parse(init.body);
++      state.sent.push({ path: pathname, body });
++      if (state.ackLostAfterDelivery && body.messageID) {
++        const messageID = body.messageID;
++        setTimeout(() => state.delivered.add(messageID), state.deliveryDelayMs ?? 0);
++        throw new Error('The operation was aborted due to timeout');
++      }
+       return new Response(null, { status: 204 });
+     }
+     return new Response('not found', { status: 404 });
+@@ -188,6 +202,7 @@
+     expect(openCode.state.sent[0].body).toEqual({
+       model: { providerID: 'anthropic', modelID: 'claude' },
+       agent: 'build',
++      messageID: expect.stringMatching(/^msg_queued/),
+       parts: [{ type: 'text', text: 'first' }],
+     });
+     expect(promptSent).toEqual([SESSION]);
+@@ -267,6 +282,71 @@
+     expect(runtime.sessionSnapshot(SESSION).items).toHaveLength(0);
+   });
+ 
++  it('recognizes a timed-out send OpenCode actually accepted instead of resending it', async () => {
++    const { runtime, openCode, emit, promptSent } = createRuntime({ retryDelayMs: () => 20 });
++    runtime.start();
++    openCode.state.ackLostAfterDelivery = true;
++    await runtime.enqueue(SESSION, DIRECTORY, item({ content: 'lost ack', text: 'lost ack' }));
++
++    emit({ type: 'session.status', properties: { sessionID: SESSION, status: { type: 'idle' } } });
++    await settle();
++
++    expect(openCode.state.sent).toHaveLength(1);
++    expect(openCode.state.delivered.has(openCode.state.sent[0].body.messageID)).toBe(true);
++    expect(runtime.sessionSnapshot(SESSION).items).toHaveLength(0);
++    expect(promptSent).toEqual([SESSION]);
++
++    // The message exists upstream: another idle event must not resend it.
++    openCode.state.ackLostAfterDelivery = false;
++    emit({ type: 'session.status', properties: { sessionID: SESSION, status: { type: 'idle' } } });
++    await settle(60);
++    expect(openCode.state.sent).toHaveLength(1);
++  });
++
++  it('drops a restored item whose message is already in OpenCode without sending', async () => {
++    const { runtime, openCode } = createRuntime();
++    runtime.start();
++    await runtime.enqueue(SESSION, DIRECTORY, item({ content: 'restored', text: 'restored' }));
++    const itemId = runtime.sessionSnapshot(SESSION).items[0].id;
++    openCode.state.delivered.add(`msg_${itemId}`);
++    await settle();
++    expect(openCode.state.sent).toHaveLength(0);
++    expect(runtime.sessionSnapshot(SESSION).items).toHaveLength(0);
++  });
++
++  it('keeps the item while delivery cannot be verified, then sends once it can', async () => {
++    const { runtime, openCode, emit } = createRuntime({ retryDelayMs: () => 20 });
++    runtime.start();
++    await runtime.enqueue(SESSION, DIRECTORY, item({ content: 'blip', text: 'blip' }));
++    openCode.state.failNext = /\/message\/msg_/;
++
++    emit({ type: 'session.status', properties: { sessionID: SESSION, status: { type: 'idle' } } });
++    await settle(10);
++    expect(openCode.state.sent).toHaveLength(0);
++    expect(runtime.sessionSnapshot(SESSION).items).toHaveLength(1);
++
++    await settle(40);
++    expect(openCode.state.sent).toHaveLength(1);
++    expect(runtime.sessionSnapshot(SESSION).items).toHaveLength(0);
++  });
++
++  it('does not resend a timed-out send until its absence holds across two probes', async () => {
++    const { runtime, openCode, emit } = createRuntime({ retryDelayMs: () => 20 });
++    runtime.start();
++    openCode.state.ackLostAfterDelivery = true;
++    openCode.state.deliveryDelayMs = 30;
++    await runtime.enqueue(SESSION, DIRECTORY, item({ content: 'slow fork', text: 'slow fork' }));
++
++    emit({ type: 'session.status', properties: { sessionID: SESSION, status: { type: 'idle' } } });
++    await settle(10);
++    expect(openCode.state.sent).toHaveLength(1);
++    expect(runtime.sessionSnapshot(SESSION).items).toHaveLength(1);
++
++    await settle(80);
++    expect(openCode.state.sent).toHaveLength(1);
++    expect(runtime.sessionSnapshot(SESSION).items).toHaveLength(0);
++  });
++
+   it('holds delivery briefly after a user abort', async () => {
+     const { runtime, openCode, emit } = createRuntime();
+     runtime.start();
+@@ -326,8 +406,9 @@
+     const { runtime, openCode, emit } = createRuntime();
+     runtime.start();
+     let release;
+-    // status map, message tail, then the prompt itself (held open until released)
+-    openCode.fetchImpl.mockImplementationOnce(async () => Response.json({}))
++    // delivery probe (absent), status map, message tail, then the prompt itself (held open until released)
++    openCode.fetchImpl.mockImplementationOnce(async () => new Response('not found', { status: 404 }))
++      .mockImplementationOnce(async () => Response.json({}))
+       .mockImplementationOnce(async () => Response.json([]))
+       .mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve(new Response(null, { status: 204 })); }));
+     const { itemId } = await runtime.enqueue(SESSION, DIRECTORY, item());
+@@ -435,7 +516,21 @@
+     await settle();
+     expect(openCode.state.sent).toHaveLength(1);
+     expect(openCode.state.sent[0].path).toBe(`/session/${SESSION}/command`);
+-    expect(openCode.state.sent[0].body).toEqual({ command: 'review', arguments: 'src', model: 'p/m', agent: 'build', variant: 'max' });
++    expect(openCode.state.sent[0].body).toEqual({ command: 'review', arguments: 'src', model: 'p/m', agent: 'build', variant: 'max', messageID: expect.stringMatching(/^msg_queued/) });
++  });
++
++  it('recognizes an ack-lost command OpenCode accepted instead of resending it', async () => {
++    const { runtime, openCode, emit } = createRuntime({ retryDelayMs: () => 20 });
++    runtime.start();
++    openCode.state.commands = [{ name: 'review' }];
++    openCode.state.ackLostAfterDelivery = true;
++    await runtime.enqueue(SESSION, DIRECTORY, item({ content: '/review src', text: '/review src' }));
++
++    emit({ type: 'session.status', properties: { sessionID: SESSION, status: { type: 'idle' } } });
++    await settle(60);
++    expect(openCode.state.sent).toHaveLength(1);
++    expect(openCode.state.sent[0].path).toBe(`/session/${SESSION}/command`);
++    expect(runtime.sessionSnapshot(SESSION).items).toHaveLength(0);
+   });
+ 
+   it('delivers captured context as synthetic parts, instructions first, before project knowledge', async () => {

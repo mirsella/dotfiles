@@ -41,9 +41,10 @@ The flake discovers these directories and sets hostnames automatically.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
-- On Arch, pacman/AUR own application binaries; the HM profiles install config
-  and services, and kache from the flake so the daemon and cargo wrapper always
-  match. On NixOS, rebuild the system target, never activate a standalone
+- On Arch, pacman/AUR own application binaries, except kache and the patched
+  OpenChamber, which come from the flake on both operating systems so the
+  daemon, cargo wrapper and queue-dedupe fix always match. On NixOS, rebuild
+  the system target, never activate a standalone
   HM profile for the same user. The standalone homes remain available for Arch.
 - Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
   especially `flake.lock` (the weekly upgrade updates nixpkgs there). Sync only
@@ -86,8 +87,9 @@ Manual files outside the repo:
   storage timers and the fail2ban SSH jail are installed from
   `arch/maintenance/apply.py`. System
   Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks
-  remain manual. `pacman.conf` also pins `IgnorePkg = openchamber` so the AUR
-  package stays on 1.x with OpenCode 1.x. The Nix daemon ignores cache settings
+  remain manual. The retired AUR OpenChamber must not be reinstalled: pin it
+  with `IgnorePkg` only if a stray AUR dependency pulls it back in.
+  The Nix daemon ignores cache settings
   from an untrusted Home Manager user config.
 - Predator: Freebox LAN IP is `192.168.1.1`; SMART runs daily short and weekly
   long tests on all five physical drives. Toshiba's earlier USB setup had repeated

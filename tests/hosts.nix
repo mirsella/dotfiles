@@ -114,9 +114,10 @@ assert lib.assertMsg (
 assert lib.assertMsg (lib.all
   (
     name:
-    lib.any (
-      package: lib.hasPrefix "openchamber-1." package.name
-    ) desktops.${name}.home-manager.users.mirsella.home.packages
+    lib.any (package: lib.hasPrefix "openchamber-1." package.name) (
+      desktops.${name}.home-manager.users.mirsella.home.packages
+      ++ flake.homeConfigurations.${name}.config.home.packages
+    )
   )
   [
     "main"
@@ -152,11 +153,19 @@ assert lib.assertMsg
         (
           service:
           lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.${service}.Service.ExecStart)
-          && lib.hasPrefix "/usr/bin/" (builtins.head arch.systemd.user.services.${service}.Service.ExecStart)
         )
         [
           "opencode"
           "openchamber"
+          "rclone-nextcloud"
+        ]
+      && lib.all
+        (
+          service:
+          lib.hasPrefix "/usr/bin/" (builtins.head arch.systemd.user.services.${service}.Service.ExecStart)
+        )
+        [
+          "opencode"
           "rclone-nextcloud"
         ]
       && home.programs.git.settings.user.signingkey == arch.programs.git.settings.user.signingkey
@@ -190,8 +199,10 @@ assert lib.assertMsg
   )
   "Desktop homes must use the right binaries and one user-level secret installer on both operating systems";
 assert lib.assertMsg (lib.all (
-  home: lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.kache.Service.ExecStart)
-) workstationHomes) "kache must run from the flake package on NixOS and Arch workstations";
+  home:
+  lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.kache.Service.ExecStart)
+  && lib.hasPrefix "${flake.packages.x86_64-linux.openchamber}/bin/openchamber" (builtins.head home.systemd.user.services.openchamber.Service.ExecStart)
+) workstationHomes) "kache and OpenChamber must run from the flake package on NixOS and Arch workstations";
 assert lib.assertMsg
   (lib.all (
     home:
