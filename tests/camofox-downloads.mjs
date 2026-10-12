@@ -54,6 +54,21 @@ try {
   await clearTabDownloads(tabState);
   assert.deepEqual(await fs.readdir(directory), []);
 
+  const stat = fs.stat;
+  fs.stat = async (file) => {
+    if (file.startsWith(directory)) throw new Error("download stat failed");
+    return stat(file);
+  };
+  try {
+    await onDownload(download);
+    assert.equal(tabState.downloads.at(-1).filePath, null);
+    assert.match(tabState.downloads.at(-1).failure, /download stat failed/);
+    assert.deepEqual(await fs.readdir(directory), []);
+  } finally {
+    fs.stat = stat;
+  }
+  await clearTabDownloads(tabState);
+
   fs.chmod = async () => {
     throw new Error("publication denied");
   };

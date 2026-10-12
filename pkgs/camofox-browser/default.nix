@@ -53,8 +53,9 @@ buildNpmPackage {
       --replace-fail 'async function captureFetchedResource(tabState, { url, mimeType, filename, body }) {' \
       'async function saveDownload(filePath, write) {
         try {
-          await write();
+          const result = await write();
           await fs.chmod(filePath, 0o640);
+          return result;
         } catch (error) {
           try {
             await fs.rm(filePath, { force: true });
@@ -67,7 +68,8 @@ buildNpmPackage {
 
       async function captureFetchedResource(tabState, { url, mimeType, filename, body }) {' \
       --replace-fail 'await download.saveAs(filePath);' \
-      'await saveDownload(filePath, () => download.saveAs(filePath));' \
+      'const stat = await saveDownload(filePath, async () => { await download.saveAs(filePath); return fs.stat(filePath); });' \
+      --replace-fail 'const stat = await fs.stat(filePath);' "" \
       --replace-fail "failure = String(err?.message || err || 'download_save_failed');
           await fs.unlink(filePath).catch(() => {});" \
       "failure = String(err?.message || err || 'download_save_failed');" \
