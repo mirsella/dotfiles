@@ -14,6 +14,7 @@ Use `protonmail-cli` (profile `default`; override with `--profile <NAME>`). Most
 
 If login is needed, get `PROTON_USER`, `PROTON_PASSWORD`, and `PROTON_TOTP` through the pass skill. Let the user handle any CAPTCHA, then continue.
 
-For verification codes, read the newest matching message and return only the code.
+For verification codes, read the newest matching message and use the code to
+complete the requested login. Return only the code when the user asks for it.
 
 i also have my @voxride.com and secondary @gmail account redirecting to the protonmail inbox.

@@ -13,6 +13,7 @@ project files; a missing key must fail instead of publishing anonymously.
 For a single HTML report (Bash):
 
 ```bash
+set -o pipefail
 curl --fail-with-body --silent --show-error https://beacon.host/v1/publish \
   --header "Authorization: Bearer ${BEACON_API_KEY:?BEACON_API_KEY is not set}" \
   --form 'file=@report.html;filename=index.html;type=text/html' \
@@ -23,6 +24,7 @@ For a report containing `<img src="images/before.png">` and
 `<img src="images/after.png">`, publish the HTML and both images in one call:
 
 ```bash
+set -o pipefail
 curl --fail-with-body --silent --show-error https://beacon.host/v1/publish \
   --header "Authorization: Bearer ${BEACON_API_KEY:?BEACON_API_KEY is not set}" \
   --form 'file=@report.html;filename=index.html;type=text/html' \
