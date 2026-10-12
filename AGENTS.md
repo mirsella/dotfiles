@@ -50,10 +50,12 @@ The flake discovers these directories and sets hostnames automatically.
   reviewed changes; do not use whole-tree `rsync --delete` over concurrent work.
   Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles#predator'`.
   Run long rebuilds detached and poll the unit log and exit status.
-- Predator's `systemd-pcrosseparator` initrd unit is explicitly disabled in
-  `hosts/predator/boot.nix`. Keep it disabled in ordinary deployments until both
-  SSDs have compatible enrollments. Follow `secure-predator-todo.md` for the
-  signed-image/phase policies, enrollment, reboot verification and token cleanup.
+- Predator's initrd OS separator and signed SHA-256 PCR 11 policies protect all
+  five disks. Root unlocks at `enter-initrd`; data unlocks at
+  `enter-initrd:leave-initrd`, before the host sysinit phase. Keep the Nix-managed
+  Lanzaboote signature companion hook and phase ordering intact. After reboot,
+  `sudo predator-boot audit` proves token use and late-phase rejection. Preserve
+  `/var/lib/predator-boot` and `/var/lib/sbctl`; see README for recovery.
 - `nix flake check path:. --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`.
   Run focused Cargo tests for monitoring, backups and suspend changes. The
@@ -62,7 +64,7 @@ The flake discovers these directories and sets hostnames automatically.
 - `disko.nix` formats **all four data disks** only for a fresh, intentional
   installation. To reinstall on existing disks, mount them without running disko,
   preserve the LUKS headers, ZFS pools, Secure Boot signing bundle (`/var/lib/sbctl`),
-  HDD keys (`/etc/luks/`), and SOPS host identity (`/etc/ssh/ssh_host_ed25519_key`),
+  TPM policy authorities (`/var/lib/predator-boot`), and SOPS host identity (`/etc/ssh/ssh_host_ed25519_key`),
   then install `#predator`.
   The database dumps and ZFS snapshots on `tank/backup` are on-machine only.
   `tank` uses three encrypted HDDs in RAIDZ1 and tolerates one failed HDD.
@@ -71,7 +73,7 @@ The flake discovers these directories and sets hostnames automatically.
 - Syncoid replicates the two live SSD datasets to read-only, unmounted
   `tank/replica/{data,ncdata}` at 23:45. Recovery bundles run at 23:10 under
   `/srv/backup/recovery/latest`: current LUKS headers and a private archive of
-  HDD keys, the SOPS host identity and Secure Boot signing keys. Keep this directory root-only.
+  TPM policy authorities, the SOPS host identity and Secure Boot signing keys. Keep this directory root-only.
   Database dumps use `/srv/backup/recovery/db/latest` on the same private dataset;
   both jobs publish atomically and retain 14 complete bundles. Existing dumps in
   `/srv/backup/db/` need moving before deploying the new path.

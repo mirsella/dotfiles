@@ -107,19 +107,12 @@ exposes the generated source at `~/.local/share/arch-uki`. Pacman owns mkinitcpi
 ukify and the kernels; its existing hooks rebuild and sign each UKI on updates.
 The signing keys stay on the encrypted root filesystem, outside the Nix store.
 The PCR signing key uses RSA-2048, supported by laptop's Pluton TPM. The
-installer tests loading the public key into the TPM before rebuilding images.
+refresh command tests loading the public key into the TPM before rebuilding images.
 
 Apply changes and verify each generated image with:
 
 ```sh
-sudo /usr/local/libexec/host-tools arch-uki prepare ~/.local/share/arch-uki
-```
-
-The first UKI boot runs `systemd-pcrosseparator.service`, changing PCR 7. Unlock
-with the existing LUKS passphrase, then enroll the new TPM policy:
-
-```sh
-sudo /usr/local/libexec/host-tools arch-uki enroll
+sudo /usr/local/libexec/host-tools arch-uki ~/.local/share/arch-uki
 ```
 
 The policy pins Secure Boot state through PCR 7 and accepts signed PCR 11 values
@@ -127,26 +120,61 @@ only for the `enter-initrd` phase with policy reference `initrd`. Kernel updates
 receive new signatures from the same PCR signing key and do not require
 re-enrollment. The passphrase slot remains available for recovery.
 
-After another reboot confirms automatic TPM unlock, retire the separate-kernel
-boot entries and initramfs images:
-
-```sh
-sudo /usr/local/libexec/host-tools arch-uki finish
-```
-
-The installer keeps previous configuration and the pre-enrollment LUKS header
-under root-only `/var/lib/arch-uki`. CachyOS, stock Linux, its fallback UKI and
+The refresh command uses the generated manifest to locate installed kernels,
+checks the existing signing authority, rebuilds the UKIs and verifies their
+Secure Boot signatures before selecting the default. It preserves TPM
+enrollment and recovery credentials. CachyOS, stock Linux, its fallback UKI and
 Linux 6.12 LTS remain available as signed boot entries.
 
 `bootctl --variables=no list` shows the current on-disk entries. Plain
 `bootctl list` can retain removed entries as `reported/absent` from the volatile
 EFI inventory until the next normal boot refreshes it.
 
-Predator uses Lanzaboote for authenticated boot. Its OS PCR separator remains
-disabled pending compatible TPM enrollments for both SSDs. The canonical
-procedure, including signed-image and unlock-phase policies, is in
-[Secure Predator TODO](secure-predator-todo.md). NixOS activation does not migrate
-LUKS credentials; complete enrollment before the first separator-enabled reboot.
+### Predator authenticated boot
+
+Lanzaboote verifies signed boot images and measures their kernel, initramfs and
+command line into SHA-256 PCR 11. All five disks require post-separator SHA-256
+PCR 7 plus signed PCR 11: root at `enter-initrd`, data at
+`enter-initrd:leave-initrd`, with separate signing authorities. `sysinit` waits
+for the bounded data-unlock attempts before closing their authorization window.
+
+Normal NixOS rebuilds automatically provision recovery, sign image companions
+and restore the previous default if installation fails. The public companions
+carry signatures into initrd without embedding disk keys. Updates need no disk
+re-enrollment. Five boot generations are retained; deleting old files does not
+revoke previously issued image signatures.
+
+Preserve `/var/lib/predator-boot` and `/var/lib/sbctl` during reinstallation.
+Private keys stay on encrypted root and in the encrypted recovery backup,
+outside Git and the Nix store. LUKS headers contain TPM-sealed unlock credentials;
+mounted volume keys remain in RAM. After a normal reboot, run
+`sudo predator-boot audit` to verify unlocks and late-phase rejection.
+
+#### Recovery
+
+The console accepts the LUKS recovery passphrase even without a working TPM.
+Initrd SSH on `192.168.1.19:2223` uses a TPM-sealed identity released only in the
+authorized initrd phase. Only ciphertext enters the ESP; the runtime key and SSH
+sessions are removed at switch-root. An unseal failure leaves console recovery
+available.
+
+Main and laptop keys are authorized; SSH password login is disabled. Connect
+using the pin in `hosts/predator/recovery-known-hosts`:
+
+```sh
+ssh -o StrictHostKeyChecking=yes \
+  -o GlobalKnownHostsFile=/dev/null \
+  -o UserKnownHostsFile="$HOME/dev/dotfiles/hosts/predator/recovery-known-hosts" \
+  -p 2223 root@192.168.1.19
+```
+
+Then run `systemd-tty-ask-password-agent --query` to answer the unlock prompt.
+Secure Boot key or PCR-bank changes may require fresh disk enrollment and
+recovery-credential sealing.
+
+The TPM-free `pm-study` specialisation uses passphrase recovery and manual data
+unlocks. Its suspend-study hold and scheduling controls remain separate from
+normal authenticated boot.
 
 Arch's root-owned maintenance is installed separately on both workstations:
 
@@ -324,8 +352,8 @@ data devices use bounded, noninteractive, optional unlocking. RAIDZ1 import can
 continue when one HDD is missing. All data mounts use `legacy` and `nofail`, so
 data-disk failures leave the OS and SSH available. Data-dependent services require
 their mounts and refuse the bare OS filesystem. Preserve
-the keys under `/etc/luks/` when reinstalling. `disko.nix` is only for a fresh
-installation and formats the SSD and all three HDDs.
+the policy authorities under `/var/lib/predator-boot` when reinstalling.
+`disko.nix` is only for a fresh installation and formats the SSD and all three HDDs.
 
 SMART checks all five physical disks, runs daily short self-tests at noon and
 weekly long tests on Sunday: SSDs and WD at 13:00, Seagate at 14:00 and Toshiba
@@ -348,8 +376,8 @@ The overnight idle check waits for replication and recovery jobs to finish.
 separate `tank/backup/recovery` dataset at `/srv/backup/recovery/`; `latest`
 points to the newest complete bundle. Each
 contains all five current LUKS headers and UUIDs plus `system-secrets.tar` with
-`/etc/luks/`, the SOPS SSH host identity and `/var/lib/sbctl`. These archives
-contain private keys. Restore them as root with their original permissions.
+`/var/lib/predator-boot`, the SOPS SSH host identity and `/var/lib/sbctl`.
+These archives contain private keys. Restore them as root with their original permissions.
 
 `db-backup.service` uses the same private dataset, publishing database dumps and
 Nextcloud configuration under `/srv/backup/recovery/db/latest` at 23:00. Both
