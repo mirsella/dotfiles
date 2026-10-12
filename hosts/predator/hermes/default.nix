@@ -95,7 +95,7 @@ let
   );
   aux = lib.genAttrs [ "vision" "compression" "skills_hub" "approval" "review" "mcp" "title_generation" "memory_query_rewrite" "tts_audio_tags" "voice_chat" "triage_specifier" "kanban_decomposer" "profile_describer" "goal_judge" "curator" "monitor" "background_review" "moa_reference" "moa_aggregator" ] (_: {
     provider = "opencode-go";
-    model = "muse-spark-1.3-contributor";
+    model = "deepseek-v4.1-flash";
     base_url = "";
     api_key = "";
   });
@@ -256,7 +256,7 @@ in {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
         agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-vault-cdp" ];
         plugins.enabled = [ "camofox-accounts" ];
-        agent.reasoning_overrides."deepseek-v4.1-flash" = "high";
+        agent.reasoning_overrides."deepseek-v4.1-flash" = "max";
         model = { provider = "opencode-go"; default = "deepseek-v4.1-flash"; base_url = ""; api_key = ""; };
         auxiliary = aux // { openrouter_model = ""; };
         fallback_providers = [];
