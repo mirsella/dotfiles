@@ -91,7 +91,7 @@ impl Browser {
             Self::Ready(tab) => Some(tab),
         }
     }
-    fn running(&self) -> bool {
+    fn is_running(&self) -> bool {
         !matches!(self, Self::Stopped)
     }
 }
@@ -218,7 +218,7 @@ impl App {
             .await
             .context("invalid private Camofox response")
     }
-    async fn running(&self) -> Result<bool> {
+    async fn backend_running(&self) -> Result<bool> {
         self.backend(Method::GET, "/", None).await?["running"]
             .as_bool()
             .context("Camofox status is missing its running boolean")
@@ -229,7 +229,7 @@ impl App {
             // transport startup failures; authentication/schema errors are fatal.
             let mut waiting = false;
             loop {
-                match self.running().await {
+                match self.backend_running().await {
                     Err(error)
                         if error
                             .downcast_ref::<reqwest::Error>()
@@ -276,7 +276,7 @@ impl App {
         .context("browser startup task failed")?
     }
     async fn start_browser(&self, runtime: &mut Runtime, viewer: bool) -> Result<()> {
-        if !self.running().await? {
+        if !self.backend_running().await? {
             runtime.browser = Browser::Undiscovered(None);
             // A timed-out launch may still have created Firefox. Keep it under
             // idle cleanup even if we never receive the launch response.
@@ -284,7 +284,7 @@ impl App {
             self.backend(Method::POST, "/start", Some(json!({})))
                 .await?;
         }
-        if !runtime.browser.running() {
+        if !runtime.browser.is_running() {
             runtime.browser = Browser::Undiscovered(None);
         }
         runtime.last_activity = Instant::now();
@@ -332,7 +332,7 @@ impl App {
         Ok(())
     }
     async fn stop(&self, runtime: &mut Runtime) -> Result<()> {
-        if self.running().await? {
+        if self.backend_running().await? {
             if runtime.browser.tab().is_some() {
                 // The pinned upstream export propagates persistence failures.
                 self.backend(
@@ -430,7 +430,7 @@ async fn landing(State(app): State<Shared>, headers: HeaderMap) -> WebResult {
 }
 async fn status(State(app): State<Shared>, headers: HeaderMap) -> WebResult {
     viewer(&app, &headers, false)?;
-    let running = app.running().await.map_err(failure)?;
+    let running = app.backend_running().await.map_err(failure)?;
     let runtime = app.runtime.lock().await;
     Ok(
         axum::Json(json!({"running":running,"viewers":runtime.viewers,"error":runtime.error}))
@@ -534,7 +534,7 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         // tabs. Creating a blank tab here can make its subsequent ensure-tab
         // path skip the requested navigation, or cancel startup mid-creation.
         let observed = app.runtime.lock().await.browser.clone();
-        let running = app.running().await.map_err(failure)?;
+        let running = app.backend_running().await.map_err(failure)?;
         let discovery = if running && !matches!(observed, Browser::Ready(_)) {
             Some(
                 app.backend(Method::GET, &format!("/tabs?userId={USER}"), None)
@@ -559,7 +559,7 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
                 }
             }
         }
-        if runtime.browser.running() {
+        if runtime.browser.is_running() {
             runtime.last_activity = Instant::now();
         }
         let tabs = runtime.browser.tab().map_or_else(Vec::new, |tab| {
@@ -676,7 +676,7 @@ async fn websocket(
         return Err((StatusCode::FORBIDDEN, "WebSocket origin refused".into()));
     }
     let mut runtime = app.runtime.lock().await;
-    if !runtime.browser.running() {
+    if !runtime.browser.is_running() {
         return Err((StatusCode::CONFLICT, "Open the browser first".into()));
     }
     let disconnected = app.disconnect.subscribe();
@@ -759,7 +759,7 @@ async fn forward(app: Shared, mut socket: WebSocket, mut disconnected: broadcast
     viewer_closed(&app).await;
 }
 fn idle(runtime: &Runtime) -> bool {
-    runtime.browser.running()
+    runtime.browser.is_running()
         && runtime.viewers == 0
         && runtime.last_activity.elapsed() >= Duration::from_secs(IDLE)
 }
