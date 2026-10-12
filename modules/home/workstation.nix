@@ -26,25 +26,19 @@ in
   ]
   ++ lib.optionals isNixOS [
     pkgs.openchamber
+    pkgs.opencode
     pkgs.binaryen
     pkgs.gnumake
     pkgs.ninja
     pkgs.trunk
     pkgs.wasm-pack
   ];
-  programs.opencode = {
-    enable = true;
-    package = if isNixOS then pkgs.opencode else null;
-    settings.mcp.rea = {
-      type = "local";
-      command = [
-        (lib.getExe pkgs.rea)
-        "mcp"
-      ];
-      enabled = false;
-    };
-    skills.reverse-engineer-anything = "${pkgs.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything";
+  home.file.".config/opencode/skills/reverse-engineer-anything" = {
+    source = "${pkgs.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything";
+    recursive = true;
   };
+
+  programs.opencode.enable = false;
   home.file.".local/bin/opencode-idle-watchdog" = {
     source = lib.getExe pkgs.opencode-idle-watchdog;
     force = true;

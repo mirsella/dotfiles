@@ -218,29 +218,30 @@ assert lib.assertMsg (lib.all
   (
     home:
     let
-      rea = home.programs.opencode.settings.mcp.rea;
+      reaSkill = home.home.file.".config/opencode/skills/reverse-engineer-anything";
     in
-    home.programs.opencode.enable
-    && rea.type == "local"
-    &&
-      rea.command == [
-        "${flake.packages.x86_64-linux.rea}/bin/rea"
-        "mcp"
-      ]
-    && !rea.enabled
-    &&
-      home.programs.opencode.skills.reverse-engineer-anything
-      == "${flake.packages.x86_64-linux.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything"
+    !home.programs.opencode.enable
+    && !(builtins.hasAttr "opencode/opencode.json" home.xdg.configFile)
+    && lib.elem flake.packages.x86_64-linux.rea home.home.packages
+    && reaSkill.source
+    == "${flake.packages.x86_64-linux.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything"
+    && reaSkill.recursive
   )
   workstationHomes
-) "REA must use the pinned Nix runtime and stay disabled by default on every workstation profile";
+) "Workstations must keep OpenCode JSONC canonical and install the REA skill without generating opencode.json";
 assert lib.assertMsg (
-  let
-    provider = flake.homeConfigurations.main.config.programs.opencode.settings.provider;
-  in
-  provider ? "llama.cpp"
-  && provider == main.home-manager.users.mirsella.programs.opencode.settings.provider
-) "The local model provider must coexist with REA on both main profiles";
+  lib.all
+    (
+      name:
+      let
+        nixosHome = desktops.${name}.home-manager.users.mirsella;
+        archHome = flake.homeConfigurations.${name}.config;
+      in
+      lib.elem flake.inputs.nixpkgs.legacyPackages.x86_64-linux.opencode nixosHome.home.packages
+      && !(lib.elem flake.inputs.nixpkgs.legacyPackages.x86_64-linux.opencode archHome.home.packages)
+    )
+    [ "main" "laptop" ]
+) "NixOS installs OpenCode from the flake while Arch leaves its binary to pacman";
 assert lib.assertMsg (lib.all
   (
     config:

@@ -302,9 +302,10 @@ The workstation Home Manager profiles install [REA](https://rea.tools/) and
 Ghidra on Arch and NixOS. `pkgs/rea` pins the published CLI/MCP runtime and its
 dependencies. Its wrappers select Nix-provided Node 24, Ghidra 12.1.x and JDK 21,
 so OpenCode needs no shell environment setup or runtime package downloads.
-Home Manager merges the `rea` MCP registration and local model provider into
-`~/.config/opencode/opencode.json`; chezmoi owns the editable `opencode.jsonc`.
-It also installs the matching `reverse-engineer-anything` skill and references.
+The host-aware chezmoi `opencode.jsonc` template owns the local model provider
+and disabled `rea` MCP registration; Home Manager does not generate
+`opencode.json`. Home Manager installs the matching `reverse-engineer-anything`
+skill and references.
 
 The MCP server is disabled by default. Restart OpenCode after a rebuild, then
 enable `rea` in its `/mcp` menu for an investigation. The CLI works independently:
