@@ -30,13 +30,21 @@ fn valid_name(name: &str) -> bool {
 
 fn adapter_contents(command: &Path, name: &str, description: &str) -> Result<String> {
     let header = serde_yaml::to_string(&SkillMetadata { name, description })?;
+    let description_marker = serde_json::to_string(description)?.replace("--", "\\u002d\\u002d");
     Ok(format!(
         "---\n{header}---\n\nOnly run this command when the user explicitly requests the operation.\n\n\
          Read and follow `{}`.\n\n\
          The model and agent frontmatter configures OpenCode, not this agent.\n\
-         Treat $ARGUMENTS as the instructions supplied with this skill invocation.\n",
+         Treat $ARGUMENTS as the instructions supplied with this skill invocation.\n\n\
+         <!-- host-tools-generated-description: {description_marker} -->\n",
         crate::util::path(command)?
     ))
+}
+
+fn generated_description(contents: &str) -> Option<String> {
+    let contents = contents.strip_suffix('\n')?;
+    let (_, marker) = contents.rsplit_once("\n<!-- host-tools-generated-description: ")?;
+    serde_json::from_str(marker.strip_suffix(" -->")?).ok()
 }
 
 fn adapter(command: &Path) -> Result<(String, String)> {
@@ -103,20 +111,11 @@ fn prune_adapters(
         let Ok(contents) = std::str::from_utf8(&bytes) else {
             continue;
         };
-        let Some(metadata) = serde_yaml::Deserializer::from_str(contents)
-            .next()
-            .and_then(|document| CommandMetadata::deserialize(document).ok())
-        else {
+        // Unmarked or edited skills may be user-managed; prune only exact generated adapters.
+        let Some(description) = generated_description(contents) else {
             continue;
         };
-        if !metadata.description.trim().is_empty()
-            && contents
-                == adapter_contents(
-                    &commands.join(format!("{name}.md")),
-                    name,
-                    &metadata.description,
-                )?
-        {
+        if contents == adapter_contents(&commands.join(format!("{name}.md")), name, &description)? {
             fs::remove_file(file.path())?;
             fs::remove_dir(directory)?;
         }
@@ -126,8 +125,24 @@ fn prune_adapters(
 
 fn sync(home: &Path, config: &Path) -> Result<usize> {
     fn output(base: &Path, sources: &[PathBuf]) -> Result<PathBuf> {
-        fs::create_dir_all(base)?;
-        let destination = fs::canonicalize(base)?.join("skills");
+        let directory = match fs::symlink_metadata(base) {
+            Ok(_) => {
+                let directory = fs::canonicalize(base)
+                    .with_context(|| format!("Resolve output directory {}", base.display()))?;
+                ensure!(
+                    fs::metadata(&directory)?.is_dir(),
+                    "Output path is not a directory: {}",
+                    base.display()
+                );
+                directory
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                fs::canonicalize(base.parent().context("Output path has no parent")?)?
+                    .join(base.file_name().context("Output path has no name")?)
+            }
+            Err(error) => return Err(error).with_context(|| format!("Inspect {}", base.display())),
+        };
+        let destination = directory.join("skills");
         for source in sources {
             ensure!(
                 !destination.starts_with(source) && !source.starts_with(&destination),
@@ -216,8 +231,9 @@ fn sync(home: &Path, config: &Path) -> Result<usize> {
         Err(error) => return Err(error.into()),
     };
     if update_link {
-        let staged =
-            tempfile::tempdir_in(shared.parent().context("Shared skills have no parent")?)?;
+        let parent = shared.parent().context("Shared skills have no parent")?;
+        fs::create_dir_all(parent)?;
+        let staged = tempfile::tempdir_in(parent)?;
         let link = staged.path().join("skills");
         symlink(&skills, &link)?;
         fs::rename(link, shared)?;
@@ -313,7 +329,14 @@ mod tests {
         let home = tempfile::tempdir().unwrap();
         let config = home.path().join(".config");
         let prompt = "---\ndescription: Old command\n---\nOriginal body\n";
-        for name in ["old", "edited", "with-files", "custom", "linked"] {
+        for name in [
+            "old",
+            "edited",
+            "description-edited",
+            "with-files",
+            "custom",
+            "linked",
+        ] {
             source(&config, &format!("{name}.md"), prompt);
         }
         sync(home.path(), &config).unwrap();
@@ -321,6 +344,14 @@ mod tests {
         let edited = skills.join("edited/SKILL.md");
         let original = fs::read_to_string(&edited).unwrap();
         fs::write(&edited, format!("{original}\nUser customization\n")).unwrap();
+        let description_edited = skills.join("description-edited/SKILL.md");
+        let original_description = fs::read_to_string(&description_edited).unwrap();
+        let custom_description = original_description.replacen(
+            "description: Old command",
+            "description: User-edited description",
+            1,
+        );
+        fs::write(&description_edited, &custom_description).unwrap();
         fs::write(skills.join("with-files/notes.txt"), "User notes").unwrap();
         fs::write(skills.join("custom/SKILL.md"), "User-managed skill").unwrap();
         let linked = skills.join("linked/SKILL.md");
@@ -329,15 +360,25 @@ mod tests {
         symlink(&saved, &linked).unwrap();
         let commands = config.join("opencode/commands");
         fs::rename(commands.join("old.md"), commands.join("new.md")).unwrap();
-        for name in ["edited", "with-files", "custom", "linked"] {
+        for name in [
+            "edited",
+            "description-edited",
+            "with-files",
+            "custom",
+            "linked",
+        ] {
             fs::remove_file(commands.join(format!("{name}.md"))).unwrap();
         }
         assert_eq!(sync(home.path(), &config).unwrap(), 1);
         assert!(!skills.join("old").exists());
         assert!(skills.join("new/SKILL.md").is_file());
         assert_eq!(
-            fs::read_to_string(edited).unwrap(),
+            fs::read_to_string(&edited).unwrap(),
             format!("{original}\nUser customization\n")
+        );
+        assert_eq!(
+            fs::read_to_string(&description_edited).unwrap(),
+            custom_description
         );
         assert!(skills.join("with-files/SKILL.md").is_file());
         assert_eq!(
@@ -494,6 +535,23 @@ mod tests {
         assert_eq!(fs::read_to_string(&command).unwrap(), original);
         assert_eq!(fs::read_to_string(&generated).unwrap(), original);
         assert!(!home.path().join(".agents").exists());
+    }
+
+    #[test]
+    fn overlapping_output_is_rejected_before_creating_target_skills() {
+        let home = tempfile::tempdir().unwrap();
+        let config = home.path().join(".config");
+        source(
+            &config,
+            "commit.md",
+            "---\ndescription: Commit\n---\nPrompt\n",
+        );
+        let target = config.join("opencode/generated-output");
+        fs::create_dir_all(&target).unwrap();
+        symlink(&target, home.path().join(".codex")).unwrap();
+
+        assert!(sync(home.path(), &config).is_err());
+        assert!(!target.join("skills").exists());
     }
 
     #[test]
