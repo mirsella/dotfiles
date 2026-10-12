@@ -73,6 +73,7 @@ in
   networking = {
     # NetworkManager.conf uses the numeric enum, not nmcli's "magic" alias.
     networkmanager.connectionConfig."ethernet.wake-on-lan" = 64;
+    firewall.allowedTCPPorts = [ 80 443 4096 4097 14096 14097 ];
   };
 
   services = {

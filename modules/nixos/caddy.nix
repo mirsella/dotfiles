@@ -1,44 +1,27 @@
-{ config, lib, ... }:
+{ ... }:
 let
-  index = builtins.readFile ./site/index.html;
-  inlineHash = element:
-    let content = builtins.match ".*<${element}>(.*)</${element}>.*" index;
-    in assert lib.assertMsg (content != null) "Dashboard inline ${element} block is missing";
-    "'sha256-${builtins.convertHash {
-      hash = builtins.hashString "sha256" (builtins.head content);
-      hashAlgo = "sha256";
-      toHashFormat = "base64";
-    }}'";
+  proxyMainUi = port: ''
+    reverse_proxy https://192.168.1.131:${toString port} {
+      header_up Host {hostport}
+      transport http {
+        tls_trust_pool file ${./main-ui-root.crt}
+      }
+    }
+  '';
   serveIndex = ''
-    import private_ui
-    header Content-Security-Policy "default-src 'none'; img-src data:; style-src ${inlineHash "style"}; script-src ${inlineHash "script"}; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+    header {
+      Referrer-Policy no-referrer
+      X-Content-Type-Options nosniff
+      X-Frame-Options DENY
+    }
     file_server {
       root ${./site}
     }
   '';
 in
 {
-  sops.secrets.hermes_caddy_env = {
-    sopsFile = ../../secrets/hermes.yaml;
-    restartUnits = [ "caddy.service" ];
-  };
-  systemd.services.caddy.serviceConfig.EnvironmentFile = [ config.sops.secrets.hermes_caddy_env.path ];
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
   services.caddy = {
     enable = true;
-    extraConfig = ''
-      (private_ui) {
-        basic_auth {
-          mirsella {$HERMES_VIEWER_PASSWORD_HASH}
-        }
-        header {
-          Cache-Control no-store
-          Referrer-Policy no-referrer
-          X-Content-Type-Options nosniff
-          X-Frame-Options DENY
-        }
-      }
-    '';
     # The firewall only allows TCP/443, so do not advertise HTTP/3.
     globalConfig = ''
       servers {
@@ -66,12 +49,28 @@ in
           ${serveIndex}
         }
       '';
+      "https://mirsella.mooo.com:4096".extraConfig = proxyMainUi 4096;
+      "https://mirsella.mooo.com:4097".extraConfig = proxyMainUi 4097;
+      "https://mirsella.mooo.com:14096".extraConfig = ''
+        bind 192.168.1.19
+        ${proxyMainUi 4096}
+      '';
+      "https://mirsella.mooo.com:14097".extraConfig = ''
+        bind 192.168.1.19
+        ${proxyMainUi 4097}
+      '';
       "photos.mirsella.mooo.com".extraConfig = ''
         reverse_proxy 127.0.0.1:2283
       '';
       "http://:80".extraConfig = ''
-        redir https://mirsella.mooo.com{uri} 308
+        encode zstd gzip
+        ${serveIndex}
       '';
     };
+  };
+  # DHCP may not have assigned the LAN bind address when Caddy first starts.
+  systemd.services.caddy.serviceConfig = {
+    Restart = "on-failure";
+    RestartSec = "5s";
   };
 }

@@ -118,8 +118,8 @@
     .hero {
       display: grid;
       align-content: start;
-      gap: clamp(16px, 2.5vw, 26px);
-      padding: clamp(18px, 2.5vw, 28px) 0;
+      gap: clamp(18px, 3vw, 32px);
+      padding: clamp(20px, 3vw, 40px) 0;
     }
 
     .heading {
@@ -142,7 +142,7 @@
       max-width: 880px;
       margin: 0;
       font-family: var(--display);
-      font-size: clamp(2.3rem, 5vw, 4rem);
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
       font-weight: 400;
       letter-spacing: -0.065em;
       line-height: 0.85;
@@ -157,8 +157,8 @@
 
     .node-mark {
       display: grid;
-      width: 52px;
-      height: 52px;
+      width: 64px;
+      height: 64px;
       place-items: center;
       border: 1px solid var(--line);
       border-radius: 50%;
@@ -181,15 +181,15 @@
       background: var(--surface);
     }
 
-    .services { display: grid; align-content: start; }
+    .services { display: grid; }
 
     .service {
       position: relative;
       display: grid;
-      grid-template-columns: 42px minmax(0, 1fr) auto;
+      grid-template-columns: 56px minmax(0, 1fr) auto;
       align-items: center;
-      gap: 12px;
-      padding: 10px 16px;
+      gap: 14px;
+      padding: 13px 18px;
       color: inherit;
       text-decoration: none;
       overflow: hidden;
@@ -222,8 +222,9 @@
       place-items: center;
       border-right: 1px solid currentColor;
       color: var(--signal);
-      font-size: 0.65rem;
-      letter-spacing: 0.06em;
+      font-size: 0.7rem;
+      writing-mode: vertical-rl;
+      letter-spacing: 0.12em;
     }
 
     .service:is(:hover, :focus-visible) .port { color: var(--hover-signal); }
@@ -231,23 +232,23 @@
     .service-name {
       display: block;
       font-family: var(--display);
-      font-size: clamp(1.15rem, 2vw, 1.45rem);
+      font-size: clamp(1.3rem, 2.5vw, 1.9rem);
       letter-spacing: -0.04em;
       line-height: 1.1;
     }
 
     .service-desc {
       display: block;
-      margin-top: 2px;
+      margin-top: 4px;
       color: var(--paper-dim);
-      font-size: 0.72rem;
-      line-height: 1.35;
+      font-size: 0.75rem;
+      line-height: 1.4;
     }
 
     .service:is(:hover, :focus-visible) .service-desc { color: var(--hover-muted); }
 
     .arrow {
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       transition: transform 180ms ease;
     }
 
@@ -306,7 +307,7 @@
       .heading { grid-template-columns: 1fr; }
       .node-mark { display: none; }
       .console { grid-template-columns: 1fr; }
-      .service { grid-template-columns: 36px minmax(0, 1fr) auto; padding: 10px 12px; gap: 10px; }
+      .service { grid-template-columns: 40px 1fr auto; padding: 12px 16px; gap: 12px; }
       .telemetry { padding: 16px; }
       header span:last-child { display: none; }
       footer { align-items: flex-start; flex-direction: column; }
@@ -337,7 +338,7 @@
       <div class="console">
         <nav class="services" aria-label="Services">
           <a class="service" href="/nextcloud/">
-            <span class="port">PATH</span>
+            <span class="port">PATH / predator</span>
             <span>
               <strong class="service-name">Nextcloud</strong>
               <span class="service-desc">Files, photos and drive.</span>
@@ -345,7 +346,7 @@
             <span class="arrow" aria-hidden="true">↗</span>
           </a>
           <a class="service" href="/beszel/">
-            <span class="port">PATH</span>
+            <span class="port">PATH / predator</span>
             <span>
               <strong class="service-name">Beszel</strong>
               <span class="service-desc">System metrics and SMART monitoring.</span>
@@ -353,31 +354,31 @@
             <span class="arrow" aria-hidden="true">↗</span>
           </a>
           <a class="service" href="https://photos.mirsella.mooo.com/">
-            <span class="port">HOST</span>
+            <span class="port">SUBDOMAIN / predator</span>
             <span>
               <strong class="service-name">Immich</strong>
               <span class="service-desc">Photo backup and timeline.</span>
             </span>
             <span class="arrow" aria-hidden="true">↗</span>
           </a>
-          <a class="service" href="/hermes/">
-            <span class="port">AI</span>
+          <a class="service" href="https://mirsella.mooo.com:14096/">
+            <span class="port">PORT 14096 / predator</span>
             <span>
-              <strong class="service-name">Hermes</strong>
-              <span class="service-desc">Personal agent, conversations and tools.</span>
+              <strong class="service-name">OpenCode · predator</strong>
+              <span class="service-desc">Coding agent on this node.</span>
             </span>
             <span class="arrow" aria-hidden="true">↗</span>
           </a>
-          <a class="service" href="/browser/">
-            <span class="port">VNC</span>
+          <a class="service" href="https://mirsella.mooo.com:14097/">
+            <span class="port">PORT 14097 / predator</span>
             <span>
-              <strong class="service-name">Browser · noVNC</strong>
-              <span class="service-desc">Live Camofox desktop and human handoff.</span>
+              <strong class="service-name">OpenChamber · predator</strong>
+              <span class="service-desc">Browser workspace on this node.</span>
             </span>
             <span class="arrow" aria-hidden="true">↗</span>
           </a>
           <a class="service" href="https://mirsella.mooo.com:4096/">
-            <span class="port">4096</span>
+            <span class="port">PORT 4096 / main</span>
             <span>
               <strong class="service-name">OpenCode · main</strong>
               <span class="service-desc">Coding agent on the tower.</span>
@@ -385,7 +386,7 @@
             <span class="arrow" aria-hidden="true">↗</span>
           </a>
           <a class="service" href="https://mirsella.mooo.com:4097/">
-            <span class="port">4097</span>
+            <span class="port">PORT 4097 / main</span>
             <span>
               <strong class="service-name">OpenChamber · main</strong>
               <span class="service-desc">Browser workspace on the tower.</span>
@@ -395,7 +396,7 @@
         </nav>
 
         <aside class="telemetry" aria-label="Node information">
-          <h2>Node information</h2>
+          <h2>Node telemetry</h2>
           <dl>
             <div class="datum"><dt>Hostname</dt><dd>predator</dd></div>
             <div class="datum"><dt>Access host</dt><dd id="access-host">—</dd></div>
@@ -407,7 +408,7 @@
     </section>
 
     <footer>
-      <div class="clock"><span>Local time</span><time id="clock">--:--:--</time></div>
+      <div class="clock"><span>Local node time</span><time id="clock">--:--:--</time></div>
       <span>Predator entry point · main keeps LAN services</span>
     </footer>
   </main>
