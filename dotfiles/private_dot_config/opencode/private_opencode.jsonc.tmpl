@@ -1,3 +1,9 @@
+{{- $llamaModel := "" -}}
+{{- if eq .chezmoi.hostname "main" -}}
+  {{- $llamaModel = "qwen3.6-27b-ablit" -}}
+{{- else if eq .chezmoi.hostname "laptop" -}}
+  {{- $llamaModel = "qwen3.6-35b-a3b-abliterated-v4" -}}
+{{- end -}}
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
@@ -43,6 +49,11 @@
       "url": "https://mcp.pscale.dev/mcp/planetscale",
       "enabled": false,
     },
+    "rea": {
+      "type": "local",
+      "command": ["rea", "mcp"],
+      "enabled": false,
+    },
   },
   "lsp": false,
   "permission": {
@@ -57,6 +68,35 @@
     "prune": false,
   },
   "provider": {
+    {{- if $llamaModel }}
+    "llama.cpp": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Local llama.cpp",
+      "options": {
+        "baseURL": "http://127.0.0.1:8080/v1",
+      },
+      "models": {
+        "{{ $llamaModel }}": {
+          "name": "{{ $llamaModel }}",
+          "tool_call": true,
+          "reasoning": true,
+          "interleaved": { "field": "reasoning_content" },
+          "options": { "reasoning_format": "deepseek" },
+          "variants": {
+            "thinking": { "chat_template_kwargs": { "enable_thinking": true } },
+            "low": { "disabled": true },
+            "medium": { "disabled": true },
+            "high": { "disabled": true },
+          },
+          "limit": { "context": 32768, "output": 8192 },
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"],
+          },
+        },
+      },
+    },
+    {{- end }}
     "google": {
       "models": {
         "antigravity-gemini-3-pro": {

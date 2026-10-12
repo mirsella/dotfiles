@@ -12,8 +12,7 @@ kde shortcuts.kksrc
 # User units on HM hosts are managed outside chezmoi.
 .config/systemd/user/
 .config/systemd/user/**
-# Home Manager owns generated OpenCode providers and the REA registration/skill.
-.config/opencode/opencode.json
+# Home Manager installs the REA skill independently from OpenCode's JSONC settings.
 .config/opencode/skills/reverse-engineer-anything/
 .config/opencode/skills/reverse-engineer-anything/**
 # Home Manager installs compiled extensions and the idle watchdog.

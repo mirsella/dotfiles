@@ -17,6 +17,9 @@
 .config/ponytail
 .config/nvim/lua/plugins/wakatime.lua
 
+# Remove Home Manager's obsolete merged config; JSONC is canonical.
+.config/opencode/opencode.json
+
 # Remove the retired Plannotator plugin, commands, and Codex hook.
 .config/opencode/commands/plannotator-annotate.md
 .config/opencode/commands/plannotator-last.md
