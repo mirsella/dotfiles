@@ -67,6 +67,11 @@
     fwupd.enable = true;
   };
 
+  # Run prebuilt binaries (sfw firewall, npm/npx native packages) on every
+  # NixOS host: nix-ld provides the /lib64 loader plus the default C/C++/ssl
+  # runtime libs. The sfw package in modules/home/nixos.nix depends on this.
+  programs.nix-ld.enable = true;
+
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
