@@ -151,13 +151,8 @@ assert lib.assertMsg (
    && server.services.hermes-agent.settings.skills.disabled == [ "personal-accounts" ]
    && !(server.services.hermes-agent.hermesHomeFiles ? "skills/personal-accounts/SKILL.md")
    && server.services.hermes-agent.settings.browser == { backend = "browserbase"; cloud_provider = "camofox"; }
-   && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-cdp" "browser-use" "browser-vault-cdp" ]
-   && server.services.hermes-agent.settings.plugins.enabled == [ "camofox-accounts" ]
-   && !(server.services.hermes-agent.environment ? CAMOFOX_SESSION_KEY)
-   && server.services.hermes-agent.environment.CAMOFOX_ADOPT_EXISTING_TAB == "false"
-   && server.systemd.services.camofox-browser.environment.MAX_TABS_GLOBAL == "8"
-   && server.systemd.services.camofox-browser.environment.MAX_TABS_PER_SESSION == "8"
-   && server.systemd.services.camofox-browser.environment.CAMOFOX_RECYCLE_TABS == "false"
+   && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-cdp" "browser-use" "browser-evaluation" ]
+   && server.services.hermes-agent.settings.plugins.enabled == [ "browser-policy" ]
    && server.services.hermes-agent.settings.model.provider == "opencode-go"
    && server.services.hermes-agent.settings.model.default == "deepseek-v4.1-flash"
    && server.services.hermes-agent.settings.agent.reasoning_overrides."deepseek-v4.1-flash" == "max"
@@ -180,7 +175,7 @@ assert lib.assertMsg (
    && lib.all (name: lib.elem name server.systemd.services.hermes-agent.serviceConfig.UnsetEnvironment && lib.elem name server.systemd.services.hermes-backend.serviceConfig.UnsetEnvironment)
      [ "OPENROUTER_API_KEY" "OPENAI_API_KEY" "OPENCODE_ZEN_API_KEY" "DEEPINFRA_API_KEY" "MOONSHOT_API_KEY" ]
   && server.services.hermes-agent.environment.TELEGRAM_ALLOW_ALL_USERS == "false"
-  && map lib.getName server.services.hermes-agent.extraPlugins == [ "hermes-camofox-accounts" ]
+  && map lib.getName server.services.hermes-agent.extraPlugins == [ "hermes-browser-policy" ]
   && server.services.hermes-agent.package.hermesVenv.drvPath
     == flake.inputs.hermes-agent.packages.x86_64-linux.messaging.hermesVenv.drvPath
   && server.services.hermes-agent.package.hermesWeb.drvPath
@@ -241,15 +236,9 @@ assert lib.assertMsg (
   && lib.all (port: !(builtins.elem port server.networking.firewall.allowedTCPPorts))
      [ 5900 6080 9377 9378 9119 ]
   && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
-    [ "handle /browser/*" "import private_ui" "header_up X-Hermes-Viewer-Key" "header_up -Authorization" ]
+    [ "handle /browser/*" "basic_auth" "header_up X-Hermes-Viewer-Key" "header_up -Authorization" ]
   && lib.hasInfix "https://mirsella.mooo.com{uri}" server.services.caddy.virtualHosts."http://:80".extraConfig
 ) "Hermes must use the owner account and editable runtime settings while its browser stays private";
-assert lib.assertMsg (
-  server.users.groups.hermes-downloads.members == [ "mirsella" ]
-  && server.systemd.services.camofox-browser.serviceConfig.SupplementaryGroups == [ "hermes-downloads" ]
-  && !(builtins.elem "camofox" server.users.groups.hermes-private.members)
-  && builtins.elem "d /var/lib/camofox-downloads 2750 camofox hermes-downloads -" server.systemd.tmpfiles.rules
-) "Browser downloads must be readable by the owner without granting Camofox access to Hermes private state";
 assert lib.assertMsg (
   server.services.hermes-agent.backend.mode == "dashboard"
   && server.services.hermes-agent.backend.host == "127.0.0.1"

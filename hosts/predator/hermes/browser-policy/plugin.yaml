@@ -1,0 +1,3 @@
+name: browser-policy
+version: 1.0.0
+description: Match Hermes's native browser toolset to the Camofox controller.

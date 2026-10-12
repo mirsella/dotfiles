@@ -30,16 +30,6 @@ buildNpmPackage {
       --replace-fail 'parseInt(process.env.TAB_INACTIVITY_MS) || 300000' \
       'Number.isNaN(parseInt(process.env.TAB_INACTIVITY_MS)) ? 300000 : parseInt(process.env.TAB_INACTIVITY_MS)'
     substituteInPlace server.js \
-      --replace-fail '// Resolve and focus the target if ref/selector provided' \
-      'if (req.body.expectedOrigin !== undefined && new URL(tabState.page.url()).origin !== req.body.expectedOrigin) {
-        throw Object.assign(new Error("Page origin changed before credential fill"), { statusCode: 409, code: "page_origin_changed" });
-      }
-      // Resolve and focus the target if ref/selector provided' \
-      --replace-fail "log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
-      "log('error', 'type failed', { reqId: req.reqId, error: req.body.expectedOrigin !== undefined ? 'Credential fill failed' : err.message });" \
-      --replace-fail 'async function recycleOldestTab(session, reqId, userId) {' \
-      'async function recycleOldestTab(session, reqId, userId) {
-        if (process.env.CAMOFOX_RECYCLE_TABS === "false") return null;' \
       --replace-fail '// Pre-warm browser so first request doesn'"'"'t eat a 6-7s cold start' \
       'if (process.env.CAMOFOX_PREWARM !== "false") {' \
       --replace-fail '// Idle self-shutdown removed -- Fly manages machine lifecycle via fly.toml.' \
@@ -53,36 +43,17 @@ buildNpmPackage {
       'throw new Error("Virtual display unavailable; refusing an invisible browser: " + err.message, { cause: err });'
     substituteInPlace plugins/vnc/vnc-watcher.sh \
       --replace-fail 'NOVNC_DIR="/usr/share/novnc"' 'NOVNC_DIR="${novnc}/share/webapps/novnc"'
-    # Playwright can preserve its staging file's private group on saveAs.
-    # Publish downloads with the destination group's read access, not profiles.
+    # Upstream writes downloads into its private tmp beside browser profiles.
+    # Put only downloads in the shared temporary directory, without copies or
+    # changing upstream's session cleanup. The setgid directory grants agent
+    # read access; explicit file modes override the private service umask.
     substituteInPlace lib/downloads.js \
-      --replace-fail 'const MAX_DOWNLOAD_RECORDS_PER_TAB = 20;' \
-      'async function saveDownload(filePath, save) {
-        try {
-          await save();
-          if (process.env.CAMOFOX_DOWNLOADS_DIR) {
-            const directory = await fs.stat(path.dirname(filePath));
-            await fs.chown(filePath, process.getuid(), directory.gid);
-          }
-          await fs.chmod(filePath, 0o640);
-        } catch (error) {
-          try {
-            await fs.rm(filePath, { force: true });
-          } catch (cleanup) {
-            throw new AggregateError([error, cleanup], "Download failed: " + error.message + "; partial cleanup failed: " + cleanup.message);
-          }
-          throw error;
-        }
-      }
-      const MAX_DOWNLOAD_RECORDS_PER_TAB = 20;' \
       --replace-fail 'path.join(os.tmpdir(), `camofox-download-' \
       'path.join(process.env.CAMOFOX_DOWNLOADS_DIR || os.tmpdir(), `camofox-download-' \
       --replace-fail 'await download.saveAs(filePath);' \
-      'await saveDownload(filePath, () => download.saveAs(filePath));' \
-      --replace-fail '      await fs.unlink(filePath).catch(() => {});' "" \
-      --replace-fail $'    const reportedFailure = await download.failure().catch(() => null);\n    if (reportedFailure) {\n      failure = reportedFailure;\n    }' "" \
+      'await download.saveAs(filePath); await fs.chmod(filePath, 0o640);' \
       --replace-fail 'await fs.writeFile(filePath, body);' \
-      'await saveDownload(filePath, () => fs.writeFile(filePath, body, { mode: 0o600 }));'
+      'await fs.writeFile(filePath, body); await fs.chmod(filePath, 0o640);'
     # The native writer reports {persisted:false} instead of throwing on I/O
     # failure. Make the existing export route fail before our idle stop rather
     # than maintaining a second cookie snapshot or a custom checkpoint plugin.
@@ -116,8 +87,6 @@ buildNpmPackage {
       'await import(process.argv[1]); await import(process.argv[2]);' \
       "$out/lib/camofox-browser/plugins/persistence/index.js" \
       "$out/lib/camofox-browser/plugins/vnc/index.js"
-    ${nodejs_22}/bin/node ${../../tests/camofox-downloads.mjs} \
-      "$out/lib/camofox-browser/lib/downloads.js"
     makeWrapper ${nodejs_22}/bin/node "$out/bin/camofox-browser" \
       --add-flags "$out/lib/camofox-browser/server.js"
     runHook postInstall

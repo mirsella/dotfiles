@@ -5,7 +5,6 @@ let
   # Upstream state directories are group-writable. Keep private state and
   # downloads out of the shared "users" group.
   ownerGroup = "hermes-private";
-  downloadGroup = "hermes-downloads";
   ownerHome = config.users.users.${owner}.home;
   ownerRuntime = "/run/user/${toString config.users.users.${owner}.uid}";
   ownerEnvironment = {
@@ -63,6 +62,7 @@ let
     hermes_gateway_env = [ "hermes-backend.service" ] ++ agentUnits;
     hermes_browser_env = [ "camofox-browser.service" "hermes-browser-control.service" ] ++ agentUnits;
     hermes_control_env = [ "hermes-browser-control.service" ] ++ agentUnits;
+    hermes_caddy_env = [ "caddy.service" ];
     hermes_keyring_password = [ "hermes-secret-service.service" "hermes-agent.service" "hermes-backend.service" ];
   };
   controllerConfig = pkgs.writeText "hermes-browser-control.json" (builtins.toJSON {
@@ -202,7 +202,6 @@ in {
     home-manager.users.${owner}.home.packages = [ (lib.hiPrio accountTools) ];
     users.groups.camofox = {};
     users.groups.hermes-private.members = [ owner ];
-    users.groups.${downloadGroup}.members = [ owner ];
     users.groups.hermes-browser-control = {};
     users.users.camofox = { isSystemUser = true; group = "camofox"; home = browserState; };
     users.users.hermes-browser-control = { isSystemUser = true; group = "hermes-browser-control"; home = controlState; };
@@ -215,7 +214,8 @@ in {
       "d ${browserState}/cache 0700 camofox camofox -"
       "d ${controlState} 0700 hermes-browser-control hermes-browser-control -"
       # Only temporary downloaded files are shared, never browser profiles/tmp.
-      "d /var/lib/camofox-downloads 2750 camofox ${downloadGroup} -"
+      # The private group shares downloads only with the owner.
+      "d /var/lib/camofox-downloads 2750 camofox ${ownerGroup} -"
       "d ${state}/workspace/downloads 0750 ${owner} ${ownerGroup} -"
     ];
     services.hermes-agent = {
@@ -236,10 +236,10 @@ in {
       environmentFiles = [ config.sops.secrets.hermes_gateway_env.path ];
       documents."AGENTS.md" = builtins.readFile ./agent-AGENTS.md;
       hermesHomeFiles."SOUL.md" = builtins.readFile ./agent-SOUL.md;
-      extraPlugins = [ (pkgs.runCommand "hermes-camofox-accounts" {} ''
+      extraPlugins = [ (pkgs.runCommand "hermes-browser-policy" {} ''
         mkdir -p "$out"
-        cp ${./camofox-accounts/plugin.yaml} "$out/plugin.yaml"
-        cp ${./camofox-accounts/__init__.py} "$out/__init__.py"
+        cp ${./browser-policy/plugin.yaml} "$out/plugin.yaml"
+        cp ${./browser-policy/__init__.py} "$out/__init__.py"
       '') ];
       extraPackages = [ tools ];
       environment = {
@@ -247,16 +247,17 @@ in {
         OPENCODE_GO_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/opencode-go";
         CAMOFOX_URL = "http://127.0.0.1:9378";
         CAMOFOX_USER_ID = "home-browser";
-        CAMOFOX_ADOPT_EXISTING_TAB = "false";
+        CAMOFOX_SESSION_KEY = "home-browser";
+        CAMOFOX_ADOPT_EXISTING_TAB = "true";
         TELEGRAM_ALLOW_ALL_USERS = "false";
         GATEWAY_ALLOW_ALL_USERS = "false";
       };
       # Inference and browser routing are Nix-owned; other settings remain editable.
       settings = {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
-        agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-vault-cdp" ];
-        plugins.enabled = [ "camofox-accounts" ];
+        agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-evaluation" ];
         agent.reasoning_overrides."deepseek-v4.1-flash" = "max";
+        plugins.enabled = [ "browser-policy" ];
         model = { provider = "opencode-go"; default = "deepseek-v4.1-flash"; base_url = ""; api_key = ""; };
         auxiliary = aux // { openrouter_model = ""; };
         fallback_providers = [];
@@ -361,13 +362,11 @@ in {
         VNC_PORT = "5900";
         NOVNC_PORT = "6080";
         MAX_SESSIONS = "1";
-        MAX_TABS_GLOBAL = "8";
-        MAX_TABS_PER_SESSION = "8";
-        CAMOFOX_RECYCLE_TABS = "false";
+        MAX_TABS_GLOBAL = "2";
+        MAX_TABS_PER_SESSION = "2";
       };
       serviceConfig = hardening // {
         User = "camofox"; Group = "camofox";
-        SupplementaryGroups = [ downloadGroup ];
         EnvironmentFile = config.sops.secrets.hermes_browser_env.path;
         ExecStart = lib.getExe pkgs.camofox-browser;
         WorkingDirectory = browserState;
@@ -394,7 +393,8 @@ in {
     systemd.services.hermes-backup = {
       description = "Back up Hermes runtime state to Tank";
       startAt = "23:20";
-      # Persistent catch-up backups must not cancel queued service startup.
+      # A persistent timer can fire during boot. Do not cancel pending gateway
+      # starts when the backup quiesces services and records their active state.
       after = [ "multi-user.target" ];
       path = [ pkgs.gnutar pkgs.gzip pkgs.util-linux ];
       unitConfig.RequiresMountsFor = [ "/srv/backup" ];
@@ -406,6 +406,7 @@ in {
       };
     };
     systemd.timers.hermes-backup.timerConfig.Persistent = true;
+    systemd.services.caddy.serviceConfig.EnvironmentFile = [ config.sops.secrets.hermes_caddy_env.path ];
     # After alone does not pull in the online target during early boot.
     systemd.services.caddy.wants = [ "network-online.target" ];
     environment.systemPackages = [ pkgs.host-tools pkgs.sops pkgs.ssh-to-age pkgs.sleev ownerCli ];
@@ -413,9 +414,17 @@ in {
       redir /hermes /hermes/ 308
       handle_path /hermes/* {
         route {
-          import private_ui
+          basic_auth {
+            mirsella {$HERMES_VIEWER_PASSWORD_HASH}
+          }
           @foreignOrigin expression `{http.request.header.Origin} != "" && {http.request.header.Origin} != "https://mirsella.mooo.com"`
           respond @foreignOrigin "Same-origin access required" 403
+          header {
+            Cache-Control "no-store"
+            Referrer-Policy "no-referrer"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "DENY"
+          }
           reverse_proxy 127.0.0.1:9119 {
             header_up Host {upstream_hostport}
             header_up X-Forwarded-Prefix /hermes
@@ -428,14 +437,24 @@ in {
       }
       redir /browser /browser/ 308
       handle /browser/* {
-        route {
-          import private_ui
-          reverse_proxy 127.0.0.1:9378 {
-            header_up X-Hermes-Viewer-Key {$HERMES_VIEWER_KEY}
-            header_up -Authorization
-          }
+        basic_auth {
+          mirsella {$HERMES_VIEWER_PASSWORD_HASH}
+        }
+        header {
+          Cache-Control "no-store"
+          Referrer-Policy "no-referrer"
+          X-Content-Type-Options "nosniff"
+          X-Frame-Options "DENY"
+        }
+        reverse_proxy 127.0.0.1:9378 {
+          header_up X-Hermes-Viewer-Key {$HERMES_VIEWER_KEY}
+          header_up -Authorization
         }
       }
+    '';
+    services.caddy.virtualHosts."http://:80".extraConfig = lib.mkBefore ''
+      @hermesViewer path /browser /browser/* /hermes /hermes/*
+      redir @hermesViewer https://mirsella.mooo.com{uri} 308
     '';
   };
 }

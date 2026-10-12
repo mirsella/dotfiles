@@ -16,14 +16,13 @@ use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::{
-    collections::HashMap,
     future::Future,
     net::SocketAddr,
     path::{Component, Path as FsPath, PathBuf},
-    sync::{Arc, Weak},
+    sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::{Mutex, OwnedMutexGuard, RwLock, broadcast};
+use tokio::sync::{Mutex, OwnedMutexGuard, broadcast};
 
 const USER: &str = "home-browser";
 const IDLE: u64 = 600;
@@ -49,8 +48,16 @@ impl Config {
             ("backend", &self.backend, "http"),
             ("websocket", &self.websocket, "ws"),
         ] {
+            let loopback = match url.host() {
+                Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+                Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+                _ => false,
+            };
             ensure!(
-                private_url(url, scheme),
+                url.scheme() == scheme
+                    && loopback
+                    && url.username().is_empty()
+                    && url.password().is_none(),
                 "Private {name} must use a literal loopback address without URL credentials"
             );
         }
@@ -61,14 +68,6 @@ impl Config {
         );
         Ok(())
     }
-}
-pub(crate) fn private_url(url: &reqwest::Url, scheme: &str) -> bool {
-    let loopback = match url.host() {
-        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
-        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
-        _ => false,
-    };
-    url.scheme() == scheme && loopback && url.username().is_empty() && url.password().is_none()
 }
 // Only the tab identity survives a controller restart. Activity and readiness
 // belong to this process, not a wall-clock record rewritten on every tool call.
@@ -124,8 +123,6 @@ struct App {
     csp: header::HeaderValue,
     transport_timeout: Duration,
     runtime: Arc<Mutex<Runtime>>,
-    operations: Arc<RwLock<()>>,
-    creation: Mutex<HashMap<String, Weak<Mutex<()>>>>,
     disconnect: broadcast::Sender<()>,
 }
 
@@ -266,9 +263,17 @@ impl App {
         result
     }
     async fn started(self: &Arc<Self>, viewer: bool) -> Result<OwnedMutexGuard<Runtime>> {
-        let mut runtime = self.runtime.clone().lock_owned().await;
-        self.start(&mut runtime, viewer).await?;
-        Ok(runtime)
+        let app = self.clone();
+        // A disconnected/short-timeout client must not release the lifecycle
+        // lock while Camofox is still creating a browser or tab. Keep the
+        // bounded startup alive; later clients reuse its completed discovery.
+        tokio::spawn(async move {
+            let mut runtime = app.runtime.clone().lock_owned().await;
+            app.start(&mut runtime, viewer).await?;
+            Ok::<_, anyhow::Error>(runtime)
+        })
+        .await
+        .context("browser startup task failed")?
     }
     async fn start_browser(&self, runtime: &mut Runtime, viewer: bool) -> Result<()> {
         if !self.running().await? {
@@ -347,6 +352,7 @@ impl App {
 
 fn shared_tab(tabs: &Value, retained: Option<&str>) -> Result<Option<String>> {
     let mut selected = None;
+    let mut ambiguous = false;
     for tab in tabs["tabs"]
         .as_array()
         .context("Camofox tabs response is missing its array")?
@@ -361,7 +367,11 @@ fn shared_tab(tabs: &Value, retained: Option<&str>) -> Result<Option<String>> {
         if retained == Some(id) {
             return Ok(Some(id.into()));
         }
-        selected.get_or_insert(id);
+        ambiguous |= selected.is_some();
+        selected = Some(id);
+    }
+    if ambiguous {
+        bail!("Several shared tabs exist; close extra tabs before retrying");
     }
     Ok(selected.map(str::to_owned))
 }
@@ -429,14 +439,8 @@ async fn status(State(app): State<Shared>, headers: HeaderMap) -> WebResult {
 }
 async fn open(State(app): State<Shared>, headers: HeaderMap) -> WebResult {
     viewer(&app, &headers, true)?;
-    let operation = app.operations.clone().read_owned().await;
-    tokio::spawn(async move {
-        let _operation = operation;
-        drop(app.started(true).await.map_err(failure)?);
-        Ok(axum::Json(json!({"ok":true})).into_response())
-    })
-    .await
-    .map_err(|error| failure(error.into()))?
+    let _runtime = app.started(true).await.map_err(failure)?;
+    Ok(axum::Json(json!({"ok":true})).into_response())
 }
 async fn close_viewer(State(app): State<Shared>, headers: HeaderMap) -> WebResult {
     viewer(&app, &headers, true)?;
@@ -454,8 +458,7 @@ fn tool_route<'a>(method: &Method, path: &'a str) -> Option<ToolRoute<'a>> {
     if path == "/tabs" {
         return matches!(*method, Method::GET | Method::POST).then_some(ToolRoute::Tabs);
     }
-    let rest = path.strip_prefix("/tabs/")?;
-    let (id, suffix) = rest.split_once('/').unwrap_or((rest, ""));
+    let (id, suffix) = path.strip_prefix("/tabs/")?.split_once('/')?;
     if id.is_empty()
         || !id
             .bytes()
@@ -468,9 +471,8 @@ fn tool_route<'a>(method: &Method, path: &'a str) -> Option<ToolRoute<'a>> {
         (&Method::GET, "snapshot" | "screenshot" | "downloads")
             | (
                 &Method::POST,
-                "navigate" | "click" | "type" | "scroll" | "back" | "press" | "evaluate"
+                "navigate" | "click" | "type" | "scroll" | "back" | "press"
             )
-            | (&Method::DELETE, "")
     )
     .then_some(ToolRoute::Tab(id))
 }
@@ -485,6 +487,7 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
             "Outside the approved Camofox tool surface".into(),
         )
     })?;
+    const IDENTITY_KEYS: [&str; 2] = ["userId", "listItemId"];
     let identity_error = || {
         (
             StatusCode::FORBIDDEN,
@@ -501,7 +504,7 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         for (key, value) in
             url::form_urlencoded::parse(parts.uri.query().unwrap_or_default().as_bytes())
         {
-            if key == "userId" {
+            if IDENTITY_KEYS.contains(&key.as_ref()) {
                 if value != USER {
                     return Err(identity_error());
                 }
@@ -520,22 +523,11 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         serde_json::from_slice(&bytes)
             .map_err(|_| (StatusCode::BAD_REQUEST, "Expected JSON object".into()))?
     };
-    if data
-        .get("userId")
-        .is_some_and(|value| value.as_str() != Some(USER))
-    {
+    if IDENTITY_KEYS.into_iter().any(|key| {
+        data.get(key)
+            .is_some_and(|value| value.as_str() != Some(USER))
+    }) {
         return Err(identity_error());
-    }
-    for key in ["sessionKey", "listItemId"] {
-        if data
-            .get(key)
-            .is_some_and(|value| !value.as_str().is_some_and(|value| !value.is_empty()))
-        {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "Tab group must be a nonempty string".into(),
-            ));
-        }
     }
     if route == ToolRoute::Tabs && *method == Method::GET {
         // Hermes's five-second adoption probe must only discover existing
@@ -543,7 +535,7 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         // path skip the requested navigation, or cancel startup mid-creation.
         let observed = app.runtime.lock().await.browser.clone();
         let running = app.running().await.map_err(failure)?;
-        let discovery = if running {
+        let discovery = if running && !matches!(observed, Browser::Ready(_)) {
             Some(
                 app.backend(Method::GET, &format!("/tabs?userId={USER}"), None)
                     .await
@@ -558,131 +550,83 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         if runtime.browser == observed {
             if !running {
                 runtime.browser = Browser::Stopped;
-            } else if let Some(tabs) = &discovery {
-                if !matches!(observed, Browser::Ready(_)) {
-                    let tab = shared_tab(tabs, runtime.browser.tab()).map_err(failure)?;
-                    let changed = runtime.browser.tab() != tab.as_deref();
-                    runtime.browser = Browser::Undiscovered(tab);
-                    if changed {
-                        app.save(&runtime).await.map_err(failure)?;
-                    }
+            } else if let Some(tabs) = discovery {
+                let tab = shared_tab(&tabs, runtime.browser.tab()).map_err(failure)?;
+                let changed = runtime.browser.tab() != tab.as_deref();
+                runtime.browser = Browser::Undiscovered(tab);
+                if changed {
+                    app.save(&runtime).await.map_err(failure)?;
                 }
             }
         }
         if runtime.browser.running() {
             runtime.last_activity = Instant::now();
         }
-        drop(runtime);
-        return Ok(axum::Json(discovery.unwrap_or_else(|| json!({"tabs":[]}))).into_response());
+        let tabs = runtime.browser.tab().map_or_else(Vec::new, |tab| {
+            vec![json!({"tabId":tab,"userId":USER,"listItemId":USER})]
+        });
+        return Ok(axum::Json(json!({"tabs":tabs})).into_response());
     }
-    let tab = match route {
-        ToolRoute::Tab(id) => Some(id.to_owned()),
-        ToolRoute::Tabs => None,
-    };
-    let method = parts.method;
-    // Keep accepted requests alive through cancellation. Shared leases permit
-    // native per-tab concurrency while checkpoint/stop takes an exclusive lease.
-    let operation = app.operations.clone().read_owned().await;
-    tokio::spawn(async move {
-        let _operation = operation;
-        drop(app.started(false).await.map_err(failure)?);
-        let mut _creation = None;
-        if tab.is_none() {
-            let group = data
-                .get("sessionKey")
-                .or_else(|| data.get("listItemId"))
-                .and_then(Value::as_str)
-                .unwrap_or(USER);
-            let lock = {
-                let mut creation = app.creation.lock().await;
-                creation.retain(|_, lock| lock.strong_count() > 0);
-                match creation.get(group).and_then(Weak::upgrade) {
-                    Some(lock) => lock,
-                    None => {
-                        let lock = Arc::new(Mutex::new(()));
-                        creation.insert(group.to_owned(), Arc::downgrade(&lock));
-                        lock
-                    }
-                }
-            };
-            _creation = Some(lock.lock_owned().await);
-            let tabs = app
-                .backend(Method::GET, &format!("/tabs?userId={USER}"), None)
-                .await
-                .map_err(failure)?;
-            if let Some(tab) = tabs["tabs"]
-                .as_array()
-                .context("Camofox tabs response is missing its array")
-                .map_err(failure)?
-                .iter()
-                .find(|tab| tab["listItemId"].as_str() == Some(group))
-            {
-                let id = tab["tabId"]
-                    .as_str()
-                    .context("Camofox tab is missing its ID")
-                    .map_err(failure)?;
-                if let Some(url) = data
-                    .get("url")
-                    .and_then(Value::as_str)
-                    .filter(|url| *url != "about:blank")
-                {
-                    app.backend(
-                        Method::POST,
-                        &format!("/tabs/{id}/navigate"),
-                        Some(json!({"userId":USER,"url":url})),
-                    )
-                    .await
-                    .map_err(failure)?;
-                }
-                return Ok(axum::Json(json!({"tabId":id})).into_response());
-            }
-            if !data.contains_key("sessionKey") {
-                data.entry("listItemId").or_insert_with(|| json!(USER));
-            }
-            if data.get("url").and_then(Value::as_str) == Some("about:blank") {
-                data.remove("url");
-            }
-        }
-        let mut upstream = app
-            .client
-            .request(method.clone(), url)
-            .bearer_auth(&app.access);
-        if method != Method::GET {
-            data.insert("userId".into(), json!(USER));
-            upstream = upstream.json(&data);
-        }
-        let response = upstream
-            .send()
-            .await
-            .map_err(|error| failure(error.into()))?;
-        let status = response.status();
-        let content_type = response.headers().get(header::CONTENT_TYPE).cloned();
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|error| failure(error.into()))?;
-        let mut runtime = app.runtime.lock().await;
-        runtime.last_activity = Instant::now();
-        if status == StatusCode::NOT_FOUND
-            && serde_json::from_slice::<Value>(&bytes)
-                .ok()
-                .is_some_and(|value| value["error"] == "Tab not found")
+    // One lifecycle lock coalesces cold launches and keeps idle shutdown out of
+    // an actual HTTP operation. It does not reserve ownership or block viewers.
+    let mut runtime = app.started(false).await.map_err(failure)?;
+    let tab = runtime.browser.tab().expect("startup selects a tab");
+    if route == ToolRoute::Tabs {
+        if let Some(url) = data
+            .get("url")
+            .and_then(Value::as_str)
+            .filter(|url| *url != "about:blank")
         {
-            // Preserve a selector/resource 404, but rediscover an actually lost tab
-            // on the next call. Never replay a possibly consequential operation.
-            if runtime.browser.tab() == tab.as_deref() {
-                runtime.browser = Browser::Undiscovered(None);
-                app.save(&runtime).await.map_err(failure)?;
-            }
+            app.backend(
+                Method::POST,
+                &format!("/tabs/{tab}/navigate"),
+                Some(json!({"userId":USER,"url":url})),
+            )
+            .await
+            .map_err(failure)?;
         }
-        let mut result = (status, bytes).into_response();
-        if let Some(value) = content_type {
-            result.headers_mut().insert(header::CONTENT_TYPE, value);
-        }
-        Ok(result)
-    })
-    .await
-    .map_err(|error| failure(error.into()))?
+        return Ok(axum::Json(json!({"tabId":tab})).into_response());
+    }
+    if route != ToolRoute::Tab(tab) {
+        return Err((
+            StatusCode::NOT_FOUND,
+            "Live tab was lost; navigate again to reopen the saved task URL".into(),
+        ));
+    }
+    let mut upstream = app
+        .client
+        .request(method.clone(), url)
+        .bearer_auth(&app.access);
+    if *method != Method::GET {
+        data.insert("userId".into(), json!(USER));
+        upstream = upstream.json(&data);
+    }
+    let response = upstream
+        .send()
+        .await
+        .map_err(|error| failure(error.into()))?;
+    let status = response.status();
+    let content_type = response.headers().get(header::CONTENT_TYPE).cloned();
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|error| failure(error.into()))?;
+    runtime.last_activity = Instant::now();
+    if status == StatusCode::NOT_FOUND
+        && serde_json::from_slice::<Value>(&bytes)
+            .ok()
+            .is_some_and(|value| value["error"] == "Tab not found")
+    {
+        // Preserve a selector/resource 404, but rediscover an actually lost tab
+        // on the next call. Never replay a possibly consequential operation.
+        runtime.browser = Browser::Undiscovered(None);
+        app.save(&runtime).await.map_err(failure)?;
+    }
+    let mut result = (status, bytes).into_response();
+    if let Some(value) = content_type {
+        result.headers_mut().insert(header::CONTENT_TYPE, value);
+    }
+    Ok(result)
 }
 
 async fn asset(
@@ -819,24 +763,18 @@ fn idle(runtime: &Runtime) -> bool {
         && runtime.viewers == 0
         && runtime.last_activity.elapsed() >= Duration::from_secs(IDLE)
 }
-async fn stop_if_idle(app: &App) {
-    let Ok(_operations) = app.operations.try_write() else {
-        return;
-    };
-    let mut runtime = app.runtime.lock().await;
-    if idle(&runtime) {
-        if let Err(error) = app.stop(&mut runtime).await {
-            eprintln!("browser-control: idle checkpoint/stop failed: {error:#}");
-            runtime.error =
-                Some("Storage checkpoint failed; browser retained for recovery.".into());
-        }
-    }
-}
 async fn housekeeping(app: Shared) {
     let mut ticker = tokio::time::interval(Duration::from_secs(15));
     loop {
         ticker.tick().await;
-        stop_if_idle(&app).await;
+        let mut runtime = app.runtime.lock().await;
+        if idle(&runtime) {
+            if let Err(error) = app.stop(&mut runtime).await {
+                eprintln!("browser-control: idle checkpoint/stop failed: {error:#}");
+                runtime.error =
+                    Some("Storage checkpoint failed; browser retained for recovery.".into());
+            }
+        }
     }
 }
 fn notify_ready(socket: &std::ffi::OsStr) -> Result<()> {
@@ -897,8 +835,6 @@ pub fn run(path: &FsPath) -> Result<()> {
         csp,
         transport_timeout: Duration::from_secs(10),
         runtime: Arc::new(Mutex::new(Runtime::default())),
-        operations: Arc::new(RwLock::new(())),
-        creation: Mutex::new(HashMap::new()),
         disconnect,
     });
     tokio::runtime::Builder::new_multi_thread()
@@ -947,7 +883,6 @@ pub fn run(path: &FsPath) -> Result<()> {
             // Drain accepted HTTP operations before the final checkpoint. A
             // late upgrade also receives the disconnect after draining.
             let _ = app.disconnect.send(());
-            let _operations = app.operations.write().await;
             let mut runtime = app.runtime.lock().await;
             if let Err(error) = app.stop(&mut runtime).await {
                 eprintln!(
@@ -986,8 +921,6 @@ mod tests {
         delayed_creation: Option<Arc<StatusWait>>,
         delayed_status: Option<Arc<StatusWait>>,
         delayed_tabs: Option<Arc<StatusWait>>,
-        delayed_evaluation: Option<Arc<StatusWait>>,
-        created: std::collections::BTreeMap<String, String>,
     }
     #[derive(Default)]
     struct StatusWait {
@@ -1023,9 +956,9 @@ mod tests {
                 let (delay, tabs) = {
                     let mut counts = counts.lock().await;
                     counts.tab_reads += 1;
-                    let mut tabs = if counts.tab_exists { vec![json!({"tabId":"shared-tab","listItemId":USER})] } else { vec![] };
-                    tabs.extend(counts.created.iter().map(|(id, group)| json!({"tabId":id,"listItemId":group})));
-                    let tabs = json!({"tabs":tabs});
+                    let tabs = if counts.tab_exists {
+                        json!({"tabs":[{"tabId":"newer-other-tab","listItemId":"other"},{"tabId":"shared-tab","listItemId":USER}]})
+                    } else { json!({"tabs":[]}) };
                     (counts.delayed_tabs.take(), tabs)
                 };
                 if let Some(delay) = delay {
@@ -1038,7 +971,7 @@ mod tests {
                     return (StatusCode::BAD_REQUEST, axum::Json(json!({"error":"Only HTTP(S) URLs allowed"}))).into_response();
                 }
                 assert_eq!(data["userId"], USER);
-                let group = data["sessionKey"].as_str().or_else(|| data["listItemId"].as_str()).unwrap().to_owned();
+                assert_eq!(data["listItemId"], USER);
                 let delay = counts.lock().await.delayed_creation.take();
                 if let Some(delay) = delay {
                     delay.started.notify_one();
@@ -1046,10 +979,8 @@ mod tests {
                 }
                 let mut counts = counts.lock().await;
                 counts.created_tabs += 1;
-                if let Some(url) = data["url"].as_str() { counts.navigations.push(url.to_owned()); }
-                let id = if group == USER { counts.tab_exists = true; "shared-tab".to_owned() } else { format!("tab-{}", counts.created_tabs) };
-                if group != USER { counts.created.insert(id.clone(), group); }
-                axum::Json(json!({"tabId":id})).into_response()
+                counts.tab_exists = true;
+                axum::Json(json!({"tabId":"shared-tab"})).into_response()
             }))
             .route("/tabs/shared-tab/navigate", post(|State(counts): State<Arc<Mutex<Counts>>>, axum::Json(data): axum::Json<Value>| async move {
                 assert_eq!(data["userId"], USER);
@@ -1069,22 +1000,11 @@ mod tests {
                 counts.lock().await.vnc_reads += 1;
                 axum::Json(json!({"running":true}))
             }))
-            .route("/tabs/{tab}/evaluate", post(|State(counts): State<Arc<Mutex<Counts>>>, Path(tab): Path<String>, axum::Json(data): axum::Json<Value>| async move {
-                assert_eq!(data["userId"], USER);
-                let delay = counts.lock().await.delayed_evaluation.take();
-                if let Some(delay) = delay { delay.started.notify_one(); delay.release.notified().await; }
-                axum::Json(json!({"ok":true,"result":{"tab":tab,"expression":data["expression"]}}))
-            }))
-            .route("/tabs/{tab}", axum::routing::delete(|State(counts): State<Arc<Mutex<Counts>>>, Path(tab): Path<String>, axum::Json(data): axum::Json<Value>| async move {
-                assert_eq!(data["userId"], USER);
-                counts.lock().await.created.remove(&tab);
-                axum::Json(json!({"ok":true}))
-            }))
             .route("/sessions/home-browser/storage_state", get(|State(counts): State<Arc<Mutex<Counts>>>| async move {
                 let mut c = counts.lock().await;
                 if c.fail_checkpoint { return StatusCode::INTERNAL_SERVER_ERROR.into_response(); }
                 c.checkpoints += 1; axum::Json(json!({"cookies":[],"origins":[]})).into_response()
-            })).fallback(|| async { (StatusCode::NOT_FOUND, axum::Json(json!({"error":"Tab not found"}))) }).with_state(counts.clone());
+            })).with_state(counts.clone());
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let task = tokio::spawn(async move {
@@ -1112,8 +1032,6 @@ mod tests {
             csp,
             transport_timeout: Duration::from_millis(50),
             runtime: Arc::new(Mutex::new(Runtime::default())),
-            operations: Arc::new(RwLock::new(())),
-            creation: Mutex::new(HashMap::new()),
             disconnect,
         });
         Fixture {
@@ -1129,6 +1047,100 @@ mod tests {
         h.insert(header::ORIGIN, "https://example.test".parse().unwrap());
         h.insert("x-hermes-csrf", "test-csrf".parse().unwrap());
         h
+    }
+    #[test]
+    fn readiness_notifications_support_filesystem_and_abstract_systemd_sockets() {
+        use std::os::{
+            linux::net::SocketAddrExt,
+            unix::net::{SocketAddr, UnixDatagram},
+        };
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("notify.sock");
+        let name = format!(
+            "hermes-{}-{}",
+            std::process::id(),
+            directory.path().file_name().unwrap().to_str().unwrap()
+        );
+        let abstract_socket = format!("@{name}");
+        let abstract_address = SocketAddr::from_abstract_name(name.as_bytes()).unwrap();
+        for (receiver, target) in [
+            (UnixDatagram::bind(&path).unwrap(), path.as_os_str()),
+            (
+                UnixDatagram::bind_addr(&abstract_address).unwrap(),
+                std::ffi::OsStr::new(&abstract_socket),
+            ),
+        ] {
+            receiver
+                .set_read_timeout(Some(Duration::from_secs(1)))
+                .unwrap();
+            notify_ready(target).unwrap();
+            let mut message = [0; 64];
+            let length = receiver.recv(&mut message).unwrap();
+            assert_eq!(&message[..length], b"READY=1");
+        }
+    }
+    #[tokio::test]
+    async fn controller_waits_for_backend_listener_but_rejects_invalid_status() {
+        let mut f = fixture().await;
+        let socket = tokio::net::TcpSocket::new_v4().unwrap();
+        socket.bind("127.0.0.1:0".parse().unwrap()).unwrap();
+        let address = socket.local_addr().unwrap();
+        Arc::get_mut(&mut f.app).unwrap().config.backend =
+            format!("http://{address}").parse().unwrap();
+        let error = f
+            .app
+            .initial_status(Duration::from_millis(20))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("startup deadline"));
+        {
+            let readiness = f.app.initial_status(Duration::from_secs(2));
+            tokio::pin!(readiness);
+            assert!(
+                tokio::time::timeout(Duration::from_millis(30), &mut readiness)
+                    .await
+                    .is_err()
+            );
+            let task = tokio::spawn(async move {
+                let router = Router::new()
+                    .route("/", get(|| async { axum::Json(json!({"running":false})) }));
+                axum::serve(socket.listen(8).unwrap(), router)
+                    .await
+                    .unwrap();
+            });
+            assert!(!readiness.await.unwrap());
+            task.abort();
+        }
+
+        for (status, body, diagnostic) in [
+            (StatusCode::UNAUTHORIZED, json!({}), "401"),
+            (StatusCode::INTERNAL_SERVER_ERROR, json!({}), "500"),
+            (StatusCode::OK, json!({}), "running boolean"),
+            (
+                StatusCode::OK,
+                json!({"running":"false"}),
+                "running boolean",
+            ),
+        ] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let address = listener.local_addr().unwrap();
+            Arc::get_mut(&mut f.app).unwrap().config.backend =
+                format!("http://{address}").parse().unwrap();
+            let task = tokio::spawn(async move {
+                let router = Router::new()
+                    .route("/", get(move || async move { (status, axum::Json(body)) }));
+                axum::serve(listener, router).await.unwrap();
+            });
+            let error = tokio::time::timeout(
+                Duration::from_secs(1),
+                f.app.initial_status(Duration::from_secs(30)),
+            )
+            .await
+            .expect("invalid status was retried")
+            .unwrap_err();
+            assert!(format!("{error:#}").contains(diagnostic));
+            task.abort();
+        }
     }
     fn request(method: Method, path: &str, body: &str) -> Request<Body> {
         Request::builder()
@@ -1228,6 +1240,7 @@ mod tests {
             (Method::DELETE, "/sessions/home-browser"),
             (Method::POST, "/stop"),
             (Method::POST, "/agent/claim"),
+            (Method::POST, "/tabs/tab/evaluate"),
             (Method::GET, "/tabs/%2e%2e/stop"),
             (Method::GET, "/tabs/shared-tab/snapshot/extra"),
             (Method::GET, "/tabs//snapshot"),
@@ -1273,7 +1286,7 @@ mod tests {
         assert!(config.validate().is_err());
     }
     #[test]
-    fn persisted_viewer_tab_prefers_its_identity_without_rejecting_other_pages() {
+    fn persisted_state_is_only_a_tab_cache_and_selection_is_unambiguous() {
         let cache: TabCache = serde_json::from_value(json!({"tab":"remembered"})).unwrap();
         let runtime = Runtime {
             browser: Browser::Undiscovered(cache.tab.clone()),
@@ -1292,7 +1305,7 @@ mod tests {
             shared_tab(&tabs, Some("first")).unwrap().as_deref(),
             Some("first")
         );
-        assert_eq!(shared_tab(&tabs, None).unwrap().as_deref(), Some("first"));
+        assert!(shared_tab(&tabs, None).is_err());
         assert!(shared_tab(&json!({}), None).is_err());
     }
     #[tokio::test]
@@ -1482,7 +1495,7 @@ mod tests {
         api(State(f.app.clone()), request(Method::POST, "/tabs", "{}"))
             .await
             .unwrap();
-        assert_eq!(f.counts.lock().await.tab_reads, 4);
+        assert_eq!(f.counts.lock().await.tab_reads, 2);
         assert_eq!(f.counts.lock().await.starts, 1);
         assert_eq!(f.app.runtime.lock().await.browser.tab(), Some("shared-tab"));
     }
@@ -1556,8 +1569,8 @@ mod tests {
                 request(Method::GET, "/tabs/old-tab/snapshot", "")
             )
             .await
-            .unwrap()
-            .status(),
+            .unwrap_err()
+            .0,
             StatusCode::NOT_FOUND
         );
     }
@@ -1574,6 +1587,13 @@ mod tests {
                 "",
             ),
             request(Method::POST, "/tabs", r#"{"userId":"another"}"#),
+            request(Method::GET, "/tabs?listItemId=another", ""),
+            request(
+                Method::GET,
+                "/tabs?listItemId=home-browser&list%49temId=another",
+                "",
+            ),
+            request(Method::POST, "/tabs", r#"{"listItemId":null}"#),
         ] {
             assert_eq!(
                 api(State(f.app.clone()), req).await.unwrap_err().0,
@@ -1585,16 +1605,7 @@ mod tests {
     #[tokio::test]
     async fn non_object_browser_requests_are_rejected_before_startup() {
         let f = fixture().await;
-        for body in [
-            "[]",
-            "null",
-            "true",
-            "1",
-            "\"text\"",
-            "{invalid",
-            r#"{"listItemId":null}"#,
-            r#"{"sessionKey":""}"#,
-        ] {
+        for body in ["[]", "null", "true", "1", "\"text\"", "{invalid"] {
             assert_eq!(
                 api(State(f.app.clone()), request(Method::POST, "/tabs", body))
                     .await
@@ -1625,108 +1636,9 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(
             query,
-            [
-                ("listItemId", USER),
-                ("compact", "true"),
-                ("label", "a+b &x"),
-                ("userId", USER)
-            ]
-            .map(|(key, value)| (Cow::Borrowed(key), Cow::Borrowed(value)))
+            [("compact", "true"), ("label", "a+b &x"), ("userId", USER)]
+                .map(|(key, value)| (Cow::Borrowed(key), Cow::Borrowed(value)))
         );
-    }
-    #[test]
-    fn readiness_notifications_support_filesystem_and_abstract_systemd_sockets() {
-        use std::os::{
-            linux::net::SocketAddrExt,
-            unix::net::{SocketAddr, UnixDatagram},
-        };
-        let directory = tempfile::tempdir().unwrap();
-        let path = directory.path().join("notify.sock");
-        let name = format!(
-            "hermes-{}-{}",
-            std::process::id(),
-            directory.path().file_name().unwrap().to_str().unwrap()
-        );
-        let abstract_socket = format!("@{name}");
-        let abstract_address = SocketAddr::from_abstract_name(name.as_bytes()).unwrap();
-        for (receiver, target) in [
-            (UnixDatagram::bind(&path).unwrap(), path.as_os_str()),
-            (
-                UnixDatagram::bind_addr(&abstract_address).unwrap(),
-                std::ffi::OsStr::new(&abstract_socket),
-            ),
-        ] {
-            receiver
-                .set_read_timeout(Some(Duration::from_secs(1)))
-                .unwrap();
-            notify_ready(target).unwrap();
-            let mut message = [0; 64];
-            let length = receiver.recv(&mut message).unwrap();
-            assert_eq!(&message[..length], b"READY=1");
-        }
-    }
-    #[tokio::test]
-    async fn controller_waits_for_backend_listener_but_rejects_invalid_status() {
-        let mut f = fixture().await;
-        let socket = tokio::net::TcpSocket::new_v4().unwrap();
-        socket.bind("127.0.0.1:0".parse().unwrap()).unwrap();
-        let address = socket.local_addr().unwrap();
-        Arc::get_mut(&mut f.app).unwrap().config.backend =
-            format!("http://{address}").parse().unwrap();
-        let error = f
-            .app
-            .initial_status(Duration::from_millis(20))
-            .await
-            .unwrap_err();
-        assert!(error.to_string().contains("startup deadline"));
-        {
-            let readiness = f.app.initial_status(Duration::from_secs(2));
-            tokio::pin!(readiness);
-            assert!(
-                tokio::time::timeout(Duration::from_millis(30), &mut readiness)
-                    .await
-                    .is_err()
-            );
-            let task = tokio::spawn(async move {
-                let router = Router::new()
-                    .route("/", get(|| async { axum::Json(json!({"running":false})) }));
-                axum::serve(socket.listen(8).unwrap(), router)
-                    .await
-                    .unwrap();
-            });
-            assert!(!readiness.await.unwrap());
-            task.abort();
-        }
-
-        for (status, body, diagnostic) in [
-            (StatusCode::UNAUTHORIZED, json!({}), "401"),
-            (StatusCode::INTERNAL_SERVER_ERROR, json!({}), "500"),
-            (StatusCode::OK, json!({}), "running boolean"),
-            (
-                StatusCode::OK,
-                json!({"running":"false"}),
-                "running boolean",
-            ),
-        ] {
-            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-            let address = listener.local_addr().unwrap();
-            Arc::get_mut(&mut f.app).unwrap().config.backend =
-                format!("http://{address}").parse().unwrap();
-            let task = tokio::spawn(async move {
-                let router = Router::new()
-                    .route("/", get(move || async move { (status, axum::Json(body)) }));
-                axum::serve(listener, router).await.unwrap();
-            });
-            let error = tokio::time::timeout(
-                Duration::from_secs(1),
-                f.app.initial_status(Duration::from_secs(30)),
-            )
-            .await
-            .expect("invalid status was retried")
-            .unwrap_err();
-            assert!(format!("{error:#}").contains(diagnostic));
-            task.abort();
-        }
     }
     #[tokio::test]
     async fn stalled_or_cancelled_websocket_upgrades_release_viewer_and_idle_cleanup() {
@@ -1827,179 +1739,5 @@ mod tests {
         f.app.stop(&mut runtime).await.unwrap();
         assert!(matches!(runtime.browser, Browser::Stopped));
         assert_eq!(f.counts.lock().await.checkpoints, 1);
-    }
-    #[tokio::test]
-    async fn tasks_create_distinct_tabs_and_resume_only_their_own_group() {
-        let f = fixture().await;
-        let mut ids = Vec::new();
-        for group in ["task_parent", "task_child"] {
-            let response = api(
-                State(f.app.clone()),
-                request(
-                    Method::POST,
-                    "/tabs",
-                    &json!({"listItemId":group,"url":"about:blank"}).to_string(),
-                ),
-            )
-            .await
-            .unwrap();
-            assert_eq!(response.status(), StatusCode::OK);
-            let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
-            ids.push(
-                serde_json::from_slice::<Value>(&bytes).unwrap()["tabId"]
-                    .as_str()
-                    .unwrap()
-                    .to_owned(),
-            );
-        }
-        assert_ne!(ids[0], ids[1]);
-        for _ in 0..2 {
-            let response = api(
-                State(f.app.clone()),
-                request(
-                    Method::POST,
-                    "/tabs",
-                    r#"{"listItemId":"task_parent","url":"about:blank"}"#,
-                ),
-            )
-            .await
-            .unwrap();
-            let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
-            assert_eq!(
-                serde_json::from_slice::<Value>(&bytes).unwrap()["tabId"],
-                ids[0]
-            );
-        }
-        assert_eq!(f.counts.lock().await.created_tabs, 2);
-        let response = api(
-            State(f.app.clone()),
-            request(Method::DELETE, &format!("/tabs/{}", ids[0]), "{}"),
-        )
-        .await
-        .unwrap();
-        assert_eq!(response.status(), StatusCode::OK);
-        assert!(f.counts.lock().await.created.contains_key(&ids[1]));
-    }
-    #[tokio::test]
-    async fn concurrent_creation_resumes_one_task_page_without_blocking_other_pages() {
-        let f = fixture().await;
-        drop(f.app.started(false).await.unwrap());
-        let delay = Arc::new(StatusWait::default());
-        f.counts.lock().await.delayed_creation = Some(delay.clone());
-        let create = || {
-            let app = f.app.clone();
-            tokio::spawn(async move {
-                api(
-                    State(app),
-                    request(Method::POST, "/tabs", r#"{"listItemId":"task_parent"}"#),
-                )
-                .await
-                .unwrap()
-            })
-        };
-        let first = create();
-        delay.started.notified().await;
-        let mut second = create();
-        assert!(
-            tokio::time::timeout(Duration::from_millis(50), &mut second)
-                .await
-                .is_err()
-        );
-        let child = tokio::time::timeout(
-            Duration::from_secs(2),
-            api(
-                State(f.app.clone()),
-                request(Method::POST, "/tabs", r#"{"listItemId":"task_child"}"#),
-            ),
-        )
-        .await
-        .expect("one task blocked another task's page creation")
-        .unwrap();
-        let child = to_bytes(child.into_body(), 65536).await.unwrap();
-        let child: Value = serde_json::from_slice(&child).unwrap();
-        let snapshot = tokio::time::timeout(
-            Duration::from_secs(2),
-            api(
-                State(f.app.clone()),
-                request(Method::GET, "/tabs/shared-tab/snapshot", ""),
-            ),
-        )
-        .await
-        .expect("page creation blocked an existing page")
-        .unwrap();
-        assert_eq!(snapshot.status(), StatusCode::OK);
-        delay.release.notify_one();
-        let mut ids = Vec::new();
-        for response in [first.await.unwrap(), second.await.unwrap()] {
-            let body = to_bytes(response.into_body(), 65536).await.unwrap();
-            ids.push(serde_json::from_slice::<Value>(&body).unwrap()["tabId"].clone());
-        }
-        assert_eq!(ids[0], ids[1]);
-        assert_ne!(ids[0], child["tabId"]);
-        assert_eq!(f.counts.lock().await.created_tabs, 2);
-    }
-    #[tokio::test]
-    async fn page_evaluation_runs_in_parallel_and_cancelled_requests_drain_before_stop() {
-        let f = fixture().await;
-        api(State(f.app.clone()), request(Method::POST, "/tabs", "{}"))
-            .await
-            .unwrap();
-        let delay = Arc::new(StatusWait::default());
-        f.counts.lock().await.delayed_evaluation = Some(delay.clone());
-        let app = f.app.clone();
-        let first = tokio::spawn(async move {
-            api(
-                State(app),
-                request(
-                    Method::POST,
-                    "/tabs/first/evaluate",
-                    r#"{"expression":"document.title"}"#,
-                ),
-            )
-            .await
-        });
-        delay.started.notified().await;
-        tokio::time::timeout(Duration::from_secs(2), stop_if_idle(&f.app))
-            .await
-            .expect("idle check blocked an active page");
-        let second = tokio::time::timeout(
-            Duration::from_secs(2),
-            api(
-                State(f.app.clone()),
-                request(
-                    Method::POST,
-                    "/tabs/second/evaluate",
-                    r#"{"expression":"2 + 2"}"#,
-                ),
-            ),
-        )
-        .await
-        .expect("one page blocked an independent page")
-        .unwrap();
-        let bytes = to_bytes(second.into_body(), 65536).await.unwrap();
-        let value: Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(
-            value["result"],
-            json!({"tab":"second","expression":"2 + 2"})
-        );
-        first.abort();
-        assert!(first.await.unwrap_err().is_cancelled());
-        assert!(
-            f.app.operations.try_write().is_err(),
-            "cancelled client released its in-flight operation"
-        );
-        let app = f.app.clone();
-        let stopped = tokio::spawn(async move {
-            let _operations = app.operations.write().await;
-            let mut runtime = app.runtime.lock().await;
-            app.stop(&mut runtime).await
-        });
-        delay.release.notify_one();
-        tokio::time::timeout(Duration::from_secs(2), stopped)
-            .await
-            .unwrap()
-            .unwrap()
-            .unwrap();
-        assert!(!f.counts.lock().await.running);
     }
 }

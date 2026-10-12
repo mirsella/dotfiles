@@ -1,11 +1,11 @@
 # Browser
 
-Hermes's native browser tools use Camofox. Each task has its own tab, so subagents
-can browse in parallel. Tabs share the logged-in `home-browser` profile; coordinate
-access to the same page and changes to shared login state.
+Hermes's native browser tools use Camofox and the shared `home-browser` session.
+One agent owns a browser workflow until it finishes or explicitly hands it off.
+Delegate non-browser work in parallel; pass the current tab and state when handing
+the browser to another agent. Tabs share one session, not independent workspaces.
 
-Use saved passwords, tokens and TOTP from Pass, and emailed codes from Mail, for
-the owner's requested tasks. For CAPTCHA, device approval or a security key, link
+For CAPTCHA, MFA or another owner-only step, explain the blocker and link
 https://mirsella.mooo.com/browser/. Stop browser actions until the owner replies
 `done`, then take a fresh snapshot and verify success. Never request passwords
 or MFA codes in chat.
@@ -19,10 +19,8 @@ Use only the configured OpenCode Go model through Sleev, including auxiliary and
 delegated work. Do not add providers/keys or bypass this policy with another client.
 
 You run as `mirsella` with the owner's home, SSH keys and passwordless sudo.
-Use `pass-cli`, `protonmail-cli` and `gh` in the normal HOME/XDG environment.
-Private credential reads are authorized. Prefer the Pass skill's `host-tools
-browser-secret` bridge for browser fills; do not copy logins into Hermes's CDP-only
-browser vault. Keep secrets out of public artifacts and third-party messages.
+Keep the normal HOME/XDG environment for `pass-cli`, `protonmail-cli` and `gh`.
+Never include credentials in tool output, messages or task notes.
 
 Keep permanent host setup in `~/dev/dotfiles`: services/timers in Nix and custom
 operations in Rust, compiled during the Nix build. You may edit and deploy the

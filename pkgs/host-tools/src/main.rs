@@ -2,7 +2,6 @@ mod activity;
 mod agent_skills;
 mod backup;
 mod browser;
-mod browser_secret;
 mod hardware;
 mod hermes;
 mod maintenance;
@@ -37,8 +36,6 @@ enum Commands {
         #[arg(long)]
         config: PathBuf,
     },
-    /// Fill a browser field from a command's stdout without exposing the value.
-    BrowserSecret(browser_secret::Options),
     HermesProvision {
         #[arg(long, default_value = ".")]
         root: PathBuf,
@@ -129,7 +126,6 @@ fn run() -> Result<()> {
         Commands::SyncAgentSkills => agent_skills::run(),
         Commands::ArchUki { action } => uki::run(action),
         Commands::BrowserControl { config } => browser::run(&config),
-        Commands::BrowserSecret(options) => browser_secret::run(options),
         Commands::HermesProvision {
             root,
             ssh_to_age,
