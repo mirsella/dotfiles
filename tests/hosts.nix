@@ -117,12 +117,15 @@ assert lib.assertMsg (lib.all
     lib.any (
       package: lib.hasPrefix "openchamber-1." package.name
     ) desktops.${name}.home-manager.users.mirsella.home.packages
+    && !(lib.any (
+      package: lib.hasPrefix "openchamber-" package.name
+    ) flake.homeConfigurations.${name}.config.home.packages)
   )
   [
     "main"
     "laptop"
   ]
-) "OpenChamber must stay on 1.x while the workstations run OpenCode 1.x";
+) "OpenChamber must stay on 1.x on NixOS and use the system package on Arch";
 assert lib.assertMsg (lib.all
   (
     c:
