@@ -50,10 +50,31 @@ buildNpmPackage {
     substituteInPlace lib/downloads.js \
       --replace-fail 'path.join(os.tmpdir(), `camofox-download-' \
       'path.join(process.env.CAMOFOX_DOWNLOADS_DIR || os.tmpdir(), `camofox-download-' \
+      --replace-fail 'async function captureFetchedResource(tabState, { url, mimeType, filename, body }) {' \
+      'async function saveDownload(filePath, write) {
+        try {
+          await write();
+          await fs.chmod(filePath, 0o640);
+        } catch (error) {
+          try {
+            await fs.rm(filePath, { force: true });
+          } catch (cleanup) {
+            throw new AggregateError([error, cleanup], "Download failed: " + String(error?.message || error) + "; partial cleanup failed: " + String(cleanup?.message || cleanup));
+          }
+          throw error;
+        }
+      }
+
+      async function captureFetchedResource(tabState, { url, mimeType, filename, body }) {' \
       --replace-fail 'await download.saveAs(filePath);' \
-      'await download.saveAs(filePath); await fs.chmod(filePath, 0o640);' \
+      'await saveDownload(filePath, () => download.saveAs(filePath));' \
+      --replace-fail "failure = String(err?.message || err || 'download_save_failed');
+          await fs.unlink(filePath).catch(() => {});" \
+      "failure = String(err?.message || err || 'download_save_failed');" \
+      --replace-fail 'failure = reportedFailure;' \
+      'failure = failure ? `''${failure}; ''${reportedFailure}` : reportedFailure;' \
       --replace-fail 'await fs.writeFile(filePath, body);' \
-      'await fs.writeFile(filePath, body); await fs.chmod(filePath, 0o640);'
+      'await saveDownload(filePath, () => fs.writeFile(filePath, body, { mode: 0o600 }));'
     # The native writer reports {persisted:false} instead of throwing on I/O
     # failure. Make the existing export route fail before our idle stop rather
     # than maintaining a second cookie snapshot or a custom checkpoint plugin.
@@ -87,6 +108,8 @@ buildNpmPackage {
       'await import(process.argv[1]); await import(process.argv[2]);' \
       "$out/lib/camofox-browser/plugins/persistence/index.js" \
       "$out/lib/camofox-browser/plugins/vnc/index.js"
+    ${nodejs_22}/bin/node ${../../tests/camofox-downloads.mjs} \
+      "$out/lib/camofox-browser/lib/downloads.js"
     makeWrapper ${nodejs_22}/bin/node "$out/bin/camofox-browser" \
       --add-flags "$out/lib/camofox-browser/server.js"
     runHook postInstall
