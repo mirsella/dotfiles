@@ -48,9 +48,10 @@ kde shortcuts.kksrc
 .local/share/proton-pass-cli/
 .local/share/proton-pass-cli/**
 
-# The shared skill link and Codex command adapters are generated locally.
+# The shared skill link and Codex command adapter contents are generated locally.
 .agents/skills
 .agents/skills/**
+.codex/skills/*/SKILL.md
 
 # Handy rewrites its settings at runtime; managing it is pure churn.
 .local/share/com.pais.handy/settings_store.json
