@@ -1,12 +1,14 @@
 mod activity;
 mod agent_skills;
 mod backup;
+mod boot_keys;
 mod browser;
 mod hardware;
 mod hermes;
 mod maintenance;
 mod memory;
 mod monitoring;
+mod predator_boot;
 mod setup;
 mod suspend;
 #[cfg(test)]
@@ -29,8 +31,13 @@ struct Cli {
 enum Commands {
     SyncAgentSkills,
     ArchUki {
+        config: PathBuf,
+    },
+    PredatorBoot {
+        #[arg(long)]
+        config: PathBuf,
         #[command(subcommand)]
-        action: uki::Operation,
+        action: predator_boot::Operation,
     },
     BrowserControl {
         #[arg(long)]
@@ -124,7 +131,8 @@ enum Commands {
 fn run() -> Result<()> {
     match Cli::parse().command {
         Commands::SyncAgentSkills => agent_skills::run(),
-        Commands::ArchUki { action } => uki::run(action),
+        Commands::ArchUki { config } => uki::run(&config),
+        Commands::PredatorBoot { config, action } => predator_boot::run(&config, action),
         Commands::BrowserControl { config } => browser::run(&config),
         Commands::HermesProvision {
             root,

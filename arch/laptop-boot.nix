@@ -1,7 +1,22 @@
 { pkgs, lib }:
 let
   rootUuid = "b05803cd-53dd-4796-9be2-40242e4d30bc";
+  kernels = {
+    linux = [
+      "default"
+      "fallback"
+    ];
+    linux-cachyos = [ "default" ];
+    linux-lts612 = [ "default" ];
+  };
+  image =
+    kernel: preset: "arch-${kernel}${lib.optionalString (preset == "fallback") "-fallback"}.efi";
+  defaultImage = image "linux-cachyos" "default";
   files = {
+    "manifest.json" = builtins.toJSON {
+      default = defaultImage;
+      kernels = lib.mapAttrs (kernel: presets: map (image kernel) presets) kernels;
+    };
     "etc/kernel/cmdline" = ''
       rd.luks.name=${rootUuid}=root rd.luks.options=${rootUuid}=tpm2-device=auto root=/dev/mapper/root rootflags=subvol=@ rw rootfstype=btrfs zswap.enabled=0 resume=/dev/mapper/root resume_offset=57190605
     '';
@@ -21,29 +36,29 @@ let
       PolicyRef=initrd
     '';
     "boot/loader/loader.conf" = ''
-      default arch-linux-cachyos.efi
+      default ${defaultImage}
       timeout 5
       editor no
     '';
-  } // lib.genAttrs
-    (map (kernel: "etc/mkinitcpio.d/${kernel}.preset") [ "linux" "linux-cachyos" "linux-lts612" ])
-    (path:
-      let
-        kernel = lib.removeSuffix ".preset" (builtins.baseNameOf path);
-      in
-      ''
-        # Managed by the laptop Home Manager profile and host-tools arch-uki.
-        ALL_kver="/boot/vmlinuz-${kernel}"
-        ALL_cmdline="/etc/kernel/cmdline"
-        PRESETS=('default'${lib.optionalString (kernel == "linux") " 'fallback'"})
-        default_uki="/boot/EFI/Linux/arch-${kernel}.efi"
-        default_options="-t /var/lib/arch-uki/build"
-        ${lib.optionalString (kernel == "linux") ''
-          fallback_uki="/boot/EFI/Linux/arch-${kernel}-fallback.efi"
-          fallback_options="-S autodetect -t /var/lib/arch-uki/build"
-        ''}
-      ''
-    );
+  }
+  // lib.genAttrs (map (kernel: "etc/mkinitcpio.d/${kernel}.preset") (builtins.attrNames kernels)) (
+    path:
+    let
+      kernel = lib.removeSuffix ".preset" (builtins.baseNameOf path);
+    in
+    ''
+      # Managed by the laptop Home Manager profile and host-tools arch-uki.
+      ALL_kver="/boot/vmlinuz-${kernel}"
+      ALL_cmdline="/etc/kernel/cmdline"
+      PRESETS=(${lib.concatMapStringsSep " " lib.escapeShellArg kernels.${kernel}})
+      default_uki="/boot/EFI/Linux/${image kernel "default"}"
+      default_options="-t /var/lib/arch-uki/build"
+      ${lib.optionalString (builtins.elem "fallback" kernels.${kernel}) ''
+        fallback_uki="/boot/EFI/Linux/${image kernel "fallback"}"
+        fallback_options="-S autodetect -t /var/lib/arch-uki/build"
+      ''}
+    ''
+  );
 in
 pkgs.runCommand "laptop-boot-config" { } (
   lib.concatStringsSep "\n" (

@@ -7,8 +7,13 @@ pub fn path(path: &Path) -> Result<&str> {
 }
 
 pub fn output(program: &str, args: &[&str]) -> Result<String> {
-    let output = Command::new(program)
-        .args(args)
+    String::from_utf8(command_output(Command::new(program).args(args))?)
+        .with_context(|| format!("{program} returned non-UTF-8 output"))
+}
+
+pub fn command_output(command: &mut Command) -> Result<Vec<u8>> {
+    let program = command.get_program().to_string_lossy().into_owned();
+    let output = command
         .output()
         .with_context(|| format!("start {program}"))?;
     if !output.status.success() {
@@ -18,7 +23,7 @@ pub fn output(program: &str, args: &[&str]) -> Result<String> {
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    String::from_utf8(output.stdout).with_context(|| format!("{program} returned non-UTF-8 output"))
+    Ok(output.stdout)
 }
 
 pub fn run(program: &str, args: &[&str]) -> Result<()> {
