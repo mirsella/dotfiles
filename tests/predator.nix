@@ -275,6 +275,8 @@ assert lib.assertMsg (
   && lib.hasInfix "https://mirsella.mooo.com{uri}" server.services.caddy.virtualHosts."http://:80".extraConfig
   && lib.all (text: lib.hasInfix text server.services.caddy.extraConfig)
     [ "(private_ui)" "basic_auth" "{$HERMES_VIEWER_PASSWORD_HASH}" "Cache-Control no-store" ]
+  && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
+    [ "Content-Security-Policy" "style-src 'sha256-" "script-src 'sha256-" ]
   && builtins.length (lib.splitString "import private_ui"
     server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig) >= 4
   && server.systemd.services.caddy.serviceConfig.EnvironmentFile == [ server.sops.secrets.hermes_caddy_env.path ]

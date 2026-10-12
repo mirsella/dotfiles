@@ -1,17 +1,20 @@
-{ config, ... }:
+{ config, lib, ... }:
 let
+  index = builtins.readFile ./site/index.html;
+  inlineHash = element:
+    let content = builtins.match ".*<${element}>(.*)</${element}>.*" index;
+    in assert lib.assertMsg (content != null) "Dashboard inline ${element} block is missing";
+    "'sha256-${builtins.convertHash {
+      hash = builtins.hashString "sha256" (builtins.head content);
+      hashAlgo = "sha256";
+      toHashFormat = "base64";
+    }}'";
   proxyMainUi = port: ''
     reverse_proxy https://192.168.1.131:${toString port} {
       header_up Host {hostport}
       transport http {
         tls_trust_pool file ${./main-ui-root.crt}
       }
-    }
-  '';
-  serveIndex = ''
-    import private_ui
-    file_server {
-      root ${./site}
     }
   '';
 in
@@ -55,7 +58,11 @@ in
           reverse_proxy 127.0.0.1:8090
         }
         handle {
-          ${serveIndex}
+          import private_ui
+          header Content-Security-Policy "default-src 'none'; img-src data:; style-src ${inlineHash "style"}; script-src ${inlineHash "script"}; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+          file_server {
+            root ${./site}
+          }
         }
       '';
       "https://mirsella.mooo.com:4096".extraConfig = proxyMainUi 4096;
