@@ -1,4 +1,4 @@
-{ ... }:
+{ config, ... }:
 let
   proxyMainUi = port: ''
     reverse_proxy https://192.168.1.131:${toString port} {
@@ -9,11 +9,7 @@ let
     }
   '';
   serveIndex = ''
-    header {
-      Referrer-Policy no-referrer
-      X-Content-Type-Options nosniff
-      X-Frame-Options DENY
-    }
+    import private_ui
     file_server {
       root ${./site}
     }
@@ -22,6 +18,19 @@ in
 {
   services.caddy = {
     enable = true;
+    extraConfig = ''
+      (private_ui) {
+        basic_auth {
+          mirsella {$HERMES_VIEWER_PASSWORD_HASH}
+        }
+        header {
+          Cache-Control no-store
+          Referrer-Policy no-referrer
+          X-Content-Type-Options nosniff
+          X-Frame-Options DENY
+        }
+      }
+    '';
     # The firewall only allows TCP/443, so do not advertise HTTP/3.
     globalConfig = ''
       servers {
@@ -63,13 +72,13 @@ in
         reverse_proxy 127.0.0.1:2283
       '';
       "http://:80".extraConfig = ''
-        encode zstd gzip
-        ${serveIndex}
+        redir https://mirsella.mooo.com{uri} 308
       '';
     };
   };
   # DHCP may not have assigned the LAN bind address when Caddy first starts.
   systemd.services.caddy.serviceConfig = {
+    EnvironmentFile = [ config.sops.secrets.hermes_caddy_env.path ];
     Restart = "on-failure";
     RestartSec = "5s";
   };

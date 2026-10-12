@@ -406,7 +406,6 @@ in {
       };
     };
     systemd.timers.hermes-backup.timerConfig.Persistent = true;
-    systemd.services.caddy.serviceConfig.EnvironmentFile = [ config.sops.secrets.hermes_caddy_env.path ];
     # After alone does not pull in the online target during early boot.
     systemd.services.caddy.wants = [ "network-online.target" ];
     environment.systemPackages = [ pkgs.host-tools pkgs.sops pkgs.ssh-to-age pkgs.sleev ownerCli ];
@@ -414,17 +413,9 @@ in {
       redir /hermes /hermes/ 308
       handle_path /hermes/* {
         route {
-          basic_auth {
-            mirsella {$HERMES_VIEWER_PASSWORD_HASH}
-          }
+          import private_ui
           @foreignOrigin expression `{http.request.header.Origin} != "" && {http.request.header.Origin} != "https://mirsella.mooo.com"`
           respond @foreignOrigin "Same-origin access required" 403
-          header {
-            Cache-Control "no-store"
-            Referrer-Policy "no-referrer"
-            X-Content-Type-Options "nosniff"
-            X-Frame-Options "DENY"
-          }
           reverse_proxy 127.0.0.1:9119 {
             header_up Host {upstream_hostport}
             header_up X-Forwarded-Prefix /hermes
@@ -437,24 +428,12 @@ in {
       }
       redir /browser /browser/ 308
       handle /browser/* {
-        basic_auth {
-          mirsella {$HERMES_VIEWER_PASSWORD_HASH}
-        }
-        header {
-          Cache-Control "no-store"
-          Referrer-Policy "no-referrer"
-          X-Content-Type-Options "nosniff"
-          X-Frame-Options "DENY"
-        }
+        import private_ui
         reverse_proxy 127.0.0.1:9378 {
           header_up X-Hermes-Viewer-Key {$HERMES_VIEWER_KEY}
           header_up -Authorization
         }
       }
-    '';
-    services.caddy.virtualHosts."http://:80".extraConfig = lib.mkBefore ''
-      @hermesViewer path /browser /browser/* /hermes /hermes/*
-      redir @hermesViewer https://mirsella.mooo.com{uri} 308
     '';
   };
 }

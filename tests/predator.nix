@@ -236,8 +236,16 @@ assert lib.assertMsg (
   && lib.all (port: !(builtins.elem port server.networking.firewall.allowedTCPPorts))
      [ 5900 6080 9377 9378 9119 ]
   && lib.all (text: lib.hasInfix text server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig)
-    [ "handle /browser/*" "basic_auth" "header_up X-Hermes-Viewer-Key" "header_up -Authorization" ]
+    [ "handle /browser/*" "import private_ui" "header_up X-Hermes-Viewer-Key" "header_up -Authorization" ]
   && lib.hasInfix "https://mirsella.mooo.com{uri}" server.services.caddy.virtualHosts."http://:80".extraConfig
+  && lib.all (text: lib.hasInfix text server.services.caddy.extraConfig)
+    [ "(private_ui)" "basic_auth" "{$HERMES_VIEWER_PASSWORD_HASH}" "Cache-Control no-store" ]
+  && builtins.length (lib.splitString "import private_ui"
+    server.services.caddy.virtualHosts."mirsella.mooo.com".extraConfig) >= 4
+  && server.systemd.services.caddy.serviceConfig.EnvironmentFile == [ server.sops.secrets.hermes_caddy_env.path ]
+  && server.sops.secrets.hermes_caddy_env.restartUnits == [ "caddy.service" ]
+  && server.services.caddy.virtualHosts."http://:80".extraConfig
+    == "redir https://mirsella.mooo.com{uri} 308\n"
 ) "Hermes must use the owner account and editable runtime settings while its browser stays private";
 assert lib.assertMsg (
   server.services.hermes-agent.backend.mode == "dashboard"
