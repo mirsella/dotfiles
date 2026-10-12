@@ -91,9 +91,8 @@ sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles
 ```
 
 For the current Arch installations, use `homeConfigurations.main` or
-`homeConfigurations.laptop` with standalone Home Manager. Pacman/AUR own the
-application binaries, except kache and the patched OpenChamber which run from
-the flake on both operating systems. NixOS supplies the rest from Nix packages.
+`homeConfigurations.laptop` with standalone Home Manager. Pacman/AUR still own
+their application binaries. NixOS supplies those binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
