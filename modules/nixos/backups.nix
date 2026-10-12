@@ -3,10 +3,6 @@ let
   physical = import ../../hosts/predator/disks.nix;
   mountpoint = "/srv/backup/recovery";
   dataset = config.fileSystems.${mountpoint}.device;
-  partitions = lib.mapAttrs (_: device: "${device}-part1")
-    (physical.hdds // { fast = physical.ssds.fast; }) // {
-      root = config.boot.initrd.luks.devices.crypt-root.device;
-    };
   jobs = {
     db-backup = {
       description = "Back up Nextcloud and Immich databases and Nextcloud configuration";
@@ -32,7 +28,7 @@ let
       ];
     };
     recovery-backup = {
-      description = "Back up LUKS headers, HDD keys, SOPS host identity and Secure Boot keys";
+      description = "Back up LUKS headers, TPM policy authorities, SOPS identity and Secure Boot keys";
       startAt = "23:10";
       out = mountpoint;
       requires = [ ];
@@ -47,11 +43,11 @@ let
           args = [ "luksUUID" "luks/${name}.header" ];
           stdout = "luks/${name}.uuid";
         }
-      ]) partitions) ++ [
+      ]) physical.luks) ++ [
         {
           program = "${pkgs.gnutar}/bin/tar";
           args = [ "--create" "--dereference" "--file=system-secrets.tar" "--directory=/" ]
-            ++ map (lib.removePrefix "/") ([ "/etc/luks" "/var/lib/sbctl" ] ++ config.sops.age.sshKeyPaths);
+            ++ map (lib.removePrefix "/") ([ "/var/lib/sbctl" "/var/lib/predator-boot" ] ++ config.sops.age.sshKeyPaths);
         }
       ];
     };

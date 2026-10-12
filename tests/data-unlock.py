@@ -58,15 +58,16 @@ class DataUnlock(unittest.TestCase):
                     self.assertNotIn("Before=cryptsetup.target", contents)
                     self.assertIn("headless=true", contents)
                     self.assertIn(device, contents)
+                    self.assertEqual(keyfile, "-")
+                    self.assertIn("tpm2-device=auto", contents)
+                    self.assertIn("tpm2-pcrs=7", contents)
+                    self.assertIn(
+                        "tpm2-signature=/run/credentials/@encrypted/predator-pcr-signature",
+                        contents,
+                    )
+                    self.assertIn("password-cache=no", contents)
                     if name == "fast-crypt":
-                        self.assertEqual(keyfile, "-")
-                        self.assertIn("tpm2-device=auto", contents)
                         self.assertIn("discard", contents)
-                    else:
-                        self.assertEqual(
-                            keyfile, "/etc/luks/" + name.removesuffix("-crypt") + ".key"
-                        )
-                        self.assertIn(keyfile, contents)
                     self.assertIn("x-systemd.device-timeout=30s", flags)
 
 

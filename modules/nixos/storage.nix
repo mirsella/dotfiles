@@ -14,16 +14,6 @@ in
 {
   boot.zfs.extraPools = builtins.attrNames pools;
 
-  # Only the OS disk belongs in initrd; optional data must not block root boot.
-  environment.etc.crypttab.text = ''
-    fast-crypt ${physical.ssds.fast}-part1 - tpm2-device=auto,discard,nofail,headless=true,x-systemd.device-timeout=30s
-  '' + lib.concatStringsSep "\n" (lib.mapAttrsToList (name: device:
-    "${name}-crypt ${device}-part1 /etc/luks/${name}.key nofail,headless=true,x-systemd.device-timeout=30s"
-  ) physical.hdds) + "\n";
-  systemd.services."systemd-cryptsetup@" = {
-    overrideStrategy = "asDropin";
-    serviceConfig.TimeoutSec = "2min";
-  };
   systemd.services.zfs-import-fast = {
     after = [ (unlockUnit "fast") ];
     requires = [ (unlockUnit "fast") ];

@@ -20,11 +20,46 @@ in
 assert lib.assertMsg (
   server.boot.lanzaboote.enable
   && server.boot.initrd.systemd.enable
-  && server.boot.initrd.secrets == { }
+  && builtins.attrValues server.boot.initrd.secrets
+    == [ "/var/lib/predator-boot/recovery-ssh/host-key.cred" ]
+  && server.boot.initrd.network.ssh.enable
+  && server.boot.initrd.network.ssh.port == 2223
+  && server.boot.initrd.network.ssh.hostKeys == []
+  && lib.hasInfix "HostKey /run/predator-recovery/host-key" server.boot.initrd.network.ssh.extraConfig
+  && builtins.elem "predator-recovery-key.service" server.boot.initrd.systemd.services.sshd.requires
+  && builtins.elem "systemd-pcrphase-initrd.service" server.boot.initrd.systemd.services.predator-recovery-key.after
+  && builtins.elem "systemd-pcrosseparator.service" server.boot.initrd.systemd.services.predator-recovery-key.after
+  && !(builtins.elem "systemd-cryptsetup@crypt\\x2droot.service" server.boot.initrd.systemd.services.predator-recovery-key.requires)
+  && !(builtins.elem "systemd-cryptsetup@crypt\\x2droot.service" server.boot.initrd.systemd.services.predator-recovery-key.after)
+  && !(builtins.elem "systemd-cryptsetup@crypt\\x2droot.service" server.boot.initrd.systemd.services.sshd.after)
+  && builtins.elem "initrd-nixos-copy-secrets.service" server.boot.initrd.systemd.services.predator-recovery-key.after
+  && builtins.elem "initrd.target" server.boot.initrd.systemd.services.predator-recovery-key.before
+  && builtins.elem "initrd.target" server.boot.initrd.systemd.services.sshd.before
+  && server.boot.initrd.systemd.services.predator-recovery-key.serviceConfig.TimeoutStartSec == "30s"
+  && server.boot.initrd.systemd.services.sshd.serviceConfig.KillMode == "control-group"
+  && builtins.elem "initrd-switch-root.target" server.boot.initrd.systemd.services.sshd.conflicts
   && lib.all (d: d.keyFile == null && builtins.elem "tpm2-device=auto" d.crypttabExtraOpts)
     (builtins.attrValues server.boot.initrd.luks.devices)
   && lib.all (fs: !fs.autoFormat) (builtins.attrValues server.fileSystems)
-) "Installed system must use signed TPM boot without embedded keys or automatic formatting";
+) "Installed system must use signed TPM boot with only an encrypted recovery SSH identity, no embedded disk keys, and no automatic formatting";
+assert lib.assertMsg (
+  server.boot.initrd.systemd.services.systemd-pcrosseparator.enable
+  && server.boot.initrd.systemd.services.systemd-pcrosseparator.unitConfig.ConditionSecurity == "measured-os"
+  && builtins.elem "sysinit.target" server.boot.initrd.systemd.services.systemd-pcrosseparator.wantedBy
+  && builtins.elem "cryptsetup-pre.target" server.boot.initrd.systemd.services.systemd-pcrosseparator.before
+  && lib.hasInfix "--event-type=os-separator os-separator"
+    server.boot.initrd.systemd.services.systemd-pcrosseparator.serviceConfig.ExecStart
+) "Authenticated boot must separate firmware authorization before root unlock";
+assert lib.assertMsg (
+  server.boot.initrd.systemd.tpm2.pcrphases.enable
+  && server.systemd.tpm2.pcrphases.enable
+  && builtins.elem "predator.authenticated-boot=1" server.boot.kernelParams
+  && builtins.elem "tpm2-pcrs=7" server.boot.initrd.luks.devices.crypt-root.crypttabExtraOpts
+  && lib.all (name:
+    builtins.elem "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service"
+      server.systemd.services.systemd-pcrphase-sysinit.after
+  ) ([ "fast" ] ++ hddNames)
+) "Root and data unlocks must use distinct, explicitly ordered PCR11 phases";
 assert lib.assertMsg (
   lib.all (name:
     let unit = "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
@@ -36,7 +71,7 @@ assert lib.assertMsg (
 ) "HDD unlocking must be bounded and parallel, allowing degraded import when a member fails";
 assert lib.assertMsg (
   builtins.attrNames server.boot.initrd.luks.devices == [ "crypt-root" ]
-  && lib.hasInfix "fast-crypt ${disks.ssd.device}-part1 - tpm2-device=auto,discard,nofail,headless=true,x-systemd.device-timeout=30s"
+  && lib.hasInfix "fast-crypt ${disks.ssd.device}-part1 - tpm2-device=auto,tpm2-pcrs=7,tpm2-signature="
     server.environment.etc.crypttab.text
   && builtins.elem "systemd-cryptsetup@fast\\x2dcrypt.service" server.systemd.services.zfs-import-fast.requires
   && ncdata.options.mountpoint == "legacy"
@@ -62,7 +97,7 @@ assert lib.assertMsg (
   && lib.all (name:
     disks.${name}.device == physical.hdds.${name}
     && disks.${name}.content.partitions.crypt.content.name == "${name}-crypt"
-    && lib.hasInfix "${name}-crypt ${disks.${name}.device}-part1 /etc/luks/${name}.key nofail,headless=true,x-systemd.device-timeout=30s"
+    && lib.hasInfix "${name}-crypt ${disks.${name}.device}-part1 - tpm2-device=auto,tpm2-pcrs=7,tpm2-signature="
       server.environment.etc.crypttab.text
   ) hddNames
 ) "Three-disk RAIDZ1 must provision and unlock every HDD using the same physical identities";

@@ -3,6 +3,11 @@ let
   physical = import ./disks.nix;
 in
 {
+  imports = [
+    ./recovery-boot.nix
+    ./authenticated-boot.nix
+  ];
+
   boot = {
     loader.systemd-boot.enable = lib.mkForce false;
     loader.systemd-boot.editor = false;
@@ -13,9 +18,7 @@ in
     };
     initrd.systemd.enable = true;
     initrd.luks.devices.crypt-root = {
-      device = lib.mkForce "${physical.ssds.root}-part2";
-      # A keyFile with tpm2-device means a sealed blob, not a fallback LUKS key.
-      crypttabExtraOpts = [ "tpm2-device=auto" ];
+      device = lib.mkForce physical.luks.root;
       allowDiscards = true;
     };
     supportedFilesystems = [ "zfs" ];
