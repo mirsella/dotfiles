@@ -49,20 +49,9 @@ kde shortcuts.kksrc
 .local/share/proton-pass-cli/
 .local/share/proton-pass-cli/**
 
-# opencode commands
-plannotator-annotate.md
-plannotator-last.md
-plannotator-review.md
-
-# Plannotator skills are removed across agent installations.
-.config/opencode/skills/plannotator*
-.config/opencode/skills/plannotator*/**
-
-# Agent adapters are generated locally from the editable OpenCode config.
+# The shared skill link and Codex command adapters are generated locally.
 .agents/skills
 .agents/skills/**
-.codex/skills/
-.codex/skills/**
 
 # Handy rewrites its settings at runtime; managing it is pure churn.
 .local/share/com.pais.handy/settings_store.json

@@ -17,13 +17,27 @@
 .config/ponytail
 .config/nvim/lua/plugins/wakatime.lua
 
-# Remove retired Plannotator skills from existing installations.
+# Remove the retired Plannotator plugin, commands, and Codex hook.
+.config/opencode/commands/plannotator-annotate.md
+.config/opencode/commands/plannotator-last.md
+.config/opencode/commands/plannotator-review.md
+.config/opencode/smart-title.jsonc
 .config/opencode/skills/plannotator-annotate
 .config/opencode/skills/plannotator-compound
 .config/opencode/skills/plannotator-last
 .config/opencode/skills/plannotator-review
 .config/opencode/skills/plannotator-setup-goal
 .config/opencode/skills/plannotator-visual-explainer
+.cache/opencode/packages/@plannotator/opencode
+.cache/opencode/packages/@plannotator/opencode@latest
+.cache/opencode/packages/@tarquinen/opencode-smart-title
+.cache/opencode/packages/@tarquinen/opencode-smart-title@latest
+.cache/paru/clone/plannotator-bin
+.local/bin/plannotator
+.codex/hooks.json
+.codex/skills/plannotator-annotate
+.codex/skills/plannotator-last
+.codex/skills/plannotator-review
 
 # These prompts live in OpenCode's editable command files.
 .config/opencode/skills/cleancode
