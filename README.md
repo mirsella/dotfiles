@@ -92,12 +92,54 @@ sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles
 
 For the current Arch installations, use `homeConfigurations.main` or
 `homeConfigurations.laptop` with standalone Home Manager. Pacman/AUR still own
-their application binaries. NixOS supplies those binaries from Nix packages.
+their application binaries, except the writable agent installs below. NixOS
+supplies other binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
 Main's manual Caddy configuration, service recovery settings and restore steps
 are recorded in [arch/main-caddy](arch/main-caddy/README.md).
+
+### Codex and T3 Code
+
+All three hosts import `modules/home/agent-tools.nix`. Home Manager runs the
+Nix-built `bootstrap-agent-tools` helper during activation. It installs the
+official standalone Codex CLI (latest stable), the standalone T3 CLI (nightly),
+and a separate nightly T3 desktop AppImage. To apply just this bootstrap without
+switching the rest of a host's configuration:
+
+```sh
+mkdir -p ~/.local/state/agent-tools
+nix build path:.#agent-tools --out-link ~/.local/state/agent-tools/bootstrap
+~/.local/state/agent-tools/bootstrap/bin/bootstrap-agent-tools
+```
+
+On NixOS, use the Home Manager module's bootstrap package, which includes the
+AppImage runtime, instead of the default Arch launcher:
+
+```sh
+nix build \
+  path:.#nixosConfigurations.predator.config.home-manager.users.mirsella.programs.agent-tools.package \
+  --out-link ~/.local/state/agent-tools/bootstrap
+```
+
+Then run the same bootstrap helper above. The out-link keeps its launchers and
+service helper available through Nix garbage collection until normal activation
+adds them to the host's profile.
+
+Codex lives under `~/.codex/packages/standalone`, and T3's CLI releases under
+`~/.t3/runtime/versions`. The desktop AppImage is a writable file at
+`~/.local/share/t3code/app/T3-Code-nightly.AppImage`. Activation keeps existing
+native installs; `codex update`, `t3 update`, and the desktop's updater own
+subsequent releases. The initial CLI and desktop share a pinned nightly version;
+updating that seed only affects fresh installs.
+
+Nix supplies the `t3code`/`t3code-nightly` launchers and desktop menu entry. On
+NixOS the launcher uses `appimage-run`; Arch runs the AppImage directly. A service
+drop-in puts `~/.local/bin` first in T3's PATH while preserving existing shell
+exports. Downloads use disk-backed scratch space under `~/dev`. T3 continues to
+own its background-service unit, settings, and updater state. Run `t3 service
+install` to enable the server on a fresh machine.
 
 ### Laptop authenticated boot (Arch)
 

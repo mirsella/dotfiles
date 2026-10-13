@@ -1,5 +1,6 @@
 mod activity;
 mod agent_skills;
+mod agent_tools;
 mod backup;
 mod boot_keys;
 mod browser;
@@ -30,6 +31,12 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     SyncAgentSkills,
+    BootstrapAgentTools {
+        config: PathBuf,
+    },
+    AgentToolsEnvironment {
+        file: PathBuf,
+    },
     ArchUki {
         config: PathBuf,
     },
@@ -131,6 +138,8 @@ enum Commands {
 fn run() -> Result<()> {
     match Cli::parse().command {
         Commands::SyncAgentSkills => agent_skills::run(),
+        Commands::BootstrapAgentTools { config } => agent_tools::bootstrap(&config),
+        Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),
         Commands::ArchUki { config } => uki::run(&config),
         Commands::PredatorBoot { config, action } => predator_boot::run(&config, action),
         Commands::BrowserControl { config } => browser::run(&config),

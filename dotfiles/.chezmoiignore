@@ -23,6 +23,15 @@ kde shortcuts.kksrc
 .config/opencode/chunks/
 .config/opencode/chunks/**
 .local/bin/opencode-idle-watchdog
+# The Nix bootstrap and native updaters own these agent installs.
+.local/bin/codex
+.local/bin/codex-code-mode-host
+.local/bin/t3
+.local/bin/t3code
+.local/bin/t3code-nightly
+.local/share/applications/t3code.desktop
+.local/share/t3code/app/
+.local/share/t3code/app/**
 .config/kache/config.toml
 # Home Manager owns the generated Atuin config on HM hosts.
 .config/atuin/config.toml

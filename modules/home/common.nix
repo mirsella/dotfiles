@@ -21,6 +21,8 @@ let
       '';
 in
 {
+  imports = [ ./agent-tools.nix ];
+
   home = {
     username = "mirsella";
     homeDirectory = "/home/mirsella";

@@ -4,6 +4,10 @@ let go_path = ($env.GOPATH? | default $"($env.HOME)/.local/share/go")
 let gem_home = ($env.GEM_HOME? | default $"($env.HOME)/.local/share/gem")
 let pnpm_home = ($env.PNPM_HOME? | default $"($env.HOME)/.local/share/pnpm")
 let xdg_cache_home = ($env.XDG_CACHE_HOME? | default $"($env.HOME)/.cache")
+let local_bin = $"($env.HOME)/.local/bin"
+
+# Writable agent installs must take precedence over system packages.
+$env.PATH = [$local_bin] ++ ($env.PATH | where {|path| $path != $local_bin })
 
 let cargo_bin = $"($cargo_home)/bin"
 if not ($cargo_bin in $env.PATH) {
@@ -25,7 +29,6 @@ for path in ([
 }
 
 for path in [
-  $"($env.HOME)/.local/bin"
   $"($gem_home)/bin"
   $"($env.HOME)/.local/share/npm/bin"
   $"($go_path)/bin"
