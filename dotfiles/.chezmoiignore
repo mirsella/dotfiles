@@ -1,3 +1,8 @@
+# npm writes account tokens into these device-local files.
+.npmrc
+**/.npmrc
+.config/npm/npmrc
+
 # vim: set ft=gitignore:
 cron/
 etc/
