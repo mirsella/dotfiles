@@ -26,9 +26,32 @@ last_updated = "2026-07-12T16:43:46Z"
 source_type = "local"
 source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
-[mcp_servers.context7]
-url = "https://mcp.context7.com/mcp"
-env_http_headers = { "CONTEXT7_API_KEY" = "CONTEXT7_API_KEY" }
+[mcp_servers.context7-broker]
+command = "/home/mirsella/.local/bin/context7-account-broker"
+args = ["mcp"]
+enabled = true
+tool_timeout_sec = 30
+
+[mcp_servers.blender-mcp]
+command = "/home/mirsella/.local/bin/uvx"
+args = ["blender-mcp"]
+enabled = false
+env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
+
+[mcp_servers.composio]
+url = "https://backend.composio.dev/tool_router/trs_uiw6Hb4fJ8rr/mcp"
+enabled = true
+http_headers = { x-org-id = "ok_UWjDVhCpLy46", x-project-id = "pr_ZEY9cNibczW1" }
+
+[mcp_servers.planetscale]
+url = "https://mcp.pscale.dev/mcp/planetscale"
+enabled = false
+
+[mcp_servers.rea]
+command = "rea"
+args = ["mcp"]
+enabled = false
+
 
 [plugins."browser@openai-bundled"]
 enabled = false
@@ -64,3 +87,25 @@ requires_openai_auth = true
 [model_providers.sleev.http_headers]
 "sleev-provider" = "codex"
 "sleev-harness" = "chatgpt"
+
+[hooks.state]
+
+[marketplaces.computer-use-mcp]
+source_type = "local"
+source = "/home/mirsella/.local/share/computer-use-mcp/current"
+
+[plugins."computer-use@computer-use-mcp"]
+enabled = true
+
+[marketplaces.browser-mcp]
+source_type = "local"
+source = "/home/mirsella/.local/share/browser-mcp/current"
+
+[plugins."browser@browser-mcp"]
+enabled = true
+
+[hooks.state."browser@browser-mcp:hooks/hooks.json:pre_tool_use:0:0"]
+trusted_hash = "sha256:bdc5f4e37abe338ba919376999ec010dabcfe49b2cc58d80ebcc275d1bdb73ad"
+
+[hooks.state."browser@browser-mcp:hooks/hooks.json:session_end:0:0"]
+trusted_hash = "sha256:46211dbcbb20c82ed96a576d78254505f7f53c2465c76dd9416d759e2d90200c"

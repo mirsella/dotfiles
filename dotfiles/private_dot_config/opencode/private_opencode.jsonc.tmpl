@@ -10,9 +10,8 @@
     "@pieliesdie/opencode-antigravity-auth@latest",
     "opencode-queue",
     "opencode-goal",
-    "@mirsella/opencode-browser-mcp",
-    "@mirsella/opencode-computer-use-mcp",
-    "@mirsella/context7-account-broker",
+    "file:///home/mirsella/.local/share/browser-mcp/current",
+    "file:///home/mirsella/.local/share/computer-use-mcp/current",
   ],
   "autoupdate": false,
   "experimental": {
@@ -25,6 +24,12 @@
     },
   },
   "mcp": {
+    "context7-broker": {
+      "type": "local",
+      "command": ["{{ .chezmoi.homeDir }}/.local/bin/context7-account-broker", "mcp"],
+      "enabled": true,
+      "timeout": 30000,
+    },
     "blender-mcp": {
       "type": "local",
       "command": ["/home/mirsella/.local/bin/uvx", "blender-mcp"],
