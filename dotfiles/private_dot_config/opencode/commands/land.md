@@ -3,22 +3,17 @@ description: Commit and land this session's branch on main, or queue it when ano
 model: openai/gpt-6-luna#max
 ---
 
-If there are still uncommitted changes, read and follow
+If uncommitted changes remain, follow
 `~/.config/opencode/commands/commit.md`. Create a task branch if HEAD is detached.
 Rebase onto local main, resolving conflicts while preserving both branches' intended changes,
 then merge into its checkout with `git merge --ff-only --no-autostash`.
-If main gains new commits, repeat the rebase and merge until landing succeeds.
+Repeat if main gains new commits.
 
 Keep checks proportional and reuse valid results already obtained.
 
-Main may contain another session's uncommitted work. Merge if Git permits
-it without overwriting those changes; never stash, commit, or discard them.
-Only if main's uncommitted changes block landing, leave main alone and rename the task branch
-`merge-ready-<branchname>`, keeping it for later.
+Main may hold another session's work; merge around it if Git permits, never stashing,
+committing, or discarding it. If it blocks, leave main alone.
 
-After landing or queuing, remove the clean temporary worktree with
-`git worktree remove`, from main's directory as the final tool call.
-Delete the task branch only if successfully merged. Do not push.
+Leave the branch and worktree in place; do not push. The host recreates and cleans up on its own.
 
-Briefly report whether landed or queued, the branch/commits, checks,
-and cleanup.
+Briefly report landed or queued, branch/commits, and checks.
