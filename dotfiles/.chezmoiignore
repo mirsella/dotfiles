@@ -28,6 +28,8 @@ kde shortcuts.kksrc
 .config/opencode/chunks/
 .config/opencode/chunks/**
 .local/bin/opencode-idle-watchdog
+.local/bin/context7-account-broker
+.local/bin/composio-mcp-headers
 # The Nix bootstrap and native updaters own these agent installs.
 .local/bin/codex
 .local/bin/codex-code-mode-host

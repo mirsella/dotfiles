@@ -12,6 +12,9 @@ trust_level = "trusted"
 [projects."/home/mirsella/Documents/Codex/2026-07-12/com"]
 trust_level = "trusted"
 
+[projects."/home/mirsella/dev/browser-mcp"]
+trust_level = "trusted"
+
 [tui]
 animations = false
 screen_reader_detection_done = true
@@ -19,12 +22,16 @@ screen_reader_detection_done = true
 [tui.model_availability_nux]
 "gpt-5.5" = 4
 "gpt-5.6-sol" = 2
-"gpt-6.1-sol" = 3
+"gpt-6.1-sol" = 4
 
 [marketplaces.openai-bundled]
 last_updated = "2026-07-12T16:43:46Z"
 source_type = "local"
 source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[marketplaces.computer-use-mcp]
+source_type = "local"
+source = "/home/mirsella/.local/share/computer-use-mcp/current"
 
 [mcp_servers.context7-broker]
 command = "/home/mirsella/.local/bin/context7-account-broker"
@@ -42,6 +49,7 @@ env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
 url = "https://backend.composio.dev/tool_router/trs_uiw6Hb4fJ8rr/mcp"
 enabled = true
 http_headers = { x-org-id = "ok_UWjDVhCpLy46", x-project-id = "pr_ZEY9cNibczW1" }
+http_headers_helper = "/home/mirsella/.local/bin/composio-mcp-headers"
 
 [mcp_servers.planetscale]
 url = "https://mcp.pscale.dev/mcp/planetscale"
@@ -77,6 +85,9 @@ enabled = true
 [plugins."template-creator@openai-primary-runtime"]
 enabled = true
 
+[plugins."computer-use@computer-use-mcp"]
+enabled = true
+
 [model_providers.sleev]
 name = "Sleev"
 base_url = "http://127.0.0.1:17321/v1"
@@ -89,13 +100,6 @@ requires_openai_auth = true
 "sleev-harness" = "chatgpt"
 
 [hooks.state]
-
-[marketplaces.computer-use-mcp]
-source_type = "local"
-source = "/home/mirsella/.local/share/computer-use-mcp/current"
-
-[plugins."computer-use@computer-use-mcp"]
-enabled = true
 
 [marketplaces.browser-mcp]
 source_type = "local"
