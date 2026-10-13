@@ -559,12 +559,23 @@ and their tests; upstream application internals are managed by their packages.
 ## Main's fan configuration
 
 Only `hosts/main/default.nix` enables CoolerControl. It loads `nct6775` and installs
-`dotfiles/system/main/etc/coolercontrol/config.toml` as a writable root-owned
-`/etc/coolercontrol/config.toml` before starting the daemon. Systemd creates the
-configuration directory. A changed TOML produces a changed service unit, so
-`nixos-rebuild switch` stops the old daemon before installing the new config.
+`config.toml` and `modes.json` from `dotfiles/system/main/etc/coolercontrol/` as
+writable root-owned files in `/etc/coolercontrol/` before starting the daemon.
+Systemd creates the configuration directory. Changes to either file change the
+service unit, so `nixos-rebuild switch` stops the old daemon before installing them.
 
 Unrelated rebuilds leave the running daemon and its config alone. GUI changes
-last until the daemon restarts; copy them back into the tracked TOML to keep them.
-The saved curve stays at 20% through 65°C, reaches 50% at 70°C, stays there through
-85°C, then reaches 100% at 90°C. CoolerControl interpolates the ramps.
+last until the daemon restarts; copy profile and mode edits back into the tracked
+files to keep them. CoolerControl maps power saver to Quiet, balanced to Balanced,
+and performance to Performance for all six motherboard fan channels, using CPU
+temperature. It interpolates between curve points:
+
+- Quiet holds 20% through 60°C, reaches 30% at 70°C and 50% at 85°C, and caps at
+  60% from 90°C. This mode trades cooling headroom for less noise under load.
+- Balanced holds 20% through 50°C, reaches 40% at 60°C and 70% at 70°C, then
+  reaches 100% at 85°C.
+- Performance holds 20% through 45°C, reaches 45% at 55°C and 75% at 65°C, then
+  reaches 100% at 80°C.
+
+On Arch, stop `coolercontrold`, install the tracked files into `/etc/coolercontrol/`,
+then start it again; Home Manager does not manage the system daemon.

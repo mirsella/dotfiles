@@ -77,9 +77,31 @@ function = "0"
 
 [[profiles]]
 uid = "0840dd7f-04cb-4c72-9303-4d78f0e92a55"
-name = "My Profile"
+name = "Quiet"
 p_type = "Graph"
-speed_profile = [[0.0, 20], [65.0, 20], [70.0, 50], [85.0, 50], [90.0, 100], [100.0, 100]]
+speed_profile = [[0.0, 20], [60.0, 20], [70.0, 30], [80.0, 40], [85.0, 50], [90.0, 60], [100.0, 60]]
+function_uid = "02ba5ea0-89cc-4085-808f-c3b1cc97963b"
+temp_source = { temp_name = "temp1", device_uid = "e7a379142766ef8adca8fc914ac73c9e8cb0e557122bac280848a0303a384735" }
+temp_min = 0.0
+temp_max = 100.0
+offset_profile = []
+
+[[profiles]]
+uid = "bf06ade5-071a-4ab3-aee3-04bb126d8262"
+name = "Balanced"
+p_type = "Graph"
+speed_profile = [[0.0, 20], [50.0, 20], [55.0, 30], [60.0, 40], [65.0, 55], [70.0, 70], [75.0, 85], [85.0, 100], [100.0, 100]]
+function_uid = "02ba5ea0-89cc-4085-808f-c3b1cc97963b"
+temp_source = { temp_name = "temp1", device_uid = "e7a379142766ef8adca8fc914ac73c9e8cb0e557122bac280848a0303a384735" }
+temp_min = 0.0
+temp_max = 100.0
+offset_profile = []
+
+[[profiles]]
+uid = "f63e4849-7b40-4b4d-953f-b9055ea3b1c2"
+name = "Performance"
+p_type = "Graph"
+speed_profile = [[0.0, 20], [45.0, 20], [50.0, 30], [55.0, 45], [60.0, 60], [65.0, 75], [70.0, 85], [75.0, 95], [80.0, 100], [100.0, 100]]
 function_uid = "02ba5ea0-89cc-4085-808f-c3b1cc97963b"
 temp_source = { temp_name = "temp1", device_uid = "e7a379142766ef8adca8fc914ac73c9e8cb0e557122bac280848a0303a384735" }
 temp_min = 0.0
@@ -162,3 +184,10 @@ drivetemp_suspend = false
 # CoolerControl Device settings Example:
 # [settings.4b9cd1bc5fb2921253e6b7dd5b1b011086ea529d915a86b3560c236084452807]
 # disabled = true
+
+
+# System power profiles activate the corresponding saved fan mode.
+[power_profile_modes]
+performance = "66723865-2211-40c1-a84e-d69cec1c26e3"
+balanced = "1f94e54f-8638-4042-ae31-19317b8e1b98"
+power-saver = "b9531d82-afee-40ed-95a9-3343a2b6a409"

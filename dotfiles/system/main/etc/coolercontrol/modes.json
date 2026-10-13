@@ -1,0 +1,105 @@
+{
+  "modes": [
+    {
+      "uid": "1f94e54f-8638-4042-ae31-19317b8e1b98",
+      "name": "Balanced",
+      "all_device_settings": {
+        "00a4da18625f56275c89e2fcd25a83c08c5ad3326452fa7e252fcc8a89c92493": {
+          "fan2": {
+            "channel_name": "fan2",
+            "profile_uid": "bf06ade5-071a-4ab3-aee3-04bb126d8262"
+          },
+          "fan1": {
+            "channel_name": "fan1",
+            "profile_uid": "bf06ade5-071a-4ab3-aee3-04bb126d8262"
+          },
+          "fan6": {
+            "channel_name": "fan6",
+            "profile_uid": "bf06ade5-071a-4ab3-aee3-04bb126d8262"
+          },
+          "fan5": {
+            "channel_name": "fan5",
+            "profile_uid": "bf06ade5-071a-4ab3-aee3-04bb126d8262"
+          },
+          "fan3": {
+            "channel_name": "fan3",
+            "profile_uid": "bf06ade5-071a-4ab3-aee3-04bb126d8262"
+          },
+          "fan4": {
+            "channel_name": "fan4",
+            "profile_uid": "bf06ade5-071a-4ab3-aee3-04bb126d8262"
+          }
+        }
+      }
+    },
+    {
+      "uid": "66723865-2211-40c1-a84e-d69cec1c26e3",
+      "name": "Performance",
+      "all_device_settings": {
+        "00a4da18625f56275c89e2fcd25a83c08c5ad3326452fa7e252fcc8a89c92493": {
+          "fan6": {
+            "channel_name": "fan6",
+            "profile_uid": "f63e4849-7b40-4b4d-953f-b9055ea3b1c2"
+          },
+          "fan2": {
+            "channel_name": "fan2",
+            "profile_uid": "f63e4849-7b40-4b4d-953f-b9055ea3b1c2"
+          },
+          "fan5": {
+            "channel_name": "fan5",
+            "profile_uid": "f63e4849-7b40-4b4d-953f-b9055ea3b1c2"
+          },
+          "fan3": {
+            "channel_name": "fan3",
+            "profile_uid": "f63e4849-7b40-4b4d-953f-b9055ea3b1c2"
+          },
+          "fan4": {
+            "channel_name": "fan4",
+            "profile_uid": "f63e4849-7b40-4b4d-953f-b9055ea3b1c2"
+          },
+          "fan1": {
+            "channel_name": "fan1",
+            "profile_uid": "f63e4849-7b40-4b4d-953f-b9055ea3b1c2"
+          }
+        }
+      }
+    },
+    {
+      "uid": "b9531d82-afee-40ed-95a9-3343a2b6a409",
+      "name": "Quiet",
+      "all_device_settings": {
+        "00a4da18625f56275c89e2fcd25a83c08c5ad3326452fa7e252fcc8a89c92493": {
+          "fan5": {
+            "channel_name": "fan5",
+            "profile_uid": "0840dd7f-04cb-4c72-9303-4d78f0e92a55"
+          },
+          "fan1": {
+            "channel_name": "fan1",
+            "profile_uid": "0840dd7f-04cb-4c72-9303-4d78f0e92a55"
+          },
+          "fan3": {
+            "channel_name": "fan3",
+            "profile_uid": "0840dd7f-04cb-4c72-9303-4d78f0e92a55"
+          },
+          "fan2": {
+            "channel_name": "fan2",
+            "profile_uid": "0840dd7f-04cb-4c72-9303-4d78f0e92a55"
+          },
+          "fan6": {
+            "channel_name": "fan6",
+            "profile_uid": "0840dd7f-04cb-4c72-9303-4d78f0e92a55"
+          },
+          "fan4": {
+            "channel_name": "fan4",
+            "profile_uid": "0840dd7f-04cb-4c72-9303-4d78f0e92a55"
+          }
+        }
+      }
+    }
+  ],
+  "order": [
+    "b9531d82-afee-40ed-95a9-3343a2b6a409",
+    "1f94e54f-8638-4042-ae31-19317b8e1b98",
+    "66723865-2211-40c1-a84e-d69cec1c26e3"
+  ]
+}
