@@ -13,7 +13,7 @@
     "unbash": "4.0.10"
   },
   "devDependencies": {
-    "@babel/core": "7.24.0",
+    "@babel/core": "7.29.6",
     "@babel/preset-typescript": "7.24.1",
     "babel-preset-solid": "1.8.17"
   }
