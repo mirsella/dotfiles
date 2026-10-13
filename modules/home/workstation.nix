@@ -17,6 +17,8 @@ let
     );
 in
 {
+  imports = [ ./electron-theme.nix ];
+
   programs.git.settings.commit.gpgsign = true;
   home.packages = [
     pkgs.kache
