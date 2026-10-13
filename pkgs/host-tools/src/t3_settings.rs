@@ -12,10 +12,13 @@ use std::{
 
 #[derive(Subcommand)]
 pub enum Operation {
-    /// Capture allowed settings directly into the chezmoi source, without committing.
+    /// Refresh the local portable bundle for chezmoi re-add.
     Capture {
         #[arg(long)]
         output: Option<PathBuf>,
+        /// Skip capture if this machine has no T3 userdata (for the chezmoi hook).
+        #[arg(long)]
+        if_configured: bool,
     },
     /// Merge a portable bundle into T3, preserving credentials and device-local state.
     Apply {
@@ -136,6 +139,23 @@ impl Policy {
             );
         }
         Ok(selected)
+    }
+
+    fn capture_entries(&self, name: &str, server: &Value, key: &str) -> Result<Map<String, Value>> {
+        let Some(entries) = server.get(key) else {
+            return Ok(Map::new());
+        };
+        entries
+            .as_object()
+            .with_context(|| format!("Expected an object at server.{key}"))?
+            .iter()
+            .map(|(id, value)| {
+                Ok((
+                    id.clone(),
+                    self.capture(name, value, &format!("server.{key}.{id}"))?,
+                ))
+            })
+            .collect()
     }
 
     fn validate(&self, name: &str, value: &Value) -> Result<()> {
@@ -492,11 +512,7 @@ fn warn_live_unknown_fields(
         ("providerInstances", "provider"),
         ("projectSettingsOverrides", "projectSettings"),
     ] {
-        if let Some(entries) = server[key].as_object() {
-            for (id, value) in entries {
-                policy.capture(name, value, &format!("server.{key}.{id}"))?;
-            }
-        }
+        policy.capture_entries(name, server, key)?;
     }
     Ok(())
 }
@@ -520,31 +536,12 @@ fn capture(policy: &Policy, home: &Path, base_dir: &Path) -> Result<Bundle> {
         &SettingsFile::read(dir.join("keybindings.json"), json!([]))?.value,
         "keybindings",
     )?;
-    let mut providers = Map::new();
-    if let Some(instances) = raw_server["providerInstances"].as_object() {
-        for (id, instance) in instances {
-            let saved = policy.capture(
-                "provider",
-                instance,
-                &format!("server.providerInstances.{id}"),
-            )?;
-            validate_provider(&saved, None)?;
-            providers.insert(id.clone(), saved);
-        }
+    let providers = policy.capture_entries("provider", &raw_server, "providerInstances")?;
+    for provider in providers.values() {
+        validate_provider(provider, None)?;
     }
-    let mut overrides = Map::new();
-    if let Some(entries) = raw_server["projectSettingsOverrides"].as_object() {
-        for (id, value) in entries {
-            overrides.insert(
-                id.clone(),
-                policy.capture(
-                    "projectSettings",
-                    value,
-                    &format!("server.projectSettingsOverrides.{id}"),
-                )?,
-            );
-        }
-    }
+    let mut overrides =
+        policy.capture_entries("projectSettings", &raw_server, "projectSettingsOverrides")?;
     let session = Session::open(base_dir, false)?;
     let mut projects = Vec::new();
     for project in session.projects()? {
@@ -825,24 +822,33 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
     let base_dir = base_dir
         .or_else(|| std::env::var_os("T3CODE_HOME").map(PathBuf::from))
         .unwrap_or_else(|| home.join(".t3"));
+    let default_bundle = home.join(".config/t3code/portable-settings.json");
     let policy = Policy::new();
     match operation {
-        Operation::Capture { output } => {
-            let output = output.unwrap_or_else(|| {
-                    home.join("dev/dotfiles/dotfiles/private_dot_config/t3code/private_portable-settings.json")
-            });
+        Operation::Capture {
+            output,
+            if_configured,
+        } => {
+            if if_configured && !base_dir.join("userdata").try_exists()? {
+                eprintln!(
+                    "t3-settings: skipping capture; no T3 userdata at {}",
+                    base_dir.display()
+                );
+                return Ok(());
+            }
+            let output = output.unwrap_or(default_bundle);
             let output = capture_destination(&output, &base_dir)?;
             let bundle = capture(&policy, &home, &base_dir)?;
             validate_bundle(&policy, &bundle)?;
             util::atomic_write(&output, &json_bytes(&bundle)?)?;
             println!(
-                "Captured allowed settings and {} projects into {}. Review the source diff before committing",
+                "Captured allowed settings and {} projects into {}",
                 bundle.projects.len(),
                 output.display()
             );
         }
         Operation::Apply { input, dry_run } => {
-            let input = input.unwrap_or_else(|| home.join(".config/t3code/portable-settings.json"));
+            let input = input.unwrap_or(default_bundle);
             let bundle = serde_json::from_slice(
                 &fs::read(&input).with_context(|| format!("Reading {}", input.display()))?,
             )
@@ -856,6 +862,29 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn capture_rejects_malformed_server_records_without_printing_values() {
+        let policy = Policy::new();
+        for (key, name) in [
+            ("providerInstances", "provider"),
+            ("projectSettingsOverrides", "projectSettings"),
+        ] {
+            assert!(
+                policy
+                    .capture_entries(name, &object(), key)
+                    .unwrap()
+                    .is_empty()
+            );
+            for value in [Value::Null, json!([]), json!(false), json!("private-value")] {
+                let error = policy
+                    .capture_entries(name, &json!({key: value}), key)
+                    .unwrap_err()
+                    .to_string();
+                assert_eq!(error, format!("Expected an object at server.{key}"));
+            }
+        }
+    }
 
     #[test]
     fn allowlist_excludes_nested_credentials_and_future_fields() {

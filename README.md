@@ -155,16 +155,29 @@ explicitly ignore it. Known exclusions do not produce warnings.
 With the T3 background server running, save preferences changed in the app:
 
 ```sh
-t3-settings capture
+chezmoi re-add
 git diff -- dotfiles/private_dot_config/t3code/private_portable-settings.json
 ```
 
-Capture writes directly into this repository's chezmoi source and does not
-commit or push. Review the bundle, including project script commands and URLs,
-before committing. Do not `chezmoi add` the live T3 settings files. To use the
-helper before the next Home Manager activation, run
-`~/.local/state/agent-tools/bootstrap/bin/t3-settings` from the bootstrap package
-above instead of `t3-settings`.
+The `re-add` pre-hook runs `t3-settings capture --if-configured` to refresh the
+local portable bundle before chezmoi copies it into the source. Machines without
+T3 userdata skip capture with a diagnostic; capture errors stop `re-add`.
+The hook also runs for targeted and dry-run invocations: it refreshes the local
+bundle, while chezmoi controls which files are saved. To save only T3 settings,
+use `chezmoi re-add ~/.config/t3code/portable-settings.json`.
+Chezmoi's usual automatic commit and push apply. Review other repository changes
+before `re-add`; the captured bundle includes project script commands and URLs.
+Do not `chezmoi add` the live T3 settings files.
+
+`t3-settings capture` can refresh the local bundle separately without committing
+or pushing. Before the next Home Manager activation, build the bootstrap package
+above and add its `bin` directory to `PATH` so the hook can find `t3-settings`:
+
+```sh
+export PATH="$HOME/.local/state/agent-tools/bootstrap/bin:$PATH"
+```
+
+Apply `~/.config/chezmoi/chezmoi.toml` to install the hook on an existing machine.
 
 On another machine, clone the project checkouts, start the T3 server, then:
 
