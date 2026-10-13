@@ -105,6 +105,11 @@ runCommand "agent-tools"
     exec ${lib.getExe host-tools} bootstrap-agent-tools ${configFile} "$@"
     EOF
     chmod +x $out/bin/bootstrap-agent-tools
+    cat > $out/bin/t3-settings <<'EOF'
+    #!${lib.getExe bash}
+    exec ${lib.getExe host-tools} t3-settings "$@"
+    EOF
+    chmod +x $out/bin/t3-settings
     ln -s ${desktopLauncher} $out/bin/t3code
     ln -s ${desktopLauncher} $out/bin/t3code-nightly
   ''

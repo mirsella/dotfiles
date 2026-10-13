@@ -137,9 +137,56 @@ updating that seed only affects fresh installs.
 Nix supplies the `t3code`/`t3code-nightly` launchers and desktop menu entry. On
 NixOS the launcher uses `appimage-run`; Arch runs the AppImage directly. A service
 drop-in puts `~/.local/bin` first in T3's PATH while preserving existing shell
-exports. Downloads use disk-backed scratch space under `~/dev`. T3 continues to
-own its background-service unit, settings, and updater state. Run `t3 service
-install` to enable the server on a fresh machine.
+exports. Downloads use disk-backed scratch space under `~/dev`. T3 owns its
+background-service unit and updater state. Run `t3 service install` to enable
+the server on a fresh machine.
+
+Chezmoi stores portable T3 preferences and project registrations in
+`~/.config/t3code/portable-settings.json`. The Nix-built `t3-settings` helper
+captures fields listed in `pkgs/host-tools/src/t3-settings-allowlist.json`.
+It excludes credentials, provider environment variables, browser profiles,
+saved connections, onboarding state and window geometry. Raw `~/.t3` and
+Electron profile directories are ignored by chezmoi. Conversations and
+attachments need a separate backup.
+Capture and apply report unknown field paths without printing their values.
+Add a field to the allowlist to capture it, or set its rule to `false` to
+explicitly ignore it. Known exclusions do not produce warnings.
+
+With the T3 background server running, save preferences changed in the app:
+
+```sh
+t3-settings capture
+git diff -- dotfiles/private_dot_config/t3code/private_portable-settings.json
+```
+
+Capture writes directly into this repository's chezmoi source and does not
+commit or push. Review the bundle, including project script commands and URLs,
+before committing. Do not `chezmoi add` the live T3 settings files. To use the
+helper before the next Home Manager activation, run
+`~/.local/state/agent-tools/bootstrap/bin/t3-settings` from the bootstrap package
+above instead of `t3-settings`.
+
+On another machine, clone the project checkouts, start the T3 server, then:
+
+```sh
+chezmoi apply ~/.config/t3code/portable-settings.json
+t3-settings apply --dry-run
+t3-settings apply
+```
+
+Apply merges allowed fields and preserves local credentials and unlisted
+settings outside lists. List settings, including keybindings, favorites,
+model options and project scripts, are replaced in full; unknown fields
+inside their items are not preserved. It clears saved preferences that were
+reset to defaults. Project
+paths under the source user's home become `~/...`; registration uses T3's
+project API and maps overrides to the destination IDs. Project settings use
+T3's canonical overrides; derived legacy views stay local. Missing checkouts
+are skipped with a warning; clone them and apply again. Existing conversations and
+projects outside the bundle are preserved. Saved server exposure and local
+environment preferences apply too. Close the settings editor while restoring,
+then restart the desktop to reload client preferences. Neither command clones
+repositories or restores authentication. Connections must be paired locally.
 
 ### Laptop authenticated boot (Arch)
 

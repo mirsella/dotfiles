@@ -12,6 +12,7 @@ mod monitoring;
 mod predator_boot;
 mod setup;
 mod suspend;
+mod t3_settings;
 #[cfg(test)]
 mod tests;
 mod uki;
@@ -31,6 +32,12 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     SyncAgentSkills,
+    T3Settings {
+        #[arg(long, global = true)]
+        base_dir: Option<PathBuf>,
+        #[command(subcommand)]
+        action: t3_settings::Operation,
+    },
     BootstrapAgentTools {
         config: PathBuf,
     },
@@ -138,6 +145,7 @@ enum Commands {
 fn run() -> Result<()> {
     match Cli::parse().command {
         Commands::SyncAgentSkills => agent_skills::run(),
+        Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
         Commands::BootstrapAgentTools { config } => agent_tools::bootstrap(&config),
         Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),
         Commands::ArchUki { config } => uki::run(&config),

@@ -70,5 +70,11 @@ kde shortcuts.kksrc
 # Handy rewrites its settings at runtime; managing it is pure churn.
 .local/share/com.pais.handy/settings_store.json
 
+# T3's portable bundle is captured explicitly. Raw state includes credentials and history.
+.t3/
+.t3/**
+.config/t3code-v2/
+.config/t3code-v2/**
+
 # Never manage dependency trees.
 node_modules/
