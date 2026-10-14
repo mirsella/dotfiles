@@ -13,9 +13,7 @@
   "projects": [],
   "skipSubagents": true,
   "rules": [
-    { "provider": "codex", "modelContains": "gpt", "ttlSeconds": 1800 },
-    { "provider": "opencode", "modelContains": "gpt", "ttlSeconds": 1800 },
-    { "provider": "opencode", "modelContains": "claude", "ttlSeconds": 300 },
-    { "provider": "opencode", "modelContains": "gemini", "ttlSeconds": 3600 }
+    { "provider": "codex", "modelContains": "gpt", "ttlSeconds": 1680 },
+    { "provider": "opencode", "modelContains": "deepseek", "ttlSeconds": 3600 }
   ]
 }
