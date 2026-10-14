@@ -1,5 +1,5 @@
 use crate::util;
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use std::{
     collections::HashSet,
     fs, io,
@@ -31,21 +31,18 @@ pub fn run(dconf: &str, recover: bool) -> Result<()> {
     }
     // Let the session's portal services come up before the first scan.
     thread::sleep(STARTUP_DELAY);
-    let mut previous: Option<HashSet<u32>> = None;
+    // An empty set makes the first scan treat already-running mains as new.
+    let mut previous = HashSet::new();
     let mut pending = false;
     let mut last_nudge: Option<Instant> = None;
     loop {
         let mains = collect_t3_mains()?;
-        match &previous {
-            Some(last) => pending |= mains.iter().any(|pid| !last.contains(pid)),
-            // T3 already running when the first scan happens still needs the nudge.
-            None => pending |= !mains.is_empty(),
-        }
-        previous = Some(mains);
+        pending |= !mains.is_subset(&previous);
+        previous = mains;
         if pending && last_nudge.is_none_or(|last| last.elapsed() >= DEBOUNCE) {
             pending = false;
             last_nudge = Some(Instant::now());
-            if let Err(error) = maybe_nudge(dconf, &state) {
+            if let Err(error) = nudge(dconf, &state) {
                 eprintln!("electron-theme-watch: {error:#}");
             }
         }
@@ -72,34 +69,27 @@ fn restore_interrupted(dconf: &str, state: &State) -> Result<()> {
     remove(&state.marker)
 }
 
-/// Nudge only when the running system is dark: with a light system the
-/// mis-resolved boot value (light) is already correct, so skip the flip.
-fn maybe_nudge(dconf: &str, state: &State) -> Result<()> {
+/// Flip a dark scheme to light and back so the portal re-emits it. Skipped on
+/// a light system, where the mis-resolved boot value is already correct.
+fn nudge(dconf: &str, state: &State) -> Result<()> {
     let current = util::output(dconf, &["read", SCHEME_KEY])?
         .trim()
         .to_owned();
     if current != "'prefer-dark'" {
-        println!("electron-theme-watch: new T3 Code instance, system is light, no nudge needed");
+        println!("electron-theme-watch: system is light, no nudge needed");
         return Ok(());
     }
-    nudge(dconf, state, &current)
-}
-
-fn nudge(dconf: &str, state: &State, current: &str) -> Result<()> {
     let Some(_lock) = try_lock(&state.lock)? else {
         // Another nudge is running and covers this instance.
         return Ok(());
-    };
-    let Some(other) = next_scheme(current) else {
-        bail!("unexpected color-scheme value: {current}");
     };
     // Record the value before changing it: an interrupted or failed nudge is
     // then repaired on the next --recover call or watcher start.
     util::atomic_write(&state.marker, current.as_bytes())?;
     println!("electron-theme-watch: new T3 Code instance on a dark system, nudging system theme");
-    apply(dconf, other)?;
+    apply(dconf, "'default'")?;
     thread::sleep(ROLLBACK_DELAY);
-    apply(dconf, current)?;
+    apply(dconf, &current)?;
     remove(&state.marker)
 }
 
@@ -108,14 +98,6 @@ fn apply(dconf: &str, value: &str) -> Result<()> {
         util::run(dconf, &["reset", SCHEME_KEY])
     } else {
         util::run(dconf, &["write", SCHEME_KEY, value])
-    }
-}
-
-fn next_scheme(current: &str) -> Option<&'static str> {
-    match current {
-        "'prefer-dark'" => Some("'default'"),
-        "'default'" | "'prefer-light'" => Some("'prefer-dark'"),
-        _ => None,
     }
 }
 
@@ -175,32 +157,22 @@ fn collect_t3_mains() -> Result<HashSet<u32>> {
 }
 
 fn is_t3_main(cmdline: &[u8]) -> bool {
-    // The AppImage parent and the mounted child both run without --type=;
-    // every helper (zygote/gpu/utility/renderer) carries --type= and the
-    // snapshot node workers run a .cjs script. Match on argv[0] so a shell
-    // merely mentioning a t3code path (e.g. `less .../t3code/...`) is not
-    // mistaken for the app itself.
-    if contains(cmdline, b"--type=") || contains(cmdline, b".cjs") {
-        return false;
-    }
-    let argv0 = cmdline
+    // argv is NUL-separated, except Chromium rewrites helper titles into one
+    // NUL-free field; splitting on both covers either shape. argv[0] must be
+    // the app binary itself, so a shell merely mentioning a t3code path (or a
+    // kernel thread with an empty cmdline) never matches; helpers carry
+    // --type= and snapshot workers run a .cjs script.
+    let mut args = cmdline
         .split(|byte| *byte == 0 || *byte == b' ')
-        .next()
-        .unwrap_or_default();
-    let base = argv0
-        .rsplit(|byte| *byte == b'/')
-        .next()
-        .unwrap_or_default();
-    base == b"t3code".as_slice()
-        || base.starts_with(b"t3code-")
-        || base.starts_with(b"t3code.")
-        || base.starts_with(b"T3-Code")
-}
-
-fn contains(haystack: &[u8], needle: &[u8]) -> bool {
-    haystack
-        .windows(needle.len())
-        .any(|window| window == needle)
+        .filter(|arg| !arg.is_empty());
+    args.next()
+        .and_then(|argv0| argv0.rsplit(|byte| *byte == b'/').next())
+        .is_some_and(|base| {
+            base == b"t3code".as_slice()
+                || base.starts_with(b"t3code-")
+                || base.starts_with(b"T3-Code")
+        })
+        && args.all(|arg| !arg.starts_with(b"--type=") && !arg.ends_with(b".cjs"))
 }
 
 fn remove(path: &Path) -> Result<()> {
@@ -209,28 +181,23 @@ fn remove(path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_t3_main, next_scheme};
+    use super::is_t3_main;
 
     #[test]
-    fn next_scheme_always_changes_the_value() {
-        assert_eq!(next_scheme("'prefer-dark'"), Some("'default'"));
-        assert_eq!(next_scheme("'default'"), Some("'prefer-dark'"));
-        assert_eq!(next_scheme("'prefer-light'"), Some("'prefer-dark'"));
-        assert_eq!(next_scheme("'other'"), None);
-    }
-
-    #[test]
-    fn t3_main_matching_covers_appimage_and_mounted_child() {
+    fn t3_main_matching() {
+        // AppImage parent and mounted child, NUL-separated or merged.
         assert!(is_t3_main(
             b"/home/mirsella/.local/share/t3code/app/T3-Code-nightly.AppImage"
         ));
         assert!(is_t3_main(
             b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code"
         ));
-        assert!(is_t3_main(b"/opt/t3code-nightly-bin/t3code"));
-        // Chromium rewrites helper argv into one NUL-free field for its title.
+        assert!(is_t3_main(
+            b"/opt/t3code-nightly-bin/t3code\0--ozone-platform=wayland\0"
+        ));
+        // Helpers and snapshot workers never match, in either argv shape.
         assert!(!is_t3_main(
-            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code --type=renderer --user-data-dir=/home/mirsella/.config/t3code-v2"
+            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code\0--type=renderer\0--user-data-dir=/home/mirsella/.config/t3code-v2"
         ));
         assert!(!is_t3_main(
             b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code --type=zygote"
@@ -241,20 +208,17 @@ mod tests {
         assert!(!is_t3_main(
             b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code /home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/resources/app.asar/apps/desktop/dist-electron/snapShot/SnapShotAccessibilityWorker.cjs read"
         ));
-        assert!(!is_t3_main(b"/usr/lib/chromium/chromium --type=renderer"));
-        assert!(!is_t3_main(b"firefox"));
-        // argv[0] rules out shells merely mentioning a t3code path.
-        assert!(is_t3_main(
-            b"/opt/t3code-nightly-bin/t3code\0--ozone-platform=wayland\0"
-        ));
-        assert!(is_t3_main(
-            b"/opt/t3code-nightly-bin/t3code --ozone-platform=wayland"
-        ));
+        // argv[0] rules out bystanders merely mentioning a t3code path.
         assert!(!is_t3_main(
             b"/usr/bin/bash\0-c\0exec -a /opt/t3code-nightly-bin/t3code sleep 30"
         ));
         assert!(!is_t3_main(
             b"less /home/mirsella/.local/share/t3code/app/log"
         ));
+        // Kernel threads have an empty cmdline, and other apps are out of scope.
+        assert!(!is_t3_main(b""));
+        assert!(!is_t3_main(b"firefox"));
+        assert!(!is_t3_main(b"/usr/lib/chromium/chromium"));
+        assert!(!is_t3_main(b"/usr/lib/chromium/chromium\0--type=renderer"));
     }
 }
