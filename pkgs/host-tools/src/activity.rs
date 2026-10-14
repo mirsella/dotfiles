@@ -135,7 +135,14 @@ impl AccessLog<'_> {
                 Some("Immich")
             } else if (host.eq_ignore_ascii_case("mirsella.mooo.com:4096")
                 || host.eq_ignore_ascii_case("mirsella.mooo.com:14096"))
-                && (OPENCODE.contains(&first) || path == "/global/event")
+                && (OPENCODE.contains(&first)
+                    || path == "/global/event"
+                    || (first == "api"
+                        && (OPENCODE.contains(&second)
+                            || matches!(
+                                second,
+                                "info" | "event" | "execution" | "form" | "location" | "message"
+                            ))))
             {
                 Some("OpenCode")
             } else if (host.eq_ignore_ascii_case("mirsella.mooo.com:4097")

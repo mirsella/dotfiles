@@ -31,16 +31,18 @@ The flake discovers these directories and sets hostnames automatically.
 - OpenCode extensions and their tests live in `pkgs/opencode-extensions`; Home
   Manager installs the compiled plugins. Its editable JSON settings remain in
   chezmoi. The idle watchdog is compiled from `pkgs/opencode-idle-watchdog`.
-- OpenCode's skill files are the canonical prompts, owned by
-  chezmoi. Edit them in `~/.config/opencode/skills` and use `chezmoi re-add` to save edits.
-  The local shared-skill link (`~/.agents/skills`) is chezmoi-managed; do not
-  track copies or turn OpenCode prompts into templates.
+- OpenCode's skill files are the canonical prompts, owned by chezmoi. Edit them
+  in `~/.config/opencode/skills` and use `chezmoi re-add` to save edits. Home Manager
+  links `~/.agents/skills` to that directory for Codex and Hermes. The shared link
+  is ignored by chezmoi; do not track copies or turn skills into templates.
 - Retire one-time migrations after every affected host has completed them. Keep
   deployment evidence in Git history rather than permanent acceptance reports.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
-- On Arch, pacman/AUR own application binaries; the HM profiles install config
+- OpenCode, Codex and T3 use writable standalone installs bootstrapped by
+  `programs.agent-tools`; T3 can update the native agent binaries. On Arch,
+  pacman/AUR own other application binaries; the HM profiles install config
   and services, and kache from the flake so the daemon and cargo wrapper always
   match. On NixOS, rebuild the system target, never activate a standalone
   HM profile for the same user. The standalone homes remain available for Arch.
@@ -87,8 +89,8 @@ Manual files outside the repo:
   storage timers and the fail2ban SSH jail are installed from
   `arch/maintenance/apply.py`. System
   Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks
-  remain manual. `pacman.conf` also pins `IgnorePkg = openchamber` so the AUR
-  package stays on 1.x with OpenCode 1.x. The Nix daemon ignores cache settings
+  remain manual. Remove the old `IgnorePkg = openchamber` pin when activating
+  OpenCode 2.x and OpenChamber 2.x together. The Nix daemon ignores cache settings
   from an untrusted Home Manager user config.
 - Predator: Freebox LAN IP is `192.168.1.1`; SMART runs daily short and weekly
   long tests on all five physical drives. Toshiba's earlier USB setup had repeated

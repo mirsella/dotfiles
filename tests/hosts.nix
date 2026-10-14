@@ -112,21 +112,12 @@ assert lib.assertMsg (
         "openchamber"
       ]
 ) "OpenCode and OpenChamber must share the workstation configuration and stay off Predator";
-assert lib.assertMsg (lib.all
-  (
-    name:
-    lib.any (
-      package: lib.hasPrefix "openchamber-1." package.name
-    ) desktops.${name}.home-manager.users.mirsella.home.packages
-    && !(lib.any (
-      package: lib.hasPrefix "openchamber-" package.name
-    ) flake.homeConfigurations.${name}.config.home.packages)
-  )
-  [
-    "main"
-    "laptop"
-  ]
-) "OpenChamber must stay on 1.x on NixOS and use the system package on Arch";
+assert lib.assertMsg (
+  lib.hasPrefix "2." flake.packages.x86_64-linux.openchamber.version
+  && lib.all (home: lib.any (
+      package: package.outPath == flake.packages.x86_64-linux.openchamber.outPath
+    ) home.home.packages) workstationHomes
+) "Every workstation must use the flake's OpenChamber v2 package";
 assert lib.assertMsg (lib.all
   (
     c:
@@ -159,10 +150,11 @@ assert lib.assertMsg
           && lib.hasPrefix "/usr/bin/" (builtins.head arch.systemd.user.services.${service}.Service.ExecStart)
         )
         [
-          "opencode"
-          "openchamber"
           "rclone-nextcloud"
         ]
+      && lib.all
+        (h: lib.hasPrefix "%h/.local/bin/opencode " (builtins.head h.systemd.user.services.opencode.Service.ExecStart))
+        [ home arch ]
       && home.programs.git.settings.user.signingkey == arch.programs.git.settings.user.signingkey
       && home.sops.secrets != { }
       && desktops.${name}.sops.secrets == { }
@@ -193,6 +185,22 @@ assert lib.assertMsg
     ]
   )
   "Desktop homes must use the right binaries and one user-level secret installer on both operating systems";
+assert lib.assertMsg
+  (lib.all (
+    home:
+    let
+      api = home.systemd.user.services.opencode;
+      ui = home.systemd.user.services.openchamber;
+    in
+    !(home.sops.secrets ? opencode_server)
+    && lib.hasInfix " serve --service " (builtins.head api.Service.ExecStart)
+    && api.Service.EnvironmentFile == [ home.sops.secrets.telegram_env.path ]
+    && lib.hasPrefix "${lib.getExe flake.packages.x86_64-linux.host-tools} opencode-client-env ${home.xdg.configHome}/opencode/service.json -- ${lib.getExe flake.packages.x86_64-linux.openchamber} serve " (
+      builtins.head ui.Service.ExecStart
+    )
+    && builtins.elem "opencode.service" ui.Unit.PartOf
+  ) workstationHomes)
+  "OpenChamber must use the compiled credential helper and OpenCode's native service credential on every workstation";
 assert lib.assertMsg (lib.all (
   home: lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.kache.Service.ExecStart)
 ) workstationHomes) "kache must run from the flake package on NixOS and Arch workstations";
@@ -207,7 +215,6 @@ assert lib.assertMsg
       )
       [
         "plugins"
-        "tui-plugins"
         "chunks"
       ]
     &&
@@ -215,8 +222,8 @@ assert lib.assertMsg
       == "${flake.packages.x86_64-linux.opencode-idle-watchdog}/bin/opencode-idle-watchdog"
   ) workstationHomes)
   "Home Manager must install the compiled OpenCode extensions and watchdog on both operating systems";
-assert lib.assertMsg (lib.all
-  (
+assert lib.assertMsg
+  (lib.all (
     home:
     let
       reaSkill = home.home.file.".config/opencode/skills/reverse-engineer-anything";
@@ -224,12 +231,12 @@ assert lib.assertMsg (lib.all
     !home.programs.opencode.enable
     && !(builtins.hasAttr "opencode/opencode.json" home.xdg.configFile)
     && lib.elem flake.packages.x86_64-linux.rea home.home.packages
-    && reaSkill.source
-    == "${flake.packages.x86_64-linux.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything"
+    &&
+      reaSkill.source
+      == "${flake.packages.x86_64-linux.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything"
     && reaSkill.recursive
-  )
-  workstationHomes
-) "Workstations must keep OpenCode JSONC canonical and install the REA skill without generating opencode.json";
+  ) workstationHomes)
+  "Workstations must keep OpenCode JSONC canonical and install the REA skill without generating opencode.json";
 assert lib.assertMsg (lib.all (
   home:
   let
@@ -243,19 +250,23 @@ assert lib.assertMsg (lib.all (
 ) workstationHomes
 && !(server.home-manager.users.mirsella.systemd.user.services ? electron-theme-watch)
 ) "The theme watcher must run the flake host-tools, recover after nudge failures, and stay off the headless server";
-assert lib.assertMsg (
-  lib.all
-    (
-      name:
-      let
-        nixosHome = desktops.${name}.home-manager.users.mirsella;
-        archHome = flake.homeConfigurations.${name}.config;
-      in
-      lib.elem flake.inputs.nixpkgs.legacyPackages.x86_64-linux.opencode nixosHome.home.packages
-      && !(lib.elem flake.inputs.nixpkgs.legacyPackages.x86_64-linux.opencode archHome.home.packages)
-    )
-    [ "main" "laptop" ]
-) "NixOS installs OpenCode from the flake while Arch leaves its binary to pacman";
+assert lib.assertMsg (lib.all
+  (
+    name:
+    let
+      nixosHome = desktops.${name}.home-manager.users.mirsella;
+      archHome = flake.homeConfigurations.${name}.config;
+    in
+    !(lib.elem flake.packages.x86_64-linux.opencode nixosHome.home.packages)
+    && !(lib.elem flake.packages.x86_64-linux.opencode archHome.home.packages)
+    && builtins.head nixosHome.systemd.user.services.opencode.Service.ExecStart
+    == "%h/.local/bin/opencode serve --service --hostname 127.0.0.1 --port 14096"
+  )
+  [
+    "main"
+    "laptop"
+  ]
+) "OpenCode must use its writable standalone installation on every workstation";
 assert lib.assertMsg (lib.all
   (
     config:

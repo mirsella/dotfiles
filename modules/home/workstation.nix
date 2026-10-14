@@ -25,10 +25,10 @@ in
     pkgs.opencode-idle-watchdog
     pkgs.rea
     pkgs.ghidra
+    pkgs.context7-account-broker
+    pkgs.openchamber
   ]
   ++ lib.optionals isNixOS [
-    pkgs.openchamber
-    pkgs.opencode
     pkgs.binaryen
     pkgs.gnumake
     pkgs.ninja
@@ -45,11 +45,18 @@ in
     source = lib.getExe pkgs.opencode-idle-watchdog;
     force = true;
   };
+  home.file.".local/bin/context7-account-broker" = {
+    source = lib.getExe pkgs.context7-account-broker;
+    force = true;
+  };
+  home.file.".local/bin/composio-mcp-headers" = {
+    source = "${pkgs.host-tools}/bin/composio-mcp-headers";
+    force = true;
+  };
   xdg.configFile =
     lib.genAttrs
       (map (directory: "opencode/${directory}") [
         "plugins"
-        "tui-plugins"
         "chunks"
       ])
       (path: {
@@ -89,7 +96,6 @@ in
           (import ../user-secrets.nix)
           // {
             telegram_env = "telegram.env";
-            opencode_server = "opencode/server.env";
             openchamber_server = "openchamber/server.env";
           }
         )
@@ -122,10 +128,9 @@ in
       WorkingDirectory = "%h";
       EnvironmentFile = [
         config.sops.secrets.telegram_env.path
-        config.sops.secrets.opencode_server.path
       ];
       Environment = servicePath;
-      ExecStart = "${bin pkgs.opencode "opencode"} serve --hostname 127.0.0.1 --port 14096";
+      ExecStart = "%h/.local/bin/opencode serve --service --hostname 127.0.0.1 --port 14096";
       Restart = "on-failure";
       RestartSec = "2s";
     };
@@ -144,17 +149,19 @@ in
         "opencode.service"
         "sops-nix.service"
       ];
-      PartOf = [ "default.target" ];
+      PartOf = [
+        "default.target"
+        "opencode.service"
+      ];
     };
     Service = {
       Type = "simple";
       WorkingDirectory = "%h";
       EnvironmentFile = [
-        config.sops.secrets.opencode_server.path
         config.sops.secrets.openchamber_server.path
       ];
       Environment = servicePath;
-      ExecStart = "${bin pkgs.openchamber "openchamber"} serve --host 127.0.0.1 --port 14097 --foreground";
+      ExecStart = "${lib.getExe pkgs.host-tools} opencode-client-env ${config.xdg.configHome}/opencode/service.json -- ${lib.getExe pkgs.openchamber} serve --host 127.0.0.1 --port 14097 --foreground";
       Restart = "on-failure";
       RestartSec = "2s";
     };

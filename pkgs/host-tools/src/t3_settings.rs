@@ -182,6 +182,9 @@ impl Policy {
     // Unknown object fields survive; lists are replaced as complete values.
     fn merge(&self, current: &mut Value, saved: Option<&Value>, rule: &Value) -> bool {
         let rule = self.rule(rule);
+        if rule.is_object() && !current.is_object() && saved.is_some_and(Value::is_object) {
+            *current = object();
+        }
         if rule.is_object() && current.is_object() && saved.is_none_or(Value::is_object) {
             let rules = rule.as_object().unwrap();
             let empty = Map::new();
@@ -371,7 +374,9 @@ struct Session {
 }
 
 fn cli(base_dir: &Path, args: &[&str]) -> Result<Vec<u8>> {
-    let result = Command::new("t3")
+    let program =
+        PathBuf::from(std::env::var_os("HOME").context("HOME is unset")?).join(".local/bin/t3");
+    let result = Command::new(program)
         .args(args)
         .arg("--base-dir")
         .arg(base_dir)
@@ -387,11 +392,18 @@ fn cli(base_dir: &Path, args: &[&str]) -> Result<Vec<u8>> {
 
 impl Session {
     fn open(base_dir: &Path, write: bool) -> Result<Self> {
-        let runtime: Value = serde_json::from_slice(
-            &fs::read(base_dir.join("userdata/server-runtime.json"))
-                .context("Start the T3 background server before capturing or restoring projects")?,
-        )
-        .context("Parsing T3 server runtime")?;
+        let runtime_path = base_dir.join("userdata/server-runtime.json");
+        let runtime: Value = util::wait_for_file(
+            &runtime_path,
+            std::time::Duration::from_secs(60),
+            || match fs::read(&runtime_path) {
+                Ok(bytes) => Ok(Some(
+                    serde_json::from_slice(&bytes).context("Parsing T3 server runtime")?,
+                )),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+                Err(error) => Err(error).context("Reading T3 server runtime"),
+            },
+        )?;
         let origin = runtime["origin"]
             .as_str()
             .context("Start the T3 background server before capturing or restoring projects")?
@@ -749,6 +761,43 @@ fn restore_server(
     Ok(())
 }
 
+fn configure_native_opencode(server: &mut Value, home: &Path) -> Result<()> {
+    let Some(providers) = server
+        .get_mut("providerInstances")
+        .and_then(Value::as_object_mut)
+    else {
+        return Ok(());
+    };
+    let mut password = None;
+    for provider in providers.values_mut() {
+        if provider["driver"] != "opencode" || provider["enabled"] != true {
+            continue;
+        }
+        let Some(server_url) = provider["config"]["serverUrl"].as_str() else {
+            continue;
+        };
+        let url = url::Url::parse(server_url)?;
+        if url.scheme() != "http"
+            || !matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"))
+            || url.path() != "/"
+            || url.port_or_known_default() != Some(14096)
+        {
+            continue;
+        }
+        let password = match password {
+            Some(ref password) => password,
+            None => password.insert(crate::opencode::wait_password(
+                &home.join(".config/opencode/service.json"),
+            )?),
+        };
+        provider["config"]
+            .as_object_mut()
+            .context("OpenCode config requires an object")?
+            .insert("serverPassword".into(), json!(password));
+    }
+    Ok(())
+}
+
 fn apply(
     policy: &Policy,
     mut bundle: Bundle,
@@ -781,6 +830,7 @@ fn apply(
     let ids = restore_projects(&session, &bundle, home, dry_run)?;
     server = SettingsFile::read(dir.join("settings.json"), object())?;
     restore_server(policy, &mut server.value, &bundle, &ids)?;
+    configure_native_opencode(&mut server.value, home)?;
     if dry_run {
         println!(
             "Validated portable settings and {} existing projects; no settings or projects changed",
@@ -862,6 +912,51 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_credentials_only_replace_matching_local_enabled_opencode() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let config = root.path().join(".config/opencode");
+        fs::create_dir_all(&config)?;
+        fs::write(
+            config.join("service.json"),
+            r#"{"password":"generated-private"}"#,
+        )?;
+        let mut settings = json!({"providerInstances": {
+            "native": {"driver":"opencode","enabled":true,"config":{"serverUrl":"http://127.0.0.1:14096","serverPassword":"stale","other":"keep"}},
+            "remote": {"driver":"opencode","enabled":true,"config":{"serverUrl":"http://example.test:14096","serverPassword":"remote"}},
+            "other-port": {"driver":"opencode","enabled":true,"config":{"serverUrl":"http://localhost:17000","serverPassword":"other"}},
+            "disabled": {"driver":"opencode","enabled":false,"config":{"serverUrl":"http://localhost:14096","serverPassword":"disabled"}}
+        }});
+        configure_native_opencode(&mut settings, root.path())?;
+        let providers = &settings["providerInstances"];
+        assert_eq!(
+            providers["native"]["config"]["serverPassword"],
+            "generated-private"
+        );
+        assert_eq!(providers["native"]["config"]["other"], "keep");
+        for (id, password) in [
+            ("remote", "remote"),
+            ("other-port", "other"),
+            ("disabled", "disabled"),
+        ] {
+            assert_eq!(providers[id]["config"]["serverPassword"], password);
+        }
+        let policy = Policy::new();
+        let portable = policy.capture_entries("provider", &settings, "providerInstances")?;
+        assert!(
+            portable
+                .values()
+                .all(|provider| provider["config"].get("serverPassword").is_none())
+        );
+        settings["providerInstances"]
+            .as_object_mut()
+            .unwrap()
+            .remove("native");
+        fs::remove_file(config.join("service.json"))?;
+        configure_native_opencode(&mut settings, root.path())?;
+        Ok(())
+    }
 
     #[test]
     fn capture_rejects_malformed_server_records_without_printing_values() {
@@ -1081,5 +1176,22 @@ mod tests {
             serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap()["serverPassword"],
             "keep"
         );
+    }
+
+    #[test]
+    fn empty_managed_maps_are_stable_across_repeated_restores() {
+        let policy = Policy::new();
+        let saved =
+            json!({"loadBalancingWeights": {}, "providerModelPreferences": {}, "favorites": []});
+        let mut current = json!({"loadBalancingWeights": null, "providerModelPreferences": {}, "future-local-field": "keep"});
+        policy.merge_section("client", &mut current, &saved);
+        let first = current.clone();
+        assert!(current.get("loadBalancingWeights").is_none());
+        assert!(current.get("providerModelPreferences").is_none());
+        assert_eq!(current["future-local-field"], "keep");
+        for _ in 0..3 {
+            policy.merge_section("client", &mut current, &saved);
+            assert_eq!(current, first);
+        }
     }
 }

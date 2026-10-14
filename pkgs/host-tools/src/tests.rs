@@ -30,6 +30,12 @@ fn authenticated_routes_and_public_exclusions() -> Result<()> {
         ("photos.mirsella.mooo.com", "/photos", None),
         ("mirsella.mooo.com:4096", "/session", Some("OpenCode")),
         ("mirsella.mooo.com:14096", "/global/event", Some("OpenCode")),
+        ("mirsella.mooo.com:14096", "/api/event", Some("OpenCode")),
+        (
+            "mirsella.mooo.com:4096",
+            "/api/session/active",
+            Some("OpenCode"),
+        ),
         ("mirsella.mooo.com:4096", "/global/health", None),
         ("mirsella.mooo.com:4097", "/api/config", Some("OpenChamber")),
         (

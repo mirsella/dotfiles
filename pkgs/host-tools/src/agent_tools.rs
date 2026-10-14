@@ -14,6 +14,8 @@ use std::{
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Config {
     codex_installer: PathBuf,
+    opencode_installer: PathBuf,
+    opencode_version: String,
     t3_installer: PathBuf,
     t3_version: String,
     desktop_image: PathBuf,
@@ -44,13 +46,37 @@ fn native_version(program: &Path, root: &Path) -> Result<Option<String>> {
     }
 }
 
-fn install(config: &Config, home: &Path, installer: &Path, vars: &[(&str, &str)]) -> Result<()> {
+fn ensure_native(
+    program: &Path,
+    root: &Path,
+    expected: &str,
+    accepts: impl Fn(&str) -> bool,
+    install: impl FnOnce() -> Result<()>,
+) -> Result<String> {
+    if let Some(version) = native_version(program, root)?.filter(|version| accepts(version)) {
+        return Ok(version);
+    }
+    install()?;
+    let version = native_version(program, root)?
+        .with_context(|| format!("{expected} installer did not select a standalone binary"))?;
+    ensure!(accepts(&version), "expected {expected}, got {version}");
+    Ok(version)
+}
+
+fn install(
+    config: &Config,
+    home: &Path,
+    installer: &Path,
+    vars: &[(&str, &str)],
+    args: &[&str],
+) -> Result<()> {
     // Upstream downloads can be large; never stage them in RAM-backed /tmp.
     let temporary = tempfile::Builder::new()
         .prefix(".agent-tools-install-")
         .tempdir_in(home.join("dev"))?;
     let status = Command::new(&config.shell)
         .arg(installer)
+        .args(args)
         .env("HOME", home)
         .env("TMPDIR", temporary.path())
         .env(
@@ -194,12 +220,36 @@ pub fn bootstrap(package: &Path) -> Result<()> {
     let bin = home.join(".local/bin");
     fs::create_dir_all(&bin)?;
 
+    let opencode_root = home.join(".opencode/bin");
+    let opencode = opencode_root.join("opencode");
+    let is_v2 = |version: &str| {
+        version
+            .split_whitespace()
+            .last()
+            .is_some_and(|version| version.trim_start_matches('v').starts_with("2."))
+    };
+    let opencode_version = ensure_native(&opencode, &opencode_root, "OpenCode v2", is_v2, || {
+        eprintln!("agent-tools: installing official standalone OpenCode v2");
+        install(
+            &config,
+            &home,
+            &config.opencode_installer,
+            &[],
+            &["--version", &config.opencode_version, "--no-modify-path"],
+        )
+    })?;
+    link(&opencode, &bin.join("opencode"))?;
+    eprintln!("agent-tools: OpenCode {opencode_version}");
+
     let codex = bin.join("codex");
     let codex_home = home.join(".codex");
     let codex_releases = codex_home.join("packages/standalone/releases");
-    let codex_version = match native_version(&codex, &codex_releases)? {
-        Some(version) => version,
-        None => {
+    let codex_version = ensure_native(
+        &codex,
+        &codex_releases,
+        "Codex",
+        |_| true,
+        || {
             eprintln!("agent-tools: installing official standalone Codex (latest stable)");
             install(
                 &config,
@@ -211,19 +261,21 @@ pub fn bootstrap(package: &Path) -> Result<()> {
                     ("CODEX_HOME", crate::util::path(&codex_home)?),
                     ("CODEX_INSTALL_DIR", crate::util::path(&bin)?),
                 ],
-            )?;
-            native_version(&codex, &codex_releases)?
-                .context("Codex installer did not select a standalone package")?
-        }
-    };
+                &[],
+            )
+        },
+    )?;
     eprintln!("agent-tools: {codex_version}");
 
     let t3 = bin.join("t3");
     let t3_home = home.join(".t3");
     let t3_releases = t3_home.join("runtime/versions");
-    let t3_version = match native_version(&t3, &t3_releases)? {
-        Some(version) if version.contains("-nightly.") => version,
-        _ => {
+    let t3_version = ensure_native(
+        &t3,
+        &t3_releases,
+        "nightly T3",
+        |version| version.contains("-nightly."),
+        || {
             eprintln!("agent-tools: installing standalone T3 CLI (nightly)");
             install(
                 &config,
@@ -235,16 +287,10 @@ pub fn bootstrap(package: &Path) -> Result<()> {
                     ("T3CODE_HOME", crate::util::path(&t3_home)?),
                     ("T3CODE_INSTALL_BIN_DIR", crate::util::path(&bin)?),
                 ],
-            )?;
-            let version = native_version(&t3, &t3_releases)?
-                .context("T3 installer did not select a standalone runtime")?;
-            ensure!(
-                version.contains("-nightly."),
-                "expected nightly T3, got {version}"
-            );
-            version
-        }
-    };
+                &[],
+            )
+        },
+    )?;
     eprintln!("agent-tools: {t3_version}");
 
     seed_desktop(
@@ -258,7 +304,48 @@ pub fn bootstrap(package: &Path) -> Result<()> {
         "agent-tools: protected installed package at {}",
         installed.display()
     );
+    ensure_t3_service(&home)?;
     Ok(())
+}
+
+fn ensure_t3_service(home: &Path) -> Result<()> {
+    if home.join(".config/systemd/user/t3code.service").exists() {
+        return Ok(());
+    }
+    let available = Command::new("systemctl")
+        .args(["--user", "show-environment"])
+        .output()?;
+    if !available.status.success() {
+        eprintln!("agent-tools: T3 service setup will finish when the user manager starts");
+        return Ok(());
+    }
+    crate::util::command_output(
+        Command::new(home.join(".local/bin/t3"))
+            .args(["service", "install"])
+            .env("TMPDIR", home.join("dev/.cache/agent-tools"))
+            .stdin(Stdio::null()),
+    )
+    .context("install T3 background service")?;
+    eprintln!("agent-tools: installed T3 background service");
+    Ok(())
+}
+
+pub fn setup() -> Result<()> {
+    let home = home()?;
+    ensure_t3_service(&home)?;
+    crate::util::run("systemctl", &["--user", "start", "t3code.service"])?;
+    let input = home.join(".config/t3code/portable-settings.json");
+    if !input.is_file() {
+        eprintln!("agent-tools: apply editable dotfiles to restore T3 preferences");
+        return Ok(());
+    }
+    crate::t3_settings::run(
+        None,
+        crate::t3_settings::Operation::Apply {
+            input: Some(input),
+            dry_run: false,
+        },
+    )
 }
 
 pub fn environment(file: &Path) -> Result<()> {
@@ -279,6 +366,9 @@ pub fn environment(file: &Path) -> Result<()> {
     };
     let contents =
         environment_contents(&existing, path.to_str().context("PATH is not UTF-8")?, &tmp)?;
+    if contents == existing {
+        return Ok(());
+    }
     crate::util::atomic_write(file, contents.as_bytes())
 }
 
@@ -329,6 +419,51 @@ mod tests {
             .prefix(".agent-tools-test-")
             .tempdir()
             .unwrap()
+    }
+
+    #[test]
+    fn standalone_setup_preserves_updates_and_validates_installer_output() -> Result<()> {
+        let root = scratch();
+        let program = root.path().join("agent");
+        let install_version = |version| -> Result<()> {
+            fs::write(&program, format!("#!/bin/sh\necho {version}\n"))?;
+            fs::set_permissions(&program, fs::Permissions::from_mode(0o755))?;
+            Ok(())
+        };
+        let accepts = |version: &str| version.starts_with("2.");
+        assert_eq!(
+            ensure_native(&program, root.path(), "v2 agent", accepts, || {
+                install_version("2.0.29")
+            })?,
+            "2.0.29"
+        );
+        assert_eq!(
+            ensure_native(
+                &program,
+                root.path(),
+                "v2 agent",
+                accepts,
+                || anyhow::bail!("updated binary must be kept")
+            )?,
+            "2.0.29"
+        );
+        install_version("1.0.0")?;
+        assert!(
+            ensure_native(&program, root.path(), "v2 agent", accepts, || {
+                install_version("1.1.0")
+            })
+            .unwrap_err()
+            .to_string()
+            .contains("expected v2 agent")
+        );
+        fs::remove_file(&program)?;
+        assert!(
+            ensure_native(&program, root.path(), "v2 agent", accepts, || Ok(()))
+                .unwrap_err()
+                .to_string()
+                .contains("did not select a standalone binary")
+        );
+        Ok(())
     }
 
     #[test]

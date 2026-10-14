@@ -9,16 +9,16 @@
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "opencode-extensions";
-  version = "0.1.0";
+  version = "2.0.0";
   src = lib.fileset.toSource {
     root = ./.;
     fileset = lib.fileset.unions [
       ./package.json
       ./pnpm-lock.yaml
+      ./pnpm-workspace.yaml
       ./build.mjs
       ./lib
       ./plugins
-      ./tui-plugins
       ./test
     ];
   };
@@ -32,7 +32,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     inherit (finalAttrs) pname version src;
     pnpm = pnpm_10;
     fetcherVersion = 4;
-    hash = "sha256-xVylSQfcvKQhNVAsEf8uAPt/O2X1TngmkwqWr4zS3H4=";
+    hash = "sha256-QDdn+fb2jGCq3zyIemH31DmB7XiJz6m1k6e7Ugl6Q3o=";
   };
   buildPhase = ''
     runHook preBuild
@@ -56,14 +56,14 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook preInstallCheck
     bun -e 'for (const file of new Bun.Glob("plugins/*.js").scanSync(process.argv[1])) {
       const plugin = await import(`''${process.argv[1]}/''${file}`);
-      if (!Object.keys(plugin).length || Object.values(plugin).some(value => typeof value !== "function")) {
+      if (Object.keys(plugin).length !== 1 || typeof plugin.default?.id !== "string" || typeof plugin.default?.setup !== "function") {
         throw new Error(`Invalid installed plugin exports: ''${file}`);
       }
     }' "$out/share/opencode"
     runHook postInstallCheck
   '';
   meta = {
-    description = "Local OpenCode server and TUI extensions";
+    description = "Local OpenCode server extensions";
     platforms = lib.platforms.linux;
   };
 })

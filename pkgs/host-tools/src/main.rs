@@ -7,7 +7,9 @@ mod hardware;
 mod hermes;
 mod maintenance;
 mod memory;
+mod migration_backups;
 mod monitoring;
+mod opencode;
 mod predator_boot;
 mod setup;
 mod suspend;
@@ -32,6 +34,11 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     ComposioMcpHeaders,
+    OpencodeClientEnv {
+        config: PathBuf,
+        #[arg(required = true, num_args = 1.., trailing_var_arg = true)]
+        command: Vec<std::ffi::OsString>,
+    },
     T3Settings {
         #[arg(long, global = true)]
         base_dir: Option<PathBuf>,
@@ -40,6 +47,11 @@ enum Commands {
     },
     BootstrapAgentTools {
         package: PathBuf,
+    },
+    AgentToolsSetup,
+    AgentToolsBackups {
+        #[command(subcommand)]
+        action: migration_backups::Operation,
     },
     AgentToolsEnvironment {
         file: PathBuf,
@@ -152,9 +164,12 @@ enum Commands {
 
 fn run() -> Result<()> {
     match Cli::parse().command {
+        Commands::OpencodeClientEnv { config, command } => opencode::client_env(&config, &command),
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
         Commands::BootstrapAgentTools { package } => agent_tools::bootstrap(&package),
+        Commands::AgentToolsSetup => agent_tools::setup(),
+        Commands::AgentToolsBackups { action } => migration_backups::run(action),
         Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),
         Commands::ArchUki { config } => uki::run(&config),
         Commands::PredatorBoot { config, action } => predator_boot::run(&config, action),

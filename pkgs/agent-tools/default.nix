@@ -23,6 +23,11 @@
 let
   t3Version = "0.0.46-nightly.20261013.3053";
   t3Revision = "6524a8d43795dc543f7cfb572388cdea3662ad48";
+  opencodeVersion = "2.0.28";
+  opencodeInstaller = fetchurl {
+    url = "https://raw.githubusercontent.com/anomalyco/opencode/1f4d07a4a519185955ae8ab2ea3607805509e386/install";
+    hash = "sha256-vHDdMX/RLvCTUM2xZn5V4Z+eez0ol9Oht1CxZa5XnYc=";
+  };
   codexInstaller = fetchurl {
     url = "https://raw.githubusercontent.com/openai/codex/092d3acd6bec3e3a14bdc7e7a2810ab628ab759d/scripts/install/install.sh";
     hash = "sha256-FQ489nVoLv6qwRWqN0et0/J4h4ltBM5tC1ZHjYtCi/Y=";
@@ -67,6 +72,8 @@ let
     builtins.toJSON {
       inherit
         codexInstaller
+        opencodeInstaller
+        opencodeVersion
         t3Installer
         t3Version
         desktopImage
@@ -92,7 +99,7 @@ in
 runCommand "agent-tools"
   {
     meta = {
-      description = "Bootstrap writable Codex and nightly T3 CLI/desktop installs";
+      description = "Bootstrap writable OpenCode, Codex and nightly T3 installs";
       mainProgram = "bootstrap-agent-tools";
       platforms = [ "x86_64-linux" ];
     };

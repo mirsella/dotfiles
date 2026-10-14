@@ -17,7 +17,7 @@ const INTERACTIVE_SCORE: i32 = -900;
 fn desired_score(executable: &OsStr, current: i32) -> i32 {
     let name = executable.as_bytes();
     match name.strip_suffix(b" (deleted)").unwrap_or(name) {
-        b"opencode" | b"rio" | b"wezterm-gui" => INTERACTIVE_SCORE,
+        b"opencode" | b"opencode.exe" | b"opencode2" | b"rio" | b"wezterm-gui" => INTERACTIVE_SCORE,
         b"rustc" | b"cc1" | b"cc1plus" | b"clang" | b"clang++" | b"gcc" | b"g++" | b"ld"
         | b"ld.lld" | b"lld" | b"rust-lld" | b"wasm-ld" | b"wasm-opt" | b"wasm-bindgen" => {
             current.max(800)
@@ -202,6 +202,14 @@ mod tests {
         fs::write(invalid.join("oom_score_adj"), "invalid")?;
         assert!(sweep(root.path(), unsafe { libc::getuid() }).is_err());
         assert_eq!(desired_score(OsStr::new("opencode-helper"), 200), 200);
+        assert_eq!(
+            desired_score(OsStr::new("opencode.exe"), 200),
+            INTERACTIVE_SCORE
+        );
+        assert_eq!(
+            desired_score(OsStr::new("opencode2"), 200),
+            INTERACTIVE_SCORE
+        );
         Ok(())
     }
 }

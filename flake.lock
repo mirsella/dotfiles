@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "context7-account-broker": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791901208,
+        "narHash": "sha256-pMq6lWzpKGGU573QDsUMhwXYfMJd/BLdQD8SE7LOVe0=",
+        "owner": "mirsella",
+        "repo": "context7-account-broker",
+        "rev": "d9476107e9b961d970af806e94fe47efca87aaa7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mirsella",
+        "repo": "context7-account-broker",
+        "rev": "d9476107e9b961d970af806e94fe47efca87aaa7",
+        "type": "github"
+      }
+    },
     "crane": {
       "locked": {
         "lastModified": 1781825982,
@@ -439,6 +456,7 @@
     },
     "root": {
       "inputs": {
+        "context7-account-broker": "context7-account-broker",
         "disko": "disko",
         "hermes-agent": "hermes-agent",
         "home-manager": "home-manager",

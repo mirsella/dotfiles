@@ -3,6 +3,9 @@
 **/.npmrc
 .config/npm/npmrc
 
+# OpenCode generates device-local service credentials and connection state.
+.config/opencode/service*.json
+
 # vim: set ft=gitignore:
 cron/
 etc/
@@ -23,8 +26,6 @@ kde shortcuts.kksrc
 # Home Manager installs compiled extensions and the idle watchdog.
 .config/opencode/plugins/
 .config/opencode/plugins/**
-.config/opencode/tui-plugins/
-.config/opencode/tui-plugins/**
 .config/opencode/chunks/
 .config/opencode/chunks/**
 .local/bin/opencode-idle-watchdog
@@ -66,8 +67,12 @@ kde shortcuts.kksrc
 .local/share/proton-pass-cli/
 .local/share/proton-pass-cli/**
 
-# Codex command adapters were generated locally; keep any of them unmanaged.
-.codex/skills/*/SKILL.md
+# Home Manager shares the editable OpenCode skills with Codex and Hermes.
+.agents/skills
+.agents/skills/**
+# Codex installs its built-in skills itself.
+.codex/skills/.system/
+.codex/skills/.system/**
 
 # Handy rewrites its settings at runtime; managing it is pure churn.
 .local/share/com.pais.handy/settings_store.json

@@ -97,11 +97,11 @@ supplies other binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
-### Codex and T3 Code
+### OpenCode, Codex and T3 Code
 
 All three hosts import `modules/home/agent-tools.nix`. Home Manager runs the
 Nix-built `bootstrap-agent-tools` helper during activation. It installs the
-official standalone Codex CLI (latest stable), the standalone T3 CLI (nightly),
+official standalone OpenCode v2 CLI, Codex CLI (latest stable), T3 CLI (nightly),
 and a separate nightly T3 desktop AppImage. To apply just this bootstrap without
 switching the rest of a host's configuration:
 
@@ -130,10 +130,11 @@ Nix builds the Rust helpers and caches package outputs. Cargo compilation
 directories are temporary, not part of the installed package. For interactive
 Cargo work, use the crate's ignored `pkgs/<crate>/target/` directory.
 
+OpenCode lives at `~/.opencode/bin/opencode`, linked from `~/.local/bin`.
 Codex lives under `~/.codex/packages/standalone`, and T3's CLI releases under
 `~/.t3/runtime/versions`. The desktop AppImage is a writable file at
 `~/.local/share/t3code/app/T3-Code-nightly.AppImage`. Activation keeps existing
-native installs; `codex update`, `t3 update`, and the desktop's updater own
+native installs; `opencode upgrade`, `codex update`, `t3 update`, and the desktop's updater own
 subsequent releases. The initial CLI and desktop share a pinned nightly version;
 updating that seed only affects fresh installs.
 
@@ -141,8 +142,12 @@ Nix supplies the `t3code`/`t3code-nightly` launchers and desktop menu entry. On
 NixOS the launcher uses `appimage-run`; Arch runs the AppImage directly. A service
 drop-in puts `~/.local/bin` first in T3's PATH while preserving existing shell
 exports. Downloads use disk-backed scratch space under `~/dev`. T3 owns its
-background-service unit and updater state. Run `t3 service install` to enable
-the server on a fresh machine.
+background-service unit and updater state. Bootstrap installs the T3 service
+when a user manager is available; setup finishes on the next user login otherwise.
+Home Manager starts `agent-tools-setup.service` after activation. It waits for
+T3's runtime file and restores the editable portable preferences through T3's
+project API. Changes to the portable bundle, OpenCode's service credential, or
+T3's runtime file trigger the same idempotent setup.
 
 Chezmoi stores portable T3 preferences and project registrations in
 `~/.config/t3code/portable-settings.json`. The Nix-built `t3-settings` helper
@@ -151,6 +156,11 @@ It excludes credentials, provider environment variables, browser profiles,
 saved connections, onboarding state and window geometry. Raw `~/.t3` and
 Electron profile directories are ignored by chezmoi. Conversations and
 attachments need a separate backup.
+For enabled OpenCode instances at the local singleton on port 14096, apply reads
+the password from `~/.config/opencode/service.json` into the local T3 settings.
+The password stays out of portable captures and Git. Other endpoints keep their
+own credentials. GitHub device authorization and agent-provider logins remain
+device-local.
 Capture and apply report unknown field paths without printing their values.
 Add a field to the allowlist to capture it, or set its rule to `false` to
 explicitly ignore it. Known exclusions do not produce warnings.
@@ -171,6 +181,13 @@ use `chezmoi re-add ~/.config/t3code/portable-settings.json`.
 Chezmoi's usual automatic commit and push apply. Review other repository changes
 before `re-add`; the captured bundle includes project script commands and URLs.
 Do not `chezmoi add` the live T3 settings files.
+
+Completed migration backups under `~/dev/opencode-v1-backups` can be enrolled
+with `host-tools agent-tools-backups enroll <bundle-directory>`. The weekly
+Home Manager timer keeps the newest two enrolled bundles and every enrolled
+bundle younger than 30 days. It prunes complete bundle directories together;
+unenrolled directories and symlinks are excluded. Preview retention with
+`host-tools agent-tools-backups prune --dry-run`.
 
 `t3-settings capture` can refresh the local bundle separately without committing
 or pushing. Home Manager installs its launcher at `~/.local/bin/t3-settings`.
@@ -366,9 +383,53 @@ These tests use generated units and disposable files; they do not activate a sys
 
 ## OpenCode extensions
 
-`pkgs/opencode-extensions` owns the local plugins, TUI extensions and their tests.
-Its Nix build bundles dependencies and compiles the cache timer from TSX with a
-locked toolchain. Home Manager installs the compiled files; chezmoi owns the JSON
+The bootstrap seeds OpenCode 2.0.28 and preserves existing v2 installs so T3 can
+update them. Its service runs `~/.local/bin/opencode` on Arch and NixOS.
+OpenChamber 2.3.1 stays managed by Arch packages or this flake on NixOS; remove
+the old manual `IgnorePkg = openchamber` pin when upgrading it.
+The native service generates its private password in
+`~/.config/opencode/service.json` and uses the fixed Basic username `opencode`.
+OpenChamber receives that credential at startup; the idle watchdog reads it.
+The old SOPS API password is no longer loaded by these services.
+
+At activation, stop the v1 server and restart `opencode.service` after installing
+the prepared configuration. Rebuilds intentionally keep a running server; this
+major upgrade needs an explicit restart. `serve --service` registers this daemon
+for terminal discovery and keeps one queue owner.
+The Nushell `oc`/`occ` shortcuts use that discovery; `opencode-plugin-update`
+uses the native package updater.
+Codex's Composio headers helper and OpenCode's auth plugin reuse the existing
+Composio CLI login; neither needs a separate OAuth login.
+
+Chezmoi owns native `opencode.jsonc` and global `cli.json`. The server config
+uses `plugins`, native MCP/permission/provider shapes, and Sleev provider
+headers beside `settings.baseURL`. Sleev's v2 setup omits `compaction.prune`;
+automatic compaction keeps its normal default. Terminal plugins use absolute
+file URLs because native CLI plugin paths resolve from the working directory.
+Runtime TUI preference changes write to `cli.json`; save them in its chezmoi
+source too. Native keybindings apply apart from Ctrl-Alt-W for workspaces:
+Ctrl-O opens recent sessions/projects, Ctrl-Alt-U/D scroll half a page, and
+F2/Shift-F2 cycle recent models.
+
+The local browser/computer-use worktrees prepare 2.0.0 for OpenCode v2 and
+separate 1.0.0 releases for v1. Their Rust MCP binaries and Codex manifests are
+shared across harnesses. These prepared configs use local packages until npm
+publication; applying them is a separate activation step.
+
+The retained extensions are Composio auth, Git diff handling, a small subagent
+model-selection policy. The policy lets
+agents choose available models and variants, preferring lightweight workers for
+routine tasks and reserving Astra for explicit requests. Native delegation owns
+child validation, nesting limits, completion notifications and model changes.
+The old forced routing, `/subagents` picker, saved modes and model pinning are
+retired. The shared orchestration skill still describes the delegation workflow.
+Commands inherit the selected model. Native recovery replaces custom retry/subagent
+watchdog extensions; native terminal theme detection selects Rose Pine's light
+or dark palette. All native model variants remain available. The separate Rust
+idle watchdog uses the v2 server API.
+
+`pkgs/opencode-extensions` owns the local server plugins and their tests.
+Its Nix build bundles dependencies with a locked toolchain. Home Manager installs the compiled files; chezmoi owns the JSON
 settings. Build and test the extensions and the compiled idle watchdog with:
 
 ```sh
@@ -383,13 +444,17 @@ on invocation.
 ## Agent prompts
 
 OpenCode's skills are the canonical prompts: `~/.config/opencode/skills/*/SKILL.md`,
-tracked under `dotfiles/private_dot_config/opencode/skills/`. (The old
-`commands/*.md` prompts were migrated to skills of the same name; `commitdiff`
-was deleted outright.)
+tracked under `dotfiles/private_dot_config/opencode/skills/`. Edit the live skill
+files and save them with `chezmoi re-add` after reviewing the shared repository.
 
-Edit the live skill files and save them with `chezmoi re-add`. Applying the
-dotfiles links `~/.agents/skills` to OpenCode's skills via chezmoi. Restart the
-agents to reload their skill lists after adding or removing a skill.
+Home Manager links `~/.agents/skills` to the editable OpenCode skills for Codex
+and Hermes. [Codex discovers user skills through that directory](https://developers.openai.com/codex/skills).
+Changes are visible through the link without copying files or running a sync
+command. Restart agents when their loaded skill lists need refreshing.
+
+The old commands have migrated to skills; `commitdiff` and `autocommit` are
+retired. Home Manager owns the shared link, and chezmoi ignores it. Codex's
+built-in skills remain managed by Codex.
 
 ## REA reverse engineering
 

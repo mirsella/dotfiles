@@ -25,7 +25,12 @@
     "diffIgnoreWhitespace": true,
     "diffLayout": "stacked",
     "environmentIdentificationMode": "artwork",
-    "favorites": [],
+    "favorites": [
+      {
+        "provider": "opencode",
+        "model": "opencode-go/step-5-preview-free"
+      }
+    ],
     "followUpBehavior": "queue",
     "fontFamilyCode": "",
     "fontFamilyComposer": "",
@@ -384,17 +389,25 @@
     "serverExposureMode": "network-accessible"
   },
   "providers": {
+    "codex": {
+      "config": {
+        "binaryPath": "/home/mirsella/.local/bin/codex"
+      },
+      "driver": "codex",
+      "enabled": true
+    },
     "claudeAgent": {
       "driver": "claudeAgent",
       "enabled": false
     },
     "opencode": {
       "config": {
-        "serverUrl": "http://localhost:14096"
+        "serverUrl": "http://127.0.0.1:14096",
+        "binaryPath": "/home/mirsella/.opencode/bin/opencode"
       },
       "displayName": "OpenCode",
       "driver": "opencode",
-      "enabled": false
+      "enabled": true
     }
   },
   "keybindings": [
