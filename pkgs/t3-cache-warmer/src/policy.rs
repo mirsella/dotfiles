@@ -50,6 +50,9 @@ pub fn seed(view: &ThreadView) -> ThreadState {
         last_activity_at: Some(view.updated_at),
         last_cache_at: Some(view.updated_at),
         seen_updated_at: Some(view.updated_at),
+        settled: view.settled,
+        snoozed: view.snoozed,
+        subagent: view.subagent,
         ..ThreadState::default()
     }
 }
@@ -102,14 +105,20 @@ fn stored_gate(
     if now.as_second() - last_activity.as_second() > config.active_window_minutes as i64 * 60 {
         return Err(SkipReason::IdleTooLong);
     }
-    if state.pending_warm_at.is_some() {
-        // A keepalive is still in flight; let it land before deciding again.
+    let last_cache = state.last_cache_at.unwrap_or(last_activity);
+    if state.pending_warm_at.is_some()
+        && now < refresh_due_after(last_cache, ttl, config.lead_seconds)
+    {
+        // A keepalive is still in flight and its cache write is not due yet;
+        // let it land before deciding again. Past due the block lifts: the
+        // freshness check below re-arms the refresh instead of letting the
+        // cache go stale behind a slow turn.
         return Err(SkipReason::CacheFresh);
     }
     if state.refreshes >= config.max_refreshes_per_activity {
         return Err(SkipReason::BudgetSpent);
     }
-    Ok((ttl, state.last_cache_at.unwrap_or(last_activity)))
+    Ok((ttl, last_cache))
 }
 
 /// The moment a cache written at `last_cache` should be refreshed: its TTL
@@ -407,6 +416,36 @@ mod tests {
             decide(&config, &view("2026-10-14T09:00:00Z"), thread, wake),
             Decision::Warm
         );
+    }
+
+    #[test]
+    fn pending_blocks_until_due_then_yields() {
+        let config = config();
+        let mut state = warm_state("2026-10-14T09:00:00Z");
+        state.pending_warm_at = Some(timestamp("2026-10-14T09:04:00Z"));
+        let view = view("2026-10-14T09:00:00Z");
+        assert_eq!(
+            decide(&config, &view, &state, timestamp("2026-10-14T09:10:00Z")),
+            Decision::Skip {
+                reason: SkipReason::CacheFresh
+            },
+            "in-flight keepalive, cache not due yet"
+        );
+        assert_eq!(
+            decide(&config, &view, &state, timestamp("2026-10-14T09:40:00Z")),
+            Decision::Warm,
+            "past due the block lifts instead of going stale"
+        );
+    }
+
+    #[test]
+    fn seed_copies_the_parking_flags() {
+        let mut seen = view("2026-10-14T09:00:00Z");
+        seen.settled = true;
+        seen.snoozed = true;
+        seen.subagent = true;
+        let state = seed(&seen);
+        assert!(state.settled && state.snoozed && state.subagent);
     }
 
     #[test]

@@ -4,10 +4,11 @@ mod policy;
 mod state;
 mod t3;
 
+use std::collections::HashSet;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
@@ -278,6 +279,7 @@ fn tick(
         observed: 0,
         errors: 0,
     };
+    let mut seen: HashSet<String> = HashSet::new();
     for project in &projects {
         let threads = client
             .thread_list(project)
@@ -287,6 +289,7 @@ fn tick(
                 continue;
             };
             summary.observed += 1;
+            seen.insert(view.id.clone());
             let entry = state.threads.entry(view.id.clone()).or_insert_with(|| seed(&view));
             entry.title = view.title.clone();
             entry.provider = view.provider.clone();
@@ -294,7 +297,18 @@ fn tick(
             expire_pending(entry, now, config.send_grace_seconds);
             observe(entry, &view, config.send_grace_seconds);
             if let Decision::Warm = decide(config, &view, entry, now) {
-                let request_id = format!("cache-warm-{}-r{}", short_id(&view.id), entry.refreshes + 1);
+                // Unique per attempt: the key deduplicates sends server-side,
+                // so a new keepalive must never reuse an earlier key (the
+                // refresh counter resets on real activity and would otherwise
+                // collide across epochs).
+                static SEND_SEQ: AtomicU64 = AtomicU64::new(0);
+                let seq = SEND_SEQ.fetch_add(1, Ordering::Relaxed);
+                let request_id = format!(
+                    "cache-warm-{}-r{}-{}-{seq}",
+                    short_id(&view.id),
+                    entry.refreshes + 1,
+                    now.as_second()
+                );
                 // The reference travels in the message so a human reading
                 // the thread can tell keepalives apart; the model is still
                 // asked for a one-word reply.
@@ -322,7 +336,12 @@ fn tick(
             }
         }
     }
-    // Drop threads the server no longer reports as live.
+    // Every listing in this pass succeeded (any failure returned early), so
+    // threads the server no longer reports — settled or snoozed ones, which
+    // the list filters out — are gone: drop them instead of letting the
+    // scheduler chase their stale due times. Narrowing config.projects
+    // therefore also stops tracking the removed projects.
+    state.threads.retain(|id, _| seen.contains(id));
     Ok(format!(
         "observed {} threads in {} projects, warmed {}, {} errors",
         summary.observed,
@@ -363,7 +382,7 @@ fn parse_thread(raw: &Value) -> Option<ThreadView> {
     let status = raw
         .get("status")
         .and_then(Value::as_str)
-        .unwrap_or("idle")
+        .unwrap_or_default()
         .to_owned();
     let updated_at = raw
         .get("updatedAt")
@@ -404,6 +423,7 @@ fn log(message: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::policy::is_quiescent;
     use serde_json::json;
 
     #[test]
@@ -445,6 +465,18 @@ mod tests {
     fn rejects_entries_without_timestamps() {
         let raw = json!({ "threadId": "thread:x" });
         assert!(parse_thread(&raw).is_none());
+    }
+
+    #[test]
+    fn missing_status_is_not_warmable() {
+        // Unknown states must fail closed: only explicitly quiescent ones
+        // may receive keepalives.
+        let raw = json!({
+            "threadId": "thread:x",
+            "updatedAt": "2026-10-14T09:00:00Z",
+        });
+        let view = parse_thread(&raw).expect("view");
+        assert!(!is_quiescent(&view.status));
     }
 
     #[test]
