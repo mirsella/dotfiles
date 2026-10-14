@@ -1,4 +1,5 @@
 ---
+name: cleancode
 description: Aggressively refactor recently touched code for simplicity, locality, robustness, and runtime efficiency. Use when the user asks to clean up, simplify, or refactor code touched in this session.
 ---
 

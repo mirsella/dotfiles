@@ -1,6 +1,6 @@
 ---
+name: commit
 description: Commit this session's changes with a conventional commit message. Use ONLY when the user explicitly requests committing.
-model: openai/gpt-6-luna#max
 ---
 
 Use the existing conversation context to identify the changes performed by this session that have not yet been committed. Stay in this session; do not delegate to a subagent.

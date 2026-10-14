@@ -1,6 +1,6 @@
 ---
+name: reviews
 description: Review only code changed in this session by this agent and fix important defects; ask before substantial fixes. Use when the user asks to review session changes.
-agent: build
 ---
 
 Review only the code changed in this session by this agent, including committed

@@ -42,13 +42,16 @@
 .codex/skills/plannotator-last
 .codex/skills/plannotator-review
 
-# These prompts live in OpenCode's editable command files.
-.config/opencode/skills/cleancode
-.config/opencode/skills/commit
+# Retired: these commands migrated to skills of the same name.
+.config/opencode/commands/cleancode.md
+.config/opencode/commands/commit.md
+.config/opencode/commands/commitdiff.md
+.config/opencode/commands/land.md
+.config/opencode/commands/recommendations.md
+.config/opencode/commands/reviews.md
+
+# Never create this skill; commitdiff was deleted outright.
 .config/opencode/skills/commitdiff
-.config/opencode/skills/land
-.config/opencode/skills/recommendations
-.config/opencode/skills/reviews
 
 # Renamed to the `pass` skill.
 .config/opencode/skills/password-manager
