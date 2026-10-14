@@ -51,7 +51,7 @@
       customPackages = (import ./pkgs pkgs) // { inherit (pkgs) context7-account-broker; };
       # nix-update follows each package's own versioning: npm releases regenerate the lock, release tarballs use the stable version, and VCS packages track their branch.
       releaseTarballs = [ "helium" "kache" "zen-browser" "opencode" ];
-      localPackages = [ "host-tools" "sleev" "opencode-extensions" "opencode-idle-watchdog" "context7-account-broker" ];
+      localPackages = [ "host-tools" "sleev" "opencode-extensions" "opencode-idle-watchdog" "context7-account-broker" "t3-cache-warmer" ];
       updateVersionFlag = name:
         if builtins.elem name releaseTarballs then
           "--version stable"

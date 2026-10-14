@@ -53,6 +53,10 @@ in
     source = "${pkgs.host-tools}/bin/composio-mcp-headers";
     force = true;
   };
+  home.file.".local/bin/t3-cache-warmer" = {
+    source = lib.getExe pkgs.t3-cache-warmer;
+    force = true;
+  };
   xdg.configFile =
     lib.genAttrs
       (map (directory: "opencode/${directory}") [
@@ -204,6 +208,26 @@ in
       Restart = "on-failure";
       RestartSec = "5s";
       Environment = "KACHE_LOG=kache=info";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
+  # Sends a one-word keepalive to active T3 Code threads before their prompt
+  # cache TTL expires. Reads ~/.config/t3-cache-warmer/config.json (chezmoi)
+  # and keeps its credential in ~/.local/state/t3-cache-warmer (mode 600).
+  # Sign in once per machine with `t3-cache-warmer login`.
+  systemd.user.services.t3-cache-warmer = {
+    Unit = {
+      Description = "T3 Code prompt-cache warmer";
+      After = [ "network.target" ];
+      PartOf = [ "default.target" ];
+    };
+    Service = {
+      Type = "simple";
+      Environment = servicePath;
+      ExecStart = "${lib.getExe pkgs.t3-cache-warmer} run";
+      Restart = "always";
+      RestartSec = "60s";
     };
     Install.WantedBy = [ "default.target" ];
   };
