@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::{Context, Result};
 use jiff::Timestamp;
@@ -111,7 +111,7 @@ fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-fn set_mode_600(path: &PathBuf) -> Result<()> {
+fn set_mode_600(path: &Path) -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
     let mut permissions = std::fs::metadata(path)?.permissions();
     permissions.set_mode(0o600);

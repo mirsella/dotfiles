@@ -108,32 +108,37 @@ fn once(config: &Config, dry_run: bool) -> Result<()> {
     let now = Timestamp::now();
     state.prune(now, config.prune_days);
     let mut client = T3Client::new(&config.base_url, credential.access_token.clone());
-    let outcome = tick(config, &mut client, &mut state, dry_run);
-    match outcome {
+    match pass(config, &mut client, &mut state, &state_path, dry_run) {
         Ok(summary) => {
-            state.save(&state_path)?;
             log(&summary);
             Ok(())
         }
-        Err(error) if is_credential_rejected(&error) => {
-            if !config.auto_renew || dry_run {
-                return Err(error);
-            }
+        Err(error) if is_credential_rejected(&error) && config.auto_renew && !dry_run => {
             log("credential rejected; signing in again…");
             credential = oauth::login(config)?;
             credential.save(&credential_path)?;
             let mut client = T3Client::new(&config.base_url, credential.access_token.clone());
-            let summary = tick(config, &mut client, &mut state, dry_run)?;
-            state.save(&state_path)?;
+            let summary = pass(config, &mut client, &mut state, &state_path, dry_run)?;
             log(&summary);
             Ok(())
         }
-        Err(error) => {
-            // Persist observations even when some sends failed.
-            let _ = state.save(&state_path);
-            Err(error)
-        }
+        Err(error) => Err(error),
     }
+}
+
+/// One pass with its observations persisted whether it worked or not.
+fn pass(
+    config: &Config,
+    client: &mut T3Client,
+    state: &mut State,
+    state_path: &Path,
+    dry_run: bool,
+) -> Result<String> {
+    let outcome = tick(config, client, state, dry_run);
+    let saved = state.save(state_path);
+    let summary = outcome?;
+    saved?;
+    Ok(summary)
 }
 
 fn run(config: &Config, dry_run: bool) -> Result<()> {
@@ -231,6 +236,8 @@ fn status(config: &Config) -> Result<()> {
         None => writeln!(out, "credential: missing (run `t3-cache-warmer login`)"),
     }?;
     writeln!(out, "threads tracked: {}", state.threads.len())?;
+    let show =
+        |at: Option<Timestamp>| at.map(|at| at.to_string()).unwrap_or_else(|| "-".to_owned());
     let mut entries: Vec<_> = state.threads.iter().collect();
     entries.sort_by_key(|(_, thread)| thread.seen_updated_at);
     for (id, thread) in entries {
@@ -238,12 +245,8 @@ fn status(config: &Config) -> Result<()> {
             out,
             "- {id} [{} refreshes] cache={} activity={} {} {}",
             thread.refreshes,
-            thread.last_cache_at.map(|at| at.to_string()).as_deref().unwrap_or("-"),
-            thread
-                .last_activity_at
-                .map(|at| at.to_string())
-                .as_deref()
-                .unwrap_or("-"),
+            show(thread.last_cache_at),
+            show(thread.last_activity_at),
             thread.title,
             thread.last_error.as_deref().unwrap_or_default(),
         )?;
@@ -290,35 +293,32 @@ fn tick(
             entry.model = view.model.clone();
             expire_pending(entry, now, config.send_grace_seconds);
             observe(entry, &view, config.send_grace_seconds);
-            match decide(config, &view, entry, now) {
-                Decision::Warm { .. } => {
-                    let request_id = format!("cache-warm-{}-r{}", short_id(&view.id), entry.refreshes + 1);
-                    // The reference travels in the message so a human reading
-                    // the thread can tell keepalives apart; the model is still
-                    // asked for a one-word reply.
-                    let message = format!("{} (ref {request_id})", config.keepalive_message);
-                    if dry_run {
-                        log(&format!("would warm {} ({})", view.id, view.title));
+            if let Decision::Warm = decide(config, &view, entry, now) {
+                let request_id = format!("cache-warm-{}-r{}", short_id(&view.id), entry.refreshes + 1);
+                // The reference travels in the message so a human reading
+                // the thread can tell keepalives apart; the model is still
+                // asked for a one-word reply.
+                let message = format!("{} (ref {request_id})", config.keepalive_message);
+                if dry_run {
+                    log(&format!("would warm {} ({})", view.id, view.title));
+                    summary.warmed += 1;
+                    continue;
+                }
+                match client.thread_send(&view.id, &message, &request_id) {
+                    Ok(_) => {
+                        entry.pending_warm_at = Some(Timestamp::now());
+                        entry.pending_seen_running = false;
+                        entry.refreshes += 1;
+                        entry.last_error = None;
                         summary.warmed += 1;
-                        continue;
+                        log(&format!("warmed {} ({})", view.id, view.title));
                     }
-                    match client.thread_send(&view.id, &message, &request_id) {
-                        Ok(_) => {
-                            entry.pending_warm_at = Some(Timestamp::now());
-                            entry.pending_seen_running = false;
-                            entry.refreshes += 1;
-                            entry.last_error = None;
-                            summary.warmed += 1;
-                            log(&format!("warmed {} ({})", view.id, view.title));
-                        }
-                        Err(error) => {
-                            entry.last_error = Some(format!("{error:#}"));
-                            summary.errors += 1;
-                            eprintln!("{NAME}: warm {}: {error:#}", view.id);
-                        }
+                    Err(error) => {
+                        entry.last_error = Some(format!("{error:#}"));
+                        summary.errors += 1;
+                        eprintln!("{NAME}: warm {}: {error:#}", view.id);
                     }
                 }
-                Decision::Skip { .. } => {}
             }
         }
     }
@@ -357,41 +357,30 @@ fn project_ids(config: &Config, client: &mut T3Client) -> Result<Vec<String>> {
 /// Shapes one `t3_thread_list` entry into a view. Returns `None` for entries
 /// that do not carry the fields warming needs.
 fn parse_thread(raw: &Value) -> Option<ThreadView> {
+    let text = |key: &str| raw.get(key).and_then(Value::as_str).unwrap_or_default();
+    let flag = |key: &str| raw.get(key).and_then(Value::as_bool).unwrap_or(false);
     let id = raw.get("threadId")?.as_str()?.to_owned();
-    let title = raw
-        .get("title")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_owned();
-    let settled = raw.get("settled").and_then(Value::as_bool).unwrap_or(false);
-    let snoozed = raw.get("snoozed").and_then(Value::as_bool).unwrap_or(false);
     let status = raw
         .get("status")
         .and_then(Value::as_str)
         .unwrap_or("idle")
         .to_owned();
-    let provider = raw
-        .get("providerInstanceId")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_owned();
-    let model = raw.get("model").and_then(Value::as_str).unwrap_or_default().to_owned();
     let updated_at = raw
         .get("updatedAt")
         .and_then(Value::as_str)
-        .and_then(|text| text.parse::<Timestamp>().ok())?;
+        .and_then(|stamp| stamp.parse::<Timestamp>().ok())?;
     let subagent = raw
         .get("relationshipToParent")
         .and_then(Value::as_str)
         .is_some_and(|relationship| relationship == "subagent");
     Some(ThreadView {
         id,
-        title,
-        settled,
-        snoozed,
+        title: text("title").to_owned(),
+        settled: flag("settled"),
+        snoozed: flag("snoozed"),
         status,
-        provider,
-        model,
+        provider: text("providerInstanceId").to_owned(),
+        model: text("model").to_owned(),
         updated_at,
         subagent,
     })

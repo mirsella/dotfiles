@@ -181,7 +181,7 @@ fn pairing_code(cli: &str) -> Result<String> {
         .map(str::to_owned)
 }
 
-pub fn http_agent() -> ureq::Agent {
+fn http_agent() -> ureq::Agent {
     ureq::Agent::new_with_config(
         ureq::Agent::config_builder()
             .timeout_global(Some(Duration::from_secs(30)))

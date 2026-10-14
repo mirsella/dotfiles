@@ -135,6 +135,13 @@ impl Config {
             if rule.ttl_seconds < 30 {
                 bail!("rules[{index}].ttlSeconds must be at least 30");
             }
+            if self.lead_seconds >= rule.ttl_seconds {
+                bail!(
+                    "leadSeconds ({}) must be below rules[{index}].ttlSeconds ({})",
+                    self.lead_seconds,
+                    rule.ttl_seconds
+                );
+            }
         }
         Ok(())
     }
@@ -198,5 +205,15 @@ mod tests {
             ttl_seconds: 10,
         });
         assert!(config.validate().is_err());
+        let config = Config {
+            lead_seconds: 300,
+            rules: vec![Rule {
+                provider: None,
+                model_contains: "gpt".to_owned(),
+                ttl_seconds: 300,
+            }],
+            ..Config::default()
+        };
+        assert!(config.validate().is_err(), "lead must stay below the ttl");
     }
 }
