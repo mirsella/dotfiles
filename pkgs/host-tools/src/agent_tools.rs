@@ -257,6 +257,24 @@ fn environment_contents(existing: &str, path: &str, tmp: &Path) -> Result<String
     Ok(contents)
 }
 
+pub fn composio_mcp_headers() -> Result<()> {
+    let path = PathBuf::from(env::var_os("HOME").context("HOME is not set")?)
+        .join(".composio/user_data.json");
+    let login: serde_json::Value = serde_json::from_slice(
+        &fs::read(&path)
+            .with_context(|| format!("Read Composio CLI login at {}", path.display()))?,
+    )?;
+    let key = login["api_key"]
+        .as_str()
+        .filter(|key| key.starts_with("uak_") && key.len() > 4)
+        .context("Invalid Composio CLI login: expected a user API key (uak_)")?;
+    serde_json::to_writer(
+        std::io::stdout().lock(),
+        &serde_json::json!({"x-user-api-key": key}),
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

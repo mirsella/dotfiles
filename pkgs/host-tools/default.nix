@@ -2,6 +2,7 @@
   lib,
   rustPlatform,
   openssl,
+  makeWrapper,
 }:
 rustPlatform.buildRustPackage {
   pname = "host-tools";
@@ -15,7 +16,12 @@ rustPlatform.buildRustPackage {
     ];
   };
   cargoLock.lockFile = ./Cargo.lock;
+  nativeBuildInputs = [ makeWrapper ];
   nativeCheckInputs = [ openssl ];
+  postInstall = ''
+    makeWrapper "$out/bin/host-tools" "$out/bin/composio-mcp-headers" \
+      --add-flags "composio-mcp-headers"
+  '';
   meta = {
     description = "Recurring host maintenance and monitoring helpers";
     mainProgram = "host-tools";

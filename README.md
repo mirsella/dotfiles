@@ -380,17 +380,9 @@ tracked under `dotfiles/private_dot_config/opencode/skills/`. (The old
 `commands/*.md` prompts were migrated to skills of the same name; `commitdiff`
 was deleted outright.)
 
-Edit the live skill files and save them with `chezmoi re-add`. After applying
-the dotfiles on a device, link its local shared skills with:
-
-```sh
-nix run path:.#host-tools -- sync-agent-skills
-```
-
-This links `~/.agents/skills` to OpenCode's skills and prunes stale command
-adapters in `~/.codex/skills`. Both paths are ignored by chezmoi. Rerun the
-command after adding or removing a skill. Restart the agents to reload their
-skill lists.
+Edit the live skill files and save them with `chezmoi re-add`. Applying the
+dotfiles links `~/.agents/skills` to OpenCode's skills via chezmoi. Restart the
+agents to reload their skill lists after adding or removing a skill.
 
 ## REA reverse engineering
 

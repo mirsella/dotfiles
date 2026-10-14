@@ -33,10 +33,8 @@ The flake discovers these directories and sets hostnames automatically.
   chezmoi. The idle watchdog is compiled from `pkgs/opencode-idle-watchdog`.
 - OpenCode's skill files are the canonical prompts, owned by
   chezmoi. Edit them in `~/.config/opencode/skills` and use `chezmoi re-add` to save edits.
-  `host-tools sync-agent-skills` maintains the local shared-skill link
-  (`~/.agents/skills`) and prunes stale Codex command adapters from that live
-  config. These generated paths are ignored by
-  chezmoi; do not track copies or turn OpenCode prompts into templates.
+  The local shared-skill link (`~/.agents/skills`) is chezmoi-managed; do not
+  track copies or turn OpenCode prompts into templates.
 - Retire one-time migrations after every affected host has completed them. Keep
   deployment evidence in Git history rather than permanent acceptance reports.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include

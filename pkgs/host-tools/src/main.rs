@@ -1,5 +1,4 @@
 mod activity;
-mod agent_skills;
 mod agent_tools;
 mod backup;
 mod boot_keys;
@@ -32,7 +31,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    SyncAgentSkills,
+    ComposioMcpHeaders,
     T3Settings {
         #[arg(long, global = true)]
         base_dir: Option<PathBuf>,
@@ -153,7 +152,7 @@ enum Commands {
 
 fn run() -> Result<()> {
     match Cli::parse().command {
-        Commands::SyncAgentSkills => agent_skills::run(),
+        Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
         Commands::BootstrapAgentTools { config } => agent_tools::bootstrap(&config),
         Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),
