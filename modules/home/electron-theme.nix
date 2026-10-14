@@ -6,12 +6,12 @@ in
 {
   # Chromium and Electron only resolve the KDE Wayland system color scheme
   # after xdg-desktop-portal emits a real org.freedesktop.portal.Settings
-  # change (chromium#462191707, electron#48736): apps started before the
-  # portal settles come up with the opposite appearance and never correct
-  # themselves. Route Settings to the GTK backend, which follows gsettings
+  # change (chromium#462191707, electron#48736): T3 Code started before the
+  # portal settles comes up with the opposite appearance and never corrects
+  # itself. Route Settings to the GTK backend, which follows gsettings
   # (kept in sync with the Plasma scheme by kde-gtk-config), re-assert the
-  # current scheme whenever new renderers appear, and repair the stored
-  # scheme if the watcher is stopped mid-nudge.
+  # current scheme when a T3 Code instance starts on a dark system, and
+  # repair the stored scheme if the watcher is stopped mid-nudge.
   xdg.configFile."xdg-desktop-portal/kde-portals.conf" = {
     force = true;
     text = ''
@@ -25,7 +25,7 @@ in
 
   systemd.user.services.electron-theme-watch = {
     Unit = {
-      Description = "Re-assert the system color scheme for new Chromium/Electron apps (electron#48736 workaround)";
+      Description = "Re-assert the system color scheme for new T3 Code instances (electron#48736 workaround)";
       After = [
         "graphical-session.target"
         "xdg-desktop-portal.service"
