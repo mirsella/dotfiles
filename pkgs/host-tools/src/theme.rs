@@ -1,3 +1,16 @@
+//! Chromium and Electron resolve the system color scheme at startup and only
+//! pick up the KDE Wayland value after xdg-desktop-portal emits a real
+//! org.freedesktop.portal.Settings change (chromium#462191707, electron#48736).
+//! The flip is needed only on a dark system, where a correct scheme emits no
+//! change at all; a light one is set right by the repair write, which is a
+//! change in itself.
+//!
+//! The portal serves the scheme from gsettings, which kde-gtk-config is meant
+//! to mirror from the Plasma color scheme. Its kded module can sit loaded yet
+//! idle after a kded crash storm, leaving gsettings frozen at an old value, so
+//! the Plasma palette is the source of truth here and gsettings is repaired
+//! against it before the flip.
+
 use crate::util;
 use anyhow::{Context, Result};
 use std::{
@@ -8,13 +21,6 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
-
-/// Chromium and Electron resolve the system color scheme at startup and only
-/// pick up the KDE Wayland value after xdg-desktop-portal emits a real
-/// org.freedesktop.portal.Settings change (chromium#462191707, electron#48736).
-/// Only a T3 Code cold start on a dark system needs the re-assert: the
-/// mis-resolution always lands on light, so with a light system T3 boots
-/// correct and any flip would only flash an already-correct desktop.
 const STARTUP_DELAY: Duration = Duration::from_secs(3);
 const POLL_INTERVAL: Duration = Duration::from_secs(1);
 /// Two mains (AppImage parent + mounted child) starting together need one nudge.
@@ -56,26 +62,58 @@ fn restore_interrupted(dconf: &str, state: &State) -> Result<()> {
         // A nudge is running and will restore the value itself.
         return Ok(());
     };
-    let original = match fs::read(&state.marker) {
-        Ok(original) => original,
+    let marker = match fs::read(&state.marker) {
+        Ok(marker) => marker,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
         Err(error) => {
             return Err(error).with_context(|| format!("read {}", state.marker.display()));
         }
     };
-    let original =
-        String::from_utf8(original).with_context(|| format!("parse {}", state.marker.display()))?;
-    apply(dconf, &original)?;
+    // The marker only records that a nudge was interrupted; the scheme to
+    // restore is the current Plasma one, which may have changed since the
+    // scheme the interrupted nudge intended. Its recorded value is just that
+    // scheme's fallback, so anything other than a known one carries no
+    // information beyond the interruption itself.
+    let intended = String::from_utf8(marker)
+        .ok()
+        .filter(|intended| matches!(intended.as_str(), "'prefer-dark'" | "'prefer-light'"));
+    let scheme = match plasma_scheme() {
+        Some(scheme) => scheme,
+        None => match intended.as_deref() {
+            Some(scheme) => scheme,
+            None => {
+                // Nothing to restore to: drop the marker, and with it the
+                // flipped value's record, instead of failing this watcher's
+                // every start.
+                eprintln!("electron-theme-watch: discarding an unusable nudge marker");
+                return remove(&state.marker);
+            }
+        },
+    };
+    apply(dconf, scheme)?;
     remove(&state.marker)
 }
 
-/// Flip a dark scheme to light and back so the portal re-emits it. Skipped on
-/// a light system, where the mis-resolved boot value is already correct.
+/// Flip a dark scheme to light and back so the portal re-emits it.
 fn nudge(dconf: &str, state: &State) -> Result<()> {
     let current = util::output(dconf, &["read", SCHEME_KEY])?
         .trim()
         .to_owned();
-    if current != "'prefer-dark'" {
+    let desired = match plasma_scheme() {
+        Some(desired) => desired,
+        // No readable palette outside a Plasma session: keep trusting gsettings.
+        None => current.as_str(),
+    };
+    // A stale value pins T3 Code to the previous appearance across system theme
+    // switches even when the flip below is perfect, so repair it first. The
+    // repair is idempotent, so it needs no lock.
+    if desired != current {
+        println!(
+            "electron-theme-watch: portal scheme is stale ({current}), repairing to {desired}"
+        );
+        apply(dconf, desired)?;
+    }
+    if desired != "'prefer-dark'" {
         println!("electron-theme-watch: system is light, no nudge needed");
         return Ok(());
     }
@@ -85,20 +123,66 @@ fn nudge(dconf: &str, state: &State) -> Result<()> {
     };
     // Record the value before changing it: an interrupted or failed nudge is
     // then repaired on the next --recover call or watcher start.
-    util::atomic_write(&state.marker, current.as_bytes())?;
+    util::atomic_write(&state.marker, desired.as_bytes())?;
     println!("electron-theme-watch: new T3 Code instance on a dark system, nudging system theme");
     apply(dconf, "'default'")?;
     thread::sleep(ROLLBACK_DELAY);
-    apply(dconf, &current)?;
+    apply(dconf, desired)?;
     remove(&state.marker)
 }
 
-fn apply(dconf: &str, value: &str) -> Result<()> {
-    if value.is_empty() {
-        util::run(dconf, &["reset", SCHEME_KEY])
-    } else {
-        util::run(dconf, &["write", SCHEME_KEY, value])
+/// The scheme the portal must serve, taken from the Plasma palette in
+/// kdeglobals: the resolved colors Plasma itself renders with, independent of
+/// whether kde-gtk-config's kded module is alive to mirror them.
+fn plasma_scheme() -> Option<&'static str> {
+    let config = std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
+    scheme_for_palette(&fs::read_to_string(config.join("kdeglobals")).ok()?)
+}
+
+/// Decide dark or light from a kdeglobals palette. Window is what the desktop
+/// renders against; View and Button answer when it is missing.
+fn scheme_for_palette(kdeglobals: &str) -> Option<&'static str> {
+    for group in ["Colors:Window", "Colors:View", "Colors:Button"] {
+        if let Some(rgb) = palette_background(kdeglobals, group) {
+            return Some(if is_dark(rgb) {
+                "'prefer-dark'"
+            } else {
+                "'prefer-light'"
+            });
+        }
     }
+    None
+}
+
+fn palette_background(kdeglobals: &str, group: &str) -> Option<(u32, u32, u32)> {
+    let mut in_group = false;
+    for line in kdeglobals.lines() {
+        let line = line.trim();
+        if let Some(section) = line.strip_prefix('[').and_then(|l| l.strip_suffix(']')) {
+            in_group = section == group;
+        } else if in_group {
+            if let Some(value) = line.strip_prefix("BackgroundNormal=") {
+                let mut channels = value
+                    .trim()
+                    .split(',')
+                    .map(|c| c.trim().parse::<u32>().ok());
+                let rgb = (channels.next()??, channels.next()??, channels.next()??);
+                return channels.next().is_none().then_some(rgb);
+            }
+        }
+    }
+    None
+}
+
+/// Rec. 709 luma of a Qt color triple on a 0-255 scale; dark below 128.
+fn is_dark((red, green, blue): (u32, u32, u32)) -> bool {
+    2126 * red + 7152 * green + 722 * blue < 1_280_000
+}
+
+fn apply(dconf: &str, value: &str) -> Result<()> {
+    util::run(dconf, &["write", SCHEME_KEY, value])
 }
 
 struct State {
@@ -181,44 +265,90 @@ fn remove(path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::is_t3_main;
+    use super::{is_dark, is_t3_main, scheme_for_palette};
 
     #[test]
     fn t3_main_matching() {
-        // AppImage parent and mounted child, NUL-separated or merged.
-        assert!(is_t3_main(
-            b"/home/mirsella/.local/share/t3code/app/T3-Code-nightly.AppImage"
-        ));
-        assert!(is_t3_main(
-            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code"
-        ));
-        assert!(is_t3_main(
-            b"/opt/t3code-nightly-bin/t3code\0--ozone-platform=wayland\0"
-        ));
-        // Helpers and snapshot workers never match, in either argv shape.
-        assert!(!is_t3_main(
-            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code\0--type=renderer\0--user-data-dir=/home/mirsella/.config/t3code-v2"
-        ));
-        assert!(!is_t3_main(
-            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code --type=zygote"
-        ));
-        assert!(!is_t3_main(
-            b"/opt/t3code-nightly-bin/t3code --type=gpu-process"
-        ));
-        assert!(!is_t3_main(
-            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code /home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/resources/app.asar/apps/desktop/dist-electron/snapShot/SnapShotAccessibilityWorker.cjs read"
-        ));
-        // argv[0] rules out bystanders merely mentioning a t3code path.
-        assert!(!is_t3_main(
-            b"/usr/bin/bash\0-c\0exec -a /opt/t3code-nightly-bin/t3code sleep 30"
-        ));
-        assert!(!is_t3_main(
-            b"less /home/mirsella/.local/share/t3code/app/log"
-        ));
-        // Kernel threads have an empty cmdline, and other apps are out of scope.
-        assert!(!is_t3_main(b""));
-        assert!(!is_t3_main(b"firefox"));
-        assert!(!is_t3_main(b"/usr/lib/chromium/chromium"));
-        assert!(!is_t3_main(b"/usr/lib/chromium/chromium\0--type=renderer"));
+        let matched: [&[u8]; 3] = [
+            // AppImage parent and mounted child, NUL-separated or merged.
+            b"/home/mirsella/.local/share/t3code/app/T3-Code-nightly.AppImage",
+            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code",
+            b"/opt/t3code-nightly-bin/t3code\0--ozone-platform=wayland\0",
+        ];
+        let unmatched: [&[u8]; 10] = [
+            // Helpers and snapshot workers never match, in either argv shape.
+            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code\0--type=renderer\0--user-data-dir=/home/mirsella/.config/t3code-v2",
+            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code --type=zygote",
+            b"/opt/t3code-nightly-bin/t3code --type=gpu-process",
+            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code /home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/resources/app.asar/apps/desktop/dist-electron/snapShot/SnapShotAccessibilityWorker.cjs read",
+            // argv[0] rules out bystanders merely mentioning a t3code path.
+            b"/usr/bin/bash\0-c\0exec -a /opt/t3code-nightly-bin/t3code sleep 30",
+            b"less /home/mirsella/.local/share/t3code/app/log",
+            // Kernel threads have an empty cmdline, and other apps are out of scope.
+            b"",
+            b"firefox",
+            b"/usr/lib/chromium/chromium",
+            b"/usr/lib/chromium/chromium\0--type=renderer",
+        ];
+        for cmdline in matched {
+            assert!(is_t3_main(cmdline), "{}", String::from_utf8_lossy(cmdline));
+        }
+        for cmdline in unmatched {
+            assert!(!is_t3_main(cmdline), "{}", String::from_utf8_lossy(cmdline));
+        }
+    }
+
+    #[test]
+    fn palette_scheme_follows_the_kde_background() {
+        let cases = [
+            // The palette Plasma itself renders with, Breeze dark vs light values.
+            (
+                "[Colors:Window]\nBackgroundNormal=32,35,38\nForegroundNormal=252,252,252\n[ColorEffects:Disabled]\nColor=56,56,56\n",
+                Some("'prefer-dark'"),
+            ),
+            (
+                "[Colors:Window]\nBackgroundNormal=239,240,243\nForegroundNormal=35,38,41\n",
+                Some("'prefer-light'"),
+            ),
+            // View and Button answer when Window is missing, in that order.
+            (
+                "[Colors:View]\nBackgroundNormal=20,22,24\n",
+                Some("'prefer-dark'"),
+            ),
+            (
+                "[Colors:Button]\nBackgroundNormal=239,240,243\n",
+                Some("'prefer-light'"),
+            ),
+            // No palette for the group, or no palette at all: no verdict.
+            ("[Colors:Window]\nForegroundNormal=1,2,3\n", None),
+            ("", None),
+            // Keys before the target group belong to no group and never answer;
+            // kdeglobals places [General] among the color groups.
+            (
+                "BackgroundNormal=255,255,255\n[Colors:Button]\nBackgroundNormal=32,35,38\n",
+                Some("'prefer-dark'"),
+            ),
+            // A malformed triple is no verdict rather than a wrong one.
+            ("[Colors:Window]\nBackgroundNormal=32,35\n", None),
+            ("[Colors:Window]\nBackgroundNormal=32,35,38,1\n", None),
+            // Mid gray lands on light; the threshold is exclusive.
+            (
+                "[Colors:Window]\nBackgroundNormal=128,128,128\n",
+                Some("'prefer-light'"),
+            ),
+        ];
+        for (kdeglobals, expected) in cases {
+            assert_eq!(
+                scheme_for_palette(kdeglobals),
+                expected,
+                "for {kdeglobals:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn luma_threshold_splits_dark_from_light() {
+        assert!(is_dark((0, 0, 0)));
+        assert!(!is_dark((255, 255, 255)));
     }
 }
