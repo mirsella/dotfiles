@@ -230,6 +230,19 @@ assert lib.assertMsg (lib.all
   )
   workstationHomes
 ) "Workstations must keep OpenCode JSONC canonical and install the REA skill without generating opencode.json";
+assert lib.assertMsg (lib.all (
+  home:
+  let
+    watch = home.systemd.user.services.electron-theme-watch;
+  in
+  lib.hasPrefix
+    "${flake.packages.x86_64-linux.host-tools}/bin/host-tools theme-watch --dconf /nix/store/"
+    (builtins.head watch.Service.ExecStart)
+  && watch.Service.Restart == "on-failure"
+  && lib.hasSuffix "--recover" watch.Service.ExecStopPost
+) workstationHomes
+&& !(server.home-manager.users.mirsella.systemd.user.services ? electron-theme-watch)
+) "The theme watcher must run the flake host-tools, recover after nudge failures, and stay off the headless server";
 assert lib.assertMsg (
   lib.all
     (
