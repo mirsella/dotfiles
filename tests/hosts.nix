@@ -14,6 +14,22 @@ let
   ]) (builtins.attrNames desktops);
 in
 assert lib.assertMsg (
+  lib.all (home:
+    let
+      setup = home.systemd.user.services.agent-tools-setup;
+      watcher = home.systemd.user.paths.agent-tools-setup;
+    in
+      (setup.Unit.Wants or []) == []
+      && (setup.Unit.Requires or []) == []
+      && (setup.Unit.BindsTo or []) == []
+      && (setup.Unit.PartOf or []) == []
+      && watcher.Path.PathChanged == [
+        "%h/.config/t3code/portable-settings.json"
+        "%h/.config/opencode/service.json"
+      ]
+  ) workstationHomes
+) "Automatic agent settings sync must not pull in T3 services or watch server runtime";
+assert lib.assertMsg (
   builtins.attrNames flake.nixosModules == [
     "laptop"
     "main"
