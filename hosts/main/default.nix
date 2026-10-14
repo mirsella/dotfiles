@@ -21,7 +21,9 @@ in
   programs.coolercontrol.enable = true;
   systemd.services.coolercontrold.serviceConfig = {
     ConfigurationDirectory = "coolercontrol";
-    # The daemon writes these files. Restore them only while it is stopped.
+    # The daemon writes these files. NixOS stops the unit before ExecStartPre
+    # and starts it again afterwards by default, which is also the invariant
+    # tests/hosts.nix holds in place.
     ExecStartPre = "${pkgs.coreutils}/bin/install -m 0644 -t /etc/coolercontrol ${coolerConfigDir}/config.toml ${coolerConfigDir}/modes.json";
   };
 
