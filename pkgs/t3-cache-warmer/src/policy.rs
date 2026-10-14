@@ -215,13 +215,29 @@ fn next_window_start(config: &Config, now: Timestamp) -> Option<Timestamp> {
 
 /// Folds a new observation of a thread into our belief about its cache.
 ///
+/// A pending keepalive expires with the observation once its grace window
+/// has passed, whether or not its turn was ever seen: a keepalive run is a
+/// one-word reply, so by then it either failed or this process missed the
+/// run, and holding the thread's budget hostage forever would be worse than
+/// warming it once more. Expiring here rather than in a separate step keeps
+/// the ordering with attribution impossible to get wrong: a reply that lands
+/// past the grace window reads as fresh activity and re-arms the budget,
+/// while the `Running` gate in [`decide`] is what protects a turn that is
+/// genuinely still in flight.
+///
 /// Activity that lands within a pending keepalive's grace window, or while
 /// that keepalive's turn was seen running, is attributed to the keepalive: it
 /// refreshes the cache without resetting the refresh budget or counting as
 /// the user returning. Anything else is real activity.
 ///
 /// Call this once per thread per tick, for every thread the list reports.
-pub fn observe(state: &mut ThreadState, view: &ThreadView, grace_seconds: u64) {
+pub fn observe(state: &mut ThreadState, view: &ThreadView, now: Timestamp, grace_seconds: u64) {
+    if let Some(sent) = state.pending_warm_at
+        && now.as_second() > sent.as_second() + grace_seconds as i64
+    {
+        state.pending_warm_at = None;
+        state.pending_seen_running = false;
+    }
     state.settled = view.settled;
     state.snoozed = view.snoozed;
     state.subagent = view.subagent;
@@ -244,20 +260,6 @@ pub fn observe(state: &mut ThreadState, view: &ThreadView, grace_seconds: u64) {
         // Our keepalive turn finished; stop attributing later activity to it.
         state.pending_seen_running = false;
         state.pending_warm_at = None;
-    }
-}
-
-/// Drops a pending keepalive once its grace window has passed, whether or not
-/// its turn was ever observed. A keepalive run is a one-word reply: if it has
-/// not settled by then, either it failed or this process missed the run, and
-/// holding the thread's budget hostage forever would be worse than warming it
-/// once more. Anything still running is skipped by [`decide`] regardless.
-pub fn expire_pending(state: &mut ThreadState, now: Timestamp, grace_seconds: u64) {
-    if let Some(sent) = state.pending_warm_at
-        && now.as_second() > sent.as_second() + grace_seconds as i64
-    {
-        state.pending_warm_at = None;
-        state.pending_seen_running = false;
     }
 }
 
@@ -632,7 +634,12 @@ mod tests {
         };
 
         // Our send appears.
-        observe(&mut state, &view("2026-10-14T09:40:01Z"), 300);
+        observe(
+            &mut state,
+            &view("2026-10-14T09:40:01Z"),
+            timestamp("2026-10-14T09:40:01Z"),
+            300,
+        );
         assert_eq!(state.refreshes, 1, "budget untouched");
         assert_eq!(
             state.last_activity_at,
@@ -641,7 +648,12 @@ mod tests {
         );
 
         // The model's reply appears, and the thread is idle again.
-        observe(&mut state, &view("2026-10-14T09:40:30Z"), 300);
+        observe(
+            &mut state,
+            &view("2026-10-14T09:40:30Z"),
+            timestamp("2026-10-14T09:40:30Z"),
+            300,
+        );
         assert_eq!(state.last_cache_at, Some(timestamp("2026-10-14T09:40:30Z")));
         assert_eq!(
             state.pending_warm_at,
@@ -651,7 +663,12 @@ mod tests {
         assert_eq!(state.refreshes, 1);
 
         // Real activity afterwards resets the budget.
-        observe(&mut state, &view("2026-10-14T10:30:00Z"), 300);
+        observe(
+            &mut state,
+            &view("2026-10-14T10:30:00Z"),
+            timestamp("2026-10-14T10:30:00Z"),
+            300,
+        );
         assert_eq!(state.refreshes, 0);
         assert_eq!(
             state.last_activity_at,
@@ -660,7 +677,7 @@ mod tests {
     }
 
     #[test]
-    fn counts_a_slow_keepalive_turn_as_ours_and_clears_it() {
+    fn a_reply_past_the_grace_window_counts_as_fresh_activity() {
         let mut state = ThreadState {
             last_activity_at: Some(timestamp("2026-10-14T09:00:00Z")),
             last_cache_at: Some(timestamp("2026-10-14T09:00:00Z")),
@@ -671,29 +688,48 @@ mod tests {
         };
         let mut running = view("2026-10-14T09:40:05Z");
         running.status = "starting".to_owned();
-        observe(&mut state, &running, 300);
+        observe(&mut state, &running, timestamp("2026-10-14T09:40:05Z"), 300);
         assert!(state.pending_seen_running);
 
-        // The reply lands well outside the grace window, then the run finishes.
-        observe(&mut state, &view("2026-10-14T09:55:00Z"), 300);
-        assert_eq!(state.refreshes, 1);
+        // The reply lands well outside the grace window. The pending keepalive
+        // expires with this observation, so the reply reads as fresh activity
+        // and re-arms the budget; a turn genuinely still in flight is
+        // protected by the Running gate in `decide`, not by holding the
+        // budget hostage.
+        observe(
+            &mut state,
+            &view("2026-10-14T09:55:00Z"),
+            timestamp("2026-10-14T09:55:00Z"),
+            300,
+        );
+        assert_eq!(state.refreshes, 0);
         assert_eq!(
             state.last_activity_at,
-            Some(timestamp("2026-10-14T09:00:00Z"))
+            Some(timestamp("2026-10-14T09:55:00Z"))
         );
-        assert_eq!(state.pending_warm_at, None, "turn finished");
+        assert_eq!(state.pending_warm_at, None);
         assert!(!state.pending_seen_running);
     }
 
     #[test]
-    fn expires_a_pending_keepalive_after_its_grace_window() {
+    fn pending_expires_with_the_observation_past_its_grace_window() {
         let mut state = ThreadState {
             pending_warm_at: Some(timestamp("2026-10-14T09:40:00Z")),
             ..ThreadState::default()
         };
-        expire_pending(&mut state, timestamp("2026-10-14T09:42:00Z"), 300);
+        observe(
+            &mut state,
+            &view("2026-10-14T09:40:00Z"),
+            timestamp("2026-10-14T09:42:00Z"),
+            300,
+        );
         assert!(state.pending_warm_at.is_some(), "still inside grace");
-        expire_pending(&mut state, timestamp("2026-10-14T09:50:00Z"), 300);
+        observe(
+            &mut state,
+            &view("2026-10-14T09:50:00Z"),
+            timestamp("2026-10-14T09:50:00Z"),
+            300,
+        );
         assert!(state.pending_warm_at.is_none(), "grace passed");
 
         // Even a keepalive whose run was seen must not pin the budget forever:
@@ -703,7 +739,12 @@ mod tests {
             pending_seen_running: true,
             ..ThreadState::default()
         };
-        expire_pending(&mut stuck, timestamp("2026-10-14T09:50:00Z"), 300);
+        observe(
+            &mut stuck,
+            &view("2026-10-14T09:50:00Z"),
+            timestamp("2026-10-14T09:50:00Z"),
+            300,
+        );
         assert!(stuck.pending_warm_at.is_none());
         assert!(!stuck.pending_seen_running);
     }

@@ -19,9 +19,7 @@ use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::Signals;
 
 use crate::config::Config;
-use crate::policy::{
-    Decision, ThreadView, decide, expire_pending, next_wakeup, observe, seed, within_day_window,
-};
+use crate::policy::{Decision, ThreadView, decide, next_wakeup, observe, seed, within_day_window};
 use crate::state::{Credential, State};
 use crate::t3::{T3Client, is_credential_rejected};
 
@@ -294,8 +292,7 @@ fn tick(
             entry.title = view.title.clone();
             entry.provider = view.provider.clone();
             entry.model = view.model.clone();
-            expire_pending(entry, now, config.send_grace_seconds);
-            observe(entry, &view, config.send_grace_seconds);
+            observe(entry, &view, now, config.send_grace_seconds);
             if let Decision::Warm = decide(config, &view, entry, now) {
                 // Unique per attempt: the key deduplicates sends server-side,
                 // so a new keepalive must never reuse an earlier key (the

@@ -182,8 +182,8 @@ impl T3Client {
             .get("projects")
             .and_then(Value::as_array)
             .or_else(|| result.as_array())
-            .cloned()
-            .unwrap_or_default();
+            .context("t3_project_list returned no projects array")?
+            .clone();
         Ok(projects
             .into_iter()
             .filter(|project| {
@@ -210,15 +210,18 @@ impl T3Client {
                 arguments["cursor"] = json!(cursor);
             }
             let result = self.call_tool("t3_thread_list", arguments)?;
+            // Fail closed on an unexpected shape: an empty page would make the
+            // pass drop every tracked thread of this project as disappeared.
             let page = result
                 .get("threads")
                 .and_then(Value::as_array)
-                .cloned()
-                .unwrap_or_default();
+                .context("t3_thread_list returned no threads array")?
+                .clone();
             threads.extend(page);
             cursor = result
                 .get("nextCursor")
                 .and_then(Value::as_str)
+                .filter(|cursor| !cursor.is_empty())
                 .map(str::to_owned);
             if cursor.is_none() {
                 break;

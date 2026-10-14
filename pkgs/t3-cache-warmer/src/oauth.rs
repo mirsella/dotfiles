@@ -37,28 +37,27 @@ pub fn login(config: &Config) -> Result<Credential> {
     });
 
     // The GET is what creates the pending request the approval page sees.
-    let query = authorization
-        .as_object()
-        .expect("object")
-        .iter()
-        .map(|(key, value)| {
-            format!(
-                "{}={}",
-                encode_component(key),
-                encode_component(value.as_str().expect("string"))
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("&");
-    let (status, body) = get(&agent, &format!("{base}/oauth/mcp/authorize?{query}"))?;
+    let (status, body) = get(
+        &agent,
+        &format!("{base}/oauth/mcp/authorize"),
+        &[
+            ("response_type", "code"),
+            ("client_id", client_id.as_str()),
+            ("redirect_uri", config.redirect_uri.as_str()),
+            ("code_challenge", challenge.as_str()),
+            ("code_challenge_method", "S256"),
+            ("state", state_token.as_str()),
+        ],
+    )?;
     if status >= 400 {
         bail!("T3 refused the authorization request (HTTP {status}): {body}");
     }
 
-    let (status, approval) = post_json(
+    let (status, approval) = post(
         &agent,
         &format!("{base}/oauth/mcp/approval"),
-        &authorization,
+        "application/json",
+        authorization.to_string(),
     )?;
     if status >= 400 {
         bail!("T3 refused the approval request (HTTP {status}): {approval}");
@@ -70,8 +69,12 @@ pub fn login(config: &Config) -> Result<Credential> {
                 "authorization": authorization,
                 "decision": { "_tag": "pairing-code", "access": ACCESS, "code": pairing },
             });
-            let (status, decided) =
-                post_json(&agent, &format!("{base}/oauth/mcp/decision"), &decision)?;
+            let (status, decided) = post(
+                &agent,
+                &format!("{base}/oauth/mcp/decision"),
+                "application/json",
+                decision.to_string(),
+            )?;
             if status >= 400 {
                 bail!("T3 rejected the pairing code (HTTP {status}): {decided}");
             }
@@ -139,7 +142,12 @@ fn register(agent: &ureq::Agent, base: &str, redirect_uri: &str) -> Result<Strin
         "redirect_uris": [redirect_uri],
         "token_endpoint_auth_method": "none",
     });
-    let (status, response) = post_json(agent, &format!("{base}/oauth/mcp/register"), &body)?;
+    let (status, response) = post(
+        agent,
+        &format!("{base}/oauth/mcp/register"),
+        "application/json",
+        body.to_string(),
+    )?;
     if status >= 400 {
         bail!("T3 refused the client registration (HTTP {status}): {response}");
     }
@@ -195,21 +203,22 @@ fn http_agent() -> ureq::Agent {
     )
 }
 
-fn get(agent: &ureq::Agent, url: &str) -> Result<(u16, String)> {
-    let mut response = agent
-        .get(url)
-        .call()
-        .with_context(|| format!("GET {url}"))?;
+fn get(agent: &ureq::Agent, url: &str, query: &[(&str, &str)]) -> Result<(u16, String)> {
+    let mut request = agent.get(url);
+    for &(key, value) in query {
+        request = request.query(key, value);
+    }
+    let mut response = request.call().with_context(|| format!("GET {url}"))?;
     let status = response.status().as_u16();
     let body = response.body_mut().read_to_string().unwrap_or_default();
     Ok((status, body))
 }
 
-fn post_json(agent: &ureq::Agent, url: &str, body: &Value) -> Result<(u16, Value)> {
+fn post(agent: &ureq::Agent, url: &str, content_type: &str, body: String) -> Result<(u16, Value)> {
     let mut response = agent
         .post(url)
-        .header("content-type", "application/json")
-        .send(body.to_string())
+        .header("content-type", content_type)
+        .send(body)
         .with_context(|| format!("POST {url}"))?;
     let status = response.status().as_u16();
     let text = response.body_mut().read_to_string().unwrap_or_default();
@@ -217,15 +226,9 @@ fn post_json(agent: &ureq::Agent, url: &str, body: &Value) -> Result<(u16, Value
 }
 
 fn post_form(agent: &ureq::Agent, url: &str, fields: &[(&str, &str)]) -> Result<(u16, Value)> {
-    let body = fields
-        .iter()
-        .map(|(key, value)| format!("{}={}", encode_component(key), encode_component(value)))
-        .collect::<Vec<_>>()
-        .join("&");
     let mut response = agent
         .post(url)
-        .header("content-type", "application/x-www-form-urlencoded")
-        .send(body)
+        .send_form(fields.iter().copied())
         .with_context(|| format!("POST {url}"))?;
     let status = response.status().as_u16();
     let text = response.body_mut().read_to_string().unwrap_or_default();
@@ -240,19 +243,6 @@ fn random_token(bytes: usize) -> String {
     let mut buffer = vec![0u8; bytes];
     getrandom::fill(&mut buffer).expect("operating system randomness");
     URL_SAFE_NO_PAD.encode(buffer)
-}
-
-fn encode_component(value: &str) -> String {
-    let mut encoded = String::with_capacity(value.len());
-    for byte in value.bytes() {
-        match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
-                encoded.push(byte as char);
-            }
-            _ => encoded.push_str(&format!("%{byte:02X}")),
-        }
-    }
-    encoded
 }
 
 fn query_param(query: &str, key: &str) -> Option<String> {
@@ -299,11 +289,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn encoding_roundtrips() {
-        let value = "http://127.0.0.1:47811/callback?a=b c";
-        let encoded = encode_component(value);
-        assert!(!encoded.contains(':'));
-        assert_eq!(decode_component(&encoded), value);
+    fn decodes_percent_escapes() {
+        assert_eq!(decode_component("x%2Fy"), "x/y");
+        assert_eq!(decode_component("a+b"), "a b");
+        assert_eq!(decode_component("plain"), "plain");
     }
 
     #[test]
