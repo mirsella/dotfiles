@@ -85,10 +85,11 @@ assert lib.assertMsg (
   && builtins.elem "nct6775" main.boot.kernelModules
   && !(main.environment.etc ? "coolercontrol/config.toml")
   && cooling.serviceConfig.ConfigurationDirectory == "coolercontrol"
-  && lib.hasInfix "/bin/install -m 0644 /nix/store/" cooling.serviceConfig.ExecStartPre
-  && lib.hasSuffix " /etc/coolercontrol/config.toml" cooling.serviceConfig.ExecStartPre
+  && lib.match ".*/install -m 0644 -t /etc/coolercontrol [^ ]*config\\.toml [^ ]*modes\\.json" cooling.serviceConfig.ExecStartPre != null
   && cooling.restartIfChanged
   && cooling.stopIfChanged
+  && !(cooling.serviceConfig ? stopIfChanged)
+  && !(cooling.serviceConfig ? restartIfChanged)
   && lib.hasInfix "ExecStartPre=" main.systemd.units."coolercontrold.service".text
 ) "Only main may apply its fan curve, through the daemon's stop/start lifecycle";
 assert lib.assertMsg (
