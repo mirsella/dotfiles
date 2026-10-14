@@ -4,6 +4,7 @@
   "dayWindow": { "start": "08:00", "end": "23:00" },
   "activeWindowMinutes": 180,
   "tickSeconds": 120,
+  "leadSeconds": 30,
   "maxRefreshesPerActivity": 2,
   "sendGraceSeconds": 300,
   "autoRenew": true,

@@ -50,6 +50,11 @@ pub struct ThreadState {
     pub pending_warm_at: Option<Timestamp>,
     /// Our keepalive's run was observed while pending.
     pub pending_seen_running: bool,
+    /// Last-seen parking flags, so the scheduler can skip threads that no
+    /// pass would warm without re-listing them first.
+    pub settled: bool,
+    pub snoozed: bool,
+    pub subagent: bool,
     pub refreshes: u32,
     pub last_error: Option<String>,
 }

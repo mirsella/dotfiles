@@ -5,9 +5,10 @@ mod state;
 mod t3;
 
 use std::io::Write as _;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
@@ -17,7 +18,9 @@ use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::Signals;
 
 use crate::config::Config;
-use crate::policy::{Decision, ThreadView, decide, expire_pending, observe, seed};
+use crate::policy::{
+    Decision, ThreadView, decide, expire_pending, next_wakeup, observe, seed, within_day_window,
+};
 use crate::state::{Credential, State};
 use crate::t3::{T3Client, is_credential_rejected};
 
@@ -46,7 +49,7 @@ enum Command_ {
         #[arg(long)]
         dry_run: bool,
     },
-    /// Loop forever, warming on every tick.
+    /// Loop forever, waking when a refresh comes due.
     Run {
         /// Print what would happen without sending keepalives.
         #[arg(long)]
@@ -142,23 +145,75 @@ fn run(config: &Config, dry_run: bool) -> Result<()> {
         flag.store(true, Ordering::Relaxed);
     });
     log(&format!(
-        "running every {}s{}",
-        config.tick_seconds,
+        "warming up to {}s before cache expiry{}",
+        config.lead_seconds,
         if dry_run { " (dry run)" } else { "" }
     ));
+    let dir = config.state_dir()?;
+    let state_path = dir.join("state.json");
     while !stop.load(Ordering::Relaxed) {
         if let Err(error) = once(config, dry_run) {
             eprintln!("{NAME}: {error:#}");
         }
-        for _ in 0..config.tick_seconds {
-            if stop.load(Ordering::Relaxed) {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_secs(1));
+        if stop.load(Ordering::Relaxed) {
+            break;
         }
+        let wait = sleep_for(config, &state_path);
+        log(&format!("next pass in {}", humane(wait)));
+        sleep_until(&stop, wait);
     }
     log("stopping");
     Ok(())
+}
+
+/// How long `run` sleeps between passes: until the next refresh comes due.
+/// Inside the day window this is capped at `tick_seconds` so new threads and
+/// activity are noticed promptly; outside it the daemon sleeps until the
+/// window reopens. A due instant already past means the thread was unwarmable
+/// (e.g. still running), so re-check soon without hammering the server.
+fn sleep_for(config: &Config, state_path: &Path) -> Duration {
+    const OVERDUE_RECHECK: Duration = Duration::from_secs(15);
+    let cap = Duration::from_secs(config.tick_seconds);
+    let now = Timestamp::now();
+    let Ok(state) = State::load(state_path) else {
+        return cap;
+    };
+    let Some(due) = next_wakeup(&state, config, now) else {
+        return cap;
+    };
+    let wait = due.as_second() - now.as_second();
+    if wait <= 0 {
+        return OVERDUE_RECHECK.min(cap);
+    }
+    let wait = Duration::from_secs(wait as u64);
+    if within_day_window(config, now) {
+        wait.min(cap)
+    } else {
+        wait
+    }
+}
+
+/// Sleeps until `wait` elapses, waking early on SIGINT/SIGTERM.
+fn sleep_until(stop: &AtomicBool, wait: Duration) {
+    let deadline = std::time::Instant::now() + wait;
+    while !stop.load(Ordering::Relaxed) {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        std::thread::sleep(remaining.min(Duration::from_secs(1)));
+    }
+}
+
+fn humane(wait: Duration) -> String {
+    let secs = wait.as_secs();
+    if secs >= 3600 {
+        format!("{:.1}h", secs as f64 / 3600.0)
+    } else if secs >= 120 {
+        format!("{}m", secs / 60)
+    } else {
+        format!("{secs}s")
+    }
 }
 
 fn status(config: &Config) -> Result<()> {

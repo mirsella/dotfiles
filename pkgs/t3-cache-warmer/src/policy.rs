@@ -1,10 +1,10 @@
 //! Pure gating and cache-attribution logic, kept free of I/O so it is cheap
 //! to test from a fixed clock.
 
-use jiff::{Timestamp, tz::TimeZone};
+use jiff::{Span, Timestamp, tz::TimeZone};
 
 use crate::config::{Config, parse_hhmm};
-use crate::state::ThreadState;
+use crate::state::{State, ThreadState};
 
 /// One thread as reported by `t3_thread_list`.
 #[derive(Debug, Clone)]
@@ -116,10 +116,23 @@ pub fn decide(config: &Config, view: &ThreadView, state: &ThreadState, now: Time
         return skip(SkipReason::BudgetSpent);
     }
     let last_cache = state.last_cache_at.unwrap_or(last_activity);
-    if now.as_second() - last_cache.as_second() < ttl_seconds as i64 {
+    if now < refresh_due_after(last_cache, ttl_seconds, config.lead_seconds) {
         return skip(SkipReason::CacheFresh);
     }
     Decision::Warm { ttl_seconds }
+}
+
+/// The moment a cache written at `last_cache` should be refreshed: its TTL
+/// minus the configured lead time. This is the single canonical definition
+/// of "due", shared by [`decide`] and [`next_wakeup`].
+pub fn refresh_due_after(
+    last_cache: Timestamp,
+    ttl_seconds: u64,
+    lead_seconds: u64,
+) -> Timestamp {
+    let threshold = (ttl_seconds as i64 - lead_seconds as i64).max(0);
+    Timestamp::from_second(last_cache.as_second() + threshold)
+        .expect("cache due timestamp in range")
 }
 
 /// Statuses in which a thread is doing nothing and may receive a keepalive.
@@ -162,6 +175,59 @@ fn within_window(minutes: i16, start: i16, end: i16) -> bool {
     }
 }
 
+/// The next moment `run` should wake: the earliest refresh due among threads
+/// a pass could warm, or the day window reopening when outside it. `None`
+/// means nothing is scheduled and the caller should fall back to its cap.
+pub fn next_wakeup(state: &State, config: &Config, now: Timestamp) -> Option<Timestamp> {
+    if !within_day_window(config, now) {
+        return next_window_start(config, now);
+    }
+    let active_limit = config.active_window_minutes as i64 * 60;
+    state
+        .threads
+        .values()
+        .filter_map(|thread| {
+            if thread.settled || thread.snoozed {
+                return None;
+            }
+            if config.skip_subagents && thread.subagent {
+                return None;
+            }
+            if thread.pending_warm_at.is_some() {
+                return None;
+            }
+            if thread.refreshes >= config.max_refreshes_per_activity {
+                return None;
+            }
+            let activity = thread.last_activity_at?;
+            if now.as_second() - activity.as_second() > active_limit {
+                return None;
+            }
+            let ttl = rule_ttl(config, &thread.provider, &thread.model)?;
+            let base = thread
+                .last_cache_at
+                .or(thread.last_activity_at)
+                .or(thread.seen_updated_at)?;
+            Some(refresh_due_after(base, ttl, config.lead_seconds))
+        })
+        .min()
+}
+
+/// Next local occurrence of the day window's start after `now`.
+fn next_window_start(config: &Config, now: Timestamp) -> Option<Timestamp> {
+    let start = parse_hhmm(&config.day_window.start, "start").ok()?;
+    let zoned = now.to_zoned(TimeZone::system());
+    let today = zoned
+        .date()
+        .at((start / 60) as i8, (start % 60) as i8, 0, 0)
+        .to_zoned(TimeZone::system())
+        .ok()?;
+    if today.timestamp() > now {
+        return Some(today.timestamp());
+    }
+    Some(today.checked_add(Span::new().days(1)).ok()?.timestamp())
+}
+
 /// Folds a new observation of a thread into our belief about its cache.
 ///
 /// Activity that lands within a pending keepalive's grace window, or while
@@ -171,6 +237,9 @@ fn within_window(minutes: i16, start: i16, end: i16) -> bool {
 ///
 /// Call this once per thread per tick, for every thread the list reports.
 pub fn observe(state: &mut ThreadState, view: &ThreadView, grace_seconds: u64) {
+    state.settled = view.settled;
+    state.snoozed = view.snoozed;
+    state.subagent = view.subagent;
     if state.pending_warm_at.is_some() && !is_quiescent(&view.status) {
         state.pending_seen_running = true;
     }
@@ -232,6 +301,7 @@ mod tests {
 
     fn config() -> Config {
         Config {
+            lead_seconds: 30,
             rules: vec![
                 Rule {
                     provider: Some("codex".to_owned()),
@@ -286,6 +356,129 @@ mod tests {
                 reason: SkipReason::CacheFresh
             }
         );
+    }
+
+    #[test]
+    fn warms_at_the_lead_time_not_the_ttl() {
+        // codex/gpt rule: ttl 1800, lead 30, so due 1770s after the write.
+        let config = config();
+        let state = warm_state("2026-10-14T09:00:00Z");
+        let fresh = decide(
+            &config,
+            &view("2026-10-14T09:00:00Z"),
+            &state,
+            timestamp("2026-10-14T09:29:29Z"),
+        );
+        assert_eq!(
+            fresh,
+            Decision::Skip {
+                reason: SkipReason::CacheFresh
+            }
+        );
+        let due = decide(
+            &config,
+            &view("2026-10-14T09:00:00Z"),
+            &state,
+            timestamp("2026-10-14T09:29:30Z"),
+        );
+        assert_eq!(due, Decision::Warm { ttl_seconds: 1800 });
+    }
+
+    #[test]
+    fn refresh_due_subtracts_the_lead_time() {
+        let base = timestamp("2026-10-14T09:00:00Z");
+        assert_eq!(
+            refresh_due_after(base, 1800, 30),
+            timestamp("2026-10-14T09:29:30Z")
+        );
+        assert_eq!(
+            refresh_due_after(base, 20, 30),
+            base,
+            "a lead past the ttl means due now"
+        );
+    }
+
+    fn tracked(cache_at: &str) -> ThreadState {
+        ThreadState {
+            provider: "codex".to_owned(),
+            model: "gpt-6.1-sol".to_owned(),
+            ..warm_state(cache_at)
+        }
+    }
+
+    #[test]
+    fn next_wakeup_picks_the_earliest_due_thread() {
+        let config = config();
+        let mut state = State::default();
+        // Due 09:29:30 and 09:39:30 respectively.
+        state.threads.insert("a".to_owned(), tracked("2026-10-14T09:00:00Z"));
+        state.threads.insert("b".to_owned(), tracked("2026-10-14T09:10:00Z"));
+        let wake = next_wakeup(&state, &config, timestamp("2026-10-14T09:05:00Z"));
+        assert_eq!(wake, Some(timestamp("2026-10-14T09:29:30Z")));
+    }
+
+    #[test]
+    fn next_wakeup_ignores_unwarmable_threads() {
+        let config = config();
+        let now = timestamp("2026-10-14T09:05:00Z");
+        let cases: Vec<(&str, ThreadState)> = vec![
+            ("pending", {
+                let mut thread = tracked("2026-10-14T09:00:00Z");
+                thread.pending_warm_at = Some(timestamp("2026-10-14T09:04:00Z"));
+                thread
+            }),
+            ("spent budget", {
+                let mut thread = tracked("2026-10-14T09:00:00Z");
+                thread.refreshes = config.max_refreshes_per_activity;
+                thread
+            }),
+            ("stale activity", tracked("2026-10-14T02:00:00Z")),
+            ("settled", {
+                let mut thread = tracked("2026-10-14T09:00:00Z");
+                thread.settled = true;
+                thread
+            }),
+            ("no rule", {
+                let mut thread = tracked("2026-10-14T09:00:00Z");
+                thread.model = "unknown-model".to_owned();
+                thread
+            }),
+        ];
+        for (name, thread) in cases {
+            let mut state = State::default();
+            state.threads.insert("thread".to_owned(), thread);
+            assert_eq!(next_wakeup(&state, &config, now), None, "{name}");
+        }
+        assert_eq!(
+            next_wakeup(&State::default(), &config, now),
+            None,
+            "no threads"
+        );
+    }
+
+    #[test]
+    fn next_wakeup_outside_hours_waits_for_the_window_to_reopen() {
+        let mut config = config();
+        let now = timestamp("2026-10-14T09:05:00Z");
+        let zoned = now.to_zoned(TimeZone::system());
+        let minutes = i16::from(zoned.hour()) * 60 + i16::from(zoned.minute());
+        // A two-hour window entirely in the past or future today, so `now`
+        // is outside it without any midnight wrap to reason about.
+        let (start, end) = if minutes >= 240 {
+            (minutes - 240, minutes - 120)
+        } else {
+            (minutes + 120, minutes + 240)
+        };
+        config.day_window.start = format!("{:02}:{:02}", start / 60, start % 60);
+        config.day_window.end = format!("{:02}:{:02}", end / 60, end % 60);
+        assert!(!within_day_window(&config, now));
+        let wake = next_wakeup(&State::default(), &config, now).expect("reopening is scheduled");
+        assert!(wake > now);
+        let mut expected = (start - minutes).rem_euclid(1440) as i64 * 60;
+        if expected == 0 {
+            expected = 86_400;
+        }
+        assert_eq!(wake.as_second() - now.as_second(), expected);
     }
 
     #[test]

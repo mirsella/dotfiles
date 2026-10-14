@@ -46,8 +46,11 @@ pub struct Config {
     pub day_window: DayWindow,
     /// Only warm threads with real activity within this window.
     pub active_window_minutes: u64,
-    /// Loop interval of `run`.
+    /// Upper bound between full passes of `run`: it wakes earlier when a
+    /// refresh comes due, and at least this often to notice new threads.
     pub tick_seconds: u64,
+    /// Warm this many seconds before a cache TTL elapses.
+    pub lead_seconds: u64,
     /// Keepalives allowed per period of real user activity.
     pub max_refreshes_per_activity: u32,
     /// A keepalive turn is attributed to us when thread activity lands within
@@ -79,6 +82,7 @@ impl Default for Config {
             day_window: DayWindow::default(),
             active_window_minutes: 150,
             tick_seconds: 60,
+            lead_seconds: 30,
             max_refreshes_per_activity: 2,
             send_grace_seconds: 300,
             auto_renew: true,
