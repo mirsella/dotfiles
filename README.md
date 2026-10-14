@@ -97,9 +97,6 @@ supplies other binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
-Main's manual Caddy configuration, service recovery settings and restore steps
-are recorded in [arch/main-caddy](arch/main-caddy/README.md).
-
 ### Codex and T3 Code
 
 All three hosts import `modules/home/agent-tools.nix`. Home Manager runs the
@@ -378,25 +375,22 @@ on invocation.
 
 ## Agent prompts
 
-OpenCode's editable files are the canonical prompts:
+OpenCode's skills are the canonical prompts: `~/.config/opencode/skills/*/SKILL.md`,
+tracked under `dotfiles/private_dot_config/opencode/skills/`. (The old
+`commands/*.md` prompts were migrated to skills of the same name; `commitdiff`
+was deleted outright.)
 
-- Commands: `~/.config/opencode/commands/*.md`, tracked under
-  `dotfiles/private_dot_config/opencode/commands/`.
-- Skills: `~/.config/opencode/skills/*/SKILL.md`, tracked under
-  `dotfiles/private_dot_config/opencode/skills/`.
-
-Edit the live OpenCode files and save them with `chezmoi re-add`. After applying
-the dotfiles on a device, generate its local Codex/Hermes adapters with:
+Edit the live skill files and save them with `chezmoi re-add`. After applying
+the dotfiles on a device, link its local shared skills with:
 
 ```sh
 nix run path:.#host-tools -- sync-agent-skills
 ```
 
-This links `~/.agents/skills` to OpenCode's skills and writes command adapters in
-`~/.codex/skills`. Both paths are ignored by chezmoi. The adapters read the live
-OpenCode commands, so prompt-body edits take effect without copying them again.
-Rerun the command after adding a command or changing its description. Restart
-the agents to reload their skill lists.
+This links `~/.agents/skills` to OpenCode's skills and prunes stale command
+adapters in `~/.codex/skills`. Both paths are ignored by chezmoi. Rerun the
+command after adding or removing a skill. Restart the agents to reload their
+skill lists.
 
 ## REA reverse engineering
 
