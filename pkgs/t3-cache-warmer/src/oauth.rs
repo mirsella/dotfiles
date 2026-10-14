@@ -111,8 +111,13 @@ pub fn login(config: &Config) -> Result<Credential> {
         .to_owned();
     let expires_in = token
         .get("expires_in")
-        .and_then(Value::as_i64)
-        .context("token response has no expires_in")?;
+        .and_then(|value| {
+            value
+                .as_i64()
+                .or_else(|| value.as_f64().map(|seconds| seconds as i64))
+        })
+        .filter(|seconds| *seconds > 0)
+        .context("token response has no positive expires_in")?;
     Ok(Credential {
         access_token,
         expires_at: Timestamp::from_second(Timestamp::now().as_second() + expires_in)

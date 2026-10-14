@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::io::Write;
+use std::os::unix::fs::OpenOptionsExt;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::{Context, Result};
 use jiff::Timestamp;
@@ -82,7 +85,7 @@ impl State {
         let directory = path.parent().context("state path has no parent")?;
         std::fs::create_dir_all(directory)
             .with_context(|| format!("create {}", directory.display()))?;
-        let temporary = directory.join(".state.json.tmp");
+        let temporary = temp_path(path);
         std::fs::write(&temporary, bytes)
             .with_context(|| format!("write {}", temporary.display()))?;
         std::fs::rename(&temporary, path).with_context(|| format!("replace {}", path.display()))?;
@@ -104,11 +107,35 @@ fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
     let directory = path.parent().context("path has no parent")?;
     std::fs::create_dir_all(directory)
         .with_context(|| format!("create {}", directory.display()))?;
-    let temporary = directory.join(".credential.json.tmp");
-    std::fs::write(&temporary, bytes).with_context(|| format!("write {}", temporary.display()))?;
-    set_mode_600(&temporary)?;
+    let temporary = temp_path(path);
+    // The mode is set at creation: a plain write would leave the bearer
+    // token world-readable until a later chmod, or forever on a crash.
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&temporary)
+        .with_context(|| format!("write {}", temporary.display()))?;
+    file.write_all(bytes)
+        .with_context(|| format!("write {}", temporary.display()))?;
+    drop(file);
     std::fs::rename(&temporary, path).with_context(|| format!("replace {}", path.display()))?;
+    // Rename preserves the temp file's mode, but re-assert it in case the
+    // filesystem ignored the creation mode.
+    set_mode_600(path)?;
     Ok(())
+}
+
+/// Sibling temp path unique to this write, so a concurrent `login`/`once`
+/// sharing the directory can never publish the other's partial bytes.
+fn temp_path(path: &Path) -> PathBuf {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let stem = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("tmp");
+    let count = COUNTER.fetch_add(1, Ordering::Relaxed);
+    path.with_file_name(format!(".{stem}.tmp-{}-{count}", std::process::id()))
 }
 
 fn set_mode_600(path: &Path) -> Result<()> {
@@ -118,4 +145,26 @@ fn set_mode_600(path: &Path) -> Result<()> {
     std::fs::set_permissions(path, permissions)
         .with_context(|| format!("chmod 600 {}", path.display()))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn private_files_are_created_mode_600() {
+        let dir = std::env::temp_dir().join(format!("warmer-test-{}", std::process::id()));
+        let path = dir.join("credential.json");
+        write_private(&path, b"secret").expect("write");
+        let mode = std::fs::metadata(&path).expect("stat").permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn temp_names_are_unique_per_write() {
+        let path = Path::new("/nonexistent/state.json");
+        assert_ne!(temp_path(path), temp_path(path));
+    }
 }

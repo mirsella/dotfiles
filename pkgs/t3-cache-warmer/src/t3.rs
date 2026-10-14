@@ -25,7 +25,7 @@ pub fn is_credential_rejected(error: &anyhow::Error) -> bool {
     error.downcast_ref::<CredentialRejected>().is_some()
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum McpError {
     Credential(String),
     Session(String),
@@ -40,6 +40,20 @@ impl McpError {
             Self::Other(message) => anyhow::anyhow!("{message}"),
         }
     }
+}
+
+/// Maps an HTTP failure to the caller's recovery strategy: re-authenticate,
+/// re-initialize the session, or give up. Getting this wrong is expensive: a
+/// session-caused 401 would burn a pairing code on a full re-login instead of
+/// a cheap re-`initialize`.
+fn failure_for(status: u16, body: &str) -> McpError {
+    if status == 401 {
+        return McpError::Credential(body.to_owned());
+    }
+    if status == 404 || (status == 400 && body.contains("session")) {
+        return McpError::Session(format!("HTTP {status}: {body}"));
+    }
+    McpError::Other(format!("HTTP {status} from /mcp: {body}"))
 }
 
 pub struct T3Client {
@@ -124,14 +138,8 @@ impl T3Client {
             .to_owned();
         let text = response.body_mut().read_to_string().unwrap_or_default();
 
-        if status == 401 {
-            return Err(McpError::Credential(text));
-        }
-        if status == 404 || (status == 400 && text.contains("session")) {
-            return Err(McpError::Session(format!("HTTP {status}: {text}")));
-        }
         if !(200..300).contains(&status) {
-            return Err(McpError::Other(format!("HTTP {status} from /mcp: {text}")));
+            return Err(failure_for(status, &text));
         }
         if method == "initialize" {
             self.session = match session_header {
@@ -325,5 +333,23 @@ mod tests {
         let parsed = parse_rpc_body("application/json", "{\"result\":1}").unwrap();
         assert_eq!(parsed["result"], json!(1));
         assert!(parse_rpc_body("application/json", "not json").is_err());
+    }
+
+    #[test]
+    fn http_failures_map_to_recovery_strategy() {
+        assert_eq!(
+            failure_for(401, "invalid_mcp_credential"),
+            McpError::Credential("invalid_mcp_credential".to_owned())
+        );
+        assert!(matches!(failure_for(404, "gone"), McpError::Session(_)));
+        assert!(matches!(
+            failure_for(400, "unknown session id"),
+            McpError::Session(_)
+        ));
+        assert!(matches!(
+            failure_for(400, "bad request"),
+            McpError::Other(_)
+        ));
+        assert!(matches!(failure_for(500, "boom"), McpError::Other(_)));
     }
 }

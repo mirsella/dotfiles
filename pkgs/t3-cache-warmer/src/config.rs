@@ -111,22 +111,34 @@ impl Config {
     }
 
     pub fn validate(&self) -> Result<()> {
-        if !self.base_url.starts_with("http://") && !self.base_url.starts_with("https://") {
-            bail!("baseUrl must start with http:// or https://");
+        // This build has no TLS stack, so https:// could never work.
+        if !self.base_url.starts_with("http://") {
+            bail!("baseUrl must use plain http://");
         }
-        parse_hhmm(&self.day_window.start, "dayWindow.start")?;
-        parse_hhmm(&self.day_window.end, "dayWindow.end")?;
+        let start = parse_hhmm(&self.day_window.start, "dayWindow.start")?;
+        let end = parse_hhmm(&self.day_window.end, "dayWindow.end")?;
+        if start == end {
+            bail!("dayWindow.start and dayWindow.end must differ");
+        }
         if self.tick_seconds < 5 || self.tick_seconds > 3600 {
             bail!("tickSeconds must be between 5 and 3600");
         }
         if self.active_window_minutes == 0 {
             bail!("activeWindowMinutes must be positive");
         }
+        if self.prune_days == 0 {
+            // Zero would read as "disable pruning" but prune it as "keep
+            // nothing": every pass would wipe the state it just loaded.
+            bail!("pruneDays must be at least 1");
+        }
         if self.send_grace_seconds < 60 {
             bail!("sendGraceSeconds must be at least 60");
         }
-        if !self.redirect_uri.starts_with("http://127.0.0.1:") {
-            bail!("redirectUri must be a loopback address");
+        if !valid_redirect_uri(&self.redirect_uri) {
+            bail!("redirectUri must be http://127.0.0.1:<port> or http://localhost:<port>");
+        }
+        if self.keepalive_message.trim().is_empty() {
+            bail!("keepaliveMessage must not be empty");
         }
         for (index, rule) in self.rules.iter().enumerate() {
             if rule.model_contains.is_empty() && rule.provider.is_none() {
@@ -153,6 +165,28 @@ impl Config {
         let home = std::env::var_os("HOME").context("HOME is not set")?;
         Ok(PathBuf::from(home).join(".local/state/t3-cache-warmer"))
     }
+}
+
+/// True for `http://127.0.0.1:<port>[...]` or `http://localhost:<port>[...]`.
+/// A string prefix is not enough: `http://127.0.0.1:1@evil.com/` would pass
+/// one while pointing at another host entirely.
+fn valid_redirect_uri(uri: &str) -> bool {
+    let Some(authority) = uri
+        .strip_prefix("http://")
+        .and_then(|rest| rest.split('/').next())
+    else {
+        return false;
+    };
+    if authority.contains('@') {
+        return false;
+    }
+    let Some((host, port)) = authority.rsplit_once(':') else {
+        return false;
+    };
+    (host == "127.0.0.1" || host == "localhost")
+        && !port.is_empty()
+        && port.len() <= 5
+        && port.bytes().all(|byte| byte.is_ascii_digit())
 }
 
 /// Parses `HH:MM` into minutes since local midnight.
@@ -215,5 +249,43 @@ mod tests {
             ..Config::default()
         };
         assert!(config.validate().is_err(), "lead must stay below the ttl");
+    }
+
+    #[test]
+    fn rejects_unusable_scalars() {
+        let config = Config {
+            base_url: "https://t3.example.com".to_owned(),
+            ..Config::default()
+        };
+        assert!(config.validate().is_err(), "no TLS stack for https");
+        let config = Config {
+            prune_days: 0,
+            ..Config::default()
+        };
+        assert!(config.validate().is_err(), "prune 0 would wipe state");
+        let config = Config {
+            keepalive_message: "   ".to_owned(),
+            ..Config::default()
+        };
+        assert!(config.validate().is_err(), "blank keepalive");
+        let config = Config {
+            day_window: DayWindow {
+                start: "09:00".to_owned(),
+                end: "09:00".to_owned(),
+            },
+            ..Config::default()
+        };
+        assert!(config.validate().is_err(), "empty window warms nothing");
+    }
+
+    #[test]
+    fn redirect_uri_must_be_loopback() {
+        assert!(valid_redirect_uri("http://127.0.0.1:39001/callback"));
+        assert!(valid_redirect_uri("http://localhost:8080/"));
+        assert!(!valid_redirect_uri("http://127.0.0.1:1@evil.com/"));
+        assert!(!valid_redirect_uri("http://127.0.0.1:/callback"));
+        assert!(!valid_redirect_uri("http://127.0.0.1/callback"));
+        assert!(!valid_redirect_uri("https://127.0.0.1:39001/callback"));
+        assert!(!valid_redirect_uri("http://example.com:39001/callback"));
     }
 }
