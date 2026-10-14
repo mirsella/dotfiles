@@ -15,6 +15,10 @@
   config = {
     # These launchers/bootstrap are immutable; application releases stay writable.
     home.packages = [ config.programs.agent-tools.package ];
+    home.file.".local/bin/t3-settings" = {
+      source = "${config.programs.agent-tools.package}/bin/t3-settings";
+      force = true;
+    };
     home.sessionPath = lib.mkBefore [ "${config.home.homeDirectory}/.local/bin" ];
     home.activation.agentTools = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       run ${lib.getExe config.programs.agent-tools.package}

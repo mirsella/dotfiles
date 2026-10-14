@@ -167,11 +167,12 @@ before `re-add`; the captured bundle includes project script commands and URLs.
 Do not `chezmoi add` the live T3 settings files.
 
 `t3-settings capture` can refresh the local bundle separately without committing
-or pushing. Before the next Home Manager activation, build the bootstrap package
-above and add its `bin` directory to `PATH` so the hook can find `t3-settings`:
+or pushing. Home Manager installs its launcher at `~/.local/bin/t3-settings`.
+Before the next activation, build the bootstrap package above and create the
+same launcher link if it is absent:
 
 ```sh
-export PATH="$HOME/.local/state/agent-tools/bootstrap/bin:$PATH"
+ln -s ~/.local/state/agent-tools/bootstrap/bin/t3-settings ~/.local/bin/t3-settings
 ```
 
 Apply `~/.config/chezmoi/chezmoi.toml` to install the hook on an existing machine.
