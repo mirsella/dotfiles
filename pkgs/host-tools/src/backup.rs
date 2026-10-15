@@ -9,6 +9,8 @@ use std::{
     process::{Command, Stdio},
 };
 
+const BACKUP_RETENTION: usize = 7;
+
 #[derive(Deserialize)]
 pub struct Task {
     pub program: String,
@@ -110,7 +112,10 @@ pub fn publish(
         }
     }
     older.sort();
-    for old in older.iter().take(older.len().saturating_sub(13)) {
+    for old in older
+        .iter()
+        .take(older.len().saturating_sub(BACKUP_RETENTION - 1))
+    {
         fs::remove_dir_all(old)?;
     }
     println!("Backup completed: {}", destination.display());

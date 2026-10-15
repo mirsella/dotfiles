@@ -18,7 +18,7 @@ use std::{
 
 const TANK_BACKUP_DIRECTORY: &str = "/srv/backup/hermes";
 const LEGACY_BACKUP_DIRECTORY: &str = "/var/lib/hermes-backups";
-const BACKUP_RETENTION: usize = 14;
+const BACKUP_RETENTION: usize = 4;
 const BACKUP_TIMESTAMP_FORMAT: &str = "%Y%m%dT%H%M%S%.9fZ";
 
 #[derive(clap::Subcommand)]
@@ -833,10 +833,12 @@ mod tests {
             .unwrap()
             .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
             .collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(remaining.len(), 19);
+        assert_eq!(remaining.len(), 9);
+        assert!(remaining.contains("hermes-20261009T000012.000000000Z.tar.gz"));
         assert!(remaining.contains("hermes-20261009T000015.000000000Z.tar.gz"));
         assert!(!remaining.contains("hermes-20261009T000000.000000000Z.tar.gz"));
         assert!(!remaining.contains("hermes-20261009T000001.000000000Z.tar.gz"));
+        assert!(!remaining.contains("hermes-20261009T000011.000000000Z.tar.gz"));
         assert!(remaining.contains("hermes-999.tar.gz.partial"));
         assert!(remaining.contains("unrelated.tar.gz"));
         assert!(remaining.contains("hermes-not-a-backup.tar.gz"));
@@ -861,7 +863,7 @@ mod tests {
             .join("hermes-20261009T000000.000000000Z.tar.gz");
         prune_backups(&current).unwrap();
         assert!(current.exists());
-        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 14);
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 4);
         assert!(
             !directory
                 .path()

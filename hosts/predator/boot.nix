@@ -30,7 +30,11 @@ in
     "dmask=0077"
   ];
   networking.hostId = "007f0200";
-  console.keyMap = "fr";
+  console.useXkbConfig = true;
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "colemak_dh_iso";
+  };
   environment.systemPackages = with pkgs; [
     cryptsetup
     tpm2-tools

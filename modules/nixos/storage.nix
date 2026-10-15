@@ -54,7 +54,7 @@ in
     templates.keep = {
       hourly = 0;
       daily = 7;
-      weekly = 4;
+      weekly = 2;
       monthly = 0;
       yearly = 0;
       autoprune = true;

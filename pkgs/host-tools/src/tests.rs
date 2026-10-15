@@ -419,7 +419,7 @@ fn backup_failure_keeps_previous_latest_and_cleans_staging() -> Result<()> {
 }
 
 #[test]
-fn backup_retains_fourteen_and_current_when_clock_moves_backwards() -> Result<()> {
+fn backup_retains_seven_and_current_when_clock_moves_backwards() -> Result<()> {
     let tmp = tempfile::tempdir()?;
     for n in 1..=16 {
         backup::publish(tmp.path(), &format!("backup-{n:03}"), |_| Ok(()))?;
@@ -430,7 +430,7 @@ fn backup_retains_fourteen_and_current_when_clock_moves_backwards() -> Result<()
         .read_dir()?
         .filter(|p| p.as_ref().unwrap().file_type().unwrap().is_dir())
         .count();
-    assert_eq!(directories, 14);
+    assert_eq!(directories, 7);
     assert!(tmp.path().join("backup-000").is_dir());
     assert!(tmp.path().join("backup-016").is_dir());
     assert!(!tmp.path().join("backup-003").exists());

@@ -29,7 +29,7 @@ let
     };
     recovery-backup = {
       description = "Back up LUKS headers, TPM policy authorities, SOPS identity and Secure Boot keys";
-      startAt = "23:10";
+      startAt = "Sun 23:10";
       out = mountpoint;
       requires = [ ];
       directories = [ "luks" ];
