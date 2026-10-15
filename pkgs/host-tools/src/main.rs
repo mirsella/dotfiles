@@ -39,7 +39,7 @@ enum Commands {
         action: t3_settings::Operation,
     },
     BootstrapAgentTools {
-        config: PathBuf,
+        package: PathBuf,
     },
     AgentToolsEnvironment {
         file: PathBuf,
@@ -154,7 +154,7 @@ fn run() -> Result<()> {
     match Cli::parse().command {
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
-        Commands::BootstrapAgentTools { config } => agent_tools::bootstrap(&config),
+        Commands::BootstrapAgentTools { package } => agent_tools::bootstrap(&package),
         Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),
         Commands::ArchUki { config } => uki::run(&config),
         Commands::PredatorBoot { config, action } => predator_boot::run(&config, action),

@@ -17,6 +17,7 @@
   procps,
   util-linux,
   appimage-run,
+  nix,
   isNixOS ? false,
 }:
 let
@@ -60,7 +61,7 @@ let
     Environment=T3CODE_CHANNEL=nightly
     EnvironmentFile=-%t/t3code-service-environment.env
     # Run after any shell-environment loader and retain its other exports.
-    ExecStartPre=${lib.getExe host-tools} agent-tools-environment %t/t3code-service-environment.env
+    ExecStartPre=%h/.local/state/agent-tools/installed/bin/host-tools agent-tools-environment %t/t3code-service-environment.env
   '';
   configFile = writeText "agent-tools.json" (
     builtins.toJSON {
@@ -69,10 +70,8 @@ let
         t3Installer
         t3Version
         desktopImage
-        desktopLauncher
-        desktopEntry
-        serviceEnvironment
         ;
+      nixStore = if isNixOS then "${nix}/bin/nix-store" else "/usr/bin/nix-store";
       shell = lib.getExe bash;
       installerPath = lib.makeBinPath [
         bash
@@ -99,10 +98,10 @@ runCommand "agent-tools"
     };
   }
   ''
-    mkdir -p $out/bin
-    cat > $out/bin/bootstrap-agent-tools <<'EOF'
+    mkdir -p $out/bin $out/share/agent-tools
+    cat > $out/bin/bootstrap-agent-tools <<EOF
     #!${lib.getExe bash}
-    exec ${lib.getExe host-tools} bootstrap-agent-tools ${configFile} "$@"
+    exec ${lib.getExe host-tools} bootstrap-agent-tools "$out" "\$@"
     EOF
     chmod +x $out/bin/bootstrap-agent-tools
     cat > $out/bin/t3-settings <<'EOF'
@@ -112,4 +111,8 @@ runCommand "agent-tools"
     chmod +x $out/bin/t3-settings
     ln -s ${desktopLauncher} $out/bin/t3code
     ln -s ${desktopLauncher} $out/bin/t3code-nightly
+    ln -s ${lib.getExe host-tools} $out/bin/host-tools
+    ln -s ${configFile} $out/share/agent-tools/config.json
+    ln -s ${desktopEntry} $out/share/agent-tools/t3code.desktop
+    ln -s ${serviceEnvironment} $out/share/agent-tools/zz-native-agent-tools.conf
   ''

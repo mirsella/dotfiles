@@ -2,6 +2,7 @@ use anyhow::{Context, Result, ensure};
 use serde::Deserialize;
 use std::{
     env,
+    ffi::CString,
     fmt::Write,
     fs,
     os::unix::fs::{PermissionsExt, symlink},
@@ -16,9 +17,7 @@ struct Config {
     t3_installer: PathBuf,
     t3_version: String,
     desktop_image: PathBuf,
-    desktop_launcher: PathBuf,
-    desktop_entry: PathBuf,
-    service_environment: PathBuf,
+    nix_store: PathBuf,
     shell: PathBuf,
     installer_path: String,
 }
@@ -103,10 +102,16 @@ fn seed_desktop(source: &Path, destination: &Path) -> Result<()> {
                 metadata.permissions().mode() & 0o100 != 0,
                 "desktop install must be executable"
             );
-            fs::File::options()
-                .write(true)
-                .open(destination)
-                .context("desktop install must be writable")?;
+            let path = CString::new(destination.as_os_str().as_encoded_bytes())?;
+            // Opening a running AppImage for writing fails with ETXTBSY even
+            // when its permissions allow the updater to replace it.
+            ensure!(
+                unsafe {
+                    libc::faccessat(libc::AT_FDCWD, path.as_ptr(), libc::W_OK, libc::AT_EACCESS)
+                } == 0,
+                "desktop install must be writable: {}",
+                std::io::Error::last_os_error()
+            );
             eprintln!("agent-tools: keeping existing nightly desktop AppImage");
             return Ok(());
         }
@@ -126,8 +131,51 @@ fn seed_desktop(source: &Path, destination: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn bootstrap(config: &Path) -> Result<()> {
-    let config: Config = serde_json::from_str(&crate::util::read(config)?)?;
+fn pin_package(nix_store: &Path, package: &Path, installed: &Path) -> Result<()> {
+    crate::util::command_output(
+        Command::new(nix_store)
+            .arg("--realise")
+            .arg(package)
+            .arg("--add-root")
+            .arg(installed)
+            .arg("--indirect"),
+    )?;
+    ensure!(
+        fs::canonicalize(installed)? == fs::canonicalize(package)?,
+        "Nix did not register the installed agent-tools package"
+    );
+    Ok(())
+}
+
+fn link_launchers(installed: &Path, home: &Path) -> Result<()> {
+    // Links go through the registered root, so package updates also update any
+    // executable path cached by systemd without leaving an old store reference.
+    for name in ["t3code", "t3code-nightly"] {
+        link(
+            &installed.join("bin/t3code-nightly"),
+            &home.join(".local/bin").join(name),
+        )?;
+    }
+    for (source, destination) in [
+        ("t3code.desktop", ".local/share/applications/t3code.desktop"),
+        (
+            "zz-native-agent-tools.conf",
+            ".config/systemd/user/t3code.service.d/zz-native-agent-tools.conf",
+        ),
+    ] {
+        link(
+            &installed.join("share/agent-tools").join(source),
+            &home.join(destination),
+        )?;
+    }
+    Ok(())
+}
+
+pub fn bootstrap(package: &Path) -> Result<()> {
+    let package = fs::canonicalize(package).context("resolve agent-tools package")?;
+    let config: Config = serde_json::from_str(&crate::util::read(
+        package.join("share/agent-tools/config.json"),
+    )?)?;
     ensure!(
         config.t3_version.contains("-nightly."),
         "T3's bootstrap release must be nightly"
@@ -203,17 +251,13 @@ pub fn bootstrap(config: &Path) -> Result<()> {
         &config.desktop_image,
         &home.join(".local/share/t3code/app/T3-Code-nightly.AppImage"),
     )?;
-    for name in ["t3code", "t3code-nightly"] {
-        link(&config.desktop_launcher, &bin.join(name))?;
-    }
-    link(
-        &config.desktop_entry,
-        &home.join(".local/share/applications/t3code.desktop"),
-    )?;
-    link(
-        &config.service_environment,
-        &home.join(".config/systemd/user/t3code.service.d/zz-native-agent-tools.conf"),
-    )?;
+    let installed = state.join("installed");
+    pin_package(&config.nix_store, &package, &installed)?;
+    link_launchers(&installed, &home)?;
+    eprintln!(
+        "agent-tools: protected installed package at {}",
+        installed.display()
+    );
     Ok(())
 }
 
@@ -278,6 +322,7 @@ pub fn composio_mcp_headers() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::unix::process::CommandExt;
 
     fn scratch() -> tempfile::TempDir {
         tempfile::Builder::new()
@@ -318,6 +363,86 @@ mod tests {
         fs::write(&installed, "read only").unwrap();
         fs::set_permissions(&installed, fs::Permissions::from_mode(0o555)).unwrap();
         assert!(seed_desktop(&seed, &installed).is_err());
+    }
+
+    #[test]
+    fn activation_preserves_a_running_appimage() {
+        let scratch = scratch();
+        let installed = scratch.path().join("T3-Code-nightly.AppImage");
+        let executable = env::split_paths(&env::var_os("PATH").unwrap())
+            .map(|path| path.join("cat"))
+            .find(|path| path.is_file())
+            .expect("cat must be on the test PATH");
+        fs::copy(executable, &installed).unwrap();
+        fs::set_permissions(&installed, fs::Permissions::from_mode(0o755)).unwrap();
+        let mut child = Command::new(&installed)
+            .arg0("cat")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let write_error = fs::File::options()
+            .write(true)
+            .open(&installed)
+            .err()
+            .and_then(|error| error.raw_os_error());
+        let result = seed_desktop(&scratch.path().join("unused-seed"), &installed);
+        child.kill().unwrap();
+        child.wait().unwrap();
+        assert_eq!(write_error, Some(libc::ETXTBSY));
+        result.unwrap();
+    }
+
+    #[test]
+    fn installed_links_follow_package_updates_without_relinking() {
+        let scratch = scratch();
+        let home = scratch.path().join("home");
+        let installed = scratch.path().join("installed");
+        let first = scratch.path().join("first-package");
+        let second = scratch.path().join("second-package");
+        for (package, version) in [(&first, "first"), (&second, "second")] {
+            fs::create_dir_all(package.join("bin")).unwrap();
+            fs::create_dir_all(package.join("share/agent-tools")).unwrap();
+            for file in [
+                "bin/t3code-nightly",
+                "bin/host-tools",
+                "share/agent-tools/t3code.desktop",
+                "share/agent-tools/zz-native-agent-tools.conf",
+            ] {
+                fs::write(package.join(file), version).unwrap();
+            }
+        }
+        link(&first, &installed).unwrap();
+        link_launchers(&installed, &home).unwrap();
+        let destinations = [
+            home.join(".local/bin/t3code"),
+            home.join(".local/bin/t3code-nightly"),
+            home.join(".local/share/applications/t3code.desktop"),
+            home.join(".config/systemd/user/t3code.service.d/zz-native-agent-tools.conf"),
+            installed.join("bin/host-tools"),
+        ];
+        for path in &destinations {
+            assert_eq!(fs::read_to_string(path).unwrap(), "first");
+        }
+        link(&second, &installed).unwrap();
+        fs::remove_dir_all(&first).unwrap();
+        for path in &destinations {
+            assert_eq!(fs::read_to_string(path).unwrap(), "second");
+        }
+    }
+
+    #[test]
+    fn failed_gc_registration_preserves_the_installed_package() {
+        let scratch = scratch();
+        let installed = scratch.path().join("installed");
+        let first = scratch.path().join("first-package");
+        let second = scratch.path().join("second-package");
+        fs::create_dir(&first).unwrap();
+        fs::create_dir(&second).unwrap();
+        link(&first, &installed).unwrap();
+        assert!(pin_package(Path::new("false"), &second, &installed).is_err());
+        assert_eq!(fs::read_link(&installed).unwrap(), first);
     }
 
     #[test]

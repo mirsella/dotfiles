@@ -120,9 +120,15 @@ nix build \
   --out-link ~/.local/state/agent-tools/bootstrap
 ```
 
-Then run the same bootstrap helper above. The out-link keeps its launchers and
-service helper available through Nix garbage collection until normal activation
-adds them to the host's profile.
+Then run the same bootstrap helper above. Bootstrap registers
+`~/.local/state/agent-tools/installed` as a Nix GC root. The desktop launchers and
+service drop-in use that stable path. Rebuilding or removing the build out-link
+does not unprotect the installed package. Bootstrap updates the installed root
+only after the native installs succeed; it does not retain old package roots.
+
+Nix builds the Rust helpers and caches package outputs. Cargo compilation
+directories are temporary, not part of the installed package. For interactive
+Cargo work, use the crate's ignored `pkgs/<crate>/target/` directory.
 
 Codex lives under `~/.codex/packages/standalone`, and T3's CLI releases under
 `~/.t3/runtime/versions`. The desktop AppImage is a writable file at
@@ -172,7 +178,7 @@ Before the next activation, build the bootstrap package above and create the
 same launcher link if it is absent:
 
 ```sh
-ln -s ~/.local/state/agent-tools/bootstrap/bin/t3-settings ~/.local/bin/t3-settings
+ln -s ~/.local/state/agent-tools/installed/bin/t3-settings ~/.local/bin/t3-settings
 ```
 
 Apply `~/.config/chezmoi/chezmoi.toml` to install the hook on an existing machine.
