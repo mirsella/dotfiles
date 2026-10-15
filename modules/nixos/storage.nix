@@ -7,11 +7,16 @@
 let
   physical = import ../../hosts/predator/disks.nix;
   pools = (import ../../disko.nix).disko.devices.zpool;
-  replicated = builtins.attrNames pools.fast.datasets;
+  fastDatasets = builtins.attrNames pools.fast.datasets;
+  resticDatasets = map (name: "fast/${name}") fastDatasets;
   unlockUnit = name: "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
   tankUnlocks = map unlockUnit (builtins.attrNames physical.hdds);
 in
 {
+  sops.secrets."restic-password" = {
+    sopsFile = ../../secrets/restic.yaml;
+  };
+
   boot.zfs.extraPools = builtins.attrNames pools;
 
   systemd.services.zfs-import-fast = {
@@ -59,10 +64,9 @@ in
       yearly = 0;
       autoprune = true;
     };
-    datasets = lib.genAttrs (map (name: "fast/${name}") replicated ++ [ "tank/archive" "tank/backup" "tank/replica" ]) (name: {
+    datasets = lib.genAttrs (map (name: "fast/${name}") fastDatasets ++ [ "tank/archive" "tank/backup" ]) (_: {
       use_template = [ "keep" ];
       recursive = true;
-      autosnap = name != "tank/replica";
     });
   };
   systemd.services.sanoid = {
@@ -73,21 +77,34 @@ in
   };
   systemd.timers.sanoid.timerConfig.Persistent = true;
 
-  services.syncoid = {
-    enable = true;
-    interval = "23:45";
-    commonArgs = [ "--no-rollback" ];
-    localTargetAllow = lib.mkOptionDefault [ "readonly" "canmount" "acltype" "aclinherit" "destroy" ];
-    commands = lib.genAttrs replicated (name: {
-      source = "fast/${name}";
-      target = "tank/replica/${name}";
-      recursive = true;
-      sendOptions = "Lc p";
-      recvOptions = "u o mountpoint=none o canmount=off o readonly=on";
-    });
-    service = {
-      requires = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
-      after = [ "zfs-import-fast.service" "zfs-import-tank.service" "sanoid.service" ];
+  # Nightly restic backup of the fast pools to tank, replacing the old syncoid
+  # replica: retention spans months, restore is file-level, and the backup runs
+  # against a throwaway snapshot instead of the live tree.
+  services.restic.backups.fast = {
+    initialize = true;
+    repository = "/srv/backup/restic";
+    passwordFile = config.sops.secrets."restic-password".path;
+    paths = map (name: "${pools.fast.datasets.${name}.mountpoint}/.zfs/snapshot/restic-backup") fastDatasets;
+    pruneOpts = [
+      "--keep-daily 7"
+      "--keep-weekly 8"
+      "--keep-monthly 6"
+    ];
+    backupPrepareCommand = lib.concatMapStrings (dataset: ''
+      ${config.boot.zfs.package}/bin/zfs destroy -r ${dataset}@restic-backup 2>/dev/null || true
+      ${config.boot.zfs.package}/bin/zfs snapshot ${dataset}@restic-backup
+    '') resticDatasets;
+    backupCleanupCommand = lib.concatMapStrings (dataset: ''
+      ${config.boot.zfs.package}/bin/zfs destroy -r ${dataset}@restic-backup 2>/dev/null || true
+    '') resticDatasets;
+    timerConfig = {
+      OnCalendar = "23:50";
+      Persistent = true;
     };
+  };
+  systemd.services."restic-backups-fast" = {
+    requires = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
+    after = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
+    unitConfig.RequiresMountsFor = [ "/srv/backup" ];
   };
 }

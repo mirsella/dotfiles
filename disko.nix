@@ -73,10 +73,6 @@
             archive = zfsFs "/srv/data/archive";
             backup = zfsFs "/srv/backup";
             "backup/recovery" = zfsFs "/srv/backup/recovery";
-            replica = {
-              type = "zfs_fs";
-              options = { mountpoint = "none"; canmount = "off"; readonly = "on"; };
-            };
           };
         };
       };
