@@ -35,7 +35,7 @@
     '';
     systemd.user.services.agent-tools-setup = {
       Unit = {
-        Description = "Restore portable agent preferences and local OpenCode credentials";
+        Description = "Reconcile portable agent preferences with live T3 settings";
         After = [ "opencode.service" "t3code.service" ];
         Wants = [ "opencode.service" "t3code.service" ];
       };
@@ -48,11 +48,15 @@
       Install.WantedBy = [ "default.target" ];
     };
     systemd.user.paths.agent-tools-setup = {
-      Unit.Description = "Restore agent settings when their local inputs change";
+      Unit.Description = "Sync agent settings when their local inputs change";
       Path.PathChanged = [
         "%h/.config/t3code/portable-settings.json"
         "%h/.config/opencode/service.json"
         "%h/.t3/userdata/server-runtime.json"
+        "%h/.t3/userdata/client-settings.json"
+        "%h/.t3/userdata/settings.json"
+        "%h/.t3/userdata/desktop-settings.json"
+        "%h/.t3/userdata/keybindings.json"
       ];
       Install.WantedBy = [ "default.target" ];
     };

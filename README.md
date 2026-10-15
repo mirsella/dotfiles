@@ -146,9 +146,10 @@ exports. Downloads use disk-backed scratch space under `~/dev`. T3 owns its
 background-service unit and updater state. Bootstrap installs the T3 service
 when a user manager is available; setup finishes on the next user login otherwise.
 Home Manager starts `agent-tools-setup.service` after activation. It waits for
-T3's runtime file and restores the editable portable preferences through T3's
-project API. Changes to the portable bundle, OpenCode's service credential, or
-T3's runtime file trigger the same idempotent setup.
+T3's runtime file and reconciles the editable portable preferences with live
+T3 settings through T3's project API, in either direction. Changes to the
+portable bundle, OpenCode's service credential, T3's runtime file, or any
+live T3 settings file trigger the same idempotent sync.
 
 Chezmoi stores portable T3 preferences and project registrations in
 `~/.config/t3code/portable-settings.json`. The Nix-built `t3-settings` helper
@@ -161,17 +162,32 @@ T3's OpenCode provider omits `serverUrl` so T3 launches its own server
 and injects its thread-scoped MCP tools. The standalone OpenCode service remains
 available to other clients. If an instance explicitly uses the local singleton
 on port 14096, apply reads its password from `~/.config/opencode/service.json`
-into local T3 settings. The password stays out of portable captures and Git.
+into local T3 settings, and rotating that credential triggers a sync that
+re-injects it even when every other setting already matches. The password
+stays out of portable captures and Git.
 Other endpoints keep their own credentials. GitHub device authorization and
 agent-provider logins remain device-local.
 Capture and apply report unknown field paths without printing their values.
 Add a field to the allowlist to capture it, or set its rule to `false` to
 explicitly ignore it. Known exclusions do not produce warnings.
 
-With the T3 background server running, save preferences changed in the app:
+Preferences changed in the app sync back to the portable bundle automatically:
+the settings watcher reruns the sync when live T3 settings files change, and
+the one side that changed wins. When both sides changed since the last sync,
+the sync does nothing and the service fails with both diffs; resolve it with
+`t3-settings sync --force-capture` (live settings win) or
+`t3-settings sync --force-apply` (bundle wins). A machine with no previous
+sync record (fresh onboarding) instead adopts the bundle after backing the
+live settings up. Every overwrite, adoption, and conflict
+is archived with before/after snapshots under
+`~/.local/state/agent-tools/t3-settings-history/` for recovery, and the
+journal shows the diff. Preview any decision with
+`t3-settings sync --dry-run`.
+
+To commit the synced bundle to Git:
 
 ```sh
-chezmoi re-add
+chezmoi re-add ~/.config/t3code/portable-settings.json
 git diff -- dotfiles/private_dot_config/t3code/private_portable-settings.json
 ```
 

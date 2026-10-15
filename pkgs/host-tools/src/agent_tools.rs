@@ -341,9 +341,11 @@ pub fn setup() -> Result<()> {
     }
     crate::t3_settings::run(
         None,
-        crate::t3_settings::Operation::Apply {
+        crate::t3_settings::Operation::Sync {
             input: Some(input),
             dry_run: false,
+            force_apply: false,
+            force_capture: false,
         },
     )
 }
