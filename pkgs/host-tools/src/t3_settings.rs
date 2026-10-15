@@ -39,10 +39,10 @@ pub enum Operation {
         input: Option<PathBuf>,
         #[arg(long)]
         dry_run: bool,
-        /// Overwrite live settings with the bundle even when both sides changed.
+        /// Overwrite live settings with the bundle to resolve a conflict (bundle wins).
         #[arg(long, conflicts_with = "force_capture")]
         force_apply: bool,
-        /// Overwrite the bundle with live settings even when both sides changed.
+        /// Overwrite the bundle with live settings to resolve a conflict (live wins).
         #[arg(long, conflicts_with = "force_apply")]
         force_capture: bool,
     },
@@ -840,22 +840,44 @@ fn uses_native_opencode(provider: &Value) -> bool {
         && url.port_or_known_default() == Some(14096)
 }
 
+/// Read-only check for `ensure_native_password`, also used to preview the
+/// refresh on dry runs that otherwise report no action.
+fn native_password_stale(home: &Path, base_dir: &Path) -> Result<bool> {
+    let server = SettingsFile::read(base_dir.join("userdata/settings.json"), object())?;
+    let Some(password) = crate::opencode::password(&home.join(".config/opencode/service.json"))?
+    else {
+        return Ok(false);
+    };
+    Ok(server
+        .value
+        .get("providerInstances")
+        .and_then(Value::as_object)
+        .is_some_and(|providers| {
+            providers
+                .values()
+                .filter(|p| uses_native_opencode(p))
+                .any(|p| {
+                    p["config"].get("serverPassword").and_then(Value::as_str) != Some(&password)
+                })
+        }))
+}
+
 /// Re-inject the native OpenCode password when only it changed. The password
 /// is excluded from sync comparisons, so an otherwise-in-sync run would never
 /// notice a rotation. Non-blocking: a missing service file simply skips.
 fn ensure_native_password(home: &Path, base_dir: &Path) -> Result<bool> {
+    if !native_password_stale(home, base_dir)? {
+        return Ok(false);
+    }
     let mut server = SettingsFile::read(base_dir.join("userdata/settings.json"), object())?;
+    let Some(password) = crate::opencode::password(&home.join(".config/opencode/service.json"))?
+    else {
+        return Ok(false);
+    };
     let Some(providers) = server
         .value
         .get_mut("providerInstances")
         .and_then(Value::as_object_mut)
-    else {
-        return Ok(false);
-    };
-    if !providers.values().any(uses_native_opencode) {
-        return Ok(false);
-    }
-    let Some(password) = crate::opencode::password(&home.join(".config/opencode/service.json"))?
     else {
         return Ok(false);
     };
@@ -985,7 +1007,7 @@ struct SyncState {
     live: Option<Value>,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 struct HistoryEntry {
     timestamp: String,
     direction: String,
@@ -1009,7 +1031,7 @@ enum Decision {
     Conflict,
 }
 
-fn decide(state: Option<&SyncState>, live: Option<&Value>, bundle: &Value) -> Decision {
+fn decide(load: &StateLoad, live: Option<&Value>, bundle: &Value) -> Decision {
     let Some(live) = live else {
         return Decision::Provision;
     };
@@ -1018,16 +1040,23 @@ fn decide(state: Option<&SyncState>, live: Option<&Value>, bundle: &Value) -> De
     if live == bundle {
         return Decision::InSync;
     }
-    let Some(state) = state else {
-        return Decision::AdoptBundle;
-    };
-    let live_changed = state.live.as_ref() != Some(live);
-    let bundle_changed = &state.bundle != bundle;
-    match (live_changed, bundle_changed) {
-        (false, false) => Decision::InSync,
-        (true, false) => Decision::CaptureLive,
-        (false, true) => Decision::ApplyBundle,
-        (true, true) => Decision::Conflict,
+    match load {
+        // No common ancestor exists to call this a conflict: the live side
+        // is backed up to history, then the bundle is applied.
+        StateLoad::Absent => Decision::AdoptBundle,
+        // Without a usable record neither side can be proven unchanged, so
+        // stop instead of picking a winner.
+        StateLoad::Unusable => Decision::Conflict,
+        StateLoad::Present(state) => {
+            let live_changed = state.live.as_ref() != Some(live);
+            let bundle_changed = &state.bundle != bundle;
+            match (live_changed, bundle_changed) {
+                (false, false) => Decision::InSync,
+                (true, false) => Decision::CaptureLive,
+                (false, true) => Decision::ApplyBundle,
+                (true, true) => Decision::Conflict,
+            }
+        }
     }
 }
 
@@ -1039,17 +1068,38 @@ fn history_dir(home: &Path) -> PathBuf {
     home.join(".local/state/agent-tools/t3-settings-history")
 }
 
-fn load_state(home: &Path) -> Option<SyncState> {
-    let bytes = fs::read(sync_state_path(home)).ok()?;
+/// How the last reconciliation record loaded. Only a missing record means
+/// fresh-machine onboarding; a corrupt record or one from a newer version
+/// must stop like a conflict instead of silently adopting the bundle over
+/// live customizations.
+enum StateLoad {
+    Absent,
+    Unusable,
+    Present(SyncState),
+}
+
+fn load_state(home: &Path) -> StateLoad {
+    let path = sync_state_path(home);
+    let bytes = match fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return StateLoad::Absent,
+        Err(error) => {
+            eprintln!(
+                "warning: cannot read T3 sync state at {}: {error}",
+                path.display()
+            );
+            return StateLoad::Unusable;
+        }
+    };
     match serde_json::from_slice::<SyncState>(&bytes) {
-        Ok(state) if state.version == SYNC_STATE_VERSION => Some(state),
+        Ok(state) if state.version == SYNC_STATE_VERSION => StateLoad::Present(state),
         Ok(_) => {
             eprintln!("warning: ignoring T3 sync state with an unsupported version");
-            None
+            StateLoad::Unusable
         }
         Err(error) => {
             eprintln!("warning: ignoring corrupt T3 sync state: {error}");
-            None
+            StateLoad::Unusable
         }
     }
 }
@@ -1101,6 +1151,18 @@ fn record_history(
         let _ = fs::remove_file(dir.join(names.remove(0)));
     }
     Ok(())
+}
+
+/// Newest history entry, so an unchanged conflict stops re-archiving itself
+/// on every trigger and evicting real recovery snapshots from retention.
+fn last_history_entry(home: &Path) -> Option<HistoryEntry> {
+    let dir = history_dir(home);
+    let latest = fs::read_dir(&dir)
+        .ok()?
+        .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+        .filter(|name| name.ends_with(".json"))
+        .max()?;
+    serde_json::from_slice(&fs::read(dir.join(latest)).ok()?).ok()
 }
 
 fn describe(value: &Value) -> String {
@@ -1224,43 +1286,33 @@ fn sync_apply_and_snapshot(
     direction: &str,
 ) -> Result<()> {
     let before = live_val.clone().unwrap_or_else(|| json!({}));
-    let intended = diff_summary(&before, &bundle_val);
     apply(policy, bundle, home, base_dir, false, false)?;
-    match capture(policy, home, base_dir) {
-        Ok(fresh) => {
-            let fresh_val = bundle_value(&fresh)?;
-            let actual = diff_summary(&before, &fresh_val);
-            // A no-op forced sync still refreshes state, but an empty diff is
-            // not worth a history slot.
-            if !actual.is_empty() {
-                print_diff(&actual);
-                record_history(home, direction, forced, actual, &before, &fresh_val)?;
-            }
-            save_state(
-                home,
-                &SyncState {
-                    version: SYNC_STATE_VERSION,
-                    bundle: bundle_val,
-                    live: Some(fresh_val),
-                },
-            )?;
-        }
+    // The common operation only needs the post-apply snapshot and the diff
+    // against it; a failed re-read falls back to the intended bundle values
+    // with unknown live content.
+    let live = match capture(policy, home, base_dir) {
+        Ok(fresh) => Some(bundle_value(&fresh)?),
         Err(error) => {
             eprintln!("warning: applied the bundle but could not re-read live settings: {error:#}");
-            if !intended.is_empty() {
-                print_diff(&intended);
-                record_history(home, direction, forced, intended, &before, &bundle_val)?;
-            }
-            save_state(
-                home,
-                &SyncState {
-                    version: SYNC_STATE_VERSION,
-                    bundle: bundle_val,
-                    live: None,
-                },
-            )?;
+            None
         }
+    };
+    let after = live.as_ref().unwrap_or(&bundle_val);
+    let diff = diff_summary(&before, after);
+    // A no-op forced sync still refreshes state, but an empty diff is
+    // not worth a history slot.
+    if !diff.is_empty() {
+        print_diff(&diff);
+        record_history(home, direction, forced, diff, &before, &after)?;
     }
+    save_state(
+        home,
+        &SyncState {
+            version: SYNC_STATE_VERSION,
+            bundle: bundle_val,
+            live,
+        },
+    )?;
     println!("t3-settings sync: applied the portable bundle to live T3 settings");
     Ok(())
 }
@@ -1290,20 +1342,34 @@ fn sync(
         None
     };
     let live_val = live_bundle.as_ref().map(bundle_value).transpose()?;
-    let state = load_state(home);
-    let mut decision = decide(state.as_ref(), live_val.as_ref(), &bundle_val);
-    if force_capture {
-        ensure!(
-            live_bundle.is_some(),
-            "t3-settings sync --force-capture needs live T3 userdata"
-        );
-        decision = Decision::CaptureLive;
-    } else if force_apply {
-        decision = if live_bundle.is_none() {
-            Decision::Provision
+    let load = load_state(home);
+    let mut decision = decide(&load, live_val.as_ref(), &bundle_val);
+    // The force flags resolve a conflict, not a decided direction: a flag
+    // aimed at the side that did not change would silently destroy the side
+    // that did, so outside a conflict the natural decision stands.
+    if decision == Decision::Conflict {
+        if force_capture {
+            ensure!(
+                live_bundle.is_some(),
+                "t3-settings sync --force-capture needs live T3 userdata"
+            );
+            decision = Decision::CaptureLive;
+        } else if force_apply {
+            decision = if live_bundle.is_none() {
+                Decision::Provision
+            } else {
+                Decision::ApplyBundle
+            };
+        }
+    } else if force_capture || force_apply {
+        let flag = if force_capture {
+            "--force-capture"
         } else {
-            Decision::ApplyBundle
+            "--force-apply"
         };
+        println!(
+            "t3-settings sync: ignoring {flag} outside a conflict; taking the decided direction"
+        );
     }
     // Adoption and plain applies push the bundle down; adoption only adds a
     // backup notice since there is no previous sync record to compare against.
@@ -1312,13 +1378,42 @@ fn sync(
         Decision::InSync => {
             if dry_run {
                 println!("t3-settings sync: live settings and portable bundle match (dry run)");
+                if native_password_stale(home, base_dir)? {
+                    println!(
+                        "t3-settings sync: would refresh the native OpenCode service password in live settings (dry run)"
+                    );
+                }
                 return Ok(());
+            }
+            // The service credential is excluded from sync comparisons, so a
+            // rotation would otherwise go unnoticed on this path. The refresh
+            // leaves an audit entry: portable snapshots cannot show a
+            // password change, and raw snapshots must not archive secrets.
+            if ensure_native_password(home, base_dir)? {
+                println!(
+                    "t3-settings sync: refreshed the native OpenCode service password in live settings"
+                );
+                let snapshot = live_val
+                    .as_ref()
+                    .context("t3-settings sync: live T3 settings vanished")?;
+                record_history(
+                    home,
+                    "password",
+                    false,
+                    vec![
+                        "refreshed the native OpenCode service password in live settings"
+                            .to_owned(),
+                    ],
+                    snapshot,
+                    snapshot,
+                )?;
             }
             // Refresh stale records (manual capture/apply converge the sides
             // without recording state) so the next change compares correctly.
-            let stale = state
-                .as_ref()
-                .is_none_or(|state| state.bundle != bundle_val || state.live != live_val);
+            let stale = match &load {
+                StateLoad::Present(state) => state.bundle != bundle_val || state.live != live_val,
+                _ => true,
+            };
             if stale {
                 save_state(
                     home,
@@ -1333,13 +1428,6 @@ fn sync(
                 );
             } else {
                 println!("t3-settings sync: already in sync; nothing to do");
-            }
-            // The service credential is excluded from sync comparisons, so a
-            // rotation would otherwise go unnoticed on this path.
-            if ensure_native_password(home, base_dir)? {
-                println!(
-                    "t3-settings sync: refreshed the native OpenCode service password in live settings"
-                );
             }
             Ok(())
         }
@@ -1429,17 +1517,25 @@ fn sync(
         }
         Decision::Conflict => {
             let live_v = live_val.context("t3-settings sync: live T3 settings vanished")?;
-            // decide() only reports a conflict against a previous sync record.
-            let state = state
-                .as_ref()
-                .context("t3-settings sync: conflicting changes need a previous sync record")?;
+            // decide() only reports a conflict against a previous sync record
+            // or an unusable one; without a record there is no baseline, so
+            // the full sides render instead of changes.
+            let (live_base, bundle_base) = match &load {
+                StateLoad::Present(state) => (state.live.as_ref(), Some(&state.bundle)),
+                _ => {
+                    eprintln!(
+                        "warning: T3 sync record is missing or unusable; stopping instead of picking a winner"
+                    );
+                    (None, None)
+                }
+            };
             let mut combined = vec!["live changes since last sync:".to_owned()];
-            combined.extend(diff_summary(
-                state.live.as_ref().unwrap_or(&Value::Null),
-                &live_v,
-            ));
+            combined.extend(diff_summary(live_base.unwrap_or(&Value::Null), &live_v));
             combined.push("bundle changes since last sync:".to_owned());
-            combined.extend(diff_summary(&state.bundle, &bundle_val));
+            combined.extend(diff_summary(
+                bundle_base.unwrap_or(&Value::Null),
+                &bundle_val,
+            ));
             if dry_run {
                 println!("t3-settings sync: would stop on conflicting changes (dry run)");
                 print_diff(&combined);
@@ -1449,7 +1545,11 @@ fn sync(
                 "t3-settings sync: CONFLICT — live settings and the portable bundle both changed; doing nothing"
             );
             print_diff(&combined);
-            record_history(home, "conflict", false, combined, &bundle_val, &live_v)?;
+            let duplicate = last_history_entry(home)
+                .is_some_and(|entry| entry.direction == "conflict" && entry.diff == combined);
+            if !duplicate {
+                record_history(home, "conflict", false, combined, &bundle_val, &live_v)?;
+            }
             bail!(
                 "resolve with `t3-settings sync --force-capture` (live settings win) or `t3-settings sync --force-apply` (bundle wins); details archived under {}",
                 history_dir(home).display()
@@ -1853,56 +1953,72 @@ mod tests {
         let live_changed = sync_bundle(json!({"client": {"a": 2}}));
         let bundle_changed = sync_bundle(json!({"client": {"a": 3}}));
 
-        // No prior state: matching sides initialize, differing sides are
+        // No prior record: matching sides initialize, differing sides are
         // adopted (no common ancestor exists to call it a conflict).
-        assert_eq!(decide(None, Some(&base), &base), Decision::InSync);
         assert_eq!(
-            decide(None, Some(&live_changed), &base),
+            decide(&StateLoad::Absent, Some(&base), &base),
+            Decision::InSync
+        );
+        assert_eq!(
+            decide(&StateLoad::Absent, Some(&live_changed), &base),
             Decision::AdoptBundle
         );
         // No live settings means provisioning.
-        assert_eq!(decide(None, None, &base), Decision::Provision);
+        assert_eq!(decide(&StateLoad::Absent, None, &base), Decision::Provision);
+        // An unusable record (corrupt or newer version) cannot prove either
+        // side unchanged: agreeing sides are still in sync, but differing
+        // sides stop instead of adopting.
+        assert_eq!(
+            decide(&StateLoad::Unusable, Some(&base), &base),
+            Decision::InSync
+        );
+        assert_eq!(
+            decide(&StateLoad::Unusable, Some(&live_changed), &base),
+            Decision::Conflict
+        );
+        assert_eq!(
+            decide(&StateLoad::Unusable, None, &base),
+            Decision::Provision
+        );
 
         let synced = SyncState {
             version: SYNC_STATE_VERSION,
             bundle: base.clone(),
             live: Some(base.clone()),
         };
-        assert_eq!(decide(Some(&synced), Some(&base), &base), Decision::InSync);
+        let load = StateLoad::Present(synced);
+        assert_eq!(decide(&load, Some(&base), &base), Decision::InSync);
         // Only live changed: capture wins.
         assert_eq!(
-            decide(Some(&synced), Some(&live_changed), &base),
+            decide(&load, Some(&live_changed), &base),
             Decision::CaptureLive
         );
         // Only the bundle changed: apply wins.
         assert_eq!(
-            decide(Some(&synced), Some(&base), &bundle_changed),
+            decide(&load, Some(&base), &bundle_changed),
             Decision::ApplyBundle
         );
         // Both changed: conflict.
         assert_eq!(
-            decide(Some(&synced), Some(&live_changed), &bundle_changed),
+            decide(&load, Some(&live_changed), &bundle_changed),
             Decision::Conflict
         );
         // Live reappeared after a provisioning that could not snapshot it: the
         // sides agree, so this is in sync and the record is refreshed.
-        let provisioned = SyncState {
+        let provisioned = StateLoad::Present(SyncState {
             version: SYNC_STATE_VERSION,
             bundle: base.clone(),
             live: None,
-        };
-        assert_eq!(
-            decide(Some(&provisioned), Some(&base), &base),
-            Decision::InSync
-        );
+        });
+        assert_eq!(decide(&provisioned, Some(&base), &base), Decision::InSync);
         // Agreeing sides are in sync even against a stale record: manual
         // capture/apply converge the sides without recording sync state.
-        let stale = SyncState {
+        let stale = StateLoad::Present(SyncState {
             version: SYNC_STATE_VERSION,
             bundle: sync_bundle(json!({"client": {"a": 0}})),
             live: Some(sync_bundle(json!({"client": {"a": 0}}))),
-        };
-        assert_eq!(decide(Some(&stale), Some(&base), &base), Decision::InSync);
+        });
+        assert_eq!(decide(&stale, Some(&base), &base), Decision::InSync);
     }
 
     #[test]
@@ -2029,18 +2145,26 @@ mod tests {
     #[test]
     fn sync_state_roundtrips_and_rejects_garbage() -> Result<()> {
         let home = tempfile::tempdir()?;
-        assert!(load_state(home.path()).is_none());
+        assert!(matches!(load_state(home.path()), StateLoad::Absent));
         let state = SyncState {
             version: SYNC_STATE_VERSION,
             bundle: json!({"version": 1}),
             live: Some(json!({"version": 1})),
         };
         save_state(home.path(), &state)?;
-        let loaded = load_state(home.path()).context("state should load")?;
+        let loaded = match load_state(home.path()) {
+            StateLoad::Present(loaded) => loaded,
+            _ => bail!("state should load"),
+        };
         assert_eq!(loaded.bundle, state.bundle);
         assert_eq!(loaded.live, state.live);
         fs::write(sync_state_path(home.path()), b"not json")?;
-        assert!(load_state(home.path()).is_none());
+        assert!(matches!(load_state(home.path()), StateLoad::Unusable));
+        fs::write(
+            sync_state_path(home.path()),
+            json!({"version": 999, "bundle": {}, "live": null}).to_string(),
+        )?;
+        assert!(matches!(load_state(home.path()), StateLoad::Unusable));
         Ok(())
     }
 
@@ -2064,6 +2188,36 @@ mod tests {
         let mut sorted = names.clone();
         sorted.sort();
         assert_eq!(names.iter().max(), sorted.last());
+        Ok(())
+    }
+
+    #[test]
+    fn sync_conflict_history_skips_identical_reruns() -> Result<()> {
+        let home = tempfile::tempdir()?;
+        let diff = vec!["live changes since last sync:".to_owned()];
+        assert!(last_history_entry(home.path()).is_none());
+        record_history(
+            home.path(),
+            "conflict",
+            false,
+            diff.clone(),
+            &json!({}),
+            &json!({}),
+        )?;
+        let entry = last_history_entry(home.path()).context("history should load")?;
+        assert_eq!(entry.direction, "conflict");
+        assert_eq!(entry.diff, diff);
+        // A different direction must not compare equal.
+        record_history(
+            home.path(),
+            "capture",
+            false,
+            diff.clone(),
+            &json!({}),
+            &json!({}),
+        )?;
+        let entry = last_history_entry(home.path()).context("history should load")?;
+        assert_eq!(entry.direction, "capture");
         Ok(())
     }
 }

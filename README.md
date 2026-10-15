@@ -176,9 +176,10 @@ the settings watcher reruns the sync when live T3 settings files change, and
 the one side that changed wins. When both sides changed since the last sync,
 the sync does nothing and the service fails with both diffs; resolve it with
 `t3-settings sync --force-capture` (live settings win) or
-`t3-settings sync --force-apply` (bundle wins). A machine with no previous
-sync record (fresh onboarding) instead adopts the bundle after backing the
-live settings up. Every overwrite, adoption, and conflict
+`t3-settings sync --force-apply` (bundle wins). A machine with no sync record
+at all (fresh onboarding) instead adopts the bundle after backing the
+live settings up; a corrupt record or one from a newer version stops like a
+conflict instead of picking a winner. Every overwrite, adoption, and conflict
 is archived with before/after snapshots under
 `~/.local/state/agent-tools/t3-settings-history/` for recovery, and the
 journal shows the diff. Preview any decision with

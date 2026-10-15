@@ -396,6 +396,7 @@
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
       "worktreeAfterDays": 4,
+      "worktreeKeepWhen": "uncommitted-changes",
       "worktreeOnDelete": true,
       "worktreeOnMerge": true,
       "worktreeUnchanged": true
