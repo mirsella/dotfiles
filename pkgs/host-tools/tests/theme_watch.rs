@@ -4,6 +4,7 @@
 use std::{
     fs,
     io::Write as _,
+    os::unix::{fs::PermissionsExt as _, process::CommandExt as _},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     time::{Duration, Instant},
@@ -16,17 +17,18 @@ const LIGHT: &str = "[Colors:Window]\nBackgroundNormal=239,240,243\n";
 /// A fake session: an isolated runtime dir holding the watcher's state, a
 /// config dir holding the Plasma palette, and children killed on drop.
 struct Studio {
-    root: PathBuf,
+    root: tempfile::TempDir,
     children: Vec<Child>,
 }
 
 impl Studio {
     fn new(name: &str) -> Self {
-        let root =
-            std::env::temp_dir().join(format!("host-tools-theme-{name}-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&root);
-        fs::create_dir_all(root.join("runtime")).unwrap();
-        fs::create_dir_all(root.join("config")).unwrap();
+        let root = tempfile::Builder::new()
+            .prefix(&format!("host-tools-theme-{name}-"))
+            .tempdir()
+            .unwrap();
+        fs::create_dir(root.path().join("runtime")).unwrap();
+        fs::create_dir(root.path().join("config")).unwrap();
         Self {
             root,
             children: Vec::new(),
@@ -34,11 +36,13 @@ impl Studio {
     }
 
     fn kdeglobals(&self, contents: &str) {
-        fs::write(self.root.join("config/kdeglobals"), contents).unwrap();
+        fs::write(self.root.path().join("config/kdeglobals"), contents).unwrap();
     }
 
     fn marker(&self) -> PathBuf {
-        self.root.join("runtime/electron-theme-nudge.original")
+        self.root
+            .path()
+            .join("runtime/electron-theme-nudge.original")
     }
 
     fn set_marker(&self, contents: &str) {
@@ -46,28 +50,29 @@ impl Studio {
     }
 
     fn writes(&self) -> Vec<String> {
-        fs::read_to_string(self.root.join("writes.log"))
-            .unwrap_or_default()
-            .lines()
-            .map(str::to_owned)
-            .collect()
+        let contents = match fs::read_to_string(self.root.path().join("writes.log")) {
+            Ok(contents) => contents,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Vec::new(),
+            Err(error) => panic!("read dconf writes: {error}"),
+        };
+        contents.lines().map(str::to_owned).collect()
     }
 
     /// A dconf stand-in: `read` answers with `read_value`, writes are logged.
     fn dconf(&self, read_value: &str) -> PathBuf {
-        let shim = self.root.join("dconf");
-        let log = self.root.join("writes.log");
+        let shim = self.root.path().join("dconf");
+        let log = self.root.path().join("writes.log");
+        // Nix supplies its sandbox shell; native Linux builds use /bin/sh.
+        let shell = option_env!("HOST_TOOLS_TEST_SHELL").unwrap_or("/bin/sh");
         let mut script = fs::File::create(&shim).unwrap();
         write!(
             script,
-            "#!/bin/sh\ncase \"$1\" in\nread) echo '{read_value}' ;;\nwrite) echo \"$2 $3\" >> \"{}\" ;;\nesac\n",
+            "#!{shell}\ncase \"$1\" in\nread) echo '{read_value}' ;;\nwrite) echo \"$2 $3\" >> \"{}\" ;;\nesac\n",
             log.display()
         )
         .unwrap();
         drop(script);
-        let mut permissions = fs::metadata(&shim).unwrap().permissions();
-        std::os::unix::fs::PermissionsExt::set_mode(&mut permissions, 0o755);
-        fs::set_permissions(&shim, permissions).unwrap();
+        fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
         shim
     }
 
@@ -76,14 +81,24 @@ impl Studio {
         self.children.last_mut().unwrap()
     }
 
+    fn command(&self, dconf: &Path) -> Command {
+        let mut command = Command::new(BIN);
+        command
+            .args(["theme-watch", "--dconf"])
+            .arg(dconf)
+            .env("XDG_RUNTIME_DIR", self.root.path().join("runtime"))
+            .env("XDG_CONFIG_HOME", self.root.path().join("config"));
+        command
+    }
+
+    fn recover(&self, dconf: &Path) -> std::process::Output {
+        self.command(dconf).arg("--recover").output().unwrap()
+    }
+
     /// The watcher, watching this studio instead of the real session.
     fn watcher(&mut self, dconf: &Path) -> &mut Child {
         self.spawn(
-            Command::new(BIN)
-                .args(["theme-watch", "--dconf"])
-                .arg(dconf)
-                .env("XDG_RUNTIME_DIR", self.root.join("runtime"))
-                .env("XDG_CONFIG_HOME", self.root.join("config"))
+            self.command(dconf)
                 .stdout(Stdio::null())
                 .stderr(Stdio::null()),
         )
@@ -91,7 +106,14 @@ impl Studio {
 
     /// A process the watcher must read as a new T3 Code main.
     fn t3_main(&mut self) -> &mut Child {
-        self.spawn(Command::new("bash").args(["-c", "exec -a t3code sleep 60"]))
+        // Nix's multicall sleep dispatches by argv[0], so use a shell builtin.
+        // Keeping the pipe open lets read wait until the child is killed on drop.
+        self.spawn(
+            Command::new("bash")
+                .arg0("t3code")
+                .args(["-c", "read -r -t 60"])
+                .stdin(Stdio::piped()),
+        )
     }
 
     fn await_writes(&self, count: usize, limit: Duration) -> Vec<String> {
@@ -114,19 +136,7 @@ impl Drop for Studio {
             let _ = child.kill();
             let _ = child.wait();
         }
-        let _ = fs::remove_dir_all(&self.root);
     }
-}
-
-fn recover(studio: &Studio, dconf: &Path) -> std::process::Output {
-    Command::new(BIN)
-        .args(["theme-watch", "--dconf"])
-        .arg(dconf)
-        .arg("--recover")
-        .env("XDG_RUNTIME_DIR", studio.root.join("runtime"))
-        .env("XDG_CONFIG_HOME", studio.root.join("config"))
-        .output()
-        .unwrap()
 }
 
 /// The palette is the source of truth, so a scheme switch since an
@@ -138,7 +148,7 @@ fn recovers_the_palette_scheme_over_a_stale_marker_value() {
     studio.set_marker("'prefer-dark'");
     let dconf = studio.dconf("'prefer-dark'");
 
-    let output = recover(&studio, &dconf);
+    let output = studio.recover(&dconf);
 
     assert!(output.status.success(), "{output:?}");
     assert_eq!(
@@ -156,7 +166,7 @@ fn discards_an_unusable_marker_without_a_palette() {
     studio.set_marker("garbage\n");
     let dconf = studio.dconf("'prefer-dark'");
 
-    let output = recover(&studio, &dconf);
+    let output = studio.recover(&dconf);
 
     assert!(output.status.success(), "{output:?}");
     assert_eq!(studio.writes(), Vec::<String>::new());
@@ -173,7 +183,7 @@ fn falls_back_to_the_marker_value_without_a_palette() {
     studio.set_marker("'prefer-dark'");
     let dconf = studio.dconf("'prefer-dark'");
 
-    let output = recover(&studio, &dconf);
+    let output = studio.recover(&dconf);
 
     assert!(output.status.success(), "{output:?}");
     assert_eq!(
