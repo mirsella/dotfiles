@@ -1,10 +1,6 @@
 { config, lib, pkgs, ... }:
 let
   physical = import ../../hosts/predator/disks.nix;
-  # Tank headers are pointless to back up: raidz1 rebuilds a wiped disk from
-  # parity, and a lost pool is not recoverable from its headers anyway. Only
-  # single-disk pools (fast, root) need header insurance.
-  headerDevices = lib.filterAttrs (name: _: physical.ssds ? ${name}) physical.luks;
   mountpoint = "/srv/backup/recovery";
   dataset = config.fileSystems.${mountpoint}.device;
   jobs = {
@@ -32,7 +28,7 @@ let
       ];
     };
     recovery-backup = {
-      description = "Back up LUKS headers of single-disk pools, TPM policy authorities, SOPS identity and Secure Boot keys";
+      description = "Back up LUKS headers, TPM policy authorities, SOPS identity and Secure Boot keys";
       startAt = "Sun 23:10";
       out = mountpoint;
       requires = [ ];
@@ -47,7 +43,7 @@ let
           args = [ "luksUUID" "luks/${name}.header" ];
           stdout = "luks/${name}.uuid";
         }
-      ]) headerDevices) ++ [
+      ]) physical.luks) ++ [
         {
           program = "${pkgs.gnutar}/bin/tar";
           args = [ "--create" "--dereference" "--file=system-secrets.tar" "--directory=/" ]
