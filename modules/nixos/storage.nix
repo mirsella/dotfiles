@@ -10,6 +10,8 @@ let
   pools = (import ../../disko.nix).disko.devices.zpool;
   fastDatasets = builtins.attrNames pools.fast.datasets;
   fastDatasetNames = map (name: "fast/${name}") fastDatasets;
+  fastMountpoints = map (name: pools.fast.datasets.${name}.mountpoint) fastDatasets;
+  zfs = "${config.boot.zfs.package}/bin/zfs";
   unlockUnit = name: "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
   tankUnlocks = map unlockUnit (builtins.attrNames physical.hdds);
 in
@@ -86,18 +88,18 @@ in
     initialize = true;
     repository = "/srv/backup/restic";
     passwordFile = config.sops.secrets."restic-password".path;
-    paths = map (name: "${pools.fast.datasets.${name}.mountpoint}/.zfs/snapshot/restic-backup") fastDatasets;
+    paths = map (mountpoint: "${mountpoint}/.zfs/snapshot/restic-backup") fastMountpoints;
     pruneOpts = [
       "--keep-daily 7"
       "--keep-weekly 8"
       "--keep-monthly 6"
     ];
     backupPrepareCommand = lib.concatMapStrings (dataset: ''
-      ${config.boot.zfs.package}/bin/zfs destroy -r ${dataset}@restic-backup 2>/dev/null || true
-      ${config.boot.zfs.package}/bin/zfs snapshot ${dataset}@restic-backup
+      ${zfs} destroy -r ${dataset}@restic-backup 2>/dev/null || true
+      ${zfs} snapshot ${dataset}@restic-backup
     '') fastDatasetNames;
     backupCleanupCommand = lib.concatMapStrings (dataset: ''
-      ${config.boot.zfs.package}/bin/zfs destroy -r ${dataset}@restic-backup 2>/dev/null || true
+      ${zfs} destroy -r ${dataset}@restic-backup 2>/dev/null || true
     '') fastDatasetNames;
     timerConfig = {
       OnCalendar = "23:50";
@@ -108,7 +110,7 @@ in
     requires = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
     after = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
     unitConfig = {
-      RequiresMountsFor = [ "/srv/backup" ] ++ map (name: pools.fast.datasets.${name}.mountpoint) fastDatasets;
+      RequiresMountsFor = [ "/srv/backup" ] ++ fastMountpoints;
       OnSuccess = [ "healthchecks-ping@restic-backup.service" ];
     };
   };

@@ -8,10 +8,10 @@ const POOLS: &[&str] = &["fast", "tank"];
 const MAINTENANCE: &[&str] = &[
     "db-backup.service",
     "recovery-backup.service",
+    "hermes-backup.service",
     "sanoid.service",
     "restic-backups-fast.service",
     "restic-check.service",
-    "hermes-backup.service",
     "zfs-scrub.service",
     "zpool-trim.service",
     "nixos-upgrade.service",
