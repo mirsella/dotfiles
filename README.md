@@ -159,9 +159,9 @@ saved connections, onboarding state and window geometry. Raw `~/.t3` and
 Electron profile directories are ignored by chezmoi. Conversations and
 attachments need a separate backup.
 T3's OpenCode provider omits `serverUrl` so T3 launches its own server
-and injects its thread-scoped MCP tools. The standalone OpenCode service remains
-available to other clients. If an instance explicitly uses the local singleton
-on port 14096, apply reads its password from `~/.config/opencode/service.json`
+and injects its thread-scoped MCP tools. The shared standalone service on
+port 14096 was retired and OpenChamber manages its own OpenCode. If an instance
+uses a local service, apply reads its password from `~/.config/opencode/service.json`
 into local T3 settings, and rotating that credential triggers a sync that
 re-injects it even when every other setting already matches. The password
 stays out of portable captures and Git.
@@ -413,13 +413,12 @@ OpenChamber 2.3.1 stays managed by Arch packages or this flake on NixOS; remove
 the old manual `IgnorePkg = openchamber` pin when upgrading it.
 The native service generates its private password in
 `~/.config/opencode/service.json` and uses the fixed Basic username `opencode`.
-OpenChamber receives that credential at startup; the idle watchdog reads it.
+OpenChamber runs its own managed OpenCode and the idle watchdog reads that file.
 The old SOPS API password is no longer loaded by these services.
 
-At activation, stop the v1 server and restart `opencode.service` after installing
-the prepared configuration. Rebuilds intentionally keep a running server; this
-major upgrade needs an explicit restart. `serve --service` registers this daemon
-for terminal discovery and keeps one queue owner.
+The shared `opencode.service` on port 14096 is retired: OpenChamber no longer
+attaches to it (`UnsetEnvironment` drops the old `OPENCODE_HOST` pins) and the
+CLI and T3 use their own or the lazily started background service.
 The Nushell `oc`/`occ` shortcuts use that discovery; `opencode-plugin-update`
 uses the native package updater.
 Codex's Composio headers helper and OpenCode's auth plugin reuse the existing

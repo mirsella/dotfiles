@@ -91,8 +91,4 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
-  systemd.user.services.opencode.Unit = {
-    Wants = [ "llama-server.service" ];
-    After = [ "llama-server.service" ];
-  };
 }

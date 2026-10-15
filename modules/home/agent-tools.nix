@@ -36,8 +36,8 @@
     systemd.user.services.agent-tools-setup = {
       Unit = {
         Description = "Reconcile portable agent preferences with live T3 settings";
-        After = [ "opencode.service" "t3code.service" ];
-        Wants = [ "opencode.service" "t3code.service" ];
+        After = [ "t3code.service" ];
+        Wants = [ "t3code.service" ];
       };
       Service = {
         Type = "oneshot";

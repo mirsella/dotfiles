@@ -169,9 +169,8 @@ assert lib.assertMsg
         [
           "rclone-nextcloud"
         ]
-      && lib.all
-        (h: lib.hasPrefix "%h/.local/bin/opencode " (builtins.head h.systemd.user.services.opencode.Service.ExecStart))
-        [ home arch ]
+      && !(home.systemd.user.services ? opencode)
+      && !(arch.systemd.user.services ? opencode)
       && home.programs.git.settings.user.signingkey == arch.programs.git.settings.user.signingkey
       && home.sops.secrets != { }
       && desktops.${name}.sops.secrets == { }
@@ -206,18 +205,17 @@ assert lib.assertMsg
   (lib.all (
     home:
     let
-      api = home.systemd.user.services.opencode;
       ui = home.systemd.user.services.openchamber;
     in
     !(home.sops.secrets ? opencode_server)
-    && lib.hasInfix " serve --service " (builtins.head api.Service.ExecStart)
-    && api.Service.EnvironmentFile == [ home.sops.secrets.telegram_env.path ]
-    && lib.hasPrefix "${lib.getExe flake.packages.x86_64-linux.host-tools} opencode-client-env ${home.xdg.configHome}/opencode/service.json -- ${lib.getExe flake.packages.x86_64-linux.openchamber} serve " (
+    && !(home.systemd.user.services ? opencode)
+    && lib.hasPrefix "${lib.getExe flake.packages.x86_64-linux.openchamber} serve " (
       builtins.head ui.Service.ExecStart
     )
-    && builtins.elem "opencode.service" ui.Unit.PartOf
+    && ui.Service.UnsetEnvironment == [ "OPENCODE_HOST" "OPENCODE_SKIP_START" ]
+    && !(builtins.elem "opencode.service" ui.Unit.PartOf)
   ) workstationHomes)
-  "OpenChamber must use the compiled credential helper and OpenCode's native service credential on every workstation";
+  "OpenChamber must run its own managed OpenCode without the retired shared server";
 assert lib.assertMsg (lib.all (
   home: lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.kache.Service.ExecStart)
 ) workstationHomes) "kache must run from the flake package on NixOS and Arch workstations";
@@ -276,14 +274,13 @@ assert lib.assertMsg (lib.all
     in
     !(lib.elem flake.packages.x86_64-linux.opencode nixosHome.home.packages)
     && !(lib.elem flake.packages.x86_64-linux.opencode archHome.home.packages)
-    && builtins.head nixosHome.systemd.user.services.opencode.Service.ExecStart
-    == "%h/.local/bin/opencode serve --service --hostname 127.0.0.1 --port 14096"
+    && !(nixosHome.systemd.user.services ? opencode)
   )
   [
     "main"
     "laptop"
   ]
-) "OpenCode must use its writable standalone installation on every workstation";
+) "The retired shared OpenCode service must be gone on every workstation";
 assert lib.assertMsg (lib.all
   (
     config:

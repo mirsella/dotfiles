@@ -80,7 +80,6 @@ in
     //
       lib.genAttrs
         [
-          "systemd/user/opencode.service.d/override.conf"
           "systemd/user/app-org.wezfurlong.wezterm@.service.d/override.conf"
           "systemd/user/app-rio\\x2dcargo@.service.d/override.conf"
         ]
@@ -118,46 +117,15 @@ in
       };
   };
 
-  systemd.user.services.opencode = {
-    Unit = {
-      Description = "OpenCode server";
-      After = [
-        "network.target"
-        "sops-nix.service"
-      ];
-      PartOf = [ "default.target" ];
-      X-SwitchMethod = "keep-old";
-    };
-    Service = {
-      Type = "simple";
-      WorkingDirectory = "%h";
-      EnvironmentFile = [
-        config.sops.secrets.telegram_env.path
-      ];
-      Environment = servicePath;
-      ExecStart = "%h/.local/bin/opencode serve --service --hostname 127.0.0.1 --port 14096";
-      Restart = "on-failure";
-      RestartSec = "2s";
-    };
-    Install.WantedBy = [ "default.target" ];
-  };
-
   systemd.user.services.openchamber = {
     Unit = {
       Description = "OpenChamber web server";
       After = [
         "network.target"
-        "opencode.service"
         "sops-nix.service"
       ];
-      Wants = [
-        "opencode.service"
-        "sops-nix.service"
-      ];
-      PartOf = [
-        "default.target"
-        "opencode.service"
-      ];
+      Wants = [ "sops-nix.service" ];
+      PartOf = [ "default.target" ];
     };
     Service = {
       Type = "simple";
@@ -166,7 +134,12 @@ in
         config.sops.secrets.openchamber_server.path
       ];
       Environment = servicePath;
-      ExecStart = "${lib.getExe pkgs.host-tools} opencode-client-env ${config.xdg.configHome}/opencode/service.json -- ${lib.getExe pkgs.openchamber} serve --host 127.0.0.1 --port 14097 --foreground";
+      # Attach-to-14096 pins from the retired shared server; let OpenChamber manage its own OpenCode.
+      UnsetEnvironment = [
+        "OPENCODE_HOST"
+        "OPENCODE_SKIP_START"
+      ];
+      ExecStart = "${lib.getExe pkgs.openchamber} serve --host 127.0.0.1 --port 14097 --foreground";
       Restart = "on-failure";
       RestartSec = "2s";
     };
