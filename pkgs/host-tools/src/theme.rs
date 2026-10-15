@@ -16,7 +16,7 @@ use anyhow::{Context, Result};
 use std::{
     collections::HashSet,
     fs, io,
-    os::{fd::AsRawFd, unix::fs::MetadataExt},
+    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
@@ -26,11 +26,41 @@ const POLL_INTERVAL: Duration = Duration::from_secs(1);
 const ROLLBACK_DELAY: Duration = Duration::from_millis(250);
 const SCHEME_KEY: &str = "/org/gnome/desktop/interface/color-scheme";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Scheme {
+    Dark,
+    Light,
+}
+
+impl Scheme {
+    fn value(self) -> &'static str {
+        match self {
+            Self::Dark => "'prefer-dark'",
+            Self::Light => "'prefer-light'",
+        }
+    }
+
+    fn parse(value: &[u8]) -> Option<Self> {
+        [Self::Dark, Self::Light]
+            .into_iter()
+            .find(|scheme| scheme.value().as_bytes() == value)
+    }
+
+    fn opposite(self) -> Self {
+        match self {
+            Self::Dark => Self::Light,
+            Self::Light => Self::Dark,
+        }
+    }
+}
+
 pub fn run(dconf: &str, proc_root: &Path, recover: bool) -> Result<()> {
     let state = State::resolve();
-    restore_interrupted(dconf, &state)?;
     if recover {
-        return Ok(());
+        let Some(_lock) = try_lock(&state.lock)? else {
+            return Ok(());
+        };
+        return restore_interrupted(dconf, &state);
     }
     let mut watcher = Watcher::default();
     loop {
@@ -46,75 +76,67 @@ pub fn run(dconf: &str, proc_root: &Path, recover: bool) -> Result<()> {
 #[derive(Default)]
 struct Watcher {
     previous: Processes,
-    scheme: Option<&'static str>,
+    scheme: Option<Scheme>,
     replay: Option<Replay>,
 }
 
 struct Replay {
     next: Instant,
-    remaining: usize,
-}
-
-impl Replay {
-    fn new() -> Self {
-        Self {
-            next: Instant::now(),
-            remaining: 3,
-        }
-    }
-
-    fn completed(&mut self) {
-        self.remaining -= 1;
-        // Immediate, +2s, +8s: cover early nativeTheme initialization and a
-        // renderer that subscribes later without continually flashing apps.
-        self.next = Instant::now() + Duration::from_secs(if self.remaining == 2 { 2 } else { 6 });
-    }
+    delays: std::array::IntoIter<u64, 2>,
 }
 
 impl Watcher {
     fn tick(&mut self, dconf: &str, proc_root: &Path, state: &State) -> Result<()> {
-        let processes = collect_processes(proc_root)?;
-        if !processes.apps.is_subset(&self.previous.apps)
-            || !processes.portals.is_subset(&self.previous.portals)
-        {
-            self.replay = Some(Replay::new());
-        }
-        self.previous = processes;
-        if self.previous.apps.is_empty() {
-            self.replay = None;
-        }
-
+        // Hold one lock across recovery, reconciliation and replay: another
+        // watcher must not mistake an in-flight pulse for external drift.
+        let Some(_lock) = try_lock(&state.lock)? else {
+            return Ok(());
+        };
         restore_interrupted(dconf, state)?;
         let desired = plasma_scheme().context("cannot read the Plasma color palette")?;
         let current = util::output(dconf, &["read", SCHEME_KEY])?;
-        let changed = self.scheme != Some(desired) || current.trim() != desired;
-        if current.trim() != desired {
-            println!("electron-theme-watch: repairing portal scheme to {desired}");
+        let drifted = current.trim() != desired.value();
+        if drifted {
+            println!(
+                "electron-theme-watch: repairing portal scheme to {}",
+                desired.value()
+            );
             apply(dconf, desired)?;
         }
-        if changed && !self.previous.apps.is_empty() {
-            self.replay = Some(Replay::new());
+
+        let processes = collect_processes(proc_root)?;
+        if processes.apps.is_empty() {
+            self.replay = None;
+        } else if drifted
+            || self.scheme != Some(desired)
+            || !processes.apps.is_subset(&self.previous.apps)
+            || !processes.portals.is_subset(&self.previous.portals)
+        {
+            // Immediate, +2s, +8s: cover late subscriptions without flashing
+            // applications indefinitely. Failed writes do not advance this.
+            self.replay = Some(Replay {
+                next: Instant::now(),
+                delays: [2, 6].into_iter(),
+            });
         }
+        self.previous = processes;
         self.scheme = Some(desired);
 
-        if let Some(replay) = &mut self.replay {
-            if replay.remaining > 0
-                && Instant::now() >= replay.next
-                && nudge(dconf, state, desired)?
-            {
-                replay.completed();
+        if let Some(replay) = &mut self.replay
+            && Instant::now() >= replay.next
+        {
+            nudge(dconf, state, desired)?;
+            match replay.delays.next() {
+                Some(delay) => replay.next = Instant::now() + Duration::from_secs(delay),
+                None => self.replay = None,
             }
         }
         Ok(())
     }
 }
 
-/// Repair a color scheme left flipped by a nudge that died between its writes.
+/// Repair an interrupted nudge. The caller holds the state lock.
 fn restore_interrupted(dconf: &str, state: &State) -> Result<()> {
-    let Some(_lock) = try_lock(&state.lock)? else {
-        // A nudge is running and will restore the value itself.
-        return Ok(());
-    };
     let marker = match fs::read(&state.marker) {
         Ok(marker) => marker,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
@@ -122,53 +144,36 @@ fn restore_interrupted(dconf: &str, state: &State) -> Result<()> {
             return Err(error).with_context(|| format!("read {}", state.marker.display()));
         }
     };
-    // The marker only records that a nudge was interrupted; the scheme to
-    // restore is the current Plasma one, which may have changed since the
-    // scheme the interrupted nudge intended. Its recorded value is just that
-    // scheme's fallback, so anything other than a known one carries no
-    // information beyond the interruption itself.
-    let intended = String::from_utf8(marker)
-        .ok()
-        .filter(|intended| matches!(intended.as_str(), "'prefer-dark'" | "'prefer-light'"));
-    let scheme = match plasma_scheme() {
-        Some(scheme) => scheme,
-        None => match intended.as_deref() {
-            Some(scheme) => {
-                eprintln!(
-                    "electron-theme-watch: Plasma palette unavailable; recovering recorded scheme {scheme}"
-                );
-                scheme
-            }
-            None => {
-                // Nothing to restore to: drop the marker, and with it the
-                // flipped value's record, instead of failing this watcher's
-                // every start.
-                eprintln!("electron-theme-watch: discarding an unusable nudge marker");
-                return remove(&state.marker);
-            }
-        },
+    // Plasma may have switched since the pulse began; use the recorded scheme
+    // only when the current palette is unavailable.
+    let scheme = match (plasma_scheme(), Scheme::parse(&marker)) {
+        (Some(scheme), _) => scheme,
+        (None, Some(scheme)) => {
+            eprintln!(
+                "electron-theme-watch: Plasma palette unavailable; recovering recorded scheme {}",
+                scheme.value()
+            );
+            scheme
+        }
+        (None, None) => {
+            eprintln!("electron-theme-watch: discarding an unusable nudge marker");
+            return remove(&state.marker);
+        }
     };
     apply(dconf, scheme)?;
     remove(&state.marker)
 }
 
 /// Explicit opposites work in both directions; 'default' need not mean light.
-fn nudge(dconf: &str, state: &State, desired: &str) -> Result<bool> {
-    let Some(_lock) = try_lock(&state.lock)? else {
-        return Ok(false);
-    };
+fn nudge(dconf: &str, state: &State, desired: Scheme) -> Result<()> {
     // Record the value before changing it: an interrupted or failed nudge is
-    // then repaired on the next --recover call or watcher start.
-    util::atomic_write(&state.marker, desired.as_bytes())?;
-    println!("electron-theme-watch: replaying system theme {desired}");
-    apply(
-        dconf,
-        if desired == "'prefer-dark'" {
-            "'prefer-light'"
-        } else {
-            "'prefer-dark'"
-        },
-    )?;
+    // then repaired on the next tick or --recover call.
+    util::atomic_write(&state.marker, desired.value().as_bytes())?;
+    println!(
+        "electron-theme-watch: replaying system theme {}",
+        desired.value()
+    );
+    apply(dconf, desired.opposite())?;
     thread::sleep(ROLLBACK_DELAY);
     // Plasma may have switched again during the pulse. Never roll it back to
     // the old palette; recovery uses this same source of truth after failure.
@@ -176,14 +181,13 @@ fn nudge(dconf: &str, state: &State, desired: &str) -> Result<bool> {
         dconf,
         plasma_scheme().context("Plasma palette disappeared during replay")?,
     )?;
-    remove(&state.marker)?;
-    Ok(true)
+    remove(&state.marker)
 }
 
 /// The scheme the portal must serve, taken from the Plasma palette in
 /// kdeglobals: the resolved colors Plasma itself renders with, independent of
 /// whether kde-gtk-config's kded module is alive to mirror them.
-fn plasma_scheme() -> Option<&'static str> {
+fn plasma_scheme() -> Option<Scheme> {
     let config = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
@@ -192,13 +196,13 @@ fn plasma_scheme() -> Option<&'static str> {
 
 /// Decide dark or light from a kdeglobals palette. Window is what the desktop
 /// renders against; View and Button answer when it is missing.
-fn scheme_for_palette(kdeglobals: &str) -> Option<&'static str> {
+fn scheme_for_palette(kdeglobals: &str) -> Option<Scheme> {
     for group in ["Colors:Window", "Colors:View", "Colors:Button"] {
         if let Some(rgb) = palette_background(kdeglobals, group) {
             return Some(if is_dark(rgb) {
-                "'prefer-dark'"
+                Scheme::Dark
             } else {
-                "'prefer-light'"
+                Scheme::Light
             });
         }
     }
@@ -230,8 +234,8 @@ fn is_dark((red, green, blue): (u32, u32, u32)) -> bool {
     2126 * red + 7152 * green + 722 * blue < 1_280_000
 }
 
-fn apply(dconf: &str, value: &str) -> Result<()> {
-    util::run(dconf, &["write", SCHEME_KEY, value])
+fn apply(dconf: &str, scheme: Scheme) -> Result<()> {
+    util::run(dconf, &["write", SCHEME_KEY, scheme.value()])
 }
 
 struct State {
@@ -262,17 +266,10 @@ fn try_lock(path: &Path) -> Result<Option<fs::File>> {
         .write(true)
         .open(path)
         .with_context(|| format!("open {}", path.display()))?;
-    // The lock lives as long as the handle; a busy lock means a nudge is running.
-    let locked = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0;
-    if locked {
-        Ok(Some(file))
-    } else {
-        let error = io::Error::last_os_error();
-        if error.kind() == io::ErrorKind::WouldBlock {
-            Ok(None)
-        } else {
-            Err(error).context("lock theme replay")
-        }
+    match file.try_lock() {
+        Ok(()) => Ok(Some(file)),
+        Err(fs::TryLockError::WouldBlock) => Ok(None),
+        Err(fs::TryLockError::Error(error)) => Err(error).context("lock theme replay"),
     }
 }
 
@@ -284,6 +281,7 @@ struct Processes {
 
 fn collect_processes(proc_root: &Path) -> Result<Processes> {
     let mut processes = Processes::default();
+    let uid = unsafe { libc::geteuid() };
     for entry in fs::read_dir(proc_root).with_context(|| format!("read {}", proc_root.display()))? {
         let Ok(entry) = entry else { continue };
         let Some(pid) = entry
@@ -293,10 +291,7 @@ fn collect_processes(proc_root: &Path) -> Result<Processes> {
         else {
             continue;
         };
-        if !entry
-            .metadata()
-            .is_ok_and(|metadata| metadata.uid() == unsafe { libc::geteuid() })
-        {
+        if !entry.metadata().is_ok_and(|metadata| metadata.uid() == uid) {
             continue;
         }
         // Exited processes vanish between read_dir and read.
@@ -344,7 +339,37 @@ fn remove(path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_dark, is_t3_window_process, scheme_for_palette};
+    use super::{
+        Scheme, State, Watcher, is_dark, is_t3_window_process, scheme_for_palette, try_lock,
+    };
+
+    #[test]
+    fn scheme_values_roundtrip_and_have_explicit_opposites() {
+        for scheme in [Scheme::Dark, Scheme::Light] {
+            assert_eq!(Scheme::parse(scheme.value().as_bytes()), Some(scheme));
+            assert_ne!(scheme.opposite(), scheme);
+            assert_eq!(scheme.opposite().opposite(), scheme);
+        }
+        assert_eq!(Scheme::parse(b"'default'"), None);
+        assert_eq!(Scheme::parse(b"\xff"), None);
+    }
+
+    #[test]
+    fn busy_state_lock_defers_the_entire_reconciliation() {
+        let root = tempfile::tempdir().unwrap();
+        let state = State {
+            lock: root.path().join("lock"),
+            marker: root.path().join("marker"),
+        };
+        let lock = try_lock(&state.lock).unwrap().unwrap();
+        assert!(try_lock(&state.lock).unwrap().is_none());
+        // A busy watcher must not inspect processes or call dconf at all.
+        Watcher::default()
+            .tick("missing-dconf", &root.path().join("missing-proc"), &state)
+            .unwrap();
+        drop(lock);
+        assert!(try_lock(&state.lock).unwrap().is_some());
+    }
 
     #[test]
     fn t3_main_matching() {
@@ -391,20 +416,20 @@ mod tests {
             // The palette Plasma itself renders with, Breeze dark vs light values.
             (
                 "[Colors:Window]\nBackgroundNormal=32,35,38\nForegroundNormal=252,252,252\n[ColorEffects:Disabled]\nColor=56,56,56\n",
-                Some("'prefer-dark'"),
+                Some(Scheme::Dark),
             ),
             (
                 "[Colors:Window]\nBackgroundNormal=239,240,243\nForegroundNormal=35,38,41\n",
-                Some("'prefer-light'"),
+                Some(Scheme::Light),
             ),
             // View and Button answer when Window is missing, in that order.
             (
                 "[Colors:View]\nBackgroundNormal=20,22,24\n",
-                Some("'prefer-dark'"),
+                Some(Scheme::Dark),
             ),
             (
                 "[Colors:Button]\nBackgroundNormal=239,240,243\n",
-                Some("'prefer-light'"),
+                Some(Scheme::Light),
             ),
             // No palette for the group, or no palette at all: no verdict.
             ("[Colors:Window]\nForegroundNormal=1,2,3\n", None),
@@ -413,7 +438,7 @@ mod tests {
             // kdeglobals places [General] among the color groups.
             (
                 "BackgroundNormal=255,255,255\n[Colors:Button]\nBackgroundNormal=32,35,38\n",
-                Some("'prefer-dark'"),
+                Some(Scheme::Dark),
             ),
             // A malformed triple is no verdict rather than a wrong one.
             ("[Colors:Window]\nBackgroundNormal=32,35\n", None),
@@ -422,7 +447,7 @@ mod tests {
             // Mid gray lands on light; the threshold is exclusive.
             (
                 "[Colors:Window]\nBackgroundNormal=128,128,128\n",
-                Some("'prefer-light'"),
+                Some(Scheme::Light),
             ),
         ];
         for (kdeglobals, expected) in cases {

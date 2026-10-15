@@ -3,7 +3,6 @@
 
 use std::{
     fs,
-    io::Write as _,
     os::unix::fs::PermissionsExt as _,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
@@ -15,10 +14,10 @@ const DARK: &str = "[Colors:Window]\nBackgroundNormal=32,35,38\n";
 const LIGHT: &str = "[Colors:Window]\nBackgroundNormal=239,240,243\n";
 
 /// A fake session: an isolated runtime dir holding the watcher's state, a
-/// config dir holding the Plasma palette, and children killed on drop.
+/// config dir holding the Plasma palette, and a watcher killed on drop.
 struct Studio {
     root: tempfile::TempDir,
-    children: Vec<Child>,
+    watcher: Option<Child>,
 }
 
 impl Studio {
@@ -32,7 +31,7 @@ impl Studio {
         fs::create_dir(root.path().join("proc")).unwrap();
         Self {
             root,
-            children: Vec::new(),
+            watcher: None,
         }
     }
 
@@ -67,16 +66,12 @@ impl Studio {
     fn dconf(&self, read_value: &str) -> PathBuf {
         self.stored_scheme(read_value);
         let shim = self.root.path().join("dconf");
-        let log = self.root.path().join("writes.log");
-        let value = self.root.path().join("scheme");
-        let fail = self.root.path().join("fail-write");
-        let reject = self.root.path().join("reject-value");
         // Nix supplies its sandbox shell; native Linux builds use /bin/sh.
         let shell = option_env!("HOST_TOOLS_TEST_SHELL").unwrap_or("/bin/sh");
-        let mut script = fs::File::create(&shim).unwrap();
-        write!(
-            script,
-            r#"#!{shell}
+        fs::write(
+            &shim,
+            format!(
+                r#"#!{shell}
 case "$1" in
 read) cat '{value}' ;;
 write)
@@ -86,21 +81,16 @@ printf '%s' "$3" > '{value}'
 echo "$2 $3" >> '{log}' ;;
 esac
 "#,
-            value = value.display(),
-            attempt = self.root.path().join("attempt").display(),
-            fail = fail.display(),
-            reject = reject.display(),
-            log = log.display()
+                value = self.root.path().join("scheme").display(),
+                attempt = self.root.path().join("attempt").display(),
+                fail = self.root.path().join("fail-write").display(),
+                reject = self.root.path().join("reject-value").display(),
+                log = self.root.path().join("writes.log").display()
+            ),
         )
         .unwrap();
-        drop(script);
         fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
         shim
-    }
-
-    fn spawn(&mut self, command: &mut Command) -> &mut Child {
-        self.children.push(command.spawn().unwrap());
-        self.children.last_mut().unwrap()
     }
 
     fn command(&self, dconf: &Path) -> Command {
@@ -120,12 +110,15 @@ esac
     }
 
     /// The watcher, watching this studio instead of the real session.
-    fn watcher(&mut self, dconf: &Path) -> &mut Child {
-        self.spawn(
+    fn watcher(&mut self, dconf: &Path) {
+        assert!(self.watcher.is_none(), "watcher already running");
+        self.watcher = Some(
             self.command(dconf)
                 .stdout(Stdio::null())
-                .stderr(Stdio::null()),
-        )
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap(),
+        );
     }
 
     fn process(&self, pid: u32, cmdline: &[u8]) {
@@ -140,21 +133,49 @@ esac
 
     fn await_writes(&self, count: usize, limit: Duration) -> Vec<String> {
         let start = Instant::now();
-        while self.writes().len() < count && start.elapsed() < limit {
+        loop {
+            let writes = self.writes();
+            if writes.len() >= count && !self.marker().exists() {
+                return writes;
+            }
+            assert!(
+                start.elapsed() < limit,
+                "expected {count} completed writes within {limit:?}, got {writes:?}"
+            );
             std::thread::sleep(Duration::from_millis(100));
         }
-        let writes = self.writes();
-        assert!(
-            writes.len() >= count,
-            "expected {count} writes within {limit:?}, got {writes:?}"
-        );
-        writes
+    }
+
+    fn await_scheme(&self, expected: &str) {
+        let start = Instant::now();
+        loop {
+            let scheme = fs::read_to_string(self.root.path().join("scheme")).unwrap();
+            if scheme == expected && !self.marker().exists() {
+                return;
+            }
+            assert!(
+                start.elapsed() < Duration::from_secs(5),
+                "expected {expected}, got {scheme}"
+            );
+            std::thread::sleep(Duration::from_millis(25));
+        }
+    }
+
+    fn await_attempt(&self, expected: &str) {
+        let start = Instant::now();
+        while fs::read_to_string(self.root.path().join("attempt")).unwrap_or_default() != expected {
+            assert!(
+                start.elapsed() < Duration::from_secs(5),
+                "no write of {expected} attempted"
+            );
+            std::thread::sleep(Duration::from_millis(25));
+        }
     }
 }
 
 impl Drop for Studio {
     fn drop(&mut self) {
-        for child in &mut self.children {
+        if let Some(child) = &mut self.watcher {
             let _ = child.kill();
             let _ = child.wait();
         }
@@ -271,7 +292,7 @@ fn retries_failed_writes_without_a_new_process() {
     studio.watcher(&dconf);
     // Wait for the attempted write, not an arbitrary startup sleep.
     // The shim records attempts separately from successful writes.
-    studio.await_attempt();
+    studio.await_attempt("'prefer-dark'");
     assert!(studio.writes().is_empty());
     fs::remove_file(fail).unwrap();
     studio.await_scheme("'prefer-dark'");
@@ -286,16 +307,7 @@ fn recovers_a_failed_replay_without_restarting_the_watcher() {
     fs::write(&reject, "'prefer-dark'").unwrap();
     studio.t3_main();
     studio.watcher(&dconf);
-    let start = Instant::now();
-    while fs::read_to_string(studio.root.path().join("attempt")).unwrap_or_default()
-        != "'prefer-dark'"
-    {
-        assert!(
-            start.elapsed() < Duration::from_secs(5),
-            "no restore attempted"
-        );
-        std::thread::sleep(Duration::from_millis(25));
-    }
+    studio.await_attempt("'prefer-dark'");
     assert!(studio.marker().exists());
     fs::remove_file(reject).unwrap();
     studio.await_scheme("'prefer-dark'");
@@ -337,32 +349,4 @@ fn a_restarted_portal_replays_for_an_existing_window() {
             "/org/gnome/desktop/interface/color-scheme 'prefer-dark'",
         ]
     );
-}
-
-impl Studio {
-    fn await_scheme(&self, expected: &str) {
-        let start = Instant::now();
-        loop {
-            let scheme = fs::read_to_string(self.root.path().join("scheme")).unwrap();
-            if scheme == expected && !self.marker().exists() {
-                return;
-            }
-            assert!(
-                start.elapsed() < Duration::from_secs(5),
-                "expected {expected}, got {scheme}"
-            );
-            std::thread::sleep(Duration::from_millis(25));
-        }
-    }
-
-    fn await_attempt(&self) {
-        let start = Instant::now();
-        while !self.root.path().join("attempt").exists() {
-            assert!(
-                start.elapsed() < Duration::from_secs(5),
-                "no write attempted"
-            );
-            std::thread::sleep(Duration::from_millis(25));
-        }
-    }
 }
