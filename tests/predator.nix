@@ -180,6 +180,7 @@ assert lib.assertMsg (
     in builtins.length pings == 1 && lib.hasInfix "healthchecks-ping@" (builtins.head pings)
   ) [ "db-backup" "recovery-backup" "hermes-backup" "sanoid" "restic-backups-fast" "restic-check" ]
   && lib.toList server.systemd.timers.restic-backups-fast.timerConfig.OnCalendar == [ "23:50" ]
+  && !(server.systemd.timers.restic-backups-fast.unitConfig.X-OnlyManualStart or true)
   && lib.hasInfix "--read-data-subset=10%%" server.systemd.services.restic-check.serviceConfig.ExecStart
   && lib.all (mount: builtins.elem mount server.systemd.services."restic-backups-fast".unitConfig.RequiresMountsFor)
     [ "/srv/backup" "/srv/data/fast" "/var/lib/nextcloud/data" ]

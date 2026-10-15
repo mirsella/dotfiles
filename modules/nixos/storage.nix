@@ -115,6 +115,10 @@ in
     };
   };
 
+  # The module marks its timer X-OnlyManualStart, so `nixos-rebuild switch`
+  # never starts it; enable it like any other timer.
+  systemd.timers."restic-backups-fast".unitConfig.X-OnlyManualStart = lib.mkForce false;
+
   # Monthly sampled read: a successful backup write does not prove the
   # repository is intact.
   systemd.services.restic-check = {
