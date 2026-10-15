@@ -49,7 +49,10 @@ in
     # Avoid toggling vendor-specific offline collection.
     # Missing data disks must not stop health monitoring of available disks.
     defaults.monitored = "-a -d sat -d removable -S on -m <nomailer> -M daily -M exec ${lib.getExe alert}";
-    devices = map (smartDevice "-W 0,0,65" "13") ssds
+    # BX500 peaks at 74-78 degrees during nightly I/O in this laptop, above the
+    # 65 degree spec threshold with no user-serviceable cooling available, so
+    # only alert above 80 where something is genuinely wrong.
+    devices = map (smartDevice "-W 0,0,80" "13") ssds
       ++ lib.mapAttrsToList (name: device:
         smartDevice "-W 0,0,55" hddLongHours.${name} device
       ) physical.hdds;
