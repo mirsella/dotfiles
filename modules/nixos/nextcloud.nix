@@ -45,6 +45,10 @@
       adminpassFile = config.sops.secrets.nextcloud-adminpass.path;
     };
     settings = {
+      # Chunk size for chunked WebDAV uploads. With the 10 MiB default,
+      # rclone uploads stall around 50 MB/s in the chunk-merge path; 1 GiB
+      # chunks keep chunking for >16G parts without that overhead.
+      max_chunk_size = 1073741824;
       # UTC, so expensive jobs run after the 07:00 local wake-up year-round.
       maintenance_window_start = 6;
       default_phone_region = "FR";
