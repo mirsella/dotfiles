@@ -1,7 +1,6 @@
 {
   lib,
   config,
-  pkgs,
   utils,
   ...
 }:
@@ -11,6 +10,7 @@ let
   fastDatasets = builtins.attrNames pools.fast.datasets;
   fastDatasetNames = map (name: "fast/${name}") fastDatasets;
   fastMountpoints = map (name: pools.fast.datasets.${name}.mountpoint) fastDatasets;
+  resticBackup = config.services.restic.backups.fast;
   zfs = "${config.boot.zfs.package}/bin/zfs";
   unlockUnit = name: "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
   tankUnlocks = map unlockUnit (builtins.attrNames physical.hdds);
@@ -131,7 +131,7 @@ in
     };
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.restic}/bin/restic -r ${config.services.restic.backups.fast.repository} --password-file ${config.sops.secrets."restic-password".path} check --read-data-subset=10%%";
+      ExecStart = "${resticBackup.package}/bin/restic -r ${resticBackup.repository} --password-file ${resticBackup.passwordFile} check --read-data-subset=10%%";
     };
   };
   systemd.timers.restic-check = {
