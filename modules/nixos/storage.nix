@@ -9,7 +9,7 @@ let
   physical = import ../../hosts/predator/disks.nix;
   pools = (import ../../disko.nix).disko.devices.zpool;
   fastDatasets = builtins.attrNames pools.fast.datasets;
-  resticDatasets = map (name: "fast/${name}") fastDatasets;
+  fastDatasetNames = map (name: "fast/${name}") fastDatasets;
   unlockUnit = name: "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
   tankUnlocks = map unlockUnit (builtins.attrNames physical.hdds);
 in
@@ -52,8 +52,7 @@ in
     };
   };
 
-  # Snapshot unchanged datasets too: ZFS shares their blocks, and correctness
-  # must not depend on an inotify watch surviving every rename and reboot.
+  # Snapshot unchanged datasets too: ZFS shares their blocks.
   services.sanoid = {
     enable = true;
     interval = "23:30";
@@ -65,7 +64,7 @@ in
       yearly = 0;
       autoprune = true;
     };
-    datasets = lib.genAttrs (map (name: "fast/${name}") fastDatasets ++ [ "tank/archive" "tank/backup" ]) (_: {
+    datasets = lib.genAttrs (fastDatasetNames ++ [ "tank/archive" "tank/backup" ]) (_: {
       autosnap = true;
       use_template = [ "keep" ];
       recursive = true;
@@ -96,10 +95,10 @@ in
     backupPrepareCommand = lib.concatMapStrings (dataset: ''
       ${config.boot.zfs.package}/bin/zfs destroy -r ${dataset}@restic-backup 2>/dev/null || true
       ${config.boot.zfs.package}/bin/zfs snapshot ${dataset}@restic-backup
-    '') resticDatasets;
+    '') fastDatasetNames;
     backupCleanupCommand = lib.concatMapStrings (dataset: ''
       ${config.boot.zfs.package}/bin/zfs destroy -r ${dataset}@restic-backup 2>/dev/null || true
-    '') resticDatasets;
+    '') fastDatasetNames;
     timerConfig = {
       OnCalendar = "23:50";
       Persistent = true;

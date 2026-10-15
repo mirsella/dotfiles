@@ -16,10 +16,11 @@ let
     "restic-backup"
     "restic-check"
   ];
+  secretDir = lib.dirOf config.sops.secrets."healthchecks-${builtins.head checks}".path;
   ping = pkgs.writeShellScript "healthchecks-ping" ''
     set -eu
     exec ${pkgs.curl}/bin/curl --silent --show-error --fail --max-time 15 --retry 3 \
-      "$(cat ${lib.dirOf config.sops.secrets."healthchecks-sanoid".path}/healthchecks-$1)"
+      "$(cat ${secretDir}/healthchecks-$1)"
   '';
 in
 {
