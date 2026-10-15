@@ -100,28 +100,25 @@ fn once(config: &Config, dry_run: bool) -> Result<()> {
     let dir = config.state_dir()?;
     let credential_path = dir.join("credential.json");
     let state_path = dir.join("state.json");
-    let mut credential = Credential::load(&credential_path)?
+    let credential = Credential::load(&credential_path)?
         .context("no credential stored yet; run `t3-cache-warmer login` first")?;
     let mut state = State::load(&state_path)?;
     let now = Timestamp::now();
     state.prune(now, config.prune_days);
-    let mut client = T3Client::new(&config.base_url, credential.access_token.clone());
-    match pass(config, &mut client, &mut state, &state_path, dry_run) {
-        Ok(summary) => {
-            log(&summary);
-            Ok(())
-        }
+    let mut client = T3Client::new(&config.base_url, credential.access_token);
+    let summary = match pass(config, &mut client, &mut state, &state_path, dry_run) {
+        Ok(summary) => summary,
         Err(error) if is_credential_rejected(&error) && config.auto_renew && !dry_run => {
             log("credential rejected; signing in again…");
-            credential = oauth::login(config)?;
+            let credential = oauth::login(config)?;
             credential.save(&credential_path)?;
-            let mut client = T3Client::new(&config.base_url, credential.access_token.clone());
-            let summary = pass(config, &mut client, &mut state, &state_path, dry_run)?;
-            log(&summary);
-            Ok(())
+            let mut client = T3Client::new(&config.base_url, credential.access_token);
+            pass(config, &mut client, &mut state, &state_path, dry_run)?
         }
-        Err(error) => Err(error),
-    }
+        Err(error) => return Err(error),
+    };
+    log(&summary);
+    Ok(())
 }
 
 /// One pass with its observations persisted whether it worked or not.
@@ -310,16 +307,12 @@ fn tick(
                     entry.refreshes + 1,
                     now.as_second()
                 );
-                // The reference travels in the message so a human reading
-                // the thread can tell keepalives apart; the model is still
-                // asked for a one-word reply.
-                let message = format!("{} (ref {request_id})", config.keepalive_message);
                 if dry_run {
                     log(&format!("would warm {} ({})", view.id, view.title));
                     summary.warmed += 1;
                     continue;
                 }
-                match client.thread_send(&view.id, &message, &request_id) {
+                match client.thread_send(&view.id, &config.keepalive_message, &request_id) {
                     Ok(_) => {
                         entry.pending_warm_at = Some(Timestamp::now());
                         entry.pending_seen_running = false;

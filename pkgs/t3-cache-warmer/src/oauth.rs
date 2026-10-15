@@ -17,11 +17,13 @@ use sha2::{Digest, Sha256};
 use crate::config::Config;
 use crate::state::Credential;
 
-// T3 requires the caller to have full access before sending to full-access threads.
-const ACCESS: &str = "full-access";
-
 pub fn login(config: &Config) -> Result<Credential> {
-    let agent = http_agent();
+    let agent = ureq::Agent::new_with_config(
+        ureq::Agent::config_builder()
+            .timeout_global(Some(Duration::from_secs(30)))
+            .http_status_as_error(false)
+            .build(),
+    );
     let base = config.base_url.trim_end_matches('/');
     let verifier = random_token(32);
     let challenge = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
@@ -38,47 +40,34 @@ pub fn login(config: &Config) -> Result<Credential> {
     });
 
     // The GET is what creates the pending request the approval page sees.
-    let (status, body) = get(
-        &agent,
-        &format!("{base}/oauth/mcp/authorize"),
-        &[
+    let response = agent
+        .get(format!("{base}/oauth/mcp/authorize"))
+        .query_pairs([
             ("response_type", "code"),
             ("client_id", client_id.as_str()),
             ("redirect_uri", config.redirect_uri.as_str()),
             ("code_challenge", challenge.as_str()),
             ("code_challenge_method", "S256"),
             ("state", state_token.as_str()),
-        ],
-    )?;
-    if status >= 400 {
-        bail!("T3 refused the authorization request (HTTP {status}): {body}");
-    }
+        ])
+        .call()
+        .context("create T3 authorization request")?;
+    response_text(response).context("T3 authorization request")?;
 
-    let (status, approval) = post(
+    let approval = post_json(
         &agent,
         &format!("{base}/oauth/mcp/approval"),
-        "application/json",
-        authorization.to_string(),
+        &authorization,
     )?;
-    if status >= 400 {
-        bail!("T3 refused the approval request (HTTP {status}): {approval}");
-    }
     let redirect = match approval.get("redirectTo").and_then(Value::as_str) {
         Some(redirect) => redirect.to_owned(),
         None => {
+            // T3 requires full access before sending to full-access threads.
             let decision = json!({
                 "authorization": authorization,
-                "decision": { "_tag": "pairing-code", "access": ACCESS, "code": pairing },
+                "decision": { "_tag": "pairing-code", "access": "full-access", "code": pairing },
             });
-            let (status, decided) = post(
-                &agent,
-                &format!("{base}/oauth/mcp/decision"),
-                "application/json",
-                decision.to_string(),
-            )?;
-            if status >= 400 {
-                bail!("T3 rejected the pairing code (HTTP {status}): {decided}");
-            }
+            let decided = post_json(&agent, &format!("{base}/oauth/mcp/decision"), &decision)?;
             decided
                 .get("redirectTo")
                 .and_then(Value::as_str)
@@ -97,17 +86,17 @@ pub fn login(config: &Config) -> Result<Credential> {
             format!("T3 denied the authorization ({reason})")
         })?;
 
-    let fields = [
-        ("grant_type", "authorization_code"),
-        ("code", code.as_str()),
-        ("redirect_uri", config.redirect_uri.as_str()),
-        ("client_id", client_id.as_str()),
-        ("code_verifier", verifier.as_str()),
-    ];
-    let (status, token) = post_form(&agent, &format!("{base}/oauth/mcp/token"), &fields)?;
-    if status >= 400 {
-        bail!("T3 refused the token exchange (HTTP {status}): {token}");
-    }
+    let response = agent
+        .post(format!("{base}/oauth/mcp/token"))
+        .send_form([
+            ("grant_type", "authorization_code"),
+            ("code", code.as_str()),
+            ("redirect_uri", config.redirect_uri.as_str()),
+            ("client_id", client_id.as_str()),
+            ("code_verifier", verifier.as_str()),
+        ])
+        .context("request T3 token exchange")?;
+    let token = response_json(response).context("T3 token exchange")?;
     let access_token = token
         .get("access_token")
         .and_then(Value::as_str)
@@ -143,15 +132,7 @@ fn register(agent: &ureq::Agent, base: &str, redirect_uri: &str) -> Result<Strin
         "redirect_uris": [redirect_uri],
         "token_endpoint_auth_method": "none",
     });
-    let (status, response) = post(
-        agent,
-        &format!("{base}/oauth/mcp/register"),
-        "application/json",
-        body.to_string(),
-    )?;
-    if status >= 400 {
-        bail!("T3 refused the client registration (HTTP {status}): {response}");
-    }
+    let response = post_json(agent, &format!("{base}/oauth/mcp/register"), &body)?;
     response
         .get("client_id")
         .and_then(Value::as_str)
@@ -195,49 +176,29 @@ fn pairing_code(cli: &str) -> Result<String> {
         .map(str::to_owned)
 }
 
-fn http_agent() -> ureq::Agent {
-    ureq::Agent::new_with_config(
-        ureq::Agent::config_builder()
-            .timeout_global(Some(Duration::from_secs(30)))
-            .http_status_as_error(false)
-            .build(),
-    )
+fn post_json(agent: &ureq::Agent, url: &str, body: &Value) -> Result<Value> {
+    let response = agent
+        .post(url)
+        .header("content-type", "application/json")
+        .send(body.to_string())
+        .with_context(|| format!("POST {url}"))?;
+    response_json(response).with_context(|| format!("POST {url}"))
 }
 
-fn get(agent: &ureq::Agent, url: &str, query: &[(&str, &str)]) -> Result<(u16, String)> {
-    let mut request = agent.get(url);
-    for &(key, value) in query {
-        request = request.query(key, value);
+fn response_text(mut response: ureq::http::Response<ureq::Body>) -> Result<String> {
+    let status = response.status().as_u16();
+    let text = response
+        .body_mut()
+        .read_to_string()
+        .context("read T3 response body")?;
+    if status >= 400 {
+        bail!("T3 refused the request (HTTP {status}): {text}");
     }
-    let mut response = request.call().with_context(|| format!("GET {url}"))?;
-    let status = response.status().as_u16();
-    let body = response.body_mut().read_to_string().unwrap_or_default();
-    Ok((status, body))
+    Ok(text)
 }
 
-fn post(agent: &ureq::Agent, url: &str, content_type: &str, body: String) -> Result<(u16, Value)> {
-    let mut response = agent
-        .post(url)
-        .header("content-type", content_type)
-        .send(body)
-        .with_context(|| format!("POST {url}"))?;
-    let status = response.status().as_u16();
-    let text = response.body_mut().read_to_string().unwrap_or_default();
-    Ok((status, parse_json(&text)))
-}
-
-fn post_form(agent: &ureq::Agent, url: &str, fields: &[(&str, &str)]) -> Result<(u16, Value)> {
-    let mut response = agent
-        .post(url)
-        .send_form(fields.iter().copied())
-        .with_context(|| format!("POST {url}"))?;
-    let status = response.status().as_u16();
-    let text = response.body_mut().read_to_string().unwrap_or_default();
-    Ok((status, parse_json(&text)))
-}
-
-fn parse_json(text: &str) -> Value {
-    serde_json::from_str(text).unwrap_or_else(|_| Value::String(text.to_owned()))
+fn response_json(response: ureq::http::Response<ureq::Body>) -> Result<Value> {
+    serde_json::from_str(&response_text(response)?).context("parse T3 JSON response")
 }
 
 fn random_token(bytes: usize) -> String {
@@ -247,54 +208,13 @@ fn random_token(bytes: usize) -> String {
 }
 
 fn query_param(query: &str, key: &str) -> Option<String> {
-    query.split('&').find_map(|pair| {
-        let (pair_key, pair_value) = pair.split_once('=')?;
-        (decode_component(pair_key) == key).then(|| decode_component(pair_value))
-    })
-}
-
-fn decode_component(value: &str) -> String {
-    let bytes = value.as_bytes();
-    let mut decoded = Vec::with_capacity(bytes.len());
-    let mut index = 0;
-    while index < bytes.len() {
-        match bytes[index] {
-            b'%' if index + 2 < bytes.len() => {
-                let hex = std::str::from_utf8(&bytes[index + 1..index + 3]).unwrap_or("");
-                match u8::from_str_radix(hex, 16) {
-                    Ok(byte) => {
-                        decoded.push(byte);
-                        index += 3;
-                    }
-                    Err(_) => {
-                        decoded.push(bytes[index]);
-                        index += 1;
-                    }
-                }
-            }
-            b'+' => {
-                decoded.push(b' ');
-                index += 1;
-            }
-            byte => {
-                decoded.push(byte);
-                index += 1;
-            }
-        }
-    }
-    String::from_utf8_lossy(&decoded).into_owned()
+    form_urlencoded::parse(query.as_bytes())
+        .find_map(|(name, value)| (name == key).then(|| value.into_owned()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn decodes_percent_escapes() {
-        assert_eq!(decode_component("x%2Fy"), "x/y");
-        assert_eq!(decode_component("a+b"), "a b");
-        assert_eq!(decode_component("plain"), "plain");
-    }
 
     #[test]
     fn reads_query_parameters() {
@@ -309,5 +229,43 @@ mod tests {
             Some("x/y")
         );
         assert_eq!(query_param("a=1&b=2", "c"), None);
+        assert_eq!(
+            query_param("code=a%2Bb%3D", "code").as_deref(),
+            Some("a+b=")
+        );
+        assert_eq!(query_param("code=a+b", "code").as_deref(), Some("a b"));
+        assert_eq!(query_param("code=%E2%9C%93", "code").as_deref(), Some("✓"));
+    }
+
+    #[test]
+    fn rejects_failed_or_malformed_json_responses() {
+        for (status, body, expected) in [
+            (401, "credential rejected", "HTTP 401"),
+            (500, "upstream unavailable", "upstream unavailable"),
+            (200, "not JSON", "parse T3 JSON response"),
+        ] {
+            let response = ureq::http::Response::builder()
+                .status(status)
+                .body(ureq::Body::builder().data(body))
+                .unwrap();
+            let error = response_json(response).unwrap_err();
+            assert!(format!("{error:#}").contains(expected), "{error:#}");
+        }
+    }
+
+    #[test]
+    fn preserves_body_read_errors() {
+        struct Unreadable;
+        impl std::io::Read for Unreadable {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::other("body read failed"))
+            }
+        }
+        let response = ureq::http::Response::new(ureq::Body::builder().reader(Unreadable));
+        let error = response_json(response).unwrap_err();
+        assert!(
+            format!("{error:#}").contains("body read failed"),
+            "{error:#}"
+        );
     }
 }
