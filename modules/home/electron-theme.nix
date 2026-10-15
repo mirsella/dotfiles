@@ -4,17 +4,10 @@ let
   theme-watch = "${host-tools} theme-watch --dconf ${lib.getExe' pkgs.dconf "dconf"}";
 in
 {
-  # Chromium and Electron only resolve the KDE Wayland system color scheme
-  # after xdg-desktop-portal emits a real org.freedesktop.portal.Settings
-  # change (chromium#462191707, electron#48736): T3 Code started before the
-  # portal settles comes up with the opposite appearance and never corrects
-  # itself. Route Settings to the GTK backend, which follows gsettings.
-  # kde-gtk-config mirrors the Plasma scheme into gsettings, but its kded
-  # module can sit loaded yet idle, so the watcher re-derives the scheme from
-  # the kdeglobals palette and continuously repairs gsettings to match. Replay
-  # both light/dark transitions for new mains/renderers and restarted portals,
-  # retrying during startup so a late subscriber cannot miss the only pulse.
-  # Recover the stored scheme if the watcher is stopped mid-replay.
+  # Route Settings through GTK and keep its gsettings color scheme aligned
+  # with Plasma if kde-gtk-config stops mirroring the palette. Only write
+  # genuine changes: fake transitions to wake Electron's theme listener
+  # (chromium#462191707, electron#48736) visibly flash listening applications.
   xdg.configFile."xdg-desktop-portal/kde-portals.conf" = {
     force = true;
     text = ''
@@ -28,7 +21,7 @@ in
 
   systemd.user.services.electron-theme-watch = {
     Unit = {
-      Description = "Keep T3 Code synchronized with the Plasma color scheme (electron#48736 workaround)";
+      Description = "Keep the desktop portal color scheme aligned with Plasma";
       After = [
         "graphical-session.target"
         "xdg-desktop-portal.service"
@@ -38,7 +31,6 @@ in
     Service = {
       Type = "simple";
       ExecStart = theme-watch;
-      ExecStopPost = "${theme-watch} --recover";
       Restart = "on-failure";
       RestartSec = "5s";
     };

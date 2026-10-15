@@ -240,10 +240,10 @@ assert lib.assertMsg (lib.all (
     "${flake.packages.x86_64-linux.host-tools}/bin/host-tools theme-watch --dconf /nix/store/"
     (builtins.head watch.Service.ExecStart)
   && watch.Service.Restart == "on-failure"
-  && lib.hasSuffix "--recover" watch.Service.ExecStopPost
+  && !(watch.Service ? ExecStopPost)
 ) workstationHomes
 && !(server.home-manager.users.mirsella.systemd.user.services ? electron-theme-watch)
-) "The theme watcher must run the flake host-tools, recover after nudge failures, and stay off the headless server";
+) "The theme watcher must run the flake host-tools without nudge recovery and stay off the headless server";
 assert lib.assertMsg (lib.all
   (
     name:
