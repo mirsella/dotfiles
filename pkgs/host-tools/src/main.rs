@@ -134,6 +134,9 @@ enum Commands {
         /// dconf binary to drive.
         #[arg(long, default_value = "dconf")]
         dconf: String,
+        /// Process filesystem to inspect.
+        #[arg(long, default_value = "/proc")]
+        proc_root: PathBuf,
         /// Restore a color scheme left flipped by an interrupted nudge, then exit.
         #[arg(long)]
         recover: bool,
@@ -236,7 +239,11 @@ fn run() -> Result<()> {
         Commands::KeyboardOff => hardware::keyboard_off(),
         Commands::Ryzenadj { watch } => hardware::ryzenadj(watch),
         Commands::AudioWatch => hardware::audio_watch(),
-        Commands::ThemeWatch { dconf, recover } => theme::run(&dconf, recover),
+        Commands::ThemeWatch {
+            dconf,
+            proc_root,
+            recover,
+        } => theme::run(&dconf, &proc_root, recover),
         Commands::OomProtect { user } => memory::run(&user),
         Commands::BtrfsSpaceCheck {
             notify,

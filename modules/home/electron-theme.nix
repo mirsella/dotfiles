@@ -11,9 +11,10 @@ in
   # itself. Route Settings to the GTK backend, which follows gsettings.
   # kde-gtk-config mirrors the Plasma scheme into gsettings, but its kded
   # module can sit loaded yet idle, so the watcher re-derives the scheme from
-  # the kdeglobals palette and repairs gsettings to match, then re-asserts the
-  # current scheme when a T3 Code instance starts on a dark system, and
-  # repairs the stored scheme if the watcher is stopped mid-nudge.
+  # the kdeglobals palette and continuously repairs gsettings to match. Replay
+  # both light/dark transitions for new mains/renderers and restarted portals,
+  # retrying during startup so a late subscriber cannot miss the only pulse.
+  # Recover the stored scheme if the watcher is stopped mid-replay.
   xdg.configFile."xdg-desktop-portal/kde-portals.conf" = {
     force = true;
     text = ''
@@ -27,7 +28,7 @@ in
 
   systemd.user.services.electron-theme-watch = {
     Unit = {
-      Description = "Re-assert the system color scheme for new T3 Code instances (electron#48736 workaround)";
+      Description = "Keep T3 Code synchronized with the Plasma color scheme (electron#48736 workaround)";
       After = [
         "graphical-session.target"
         "xdg-desktop-portal.service"

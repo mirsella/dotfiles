@@ -4,7 +4,7 @@
 use std::{
     fs,
     io::Write as _,
-    os::unix::{fs::PermissionsExt as _, process::CommandExt as _},
+    os::unix::fs::PermissionsExt as _,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     time::{Duration, Instant},
@@ -29,6 +29,7 @@ impl Studio {
             .unwrap();
         fs::create_dir(root.path().join("runtime")).unwrap();
         fs::create_dir(root.path().join("config")).unwrap();
+        fs::create_dir(root.path().join("proc")).unwrap();
         Self {
             root,
             children: Vec::new(),
@@ -58,17 +59,38 @@ impl Studio {
         contents.lines().map(str::to_owned).collect()
     }
 
-    /// A dconf stand-in: `read` answers with `read_value`, writes are logged.
+    fn stored_scheme(&self, value: &str) {
+        fs::write(self.root.path().join("scheme"), value).unwrap();
+    }
+
+    /// Stateful dconf stand-in: successful writes are visible to later reads.
     fn dconf(&self, read_value: &str) -> PathBuf {
+        self.stored_scheme(read_value);
         let shim = self.root.path().join("dconf");
         let log = self.root.path().join("writes.log");
+        let value = self.root.path().join("scheme");
+        let fail = self.root.path().join("fail-write");
+        let reject = self.root.path().join("reject-value");
         // Nix supplies its sandbox shell; native Linux builds use /bin/sh.
         let shell = option_env!("HOST_TOOLS_TEST_SHELL").unwrap_or("/bin/sh");
         let mut script = fs::File::create(&shim).unwrap();
         write!(
             script,
-            "#!{shell}\ncase \"$1\" in\nread) echo '{read_value}' ;;\nwrite) echo \"$2 $3\" >> \"{}\" ;;\nesac\n",
-            log.display()
+            r#"#!{shell}
+case "$1" in
+read) cat '{value}' ;;
+write)
+printf '%s' "$3" > '{attempt}'
+if [ -f '{fail}' ] || {{ [ -f '{reject}' ] && [ "$(cat '{reject}')" = "$3" ]; }}; then exit 1; fi
+printf '%s' "$3" > '{value}'
+echo "$2 $3" >> '{log}' ;;
+esac
+"#,
+            value = value.display(),
+            attempt = self.root.path().join("attempt").display(),
+            fail = fail.display(),
+            reject = reject.display(),
+            log = log.display()
         )
         .unwrap();
         drop(script);
@@ -86,6 +108,8 @@ impl Studio {
         command
             .args(["theme-watch", "--dconf"])
             .arg(dconf)
+            .arg("--proc-root")
+            .arg(self.root.path().join("proc"))
             .env("XDG_RUNTIME_DIR", self.root.path().join("runtime"))
             .env("XDG_CONFIG_HOME", self.root.path().join("config"));
         command
@@ -104,16 +128,14 @@ impl Studio {
         )
     }
 
-    /// A process the watcher must read as a new T3 Code main.
-    fn t3_main(&mut self) -> &mut Child {
-        // Nix's multicall sleep dispatches by argv[0], so use a shell builtin.
-        // Keeping the pipe open lets read wait until the child is killed on drop.
-        self.spawn(
-            Command::new("bash")
-                .arg0("t3code")
-                .args(["-c", "read -r -t 60"])
-                .stdin(Stdio::piped()),
-        )
+    fn process(&self, pid: u32, cmdline: &[u8]) {
+        let process = self.root.path().join(format!("proc/{pid}"));
+        fs::create_dir(&process).unwrap();
+        fs::write(process.join("cmdline"), cmdline).unwrap();
+    }
+
+    fn t3_main(&self) {
+        self.process(100, b"/app/t3code\0");
     }
 
     fn await_writes(&self, count: usize, limit: Duration) -> Vec<String> {
@@ -193,8 +215,8 @@ fn falls_back_to_the_marker_value_without_a_palette() {
     assert!(!studio.marker().exists());
 }
 
-/// The whole point: a T3 Code cold start on a dark system repairs the portal's
-/// stale value, then flips it so the portal re-emits the scheme.
+/// A cold start repairs stale settings immediately and replays after startup,
+/// rather than relying on one pulse before Electron has subscribed.
 #[test]
 fn a_cold_start_repairs_the_stale_scheme_then_nudges() {
     let mut studio = Studio::new("cold-start");
@@ -209,7 +231,7 @@ fn a_cold_start_repairs_the_stale_scheme_then_nudges() {
         &writes[..3],
         [
             "/org/gnome/desktop/interface/color-scheme 'prefer-dark'",
-            "/org/gnome/desktop/interface/color-scheme 'default'",
+            "/org/gnome/desktop/interface/color-scheme 'prefer-light'",
             "/org/gnome/desktop/interface/color-scheme 'prefer-dark'",
         ]
     );
@@ -217,4 +239,130 @@ fn a_cold_start_repairs_the_stale_scheme_then_nudges() {
         !studio.marker().exists(),
         "the completed nudge cleared its marker"
     );
+    let writes = studio.await_writes(7, Duration::from_secs(15));
+    assert_eq!(writes.len(), 7, "one repair and three bounded replays");
+}
+
+#[test]
+fn tracks_palette_changes_and_external_drift_without_a_new_t3_process() {
+    let mut studio = Studio::new("continuous");
+    studio.kdeglobals(DARK);
+    let dconf = studio.dconf("'prefer-light'");
+    studio.t3_main();
+    studio.watcher(&dconf);
+    studio.await_writes(7, Duration::from_secs(15));
+
+    studio.kdeglobals(LIGHT);
+    studio.await_scheme("'prefer-light'");
+    studio.kdeglobals(DARK);
+    studio.await_scheme("'prefer-dark'");
+
+    studio.stored_scheme("'prefer-light'");
+    studio.await_scheme("'prefer-dark'");
+}
+
+#[test]
+fn retries_failed_writes_without_a_new_process() {
+    let mut studio = Studio::new("retry");
+    studio.kdeglobals(DARK);
+    let dconf = studio.dconf("'prefer-light'");
+    let fail = studio.root.path().join("fail-write");
+    fs::write(&fail, "").unwrap();
+    studio.watcher(&dconf);
+    // Wait for the attempted write, not an arbitrary startup sleep.
+    // The shim records attempts separately from successful writes.
+    studio.await_attempt();
+    assert!(studio.writes().is_empty());
+    fs::remove_file(fail).unwrap();
+    studio.await_scheme("'prefer-dark'");
+}
+
+#[test]
+fn recovers_a_failed_replay_without_restarting_the_watcher() {
+    let mut studio = Studio::new("failed-restore");
+    studio.kdeglobals(DARK);
+    let dconf = studio.dconf("'prefer-dark'");
+    let reject = studio.root.path().join("reject-value");
+    fs::write(&reject, "'prefer-dark'").unwrap();
+    studio.t3_main();
+    studio.watcher(&dconf);
+    let start = Instant::now();
+    while fs::read_to_string(studio.root.path().join("attempt")).unwrap_or_default()
+        != "'prefer-dark'"
+    {
+        assert!(
+            start.elapsed() < Duration::from_secs(5),
+            "no restore attempted"
+        );
+        std::thread::sleep(Duration::from_millis(25));
+    }
+    assert!(studio.marker().exists());
+    fs::remove_file(reject).unwrap();
+    studio.await_scheme("'prefer-dark'");
+}
+
+#[test]
+fn a_late_renderer_replays_even_on_a_light_system() {
+    let mut studio = Studio::new("late-renderer");
+    studio.kdeglobals(LIGHT);
+    let dconf = studio.dconf("'prefer-light'");
+    studio.t3_main();
+    studio.watcher(&dconf);
+    studio.await_writes(6, Duration::from_secs(15));
+    studio.process(101, b"/app/t3code\0--type=renderer\0");
+    let writes = studio.await_writes(8, Duration::from_secs(5));
+    assert_eq!(
+        &writes[6..8],
+        [
+            "/org/gnome/desktop/interface/color-scheme 'prefer-dark'",
+            "/org/gnome/desktop/interface/color-scheme 'prefer-light'",
+        ]
+    );
+}
+
+#[test]
+fn a_restarted_portal_replays_for_an_existing_window() {
+    let mut studio = Studio::new("portal-restart");
+    studio.kdeglobals(DARK);
+    let dconf = studio.dconf("'prefer-dark'");
+    studio.t3_main();
+    studio.watcher(&dconf);
+    studio.await_writes(6, Duration::from_secs(15));
+    studio.process(200, b"/usr/lib/xdg-desktop-portal-gtk\0");
+    let writes = studio.await_writes(8, Duration::from_secs(5));
+    assert_eq!(
+        &writes[6..8],
+        [
+            "/org/gnome/desktop/interface/color-scheme 'prefer-light'",
+            "/org/gnome/desktop/interface/color-scheme 'prefer-dark'",
+        ]
+    );
+}
+
+impl Studio {
+    fn await_scheme(&self, expected: &str) {
+        let start = Instant::now();
+        loop {
+            let scheme = fs::read_to_string(self.root.path().join("scheme")).unwrap();
+            if scheme == expected && !self.marker().exists() {
+                return;
+            }
+            assert!(
+                start.elapsed() < Duration::from_secs(5),
+                "expected {expected}, got {scheme}"
+            );
+            std::thread::sleep(Duration::from_millis(25));
+        }
+    }
+
+    fn await_attempt(&self) {
+        let start = Instant::now();
+        while !self.root.path().join("attempt").exists() {
+            assert!(
+                start.elapsed() < Duration::from_secs(5),
+                "no write attempted"
+            );
+            std::thread::sleep(Duration::from_millis(25));
+        }
+    }
 }

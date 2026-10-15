@@ -1,9 +1,9 @@
 //! Chromium and Electron resolve the system color scheme at startup and only
 //! pick up the KDE Wayland value after xdg-desktop-portal emits a real
 //! org.freedesktop.portal.Settings change (chromium#462191707, electron#48736).
-//! The flip is needed only on a dark system, where a correct scheme emits no
-//! change at all; a light one is set right by the repair write, which is a
-//! change in itself.
+//! Reconcile Plasma continuously, not just when an application starts. Replay
+//! real light/dark transitions for new mains/renderers and restarted portals,
+//! with bounded retries while Electron is still subscribing at startup.
 //!
 //! The portal serves the scheme from gsettings, which kde-gtk-config is meant
 //! to mirror from the Plasma color scheme. Its kded module can sit loaded yet
@@ -16,43 +16,96 @@ use anyhow::{Context, Result};
 use std::{
     collections::HashSet,
     fs, io,
-    os::fd::AsRawFd,
+    os::{fd::AsRawFd, unix::fs::MetadataExt},
     path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
 };
-const STARTUP_DELAY: Duration = Duration::from_secs(3);
 const POLL_INTERVAL: Duration = Duration::from_secs(1);
-/// Two mains (AppImage parent + mounted child) starting together need one nudge.
-const DEBOUNCE: Duration = Duration::from_secs(10);
 /// Time the opposite value stays visible; long enough for the portal to emit.
 const ROLLBACK_DELAY: Duration = Duration::from_millis(250);
 const SCHEME_KEY: &str = "/org/gnome/desktop/interface/color-scheme";
 
-pub fn run(dconf: &str, recover: bool) -> Result<()> {
+pub fn run(dconf: &str, proc_root: &Path, recover: bool) -> Result<()> {
     let state = State::resolve();
     restore_interrupted(dconf, &state)?;
     if recover {
         return Ok(());
     }
-    // Let the session's portal services come up before the first scan.
-    thread::sleep(STARTUP_DELAY);
-    // An empty set makes the first scan treat already-running mains as new.
-    let mut previous = HashSet::new();
-    let mut pending = false;
-    let mut last_nudge: Option<Instant> = None;
+    let mut watcher = Watcher::default();
     loop {
-        let mains = collect_t3_mains()?;
-        pending |= !mains.is_subset(&previous);
-        previous = mains;
-        if pending && last_nudge.is_none_or(|last| last.elapsed() >= DEBOUNCE) {
-            pending = false;
-            last_nudge = Some(Instant::now());
-            if let Err(error) = nudge(dconf, &state) {
-                eprintln!("electron-theme-watch: {error:#}");
-            }
+        if let Err(error) = watcher.tick(dconf, proc_root, &state) {
+            // Keep pending work: a failed write or unavailable portal must not
+            // consume the only opportunity to correct an already-open window.
+            eprintln!("electron-theme-watch: {error:#}; retrying");
         }
         thread::sleep(POLL_INTERVAL);
+    }
+}
+
+#[derive(Default)]
+struct Watcher {
+    previous: Processes,
+    scheme: Option<&'static str>,
+    replay: Option<Replay>,
+}
+
+struct Replay {
+    next: Instant,
+    remaining: usize,
+}
+
+impl Replay {
+    fn new() -> Self {
+        Self {
+            next: Instant::now(),
+            remaining: 3,
+        }
+    }
+
+    fn completed(&mut self) {
+        self.remaining -= 1;
+        // Immediate, +2s, +8s: cover early nativeTheme initialization and a
+        // renderer that subscribes later without continually flashing apps.
+        self.next = Instant::now() + Duration::from_secs(if self.remaining == 2 { 2 } else { 6 });
+    }
+}
+
+impl Watcher {
+    fn tick(&mut self, dconf: &str, proc_root: &Path, state: &State) -> Result<()> {
+        let processes = collect_processes(proc_root)?;
+        if !processes.apps.is_subset(&self.previous.apps)
+            || !processes.portals.is_subset(&self.previous.portals)
+        {
+            self.replay = Some(Replay::new());
+        }
+        self.previous = processes;
+        if self.previous.apps.is_empty() {
+            self.replay = None;
+        }
+
+        restore_interrupted(dconf, state)?;
+        let desired = plasma_scheme().context("cannot read the Plasma color palette")?;
+        let current = util::output(dconf, &["read", SCHEME_KEY])?;
+        let changed = self.scheme != Some(desired) || current.trim() != desired;
+        if current.trim() != desired {
+            println!("electron-theme-watch: repairing portal scheme to {desired}");
+            apply(dconf, desired)?;
+        }
+        if changed && !self.previous.apps.is_empty() {
+            self.replay = Some(Replay::new());
+        }
+        self.scheme = Some(desired);
+
+        if let Some(replay) = &mut self.replay {
+            if replay.remaining > 0
+                && Instant::now() >= replay.next
+                && nudge(dconf, state, desired)?
+            {
+                replay.completed();
+            }
+        }
+        Ok(())
     }
 }
 
@@ -80,7 +133,12 @@ fn restore_interrupted(dconf: &str, state: &State) -> Result<()> {
     let scheme = match plasma_scheme() {
         Some(scheme) => scheme,
         None => match intended.as_deref() {
-            Some(scheme) => scheme,
+            Some(scheme) => {
+                eprintln!(
+                    "electron-theme-watch: Plasma palette unavailable; recovering recorded scheme {scheme}"
+                );
+                scheme
+            }
             None => {
                 // Nothing to restore to: drop the marker, and with it the
                 // flipped value's record, instead of failing this watcher's
@@ -94,41 +152,32 @@ fn restore_interrupted(dconf: &str, state: &State) -> Result<()> {
     remove(&state.marker)
 }
 
-/// Flip a dark scheme to light and back so the portal re-emits it.
-fn nudge(dconf: &str, state: &State) -> Result<()> {
-    let current = util::output(dconf, &["read", SCHEME_KEY])?
-        .trim()
-        .to_owned();
-    let desired = match plasma_scheme() {
-        Some(desired) => desired,
-        // No readable palette outside a Plasma session: keep trusting gsettings.
-        None => current.as_str(),
-    };
-    // A stale value pins T3 Code to the previous appearance across system theme
-    // switches even when the flip below is perfect, so repair it first. The
-    // repair is idempotent, so it needs no lock.
-    if desired != current {
-        println!(
-            "electron-theme-watch: portal scheme is stale ({current}), repairing to {desired}"
-        );
-        apply(dconf, desired)?;
-    }
-    if desired != "'prefer-dark'" {
-        println!("electron-theme-watch: system is light, no nudge needed");
-        return Ok(());
-    }
+/// Explicit opposites work in both directions; 'default' need not mean light.
+fn nudge(dconf: &str, state: &State, desired: &str) -> Result<bool> {
     let Some(_lock) = try_lock(&state.lock)? else {
-        // Another nudge is running and covers this instance.
-        return Ok(());
+        return Ok(false);
     };
     // Record the value before changing it: an interrupted or failed nudge is
     // then repaired on the next --recover call or watcher start.
     util::atomic_write(&state.marker, desired.as_bytes())?;
-    println!("electron-theme-watch: new T3 Code instance on a dark system, nudging system theme");
-    apply(dconf, "'default'")?;
+    println!("electron-theme-watch: replaying system theme {desired}");
+    apply(
+        dconf,
+        if desired == "'prefer-dark'" {
+            "'prefer-light'"
+        } else {
+            "'prefer-dark'"
+        },
+    )?;
     thread::sleep(ROLLBACK_DELAY);
-    apply(dconf, desired)?;
-    remove(&state.marker)
+    // Plasma may have switched again during the pulse. Never roll it back to
+    // the old palette; recovery uses this same source of truth after failure.
+    apply(
+        dconf,
+        plasma_scheme().context("Plasma palette disappeared during replay")?,
+    )?;
+    remove(&state.marker)?;
+    Ok(true)
 }
 
 /// The scheme the portal must serve, taken from the Plasma palette in
@@ -167,7 +216,7 @@ fn palette_background(kdeglobals: &str, group: &str) -> Option<(u32, u32, u32)> 
                 let mut channels = value
                     .trim()
                     .split(',')
-                    .map(|c| c.trim().parse::<u32>().ok());
+                    .map(|c| c.trim().parse::<u8>().ok().map(u32::from));
                 let rgb = (channels.next()??, channels.next()??, channels.next()??);
                 return channels.next().is_none().then_some(rgb);
             }
@@ -215,12 +264,27 @@ fn try_lock(path: &Path) -> Result<Option<fs::File>> {
         .with_context(|| format!("open {}", path.display()))?;
     // The lock lives as long as the handle; a busy lock means a nudge is running.
     let locked = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0;
-    Ok(locked.then_some(file))
+    if locked {
+        Ok(Some(file))
+    } else {
+        let error = io::Error::last_os_error();
+        if error.kind() == io::ErrorKind::WouldBlock {
+            Ok(None)
+        } else {
+            Err(error).context("lock theme replay")
+        }
+    }
 }
 
-fn collect_t3_mains() -> Result<HashSet<u32>> {
-    let mut mains = HashSet::new();
-    for entry in fs::read_dir("/proc").context("read /proc")? {
+#[derive(Default)]
+struct Processes {
+    apps: HashSet<u32>,
+    portals: HashSet<u32>,
+}
+
+fn collect_processes(proc_root: &Path) -> Result<Processes> {
+    let mut processes = Processes::default();
+    for entry in fs::read_dir(proc_root).with_context(|| format!("read {}", proc_root.display()))? {
         let Ok(entry) = entry else { continue };
         let Some(pid) = entry
             .file_name()
@@ -229,23 +293,36 @@ fn collect_t3_mains() -> Result<HashSet<u32>> {
         else {
             continue;
         };
+        if !entry
+            .metadata()
+            .is_ok_and(|metadata| metadata.uid() == unsafe { libc::geteuid() })
+        {
+            continue;
+        }
         // Exited processes vanish between read_dir and read.
-        let Ok(cmdline) = fs::read(format!("/proc/{pid}/cmdline")) else {
+        let Ok(cmdline) = fs::read(entry.path().join("cmdline")) else {
             continue;
         };
-        if is_t3_main(&cmdline) {
-            mains.insert(pid);
+        if is_t3_window_process(&cmdline) {
+            processes.apps.insert(pid);
+        }
+        let argv0 = cmdline.split(|byte| *byte == 0).next().unwrap_or_default();
+        if matches!(
+            argv0.rsplit(|byte| *byte == b'/').next(),
+            Some(b"xdg-desktop-portal" | b"xdg-desktop-portal-gtk")
+        ) {
+            processes.portals.insert(pid);
         }
     }
-    Ok(mains)
+    Ok(processes)
 }
 
-fn is_t3_main(cmdline: &[u8]) -> bool {
+fn is_t3_window_process(cmdline: &[u8]) -> bool {
     // argv is NUL-separated, except Chromium rewrites helper titles into one
     // NUL-free field; splitting on both covers either shape. argv[0] must be
     // the app binary itself, so a shell merely mentioning a t3code path (or a
-    // kernel thread with an empty cmdline) never matches; helpers carry
-    // --type= and snapshot workers run a .cjs script.
+    // kernel thread with an empty cmdline) never matches. Renderers matter too:
+    // a new window can subscribe long after the main process has started.
     let mut args = cmdline
         .split(|byte| *byte == 0 || *byte == b' ')
         .filter(|arg| !arg.is_empty());
@@ -256,7 +333,9 @@ fn is_t3_main(cmdline: &[u8]) -> bool {
                 || base.starts_with(b"t3code-")
                 || base.starts_with(b"T3-Code")
         })
-        && args.all(|arg| !arg.starts_with(b"--type=") && !arg.ends_with(b".cjs"))
+        && args.all(|arg| {
+            (!arg.starts_with(b"--type=") || arg == b"--type=renderer") && !arg.ends_with(b".cjs")
+        })
 }
 
 fn remove(path: &Path) -> Result<()> {
@@ -265,19 +344,19 @@ fn remove(path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_dark, is_t3_main, scheme_for_palette};
+    use super::{is_dark, is_t3_window_process, scheme_for_palette};
 
     #[test]
     fn t3_main_matching() {
-        let matched: [&[u8]; 3] = [
+        let matched: [&[u8]; 4] = [
             // AppImage parent and mounted child, NUL-separated or merged.
             b"/home/mirsella/.local/share/t3code/app/T3-Code-nightly.AppImage",
             b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code",
             b"/opt/t3code-nightly-bin/t3code\0--ozone-platform=wayland\0",
+            b"/opt/t3code-nightly-bin/t3code\0--type=renderer\0",
         ];
-        let unmatched: [&[u8]; 10] = [
+        let unmatched: [&[u8]; 9] = [
             // Helpers and snapshot workers never match, in either argv shape.
-            b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code\0--type=renderer\0--user-data-dir=/home/mirsella/.config/t3code-v2",
             b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code --type=zygote",
             b"/opt/t3code-nightly-bin/t3code --type=gpu-process",
             b"/home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/t3code /home/mirsella/dev/.cache/agent-tools/.mount_T3-CodBfcaIK/resources/app.asar/apps/desktop/dist-electron/snapShot/SnapShotAccessibilityWorker.cjs read",
@@ -291,10 +370,18 @@ mod tests {
             b"/usr/lib/chromium/chromium\0--type=renderer",
         ];
         for cmdline in matched {
-            assert!(is_t3_main(cmdline), "{}", String::from_utf8_lossy(cmdline));
+            assert!(
+                is_t3_window_process(cmdline),
+                "{}",
+                String::from_utf8_lossy(cmdline)
+            );
         }
         for cmdline in unmatched {
-            assert!(!is_t3_main(cmdline), "{}", String::from_utf8_lossy(cmdline));
+            assert!(
+                !is_t3_window_process(cmdline),
+                "{}",
+                String::from_utf8_lossy(cmdline)
+            );
         }
     }
 
@@ -331,6 +418,7 @@ mod tests {
             // A malformed triple is no verdict rather than a wrong one.
             ("[Colors:Window]\nBackgroundNormal=32,35\n", None),
             ("[Colors:Window]\nBackgroundNormal=32,35,38,1\n", None),
+            ("[Colors:Window]\nBackgroundNormal=256,35,38\n", None),
             // Mid gray lands on light; the threshold is exclusive.
             (
                 "[Colors:Window]\nBackgroundNormal=128,128,128\n",
