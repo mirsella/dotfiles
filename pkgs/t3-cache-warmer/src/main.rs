@@ -40,7 +40,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command_ {
-    /// Sign in to T3 with a pairing code and store the MCP credential.
+    /// Sign in to T3 with full access and store the MCP credential.
     Login,
     /// Warm once and exit. Useful for timers and smoke tests.
     Once {
@@ -100,9 +100,8 @@ fn once(config: &Config, dry_run: bool) -> Result<()> {
     let dir = config.state_dir()?;
     let credential_path = dir.join("credential.json");
     let state_path = dir.join("state.json");
-    let mut credential = Credential::load(&credential_path)?.context(
-        "no credential stored yet; run `t3-cache-warmer login` first",
-    )?;
+    let mut credential = Credential::load(&credential_path)?
+        .context("no credential stored yet; run `t3-cache-warmer login` first")?;
     let mut state = State::load(&state_path)?;
     let now = Timestamp::now();
     state.prune(now, config.prune_days);
@@ -235,8 +234,10 @@ fn status(config: &Config) -> Result<()> {
         None => writeln!(out, "credential: missing (run `t3-cache-warmer login`)"),
     }?;
     writeln!(out, "threads tracked: {}", state.threads.len())?;
-    let show =
-        |at: Option<Timestamp>| at.map(|at| at.to_string()).unwrap_or_else(|| "-".to_owned());
+    let show = |at: Option<Timestamp>| {
+        at.map(|at| at.to_string())
+            .unwrap_or_else(|| "-".to_owned())
+    };
     let mut entries: Vec<_> = state.threads.iter().collect();
     entries.sort_by_key(|(_, thread)| thread.seen_updated_at);
     for (id, thread) in entries {
@@ -288,7 +289,10 @@ fn tick(
             };
             summary.observed += 1;
             seen.insert(view.id.clone());
-            let entry = state.threads.entry(view.id.clone()).or_insert_with(|| seed(&view));
+            let entry = state
+                .threads
+                .entry(view.id.clone())
+                .or_insert_with(|| seed(&view));
             entry.title = view.title.clone();
             entry.provider = view.provider.clone();
             entry.model = view.model.clone();

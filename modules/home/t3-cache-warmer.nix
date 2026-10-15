@@ -3,7 +3,8 @@
 # gets the prompt-cache warmer binary, its user service, and the
 # chezmoi-managed default config. The only per-machine manual step is
 # `t3-cache-warmer --config ~/.config/t3-cache-warmer/config.json login`, and
-# activation reminds you while no credential exists.
+# activation reminds you while no credential exists. Pairing grants full access
+# so the warmer can send to threads that run in that mode.
 {
   isNixOS,
   lib,

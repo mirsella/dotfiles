@@ -1,23 +1,24 @@
 //! The one-time MCP sign-in. T3 approves outside agents through OAuth with a
 //! pairing code; the code is created with the `t3` CLI and spends itself on
-//! this client alone, so the result is a 30-day credential stored with mode
+//! this client alone, yielding a 30-day full-access credential stored with mode
 //! 600. `login` deliberately performs no browser step: the pairing code *is*
 //! the human approval.
 
 use std::process::Command;
 use std::time::Duration;
 
-use anyhow::{bail, Context, Result};
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use anyhow::{Context, Result, bail};
 use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use jiff::Timestamp;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
 use crate::config::Config;
 use crate::state::Credential;
 
-const ACCESS: &str = "approval-required";
+// T3 requires the caller to have full access before sending to full-access threads.
+const ACCESS: &str = "full-access";
 
 pub fn login(config: &Config) -> Result<Credential> {
     let agent = http_agent();
