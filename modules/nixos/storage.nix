@@ -66,6 +66,7 @@ in
       autoprune = true;
     };
     datasets = lib.genAttrs (map (name: "fast/${name}") fastDatasets ++ [ "tank/archive" "tank/backup" ]) (_: {
+      autosnap = true;
       use_template = [ "keep" ];
       recursive = true;
     });
