@@ -1,7 +1,7 @@
 {
   "baseUrl": "http://127.0.0.1:3774",
   "t3CliPath": "t3",
-  "dayWindow": { "start": "08:00", "end": "23:00" },
+  "dayWindow": { "start": "08:00", "end": "00:00" },
   "activeWindowMinutes": 180,
   "tickSeconds": 120,
   "leadSeconds": 30,
