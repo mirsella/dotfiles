@@ -1,5 +1,5 @@
 [build]
-rustc-wrapper = "kache"
+rustc-wrapper = "{{ if or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop") }}{{ .chezmoi.homeDir }}/.local/bin/{{ end }}kache"
 
 [unstable]
 codegen-backend = true

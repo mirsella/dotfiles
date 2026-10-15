@@ -2,7 +2,7 @@
 # agent-tools.nix, which bootstraps T3, so every machine that gets T3 also
 # gets the prompt-cache warmer binary, its user service, and the
 # chezmoi-managed default config. The only per-machine manual step is
-# `t3-cache-warmer login` (pairing needs a human approval in T3), and
+# `t3-cache-warmer --config ~/.config/t3-cache-warmer/config.json login`, and
 # activation reminds you while no credential exists.
 {
   isNixOS,
@@ -38,7 +38,7 @@ in
     Service = {
       Type = "simple";
       Environment = servicePath;
-      ExecStart = "${lib.getExe pkgs.t3-cache-warmer} run";
+      ExecStart = "${lib.getExe pkgs.t3-cache-warmer} --config %h/.config/t3-cache-warmer/config.json run";
       Restart = "always";
       RestartSec = "60s";
     };
@@ -47,7 +47,7 @@ in
 
   home.activation.t3CacheWarmerLogin = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -f "$HOME/.local/state/t3-cache-warmer/credential.json" ]; then
-      echo "t3-cache-warmer has no credential yet: run 't3-cache-warmer login', then 'systemctl --user start t3-cache-warmer'."
+      echo "t3-cache-warmer has no credential yet: run 't3-cache-warmer --config ~/.config/t3-cache-warmer/config.json login', then 'systemctl --user start t3-cache-warmer'."
     fi
   '';
 }

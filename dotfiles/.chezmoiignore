@@ -31,6 +31,7 @@ kde shortcuts.kksrc
 .local/bin/opencode-idle-watchdog
 .local/bin/context7-account-broker
 .local/bin/composio-mcp-headers
+.local/bin/kache
 # Home Manager owns the portable settings helper.
 .local/bin/t3-settings
 # The Nix bootstrap and native updaters own these agent installs.

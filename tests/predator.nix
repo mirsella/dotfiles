@@ -189,14 +189,14 @@ assert lib.assertMsg (
    && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-cdp" "browser-use" "browser-evaluation" ]
    && server.services.hermes-agent.settings.plugins.enabled == [ "browser-policy" ]
    && server.services.hermes-agent.settings.model.provider == "opencode-go"
-   && server.services.hermes-agent.settings.model.default == "deepseek-v4.1-flash"
-   && server.services.hermes-agent.settings.agent.reasoning_overrides."deepseek-v4.1-flash" == "max"
+    && server.services.hermes-agent.settings.model.default == "deepseek-v4.1-flash"
+    && server.services.hermes-agent.settings.agent.reasoning_overrides."deepseek-v4.1-flash" == "max"
    && server.services.hermes-agent.settings.fallback_providers == []
    && server.services.hermes-agent.settings.custom_providers == []
    && server.services.hermes-agent.settings.providers.opencode-go.enabled
    && lib.all (name: !server.services.hermes-agent.settings.providers.${name}.enabled)
      [ "openrouter" "openai" "openai-api" "openai-codex" "chatgpt" "opencode" "opencode-zen" "zen" "custom" "auto" "anthropic" ]
-   && lib.all (slot: slot.provider == "opencode-go" && slot.model == "deepseek-v4.1-flash" && slot.api_key == "" && slot.base_url == "")
+    && lib.all (slot: slot.provider == "opencode-go" && slot.model == "deepseek-v4.1-flash" && slot.api_key == "" && slot.base_url == "")
      (builtins.attrValues (builtins.removeAttrs server.services.hermes-agent.settings.auxiliary [ "openrouter_model" ]))
   && lib.elem "hermes-agent-setup" server.system.activationScripts.hermes-settings.deps
   && lib.hasInfix "runuser -u mirsella -g hermes-private" server.system.activationScripts.hermes-settings.text

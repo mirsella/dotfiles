@@ -14,6 +14,13 @@ import tempfile
 SOURCE = Path(__file__).resolve().parent
 ROOT = SOURCE.parents[1]
 SYSTEMD = Path("/etc/systemd/system")
+NIX_SETTINGS = {
+    "min-free": str(10 * 2**30),
+    "max-free": str(20 * 2**30),
+    "auto-optimise-store": "true",
+    # Keep optional cache outages from aborting builds; Nix logs the failure.
+    "fallback": "true",
+}
 
 
 def run(*args: str) -> None:
@@ -104,11 +111,7 @@ def main() -> None:
     if shutil.which("nix-collect-garbage"):
         nix_changed = set_values(
             Path("/etc/nix/nix.conf"),
-            {
-                "min-free": str(10 * 2**30),
-                "max-free": str(20 * 2**30),
-                "auto-optimise-store": "true",
-            },
+            NIX_SETTINGS,
             " = ",
         )
         unit_names.append("nix-gc")

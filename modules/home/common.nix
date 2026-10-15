@@ -12,13 +12,12 @@ let
     if isNixOS then
       pkgs.atuin
     else
-      pkgs.runCommand "atuin" {
+      # buildEnv must not follow an external symlink inside its sandbox.
+      (pkgs.writeShellScriptBin "atuin" ''
+        exec /usr/bin/atuin "$@"
+      '').overrideAttrs (_: {
         version = "18.23.0";
-        meta.mainProgram = "atuin";
-      } ''
-        mkdir -p $out/bin
-        ln -s /usr/bin/atuin $out/bin/atuin
-      '';
+      });
 in
 {
   imports = [

@@ -41,6 +41,11 @@ in
   };
 
   programs.opencode.enable = false;
+  # Cargo uses this stable path so cargo-installed kache cannot shadow its daemon.
+  home.file.".local/bin/kache" = {
+    source = lib.getExe pkgs.kache;
+    force = true;
+  };
   home.file.".local/bin/opencode-idle-watchdog" = {
     source = lib.getExe pkgs.opencode-idle-watchdog;
     force = true;

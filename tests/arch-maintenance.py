@@ -21,14 +21,15 @@ class ArchConfig(unittest.TestCase):
                 "# local keys\nextra-substituters = https://cache\nmin-free = 1\nmin-free=2\n"
             )
             self.assertTrue(
-                installer.set_values(path, {"min-free": "10737418240"}, " = ")
+                installer.set_values(path, installer.NIX_SETTINGS, " = ")
             )
             self.assertEqual(
                 path.read_text(),
-                "# local keys\nextra-substituters = https://cache\nmin-free = 10737418240\n",
+                "# local keys\nextra-substituters = https://cache\nmin-free = 10737418240\n"
+                "max-free = 21474836480\nauto-optimise-store = true\nfallback = true\n",
             )
             self.assertFalse(
-                installer.set_values(path, {"min-free": "10737418240"}, " = ")
+                installer.set_values(path, installer.NIX_SETTINGS, " = ")
             )
 
     def test_shell_style_settings_have_no_spaces_around_equals(self):
