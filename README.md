@@ -566,9 +566,10 @@ readings with these values to distinguish new errors from the drive's history.
 ## Predator overnight suspend
 
 The timer checks every minute from 00:30 through 06:59 local time. It requires
-30 minutes without authenticated application activity, no logged-in SSH/local
-users, and no active maintenance or storage blocker. It warms the USB disks,
-sets a 07:00 RTC alarm and requests deep suspend with systemd inhibitors enabled.
+30 minutes without authenticated application or completed T3 turn activity,
+no logged-in SSH/local users, and no active maintenance or storage blocker. It
+warms the USB disks, rechecks user activity, sets a 07:00 RTC alarm and requests
+deep suspend with systemd inhibitors enabled.
 
 `pkgs/host-tools/src/activity.rs` recognizes Nextcloud's response-side
 `X-User-Id` header and successful protected API requests for Immich, OpenCode
@@ -576,6 +577,21 @@ and OpenChamber. Valid API keys and authorized shared-photo access also count.
 Public pages, health checks, failed logins, scanner requests and unauthenticated
 SSH connections do not reset the quiet period. Keeping an app logged in without
 requests does not count as activity by itself.
+
+Forwarding-only SSH connections, including T3's persistent environment tunnel,
+do not block suspend. Interactive SSH sessions and connections running commands,
+SFTP or other transfers still block it. Logind sessions in `closing` state after
+logout do not count as open logins, even if a detached server keeps their scope
+alive. The guard reads T3's local
+`~/.t3/userdata/statev2.sqlite` database read-only: unfinished turns, executions,
+tools, background tasks and queued effects block sleep. Idle provider processes
+and held turn queues do not. Missing, corrupt or incompatible T3 state fails the
+check and prevents automatic suspend; the journal records the error.
+
+This T3 guard applies to the overnight timer, not manual suspend. For detached
+jobs or commands outside T3's tracked work, explicitly hold a systemd inhibitor:
+`systemd-inhibit --what=sleep --mode=block --why="Remote job" your-command`.
+Arbitrary traffic through an SSH tunnel is not itself an activity signal.
 
 Caddy's connections to the actual app backends also block suspend while a
 transfer or event stream may be in progress. This guard is deliberately broader
@@ -589,7 +605,7 @@ name the app, login, proxy connection or maintenance job. Run the activity-only
 diagnostic with:
 
 ```sh
-sudo host-tools night-suspend --activity-only
+sudo host-tools night-suspend --activity-only --t3-state /home/mirsella/.t3/userdata/statev2.sqlite
 CARGO_TARGET_DIR="$PWD/.agents-local/host-tools-target" cargo test --locked --manifest-path pkgs/host-tools/Cargo.toml
 ```
 

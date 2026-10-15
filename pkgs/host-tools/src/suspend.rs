@@ -2,7 +2,7 @@ use crate::{activity, monitoring::storage_event, util};
 use anyhow::{Context, Result, ensure};
 use chrono::{Local, Timelike};
 use serde_json::Value;
-use std::process::Command;
+use std::{path::Path, process::Command};
 
 const POOLS: &[&str] = &["fast", "tank"];
 const MAINTENANCE: &[&str] = &[
@@ -110,8 +110,8 @@ fn pool_problem(now: i64) -> Result<Option<String>> {
     Ok(None)
 }
 
-fn blocker(now: i64) -> Result<Option<String>> {
-    if let Some(reason) = activity::blocker(now as f64)? {
+fn blocker(now: i64, t3_state: Option<&Path>) -> Result<Option<String>> {
+    if let Some(reason) = activity::blocker(now as f64, t3_state)? {
         return Ok(Some(reason));
     }
     let mut args = vec![
@@ -138,12 +138,12 @@ fn blocker(now: i64) -> Result<Option<String>> {
     pool_problem(now)
 }
 
-pub fn run(activity_only: bool) -> Result<()> {
+pub fn run(activity_only: bool, t3_state: Option<&Path>) -> Result<()> {
     let now = Local::now();
     if activity_only {
         println!(
             "{}",
-            activity::blocker(now.timestamp() as f64)?.unwrap_or_else(|| {
+            activity::blocker(now.timestamp() as f64, t3_state)?.unwrap_or_else(|| {
                 "no authenticated user activity or open app proxy connections".into()
             })
         );
@@ -153,7 +153,7 @@ pub fn run(activity_only: bool) -> Result<()> {
         println!("night-suspend: outside the overnight window");
         return Ok(());
     }
-    if let Some(reason) = blocker(now.timestamp())? {
+    if let Some(reason) = blocker(now.timestamp(), t3_state)? {
         println!("night-suspend: blocked: {reason}");
         return Ok(());
     }
@@ -179,6 +179,16 @@ pub fn run(activity_only: bool) -> Result<()> {
             )?;
             println!("night-suspend: warmed {name}");
         }
+    }
+    // USB reads can take minutes. Do not suspend work that started meanwhile.
+    let now = Local::now();
+    if now.hour() >= 7 {
+        println!("night-suspend: outside the overnight window after disk warmup");
+        return Ok(());
+    }
+    if let Some(reason) = activity::blocker(now.timestamp() as f64, t3_state)? {
+        println!("night-suspend: blocked after disk warmup: {reason}");
+        return Ok(());
     }
     let alarm = now
         .with_hour(7)

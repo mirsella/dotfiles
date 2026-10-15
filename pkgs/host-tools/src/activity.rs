@@ -213,12 +213,61 @@ pub fn recent_logs(directory: &Path, now: f64) -> Result<Option<String>> {
     }))
 }
 
-pub fn authenticated_ssh(titles: &str) -> bool {
+fn ssh_session(command: &str, title: &str) -> Option<bool> {
+    if !matches!(command, "sshd" | "sshd-session") {
+        return None;
+    }
     static SSH: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"^sshd(?:-session)?: (?:\S+ \[postauth\]|[^\s@]+@(?:notty|pts/\d+|tty\S+))$")
+        Regex::new(r"^sshd(?:-session)?: (?:[^\s@\[\]]+(?: \[postauth\])?|[^\s@]+@(?:notty|(?P<terminal>pts/\d+|tty\S+)))$")
             .unwrap()
     });
-    titles.lines().any(|line| SSH.is_match(line.trim()))
+    SSH.captures(title)
+        .map(|captures| captures.name("terminal").is_some())
+}
+
+pub fn ssh_work(processes: &str) -> Result<Option<String>> {
+    struct Process<'a> {
+        pid: u32,
+        parent: u32,
+        command: &'a str,
+        title: &'a str,
+    }
+    let mut snapshot = Vec::new();
+    for line in processes.lines().filter(|line| !line.trim().is_empty()) {
+        let mut rest = line.trim();
+        let mut field = || -> Result<&str> {
+            let (value, tail) = rest
+                .split_once(char::is_whitespace)
+                .context("invalid ps row")?;
+            rest = tail.trim_start();
+            Ok(value)
+        };
+        let pid = field()?.parse().context("invalid process ID")?;
+        let parent = field()?.parse().context("invalid parent process ID")?;
+        let command = field()?;
+        snapshot.push(Process {
+            pid,
+            parent,
+            command,
+            title: rest,
+        });
+    }
+    for process in &snapshot {
+        let Some(terminal) = ssh_session(process.command, process.title) else {
+            continue;
+        };
+        if terminal {
+            return Ok(Some("interactive SSH session".into()));
+        }
+        // Forwarding-only (-N) connections have no session child. Follow the
+        // postauth/notty transport chain, but keep commands and SFTP protected.
+        if snapshot.iter().any(|child| {
+            child.parent == process.pid && ssh_session(child.command, child.title).is_none()
+        }) {
+            return Ok(Some("SSH command or transfer".into()));
+        }
+    }
+    Ok(None)
 }
 
 pub fn upstream(connections: &str) -> Result<Option<String>> {
@@ -246,7 +295,16 @@ pub fn upstream(connections: &str) -> Result<Option<String>> {
     Ok(None)
 }
 
-pub fn blocker(now: f64) -> Result<Option<String>> {
+pub fn login_session_open(state: &str) -> Result<bool> {
+    match state {
+        // Detached services can keep the session scope alive after logout.
+        "closing" => Ok(false),
+        "active" | "online" => Ok(true),
+        _ => bail!("unrecognized logind session state: {state:?}"),
+    }
+}
+
+pub fn blocker(now: f64, t3_state: Option<&Path>) -> Result<Option<String>> {
     let sessions = util::json("loginctl", &["list-sessions", "--json=short"])?;
     for session in sessions.as_array().context("invalid loginctl sessions")? {
         if session["class"]
@@ -254,14 +312,26 @@ pub fn blocker(now: f64) -> Result<Option<String>> {
             .context("missing session class")?
             .starts_with("user")
         {
-            return Ok(Some("SSH or local login session".into()));
+            let id = session["session"].as_str().context("missing session ID")?;
+            let state = util::output(
+                "loginctl",
+                &["show-session", id, "--property=State", "--value"],
+            )?;
+            if login_session_open(state.trim())? {
+                return Ok(Some("SSH or local login session".into()));
+            }
         }
     }
-    if authenticated_ssh(&util::output(
+    if let Some(reason) = ssh_work(&util::output(
         "ps",
-        &["-C", "sshd,sshd-session", "-o", "args="],
-    )?) {
-        return Ok(Some("authenticated SSH connection".into()));
+        &["-e", "-o", "pid=,ppid=,comm=,args="],
+    )?)? {
+        return Ok(Some(reason));
+    }
+    if let Some(state) = t3_state {
+        if let Some(reason) = crate::t3_activity::blocker(state, now)? {
+            return Ok(Some(reason));
+        }
     }
     if let Some(reason) = upstream(&util::output("ss", &["-Hntp", "state", "established"])?)? {
         return Ok(Some(reason));

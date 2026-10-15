@@ -13,6 +13,7 @@ mod opencode;
 mod predator_boot;
 mod setup;
 mod suspend;
+mod t3_activity;
 mod t3_settings;
 #[cfg(test)]
 mod tests;
@@ -90,6 +91,9 @@ enum Commands {
     NightSuspend {
         #[arg(long)]
         activity_only: bool,
+        /// Local T3 V2 database; unreadable state prevents automatic suspend.
+        #[arg(long)]
+        t3_state: Option<PathBuf>,
     },
     StorageAlerts {
         #[arg(long)]
@@ -181,7 +185,10 @@ fn run() -> Result<()> {
         } => hermes::provision(&root, &ssh_to_age, reuse_mirsellabot),
         Commands::Hermes { action } => hermes::operations(action),
         Commands::HermesConfigure { config, defaults } => hermes::configure(&config, &defaults),
-        Commands::NightSuspend { activity_only } => suspend::run(activity_only),
+        Commands::NightSuspend {
+            activity_only,
+            t3_state,
+        } => suspend::run(activity_only, t3_state.as_deref()),
         Commands::StorageAlerts { test } => monitoring::alerts(test),
         Commands::BeszelSetup {
             password_file,

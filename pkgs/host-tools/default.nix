@@ -4,6 +4,7 @@
   openssl,
   makeWrapper,
   runtimeShell,
+  sqlite,
 }:
 rustPlatform.buildRustPackage {
   pname = "host-tools";
@@ -20,8 +21,9 @@ rustPlatform.buildRustPackage {
   cargoLock.lockFile = ./Cargo.lock;
   env.HOST_TOOLS_TEST_SHELL = runtimeShell;
   nativeBuildInputs = [ makeWrapper ];
-  nativeCheckInputs = [ openssl ];
+  nativeCheckInputs = [ openssl sqlite ];
   postInstall = ''
+    wrapProgram "$out/bin/host-tools" --prefix PATH : "${lib.makeBinPath [ sqlite ]}"
     makeWrapper "$out/bin/host-tools" "$out/bin/composio-mcp-headers" \
       --add-flags "composio-mcp-headers"
   '';

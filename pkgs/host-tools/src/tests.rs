@@ -140,23 +140,64 @@ fn malformed_activity_does_not_report_idle() -> Result<()> {
 }
 
 #[test]
-fn preauth_ssh_and_spoofed_usernames_are_not_logins() {
+fn closing_login_sessions_are_not_open_logins() -> Result<()> {
+    assert!(activity::login_session_open("active")?);
+    assert!(activity::login_session_open("online")?);
+    assert!(!activity::login_session_open("closing")?);
+    assert!(activity::login_session_open("").is_err());
+    assert!(activity::login_session_open("unknown").is_err());
+    Ok(())
+}
+
+#[test]
+fn ssh_tunnels_and_unauthenticated_connections_are_idle() -> Result<()> {
     for title in [
         "sshd-session: [accepted]",
         "sshd: root [preauth]",
         "sshd: root@notty [preauth]",
         "sshd-auth: user [net]",
         "sshd: /nix/store/sshd -D [listener]",
-    ] {
-        assert!(!activity::authenticated_ssh(title), "{title}");
-    }
-    for title in [
         "sshd-session: mirsella [postauth]",
         "sshd-session: mirsella@notty",
-        "sshd: user@pts/3",
     ] {
-        assert!(activity::authenticated_ssh(title));
+        assert!(
+            activity::ssh_work(&format!("10 1 sshd-session {title}"))?.is_none(),
+            "{title}"
+        );
     }
+    // Both older and newer OpenSSH transports can be present in one chain.
+    assert!(
+        activity::ssh_work(
+            "10 1 sshd sshd: user [postauth]\n11 10 sshd-session sshd-session: user@notty"
+        )?
+        .is_none()
+    );
+    assert!(activity::ssh_work("10 1 sshd-session sshd-session: mirsella [postauth]\n11 10 sshd-session sshd-session: mirsella")?.is_none());
+    Ok(())
+}
+
+#[test]
+fn ssh_shells_commands_and_transfers_block_sleep() -> Result<()> {
+    assert!(activity::ssh_work("10 1 sshd sshd: user@pts/3")?.is_some());
+    assert!(activity::ssh_work("10 1 sshd-session sshd-session: user@tty1")?.is_some());
+    for command in [
+        "bash -c cargo build",
+        "sftp-server",
+        "rsync --server . /tmp",
+        "sleep 60",
+    ] {
+        for title in ["sshd: user@notty", "sshd-session: user [postauth]"] {
+            let processes = format!("10 1 sshd {title}\n11 10 worker {command}");
+            assert!(activity::ssh_work(&processes)?.is_some(), "{processes}");
+        }
+    }
+    // A shell must remain a blocker through the postauth/notty transport chain.
+    assert!(activity::ssh_work("10 1 sshd sshd: user [postauth]\n11 10 sshd-session sshd-session: user@notty\n12 11 bash bash")?.is_some());
+    assert!(activity::ssh_work("10 1 sshd-session sshd-session: mirsella [postauth]\n11 10 sshd-session sshd-session: mirsella\n12 11 cat cat")?.is_some());
+    // Titles alone cannot turn an ordinary command into an SSH transport.
+    assert!(activity::ssh_work("10 1 bash sshd: user@notty\n11 10 sleep sleep 60")?.is_none());
+    assert!(activity::ssh_work("broken process snapshot").is_err());
+    Ok(())
 }
 
 #[test]
