@@ -1,0 +1,21 @@
+[6248aa43-bd87-4c90-8f54-103f0b764ff7]
+screen=1
+screenrule=4
+
+[General]
+count=1
+rules=fc9c0a8c-85d7-4dba-a2b6-35075c9f989b
+
+[a71975c1-f14a-4dc7-970d-9051e405f0e8]
+screenrule=3
+
+[fc9c0a8c-85d7-4dba-a2b6-35075c9f989b]
+Description=Window settings for Qemu-system-x86_64
+clientmachine=a1ed95728936
+desktops=ae82677a-1d7b-4270-bae3-9bc907533d7a
+desktopsrule=3
+title=QEMU
+types=1
+wmclass=qemu Qemu-system-x86_64
+wmclasscomplete=true
+wmclassmatch=1

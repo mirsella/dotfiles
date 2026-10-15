@@ -1,0 +1,9 @@
+[General]
+FreeFloating=true
+historyBehavior=ImmediateCompletion
+
+[Plugins]
+baloosearchEnabled=true
+
+[Plugins][Favorites]
+plugins=krunner_services
