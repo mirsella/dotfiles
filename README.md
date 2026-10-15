@@ -435,10 +435,31 @@ source too. Native keybindings apply apart from Ctrl-Alt-W for workspaces:
 Ctrl-O opens recent sessions/projects, Ctrl-Alt-U/D scroll half a page, and
 F2/Shift-F2 cycle recent models.
 
-The local browser/computer-use worktrees prepare 2.0.0 for OpenCode v2 and
-separate 1.0.0 releases for v1. Their Rust MCP binaries and Codex manifests are
-shared across harnesses. These prepared configs use local packages until npm
-publication; applying them is a separate activation step.
+Workstation profiles install pinned Browser MCP and Computer Use MCP 2.0 packages for
+OpenCode v2 and Codex under `~/.local/share/agent-mcp/`. Nix builds their Rust
+binaries and bundles the adapters and Chrome DevTools downstream. A fresh setup
+needs no development checkout, compiler or package download to start either MCP.
+Home Manager also selects the packaged Chromium executable through
+`environment.d/50-opencode.conf`.
+
+OpenCode loads the packaged adapters directly. On a fresh Codex profile, install
+the two plugins from the local marketplaces already declared in its config:
+
+```bash
+codex plugin add browser@browser-mcp
+codex plugin add computer-use@computer-use-mcp
+```
+
+These commands populate Codex's writable plugin cache from the Nix packages;
+enabling a plugin in `config.toml` alone does not install it. Start a new Codex
+session afterward.
+
+Both MCPs start their own backends on demand. Computer Use's background desktop
+starts a private Wayland compositor, D-Bus, PipeWire, portals and AT-SPI from its
+package closure, using Mesa software rendering for the private compositor.
+Foreground control uses the logged-in Plasma Wayland session;
+run `computer-use-mcp init` there to approve portal access. `computer-use-mcp doctor`
+checks prerequisites without requesting access or proving capture and input.
 
 The retained extensions are Composio auth, Git diff handling, a small subagent
 model-selection policy. The policy lets

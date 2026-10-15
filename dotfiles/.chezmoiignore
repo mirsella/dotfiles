@@ -46,6 +46,8 @@ kde shortcuts.kksrc
 .local/share/t3code/app/
 .local/share/t3code/app/**
 .config/kache/config.toml
+# Home Manager selects the packaged browser on HM hosts.
+.config/environment.d/50-opencode.conf
 # Home Manager owns the generated Atuin config on HM hosts.
 .config/atuin/config.toml
 # Home Manager owns generated git and ssh settings on HM hosts.
