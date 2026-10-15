@@ -31,7 +31,7 @@ source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
 [marketplaces.computer-use-mcp]
 source_type = "local"
-source = "/home/mirsella/dev/computer-use-mcp-opencode-v2"
+source = "/home/mirsella/dev/computer-use-mcp"
 
 [mcp_servers.context7-broker]
 command = "/home/mirsella/.local/bin/context7-account-broker"
@@ -103,7 +103,7 @@ requires_openai_auth = true
 
 [marketplaces.browser-mcp]
 source_type = "local"
-source = "/home/mirsella/dev/browser-mcp-opencode-v2"
+source = "/home/mirsella/dev/browser-mcp"
 
 [plugins."browser@browser-mcp"]
 enabled = true
