@@ -2,3 +2,4 @@ history.txt
 .env*
 .bacon*
 .opencode/package-lock.json
+.agents-local/
