@@ -621,7 +621,7 @@ diagnostic with:
 
 ```sh
 sudo host-tools night-suspend --activity-only --t3-state /home/mirsella/.t3/userdata/statev2.sqlite
-CARGO_TARGET_DIR="$PWD/.agents-local/host-tools-target" cargo test --locked --manifest-path pkgs/host-tools/Cargo.toml
+cargo test --locked --manifest-path pkgs/host-tools/Cargo.toml
 ```
 
 The protected API route lists need review when upgrading these applications or
@@ -639,10 +639,13 @@ Build the Nix package with `nix build .#host-tools`. A native build for Arch
 or Debian is also supported:
 
 ```sh
-export CARGO_TARGET_DIR="$PWD/.agents-local/host-tools-target"
 cargo build --release --locked --manifest-path pkgs/host-tools/Cargo.toml
-sudo HOST_TOOLS_BINARY="$CARGO_TARGET_DIR/release/host-tools" python3 arch/maintenance/apply.py
+sudo python3 arch/maintenance/apply.py
 ```
+
+The installer uses `pkgs/host-tools/target/release/host-tools` by default. If Cargo
+uses a custom target directory, pass its binary path as `HOST_TOOLS_BINARY` to
+`sudo`.
 
 The Arch installer copies that binary to `/usr/local/libexec/host-tools` for its
 system units. On the Pi, build for its architecture, install the binary as
