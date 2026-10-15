@@ -83,7 +83,7 @@ impl Default for Config {
             active_window_minutes: 150,
             tick_seconds: 60,
             lead_seconds: 30,
-            max_refreshes_per_activity: 2,
+            max_refreshes_per_activity: 3,
             send_grace_seconds: 300,
             auto_renew: true,
             prune_days: 7,

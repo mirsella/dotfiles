@@ -5,7 +5,7 @@
   "activeWindowMinutes": 180,
   "tickSeconds": 120,
   "leadSeconds": 30,
-  "maxRefreshesPerActivity": 2,
+  "maxRefreshesPerActivity": 3,
   "sendGraceSeconds": 300,
   "autoRenew": true,
   "pruneDays": 7,
