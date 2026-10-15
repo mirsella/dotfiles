@@ -57,7 +57,10 @@ in
   systemd.services = lib.mapAttrs (name: job: {
     inherit (job) description startAt requires;
     after = job.requires;
-    unitConfig.RequiresMountsFor = [ mountpoint ];
+    unitConfig = {
+      RequiresMountsFor = [ mountpoint ];
+      OnSuccess = [ "healthchecks-ping@${name}.service" ];
+    };
     path = [ pkgs.util-linux ];
     serviceConfig = {
       Type = "oneshot";

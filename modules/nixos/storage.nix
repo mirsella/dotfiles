@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  pkgs,
   utils,
   ...
 }:
@@ -74,6 +75,7 @@ in
       "zfs-import.target"
       "db-backup.service"
     ];
+    unitConfig.OnSuccess = [ "healthchecks-ping@sanoid.service" ];
   };
   systemd.timers.sanoid.timerConfig.Persistent = true;
 
@@ -105,6 +107,32 @@ in
   systemd.services."restic-backups-fast" = {
     requires = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
     after = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
-    unitConfig.RequiresMountsFor = [ "/srv/backup" ];
+    unitConfig = {
+      RequiresMountsFor = [ "/srv/backup" ];
+      OnSuccess = [ "healthchecks-ping@restic-backup.service" ];
+    };
+  };
+
+  # Monthly sampled read: a successful backup write does not prove the
+  # repository is intact.
+  systemd.services.restic-check = {
+    description = "Verify restic repository integrity (sampled data read)";
+    requires = [ "zfs-import-tank.service" ];
+    after = [ "zfs-import-tank.service" ];
+    unitConfig = {
+      RequiresMountsFor = [ "/srv/backup" ];
+      OnSuccess = [ "healthchecks-ping@restic-check.service" ];
+    };
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.restic}/bin/restic -r ${config.services.restic.backups.fast.repository} --password-file ${config.sops.secrets."restic-password".path} check --read-data-subset=10%%";
+    };
+  };
+  systemd.timers.restic-check = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*-*-05 05:00";
+      Persistent = true;
+    };
   };
 }
