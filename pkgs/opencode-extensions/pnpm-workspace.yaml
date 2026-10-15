@@ -5,3 +5,7 @@ minimumReleaseAgeExclude:
   - '@opencode/protocol@2.0.28'
   - '@opencode/schema@2.0.28'
   - '@opencode/util@2.0.28'
+
+# Fix the Seroval thenable-assimilation vulnerability.
+overrides:
+  seroval: ^1.6.2
