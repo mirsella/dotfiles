@@ -93,6 +93,7 @@ alias waymain = waypipe ssh main
 
 # Switch this host to the flake-pinned Home Manager configuration (Arch has no home-manager binary).
 def --wrapped hms [...args] {
-  let rev = (open ~/dev/dotfiles/flake.lock | from json | get nodes."home-manager".locked.rev)
-  ^nix run $"github:nix-community/home-manager/($rev)" -- switch --flake ~/dev/dotfiles#main ...$args
+  let flake = ~/dev/dotfiles
+  let rev = (open $"($flake)/flake.lock" | from json | get nodes."home-manager".locked.rev)
+  ^nix run $"github:nix-community/home-manager/($rev)" -- switch --flake $"($flake)#main" ...$args
 }
