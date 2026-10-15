@@ -10,7 +10,7 @@ exposes the standalone Arch `homeConfigurations.<hostname>`.
 
 | Host | NixOS role | Machine-specific settings |
 | --- | --- | --- |
-| `main` | Plasma desktop | CoolerControl fan curve and NCT6798 driver |
+| `main` | Plasma desktop | lm-sensors fancontrol and NCT6798 driver |
 | `laptop` | Plasma desktop | Framework RyzenAdj limits and Bluetooth audio watcher |
 | `predator` | Headless server | Secure Boot, encrypted storage, ZFS, server services and scheduled suspend |
 
@@ -680,24 +680,43 @@ and their tests; upstream application internals are managed by their packages.
 
 ## Main's fan configuration
 
-Only `hosts/main/default.nix` enables CoolerControl. It loads `nct6775` and installs
-`config.toml` and `modes.json` from `dotfiles/system/main/etc/coolercontrol/` as
-writable root-owned files in `/etc/coolercontrol/` before starting the daemon.
-Systemd creates the configuration directory. Changes to either file change the
-service unit, so `nixos-rebuild switch` stops the old daemon before installing them.
+Main uses the standard lm-sensors `fancontrol` service. A small `host-tools`
+helper follows power-profile changes over D-Bus, regenerates its configuration,
+and restarts it. The helper also reapplies settings after resume. It waits on
+events; `fancontrol` samples Ryzen die temperature every three seconds and
+averages three readings.
 
-Unrelated rebuilds leave the running daemon and its config alone. GUI changes
-last until the daemon restarts; copy profile and mode edits back into the tracked
-files to keep them. CoolerControl maps power saver to Quiet, balanced to Balanced,
-and performance to Performance for all six motherboard fan channels, using CPU
-temperature. It interpolates between curve points:
+`hosts/main/fan-control.json` defines linear ramps for the four connected
+motherboard fans. All start at 20%:
 
-- Quiet holds 20% through 60°C, reaches 30% at 70°C and 50% at 85°C, and caps at
-  60% from 90°C. This mode trades cooling headroom for less noise under load.
-- Balanced holds 20% through 50°C, reaches 40% at 60°C and 70% at 70°C, then
-  reaches 100% at 85°C.
-- Performance holds 20% through 45°C, reaches 45% at 55°C and 75% at 65°C, then
-  reaches 100% at 80°C.
+- Power saver holds 20% through 60°C and reaches its 40% maximum at 90°C.
+- Balanced holds 20% through 50°C and reaches its 80% maximum at 90°C.
+- Performance holds 20% through 45°C and reaches 100% at 80°C.
 
-On Arch, stop `coolercontrold`, install the tracked files into `/etc/coolercontrol/`,
-then start it again; Home Manager does not manage the system daemon.
+The NCT6798's hardware curve engine cannot select its separate Ryzen TSI input
+through this driver. Software control retains the actual die temperature instead
+of substituting the lower socket or PECI reading. Each start discovers sensor
+paths and checks their labels. Stopping or failing the service puts its fans at
+full speed, and a failed process is restarted automatically.
+
+The controller and channel arguments live in `hosts/main/fancontrol.service`.
+Full-speed recovery does not parse the curve file, so invalid curve edits cannot
+block it.
+
+`hosts/main/default.nix` installs the shared units and loads `nct6775` on NixOS;
+profile edits change the unit and take effect on rebuild. Arch's enabled
+`lm_sensors.service` loads `nct6775` from `/etc/conf.d/lm_sensors`. Build
+`host-tools` with the command above, then install the same files on Arch:
+
+```sh
+sudo install -m 0755 pkgs/host-tools/target/release/host-tools /usr/local/libexec/host-tools
+sudo install -m 0644 hosts/main/fan-control.json /etc/main-fan-control.json
+sudo install -m 0644 hosts/main/fancontrol.service hosts/main/fan-profile-watch.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now fancontrol.service fan-profile-watch.service
+```
+
+Keep `lm_sensors` explicitly installed.
+
+After editing the Arch configuration, reinstall the JSON file and restart
+`fancontrol.service`. Home Manager does not own these system services.

@@ -1,0 +1,21 @@
+[Unit]
+Description=Switch fan ramps with the desktop power profile
+Wants=fancontrol.service power-profiles-daemon.service
+After=fancontrol.service power-profiles-daemon.service
+
+[Service]
+Type=simple
+Environment=PATH=/usr/bin:/usr/sbin
+ExecStart=/usr/local/libexec/host-tools fan-control watch
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

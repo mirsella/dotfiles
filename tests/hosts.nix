@@ -7,7 +7,7 @@ let
   server = hosts.predator;
   main = hosts.main;
   laptop = hosts.laptop;
-  cooling = main.systemd.services.coolercontrold;
+  cooling = main.systemd.units."fancontrol.service";
   workstationHomes = lib.concatMap (name: [
     desktops.${name}.home-manager.users.mirsella
     flake.homeConfigurations.${name}.config
@@ -55,7 +55,6 @@ assert lib.assertMsg (
 assert lib.assertMsg (
   !server.services.desktopManager.plasma6.enable
   && !server.services.displayManager.sddm.enable
-  && !server.programs.coolercontrol.enable
   && !server.hardware.cpu.amd.ryzen-smu.enable
   && lib.all (
     c:
@@ -81,18 +80,22 @@ assert lib.assertMsg (
   ) (builtins.attrValues desktops)
 ) "Hermes and its browser must stay on Predator";
 assert lib.assertMsg (
-  main.programs.coolercontrol.enable
-  && !laptop.programs.coolercontrol.enable
-  && builtins.elem "nct6775" main.boot.kernelModules
-  && !(main.environment.etc ? "coolercontrol/config.toml")
-  && cooling.serviceConfig.ConfigurationDirectory == "coolercontrol"
-  && lib.match ".*/install -m 0644 -t /etc/coolercontrol [^ ]*config\\.toml [^ ]*modes\\.json" cooling.serviceConfig.ExecStartPre != null
-  && cooling.restartIfChanged
-  && cooling.stopIfChanged
-  && !(cooling.serviceConfig ? stopIfChanged)
-  && !(cooling.serviceConfig ? restartIfChanged)
-  && lib.hasInfix "ExecStartPre=" main.systemd.units."coolercontrold.service".text
-) "Only main may apply its fan curve, through the daemon's stop/start lifecycle";
+  builtins.elem "nct6775" main.boot.kernelModules
+  && lib.hasInfix "fan-control prepare" cooling.text
+  && lib.hasInfix "fan-control full-speed" cooling.text
+  && lib.hasInfix "/bin/fancontrol /run/main-fan-control/fancontrol.conf" cooling.text
+  && lib.hasInfix "fan-control watch" main.systemd.units."fan-profile-watch.service".text
+  &&
+    lib.all
+      (
+        host:
+        !(host.systemd.units ? "fancontrol.service") && !(host.systemd.units ? "fan-profile-watch.service")
+      )
+      [
+        laptop
+        server
+      ]
+) "Only main may run die-temperature fancontrol and its power-profile watcher";
 assert lib.assertMsg (
   laptop.hardware.cpu.amd.ryzen-smu.enable
   && laptop.systemd.services ? ryzenadj-laptop

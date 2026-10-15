@@ -3,6 +3,7 @@ mod agent_tools;
 mod backup;
 mod boot_keys;
 mod browser;
+mod fan_control;
 mod hardware;
 mod hermes;
 mod maintenance;
@@ -34,6 +35,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    FanControl {
+        #[command(subcommand)]
+        action: fan_control::Operation,
+    },
     ComposioMcpHeaders,
     OpencodeClientEnv {
         config: PathBuf,
@@ -165,6 +170,7 @@ enum Commands {
 
 fn run() -> Result<()> {
     match Cli::parse().command {
+        Commands::FanControl { action } => fan_control::run(action),
         Commands::OpencodeClientEnv { config, command } => opencode::client_env(&config, &command),
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),

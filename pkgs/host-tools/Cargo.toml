@@ -9,6 +9,7 @@ axum = { version = "0.8", features = ["ws"] }
 base64 = "0.22"
 chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
+dbus = "0.9"
 flate2 = "1"
 futures-util = "0.3"
 libc = "0.2"

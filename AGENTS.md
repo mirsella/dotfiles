@@ -22,9 +22,9 @@ The flake discovers these directories and sets hostnames automatically.
 - Each host directory becomes a complete `nixosModules.<hostname>` and
   `nixosConfigurations.<hostname>`, including its required `hardware-configuration.nix`.
   See `README.md` for installation and rebuild commands.
-- Main's CoolerControl service installs the tracked TOML before each daemon start.
-  Config changes change the systemd unit and trigger a restart on rebuild.
-  Save permanent curve edits in `dotfiles/system/main/etc/coolercontrol/config.toml`.
+- Main uses lm-sensors fancontrol and an event-driven power-profile watcher.
+  Save its ramps in `hosts/main/fan-control.json`; its system units in the same
+  directory are shared by NixOS and Arch. Keep CPU die temperature as the source.
 - Chezmoi owns editable app configuration. Home Manager owns packages, generated
   Git/SSH settings, user services and SOPS wiring. Keep each path under one
   owner; `.chezmoiignore` lists the HM-owned paths.
