@@ -26,6 +26,7 @@ in
 {
   sops.secrets = lib.genAttrs' checks (key: lib.nameValuePair "healthchecks-${key}" {
     sopsFile = ../../secrets/healthchecks.yaml;
+    inherit key;
   });
 
   # Wire a job with: unitConfig.OnSuccess = [ "healthchecks-ping@<key>.service" ];

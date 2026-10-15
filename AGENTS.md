@@ -74,13 +74,13 @@ The flake discovers these directories and sets hostnames automatically.
   `tank` uses three encrypted HDDs in RAIDZ1 and tolerates one failed HDD.
   The read-only migration copy `fast/tank-pre-raidz1-20261003` is a fixed recovery point on the separate
   SSD, not an ongoing backup. SMART and ZED send storage warnings via Resend.
-- Syncoid replicates the two live SSD datasets to read-only, unmounted
-  `tank/replica/{data,ncdata}` at 23:45. Recovery bundles run at 23:10 under
+- A nightly restic backup copies `fast/data` and `fast/ncdata` from throwaway
+  `.zfs/snapshot/restic-backup` snapshots to `/srv/backup/restic` at 23:50.
+  Recovery bundles run Sundays at 23:10 under
   `/srv/backup/recovery/latest`: current LUKS headers and a private archive of
   TPM policy authorities, the SOPS host identity and Secure Boot signing keys. Keep this directory root-only.
   Database dumps use `/srv/backup/recovery/db/latest` on the same private dataset;
-  both jobs publish atomically and retain 14 complete bundles. Existing dumps in
-  `/srv/backup/db/` need moving before deploying the new path.
+  all jobs publish atomically, retain 7 complete bundles, and ping healthchecks.io on success.
 - Data disks unlock through optional runtime crypttab units, not initrd. All data
   datasets use systemd-managed legacy mounts with `nofail`. Keep missing data disks
   nonfatal to boot, allow degraded RAIDZ1 imports, and gate writers on their mounts.

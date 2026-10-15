@@ -542,7 +542,7 @@ the policy authorities under `/var/lib/predator-boot` when reinstalling.
 
 SMART checks all five physical disks, runs daily short self-tests at noon and
 weekly long tests on Sunday: SSDs and WD at 13:00, Seagate at 14:00 and Toshiba
-at 15:00. Temperature emails start at 55 C for HDDs and 65 C for SSDs.
+at 15:00. Temperature emails start at 55 C for HDDs and 80 C for SSDs.
 SMART sends warnings through Resend to
 `mirsella@protonmail.com`. USB disks can reconnect
 without stopping monitoring of the other disks. ZED emails device faults,
@@ -551,14 +551,14 @@ Nextcloud. The kernel-journal watcher also sends USB connection errors to Telegr
 Both pools receive a monthly scrub; Sanoid retains daily and weekly snapshots.
 Snapshots and database dumps on `tank` do not survive loss of that pool.
 
-Syncoid replicates `fast/data` and `fast/ncdata` to `tank/replica/data` and
-`tank/replica/ncdata` nightly at 23:45. Replicas are read-only and unmounted;
-Sanoid prunes their daily and weekly snapshots without taking destination
-snapshots. Syncoid also takes a fresh synchronization snapshot for each run.
-The overnight idle check waits for replication and recovery jobs to finish.
+A nightly restic backup copies `fast/data` and `fast/ncdata` from throwaway
+`.zfs/snapshot/restic-backup` snapshots to `/srv/backup/restic` nightly at
+23:50, keeping 7 daily, 8 weekly and 6 monthly snapshots; a monthly check reads
+10% of the repository data. Every scheduled backup job pings a healthchecks.io
+check on success. The overnight idle check waits for the backup jobs to finish.
 
-`recovery-backup.service` runs at 23:10 and retains 14 root-only bundles in the
-separate `tank/backup/recovery` dataset at `/srv/backup/recovery/`; `latest`
+`recovery-backup.service` runs on Sundays at 23:10 and retains 7 root-only
+bundles in the separate `tank/backup/recovery` dataset at `/srv/backup/recovery/`; `latest`
 points to the newest complete bundle. Each
 contains all five current LUKS headers and UUIDs plus `system-secrets.tar` with
 `/var/lib/predator-boot`, the SOPS SSH host identity and `/var/lib/sbctl`.
@@ -566,9 +566,8 @@ These archives contain private keys. Restore them as root with their original pe
 
 `db-backup.service` uses the same private dataset, publishing database dumps and
 Nextcloud configuration under `/srv/backup/recovery/db/latest` at 23:00. Both
-backup jobs stage complete bundles, atomically publish `latest`, and retain 14
-bundles. Before deploying this path change, move any existing dumps from
-`/srv/backup/db/` into the protected `db/` directory.
+backup jobs stage complete bundles, atomically publish `latest`, and retain 7
+bundles.
 
 `fast/tank-pre-raidz1-20261003` holds a read-only, unmounted migration copy,
 including the older snapshots. It is a fixed recovery point and does not track

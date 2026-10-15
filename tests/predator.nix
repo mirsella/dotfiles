@@ -173,6 +173,18 @@ assert lib.assertMsg (
   server.systemd.services.caddy.serviceConfig.Restart == "on-failure"
 ) "The server's web proxy must retry transient startup failures";
 assert lib.assertMsg (
+  lib.all (key: server.sops.secrets."healthchecks-${key}".key == key)
+    [ "db-backup" "recovery-backup" "hermes-backup" "sanoid" "restic-backup" "restic-check" ]
+  && lib.all (unit:
+    let pings = server.systemd.services.${unit}.unitConfig.OnSuccess or [ ];
+    in builtins.length pings == 1 && lib.hasInfix "healthchecks-ping@" (builtins.head pings)
+  ) [ "db-backup" "recovery-backup" "hermes-backup" "sanoid" "restic-backups-fast" "restic-check" ]
+  && lib.toList server.systemd.timers.restic-backups-fast.timerConfig.OnCalendar == [ "23:50" ]
+  && lib.hasInfix "--read-data-subset=10%%" server.systemd.services.restic-check.serviceConfig.ExecStart
+  && lib.all (mount: builtins.elem mount server.systemd.services."restic-backups-fast".unitConfig.RequiresMountsFor)
+    [ "/srv/backup" "/srv/data/fast" "/var/lib/nextcloud/data" ]
+) "Every scheduled backup must ping its healthchecks.io check and restic must back up from mounted sources";
+assert lib.assertMsg (
   server.services.hermes-agent.user == "mirsella"
   && server.services.hermes-agent.group == "hermes-private"
   && server.users.groups.hermes-private.members == [ "mirsella" ]

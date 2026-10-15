@@ -1,11 +1,11 @@
 use crate::{activity, backup, hardware, maintenance, monitoring, setup, suspend};
-use anyhow::{Result, bail};
-use flate2::{Compression, write::GzEncoder};
-use serde_json::{Value, json};
+use anyhow::{bail, Result};
+use flate2::{write::GzEncoder, Compression};
+use serde_json::{json, Value};
 use std::{
     fs,
     io::Write,
-    os::unix::fs::{PermissionsExt, symlink},
+    os::unix::fs::{symlink, PermissionsExt},
 };
 
 fn request(host: &str, uri: &str, status: u16) -> Value {
@@ -101,11 +101,9 @@ fn logs_use_completion_time_and_survive_scanner_floods() -> Result<()> {
     for _ in 0..10000 {
         writeln!(file, "{}", request("192.0.2.1", "/.env", 404))?;
     }
-    assert!(
-        activity::recent_logs(tmp.path(), 7200.)?
-            .unwrap()
-            .contains("Immich")
-    );
+    assert!(activity::recent_logs(tmp.path(), 7200.)?
+        .unwrap()
+        .contains("Immich"));
     assert!(activity::recent_logs(tmp.path(), 9000.)?.is_none());
     Ok(())
 }
@@ -166,12 +164,10 @@ fn ssh_tunnels_and_unauthenticated_connections_are_idle() -> Result<()> {
         );
     }
     // Both older and newer OpenSSH transports can be present in one chain.
-    assert!(
-        activity::ssh_work(
-            "10 1 sshd sshd: user [postauth]\n11 10 sshd-session sshd-session: user@notty"
-        )?
-        .is_none()
-    );
+    assert!(activity::ssh_work(
+        "10 1 sshd sshd: user [postauth]\n11 10 sshd-session sshd-session: user@notty"
+    )?
+    .is_none());
     assert!(activity::ssh_work("10 1 sshd-session sshd-session: mirsella [postauth]\n11 10 sshd-session sshd-session: mirsella")?.is_none());
     Ok(())
 }
@@ -203,10 +199,10 @@ fn ssh_shells_commands_and_transfers_block_sleep() -> Result<()> {
 #[test]
 fn only_caddy_backend_connections_guard_transfers() -> Result<()> {
     assert!(activity::upstream("0 0 192.168.1.19:443 192.0.2.1:12345")?.is_none());
-    assert!(
-        activity::upstream("0 0 127.0.0.1:12345 127.0.0.1:2283 users:((\"curl\",pid=2,fd=3))")?
-            .is_none()
-    );
+    assert!(activity::upstream(
+        "0 0 127.0.0.1:12345 127.0.0.1:2283 users:((\"curl\",pid=2,fd=3))"
+    )?
+    .is_none());
     assert!(activity::upstream("0 0 127.0.0.1:12345 127.0.0.1:2283").is_err());
     for (peer, app) in [
         ("127.0.0.1:2283", "Immich"),
@@ -396,13 +392,11 @@ fn backup_failure_keeps_previous_latest_and_cleans_staging() -> Result<()> {
         fs::write(p.join("data"), "good")?;
         Ok(())
     })?;
-    assert!(
-        backup::publish(out, "backup-002", |p| {
-            fs::write(p.join("partial"), "bad")?;
-            bail!("dump failed")
-        })
-        .is_err()
-    );
+    assert!(backup::publish(out, "backup-002", |p| {
+        fs::write(p.join("partial"), "bad")?;
+        bail!("dump failed")
+    })
+    .is_err());
     assert_eq!(
         fs::read_link(out.join("latest"))?,
         std::path::Path::new("backup-001")
@@ -419,7 +413,7 @@ fn backup_failure_keeps_previous_latest_and_cleans_staging() -> Result<()> {
 }
 
 #[test]
-fn backup_retains_seven_and_current_when_clock_moves_backwards() -> Result<()> {
+fn backup_retains_newest_seven_including_current_when_clock_moves_backwards() -> Result<()> {
     let tmp = tempfile::tempdir()?;
     for n in 1..=16 {
         backup::publish(tmp.path(), &format!("backup-{n:03}"), |_| Ok(()))?;
@@ -528,29 +522,25 @@ fn btrfs_thresholds_and_bounded_reclaim() -> Result<()> {
     assert_eq!(passes, 2);
     maintenance::reclaim_space(|| Ok(8 * G), || panic!("unneeded balance"))?;
     let mut passes = 0;
-    assert!(
-        maintenance::reclaim_space(
-            || Ok(5 * G),
-            || {
-                passes += 1;
-                Ok(())
-            }
-        )
-        .is_err()
-    );
+    assert!(maintenance::reclaim_space(
+        || Ok(5 * G),
+        || {
+            passes += 1;
+            Ok(())
+        }
+    )
+    .is_err());
     assert_eq!(passes, 1);
     let mut values = [G, 2 * G, 3 * G, 4 * G, 5 * G].into_iter();
     let mut passes = 0;
-    assert!(
-        maintenance::reclaim_space(
-            || Ok(values.next().unwrap()),
-            || {
-                passes += 1;
-                Ok(())
-            }
-        )
-        .is_err()
-    );
+    assert!(maintenance::reclaim_space(
+        || Ok(values.next().unwrap()),
+        || {
+            passes += 1;
+            Ok(())
+        }
+    )
+    .is_err());
     assert_eq!(passes, 4);
     Ok(())
 }

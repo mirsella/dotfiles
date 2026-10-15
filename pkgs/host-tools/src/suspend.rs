@@ -1,5 +1,5 @@
 use crate::{activity, monitoring::storage_event, util};
-use anyhow::{Context, Result, ensure};
+use anyhow::{ensure, Context, Result};
 use chrono::{Local, Timelike};
 use serde_json::Value;
 use std::{path::Path, process::Command};
@@ -9,7 +9,9 @@ const MAINTENANCE: &[&str] = &[
     "db-backup.service",
     "recovery-backup.service",
     "sanoid.service",
-    "syncoid-*.service",
+    "restic-backups-fast.service",
+    "restic-check.service",
+    "hermes-backup.service",
     "zfs-scrub.service",
     "zpool-trim.service",
     "nixos-upgrade.service",

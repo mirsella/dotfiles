@@ -108,7 +108,7 @@ in
     requires = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
     after = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
     unitConfig = {
-      RequiresMountsFor = [ "/srv/backup" ];
+      RequiresMountsFor = [ "/srv/backup" ] ++ map (name: pools.fast.datasets.${name}.mountpoint) fastDatasets;
       OnSuccess = [ "healthchecks-ping@restic-backup.service" ];
     };
   };
