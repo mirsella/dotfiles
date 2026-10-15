@@ -62,7 +62,8 @@ sudo mount /dev/mapper/cryptroot /mnt
 sudo mkdir /mnt/boot
 sudo mount /dev/disk/by-uuid/3613-BAFF /mnt/boot
 host=main
-sudo nixos-install --flake "path:$PWD#$host"
+git add "hosts/$host/hardware-configuration.nix"
+sudo nixos-install --flake ".#$host"
 ```
 
 On the first boot, enter the LUKS passphrase when prompted, then enroll the TPM so
@@ -74,8 +75,8 @@ sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-partlabel
 sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-partlabel/nixos-root
 ```
 
-Use `path:` while the hardware file is untracked. `disko.nix` is Predator's
-separate, destructive provisioning layout and does not apply to the desktops.
+`disko.nix` is Predator's separate, destructive provisioning layout and does not
+apply to the desktops.
 
 Preserve `~/.ssh/id_ed25519` and the host's GPG signing key when reinstalling.
 Workstation SOPS secrets use the user's SSH key; Predator uses its system SSH
@@ -87,7 +88,7 @@ On an installed NixOS machine, `nixos-rebuild` selects the current hostname when
 the flake reference has no fragment:
 
 ```sh
-sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles
+sudo nixos-rebuild switch --flake /home/mirsella/dev/dotfiles
 ```
 
 For the current Arch installations, use `homeConfigurations.main` or
@@ -107,7 +108,7 @@ switching the rest of a host's configuration:
 
 ```sh
 mkdir -p ~/.local/state/agent-tools
-nix build path:.#agent-tools --out-link ~/.local/state/agent-tools/bootstrap
+nix build .#agent-tools --out-link ~/.local/state/agent-tools/bootstrap
 ~/.local/state/agent-tools/bootstrap/bin/bootstrap-agent-tools
 ```
 
@@ -116,7 +117,7 @@ AppImage runtime, instead of the default Arch launcher:
 
 ```sh
 nix build \
-  path:.#nixosConfigurations.predator.config.home-manager.users.mirsella.programs.agent-tools.package \
+  .#nixosConfigurations.predator.config.home-manager.users.mirsella.programs.agent-tools.package \
   --out-link ~/.local/state/agent-tools/bootstrap
 ```
 
@@ -367,8 +368,13 @@ draining a full swap device during builds.
 
 ## Checks
 
+Use Git-backed flake references such as `.` or `.#host-tools` to exclude
+`.agents-local/`. Local edits are included; new source files need `git add`, not
+a commit. Avoid `path:`, which copies ignored build caches before source filters
+run and can race with builds modifying them.
+
 ```sh
-nix flake check path:. --no-build --no-update-lock-file
+nix flake check . --no-build --no-update-lock-file
 ```
 
 This evaluates all NixOS and Arch Home Manager profiles and checks host isolation,
@@ -376,7 +382,7 @@ service lifecycle rules, and Predator's boot/storage invariants. Run the executa
 unlock-generator and Arch maintenance tests with:
 
 ```sh
-nix build path:.#checks.x86_64-linux.data-unlock path:.#checks.x86_64-linux.arch-maintenance --no-link
+nix build .#checks.x86_64-linux.data-unlock .#checks.x86_64-linux.arch-maintenance --no-link
 ```
 
 These tests use generated units and disposable files; they do not activate a system.
@@ -433,7 +439,7 @@ Its Nix build bundles dependencies with a locked toolchain. Home Manager install
 settings. Build and test the extensions and the compiled idle watchdog with:
 
 ```sh
-nix build path:.#opencode-extensions path:.#opencode-idle-watchdog --no-link
+nix build .#opencode-extensions .#opencode-idle-watchdog --no-link
 ```
 
 On Arch, activate Home Manager before applying updated TUI settings. On NixOS,
@@ -582,7 +588,7 @@ diagnostic with:
 
 ```sh
 sudo host-tools night-suspend --activity-only
-CARGO_TARGET_DIR="$HOME/dev/host-tools-target" cargo test --locked --manifest-path pkgs/host-tools/Cargo.toml
+CARGO_TARGET_DIR="$PWD/.agents-local/host-tools-target" cargo test --locked --manifest-path pkgs/host-tools/Cargo.toml
 ```
 
 The protected API route lists need review when upgrading these applications or
@@ -596,12 +602,13 @@ The subcommands cover overnight suspend, storage alerts and mail, database and
 recovery backups, Beszel and Nextcloud setup, lid/backlight handling, Ryzen power
 limits, Bluetooth audio profiles, Btrfs headroom checks, Wake-on-LAN and netconsole.
 
-Build the Nix package with `nix build path:.#host-tools`. A native build for Arch
+Build the Nix package with `nix build .#host-tools`. A native build for Arch
 or Debian is also supported:
 
 ```sh
-CARGO_TARGET_DIR="$HOME/dev/host-tools-target" cargo build --release --locked --manifest-path pkgs/host-tools/Cargo.toml
-sudo HOST_TOOLS_BINARY="$HOME/dev/host-tools-target/release/host-tools" python3 arch/maintenance/apply.py
+export CARGO_TARGET_DIR="$PWD/.agents-local/host-tools-target"
+cargo build --release --locked --manifest-path pkgs/host-tools/Cargo.toml
+sudo HOST_TOOLS_BINARY="$CARGO_TARGET_DIR/release/host-tools" python3 arch/maintenance/apply.py
 ```
 
 The Arch installer copies that binary to `/usr/local/libexec/host-tools` for its

@@ -49,7 +49,7 @@ The flake discovers these directories and sets hostnames automatically.
 - Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
   especially `flake.lock` (the weekly upgrade updates nixpkgs there). Sync only
   reviewed changes; do not use whole-tree `rsync --delete` over concurrent work.
-  Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles#predator'`.
+  Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/dev/dotfiles#predator'`.
   Run long rebuilds detached and poll the unit log and exit status.
 - Predator's initrd OS separator and signed SHA-256 PCR 11 policies protect all
   five disks. Root unlocks at `enter-initrd`; data unlocks at
@@ -57,7 +57,10 @@ The flake discovers these directories and sets hostnames automatically.
   Lanzaboote signature companion hook and phase ordering intact. After reboot,
   `sudo predator-boot audit` proves token use and late-phase rejection. Preserve
   `/var/lib/predator-boot` and `/var/lib/sbctl`; see README for recovery.
-- `nix flake check path:. --no-build --no-update-lock-file` evaluates all profiles
+- Use Git-backed flake references (`.`, `.#package` or the checkout's absolute
+  path without `path:`) so Nix excludes `.agents-local/`. Add new source files to
+  the Git index before evaluating; they do not need to be committed.
+- `nix flake check . --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`.
   Run focused Cargo tests for monitoring, backups and suspend changes. The
   `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during

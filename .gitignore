@@ -1,4 +1,5 @@
 node_modules/
+.agents-local/
 __pycache__/
 /pkgs/*/target/
 /pkgs/opencode-extensions/dist/
