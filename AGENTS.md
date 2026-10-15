@@ -102,6 +102,42 @@ Manual files outside the repo:
 - rpi (Debian) is outside the flake; its fail2ban SSH jail is tuned by hand in
   `/etc/fail2ban/jail.d/sshd.local` with the same values as the workstations.
 
+## Nextcloud access
+
+On main and laptop, use the configured `nextcloud:` rclone remote directly.
+Home Manager installs its SOPS-managed credentials at
+`~/.config/rclone/rclone.conf`. Do not print the config or copy credentials into
+commands, URLs or tracked files. On other hosts, check `rclone listremotes`
+before assuming the remote exists.
+
+```sh
+rclone lsf nextcloud: --dirs-only                 # discover folders and external drives
+rclone lsf 'nextcloud:Documents/'                 # list one folder
+rclone lsjson 'nextcloud:Documents/'              # structured listing for agents
+rclone cat 'nextcloud:Documents/notes.txt'         # read a small text file
+rclone copyto 'nextcloud:Documents/report.pdf' ./report.pdf
+rclone copyto ./report.pdf 'nextcloud:Documents/report.pdf' --dry-run
+```
+
+For edits, download only the required files into a task directory under `~/dev`,
+edit locally, then upload to the exact remote path with `copyto`. Uploads can
+overwrite existing files; check for remote changes before replacing them and
+remove `--dry-run` only for an intended write. Use `--max-depth` or a narrow path
+instead of recursively listing the whole account. For unattended operations,
+prefix the command with `timeout 2m` and bound retries with
+`--retries 1 --low-level-retries 1 --contimeout 10s --timeout 30s`.
+
+Do not use `rclone sync`, `move`, `delete` or `purge` without authorization for
+the affected files. Do not write directly to Nextcloud's server-side data
+directory, which bypasses its file index. A 502 response is a server/proxy
+failure; report it rather than changing credentials or creating a mount.
+
+Dolphin's Network section contains a Nextcloud WebDAV shortcut, installed by
+`modules/home/workstation.nix`. It uses KWallet for credentials and can be added
+to Places through Dolphin. Keep Nextcloud unmounted: an unavailable rclone/FUSE
+mount can block local trash scans. `~/Documents/Nextcloud` is not a cloud path.
+The `dolphin-nextcloud` sync-client plugin is not needed for WebDAV browsing.
+
 ## LAN machine map (`~/.ssh/config` aliases)
 
 | alias    | address                               | purpose                                                        |

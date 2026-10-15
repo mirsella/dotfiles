@@ -6,7 +6,6 @@
   ...
 }:
 let
-  bin = package: name: if isNixOS then lib.getExe' package name else "/usr/bin/${name}";
   servicePath =
     "PATH=%h/.local/share/cargo/bin:%h/.local/bin:"
     + (
@@ -104,11 +103,6 @@ in
           }
         )
       // {
-        davfs2_secrets = {
-          sopsFile = ../../secrets/webdav.yaml;
-          path = "${config.home.homeDirectory}/.davfs2/secrets";
-          mode = "0600";
-        };
         rclone_conf = {
           sopsFile = ../../secrets/webdav.yaml;
           path = "${config.home.homeDirectory}/.config/rclone/rclone.conf";
@@ -146,27 +140,14 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
-  systemd.user.services.rclone-nextcloud =
-    let
-      mountPoint = "%h/Documents/Nextcloud";
-    in
-    {
-      Unit = {
-        Description = "Nextcloud WebDAV mount";
-        After = [ "sops-nix.service" ];
-        # Home Manager restarts sops-nix on activation; keep mounted files available.
-        Wants = [ "sops-nix.service" ];
-      };
-      Install.WantedBy = [ "default.target" ];
-      Service = {
-        Type = "notify";
-        ExecStartPre = "${bin pkgs.coreutils "mkdir"} -p ${mountPoint}";
-        ExecStart = "${bin pkgs.rclone "rclone"} mount nextcloud: ${mountPoint} --vfs-cache-mode writes --poll-interval 0";
-        SuccessExitStatus = "143";
-        Restart = "always";
-        RestartSec = 10;
-      };
-    };
+  # KIO browses this on demand without exposing an offline cloud mount to local trash scans.
+  xdg.dataFile."remoteview/nextcloud.desktop".text = ''
+    [Desktop Entry]
+    Type=Link
+    Name=Nextcloud
+    Icon=folder-cloud
+    URL=webdavs://mirsella@mirsella.mooo.com/nextcloud/remote.php/dav/files/mirsella/
+  '';
 
   # The daemon loads the key on startup; wait for sops-nix to install it.
   systemd.user.services.atuin-daemon = lib.mkIf config.programs.atuin.daemon.enable {

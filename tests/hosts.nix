@@ -152,55 +152,34 @@ assert lib.assertMsg (lib.all
   )
   (builtins.attrValues hosts)
 ) "Every host must ban SSH brute force after three failures and keep the LAN trusted";
-assert lib.assertMsg
-  (lib.all
-    (
-      name:
-      let
-        home = desktops.${name}.home-manager.users.mirsella;
-        arch = flake.homeConfigurations.${name}.config;
-      in
-      lib.all
-        (
-          service:
-          lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.${service}.Service.ExecStart)
-          && lib.hasPrefix "/usr/bin/" (builtins.head arch.systemd.user.services.${service}.Service.ExecStart)
-        )
-        [
-          "rclone-nextcloud"
-        ]
-      && !(home.systemd.user.services ? opencode)
-      && !(arch.systemd.user.services ? opencode)
-      && home.programs.git.settings.user.signingkey == arch.programs.git.settings.user.signingkey
-      && home.sops.secrets != { }
-      && desktops.${name}.sops.secrets == { }
-      &&
-        lib.all
-          (
-            h:
-            let
-              unit = h.systemd.user.services.rclone-nextcloud;
-            in
-            lib.assertMsg (
-              builtins.elem "sops-nix.service" unit.Unit.After
-              && builtins.elem "sops-nix.service" unit.Unit.Wants
-              && !(builtins.elem "sops-nix.service" (unit.Unit.Requires or [ ]))
-              && unit.Service.Type == "notify"
-              && !(unit.Service ? ExecStop)
-              && unit.Service.SuccessExitStatus == "143"
-            ) "WebDAV must wait for credentials and let rclone own mount readiness and shutdown"
-          )
-          [
-            home
-            arch
-          ]
-    )
-    [
-      "main"
-      "laptop"
-    ]
+assert lib.assertMsg (lib.all
+  (
+    name:
+    let
+      home = desktops.${name}.home-manager.users.mirsella;
+      arch = flake.homeConfigurations.${name}.config;
+    in
+    home.programs.git.settings.user.signingkey == arch.programs.git.settings.user.signingkey
+    && home.sops.secrets != { }
+    && desktops.${name}.sops.secrets == { }
   )
-  "Desktop homes must use the right binaries and one user-level secret installer on both operating systems";
+  [
+    "main"
+    "laptop"
+  ]
+) "Desktop homes must share Git signing keys and install secrets only through Home Manager";
+assert lib.assertMsg
+  (lib.all (
+    home:
+    !(home.systemd.user.services ? rclone-nextcloud)
+    && !(home.sops.secrets ? davfs2_secrets)
+    && home.sops.secrets.rclone_conf.path == "${home.home.homeDirectory}/.config/rclone/rclone.conf"
+    && lib.hasInfix "Type=Link\n" home.xdg.dataFile."remoteview/nextcloud.desktop".text
+    &&
+      lib.hasInfix "URL=webdavs://mirsella@mirsella.mooo.com/nextcloud/remote.php/dav/files/mirsella/"
+        home.xdg.dataFile."remoteview/nextcloud.desktop".text
+  ) workstationHomes)
+  "Nextcloud must use on-demand Dolphin WebDAV and direct rclone access, never an automatic FUSE mount";
 assert lib.assertMsg
   (lib.all (
     home:
