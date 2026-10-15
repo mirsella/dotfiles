@@ -157,11 +157,13 @@ It excludes credentials, provider environment variables, browser profiles,
 saved connections, onboarding state and window geometry. Raw `~/.t3` and
 Electron profile directories are ignored by chezmoi. Conversations and
 attachments need a separate backup.
-For enabled OpenCode instances at the local singleton on port 14096, apply reads
-the password from `~/.config/opencode/service.json` into the local T3 settings.
-The password stays out of portable captures and Git. Other endpoints keep their
-own credentials. GitHub device authorization and agent-provider logins remain
-device-local.
+T3's OpenCode provider omits `serverUrl` so T3 launches its own server
+and injects its thread-scoped MCP tools. The standalone OpenCode service remains
+available to other clients. If an instance explicitly uses the local singleton
+on port 14096, apply reads its password from `~/.config/opencode/service.json`
+into local T3 settings. The password stays out of portable captures and Git.
+Other endpoints keep their own credentials. GitHub device authorization and
+agent-provider logins remain device-local.
 Capture and apply report unknown field paths without printing their values.
 Add a field to the allowlist to capture it, or set its rule to `false` to
 explicitly ignore it. Known exclusions do not produce warnings.

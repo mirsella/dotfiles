@@ -402,7 +402,6 @@
     },
     "opencode": {
       "config": {
-        "serverUrl": "http://127.0.0.1:14096",
         "binaryPath": "/home/mirsella/.opencode/bin/opencode"
       },
       "displayName": "OpenCode",
