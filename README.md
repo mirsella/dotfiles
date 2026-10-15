@@ -414,7 +414,7 @@ the old manual `IgnorePkg = openchamber` pin when upgrading it.
 The native service generates its private password in
 `~/.config/opencode/service.json` and uses the fixed Basic username `opencode`.
 OpenChamber runs its own managed OpenCode and the idle watchdog reads that file.
-The old SOPS API password is no longer loaded by these services.
+The old SOPS API password entry was removed.
 
 The shared `opencode.service` on port 14096 is retired: OpenChamber no longer
 attaches to it (`UnsetEnvironment` drops the old `OPENCODE_HOST` pins) and the
