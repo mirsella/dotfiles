@@ -118,6 +118,7 @@
     "sidebarAutoSettleOnMerge": true,
     "sidebarAutoSettleAfterDays": true,
     "continueThreadsAfterServerUpdate": true,
+    "autoResumeLimitedThreads": true,
     "responseStreamingMode": true
   },
   "desktop": {

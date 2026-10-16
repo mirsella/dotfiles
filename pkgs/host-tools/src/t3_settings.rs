@@ -1777,6 +1777,21 @@ mod tests {
     }
 
     #[test]
+    fn auto_resume_limited_threads_is_portable() {
+        let policy = Policy::new();
+        for enabled in [true, false] {
+            let saved = json!({"autoResumeLimitedThreads": enabled});
+            let selected = policy.capture("server", &saved, "server").unwrap();
+            assert_eq!(selected, saved);
+            policy.validate("server", &selected).unwrap();
+
+            let mut local = json!({"autoResumeLimitedThreads": !enabled});
+            policy.merge_section("server", &mut local, &selected);
+            assert_eq!(local, saved);
+        }
+    }
+
+    #[test]
     fn unknown_fields_report_nested_paths_without_ignored_subtrees_or_values() {
         let policy = Policy::new();
         let source = json!({
