@@ -104,7 +104,10 @@
       }) hostDirs;
     in
     {
-      packages.x86_64-linux = customPackages // { update-packages = updatePackages; };
+      packages.x86_64-linux = customPackages // {
+        update-packages = updatePackages;
+        workstation-memory-config = pkgs.callPackage ./arch/memory.nix { };
+      };
 
       nixosModules = hostModules;
       nixosConfigurations = builtins.mapAttrs (_: module: nixpkgs.lib.nixosSystem {
@@ -135,6 +138,7 @@
           (pkgs.runCommand "${name}-invariants" { } ''touch "$out"'')
       ) {
         hosts = ./tests/hosts.nix;
+        memory = ./tests/memory.nix;
         predator = ./tests/predator.nix;
       } // {
         hermes-browser-policy = pkgs.runCommand "hermes-browser-policy-tests" {

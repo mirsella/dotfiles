@@ -242,6 +242,28 @@ environment preferences apply too. Close the settings editor while restoring,
 then restart the desktop to reload client preferences. Neither command clones
 repositories or restores authentication. Connections must be paired locally.
 
+### Workstation memory
+
+Main and laptop share `modules/workstation-memory.nix` on NixOS. It sets zstd
+zram to twice physical RAM in logical capacity, with priority 100, swappiness
+150 and watermark scale 125. Zram allocates physical RAM as needed; the logical
+limit does not reserve that amount. Predator keeps its existing server defaults.
+
+On Arch, generate and install the same policy without switching Home Manager:
+
+```sh
+mkdir -p ~/.local/state/workstation-memory
+nix build .#workstation-memory-config --out-link ~/.local/state/workstation-memory/config
+sudo install -Dm644 ~/.local/state/workstation-memory/config/etc/systemd/zram-generator.conf /etc/systemd/zram-generator.conf
+sudo install -Dm644 ~/.local/state/workstation-memory/config/etc/sysctl.d/99-swappiness.conf /etc/sysctl.d/99-swappiness.conf
+sudo sysctl --load=/etc/sysctl.d/99-swappiness.conf
+```
+
+Sysctl changes apply immediately. Reboot to apply a changed zram capacity;
+resetting an active device would require moving its swapped pages elsewhere.
+Files under `dotfiles/system/main/` are captured system backups, not the policy
+source.
+
 ### Laptop authenticated boot (Arch)
 
 `arch/laptop-boot.nix` supplies the root-owned mkinitcpio presets, UKI signing

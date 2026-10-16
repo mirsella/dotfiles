@@ -25,9 +25,6 @@ in
 {
   imports = [ ../../modules/nixos/desktop.nix ];
 
-  # Logical capacity, not a reservation of physical RAM.
-  zramSwap.memoryPercent = 200;
-
   # The scanner omits mounts under /run and existing swap files.
   fileSystems."/run/media/mirsella/data" = {
     device = "/dev/disk/by-uuid/58D9ECF16BCE7A8E";

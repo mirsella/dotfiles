@@ -1,5 +1,7 @@
 { lib, pkgs, ... }:
 {
+  imports = [ ../workstation-memory.nix ];
+
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.initrd.systemd.enable = true;
@@ -31,13 +33,6 @@
     "zswap.enabled=0"
     "hibernate.compressor=lzo"
   ];
-  zramSwap = {
-    enable = true;
-    algorithm = "zstd";
-    memoryPercent = lib.mkDefault 100;
-    priority = 100;
-  };
-
   systemd.oomd = {
     settings.OOM.SwapUsedLimit = "95%";
     # Leave victim selection to the kernel instead of monitoring whole sessions.
