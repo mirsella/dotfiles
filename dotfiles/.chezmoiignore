@@ -16,6 +16,10 @@ kde shortcuts.kksrc
 {{- if ne .chezmoi.hostname "laptop" }}
 .config/nushell/laptop.nu
 {{- end }}
+{{- if not (or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop")) }}
+# PowerDevil idle/suspend policy only applies to Plasma workstations.
+.config/powerdevilrc
+{{- end }}
 {{- if or (eq .chezmoi.hostname "predator") (eq .chezmoi.hostname "laptop") (eq .chezmoi.hostname "main") }}
 # User units on HM hosts are managed outside chezmoi.
 .config/systemd/user/
