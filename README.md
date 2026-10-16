@@ -487,24 +487,24 @@ source too. Native keybindings apply apart from Ctrl-Alt-W for workspaces:
 Ctrl-O opens recent sessions/projects, Ctrl-Alt-U/D scroll half a page, and
 F2/Shift-F2 cycle recent models.
 
-Workstation profiles install pinned Browser MCP and Computer Use MCP 2.0 packages for
-OpenCode v2 and Codex under `~/.local/share/agent-mcp/`. Nix builds their Rust
-binaries and bundles the adapters and Chrome DevTools downstream. A fresh setup
-needs no development checkout, compiler or package download to start either MCP.
-Home Manager also selects the packaged Chromium executable through
-`environment.d/50-opencode.conf`.
+OpenCode v2 installs Browser MCP and Computer Use MCP from their published npm
+packages, and Codex installs the same plugins from their Git marketplaces at
+`release/latest`. A fresh setup needs no development checkout, compiler or Nix
+package to start either MCP; each harness populates its own plugin cache. Home
+Manager selects the Chromium executable through `environment.d/50-opencode.conf`.
 
-OpenCode loads the packaged adapters directly. On a fresh Codex profile, install
-the two plugins from the local marketplaces already declared in its config:
+OpenCode loads the published plugins directly and Queue from `opencode-queue@2.0.2`.
+Context7 Broker remains pinned to its published 0.4.0 release. Each release
+refreshes the Codex marketplace branches; install or update the two plugins with:
 
 ```bash
+codex plugin marketplace upgrade
 codex plugin add browser@browser-mcp
 codex plugin add computer-use@computer-use-mcp
 ```
 
-These commands populate Codex's writable plugin cache from the Nix packages;
-enabling a plugin in `config.toml` alone does not install it. Start a new Codex
-session afterward.
+These commands populate Codex's writable plugin cache; enabling a plugin in
+`config.toml` alone does not install it. Start a new Codex session afterward.
 
 Both MCPs start their own backends on demand. Computer Use's background desktop
 starts a private Wayland compositor, D-Bus, PipeWire, portals and AT-SPI from its
