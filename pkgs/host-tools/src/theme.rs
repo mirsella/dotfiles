@@ -4,38 +4,38 @@
 
 use crate::util;
 use anyhow::{Context, Result};
-use std::{fs, path::PathBuf, thread, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    thread,
+    time::Duration,
+};
 
 const POLL_INTERVAL: Duration = Duration::from_secs(1);
 const SCHEME_KEY: &str = "/org/gnome/desktop/interface/color-scheme";
 
 pub fn run(dconf: &str) -> Result<()> {
+    let config = std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))
+        .context("XDG_CONFIG_HOME and HOME are unset")?;
+    let palette = config.join("kdeglobals");
     loop {
-        if let Err(error) = reconcile(dconf) {
+        if let Err(error) = reconcile(dconf, &palette) {
             eprintln!("electron-theme-watch: {error:#}; retrying");
         }
         thread::sleep(POLL_INTERVAL);
     }
 }
 
-fn reconcile(dconf: &str) -> Result<()> {
-    let desired = plasma_scheme().context("cannot read the Plasma color palette")?;
+fn reconcile(dconf: &str, palette: &Path) -> Result<()> {
+    let desired = scheme_for_palette(&util::read(palette)?)
+        .with_context(|| format!("no usable background in {}", palette.display()))?;
     let current = util::output(dconf, &["read", SCHEME_KEY])?;
     if current.trim() != desired {
         println!("electron-theme-watch: repairing portal scheme to {desired}");
         util::run(dconf, &["write", SCHEME_KEY, desired])?;
     }
     Ok(())
-}
-
-/// The scheme the portal must serve, taken from the Plasma palette in
-/// kdeglobals: the resolved colors Plasma itself renders with, independent of
-/// whether kde-gtk-config's kded module is alive to mirror them.
-fn plasma_scheme() -> Option<&'static str> {
-    let config = std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
-    scheme_for_palette(&fs::read_to_string(config.join("kdeglobals")).ok()?)
 }
 
 /// Decide dark or light from a kdeglobals palette. Window is what the desktop

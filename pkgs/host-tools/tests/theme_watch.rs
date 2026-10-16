@@ -196,17 +196,39 @@ fn retries_failed_writes() {
 
 #[test]
 fn waits_for_an_available_palette_without_guessing() {
-    let mut studio = Studio::new();
-    studio.watcher("'prefer-light'");
-    studio.wait_for("palette error", || {
-        studio
-            .log("errors.log")
-            .contains("cannot read the Plasma color palette")
-    });
-    assert!(studio.writes().is_empty());
-    assert_eq!(studio.log("scheme"), "'prefer-light'");
+    for (palette, error) in [
+        (None, "read "),
+        (
+            Some("[Colors:Window]\nBackgroundNormal=invalid\n"),
+            "no usable background",
+        ),
+    ] {
+        let mut studio = Studio::new();
+        if let Some(palette) = palette {
+            studio.kdeglobals(palette);
+        }
+        studio.watcher("'prefer-light'");
+        studio.wait_for("palette error", || {
+            let errors = studio.log("errors.log");
+            errors.contains(error) && errors.contains("kdeglobals") && errors.contains("retrying")
+        });
+        assert!(studio.writes().is_empty());
+        assert_eq!(studio.log("scheme"), "'prefer-light'");
 
-    studio.kdeglobals(DARK);
-    studio.wait_for("palette recovery", || !studio.writes().is_empty());
-    assert_eq!(studio.writes(), [format!("{KEY} 'prefer-dark'")]);
+        studio.kdeglobals(DARK);
+        studio.wait_for("palette recovery", || !studio.writes().is_empty());
+        assert_eq!(studio.writes(), [format!("{KEY} 'prefer-dark'")]);
+    }
+}
+
+#[test]
+fn rejects_a_missing_config_environment() {
+    let output = Command::new(BIN)
+        .arg("theme-watch")
+        .env_remove("XDG_CONFIG_HOME")
+        .env_remove("HOME")
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("XDG_CONFIG_HOME and HOME are unset"));
 }

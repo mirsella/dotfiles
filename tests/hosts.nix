@@ -234,19 +234,26 @@ assert lib.assertMsg
     && reaSkill.recursive
   ) workstationHomes)
   "Workstations must keep OpenCode JSONC canonical and install the REA skill without generating opencode.json";
-assert lib.assertMsg (lib.all (
-  home:
-  let
-    watch = home.systemd.user.services.electron-theme-watch;
-  in
-  lib.hasPrefix
-    "${flake.packages.x86_64-linux.host-tools}/bin/host-tools theme-watch --dconf /nix/store/"
-    (builtins.head watch.Service.ExecStart)
-  && watch.Service.Restart == "on-failure"
-  && !(watch.Service ? ExecStopPost)
-) workstationHomes
-&& !(server.home-manager.users.mirsella.systemd.user.services ? electron-theme-watch)
-) "The theme watcher must run the flake host-tools without nudge recovery and stay off the headless server";
+assert lib.assertMsg
+  (
+    lib.all (
+      home:
+      let
+        watch = home.systemd.user.services.electron-theme-watch;
+      in
+      lib.hasPrefix "${flake.packages.x86_64-linux.host-tools}/bin/host-tools theme-watch --dconf /nix/store/" (
+        builtins.head watch.Service.ExecStart
+      )
+      && watch.Service.Restart == "on-failure"
+      && !(watch.Service ? ExecStopPost)
+      && lib.hasSuffix "setGtkTheme s Adwaita" watch.Service.ExecStartPre
+      && lib.elem "plasma-kded6.service" watch.Unit.After
+      && !(home.systemd.user.services ? electron-gtk-style)
+    ) workstationHomes
+    && !(server.home-manager.users.mirsella.systemd.user.services ? electron-theme-watch)
+    && !(server.home-manager.users.mirsella.systemd.user.services ? electron-gtk-style)
+  )
+  "Plasma workstations must select Adwaita in the theme watcher without nudges or a separate style service; headless servers must run neither";
 assert lib.assertMsg (lib.all
   (
     name:
