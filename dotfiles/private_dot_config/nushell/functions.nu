@@ -240,13 +240,4 @@ def ports [] {
 }
 
 
-def --wrapped autocommit [...args] {
-  let prompt = (
-    open --raw ($env.HOME | path join ".config/opencode/commands/commitdiff.md")
-    | str replace --regex '(?s)\A---\r?\n.*?\r?\n---\r?\n' ''
-    | str replace --all '$ARGUMENTS' ($args | str join ' ')
-  )
-  $prompt | ^opencode run --model "openai/gpt-5.3-codex-spark#high"
-}
-
 def cfm [] { cargo fmt; gam "cargo fmt" }
