@@ -1,0 +1,13 @@
+{
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Id": "org.mirsella.memory",
+    "Name": "Physical RAM, disk swap & zram",
+    "Description": "Separate memory usage without adding zram to physical capacity",
+    "Icon": "utilities-system-monitor",
+    "Category": "System Information",
+    "License": "MIT",
+    "Version": "1.0"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0"
+}

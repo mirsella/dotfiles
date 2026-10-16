@@ -57,6 +57,10 @@ in
     source = "${pkgs.host-tools}/bin/composio-mcp-headers";
     force = true;
   };
+  home.file.".local/bin/plasma-memory-summary" = {
+    source = "${pkgs.host-tools}/bin/plasma-memory-summary";
+    force = true;
+  };
   xdg.configFile =
     lib.genAttrs
       (map (directory: "opencode/${directory}") [
