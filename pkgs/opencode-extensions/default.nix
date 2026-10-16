@@ -19,6 +19,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       ./build.mjs
       ./lib
       ./plugins
+      ./tui-plugins
       ./test
     ];
   };
@@ -32,7 +33,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     inherit (finalAttrs) pname version src;
     pnpm = pnpm_10;
     fetcherVersion = 4;
-    hash = "sha256-LHDSJqHFCLHWeryLqn7bIjeSSvBMgxvNqfsdQeKFkSM=";
+    hash = "sha256-jwDVLt7mSBqKnxh2v4i+rnFNwFy9u7DuOTvdf5JjCOU=";
   };
   buildPhase = ''
     runHook preBuild
@@ -63,7 +64,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook postInstallCheck
   '';
   meta = {
-    description = "Local OpenCode server extensions";
+    description = "Local OpenCode server and TUI extensions";
     platforms = lib.platforms.linux;
   };
 })

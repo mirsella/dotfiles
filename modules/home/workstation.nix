@@ -65,6 +65,7 @@ in
     lib.genAttrs
       (map (directory: "opencode/${directory}") [
         "plugins"
+        "tui-plugins"
         "chunks"
       ])
       (path: {
