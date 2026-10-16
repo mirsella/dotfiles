@@ -27,11 +27,14 @@
   swapDevices = [ { device = "/dev/mapper/cryptswap"; } ];
 
   boot.tmp.useTmpfs = true;
-  boot.kernelParams = [ "zswap.enabled=0" "hibernate.compressor=lzo" ];
+  boot.kernelParams = [
+    "zswap.enabled=0"
+    "hibernate.compressor=lzo"
+  ];
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 100;
+    memoryPercent = lib.mkDefault 100;
     priority = 100;
   };
 
@@ -44,10 +47,9 @@
   };
 
   systemd.units."workstation-oom-protect.service" = {
-    text = lib.replaceStrings
-      [ "/usr/local/libexec/host-tools" ]
-      [ "${pkgs.host-tools}/bin/host-tools" ]
-      (builtins.readFile ../workstation-oom-protect.service);
+    text =
+      lib.replaceStrings [ "/usr/local/libexec/host-tools" ] [ "${pkgs.host-tools}/bin/host-tools" ]
+        (builtins.readFile ../workstation-oom-protect.service);
     wantedBy = [ "multi-user.target" ];
   };
 
