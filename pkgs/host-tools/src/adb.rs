@@ -1,7 +1,7 @@
 //! Retry missed ADB mDNS connections without retaining an obsolete IP or port.
 
 use crate::util;
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{bail, ensure, Context, Result};
 use std::{
     io::{self, Read, Write},
     net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream},
@@ -25,11 +25,18 @@ pub fn run(adb: &str, serial: &str, once: bool) -> Result<()> {
         "expected an Android serial number, not an IP address or mDNS service name"
     );
     // Spawn the SDK client only to start/check the server, never for routine queries.
+    // `-H`/`-P` make adb treat the server as remote: it then refuses to spawn one
+    // ("cannot start server on remote host") and can only connect when one already
+    // runs. Start the default local socket instead, clearing anything that could
+    // redirect it, and let adb wait for the daemon it spawns.
     util::command_output(
         Command::new("timeout")
             .args(["--foreground", "--kill-after=2s", "10s", adb])
-            .args(["-H", "127.0.0.1", "-P", "5037", "start-server"])
+            .arg("start-server")
             .env("ADB_MDNS_AUTO_CONNECT", "adb-tls-connect")
+            .env_remove("ADB_SERVER_SOCKET")
+            .env_remove("ANDROID_ADB_SERVER_ADDRESS")
+            .env_remove("ANDROID_ADB_SERVER_PORT")
             .stdin(Stdio::null()),
     )
     .context("start the local ADB server")?;
@@ -285,11 +292,9 @@ mod tests {
             "adb-phone-new._adb-tls-connect._tcp. device\n",
             "192.168.1.76:41325 device\n",
         ] {
-            assert!(
-                cycle(devices, &[("host:mdns:services", DISCOVERY)])
-                    .unwrap()
-                    .is_some()
-            );
+            assert!(cycle(devices, &[("host:mdns:services", DISCOVERY)])
+                .unwrap()
+                .is_some());
         }
     }
 
@@ -357,12 +362,10 @@ mod tests {
                 ),
             ],
         );
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("failed to authenticate")
-        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("failed to authenticate"));
     }
 
     #[test]
@@ -429,13 +432,11 @@ mod tests {
 
         assert_eq!(client.query("host:mdns:services")?, "phone");
         assert_eq!(client.query("host:devices")?, "");
-        assert!(
-            client
-                .query("host:connect:192.168.1.76:41325")
-                .unwrap_err()
-                .to_string()
-                .contains("denied")
-        );
+        assert!(client
+            .query("host:connect:192.168.1.76:41325")
+            .unwrap_err()
+            .to_string()
+            .contains("denied"));
         let mut tracker = client.request("host:track-devices")?;
         let mut devices = read_frame(&mut tracker)?;
         assert_eq!(devices, "phone device\n");
