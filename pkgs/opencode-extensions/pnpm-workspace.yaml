@@ -1,11 +1,12 @@
 minimumReleaseAgeExclude:
-  - '@opencode/ai@2.0.28'
-  - '@opencode/client@2.0.28'
-  - '@opencode/plugin@2.0.28'
-  - '@opencode/protocol@2.0.28'
-  - '@opencode/schema@2.0.28'
-  - '@opencode/util@2.0.28'
+  - '@opencode/ai@2.0.31'
+  - '@opencode/client@2.0.31'
+  - '@opencode/plugin@2.0.31'
+  - '@opencode/protocol@2.0.31'
+  - '@opencode/schema@2.0.31'
+  - '@opencode/util@2.0.31'
 
-# Fix the Seroval thenable-assimilation vulnerability.
+# Pin transitive dependencies with security fixes.
 overrides:
+  '@babel/core': ^7.29.6
   seroval: ^1.6.2

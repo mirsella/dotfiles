@@ -33,7 +33,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     inherit (finalAttrs) pname version src;
     pnpm = pnpm_10;
     fetcherVersion = 4;
-    hash = "sha256-jwDVLt7mSBqKnxh2v4i+rnFNwFy9u7DuOTvdf5JjCOU=";
+    hash = "sha256-uWdj0GQU8tBfkvsU0dPOW/s5G60ODh/xkk2EhPv5Jxs=";
   };
   buildPhase = ''
     runHook preBuild
