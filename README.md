@@ -346,6 +346,36 @@ On Arch, Home Manager also prunes the user's Nix profiles daily with the same
 directory. Active profiles and their dependencies stay rooted, including main's
 GGUF model. Builds can also trigger GC below 10 GiB free, targeting 20 GiB free.
 
+## Android wireless debugging
+
+`adb-wireless.service` starts at login on the workstations. It subscribes to ADB's
+device-change notifications and reconnects phone `188b31ee` using its current IP
+and port from mDNS. While connected it waits without polling or launching
+subprocesses. A disconnect wakes it immediately; while disconnected it retries
+discovery every two seconds through ADB's local server at `127.0.0.1:5037`.
+ADB's native auto-connect handles new announcements. The service starts the server
+if it exits and logs state changes and connection errors to the user journal.
+
+On Arch it uses Android Studio's SDK at
+`~/.local/share/android/sdk/platform-tools/adb`; NixOS uses `android-tools`.
+Pair each workstation once through Android's **Wireless debugging → Pair device
+with pairing code**, then run `adb pair IP:PAIRING_PORT`. Keep Wireless debugging
+enabled and the phone on a LAN where mDNS reaches the workstation. If Android
+turns Wireless debugging off, enable it again on the phone. The service cannot
+turn it on remotely after losing ADB access.
+
+After applying Home Manager on Arch, start the service for the current login:
+
+```sh
+systemctl --user start adb-wireless.service
+journalctl --user -u adb-wireless.service -f
+adb devices -l
+```
+
+Stop `adb-wireless.service` before intentionally disconnecting the phone, otherwise
+it reconnects when ADB reports the disconnect. The phone serial is set in
+`modules/home/adb-wireless.nix`.
+
 ## Workstation build memory
 
 `workstation-oom-protect.service` runs the root-owned `host-tools oom-protect`

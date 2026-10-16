@@ -1,4 +1,5 @@
 mod activity;
+mod adb;
 mod agent_tools;
 mod backup;
 mod boot_keys;
@@ -35,6 +36,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Reconnect a paired Android phone using its advertised wireless-debugging port.
+    AdbWatch {
+        #[arg(long, default_value = "adb")]
+        adb: String,
+        /// Android ro.serialno, without the changing mDNS suffix.
+        #[arg(long)]
+        serial: String,
+        /// Run one discovery/connection attempt, then exit.
+        #[arg(long)]
+        once: bool,
+    },
     FanControl {
         #[command(subcommand)]
         action: fan_control::Operation,
@@ -170,6 +182,7 @@ enum Commands {
 
 fn run() -> Result<()> {
     match Cli::parse().command {
+        Commands::AdbWatch { adb, serial, once } => adb::run(&adb, &serial, once),
         Commands::FanControl { action } => fan_control::run(action),
         Commands::OpencodeClientEnv { config, command } => opencode::client_env(&config, &command),
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
