@@ -58,6 +58,7 @@
     "sendShortcut": true,
     "followUpBehavior": true,
     "proactivePanelsEnabled": true,
+    "pullRequestLinksOpenInApp": true,
     "showSkillsInSlashMenu": true,
     "legacySidebarEnabled": true,
     "sidebarWorkingShelfEnabled": true,

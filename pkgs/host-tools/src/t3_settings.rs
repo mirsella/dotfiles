@@ -1760,6 +1760,23 @@ mod tests {
     }
 
     #[test]
+    fn pull_request_link_preference_is_portable() {
+        let policy = Policy::new();
+        for enabled in [true, false] {
+            let saved = json!({"pullRequestLinksOpenInApp": enabled});
+            let selected = policy.capture("client", &saved, "client").unwrap();
+            assert_eq!(selected, saved);
+            policy.validate("client", &selected).unwrap();
+
+            let mut local = json!({"pullRequestLinksOpenInApp": !enabled});
+            policy.merge_section("client", &mut local, &selected);
+            assert_eq!(local, saved);
+            policy.merge_section("client", &mut local, &object());
+            assert_eq!(local, object());
+        }
+    }
+
+    #[test]
     fn unknown_fields_report_nested_paths_without_ignored_subtrees_or_values() {
         let policy = Policy::new();
         let source = json!({
