@@ -1,6 +1,6 @@
-- Most projects are in `~/dev`; put clones, worktrees, and new projects there.
+- Use `~/dev` for permanent projects. Keep tool-managed worktrees in their configured locations.
 - `/tmp` is RAM-backed. Keep temporary files, builds and downloads on disk. Use each tool's standard or configured output and cache directories when they are disk-backed.
-- For ad-hoc scratch work, use a unique task directory under `~/dev/.scratch/`; set `TMPDIR` there for tools that would otherwise use `/tmp`. Remove your disposable scratch files when finished. Preserve reusable build caches, deliverables and files belonging to other tasks or still in use.
+- Create task-specific directories under `~/dev/.scratch/`, using a unique directory per task; set `TMPDIR` there for tools that would otherwise use `/tmp`. Remove your disposable task files when finished. Preserve reusable caches, deliverables and files belonging to other tasks or still in use.
 - Prefer pnpm or bun over npm.
 - Access Nextcloud with the configured `rclone` remote `nextcloud:` (`lsf`, `lsjson`, `cat`, `copyto`), not a filesystem mount. Download files into a task directory under `~/dev` to edit, then upload only the intended paths; `copyto` can overwrite files. Keep credentials in the existing rclone config, and do not use `sync`, `move`, `delete` or `purge` without authorization. See `~/dev/dotfiles/AGENTS.md` for examples and timeout flags.
 - Use the external browser MCP for third-party dashboards and authenticated account workflows. Use T3 preview tools for local development previews.
