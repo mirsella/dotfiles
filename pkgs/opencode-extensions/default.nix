@@ -55,18 +55,13 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   doInstallCheck = true;
   installCheckPhase = ''
     runHook preInstallCheck
-    bun -e 'const [installed, source] = process.argv.slice(1);
-    for (const file of new Bun.Glob("plugins/*.js").scanSync(installed)) {
-      const plugin = await import(`''${installed}/''${file}`);
+    bun -e 'for (const [label, root, pattern] of [["plugin", process.argv[1], "plugins/*.js"], ["TUI plugin", `''${process.argv[2]}/dist`, "tui-plugins/*/tui.js"]]) {
+    for (const file of new Bun.Glob(pattern).scanSync(root)) {
+      const plugin = await import(`''${root}/''${file}`);
       if (Object.keys(plugin).length !== 1 || typeof plugin.default?.id !== "string" || typeof plugin.default?.setup !== "function") {
-        throw new Error(`Invalid installed plugin exports: ''${file}`);
+        throw new Error(`Invalid ''${label} exports: ''${file}`);
       }
     }
-    for (const file of new Bun.Glob("tui-plugins/*/tui.js").scanSync(`''${source}/dist`)) {
-      const plugin = await import(`''${source}/dist/''${file}`);
-      if (Object.keys(plugin).length !== 1 || typeof plugin.default?.id !== "string" || typeof plugin.default?.setup !== "function") {
-        throw new Error(`Invalid built TUI plugin exports: ''${file}`);
-      }
     }' "$out/share/opencode" "$PWD"
     runHook postInstallCheck
   '';
