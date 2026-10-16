@@ -16,7 +16,7 @@ const result = await Bun.build({
   format: "esm",
   splitting: true,
   naming: { chunk: "chunks/[name]-[hash].[ext]" },
-  external: ["@opentui/core", "@opentui/solid", "solid-js"],
+  external: ["@opencode/plugin/tui", "@opentui/core", "@opentui/solid", "solid-js"],
   plugins: [
     {
       name: "solid-universal",
