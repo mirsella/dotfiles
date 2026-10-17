@@ -95,5 +95,6 @@ alias waymain = waypipe ssh main
 def --wrapped hms [...args] {
   let flake = ~/dev/dotfiles
   let rev = (open $"($flake)/flake.lock" | from json | get nodes."home-manager".locked.rev)
-  ^nix run $"github:nix-community/home-manager/($rev)" -- switch --flake $"($flake)#main" ...$args
+  let host = (sys host).hostname
+  ^nix run $"github:nix-community/home-manager/($rev)" -- switch --flake $"($flake)#($host)" ...$args
 }
