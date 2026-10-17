@@ -734,7 +734,9 @@ and their tests; upstream application internals are managed by their packages.
 
 Main uses the standard lm-sensors `fancontrol` service. A small `host-tools`
 helper follows power-profile changes over D-Bus, regenerates its configuration,
-and restarts it. The helper also reapplies settings after resume. It waits on
+and restarts it; when the watcher itself starts it restarts `fancontrol` only if
+the ramp it prepared no longer matches the active profile, avoiding a redundant
+restart at boot. The helper also reapplies settings after resume. It waits on
 events; `fancontrol` samples Ryzen die temperature every three seconds and
 averages three readings.
 
@@ -748,12 +750,23 @@ motherboard fans. All start at 20%:
 The NCT6798's hardware curve engine cannot select its separate Ryzen TSI input
 through this driver. Software control retains the actual die temperature instead
 of substituting the lower socket or PECI reading. Each start discovers sensor
-paths and checks their labels. Stopping or failing the service puts its fans at
-full speed, and a failed process is restarted automatically.
+paths and checks their labels. Stopping the service sets its fans to full speed,
+and a failed process is restarted automatically; the fan units disable systemd's
+start rate limit so a cooling failsafe keeps retrying instead of staying dead.
+A start that fails before `fancontrol` takes over still runs the stop job, which
+forces full speed. Each start also clears `fancontrol`'s stale pid file, left
+behind by a killed process, which would otherwise block the next start.
 
 The controller and channel arguments live in `hosts/main/fancontrol.service`.
 Full-speed recovery does not parse the curve file, so invalid curve edits cannot
 block it.
+
+The units deliberately carry no dependency on `power-profiles-daemon.service`,
+and must not gain one: that daemon is ordered after `multi-user.target`, while
+the fan units are wanted by `multi-user.target` and therefore started before it,
+so ordering after the daemon is a boot ordering cycle that makes systemd delete
+both fan start jobs. The initial profile read D-Bus-activates the daemon, and
+the watcher restarts `fancontrol` whenever the daemon appears.
 
 `hosts/main/default.nix` installs the shared units and loads `nct6775` on NixOS;
 profile edits change the unit and take effect on rebuild. Arch's enabled

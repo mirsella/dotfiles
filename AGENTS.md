@@ -25,6 +25,11 @@ The flake discovers these directories and sets hostnames automatically.
 - Main uses lm-sensors fancontrol and an event-driven power-profile watcher.
   Save its ramps in `hosts/main/fan-control.json`; its system units in the same
   directory are shared by NixOS and Arch. Keep CPU die temperature as the source.
+  Never order the fan units after power-profiles-daemon: it is ordered after
+  multi-user.target, so ordering after it is a boot ordering cycle that makes
+  systemd delete the fan start jobs. Keep their start rate limit disabled
+  (`StartLimitIntervalSec=0`): a fan or watcher failsafe has to keep retrying
+  instead of staying dead.
 - Chezmoi owns editable app configuration. Home Manager owns packages, generated
   Git/SSH settings, user services and SOPS wiring. Keep each path under one
   owner; `.chezmoiignore` lists the HM-owned paths.

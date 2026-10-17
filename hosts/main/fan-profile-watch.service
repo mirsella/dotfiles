@@ -1,12 +1,17 @@
 [Unit]
 Description=Switch fan ramps with the desktop power profile
-Wants=fancontrol.service power-profiles-daemon.service
-After=fancontrol.service power-profiles-daemon.service
+# This watcher follows profile and daemon events over D-Bus; ordering after
+# power-profiles-daemon would recreate the boot ordering cycle described in
+# fancontrol.service.
+Wants=fancontrol.service
+After=fancontrol.service
+# Keep retrying failed starts: a dead watcher would miss profile changes.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
 Environment=PATH=/usr/bin:/usr/sbin
-ExecStart=/usr/local/libexec/host-tools fan-control watch
+ExecStart=/usr/local/libexec/host-tools fan-control watch /run/main-fan-control/fancontrol.conf
 Restart=on-failure
 RestartSec=2s
 NoNewPrivileges=yes

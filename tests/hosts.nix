@@ -8,6 +8,7 @@ let
   main = hosts.main;
   laptop = hosts.laptop;
   cooling = main.systemd.units."fancontrol.service";
+  watch = main.systemd.units."fan-profile-watch.service";
   workstationHomes = lib.concatMap (name: [
     desktops.${name}.home-manager.users.mirsella
     flake.homeConfigurations.${name}.config
@@ -84,7 +85,7 @@ assert lib.assertMsg (
   && lib.hasInfix "fan-control prepare" cooling.text
   && lib.hasInfix "fan-control full-speed" cooling.text
   && lib.hasInfix "/bin/fancontrol /run/main-fan-control/fancontrol.conf" cooling.text
-  && lib.hasInfix "fan-control watch" main.systemd.units."fan-profile-watch.service".text
+  && lib.hasInfix "fan-control watch /run/main-fan-control/fancontrol.conf" watch.text
   &&
     lib.all
       (
@@ -96,6 +97,17 @@ assert lib.assertMsg (
         server
       ]
 ) "Only main may run die-temperature fancontrol and its power-profile watcher";
+assert lib.assertMsg (
+  lib.all (
+    unit:
+    !lib.hasInfix "power-profiles-daemon" (
+      lib.concatStrings (lib.filter (line: !(lib.hasPrefix "#" line)) (lib.splitString "\n" unit.text))
+    )
+  ) [ cooling watch ]
+) "Fan units must not depend on power-profiles-daemon: the daemon is itself ordered after multi-user.target, so ordering after it is a boot ordering cycle that makes systemd delete the fan start jobs";
+assert lib.assertMsg (
+  lib.all (unit: lib.hasInfix "StartLimitIntervalSec=0" unit.text) [ cooling watch ]
+) "Fan units must disable the start rate limit: fan and watcher failsafes have to keep retrying instead of staying dead";
 assert lib.assertMsg (
   laptop.hardware.cpu.amd.ryzen-smu.enable
   && laptop.systemd.services ? ryzenadj-laptop

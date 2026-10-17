@@ -11,6 +11,7 @@ use std::{
     cell::Cell,
     fmt::Write,
     fs,
+    io::ErrorKind,
     path::{Path, PathBuf},
     rc::Rc,
     time::Duration,
@@ -18,6 +19,10 @@ use std::{
 
 const SERVICE: &str = "org.freedesktop.UPower.PowerProfiles";
 const OBJECT: &str = "/org/freedesktop/UPower/PowerProfiles";
+/// First line of the generated fancontrol config; the watcher reads it back.
+const PROFILE_HEADER: &str = "# Generated for power profile: ";
+/// fancontrol's own lock file; it refuses to start while this file exists.
+const FANCONTROL_PID_FILE: &str = "/run/fancontrol.pid";
 
 #[derive(Subcommand)]
 pub enum Operation {
@@ -31,7 +36,9 @@ pub enum Operation {
         #[command(flatten)]
         hardware: Hardware,
     },
-    Watch,
+    Watch {
+        config: PathBuf,
+    },
 }
 
 #[derive(Args)]
@@ -175,26 +182,21 @@ fn fancontrol_config(
         !controller.chars().any(char::is_whitespace) && !sensor.chars().any(char::is_whitespace),
         "fancontrol paths contain whitespace"
     );
-    let mut contents = format!(
-        "# Generated for power profile: {profile}\nINTERVAL={}\n",
-        config.interval
-    );
-    let mut setting = |key: &str, value: &dyn Fn(&mut String, u8)| {
-        write!(contents, "{key}=").unwrap();
+    let mut contents = format!("{PROFILE_HEADER}{profile}\nINTERVAL={}\n", config.interval);
+    let mut setting = |key: &str, value: &dyn Fn(u8) -> String| {
+        contents.push_str(key);
+        contents.push('=');
         for (index, &channel) in hardware.channels.iter().enumerate() {
             if index > 0 {
                 contents.push(' ');
             }
-            write!(contents, "{controller}/pwm{channel}=").unwrap();
-            value(&mut contents, channel);
+            write!(contents, "{controller}/pwm{channel}={}", value(channel)).unwrap();
         }
         contents.push('\n');
     };
-    setting("FCTEMPS", &|out, _| {
-        write!(out, "{sensor}/temp1_input").unwrap()
-    });
-    setting("FCFANS", &|out, n| {
-        write!(out, "{controller}/fan{n}_input").unwrap()
+    setting("FCTEMPS", &|_| format!("{sensor}/temp1_input"));
+    setting("FCFANS", &|channel| {
+        format!("{controller}/fan{channel}_input")
     });
     for (key, value) in [
         ("MINTEMP", u16::from(ramp.minimum_temperature)),
@@ -205,14 +207,75 @@ fn fancontrol_config(
         ("MAXPWM", pwm(ramp.maximum_duty)),
         ("AVERAGE", u16::from(config.average)),
     ] {
-        setting(key, &|out, _| write!(out, "{value}").unwrap());
+        setting(key, &|_| value.to_string());
     }
     Ok(contents)
 }
 
-fn watch() -> Result<()> {
+fn conf_profile(contents: &str) -> Option<&str> {
+    contents.lines().next()?.strip_prefix(PROFILE_HEADER)
+}
+
+fn active_profile() -> Result<String> {
+    LocalConnection::new_system()?
+        .with_proxy(SERVICE, OBJECT, Duration::from_secs(5))
+        .get(SERVICE, "ActiveProfile")
+        .context("Read active power profile")
+}
+
+/// fancontrol refuses to start while its pid file exists and only removes it
+/// through its exit trap, so a killed process leaves a lock that blocks the
+/// next start.
+fn clear_stale_pid_file(path: &Path) -> Result<()> {
+    let contents = match fs::read_to_string(path) {
+        Ok(contents) => contents,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error).with_context(|| format!("Read {}", path.display())),
+    };
+    let pid = contents.trim();
+    let running = pid
+        .parse::<u32>()
+        .is_ok_and(|pid| Path::new("/proc").join(pid.to_string()).exists());
+    ensure!(!running, "fancontrol pid {pid} is still running");
+    fs::remove_file(path).with_context(|| format!("Remove {}", path.display()))?;
+    eprintln!("Removed stale fancontrol pid file {}", path.display());
+    Ok(())
+}
+
+/// Whether fancontrol's prepared ramp went stale, e.g. after a watcher restart.
+/// Unreadable state counts as stale: the watcher then restarts fancontrol and
+/// stays alive instead of failing at startup.
+fn resync_needed(conf: &Path) -> bool {
+    let contents = match util::read(conf) {
+        Ok(contents) => contents,
+        Err(error) => {
+            eprintln!(
+                "Cannot read prepared profile from {}: {error:#}",
+                conf.display()
+            );
+            return true;
+        }
+    };
+    let Some(prepared) = conf_profile(&contents) else {
+        eprintln!("No prepared profile in {}", conf.display());
+        return true;
+    };
+    let active = match active_profile() {
+        Ok(active) => active,
+        Err(error) => {
+            eprintln!("Cannot read the active power profile: {error:#}");
+            return true;
+        }
+    };
+    if active != prepared {
+        eprintln!("Prepared {prepared} ramp, active profile is {active}");
+    }
+    active != prepared
+}
+
+fn watch(conf: &Path) -> Result<()> {
     let connection = LocalConnection::new_system()?;
-    let changed = Rc::new(Cell::new(true));
+    let changed = Rc::new(Cell::new(false));
     let flag = changed.clone();
     connection.add_match(
         MatchRule::new_signal("org.freedesktop.DBus.Properties", "PropertiesChanged")
@@ -226,6 +289,7 @@ fn watch() -> Result<()> {
                         .iter()
                         .any(|name| name == "ActiveProfile"))
             {
+                eprintln!("Active power profile changed");
                 flag.set(true);
             }
             true
@@ -238,6 +302,7 @@ fn watch() -> Result<()> {
             .with_path("/org/freedesktop/DBus"),
         move |(name, _, new_owner): (String, String, String), _, _| {
             if name == SERVICE && !new_owner.is_empty() {
+                eprintln!("{name} appeared on D-Bus");
                 flag.set(true);
             }
             true
@@ -250,14 +315,23 @@ fn watch() -> Result<()> {
             .with_path("/org/freedesktop/login1"),
         move |(sleeping,): (bool,), _, _| {
             if !sleeping {
+                eprintln!("Resuming from sleep");
                 flag.set(true);
             }
             true
         },
     )?;
+    // Subscribe before reading the profile: a change between the read and the
+    // subscription would otherwise be missed, leaving a stale ramp in place.
+    if resync_needed(conf) {
+        changed.set(true);
+    }
     loop {
         if changed.replace(false) {
-            util::run("systemctl", &["try-restart", "fancontrol.service"])?;
+            eprintln!("Restarting fancontrol.service");
+            if let Err(error) = util::run("systemctl", &["try-restart", "fancontrol.service"]) {
+                eprintln!("Restart failed: {error:#}");
+            }
         }
         connection.process(Duration::from_secs(86400))?;
     }
@@ -271,7 +345,7 @@ pub fn run(operation: Operation) -> Result<()> {
             output,
         } => (hardware, Some((config, output))),
         Operation::FullSpeed { hardware } => (hardware, None),
-        Operation::Watch => return watch(),
+        Operation::Watch { config } => return watch(&config),
     };
     hardware.validate()?;
     let devices = hwmon_devices()?;
@@ -280,8 +354,8 @@ pub fn run(operation: Operation) -> Result<()> {
         |name| name == hardware.controller,
         "configured fan controller",
     )?;
-    full_speed(&hardware, &controller)?;
     if let Some((path, output)) = preparation {
+        clear_stale_pid_file(Path::new(FANCONTROL_PID_FILE))?;
         let config = Config::load(&path)?;
         let sensor = unique_device(
             &devices,
@@ -298,11 +372,7 @@ pub fn run(operation: Operation) -> Result<()> {
             (1000..=120000).contains(&temperature),
             "Invalid CPU temperature {temperature}"
         );
-        let connection = LocalConnection::new_system()?;
-        let profile: String = connection
-            .with_proxy(SERVICE, OBJECT, Duration::from_secs(5))
-            .get(SERVICE, "ActiveProfile")
-            .context("Read active power profile")?;
+        let profile = active_profile()?;
         let contents = fancontrol_config(&hardware, &config, &profile, &controller, &sensor)?;
         util::atomic_write(&output, contents.as_bytes())?;
         eprintln!(
@@ -312,8 +382,9 @@ pub fn run(operation: Operation) -> Result<()> {
             label.trim()
         );
     } else {
+        full_speed(&hardware, &controller)?;
         eprintln!(
-            "Fancontrol stopped; set {} fan channels to full speed",
+            "Set all {} fan channels to full speed",
             hardware.channels.len()
         );
     }
@@ -370,6 +441,7 @@ mod tests {
             )));
             assert!(contents.contains("MINPWM=/sys/devices/controller/hwmon/hwmon8/pwm1=51"));
             assert!(!contents.contains("pwm5"));
+            assert_eq!(conf_profile(&contents), Some(name));
         }
         assert!(
             fancontrol_config(
@@ -381,6 +453,27 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn clears_only_stale_pid_files() {
+        let directory = tempfile::tempdir().unwrap();
+        let pid_file = directory.path().join("fancontrol.pid");
+        clear_stale_pid_file(&pid_file).unwrap();
+        fs::write(&pid_file, "not a pid").unwrap();
+        clear_stale_pid_file(&pid_file).unwrap();
+        assert!(!pid_file.exists());
+        fs::write(&pid_file, std::process::id().to_string()).unwrap();
+        assert!(clear_stale_pid_file(&pid_file).is_err());
+        assert!(pid_file.exists());
+    }
+
+    #[test]
+    fn resyncs_when_the_prepared_ramp_is_unknown() {
+        assert!(resync_needed(Path::new("/nonexistent/fancontrol.conf")));
+        let file = tempfile::NamedTempFile::new().unwrap();
+        fs::write(file.path(), "MINPWM=51").unwrap();
+        assert!(resync_needed(file.path()));
     }
 
     #[test]
