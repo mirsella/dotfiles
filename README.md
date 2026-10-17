@@ -741,9 +741,10 @@ events; `fancontrol` samples Ryzen die temperature every three seconds and
 averages three readings.
 
 `hosts/main/fan-control.json` defines linear ramps for the four connected
-motherboard fans. All start at 20%:
+motherboard fans. All start at 20%, the lowest duty at which these fans keep
+spinning (they stall below it):
 
-- Power saver holds 20% through 60°C and reaches its 40% maximum at 90°C.
+- Power saver holds 20% through 70°C and reaches its 40% maximum at 90°C.
 - Balanced holds 20% through 50°C and reaches its 80% maximum at 90°C.
 - Performance holds 20% through 45°C and reaches 100% at 80°C.
 
