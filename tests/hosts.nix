@@ -7,28 +7,30 @@ let
   server = hosts.predator;
   main = hosts.main;
   laptop = hosts.laptop;
-  cooling = main.systemd.services.coolercontrold;
+  cooling = main.systemd.units."fancontrol.service";
+  watch = main.systemd.units."fan-profile-watch.service";
   workstationHomes = lib.concatMap (name: [
     desktops.${name}.home-manager.users.mirsella
     flake.homeConfigurations.${name}.config
   ]) (builtins.attrNames desktops);
+  agentHomes = workstationHomes ++ [ server.home-manager.users.mirsella ];
+  cacheWarmer = lib.getExe flake.packages.x86_64-linux.t3-cache-warmer;
 in
-assert lib.assertMsg (
-  lib.all (home:
-    let
-      setup = home.systemd.user.services.agent-tools-setup;
-      watcher = home.systemd.user.paths.agent-tools-setup;
-    in
-      (setup.Unit.Wants or []) == []
-      && (setup.Unit.Requires or []) == []
-      && (setup.Unit.BindsTo or []) == []
-      && (setup.Unit.PartOf or []) == []
-      && watcher.Path.PathChanged == [
-        "%h/.config/t3code/portable-settings.json"
-        "%h/.config/opencode/service.json"
-      ]
-  ) workstationHomes
-) "Automatic agent settings sync must not pull in T3 services or watch server runtime";
+assert lib.assertMsg (lib.all (
+  home:
+  home.home.file.".local/bin/t3-cache-warmer".source == cacheWarmer
+  && home.systemd.user.services.t3-cache-warmer.Service.ExecStart
+  == [ "${cacheWarmer} --config %h/.config/t3-cache-warmer/config.json run" ]
+) agentHomes) "Every T3 installation must run the cache warmer with its provider allowlist config";
+assert lib.assertMsg (lib.all (
+  home:
+  let
+    kache = home.home.file.".local/bin/kache".source;
+  in
+  home.systemd.user.services.kache.Service.ExecStart == [ "${kache} daemon run" ]
+) workstationHomes) "Cargo's managed kache wrapper must match the daemon binary";
+assert lib.assertMsg (lib.all (host: host.nix.settings.fallback) (builtins.attrValues hosts))
+  "Optional binary cache outages must not abort NixOS builds";
 assert lib.assertMsg (
   builtins.attrNames flake.nixosModules == [
     "laptop"
@@ -54,7 +56,6 @@ assert lib.assertMsg (
 assert lib.assertMsg (
   !server.services.desktopManager.plasma6.enable
   && !server.services.displayManager.sddm.enable
-  && !server.programs.coolercontrol.enable
   && !server.hardware.cpu.amd.ryzen-smu.enable
   && lib.all (
     c:
@@ -80,18 +81,33 @@ assert lib.assertMsg (
   ) (builtins.attrValues desktops)
 ) "Hermes and its browser must stay on Predator";
 assert lib.assertMsg (
-  main.programs.coolercontrol.enable
-  && !laptop.programs.coolercontrol.enable
-  && builtins.elem "nct6775" main.boot.kernelModules
-  && !(main.environment.etc ? "coolercontrol/config.toml")
-  && cooling.serviceConfig.ConfigurationDirectory == "coolercontrol"
-  && lib.match ".*/install -m 0644 -t /etc/coolercontrol [^ ]*config\\.toml [^ ]*modes\\.json" cooling.serviceConfig.ExecStartPre != null
-  && cooling.restartIfChanged
-  && cooling.stopIfChanged
-  && !(cooling.serviceConfig ? stopIfChanged)
-  && !(cooling.serviceConfig ? restartIfChanged)
-  && lib.hasInfix "ExecStartPre=" main.systemd.units."coolercontrold.service".text
-) "Only main may apply its fan curve, through the daemon's stop/start lifecycle";
+  builtins.elem "nct6775" main.boot.kernelModules
+  && lib.hasInfix "fan-control prepare" cooling.text
+  && lib.hasInfix "fan-control full-speed" cooling.text
+  && lib.hasInfix "/bin/fancontrol /run/main-fan-control/fancontrol.conf" cooling.text
+  && lib.hasInfix "fan-control watch /run/main-fan-control/fancontrol.conf" watch.text
+  &&
+    lib.all
+      (
+        host:
+        !(host.systemd.units ? "fancontrol.service") && !(host.systemd.units ? "fan-profile-watch.service")
+      )
+      [
+        laptop
+        server
+      ]
+) "Only main may run die-temperature fancontrol and its power-profile watcher";
+assert lib.assertMsg (
+  lib.all (
+    unit:
+    !lib.hasInfix "power-profiles-daemon" (
+      lib.concatStrings (lib.filter (line: !(lib.hasPrefix "#" line)) (lib.splitString "\n" unit.text))
+    )
+  ) [ cooling watch ]
+) "Fan units must not depend on power-profiles-daemon: the daemon is itself ordered after multi-user.target, so ordering after it is a boot ordering cycle that makes systemd delete the fan start jobs";
+assert lib.assertMsg (
+  lib.all (unit: lib.hasInfix "StartLimitIntervalSec=0" unit.text) [ cooling watch ]
+) "Fan units must disable the start rate limit: fan and watcher failsafes have to keep retrying instead of staying dead";
 assert lib.assertMsg (
   laptop.hardware.cpu.amd.ryzen-smu.enable
   && laptop.systemd.services ? ryzenadj-laptop
@@ -124,25 +140,16 @@ assert lib.assertMsg (
         == flake.homeConfigurations.laptop.config.systemd.user.services.${name}
       )
       [
-        "opencode"
+        "agent-tools-setup"
         "openchamber"
       ]
-) "OpenCode and OpenChamber must share the workstation configuration and stay off Predator";
-assert lib.assertMsg (lib.all
-  (
-    name:
-    lib.any (
-      package: lib.hasPrefix "openchamber-1." package.name
-    ) desktops.${name}.home-manager.users.mirsella.home.packages
-    && !(lib.any (
-      package: lib.hasPrefix "openchamber-" package.name
-    ) flake.homeConfigurations.${name}.config.home.packages)
-  )
-  [
-    "main"
-    "laptop"
-  ]
-) "OpenChamber must stay on 1.x on NixOS and use the system package on Arch";
+) "Agent setup and OpenChamber must share the workstation configuration; Predator must not run OpenCode or OpenChamber services";
+assert lib.assertMsg (
+  lib.hasPrefix "2." flake.packages.x86_64-linux.openchamber.version
+  && lib.all (home: lib.any (
+      package: package.outPath == flake.packages.x86_64-linux.openchamber.outPath
+    ) home.home.packages) workstationHomes
+) "Every workstation must use the flake's OpenChamber v2 package";
 assert lib.assertMsg (lib.all
   (
     c:
@@ -160,55 +167,49 @@ assert lib.assertMsg (lib.all
   )
   (builtins.attrValues hosts)
 ) "Every host must ban SSH brute force after three failures and keep the LAN trusted";
-assert lib.assertMsg
-  (lib.all
-    (
-      name:
-      let
-        home = desktops.${name}.home-manager.users.mirsella;
-        arch = flake.homeConfigurations.${name}.config;
-      in
-      lib.all
-        (
-          service:
-          lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.${service}.Service.ExecStart)
-          && lib.hasPrefix "/usr/bin/" (builtins.head arch.systemd.user.services.${service}.Service.ExecStart)
-        )
-        [
-          "opencode"
-          "openchamber"
-          "rclone-nextcloud"
-        ]
-      && home.programs.git.settings.user.signingkey == arch.programs.git.settings.user.signingkey
-      && home.sops.secrets != { }
-      && desktops.${name}.sops.secrets == { }
-      &&
-        lib.all
-          (
-            h:
-            let
-              unit = h.systemd.user.services.rclone-nextcloud;
-            in
-            lib.assertMsg (
-              builtins.elem "sops-nix.service" unit.Unit.After
-              && builtins.elem "sops-nix.service" unit.Unit.Wants
-              && !(builtins.elem "sops-nix.service" (unit.Unit.Requires or [ ]))
-              && unit.Service.Type == "notify"
-              && !(unit.Service ? ExecStop)
-              && unit.Service.SuccessExitStatus == "143"
-            ) "WebDAV must wait for credentials and let rclone own mount readiness and shutdown"
-          )
-          [
-            home
-            arch
-          ]
-    )
-    [
-      "main"
-      "laptop"
-    ]
+assert lib.assertMsg (lib.all
+  (
+    name:
+    let
+      home = desktops.${name}.home-manager.users.mirsella;
+      arch = flake.homeConfigurations.${name}.config;
+    in
+    home.programs.git.settings.user.signingkey == arch.programs.git.settings.user.signingkey
+    && home.sops.secrets != { }
+    && desktops.${name}.sops.secrets == { }
   )
-  "Desktop homes must use the right binaries and one user-level secret installer on both operating systems";
+  [
+    "main"
+    "laptop"
+  ]
+) "Desktop homes must share Git signing keys and install secrets only through Home Manager";
+assert lib.assertMsg
+  (lib.all (
+    home:
+    !(home.systemd.user.services ? rclone-nextcloud)
+    && !(home.sops.secrets ? davfs2_secrets)
+    && home.sops.secrets.rclone_conf.path == "${home.home.homeDirectory}/.config/rclone/rclone.conf"
+    && lib.hasInfix "Type=Link\n" home.xdg.dataFile."remoteview/nextcloud.desktop".text
+    &&
+      lib.hasInfix "URL=webdavs://mirsella@mirsella.mooo.com/nextcloud/remote.php/dav/files/mirsella/"
+        home.xdg.dataFile."remoteview/nextcloud.desktop".text
+  ) workstationHomes)
+  "Nextcloud must use on-demand Dolphin WebDAV and direct rclone access, never an automatic FUSE mount";
+assert lib.assertMsg
+  (lib.all (
+    home:
+    let
+      ui = home.systemd.user.services.openchamber;
+    in
+    !(home.sops.secrets ? opencode_server)
+    && !(home.systemd.user.services ? opencode)
+    && lib.hasPrefix "${lib.getExe flake.packages.x86_64-linux.openchamber} serve " (
+      builtins.head ui.Service.ExecStart
+    )
+    && ui.Service.UnsetEnvironment == [ "OPENCODE_HOST" "OPENCODE_SKIP_START" ]
+    && !(builtins.elem "opencode.service" ui.Unit.PartOf)
+  ) workstationHomes)
+  "OpenChamber must run its own managed OpenCode without the retired shared server";
 assert lib.assertMsg (lib.all (
   home: lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.kache.Service.ExecStart)
 ) workstationHomes) "kache must run from the flake package on NixOS and Arch workstations";
@@ -223,7 +224,6 @@ assert lib.assertMsg
       )
       [
         "plugins"
-        "tui-plugins"
         "chunks"
       ]
     &&
@@ -231,8 +231,8 @@ assert lib.assertMsg
       == "${flake.packages.x86_64-linux.opencode-idle-watchdog}/bin/opencode-idle-watchdog"
   ) workstationHomes)
   "Home Manager must install the compiled OpenCode extensions and watchdog on both operating systems";
-assert lib.assertMsg (lib.all
-  (
+assert lib.assertMsg
+  (lib.all (
     home:
     let
       reaSkill = home.home.file.".config/opencode/skills/reverse-engineer-anything";
@@ -240,25 +240,48 @@ assert lib.assertMsg (lib.all
     !home.programs.opencode.enable
     && !(builtins.hasAttr "opencode/opencode.json" home.xdg.configFile)
     && lib.elem flake.packages.x86_64-linux.rea home.home.packages
-    && reaSkill.source
-    == "${flake.packages.x86_64-linux.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything"
+    &&
+      reaSkill.source
+      == "${flake.packages.x86_64-linux.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything"
     && reaSkill.recursive
-  )
-  workstationHomes
-) "Workstations must keep OpenCode JSONC canonical and install the REA skill without generating opencode.json";
-assert lib.assertMsg (
-  lib.all
-    (
-      name:
+  ) workstationHomes)
+  "Workstations must keep OpenCode JSONC canonical and install the REA skill without generating opencode.json";
+assert lib.assertMsg
+  (
+    lib.all (
+      home:
       let
-        nixosHome = desktops.${name}.home-manager.users.mirsella;
-        archHome = flake.homeConfigurations.${name}.config;
+        watch = home.systemd.user.services.electron-theme-watch;
       in
-      lib.elem flake.inputs.nixpkgs.legacyPackages.x86_64-linux.opencode nixosHome.home.packages
-      && !(lib.elem flake.inputs.nixpkgs.legacyPackages.x86_64-linux.opencode archHome.home.packages)
-    )
-    [ "main" "laptop" ]
-) "NixOS installs OpenCode from the flake while Arch leaves its binary to pacman";
+      lib.hasPrefix "${flake.packages.x86_64-linux.host-tools}/bin/host-tools theme-watch --dconf /nix/store/" (
+        builtins.head watch.Service.ExecStart
+      )
+      && watch.Service.Restart == "on-failure"
+      && !(watch.Service ? ExecStopPost)
+      && lib.hasSuffix "setGtkTheme s Adwaita" watch.Service.ExecStartPre
+      && lib.elem "plasma-kded6.service" watch.Unit.After
+      && !(home.systemd.user.services ? electron-gtk-style)
+    ) workstationHomes
+    && !(server.home-manager.users.mirsella.systemd.user.services ? electron-theme-watch)
+    && !(server.home-manager.users.mirsella.systemd.user.services ? electron-gtk-style)
+  )
+  "Plasma workstations must select Adwaita in the theme watcher without nudges or a separate style service; headless servers must run neither";
+assert lib.assertMsg (lib.all
+  (
+    name:
+    let
+      nixosHome = desktops.${name}.home-manager.users.mirsella;
+      archHome = flake.homeConfigurations.${name}.config;
+    in
+    !(lib.elem flake.packages.x86_64-linux.opencode nixosHome.home.packages)
+    && !(lib.elem flake.packages.x86_64-linux.opencode archHome.home.packages)
+    && !(nixosHome.systemd.user.services ? opencode)
+  )
+  [
+    "main"
+    "laptop"
+  ]
+) "The retired shared OpenCode service must be gone on every workstation";
 assert lib.assertMsg (lib.all
   (
     config:

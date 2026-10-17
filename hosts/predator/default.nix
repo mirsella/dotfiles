@@ -7,8 +7,10 @@ in
     ./boot.nix
     ./acer-wmi.nix
     ./lid-screen.nix
+    ./pm-study.nix
     ./storage-alerts.nix
     ./hermes
+    ../../modules/nixos/healthchecks.nix
     ../../modules/nixos/storage.nix
     ../../modules/nixos/caddy.nix
     ../../modules/nixos/nextcloud.nix
@@ -23,8 +25,9 @@ in
 
   nixpkgs.overlays = [ inputs.nix-cachyos-kernel.overlays.pinned ];
 
-  boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
-  boot.zfs.package = config.boot.kernelPackages.zfs_cachyos;
+  # Debug run: stock kernel; uncomment the two CachyOS lines to revert.
+  # boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
+  # boot.zfs.package = config.boot.kernelPackages.zfs_cachyos;
 
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
   sops.useSystemdActivation = true;
@@ -40,8 +43,13 @@ in
   '';
 
   boot = {
+    # The unused discrete GPU's nouveau suspend callback wedges before S3.
+    blacklistedKernelModules = [ "nouveau" ];
     kernelModules = [ "ec_sys" ];
     extraModprobeConfig = "options ec_sys write_support=1";
+    # Keep console and netconsole output alive through suspend for debugging.
+    consoleLogLevel = 7;
+    kernelParams = [ "no_console_suspend" ];
     # Reboot after a detected CPU lockup or panic instead of waiting for a person.
     kernel.sysctl = {
       "kernel.hardlockup_panic" = 1;

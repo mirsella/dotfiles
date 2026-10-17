@@ -1,0 +1,78 @@
+--- a/server/lib/git/service.js
++++ b/server/lib/git/service.js
+@@ -1,4 +1,4 @@
+-import simpleGit from 'simple-git';
++import { simpleGit } from 'simple-git';
+ import { createSerialRefresh } from './serial-refresh.js';
+ import { stripAppImageLauncherEnv } from '../inherited-env.js';
+ import fs from 'fs';
+@@ -385,10 +385,10 @@
+ 
+ // Names simple-git refuses in a command's environment unless the matching
+ // unsafe option is on (EDITOR, PAGER, GIT_SSH_COMMAND, GIT_ASKPASS, ...; see
+-// toSimpleGitEnv). One of them from a project environment would make every
+-// Git command fail, so the overlay leaves them out for Git only.
++// simple-git 4). Keep these out of Git environments so argument protection
++// stays enabled for every command.
+ const SIMPLE_GIT_REFUSED_ENV_NAMES = new Set([
+-  'editor', 'git_askpass', 'git_config', 'git_config_global', 'git_config_system', 'git_config_count',
++  'editor', 'visual', 'git_askpass', 'git_config', 'git_config_global', 'git_config_system', 'git_config_count',
+   'git_editor', 'git_exec_path', 'git_external_diff', 'git_pager', 'git_proxy_command', 'git_template_dir',
+   'git_sequence_editor', 'git_ssh', 'git_ssh_command', 'pager', 'prefix', 'ssh_askpass',
+ ]);
+@@ -414,7 +414,12 @@
+ const buildGitEnv = async (directory) => {
+   // Git runs the user's hooks, so they must not see what the AppImage launcher
+   // added to LD_LIBRARY_PATH and friends (#4177).
+-  const inherited = stripAppImageLauncherEnv({ ...process.env });
++  // simple-git 4 guards inherited command/config overrides too. Git still
++  // reads its normal user configuration and broker-managed transport settings.
++  const inherited = Object.fromEntries(
++    Object.entries(stripAppImageLauncherEnv({ ...process.env }))
++      .filter(([name]) => !isKeptOutOfGitOverlay(name)),
++  );
+   // Hooks and credential helpers run with the project's tools on PATH.
+   const variables = await directoryEnvironmentForGit(directory);
+   const env = variables ? overlayEnvironment(inherited, variables) : inherited;
+@@ -436,27 +441,6 @@
+     env.GIT_TERMINAL_PROMPT = '0';
+   }
+   return env;
+-};
+-
+-// simple-git refuses every command whose env holds a variable that runs a
+-// program (EDITOR, PAGER, GIT_SSH_COMMAND, GIT_ASKPASS, ...) unless its unsafe
+-// category is enabled, and the same categories also guard -c and other
+-// arguments, so enabling them would weaken argument protection. A variable the
+-// server's own environment passes through unchanged is what git would inherit
+-// without an env anyway, so it goes on the prototype: simple-git's check copies
+-// only own keys, while child_process.spawn passes inherited keys to the child.
+-// Whatever OpenChamber sets or changes stays an own key and is still checked.
+-const toSimpleGitEnv = (env) => {
+-  const passedThrough = {};
+-  const changed = {};
+-  for (const [key, value] of Object.entries(env)) {
+-    if (process.env[key] === value) {
+-      passedThrough[key] = value;
+-    } else {
+-      changed[key] = value;
+-    }
+-  }
+-  return Object.assign(Object.create(passedThrough), changed);
+ };
+ 
+ // Transport configuration is owned by repository bindings and the credential
+@@ -495,7 +479,12 @@
+     binary,
+     unsafe,
+     ...(timeout ? { timeout } : {}),
+-  }).env(toSimpleGitEnv(env));
++    allowEnvironment: [
++      ...Object.keys(env).filter((name) => env[name] === process.env[name]),
++      'GIT_TERMINAL_PROMPT',
++      'GIT_OPTIONAL_LOCKS',
++    ],
++  }).env(env);
+ };
+ 
+ // Global config reads do not need a repository; use the home directory as a

@@ -1,5 +1,7 @@
 { lib, pkgs, ... }:
 {
+  imports = [ ../workstation-memory.nix ];
+
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.initrd.systemd.enable = true;
@@ -27,14 +29,10 @@
   swapDevices = [ { device = "/dev/mapper/cryptswap"; } ];
 
   boot.tmp.useTmpfs = true;
-  boot.kernelParams = [ "zswap.enabled=0" "hibernate.compressor=lzo" ];
-  zramSwap = {
-    enable = true;
-    algorithm = "zstd";
-    memoryPercent = 100;
-    priority = 100;
-  };
-
+  boot.kernelParams = [
+    "zswap.enabled=0"
+    "hibernate.compressor=lzo"
+  ];
   systemd.oomd = {
     settings.OOM.SwapUsedLimit = "95%";
     # Leave victim selection to the kernel instead of monitoring whole sessions.
@@ -44,10 +42,9 @@
   };
 
   systemd.units."workstation-oom-protect.service" = {
-    text = lib.replaceStrings
-      [ "/usr/local/libexec/host-tools" ]
-      [ "${pkgs.host-tools}/bin/host-tools" ]
-      (builtins.readFile ../workstation-oom-protect.service);
+    text =
+      lib.replaceStrings [ "/usr/local/libexec/host-tools" ] [ "${pkgs.host-tools}/bin/host-tools" ]
+        (builtins.readFile ../workstation-oom-protect.service);
     wantedBy = [ "multi-user.target" ];
   };
 

@@ -1,0 +1,31 @@
+[Unit]
+Description=Control motherboard fans from Ryzen die temperature
+# Never order this unit after power-profiles-daemon: the daemon is ordered after
+# multi-user.target, this unit is wanted by (and therefore ordered before)
+# multi-user.target, and systemd deletes both fan start jobs when that becomes
+# a boot ordering cycle. The initial profile read bus-activates the daemon, and
+# fan-profile-watch restarts this unit whenever the daemon appears.
+After=systemd-modules-load.service lm_sensors.service
+# Keep retrying failed starts: a fan failsafe must not give up.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Environment=PATH=/usr/bin:/usr/sbin
+Environment="FAN_HARDWARE=--controller nct6798 --channels 1,2,3,4"
+RuntimeDirectory=main-fan-control
+ExecStartPre=/usr/local/libexec/host-tools fan-control prepare $FAN_HARDWARE /etc/main-fan-control.json /run/main-fan-control/fancontrol.conf
+ExecStart=/usr/bin/fancontrol /run/main-fan-control/fancontrol.conf
+ExecStopPost=/usr/local/libexec/host-tools fan-control full-speed $FAN_HARDWARE
+Restart=on-failure
+RestartSec=2s
+TimeoutStopSec=10s
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

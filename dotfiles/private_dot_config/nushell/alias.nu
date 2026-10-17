@@ -85,18 +85,15 @@ alias light = darkman set light
 alias fg = job unfreeze
 alias suspend = systemctl suspend
 alias f = fzf --multi
-def --wrapped opencode [...args] {
-  if ($args | is-not-empty) and (($args | first) in [
-    completion mcp attach debug providers auth agent upgrade uninstall
-    models stats export import github pr session plugin plug db
-  ]) {
-    ^opencode ...$args
-  } else {
-    ^opencode --port 0 ...$args
-  }
-}
+alias oc = ^opencode
 alias occ = oc --continue
-alias autocommit = opencode run --model "openai/gpt-5.3-codex-spark" --variant high --command "commitdiff"
 alias codex = codex --dangerously-bypass-approvals-and-sandbox
-alias opencode-plugin-update = do { cd ~/.cache/opencode/packages; fd package.json -E node_modules | lines | each { $in | path dirname } | each { do { cd $in; bun update --latest } } }
+alias opencode-plugin-update = opencode plugin update
 alias waymain = waypipe ssh main
+
+# Switch this host to the flake-pinned Home Manager configuration (Arch has no home-manager binary).
+def --wrapped hms [...args] {
+  let flake = ~/dev/dotfiles
+  let rev = (open $"($flake)/flake.lock" | from json | get nodes."home-manager".locked.rev)
+  ^nix run $"github:nix-community/home-manager/($rev)" -- switch --flake $"($flake)#main" ...$args
+}

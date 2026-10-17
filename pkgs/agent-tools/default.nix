@@ -17,11 +17,17 @@
   procps,
   util-linux,
   appimage-run,
+  nix,
   isNixOS ? false,
 }:
 let
   t3Version = "0.0.46-nightly.20261013.3053";
   t3Revision = "6524a8d43795dc543f7cfb572388cdea3662ad48";
+  opencodeVersion = "2.0.28";
+  opencodeInstaller = fetchurl {
+    url = "https://raw.githubusercontent.com/anomalyco/opencode/1f4d07a4a519185955ae8ab2ea3607805509e386/install";
+    hash = "sha256-vHDdMX/RLvCTUM2xZn5V4Z+eez0ol9Oht1CxZa5XnYc=";
+  };
   codexInstaller = fetchurl {
     url = "https://raw.githubusercontent.com/openai/codex/092d3acd6bec3e3a14bdc7e7a2810ab628ab759d/scripts/install/install.sh";
     hash = "sha256-FQ489nVoLv6qwRWqN0et0/J4h4ltBM5tC1ZHjYtCi/Y=";
@@ -60,19 +66,19 @@ let
     Environment=T3CODE_CHANNEL=nightly
     EnvironmentFile=-%t/t3code-service-environment.env
     # Run after any shell-environment loader and retain its other exports.
-    ExecStartPre=${lib.getExe host-tools} agent-tools-environment %t/t3code-service-environment.env
+    ExecStartPre=%h/.local/state/agent-tools/installed/bin/host-tools agent-tools-environment %t/t3code-service-environment.env
   '';
   configFile = writeText "agent-tools.json" (
     builtins.toJSON {
       inherit
         codexInstaller
+        opencodeInstaller
+        opencodeVersion
         t3Installer
         t3Version
         desktopImage
-        desktopLauncher
-        desktopEntry
-        serviceEnvironment
         ;
+      nixStore = if isNixOS then "${nix}/bin/nix-store" else "/usr/bin/nix-store";
       shell = lib.getExe bash;
       installerPath = lib.makeBinPath [
         bash
@@ -93,16 +99,16 @@ in
 runCommand "agent-tools"
   {
     meta = {
-      description = "Bootstrap writable Codex and nightly T3 CLI/desktop installs";
+      description = "Bootstrap writable OpenCode, Codex and nightly T3 installs";
       mainProgram = "bootstrap-agent-tools";
       platforms = [ "x86_64-linux" ];
     };
   }
   ''
-    mkdir -p $out/bin
-    cat > $out/bin/bootstrap-agent-tools <<'EOF'
+    mkdir -p $out/bin $out/share/agent-tools
+    cat > $out/bin/bootstrap-agent-tools <<EOF
     #!${lib.getExe bash}
-    exec ${lib.getExe host-tools} bootstrap-agent-tools ${configFile} "$@"
+    exec ${lib.getExe host-tools} bootstrap-agent-tools "$out" "\$@"
     EOF
     chmod +x $out/bin/bootstrap-agent-tools
     cat > $out/bin/t3-settings <<'EOF'
@@ -112,4 +118,8 @@ runCommand "agent-tools"
     chmod +x $out/bin/t3-settings
     ln -s ${desktopLauncher} $out/bin/t3code
     ln -s ${desktopLauncher} $out/bin/t3code-nightly
+    ln -s ${lib.getExe host-tools} $out/bin/host-tools
+    ln -s ${configFile} $out/share/agent-tools/config.json
+    ln -s ${desktopEntry} $out/share/agent-tools/t3code.desktop
+    ln -s ${serviceEnvironment} $out/share/agent-tools/zz-native-agent-tools.conf
   ''

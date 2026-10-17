@@ -3,6 +3,9 @@
 **/.npmrc
 .config/npm/npmrc
 
+# OpenCode generates device-local service credentials and connection state.
+.config/opencode/service*.json
+
 # vim: set ft=gitignore:
 cron/
 etc/
@@ -13,10 +16,16 @@ kde shortcuts.kksrc
 {{- if ne .chezmoi.hostname "laptop" }}
 .config/nushell/laptop.nu
 {{- end }}
+{{- if not (or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop")) }}
+# PowerDevil idle/suspend policy only applies to Plasma workstations.
+.config/powerdevilrc
+{{- end }}
 {{- if or (eq .chezmoi.hostname "predator") (eq .chezmoi.hostname "laptop") (eq .chezmoi.hostname "main") }}
 # User units on HM hosts are managed outside chezmoi.
 .config/systemd/user/
 .config/systemd/user/**
+# Home Manager owns Dolphin's on-demand Nextcloud network shortcut.
+.local/share/remoteview/nextcloud.desktop
 # Home Manager installs the REA skill independently from OpenCode's JSONC settings.
 .config/opencode/skills/reverse-engineer-anything/
 .config/opencode/skills/reverse-engineer-anything/**
@@ -30,6 +39,9 @@ kde shortcuts.kksrc
 .local/bin/opencode-idle-watchdog
 .local/bin/context7-account-broker
 .local/bin/composio-mcp-headers
+.local/bin/kache
+# Home Manager owns the portable settings helper.
+.local/bin/t3-settings
 # The Nix bootstrap and native updaters own these agent installs.
 .local/bin/codex
 .local/bin/codex-code-mode-host
@@ -40,6 +52,8 @@ kde shortcuts.kksrc
 .local/share/t3code/app/
 .local/share/t3code/app/**
 .config/kache/config.toml
+# Home Manager selects the packaged browser on HM hosts.
+.config/environment.d/50-opencode.conf
 # Home Manager owns the generated Atuin config on HM hosts.
 .config/atuin/config.toml
 # Home Manager owns generated git and ssh settings on HM hosts.
@@ -64,10 +78,12 @@ kde shortcuts.kksrc
 .local/share/proton-pass-cli/
 .local/share/proton-pass-cli/**
 
-# The shared skill link and Codex command adapter contents are generated locally.
+# Home Manager shares the editable OpenCode skills with Codex and Hermes.
 .agents/skills
 .agents/skills/**
-.codex/skills/*/SKILL.md
+# Codex installs its built-in skills itself.
+.codex/skills/.system/
+.codex/skills/.system/**
 
 # Handy rewrites its settings at runtime; managing it is pure churn.
 .local/share/com.pais.handy/settings_store.json

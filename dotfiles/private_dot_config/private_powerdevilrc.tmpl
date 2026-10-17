@@ -1,0 +1,38 @@
+[AC][Display]
+DimDisplayIdleTimeoutSec=900
+TurnOffDisplayIdleTimeoutSec=1800
+TurnOffDisplayIdleTimeoutWhenLockedSec=60
+TurnOffDisplayWhenIdle=true
+
+[AC][SuspendAndShutdown]
+AutoSuspendAction=0
+InhibitLidActionWhenExternalMonitorPresent=false
+{{- if eq .chezmoi.hostname "main" }}
+{{- /* Tower-specific: power button shuts down (8=Shutdown); laptop keeps default logout dialog (16). */}}
+PowerButtonAction=8
+{{- end }}
+
+[Battery][Display]
+DimDisplayIdleTimeoutSec=300
+TurnOffDisplayIdleTimeoutSec=360
+TurnOffDisplayIdleTimeoutWhenLockedSec=60
+
+[Battery][SuspendAndShutdown]
+InhibitLidActionWhenExternalMonitorPresent=false
+SleepMode=3
+
+[BatteryManagement]
+BatteryCriticalLevel=4
+
+[LowBattery][Display]
+DimDisplayIdleTimeoutSec=120
+TurnOffDisplayIdleTimeoutSec=180
+TurnOffDisplayIdleTimeoutWhenLockedSec=60
+UseProfileSpecificDisplayBrightness=false
+
+[LowBattery][Performance]
+PowerProfile=power-saver
+
+[LowBattery][SuspendAndShutdown]
+InhibitLidActionWhenExternalMonitorPresent=false
+SleepMode=3

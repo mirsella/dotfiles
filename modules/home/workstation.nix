@@ -6,7 +6,6 @@
   ...
 }:
 let
-  bin = package: name: if isNixOS then lib.getExe' package name else "/usr/bin/${name}";
   servicePath =
     "PATH=%h/.local/share/cargo/bin:%h/.local/bin:"
     + (
@@ -17,7 +16,7 @@ let
     );
 in
 {
-  imports = [ ./electron-theme.nix ];
+  imports = [ ./electron-theme.nix ./desktop-mcp.nix ./adb-wireless.nix ];
 
   programs.git.settings.commit.gpgsign = true;
   home.packages = [
@@ -25,10 +24,10 @@ in
     pkgs.opencode-idle-watchdog
     pkgs.rea
     pkgs.ghidra
+    pkgs.context7-account-broker
+    pkgs.openchamber
   ]
   ++ lib.optionals isNixOS [
-    pkgs.openchamber
-    pkgs.opencode
     pkgs.binaryen
     pkgs.gnumake
     pkgs.ninja
@@ -41,8 +40,25 @@ in
   };
 
   programs.opencode.enable = false;
+  # Cargo uses this stable path so cargo-installed kache cannot shadow its daemon.
+  home.file.".local/bin/kache" = {
+    source = lib.getExe pkgs.kache;
+    force = true;
+  };
   home.file.".local/bin/opencode-idle-watchdog" = {
     source = lib.getExe pkgs.opencode-idle-watchdog;
+    force = true;
+  };
+  home.file.".local/bin/context7-account-broker" = {
+    source = lib.getExe pkgs.context7-account-broker;
+    force = true;
+  };
+  home.file.".local/bin/composio-mcp-headers" = {
+    source = "${pkgs.host-tools}/bin/composio-mcp-headers";
+    force = true;
+  };
+  home.file.".local/bin/plasma-memory-summary" = {
+    source = "${pkgs.host-tools}/bin/plasma-memory-summary";
     force = true;
   };
   xdg.configFile =
@@ -68,7 +84,6 @@ in
     //
       lib.genAttrs
         [
-          "systemd/user/opencode.service.d/override.conf"
           "systemd/user/app-org.wezfurlong.wezterm@.service.d/override.conf"
           "systemd/user/app-rio\\x2dcargo@.service.d/override.conf"
         ]
@@ -89,16 +104,10 @@ in
           (import ../user-secrets.nix)
           // {
             telegram_env = "telegram.env";
-            opencode_server = "opencode/server.env";
             openchamber_server = "openchamber/server.env";
           }
         )
       // {
-        davfs2_secrets = {
-          sopsFile = ../../secrets/webdav.yaml;
-          path = "${config.home.homeDirectory}/.davfs2/secrets";
-          mode = "0600";
-        };
         rclone_conf = {
           sopsFile = ../../secrets/webdav.yaml;
           path = "${config.home.homeDirectory}/.config/rclone/rclone.conf";
@@ -107,81 +116,43 @@ in
       };
   };
 
-  systemd.user.services.opencode = {
-    Unit = {
-      Description = "OpenCode server";
-      After = [
-        "network.target"
-        "sops-nix.service"
-      ];
-      PartOf = [ "default.target" ];
-      X-SwitchMethod = "keep-old";
-    };
-    Service = {
-      Type = "simple";
-      WorkingDirectory = "%h";
-      EnvironmentFile = [
-        config.sops.secrets.telegram_env.path
-        config.sops.secrets.opencode_server.path
-      ];
-      Environment = servicePath;
-      ExecStart = "${bin pkgs.opencode "opencode"} serve --hostname 127.0.0.1 --port 14096";
-      Restart = "on-failure";
-      RestartSec = "2s";
-    };
-    Install.WantedBy = [ "default.target" ];
-  };
-
   systemd.user.services.openchamber = {
     Unit = {
       Description = "OpenChamber web server";
       After = [
         "network.target"
-        "opencode.service"
         "sops-nix.service"
       ];
-      Wants = [
-        "opencode.service"
-        "sops-nix.service"
-      ];
+      Wants = [ "sops-nix.service" ];
       PartOf = [ "default.target" ];
     };
     Service = {
       Type = "simple";
       WorkingDirectory = "%h";
       EnvironmentFile = [
-        config.sops.secrets.opencode_server.path
         config.sops.secrets.openchamber_server.path
       ];
       Environment = servicePath;
-      ExecStart = "${bin pkgs.openchamber "openchamber"} serve --host 127.0.0.1 --port 14097 --foreground";
+      # Attach-to-14096 pins from the retired shared server; let OpenChamber manage its own OpenCode.
+      UnsetEnvironment = [
+        "OPENCODE_HOST"
+        "OPENCODE_SKIP_START"
+      ];
+      ExecStart = "${lib.getExe pkgs.openchamber} serve --host 127.0.0.1 --port 14097 --foreground";
       Restart = "on-failure";
       RestartSec = "2s";
     };
     Install.WantedBy = [ "default.target" ];
   };
 
-  systemd.user.services.rclone-nextcloud =
-    let
-      mountPoint = "%h/Documents/Nextcloud";
-    in
-    {
-      Unit = {
-        Description = "Nextcloud WebDAV mount";
-        After = [ "sops-nix.service" ];
-        # Home Manager restarts sops-nix on activation; keep mounted files available.
-        Wants = [ "sops-nix.service" ];
-      };
-      Install.WantedBy = [ "default.target" ];
-      Service = {
-        Type = "notify";
-        ExecStartPre = "${bin pkgs.coreutils "mkdir"} -p ${mountPoint}";
-        ExecStart = "${bin pkgs.rclone "rclone"} mount nextcloud: ${mountPoint} --vfs-cache-mode writes --poll-interval 0";
-        SuccessExitStatus = "143";
-        Restart = "always";
-        RestartSec = 10;
-      };
-    };
+  # KIO browses this on demand without exposing an offline cloud mount to local trash scans.
+  xdg.dataFile."remoteview/nextcloud.desktop".text = ''
+    [Desktop Entry]
+    Type=Link
+    Name=Nextcloud
+    Icon=folder-cloud
+    URL=webdavs://mirsella@mirsella.mooo.com/nextcloud/remote.php/dav/files/mirsella/
+  '';
 
   # The daemon loads the key on startup; wait for sops-nix to install it.
   systemd.user.services.atuin-daemon = lib.mkIf config.programs.atuin.daemon.enable {

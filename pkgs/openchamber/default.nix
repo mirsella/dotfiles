@@ -1,34 +1,56 @@
-{ lib, buildNpmPackage, fetchurl }:
-# Pinned to 1.x: OpenChamber 2.x requires OpenCode 2.x, and the workstations still run OpenCode 1.x.
+{
+  lib,
+  buildNpmPackage,
+  fetchurl,
+  git,
+  nodejs,
+}:
 buildNpmPackage rec {
   pname = "openchamber";
-  version = "1.24.2";
+  version = "2.3.3";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/@openchamber/web/-/web-${version}.tgz";
-    hash = "sha256-mrefb1ENRZj3ZNlCCKRCAqUFFVW58l/6K+YSLqeJ6zQ=";
+    hash = "sha256-zZcDdzdHTLgSub3kxzpSXk6SkBoYO2ngbLxo8BXHKKo=";
   };
   sourceRoot = "package";
+  patches = [ ./simple-git-4.patch ];
 
-  # The queue-dedupe patch gives every queued item a stable OpenCode message id
-  # plus a delivery probe, so a lost ack can no longer resend the same message
-  # forever. Rebase it when bumping versions while the workstations are on 1.x.
   postPatch = ''
+    # Published assets need only runtime dependencies. Upstream still pins
+    # simple-git 3, whose argument guards have several security advisories.
+    ${lib.getExe nodejs} -e '
+      const fs = require("node:fs");
+      const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+      delete pkg.devDependencies;
+      pkg.dependencies["simple-git"] = "4.0.2";
+      fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+    '
     cp ${./package-lock.json} package-lock.json
-    patch -p1 < ${./openchamber-queue-dedupe.patch}
   '';
 
-  npmDepsHash = "sha256-DUD+EaH1xgNqhV5PhIhG/a/NpzJ7TWSSnAk2jEozTyc=";
+  npmDepsHash = "sha256-t1bvbnY0BY/dZtZAm/HHZjFU9DyIQsMWLh9TBkm6D7c=";
 
-  npmFlags = [ "--legacy-peer-deps" "--dangerously-allow-all-scripts" ];
+  npmFlags = [
+    "--legacy-peer-deps"
+    "--dangerously-allow-all-scripts"
+    "--allow-remote=all"
+  ];
   # Published assets are built; prepack refers to the upstream monorepo.
   npmPackFlags = [ "--ignore-scripts" ];
 
   dontNpmBuild = true;
 
-  # Fail the build if the dedupe patch ever stops landing.
+  # GHSA-vfj7-8cjw-p6xm has no upstream release with a depth limit yet.
   postInstall = ''
-    grep -q 'dropIfAlreadyDelivered' "$out/lib/node_modules/@openchamber/web/server/lib/message-queue/runtime.js"
+    patch -p1 -d "$out/lib/node_modules/@openchamber/web/node_modules/braces" < ${./braces-depth-limit.patch}
+  '';
+  doInstallCheck = true;
+  nativeInstallCheckInputs = [ git ];
+  installCheckPhase = ''
+    runHook preInstallCheck
+    node ${./smoke-test.mjs} "$out/lib/node_modules/@openchamber/web"
+    runHook postInstallCheck
   '';
 
   meta = {

@@ -29,7 +29,7 @@ let
     };
     recovery-backup = {
       description = "Back up LUKS headers, TPM policy authorities, SOPS identity and Secure Boot keys";
-      startAt = "23:10";
+      startAt = "Sun 23:10";
       out = mountpoint;
       requires = [ ];
       directories = [ "luks" ];
@@ -57,7 +57,10 @@ in
   systemd.services = lib.mapAttrs (name: job: {
     inherit (job) description startAt requires;
     after = job.requires;
-    unitConfig.RequiresMountsFor = [ mountpoint ];
+    unitConfig = {
+      RequiresMountsFor = [ mountpoint ];
+      OnSuccess = [ "healthchecks-ping@${name}.service" ];
+    };
     path = [ pkgs.util-linux ];
     serviceConfig = {
       Type = "oneshot";

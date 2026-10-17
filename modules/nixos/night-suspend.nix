@@ -5,7 +5,7 @@
     path = with pkgs; [ iproute2 procps util-linux coreutils config.boot.zfs.package ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.host-tools}/bin/host-tools night-suspend";
+      ExecStart = "${pkgs.host-tools}/bin/host-tools night-suspend --t3-state ${config.users.users.mirsella.home}/.t3/userdata/statev2.sqlite";
     };
     startAt = [
       "*-*-* 00:30..59:00"

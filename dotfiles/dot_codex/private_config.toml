@@ -15,6 +15,9 @@ trust_level = "trusted"
 [projects."/home/mirsella/dev/browser-mcp"]
 trust_level = "trusted"
 
+[projects."/home/mirsella/dev/dotfiles"]
+trust_level = "trusted"
+
 [tui]
 animations = false
 screen_reader_detection_done = true
@@ -29,9 +32,15 @@ last_updated = "2026-07-12T16:43:46Z"
 source_type = "local"
 source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
+[marketplaces.browser-mcp]
+source_type = "git"
+source = "https://github.com/mirsella/browser-mcp.git"
+ref = "release/latest"
+
 [marketplaces.computer-use-mcp]
-source_type = "local"
-source = "/home/mirsella/.local/share/computer-use-mcp/current"
+source_type = "git"
+source = "https://github.com/mirsella/computer-use-mcp.git"
+ref = "release/latest"
 
 [mcp_servers.context7-broker]
 command = "/home/mirsella/.local/bin/context7-account-broker"
@@ -85,6 +94,9 @@ enabled = true
 [plugins."template-creator@openai-primary-runtime"]
 enabled = true
 
+[plugins."browser@browser-mcp"]
+enabled = true
+
 [plugins."computer-use@computer-use-mcp"]
 enabled = true
 
@@ -100,13 +112,6 @@ requires_openai_auth = true
 "sleev-harness" = "chatgpt"
 
 [hooks.state]
-
-[marketplaces.browser-mcp]
-source_type = "local"
-source = "/home/mirsella/.local/share/browser-mcp/current"
-
-[plugins."browser@browser-mcp"]
-enabled = true
 
 [hooks.state."browser@browser-mcp:hooks/hooks.json:pre_tool_use:0:0"]
 trusted_hash = "sha256:bdc5f4e37abe338ba919376999ec010dabcfe49b2cc58d80ebcc275d1bdb73ad"

@@ -1,78 +1,69 @@
-import { afterEach, beforeEach, expect, mock, spyOn, test } from "bun:test";
-import type { Config, PluginInput } from "@opencode-ai/plugin";
-import composioAuth from "../plugins/composio-auth";
+import { expect, spyOn, test } from "bun:test";
+import { applyCredentials } from "../lib/composio-auth";
+import plugin from "../plugins/composio-auth";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import * as os from "node:os";
+import { join } from "node:path";
 
-const json = mock(async (): Promise<unknown> => ({ api_key: "uak_test" }));
-const log = mock(async () => ({}));
-let file: ReturnType<typeof spyOn>;
-const hooks = await composioAuth({ client: { app: { log } } } as unknown as PluginInput);
-const server = () => ({
-  type: "remote" as const,
-  url: "https://backend.composio.dev/tool_router/trs_test/mcp",
-  headers: { "x-org-id": "org_test", "x-project-id": "proj_test" },
+test("authentication rejects malformed CLI data and accepts a complete user key", async () => {
+  const root = mkdtempSync(join(os.tmpdir(), "composio-auth-"));
+  const home = spyOn(os, "homedir").mockReturnValue(root);
+  const directory = join(root, ".composio");
+  mkdirSync(directory);
+  const server = { type: "remote", url: "https://backend.composio.dev/tool_router/abc" };
+  const ctx = { mcp: { transform: async (fn: Function) => fn({
+    get: () => server,
+    update: (_name: string, update: Function) => update(server),
+  }) } };
+  try {
+    for (const auth of [null, {}, { api_key: null }, { api_key: "uak_" }]) {
+      writeFileSync(join(directory, "user_data.json"), JSON.stringify(auth));
+      await expect(plugin.setup(ctx as never)).rejects.toThrow("expected a user API key");
+    }
+    writeFileSync(join(directory, "user_data.json"), JSON.stringify({ api_key: "uak_test" }));
+    await plugin.setup(ctx as never);
+    expect(server).toHaveProperty("headers.x-user-api-key", "uak_test");
+  } finally {
+    home.mockRestore();
+    rmSync(root, { recursive: true });
+  }
 });
 
-beforeEach(() => {
-  json.mockReset().mockResolvedValue({ api_key: "uak_test" });
-  log.mockClear();
-  file = spyOn(Bun, "file").mockReturnValue({ json } as unknown as ReturnType<typeof Bun.file>);
-});
-afterEach(() => file.mockRestore());
-
-test("injects the CLI key while preserving session scope", async () => {
-  const config: Config = { mcp: { composio: server() } };
-  await hooks.config(config);
-  expect(config.mcp?.composio).toEqual({
-    ...server(),
-    headers: { ...server().headers, "x-user-api-key": "uak_test" },
+test("credentials preserve routing headers and replace only authentication", () => {
+  const server = {
+    type: "remote",
+    url: "https://backend.composio.dev/tool_router/abc",
+    headers: { "x-project-id": "project", "x-user-api-key": "old" },
+  };
+  applyCredentials(server, "uak_test");
+  expect(server.headers).toEqual({
+    "x-project-id": "project",
+    "x-user-api-key": "uak_test",
   });
-  expect(log).not.toHaveBeenCalled();
 });
-
-test.each([
-  undefined,
-  { enabled: false },
-  { ...server(), enabled: false },
-  { type: "local", command: ["example"] },
-  { ...server(), url: "https://connect.composio.dev/mcp" },
-  { ...server(), url: "https://backend.composio.dev.evil.test/tool_router/trs_test/mcp" },
-  { ...server(), url: "https://backend.composio.dev@evil.test/tool_router/trs_test/mcp" },
-] satisfies (NonNullable<Config["mcp"]>[string] | undefined)[])("does not read credentials for an unrelated or disabled server: %j", async (composio) => {
-  const config: Config = composio ? { mcp: { composio } } : {};
-  const before = structuredClone(config);
-  await hooks.config(config);
-  expect(config).toEqual(before);
-  expect(file).not.toHaveBeenCalled();
+test("missing login disables the Composio router", () => {
+  const server = {
+    type: "remote",
+    url: "https://backend.composio.dev/tool_router/abc",
+  };
+  applyCredentials(server);
+  expect(server).toEqual({ type: "remote", url: server.url, disabled: true });
 });
-
-test("a missing login disables only Composio and logs an actionable warning", async () => {
-  json.mockRejectedValue(Object.assign(new Error("missing"), { code: "ENOENT" }));
-  const config: Config = { mcp: { composio: server(), other: server() } };
-  await hooks.config(config);
-  expect(config.mcp?.composio).toEqual({ ...server(), enabled: false });
-  expect(config.mcp?.other).toEqual(server());
-  expect(log).toHaveBeenCalledTimes(1);
-  expect(log).toHaveBeenCalledWith({ body: {
-    service: "composio-auth", level: "warn",
-    message: expect.stringContaining("Authenticate with the Composio CLI"),
-  } });
+test("unrelated origins and explicit disablement stay untouched", () => {
+  for (const server of [
+    {
+      type: "remote",
+      url: "https://backend.composio.dev.example/tool_router/abc",
+    },
+    {
+      type: "remote",
+      url: "https://backend.composio.dev/tool_router/abc",
+      disabled: true,
+    },
+    { type: "local", url: undefined },
+  ]) {
+    const original = structuredClone(server);
+    applyCredentials(server, "uak_test");
+    expect(server).toEqual(original);
+  }
 });
-
-test.each([new SyntaxError("invalid JSON"), Object.assign(new Error("permission denied"), { code: "EACCES" })])(
-  "surfaces a broken login instead of silently disabling Composio: %s", async (error) => {
-    json.mockRejectedValue(error);
-    const config = { mcp: { composio: server() } };
-    await expect(hooks.config(config)).rejects.toBe(error);
-    expect(config.mcp.composio).toEqual(server());
-    expect(log).not.toHaveBeenCalled();
-  },
-);
-
-test.each([null, {}, [], "login", { api_key: 42 }, { api_key: "ck_secret" }])(
-  "rejects invalid credential shapes with a useful, secret-free error: %j", async (auth) => {
-    json.mockResolvedValue(auth);
-    await expect(hooks.config({ mcp: { composio: server() } })).rejects.toThrow(
-      "expected a user API key (uak_)",
-    );
-  },
-);

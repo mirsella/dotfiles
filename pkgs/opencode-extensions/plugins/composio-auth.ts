@@ -1,34 +1,36 @@
-import type { Plugin } from "@opencode-ai/plugin";
+import { applyCredentials } from "../lib/composio-auth";
+import { Plugin } from "@opencode/plugin";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-export default (async ({ client }) => ({
-  config: async (config) => {
-    const mcp = config.mcp?.composio;
-    if (!mcp || !("url" in mcp) || mcp.enabled === false) return;
-    if (!mcp.url.startsWith("https://backend.composio.dev/tool_router/")) return;
-
-    // Reuse the CLI login instead of storing a credential in synced config.
+export default Plugin.define({
+  id: "local.composio-auth",
+  async setup(ctx) {
     const path = join(homedir(), ".composio/user_data.json");
-    let auth: unknown;
+    let key: string | undefined;
     try {
-      auth = await Bun.file(path).json();
+      const auth = JSON.parse(await readFile(path, "utf8"));
+      if (
+        typeof auth?.api_key !== "string" ||
+        !auth.api_key.startsWith("uak_") ||
+        auth.api_key.length <= 4
+      ) {
+        throw new Error(
+          `Invalid Composio CLI login at ${path}: expected a user API key (uak_).`,
+        );
+      }
+      key = auth.api_key;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      mcp.enabled = false;
-      await client.app.log({
-        body: {
-          service: "composio-auth",
-          level: "warn",
-          message: `Composio MCP disabled: no CLI login at ${path}. Authenticate with the Composio CLI.`,
-        },
-      });
-      return;
     }
-    const key = auth && typeof auth === "object" && "api_key" in auth ? auth.api_key : undefined;
-    if (typeof key !== "string" || !key.startsWith("uak_")) {
-      throw new Error(`Invalid Composio CLI login at ${path}: expected a user API key (uak_).`);
-    }
-    mcp.headers = { ...mcp.headers, "x-user-api-key": key };
+    await ctx.mcp.transform((editor) => {
+      if (editor.get("composio"))
+        editor.update("composio", (server) => applyCredentials(server, key));
+    });
+    if (!key)
+      console.warn(
+        `Composio MCP disabled without a CLI login at ${path}. Authenticate with the Composio CLI.`,
+      );
   },
-})) satisfies Plugin;
+});

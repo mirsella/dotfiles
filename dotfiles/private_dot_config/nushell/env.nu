@@ -1,3 +1,17 @@
+# T3's boot service can start before Plasma imports its display environment.
+# Refresh it for each new terminal or project script without restarting T3.
+if ($env.T3_BOOT_SERVICE_UNIT? | is-not-empty) and (
+  [$env.WAYLAND_DISPLAY? $env.WAYLAND_SOCKET? $env.DISPLAY?] | all {|value| $value | is-empty }
+) {
+  let session = (^systemctl --user show-environment --output=json | complete)
+  if $session.exit_code != 0 {
+    print --stderr $"Failed to read the desktop environment for T3: ($session.stderr | str trim)"
+  } else {
+    $session.stdout | from json
+    | select --optional DISPLAY WAYLAND_DISPLAY XAUTHORITY XDG_RUNTIME_DIR | compact | load-env
+  }
+}
+
 let android_home = ($env.ANDROID_HOME? | default $"($env.HOME)/.local/share/android/sdk")
 let cargo_home = ($env.CARGO_HOME? | default $"($env.HOME)/.local/share/cargo")
 let go_path = ($env.GOPATH? | default $"($env.HOME)/.local/share/go")

@@ -113,7 +113,7 @@ assert lib.assertMsg (
   !(lib.hasInfix "-W" server.services.smartd.defaults.monitored)
   && lib.hasInfix "-d removable" server.services.smartd.defaults.monitored
   && lib.all (device:
-    lib.hasInfix "-W 0,0,65" smartOptions.${device}
+    lib.hasInfix "-W 0,0,80" smartOptions.${device}
     && lib.hasInfix "-s (S/../.././12|L/../../7/13)" smartOptions.${device}
   ) (builtins.attrValues physical.ssds)
   && lib.all (name:
@@ -130,33 +130,29 @@ assert lib.assertMsg (
   && server.services.zfs.autoScrub.pools == [ "fast" "tank" ]
 ) "SMART must schedule daily short tests, weekly long tests, high-temperature-only warnings and pool scrubs";
 assert lib.assertMsg (
-  server.services.syncoid.enable
-  && server.services.syncoid.interval == "23:45"
-  && builtins.elem "--no-rollback" server.services.syncoid.commonArgs
-  && lib.all (permission: builtins.elem permission server.services.syncoid.localTargetAllow)
-    ([ "readonly" "canmount" "acltype" "aclinherit" "destroy" ]
-      ++ flake.nixosConfigurations.predator.options.services.syncoid.localTargetAllow.default)
-  && layout.disko.devices.zpool.tank.datasets.replica.options
-    == { mountpoint = "none"; canmount = "off"; readonly = "on"; }
-  && !server.services.sanoid.datasets."tank/replica".autosnap
+  server.services.restic.backups.fast.repository == "/srv/backup/restic"
+  && server.services.restic.backups.fast.initialize
+  && server.services.restic.backups.fast.pruneOpts == [
+    "--keep-daily 7"
+    "--keep-weekly 8"
+    "--keep-monthly 6"
+  ]
+  && lib.all (path: lib.hasInfix "/.zfs/snapshot/restic-backup" path)
+    server.services.restic.backups.fast.paths
+  && lib.hasInfix "zfs snapshot" server.services.restic.backups.fast.backupPrepareCommand
+  && lib.hasInfix "zfs destroy" server.services.restic.backups.fast.backupCleanupCommand
+  && server.systemd.timers.restic-check.timerConfig.Persistent
   && lib.all (name: server.services.sanoid.datasets.${name}.autosnap)
     [ "fast/data" "fast/ncdata" "tank/archive" "tank/backup" ]
   && lib.all (dataset: dataset.recursive) (builtins.attrValues server.services.sanoid.datasets)
-  && lib.all (name:
-    let command = server.services.syncoid.commands.${name};
-    in command.source == "fast/${name}" && command.target == "tank/replica/${name}"
-      && command.recursive && command.sendOptions == "Lc p"
-      && command.recvOptions == "u o mountpoint=none o canmount=off o readonly=on"
-      && server.systemd.timers."syncoid-${name}".timerConfig.Persistent
-  ) [ "data" "ncdata" ]
-) "SSD data must replicate nightly to unmounted read-only HDD datasets, without destination snapshots";
+) "The SSD pool must be backed up nightly by restic from a throwaway snapshot, while HDD datasets keep their reliable sanoid snapshots";
 assert lib.assertMsg (
   lib.all (name:
     server.systemd.services.${name}.serviceConfig.UMask == "0077"
     && server.systemd.timers.${name}.timerConfig.Persistent
     && server.systemd.services.${name}.unitConfig.RequiresMountsFor == [ "/srv/backup/recovery" ]
   ) [ "db-backup" "recovery-backup" ]
-  && lib.toList server.systemd.timers.recovery-backup.timerConfig.OnCalendar == [ "23:10" ]
+  && lib.toList server.systemd.timers.recovery-backup.timerConfig.OnCalendar == [ "Sun 23:10" ]
   && lib.toList server.systemd.timers.db-backup.timerConfig.OnCalendar == [ "23:00" ]
   && server.fileSystems."/srv/backup/recovery".device == "tank/backup/recovery"
   && layout.disko.devices.zpool.tank.datasets."backup/recovery".mountpoint == "/srv/backup/recovery"
@@ -177,6 +173,19 @@ assert lib.assertMsg (
   server.systemd.services.caddy.serviceConfig.Restart == "on-failure"
 ) "The server's web proxy must retry transient startup failures";
 assert lib.assertMsg (
+  lib.all (key: server.sops.secrets."healthchecks-${key}".key == key)
+    [ "db-backup" "recovery-backup" "hermes-backup" "sanoid" "restic-backup" "restic-check" ]
+  && lib.all (unit:
+    let pings = server.systemd.services.${unit}.unitConfig.OnSuccess or [ ];
+    in builtins.length pings == 1 && lib.hasInfix "healthchecks-ping@" (builtins.head pings)
+  ) [ "db-backup" "recovery-backup" "hermes-backup" "sanoid" "restic-backups-fast" "restic-check" ]
+  && lib.toList server.systemd.timers.restic-backups-fast.timerConfig.OnCalendar == [ "23:50" ]
+  && !(server.systemd.timers.restic-backups-fast.unitConfig.X-OnlyManualStart or true)
+  && lib.hasInfix "--read-data-subset=10%%" server.systemd.services.restic-check.serviceConfig.ExecStart
+  && lib.all (mount: builtins.elem mount server.systemd.services."restic-backups-fast".unitConfig.RequiresMountsFor)
+    [ "/srv/backup" "/srv/data/fast" "/var/lib/nextcloud/data" ]
+) "Every scheduled backup must ping its healthchecks.io check and restic must back up from mounted sources";
+assert lib.assertMsg (
   server.services.hermes-agent.user == "mirsella"
   && server.services.hermes-agent.group == "hermes-private"
   && server.users.groups.hermes-private.members == [ "mirsella" ]
@@ -189,14 +198,14 @@ assert lib.assertMsg (
    && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-cdp" "browser-use" "browser-evaluation" ]
    && server.services.hermes-agent.settings.plugins.enabled == [ "browser-policy" ]
    && server.services.hermes-agent.settings.model.provider == "opencode-go"
-   && server.services.hermes-agent.settings.model.default == "deepseek-v4.1-flash"
-   && server.services.hermes-agent.settings.agent.reasoning_overrides."deepseek-v4.1-flash" == "max"
+    && server.services.hermes-agent.settings.model.default == "deepseek-v4.1-flash"
+    && server.services.hermes-agent.settings.agent.reasoning_overrides."deepseek-v4.1-flash" == "max"
    && server.services.hermes-agent.settings.fallback_providers == []
    && server.services.hermes-agent.settings.custom_providers == []
    && server.services.hermes-agent.settings.providers.opencode-go.enabled
    && lib.all (name: !server.services.hermes-agent.settings.providers.${name}.enabled)
      [ "openrouter" "openai" "openai-api" "openai-codex" "chatgpt" "opencode" "opencode-zen" "zen" "custom" "auto" "anthropic" ]
-   && lib.all (slot: slot.provider == "opencode-go" && slot.model == "deepseek-v4.1-flash" && slot.api_key == "" && slot.base_url == "")
+    && lib.all (slot: slot.provider == "opencode-go" && slot.model == "deepseek-v4.1-flash" && slot.api_key == "" && slot.base_url == "")
      (builtins.attrValues (builtins.removeAttrs server.services.hermes-agent.settings.auxiliary [ "openrouter_model" ]))
   && lib.elem "hermes-agent-setup" server.system.activationScripts.hermes-settings.deps
   && lib.hasInfix "runuser -u mirsella -g hermes-private" server.system.activationScripts.hermes-settings.text

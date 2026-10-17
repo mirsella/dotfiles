@@ -1,6 +1,26 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 let
-  coolerConfigDir = ../../dotfiles/system/main/etc/coolercontrol;
+  fanUnit =
+    file:
+    lib.replaceStrings
+      [
+        "/usr/local/libexec/host-tools"
+        "/usr/bin/fancontrol"
+        "/etc/main-fan-control.json"
+        "/usr/bin:/usr/sbin"
+      ]
+      [
+        "${pkgs.host-tools}/bin/host-tools"
+        "${pkgs.lm_sensors}/bin/fancontrol"
+        "${./fan-control.json}"
+        (lib.makeBinPath [
+          pkgs.coreutils
+          pkgs.gnugrep
+          pkgs.gnused
+          pkgs.systemd
+        ])
+      ]
+      (builtins.readFile file);
 in
 {
   imports = [ ../../modules/nixos/desktop.nix ];
@@ -18,11 +38,13 @@ in
 
   # NCT6798 motherboard fan controller.
   boot.kernelModules = [ "nct6775" ];
-  programs.coolercontrol.enable = true;
-  systemd.services.coolercontrold.serviceConfig = {
-    ConfigurationDirectory = "coolercontrol";
-    # The daemon writes these files. Restore them only while it is stopped.
-    ExecStartPre = "${pkgs.coreutils}/bin/install -m 0644 -t /etc/coolercontrol ${coolerConfigDir}/config.toml ${coolerConfigDir}/modes.json";
+  systemd.units."fancontrol.service" = {
+    text = fanUnit ./fancontrol.service;
+    wantedBy = [ "multi-user.target" ];
+  };
+  systemd.units."fan-profile-watch.service" = {
+    text = fanUnit ./fan-profile-watch.service;
+    wantedBy = [ "multi-user.target" ];
   };
 
   system.stateVersion = "26.05";

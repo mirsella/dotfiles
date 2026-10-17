@@ -7,6 +7,8 @@
     min-free = 10 * 1024 * 1024 * 1024;
     max-free = 20 * 1024 * 1024 * 1024;
     auto-optimise-store = true;
+    # Optional binary caches can be offline; Nix logs the failure and builds locally.
+    fallback = true;
   };
   nix.gc = {
     automatic = true;

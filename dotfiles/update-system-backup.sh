@@ -44,7 +44,6 @@ copy_file /etc/mkinitcpio.conf etc/mkinitcpio.conf
 copy_file /etc/systemd/zram-generator.conf etc/systemd/zram-generator.conf optional
 copy_file /etc/systemd/oomd.conf.d/90-build-headroom.conf etc/systemd/oomd.conf.d/90-build-headroom.conf optional
 copy_file /etc/sysctl.d/99-swappiness.conf etc/sysctl.d/99-swappiness.conf optional
-copy_file /etc/coolercontrol/config.toml etc/coolercontrol/config.toml optional
 copy_file /boot/loader/loader.conf boot/loader/loader.conf
 
 mkdir -p "$staging/boot/loader/entries"

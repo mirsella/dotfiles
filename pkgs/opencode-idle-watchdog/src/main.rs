@@ -163,7 +163,6 @@ impl Drop for Cancellation {
 
 struct OpenCodeProcess {
     pid: i32,
-    serves_all_projects: bool,
     authorization: Option<String>,
 }
 
@@ -242,11 +241,36 @@ fn basic_authorization(username: &str, password: &str) -> String {
     format!("Basic {encoded}")
 }
 
+fn generated_service_password(environment: &[u8]) -> Result<Option<String>> {
+    let root = match env_value(environment, b"XDG_CONFIG_HOME")? {
+        Some(root) => PathBuf::from(root),
+        None => {
+            PathBuf::from(env_value(environment, b"HOME")?.context("service process has no HOME")?)
+                .join(".config")
+        }
+    };
+    let directory = env_value(environment, b"OPENCODE_CONFIG_DIR")?
+        .map(PathBuf::from)
+        .unwrap_or_else(|| root.join("opencode"));
+    let path = directory.join("service.json");
+    let bytes = match fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error).context("read native OpenCode service credential"),
+    };
+    let mut config: serde_json::Map<String, Value> =
+        serde_json::from_slice(&bytes).context("parse native OpenCode service configuration")?;
+    match config.remove("password") {
+        None => Ok(None),
+        Some(Value::String(value)) => Ok((!value.is_empty()).then_some(value)),
+        _ => bail!("native OpenCode service password must be a string"),
+    }
+}
+
 fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
     let uid = unsafe { libc::getuid() };
-    let configured_username =
-        server_env_value("OPENCODE_SERVER_USERNAME")?.unwrap_or_else(|| "opencode".to_owned());
-    let configured_password = server_env_value("OPENCODE_SERVER_PASSWORD")?;
+    let configured_password =
+        server_env_value("OPENCODE_PASSWORD")?.or(server_env_value("OPENCODE_SERVER_PASSWORD")?);
     let mut processes = Vec::new();
     for entry in fs::read_dir("/proc").context("read /proc")? {
         let entry = entry.context("read /proc entry")?;
@@ -269,7 +293,10 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
         let Some(comm) = proc_file(&path, "comm")? else {
             continue;
         };
-        if comm.strip_suffix(b"\n") != Some(b"opencode") {
+        if !matches!(
+            comm.strip_suffix(b"\n"),
+            Some(b"opencode" | b"opencode.exe" | b"opencode2")
+        ) {
             continue;
         }
         let Some(cmdline) = proc_file(&path, "cmdline")? else {
@@ -280,24 +307,27 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
             bail!("opencode pid {pid} has an empty cmdline");
         }
         let subcommand = args.get(1).map(String::as_str);
-        if subcommand == Some("attach") {
+        if subcommand == Some("attach")
+            || args
+                .iter()
+                .any(|arg| arg == "--server" || arg.starts_with("--server="))
+        {
             continue;
         }
         let Some(environment) = proc_file(&path, "environ")? else {
             continue;
         };
-        let password = env_value(&environment, b"OPENCODE_SERVER_PASSWORD")?
-            .or_else(|| configured_password.clone());
-        let username = env_value(&environment, b"OPENCODE_SERVER_USERNAME")?
-            .unwrap_or_else(|| configured_username.clone());
+        let password = if args.iter().any(|arg| arg == "--service") {
+            generated_service_password(&environment)?
+        } else {
+            env_value(&environment, b"OPENCODE_PASSWORD")?
+                .or(env_value(&environment, b"OPENCODE_SERVER_PASSWORD")?)
+                .or_else(|| configured_password.clone())
+        };
         let authorization = password
             .as_deref()
-            .map(|password| basic_authorization(&username, password));
-        processes.push(OpenCodeProcess {
-            pid,
-            serves_all_projects: subcommand == Some("serve"),
-            authorization,
-        });
+            .map(|password| basic_authorization("opencode", password));
+        processes.push(OpenCodeProcess { pid, authorization });
     }
     processes.sort_by_key(|process| process.pid);
     Ok(processes)
@@ -416,11 +446,18 @@ fn is_transient(error: &ureq::Error) -> bool {
 
 impl OpenCodeApi<'_> {
     fn get(&self, path: &str) -> Result<Value> {
+        self.get_query(path, &[])
+    }
+
+    fn get_query(&self, path: &str, query: &[(&str, &str)]) -> Result<Value> {
         let url = format!("{}{path}", self.url.trim_end_matches('/'));
         let mut attempt = 0u32;
         let mut response = loop {
             attempt += 1;
             let mut request = self.client.get(&url).header("Accept", "application/json");
+            for (name, value) in query {
+                request = request.query(*name, *value);
+            }
             if let Some(directory) = self.directory {
                 request = request.query("directory", directory);
             }
@@ -442,56 +479,66 @@ impl OpenCodeApi<'_> {
         serde_json::from_str(&body).with_context(|| format!("parse GET {url}"))
     }
 
-    fn global_directories(&self) -> Result<Vec<String>> {
-        const LIMIT: usize = 1_000;
-        let mut cursor = None;
-        let mut directories = BTreeSet::new();
+    fn sessions(&self) -> Result<Vec<Value>> {
+        let mut sessions = Vec::new();
+        let mut cursor = None::<String>;
+        let mut seen = HashSet::new();
         loop {
-            let path = cursor.map_or_else(
-                || format!("/experimental/session?limit={LIMIT}"),
-                |cursor| format!("/experimental/session?limit={LIMIT}&cursor={cursor}"),
-            );
-            let Value::Array(sessions) = self.get(&path)? else {
-                bail!("global sessions are not an array");
-            };
-            cursor = if sessions.len() < LIMIT {
-                None
-            } else {
-                Some(
-                    sessions
-                        .last()
-                        .and_then(|session| session.pointer("/time/updated"))
-                        .and_then(Value::as_u64)
-                        .context("global session has no numeric update time")?,
-                )
-            };
-            for session in &sessions {
-                let directory = session
-                    .get("directory")
-                    .and_then(Value::as_str)
-                    .context("global session has no directory")?;
-                if !directories.contains(directory) {
-                    directories.insert(directory.to_owned());
-                }
+            let mut query = vec![("limit", "1000")];
+            if let Some(ref value) = cursor {
+                query.push(("cursor", value));
             }
-            if cursor.is_none() {
-                return Ok(directories.into_iter().collect());
+            let mut page = self.get_query("/api/session", &query)?;
+            cursor = match page.pointer_mut("/cursor/next").map(Value::take) {
+                None | Some(Value::Null) => None,
+                Some(Value::String(value)) => Some(value),
+                _ => bail!("sessions page has an invalid next cursor"),
+            };
+            sessions.extend(page_array(page).context("sessions page")?);
+            let Some(ref next) = cursor else {
+                break;
+            };
+            if !seen.insert(next.clone()) {
+                bail!("sessions pagination repeated a cursor");
             }
         }
+        Ok(sessions)
+    }
+
+    fn global_directories(&self) -> Result<Vec<String>> {
+        self.sessions()?
+            .iter()
+            .map(|session| {
+                session
+                    .pointer("/location/directory")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned)
+                    .context("global session has no directory")
+            })
+            .collect::<Result<BTreeSet<_>>>()
+            .map(|directories| directories.into_iter().collect())
     }
 
     fn latest_assistant(&self, session: &str) -> Result<Value> {
-        let Value::Array(mut messages) =
-            self.get(&format!("/session/{session}/message?limit=1"))?
-        else {
-            bail!("session messages are not an array");
-        };
-        let message = messages.pop().context("busy session has no messages")?;
-        anyhow::ensure!(
-            message.pointer("/info/role").and_then(Value::as_str) == Some("assistant"),
-            "busy session's latest message is not from an assistant"
-        );
+        let page = self.get_query(
+            &format!("/api/session/{session}/message"),
+            &[("limit", "1"), ("order", "desc"), ("type", "assistant")],
+        )?;
+        let message = page_array(page)?
+            .into_iter()
+            .next()
+            .context("session has no assistant message")?;
+        if message.get("type").and_then(Value::as_str) != Some("assistant") {
+            bail!("latest assistant has invalid type");
+        }
         Ok(message)
+    }
+}
+
+fn page_array(mut page: Value) -> Result<Vec<Value>> {
+    match page.get_mut("data").map(Value::take) {
+        Some(Value::Array(data)) => Ok(data),
+        _ => bail!("page has no data array"),
     }
 }
 
@@ -505,7 +552,7 @@ fn status_kind(status: &Value) -> &str {
 fn active_part(part: &Value) -> bool {
     matches!(
         part.pointer("/state/status").and_then(Value::as_str),
-        Some("pending" | "running")
+        Some("streaming" | "running")
     )
 }
 
@@ -531,12 +578,12 @@ fn waiting_sessions<'a>(
             .iter()
             .filter(|(_, message)| {
                 message
-                    .get("parts")
+                    .get("content")
                     .and_then(Value::as_array)
                     .is_some_and(|parts| {
                         parts.iter().any(|part| {
                             active_part(part)
-                                && part.get("tool").and_then(Value::as_str) == Some("question")
+                                && part.get("name").and_then(Value::as_str) == Some("question")
                         })
                     })
             })
@@ -549,20 +596,19 @@ fn waiting_sessions<'a>(
                 if waiting.contains(parent.as_str()) || status_kind(state) != "busy" {
                     return None;
                 }
-                let parts = assistants.get(parent)?.get("parts")?.as_array()?;
+                let parts = assistants.get(parent)?.get("content")?.as_array()?;
                 let mut running = parts.iter().filter(|part| active_part(part)).peekable();
                 running.peek()?;
                 running
                     .all(|part| {
                         part.get("type").and_then(Value::as_str) == Some("tool")
-                            && part.get("tool").and_then(Value::as_str) == Some("task")
-                            && part.get("sessionID").and_then(Value::as_str) == Some(parent)
+                            && part.get("name").and_then(Value::as_str) == Some("subagent")
                             && part.pointer("/state/metadata").is_some_and(|metadata| {
                                 matches!(
                                     metadata.get("background"),
                                     None | Some(Value::Bool(false))
                                 ) && metadata
-                                    .get("sessionId")
+                                    .get("sessionID")
                                     .and_then(Value::as_str)
                                     .is_some_and(|child| waiting.contains(child))
                             })
@@ -606,7 +652,7 @@ fn classify_snapshot<'a>(
         } else if stuck.contains(session) {
             ("STUCK", Color::DarkGrey, None)
         } else if waiting.contains(session.as_str()) {
-            // Membership via /question or /permission proves the wait even when
+            // A pending native form or permission proves the wait even when
             // the message detail fetch failed, so these never block.
             ("WAITING", Color::Blue, None)
         } else if unresolved.contains(session.as_str()) {
@@ -649,7 +695,7 @@ fn classify_snapshot<'a>(
 
 fn has_running_watchdog(message: &Value) -> bool {
     let mut active = message
-        .get("parts")
+        .get("content")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
@@ -658,7 +704,7 @@ fn has_running_watchdog(message: &Value) -> bool {
     active.peek().is_some()
         && active.all(|part| {
             part.get("type").and_then(Value::as_str) == Some("tool")
-                && part.get("tool").and_then(Value::as_str) == Some("bash")
+                && part.get("name").and_then(Value::as_str) == Some("shell")
                 && part
                     .pointer("/state/input/command")
                     .and_then(Value::as_str)
@@ -709,12 +755,7 @@ fn workspace_snapshot(
         directory: Some(&directory),
     };
     let state = (|| -> Result<WorkspaceState> {
-        let Value::Object(status) = api.get("/session/status")? else {
-            bail!("session status is not an object");
-        };
-        let Value::Array(session_details) = api.get("/session?limit=1000")? else {
-            bail!("sessions are not an array");
-        };
+        let session_details = api.sessions()?;
         let sessions: serde_json::Map<String, Value> = session_details
             .into_iter()
             .map(|details| {
@@ -726,6 +767,22 @@ fn workspace_snapshot(
                 Ok((id, details))
             })
             .collect::<Result<_>>()?;
+        let active_page = api.get("/api/session/active")?;
+        let active = active_page
+            .get("data")
+            .and_then(Value::as_object)
+            .context("active sessions have no data map")?;
+        let mut status = serde_json::Map::new();
+        for session in sessions.keys() {
+            if let Some(state) = active.get(session) {
+                if state.get("type").and_then(Value::as_str) != Some("running") {
+                    bail!("unknown active session state for {session}");
+                }
+                status.insert(session.clone(), serde_json::json!({"type":"busy"}));
+            } else {
+                status.insert(session.clone(), serde_json::json!({"type":"idle"}));
+            }
+        }
         let mut assistants = serde_json::Map::new();
         let mut unresolved_busy = Vec::new();
         for session in status
@@ -747,12 +804,9 @@ fn workspace_snapshot(
                 }),
             }
         }
-        let Value::Array(questions) = api.get("/question")? else {
-            bail!("questions are not an array");
-        };
-        let Value::Array(permissions) = api.get("/permission")? else {
-            bail!("permissions are not an array");
-        };
+        let questions = page_array(api.get("/api/form")?).context("pending forms")?;
+        let permissions =
+            page_array(api.get("/api/permission/request")?).context("pending permissions")?;
         Ok(WorkspaceState {
             status,
             sessions,
@@ -800,8 +854,13 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
                     authorization: process.authorization.as_deref(),
                     directory: None,
                 }
-                .get("/global/health")
-                .is_ok_and(|value| value.get("healthy").and_then(Value::as_bool) == Some(true))
+                .get("/api/info")
+                .is_ok_and(|value| {
+                    value
+                        .get("version")
+                        .and_then(Value::as_str)
+                        .is_some_and(|version| version.starts_with("2."))
+                })
             })
             .cloned()
         else {
@@ -814,18 +873,7 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
             authorization: process.authorization.as_deref(),
             directory: None,
         };
-        let directories = if process.serves_all_projects {
-            api.global_directories()
-        } else {
-            api.get("/path")
-                .and_then(|path| {
-                    path.get("directory")
-                        .and_then(Value::as_str)
-                        .map(str::to_owned)
-                        .context("OpenCode path has no directory")
-                })
-                .map(|directory| vec![directory])
-        };
+        let directories = api.global_directories();
         let directories = match directories {
             Ok(directories) => directories,
             Err(error) => {
@@ -1644,12 +1692,15 @@ mod tests {
             authorization: Some(&authorization),
             directory: Some("/tmp/a b%+é"),
         };
-        assert_eq!(api.get("/session?limit=1").unwrap(), json!({ "ok": true }));
+        assert_eq!(
+            api.get("/api/session?limit=1").unwrap(),
+            json!({ "ok": true })
+        );
         let requests = server.join().unwrap();
         assert_eq!(requests.len(), 1);
         assert_eq!(
             requests[0].lines().next().unwrap(),
-            "GET /session?limit=1&directory=%2Ftmp%2Fa%20b%25%2B%C3%A9 HTTP/1.1"
+            "GET /api/session?limit=1&directory=%2Ftmp%2Fa%20b%25%2B%C3%A9 HTTP/1.1"
         );
         assert!(requests[0].lines().any(|line| {
             let Some((name, value)) = line.split_once(':') else {
@@ -1664,8 +1715,8 @@ mod tests {
         let mut first = vec![json!({"directory": "/z", "time": {"updated": 20}}); 1_000];
         first[0] = json!({"directory": "/a", "time": {"updated": 21}});
         let (url, server) = serve_json(vec![
-            json!(first),
-            json!([{"directory": "/a"}, {"directory": "/m"}, {"directory": "/z"}]),
+            json!({"data": first.iter().map(|row| json!({"location":{"directory":row["directory"]}})).collect::<Vec<_>>(), "cursor":{"next":"page-2"}}),
+            json!({"data":[{"location":{"directory":"/a"}},{"location":{"directory":"/m"}},{"location":{"directory":"/z"}}], "cursor":{"next":null}}),
         ]);
         let client = test_client();
         let api = OpenCodeApi {
@@ -1679,17 +1730,19 @@ mod tests {
         assert_eq!(requests.len(), 2);
         assert_eq!(
             requests[0].lines().next().unwrap(),
-            "GET /experimental/session?limit=1000 HTTP/1.1"
+            "GET /api/session?limit=1000 HTTP/1.1"
         );
         assert_eq!(
             requests[1].lines().next().unwrap(),
-            "GET /experimental/session?limit=1000&cursor=20 HTTP/1.1"
+            "GET /api/session?limit=1000&cursor=page-2 HTTP/1.1"
         );
     }
 
     #[test]
     fn malformed_global_rows_do_not_return_partial_directories() {
-        let (url, server) = serve_json(vec![json!([{"directory": "/valid"}, {"directory": 42}])]);
+        let (url, server) = serve_json(vec![
+            json!({"data":[{"location":{"directory":"/valid"}}, {"location":{"directory":42}}],"cursor":{"next":null}}),
+        ]);
         let client = test_client();
         let api = OpenCodeApi {
             client: &client,
@@ -1707,7 +1760,7 @@ mod tests {
     #[test]
     fn cached_verdicts_keep_workspace_metadata_and_failed_scans_blocking() {
         let mut running = workspace_state(&json!({
-            "status": {"busy": {"type": "busy"}}, "assistants": {"busy": {"parts": []}}
+            "status": {"busy": {"type": "busy"}}, "assistants": {"busy": {"content": []}}
         }));
         running.sessions.insert(
             "busy".to_owned(),
@@ -1823,32 +1876,32 @@ mod tests {
           "assistants":{
             "background":{
               "info":{"role":"assistant"},
-              "parts":[{"type":"tool","tool":"task","sessionID":"background","state":{"status":"running","metadata":{"sessionId":"leaf","background":true}}}]
+              "content":[{"type":"tool","name":"subagent","sessionID":"background","state":{"status":"running","metadata":{"sessionID":"leaf","background":true}}}]
             },
             "malformed_task":{
               "info":{"role":"assistant"},
-              "parts":[{"type":"tool","tool":"task","sessionID":"malformed_task","state":{"status":"running","metadata":{"sessionId":"leaf","background":"false"}}}]
+              "content":[{"type":"tool","name":"subagent","sessionID":"malformed_task","state":{"status":"running","metadata":{"sessionID":"leaf","background":"false"}}}]
             },
             "middle":
-              {"info":{"role":"assistant"},"parts":[{"type":"tool","tool":"task","sessionID":"middle","state":{"status":"running","metadata":{"sessionId":"leaf"}}}]}
+              {"info":{"role":"assistant"},"content":[{"type":"tool","name":"subagent","sessionID":"middle","state":{"status":"running","metadata":{"sessionID":"leaf"}}}]}
             ,
             "mixed":{
               "info":{"role":"assistant"},
-              "parts":[
-                {"type":"tool","tool":"task","sessionID":"mixed","state":{"status":"running","metadata":{"sessionId":"leaf"}}},
-                {"type":"tool","tool":"bash","state":{"status":"running"}}
+              "content":[
+                {"type":"tool","name":"subagent","sessionID":"mixed","state":{"status":"running","metadata":{"sessionID":"leaf"}}},
+                {"type":"tool","name":"shell","state":{"status":"running"}}
               ]
             },
             "partial":{
               "info":{"role":"assistant"},
-              "parts":[
-                {"type":"tool","tool":"task","sessionID":"partial","state":{"status":"running","metadata":{"sessionId":"leaf"}}},
-                {"type":"tool","tool":"task","sessionID":"partial","state":{"status":"running","metadata":{"sessionId":"other"}}}
+              "content":[
+                {"type":"tool","name":"subagent","sessionID":"partial","state":{"status":"running","metadata":{"sessionID":"leaf"}}},
+                {"type":"tool","name":"subagent","sessionID":"partial","state":{"status":"running","metadata":{"sessionID":"other"}}}
               ]
             },
             "root":{
               "info":{"role":"assistant"},
-              "parts":[{"type":"tool","tool":"task","sessionID":"root","state":{"status":"running","metadata":{"sessionId":"middle","background":false}}}]
+              "content":[{"type":"tool","name":"subagent","sessionID":"root","state":{"status":"running","metadata":{"sessionID":"middle","background":false}}}]
             }
           }
         }"#).unwrap();
@@ -1870,9 +1923,9 @@ mod tests {
     fn excludes_sessions_running_the_watchdog() {
         let mut message: Value = serde_json::from_str(
             r#"{
-          "parts":[{
+          "content":[{
             "type":"tool",
-            "tool":"bash",
+            "name":"shell",
             "state":{
               "status":"running",
               "input":{"command":"/home/me/.local/bin/opencode-idle-watchdog poweroff"}
@@ -1882,12 +1935,12 @@ mod tests {
         )
         .unwrap();
         assert!(has_running_watchdog(&message));
-        message["parts"]
+        message["content"]
             .as_array_mut()
             .unwrap()
             .push(serde_json::json!({
                 "type": "tool",
-                "tool": "bash",
+                "name": "shell",
                 "state": { "status": "running", "input": { "command": "sleep 30" } }
             }));
         assert!(!has_running_watchdog(&message));

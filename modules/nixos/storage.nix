@@ -7,11 +7,19 @@
 let
   physical = import ../../hosts/predator/disks.nix;
   pools = (import ../../disko.nix).disko.devices.zpool;
-  replicated = builtins.attrNames pools.fast.datasets;
+  fastDatasets = builtins.attrNames pools.fast.datasets;
+  fastDatasetNames = map (name: "fast/${name}") fastDatasets;
+  fastMountpoints = map (name: pools.fast.datasets.${name}.mountpoint) fastDatasets;
+  resticBackup = config.services.restic.backups.fast;
+  zfs = "${config.boot.zfs.package}/bin/zfs";
   unlockUnit = name: "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
   tankUnlocks = map unlockUnit (builtins.attrNames physical.hdds);
 in
 {
+  sops.secrets."restic-password" = {
+    sopsFile = ../../secrets/restic.yaml;
+  };
+
   boot.zfs.extraPools = builtins.attrNames pools;
 
   systemd.services.zfs-import-fast = {
@@ -46,23 +54,22 @@ in
     };
   };
 
-  # Snapshot unchanged datasets too: ZFS shares their blocks, and correctness
-  # must not depend on an inotify watch surviving every rename and reboot.
+  # Snapshot unchanged datasets too: ZFS shares their blocks.
   services.sanoid = {
     enable = true;
     interval = "23:30";
     templates.keep = {
       hourly = 0;
       daily = 7;
-      weekly = 4;
+      weekly = 2;
       monthly = 0;
       yearly = 0;
       autoprune = true;
     };
-    datasets = lib.genAttrs (map (name: "fast/${name}") replicated ++ [ "tank/archive" "tank/backup" "tank/replica" ]) (name: {
+    datasets = lib.genAttrs (fastDatasetNames ++ [ "tank/archive" "tank/backup" ]) (_: {
+      autosnap = true;
       use_template = [ "keep" ];
       recursive = true;
-      autosnap = name != "tank/replica";
     });
   };
   systemd.services.sanoid = {
@@ -70,24 +77,68 @@ in
       "zfs-import.target"
       "db-backup.service"
     ];
+    unitConfig.OnSuccess = [ "healthchecks-ping@sanoid.service" ];
   };
   systemd.timers.sanoid.timerConfig.Persistent = true;
 
-  services.syncoid = {
-    enable = true;
-    interval = "23:45";
-    commonArgs = [ "--no-rollback" ];
-    localTargetAllow = lib.mkOptionDefault [ "readonly" "canmount" "acltype" "aclinherit" "destroy" ];
-    commands = lib.genAttrs replicated (name: {
-      source = "fast/${name}";
-      target = "tank/replica/${name}";
-      recursive = true;
-      sendOptions = "Lc p";
-      recvOptions = "u o mountpoint=none o canmount=off o readonly=on";
-    });
-    service = {
-      requires = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
-      after = [ "zfs-import-fast.service" "zfs-import-tank.service" "sanoid.service" ];
+  # Nightly restic backup of the fast pools to tank, replacing the old syncoid
+  # replica: retention spans months, restore is file-level, and the backup runs
+  # against a throwaway snapshot instead of the live tree.
+  services.restic.backups.fast = {
+    initialize = true;
+    repository = "/srv/backup/restic";
+    passwordFile = config.sops.secrets."restic-password".path;
+    paths = map (mountpoint: "${mountpoint}/.zfs/snapshot/restic-backup") fastMountpoints;
+    pruneOpts = [
+      "--keep-daily 7"
+      "--keep-weekly 8"
+      "--keep-monthly 6"
+    ];
+    backupPrepareCommand = lib.concatMapStrings (dataset: ''
+      ${zfs} destroy -r ${dataset}@restic-backup 2>/dev/null || true
+      ${zfs} snapshot ${dataset}@restic-backup
+    '') fastDatasetNames;
+    backupCleanupCommand = lib.concatMapStrings (dataset: ''
+      ${zfs} destroy -r ${dataset}@restic-backup 2>/dev/null || true
+    '') fastDatasetNames;
+    timerConfig = {
+      OnCalendar = "23:50";
+      Persistent = true;
+    };
+  };
+  systemd.services."restic-backups-fast" = {
+    requires = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
+    after = [ "zfs-import-fast.service" "zfs-import-tank.service" ];
+    unitConfig = {
+      RequiresMountsFor = [ "/srv/backup" ] ++ fastMountpoints;
+      OnSuccess = [ "healthchecks-ping@restic-backup.service" ];
+    };
+  };
+
+  # The module marks its timer X-OnlyManualStart, so `nixos-rebuild switch`
+  # never starts it; enable it like any other timer.
+  systemd.timers."restic-backups-fast".unitConfig.X-OnlyManualStart = lib.mkForce false;
+
+  # Monthly sampled read: a successful backup write does not prove the
+  # repository is intact.
+  systemd.services.restic-check = {
+    description = "Verify restic repository integrity (sampled data read)";
+    requires = [ "zfs-import-tank.service" ];
+    after = [ "zfs-import-tank.service" ];
+    unitConfig = {
+      RequiresMountsFor = [ "/srv/backup" ];
+      OnSuccess = [ "healthchecks-ping@restic-check.service" ];
+    };
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${resticBackup.package}/bin/restic -r ${resticBackup.repository} --password-file ${resticBackup.passwordFile} check --read-data-subset=10%%";
+    };
+  };
+  systemd.timers.restic-check = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*-*-05 05:00";
+      Persistent = true;
     };
   };
 }

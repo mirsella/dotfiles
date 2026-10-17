@@ -397,7 +397,10 @@ in {
       # starts when the backup quiesces services and records their active state.
       after = [ "multi-user.target" ];
       path = [ pkgs.gnutar pkgs.gzip pkgs.util-linux ];
-      unitConfig.RequiresMountsFor = [ "/srv/backup" ];
+      unitConfig = {
+        RequiresMountsFor = [ "/srv/backup" ];
+        OnSuccess = [ "healthchecks-ping@hermes-backup.service" ];
+      };
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${pkgs.host-tools}/bin/host-tools hermes backup";

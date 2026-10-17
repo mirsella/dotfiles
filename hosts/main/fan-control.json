@@ -1,0 +1,23 @@
+{
+  "minimum_duty": 20,
+  "start_duty": 30,
+  "interval": 3,
+  "average": 3,
+  "profiles": {
+    "power-saver": {
+      "minimum_temperature": 70,
+      "maximum_temperature": 90,
+      "maximum_duty": 40
+    },
+    "balanced": {
+      "minimum_temperature": 50,
+      "maximum_temperature": 90,
+      "maximum_duty": 80
+    },
+    "performance": {
+      "minimum_temperature": 45,
+      "maximum_temperature": 80,
+      "maximum_duty": 100
+    }
+  }
+}

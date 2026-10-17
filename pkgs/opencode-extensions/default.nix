@@ -9,12 +9,13 @@
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "opencode-extensions";
-  version = "0.1.0";
+  version = "2.0.0";
   src = lib.fileset.toSource {
     root = ./.;
     fileset = lib.fileset.unions [
       ./package.json
       ./pnpm-lock.yaml
+      ./pnpm-workspace.yaml
       ./build.mjs
       ./lib
       ./plugins
@@ -32,7 +33,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     inherit (finalAttrs) pname version src;
     pnpm = pnpm_10;
     fetcherVersion = 4;
-    hash = "sha256-01Ybcnh9Dv+9Rkdg+xxA40gwutRcXbSUvbgf4pexD1w=";
+    hash = "sha256-uWdj0GQU8tBfkvsU0dPOW/s5G60ODh/xkk2EhPv5Jxs=";
   };
   buildPhase = ''
     runHook preBuild
@@ -54,12 +55,14 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   doInstallCheck = true;
   installCheckPhase = ''
     runHook preInstallCheck
-    bun -e 'for (const file of new Bun.Glob("plugins/*.js").scanSync(process.argv[1])) {
-      const plugin = await import(`''${process.argv[1]}/''${file}`);
-      if (!Object.keys(plugin).length || Object.values(plugin).some(value => typeof value !== "function")) {
-        throw new Error(`Invalid installed plugin exports: ''${file}`);
+    bun -e 'for (const [label, root, pattern] of [["plugin", process.argv[1], "plugins/*.js"], ["TUI plugin", `''${process.argv[2]}/dist`, "tui-plugins/*/tui.js"]]) {
+    for (const file of new Bun.Glob(pattern).scanSync(root)) {
+      const plugin = await import(`''${root}/''${file}`);
+      if (Object.keys(plugin).length !== 1 || typeof plugin.default?.id !== "string" || typeof plugin.default?.setup !== "function") {
+        throw new Error(`Invalid ''${label} exports: ''${file}`);
       }
-    }' "$out/share/opencode"
+    }
+    }' "$out/share/opencode" "$PWD"
     runHook postInstallCheck
   '';
   meta = {

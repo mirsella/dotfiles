@@ -2,6 +2,7 @@
 {
   imports = [
     ../../modules/home/workstation.nix
+    ../../modules/home/predator-pm-study.nix
     (import ../../modules/home/llama-server.nix {
       alias = "qwen3.6-27b-ablit";
       repo = "mradermacher/Huihui-Qwen3.6-27B-abliterated-i1-GGUF";

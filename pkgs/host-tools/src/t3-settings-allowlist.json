@@ -58,6 +58,7 @@
     "sendShortcut": true,
     "followUpBehavior": true,
     "proactivePanelsEnabled": true,
+    "pullRequestLinksOpenInApp": true,
     "showSkillsInSlashMenu": true,
     "legacySidebarEnabled": true,
     "sidebarWorkingShelfEnabled": true,
@@ -117,6 +118,7 @@
     "sidebarAutoSettleOnMerge": true,
     "sidebarAutoSettleAfterDays": true,
     "continueThreadsAfterServerUpdate": true,
+    "autoResumeLimitedThreads": true,
     "responseStreamingMode": true
   },
   "desktop": {

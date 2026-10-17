@@ -1,0 +1,20 @@
+{
+  "baseUrl": "http://127.0.0.1:3774",
+  "t3CliPath": "t3",
+  "dayWindow": { "start": "08:00", "end": "00:00" },
+  "activeWindowMinutes": 180,
+  "tickSeconds": 120,
+  "leadSeconds": 30,
+  "maxRefreshesPerActivity": 3,
+  "sendGraceSeconds": 300,
+  "autoRenew": true,
+  "pruneDays": 7,
+  "redirectUri": "http://127.0.0.1:47811/callback",
+  "keepaliveMessage": "[cache keepalive] reply with just: ok",
+  "projects": [],
+  "skipSubagents": true,
+  "rules": [
+    { "provider": "codex", "modelContains": "gpt", "ttlSeconds": 1680 },
+    { "provider": "opencode", "modelContains": "deepseek", "ttlSeconds": 3600 }
+  ]
+}

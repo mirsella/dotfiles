@@ -1,6 +1,6 @@
 {
   "name": "opencode-extensions",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,13 +8,18 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "1.18.25",
-    "@opencode-ai/sdk": "1.18.25",
     "unbash": "4.0.10"
   },
   "devDependencies": {
     "@babel/core": "7.29.6",
     "@babel/preset-typescript": "7.24.1",
-    "babel-preset-solid": "1.8.17"
+    "babel-preset-solid": "1.8.17",
+    "@opencode/plugin": "2.0.31",
+    "@opencode/client": "2.0.31",
+    "@opentui/core": "0.6.6",
+    "@opentui/solid": "0.6.6",
+    "solid-js": "1.9.12",
+    "typescript": "5.9.3",
+    "@types/node": "24.0.0"
   }
 }

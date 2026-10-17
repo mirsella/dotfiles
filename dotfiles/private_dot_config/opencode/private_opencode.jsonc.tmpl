@@ -5,408 +5,467 @@
   {{- $llamaModel = "qwen3.6-35b-a3b-abliterated-v4" -}}
 {{- end -}}
 {
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "@pieliesdie/opencode-antigravity-auth@latest",
-    "opencode-queue",
-    "opencode-goal",
-    "file:///home/mirsella/.local/share/browser-mcp/current",
-    "file:///home/mirsella/.local/share/computer-use-mcp/current",
+  "$schema": "https://opencode.ai/v2/config.json",
+  "plugins": [
+    "opencode-queue@2.0.2",
+    "@mirsella/browser-mcp",
+    "@mirsella/computer-use-mcp"
   ],
-  "autoupdate": false,
-  "experimental": {
-    "disable_paste_summary": true,
-  },
+  "update": "disable",
   "formatter": {
     "rustfmt": {
-      "command": ["rustfmt", "$FILE"],
-      "extensions": [".rs"],
-    },
+      "command": [
+        "rustfmt",
+        "$FILE"
+      ],
+      "extensions": [
+        ".rs"
+      ]
+    }
   },
   "mcp": {
-    "context7-broker": {
-      "type": "local",
-      "command": ["{{ .chezmoi.homeDir }}/.local/bin/context7-account-broker", "mcp"],
-      "enabled": true,
-      "timeout": 30000,
-    },
-    "blender-mcp": {
-      "type": "local",
-      "command": ["/home/mirsella/.local/bin/uvx", "blender-mcp"],
-      "enabled": false,
-      "environment": {
-        "BLENDER_HOST": "localhost",
-        "BLENDER_PORT": "9876",
+    "servers": {
+      "context7-broker": {
+        "type": "local",
+        "command": [
+          "/home/mirsella/.local/bin/context7-account-broker",
+          "mcp"
+        ],
+        "timeout": {
+          "catalog": 30000,
+          "execution": 30000
+        },
+        "disabled": false
       },
-    },
-    "composio": {
-      "type": "remote",
-      "url": "https://backend.composio.dev/tool_router/trs_uiw6Hb4fJ8rr/mcp",
-      "enabled": true,
-      "oauth": false,
-      "headers": {
-        "x-org-id": "ok_UWjDVhCpLy46",
-        "x-project-id": "pr_ZEY9cNibczW1",
+      "blender-mcp": {
+        "type": "local",
+        "command": [
+          "/home/mirsella/.local/bin/uvx",
+          "blender-mcp"
+        ],
+        "environment": {
+          "BLENDER_HOST": "localhost",
+          "BLENDER_PORT": "9876"
+        },
+        "disabled": true
       },
+      "composio": {
+        "type": "remote",
+        "url": "https://backend.composio.dev/tool_router/trs_uiw6Hb4fJ8rr/mcp",
+        "oauth": false,
+        "headers": {
+          "x-org-id": "ok_UWjDVhCpLy46",
+          "x-project-id": "pr_ZEY9cNibczW1"
+        },
+        "disabled": false
+      },
+      "planetscale": {
+        "type": "remote",
+        "url": "https://mcp.pscale.dev/mcp/planetscale",
+        "disabled": true
+      },
+      "rea": {
+        "type": "local",
+        "command": [
+          "rea",
+          "mcp"
+        ],
+        "disabled": true
+      }
+    }
+  },
+  "permissions": [
+    {
+      "action": "shell",
+      "resource": "*",
+      "effect": "allow"
     },
-    "planetscale": {
-      "type": "remote",
-      "url": "https://mcp.pscale.dev/mcp/planetscale",
-      "enabled": false,
+    {
+      "action": "external_directory",
+      "resource": "*",
+      "effect": "allow"
     },
-    "rea": {
-      "type": "local",
-      "command": ["rea", "mcp"],
-      "enabled": false,
+    {
+      "action": "read",
+      "resource": "*",
+      "effect": "allow"
     },
-  },
-  "lsp": false,
-  "permission": {
-    "external_directory": "allow",
-    "read": "allow",
-  },
-  "tools": {
-    "todowrite": false,
-    "lsp": false,
-  },
-  "compaction": {
-    "prune": false,
-  },
-  "provider": {
+    {
+      "action": "todo",
+      "resource": "*",
+      "effect": "deny"
+    }
+  ],
+  "providers": {
     {{- if $llamaModel }}
     "llama.cpp": {
-      "npm": "@ai-sdk/openai-compatible",
       "name": "Local llama.cpp",
-      "options": {
-        "baseURL": "http://127.0.0.1:8080/v1",
+      "package": "aisdk:@ai-sdk/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:8080/v1"
       },
       "models": {
         "{{ $llamaModel }}": {
           "name": "{{ $llamaModel }}",
-          "tool_call": true,
-          "reasoning": true,
-          "interleaved": { "field": "reasoning_content" },
-          "options": { "reasoning_format": "deepseek" },
-          "variants": {
-            "thinking": { "chat_template_kwargs": { "enable_thinking": true } },
-            "low": { "disabled": true },
-            "medium": { "disabled": true },
-            "high": { "disabled": true },
+          "limit": {
+            "context": 32768,
+            "output": 8192
           },
-          "limit": { "context": 32768, "output": 8192 },
-          "modalities": {
-            "input": ["text"],
-            "output": ["text"],
+          "settings": {
+            "reasoning_format": "deepseek"
           },
-        },
-      },
+          "variants": [
+            {
+              "id": "thinking",
+              "settings": {
+                "chat_template_kwargs": {
+                  "enable_thinking": true
+                }
+              }
+            }
+          ],
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        }
+      }
     },
-    {{- end }}
     "google": {
       "models": {
-        "antigravity-gemini-3-pro": {
-          "name": "Gemini 3 Pro (Antigravity)",
-          "limit": { "context": 1048576, "output": 65535 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-          "variants": {
-            "low": { "thinkingLevel": "low" },
-            "high": { "thinkingLevel": "high" },
-          },
-        },
-        "antigravity-gemini-3.1-pro": {
-          "name": "Gemini 3.1 Pro (Antigravity)",
-          "limit": { "context": 1048576, "output": 65535 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-          "variants": {
-            "low": { "thinkingLevel": "low" },
-            "high": { "thinkingLevel": "high" },
-          },
-        },
-        "antigravity-gemini-3-flash": {
-          "name": "Gemini 3 Flash (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-          "variants": {
-            "minimal": { "thinkingLevel": "minimal" },
-            "low": { "thinkingLevel": "low" },
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
-        },
-        "antigravity-gemini-3.5-flash": {
-          "name": "Gemini 3.5 Flash (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-          "variants": {
-            "minimal": { "thinkingLevel": "minimal" },
-            "low": { "thinkingLevel": "low" },
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
-        },
-        "antigravity-gemini-3.6-flash": {
-          "name": "Gemini 3.6 Flash (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-          "variants": {
-            "low": { "thinkingLevel": "low" },
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
-        },
-        "antigravity-gemini-3.7-flash": {
-          "name": "Gemini 3.7 Flash (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-          "variants": {
-            "minimal": { "thinkingLevel": "minimal" },
-            "low": { "thinkingLevel": "low" },
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
-        },
-        "antigravity-gemini-3.8-flash": {
-          "name": "Gemini 3.8 Flash (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-          "variants": {
-            "low": { "thinkingLevel": "low" },
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
-        },
-        "antigravity-claude-sonnet-4-6": {
-          "name": "Claude Sonnet 4.6 (Antigravity)",
-          "limit": { "context": 200000, "output": 64000 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-        },
-        "antigravity-claude-opus-4-6-thinking": {
-          "name": "Claude Opus 4.6 Thinking (Antigravity)",
-          "limit": { "context": 200000, "output": 64000 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-          },
-          "variants": {
-            "low": { "thinkingConfig": { "thinkingBudget": 8192 } },
-            "max": { "thinkingConfig": { "thinkingBudget": 32768 } },
-          },
-        },
         "gemini-2.5-flash": {
           "name": "Gemini 2.5 Flash (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65536
           },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-2.5-pro": {
           "name": "Gemini 2.5 Pro (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65536
           },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3-flash-preview": {
           "name": "Gemini 3 Flash Preview (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65536
           },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3.5-flash": {
           "name": "Gemini 3.5 Flash (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65536
           },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3.5-flash-lite": {
           "name": "Gemini 3.5 Flash-Lite (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65536
           },
-          "variants": {
-            "minimal": { "thinkingLevel": "minimal" },
-            "low": { "thinkingLevel": "low" },
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
+          "variants": [
+            {
+              "id": "minimal",
+              "settings": {
+                "thinkingLevel": "minimal"
+              }
+            },
+            {
+              "id": "low",
+              "settings": {
+                "thinkingLevel": "low"
+              }
+            },
+            {
+              "id": "medium",
+              "settings": {
+                "thinkingLevel": "medium"
+              }
+            },
+            {
+              "id": "high",
+              "settings": {
+                "thinkingLevel": "high"
+              }
+            }
+          ],
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3.6-flash": {
           "name": "Gemini 3.6 Flash (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65536
           },
-          "variants": {
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
+          "variants": [
+            {
+              "id": "medium",
+              "settings": {
+                "thinkingLevel": "medium"
+              }
+            },
+            {
+              "id": "high",
+              "settings": {
+                "thinkingLevel": "high"
+              }
+            }
+          ],
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3.7-flash": {
           "name": "Gemini 3.7 Flash (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65536
           },
-          "variants": {
-            "minimal": { "thinkingLevel": "minimal" },
-            "low": { "thinkingLevel": "low" },
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
+          "variants": [
+            {
+              "id": "minimal",
+              "settings": {
+                "thinkingLevel": "minimal"
+              }
+            },
+            {
+              "id": "low",
+              "settings": {
+                "thinkingLevel": "low"
+              }
+            },
+            {
+              "id": "medium",
+              "settings": {
+                "thinkingLevel": "medium"
+              }
+            },
+            {
+              "id": "high",
+              "settings": {
+                "thinkingLevel": "high"
+              }
+            }
+          ],
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3.8-flash": {
           "name": "Gemini 3.8 Flash (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65536
           },
-          "variants": {
-            "low": { "thinkingLevel": "low" },
-            "medium": { "thinkingLevel": "medium" },
-            "high": { "thinkingLevel": "high" },
-          },
+          "variants": [
+            {
+              "id": "low",
+              "settings": {
+                "thinkingLevel": "low"
+              }
+            },
+            {
+              "id": "medium",
+              "settings": {
+                "thinkingLevel": "medium"
+              }
+            },
+            {
+              "id": "high",
+              "settings": {
+                "thinkingLevel": "high"
+              }
+            }
+          ],
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3-pro-preview": {
           "name": "Gemini 3 Pro Preview (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65535 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65535
           },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3.1-pro": {
           "name": "Gemini 3.1 Pro (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65535 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65535
           },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         },
         "gemini-3.1-pro-preview-customtools": {
           "name": "Gemini 3.1 Pro Preview Custom Tools (Gemini CLI)",
-          "limit": { "context": 1048576, "output": 65535 },
-          "modalities": {
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
+          "limit": {
+            "context": 1048576,
+            "output": 65535
           },
-        },
-      },
+          "capabilities": {
+            "tools": true,
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
+        }
+      }
     },
+    {{- end }}
     "openai": {
-      "models": {
-        "gpt-6-luna": {
-          "variants": {
-            "none": {
-              "disabled": true,
-            },
-            "minimal": {
-              "disabled": true,
-            },
-            "low": {
-              "disabled": true,
-            },
-            "medium": {
-              "disabled": true,
-            },
-            "high": {
-              "disabled": true,
-            },
-            "xhigh": {
-              "disabled": true,
-            },
-          },
-        },
-        "gpt-6-sol-fast": {
-          "variants": {
-            "none": {
-              "disabled": true,
-            },
-            "minimal": {
-              "disabled": true,
-            },
-          },
-        },
-        "gpt-6-sol": {
-          "variants": {
-            "none": {
-              "disabled": true,
-            },
-            "minimal": {
-              "disabled": true,
-            },
-          },
-        },
+      "headers": {
+        "sleev-provider": "codex",
+        "sleev-harness": "opencode"
       },
-      "options": {
+      "settings": {
         "chunkTimeout": 180000,
-        "headers": {
-          "sleev-provider": "codex",
-          "sleev-harness": "opencode",
-        },
-        "baseURL": "http://127.0.0.1:17321",
+        "baseURL": "http://127.0.0.1:17321"
       },
+      "models": {
+        "gpt-6-luna": {},
+        "gpt-6-sol-fast": {},
+        "gpt-6-sol": {}
+      }
     },
     "opencode": {
-      "options": {
-        "headers": {
-          "sleev-provider": "opencode",
-          "sleev-harness": "opencode",
-        },
-        "baseURL": "http://127.0.0.1:17321",
+      "headers": {
+        "sleev-provider": "opencode",
+        "sleev-harness": "opencode"
       },
+      "settings": {
+        "baseURL": "http://127.0.0.1:17321"
+      }
     },
     "opencode-go": {
-      "options": {
-        "headers": {
-          "sleev-provider": "opencode-go",
-          "sleev-harness": "opencode",
-        },
-        "baseURL": "http://127.0.0.1:17321",
+      "headers": {
+        "sleev-provider": "opencode-go",
+        "sleev-harness": "opencode"
       },
+      "settings": {
+        "baseURL": "http://127.0.0.1:17321"
+      }
     },
     "deepinfra": {
-      "options": {
-        "baseURL": "http://127.0.0.1:17321",
-        "headers": {
-          "sleev-harness": "opencode",
-          "sleev-base-url": "https://api.deepinfra.com/v1",
-        },
+      "headers": {
+        "sleev-harness": "opencode",
+        "sleev-base-url": "https://api.deepinfra.com/v1"
       },
-    },
-  },
+      "settings": {
+        "baseURL": "http://127.0.0.1:17321"
+      }
+    }
+  }
 }

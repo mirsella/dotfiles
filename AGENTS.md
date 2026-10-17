@@ -22,33 +22,39 @@ The flake discovers these directories and sets hostnames automatically.
 - Each host directory becomes a complete `nixosModules.<hostname>` and
   `nixosConfigurations.<hostname>`, including its required `hardware-configuration.nix`.
   See `README.md` for installation and rebuild commands.
-- Main's CoolerControl service installs the tracked TOML before each daemon start.
-  Config changes change the systemd unit and trigger a restart on rebuild.
-  Save permanent curve edits in `dotfiles/system/main/etc/coolercontrol/config.toml`.
+- Main uses lm-sensors fancontrol and an event-driven power-profile watcher.
+  Save its ramps in `hosts/main/fan-control.json`; its system units in the same
+  directory are shared by NixOS and Arch. Keep CPU die temperature as the source.
+  Never order the fan units after power-profiles-daemon: it is ordered after
+  multi-user.target, so ordering after it is a boot ordering cycle that makes
+  systemd delete the fan start jobs. Keep their start rate limit disabled
+  (`StartLimitIntervalSec=0`): a fan or watcher failsafe has to keep retrying
+  instead of staying dead.
 - Chezmoi owns editable app configuration. Home Manager owns packages, generated
   Git/SSH settings, user services and SOPS wiring. Keep each path under one
   owner; `.chezmoiignore` lists the HM-owned paths.
 - OpenCode extensions and their tests live in `pkgs/opencode-extensions`; Home
   Manager installs the compiled plugins. Its editable JSON settings remain in
   chezmoi. The idle watchdog is compiled from `pkgs/opencode-idle-watchdog`.
-- OpenCode's plain command and skill files are the canonical prompts, owned by
-  chezmoi. Edit them in `~/.config/opencode` and use `chezmoi re-add` to save edits.
-  `host-tools sync-agent-skills` creates the local shared-skill link and Codex/Hermes
-  command adapters from that live config. These generated paths are ignored by
-  chezmoi; do not track copies or turn OpenCode prompts into templates.
+- OpenCode's skill files are the canonical prompts, owned by chezmoi. Edit them
+  in `~/.config/opencode/skills` and use `chezmoi re-add` to save edits. Home Manager
+  links `~/.agents/skills` to that directory for Codex and Hermes. The shared link
+  is ignored by chezmoi; do not track copies or turn skills into templates.
 - Retire one-time migrations after every affected host has completed them. Keep
   deployment evidence in Git history rather than permanent acceptance reports.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
-- On Arch, pacman/AUR own application binaries; the HM profiles install config
+- OpenCode, Codex and T3 use writable standalone installs bootstrapped by
+  `programs.agent-tools`; T3 can update the native agent binaries. On Arch,
+  pacman/AUR own other application binaries; the HM profiles install config
   and services, and kache from the flake so the daemon and cargo wrapper always
   match. On NixOS, rebuild the system target, never activate a standalone
   HM profile for the same user. The standalone homes remain available for Arch.
 - Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
   especially `flake.lock` (the weekly upgrade updates nixpkgs there). Sync only
   reviewed changes; do not use whole-tree `rsync --delete` over concurrent work.
-  Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake path:/home/mirsella/dev/dotfiles#predator'`.
+  Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/dev/dotfiles#predator'`.
   Run long rebuilds detached and poll the unit log and exit status.
 - Predator's initrd OS separator and signed SHA-256 PCR 11 policies protect all
   five disks. Root unlocks at `enter-initrd`; data unlocks at
@@ -56,7 +62,10 @@ The flake discovers these directories and sets hostnames automatically.
   Lanzaboote signature companion hook and phase ordering intact. After reboot,
   `sudo predator-boot audit` proves token use and late-phase rejection. Preserve
   `/var/lib/predator-boot` and `/var/lib/sbctl`; see README for recovery.
-- `nix flake check path:. --no-build --no-update-lock-file` evaluates all profiles
+- Use Git-backed flake references (`.`, `.#package` or the checkout's absolute
+  path without `path:`) so Nix excludes `.agents-local/`. Add new source files to
+  the Git index before evaluating; they do not need to be committed.
+- `nix flake check . --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`.
   Run focused Cargo tests for monitoring, backups and suspend changes. The
   `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during
@@ -70,13 +79,13 @@ The flake discovers these directories and sets hostnames automatically.
   `tank` uses three encrypted HDDs in RAIDZ1 and tolerates one failed HDD.
   The read-only migration copy `fast/tank-pre-raidz1-20261003` is a fixed recovery point on the separate
   SSD, not an ongoing backup. SMART and ZED send storage warnings via Resend.
-- Syncoid replicates the two live SSD datasets to read-only, unmounted
-  `tank/replica/{data,ncdata}` at 23:45. Recovery bundles run at 23:10 under
+- A nightly restic backup copies `fast/data` and `fast/ncdata` from throwaway
+  `.zfs/snapshot/restic-backup` snapshots to `/srv/backup/restic` at 23:50.
+  Recovery bundles run Sundays at 23:10 under
   `/srv/backup/recovery/latest`: current LUKS headers and a private archive of
   TPM policy authorities, the SOPS host identity and Secure Boot signing keys. Keep this directory root-only.
   Database dumps use `/srv/backup/recovery/db/latest` on the same private dataset;
-  both jobs publish atomically and retain 14 complete bundles. Existing dumps in
-  `/srv/backup/db/` need moving before deploying the new path.
+  all jobs publish atomically, retain 7 complete bundles, and ping healthchecks.io on success.
 - Data disks unlock through optional runtime crypttab units, not initrd. All data
   datasets use systemd-managed legacy mounts with `nofail`. Keep missing data disks
   nonfatal to boot, allow degraded RAIDZ1 imports, and gate writers on their mounts.
@@ -88,8 +97,8 @@ Manual files outside the repo:
   storage timers and the fail2ban SSH jail are installed from
   `arch/maintenance/apply.py`. System
   Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks
-  remain manual. `pacman.conf` also pins `IgnorePkg = openchamber` so the AUR
-  package stays on 1.x with OpenCode 1.x. The Nix daemon ignores cache settings
+  remain manual. Remove the old `IgnorePkg = openchamber` pin when activating
+  OpenCode 2.x and OpenChamber 2.x together. The Nix daemon ignores cache settings
   from an untrusted Home Manager user config.
 - Predator: Freebox LAN IP is `192.168.1.1`; SMART runs daily short and weekly
   long tests on all five physical drives. Toshiba's earlier USB setup had repeated
@@ -97,6 +106,42 @@ Manual files outside the repo:
   if this recurs.
 - rpi (Debian) is outside the flake; its fail2ban SSH jail is tuned by hand in
   `/etc/fail2ban/jail.d/sshd.local` with the same values as the workstations.
+
+## Nextcloud access
+
+On main and laptop, use the configured `nextcloud:` rclone remote directly.
+Home Manager installs its SOPS-managed credentials at
+`~/.config/rclone/rclone.conf`. Do not print the config or copy credentials into
+commands, URLs or tracked files. On other hosts, check `rclone listremotes`
+before assuming the remote exists.
+
+```sh
+rclone lsf nextcloud: --dirs-only                 # discover folders and external drives
+rclone lsf 'nextcloud:Documents/'                 # list one folder
+rclone lsjson 'nextcloud:Documents/'              # structured listing for agents
+rclone cat 'nextcloud:Documents/notes.txt'         # read a small text file
+rclone copyto 'nextcloud:Documents/report.pdf' ./report.pdf
+rclone copyto ./report.pdf 'nextcloud:Documents/report.pdf' --dry-run
+```
+
+For edits, download only the required files into a task directory under `~/dev`,
+edit locally, then upload to the exact remote path with `copyto`. Uploads can
+overwrite existing files; check for remote changes before replacing them and
+remove `--dry-run` only for an intended write. Use `--max-depth` or a narrow path
+instead of recursively listing the whole account. For unattended operations,
+prefix the command with `timeout 2m` and bound retries with
+`--retries 1 --low-level-retries 1 --contimeout 10s --timeout 30s`.
+
+Do not use `rclone sync`, `move`, `delete` or `purge` without authorization for
+the affected files. Do not write directly to Nextcloud's server-side data
+directory, which bypasses its file index. A 502 response is a server/proxy
+failure; report it rather than changing credentials or creating a mount.
+
+Dolphin's Network section contains a Nextcloud WebDAV shortcut, installed by
+`modules/home/workstation.nix`. It uses KWallet for credentials and can be added
+to Places through Dolphin. Keep Nextcloud unmounted: an unavailable rclone/FUSE
+mount can block local trash scans. `~/Documents/Nextcloud` is not a cloud path.
+The `dolphin-nextcloud` sync-client plugin is not needed for WebDAV browsing.
 
 ## LAN machine map (`~/.ssh/config` aliases)
 

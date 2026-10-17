@@ -2002,10 +2002,10 @@ static void acer_led_exit(void)
  * Keyboard backlight LED device (single-zone on/off models where the EC
  * tracks the state in its own RAM instead of answering WMI)
  */
-static void kbd_backlight_led_set(struct led_classdev *led_cdev,
-				  enum led_brightness value)
+static int kbd_backlight_led_set(struct led_classdev *led_cdev,
+				 enum led_brightness value)
 {
-	set_u32(value, ACER_CAP_KBD_BACKLIGHT);
+	return ACPI_FAILURE(set_u32(value, ACER_CAP_KBD_BACKLIGHT)) ? -EIO : 0;
 }
 
 static enum led_brightness kbd_backlight_led_get(struct led_classdev *led_cdev)
@@ -2019,7 +2019,7 @@ static enum led_brightness kbd_backlight_led_get(struct led_classdev *led_cdev)
 
 static struct led_classdev kbd_backlight_led = {
 	.name = "acer-wmi::kbd_backlight",
-	.brightness_set = kbd_backlight_led_set,
+	.brightness_set_blocking = kbd_backlight_led_set,
 	.brightness_get = kbd_backlight_led_get,
 	.max_brightness = 1,
 };

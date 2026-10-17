@@ -2,6 +2,10 @@
   description = "mirsella dotfiles";
 
   inputs = {
+    context7-account-broker = {
+      url = "github:mirsella/context7-account-broker/d9476107e9b961d970af806e94fe47efca87aaa7";
+      flake = false;
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
     neovim-nightly-overlay.url = "github:nix-community/neovim-nightly-overlay";
@@ -35,19 +39,19 @@
     let
       overlays = [
         inputs.neovim-nightly-overlay.overlays.default
-        (final: _: import ./pkgs final)
+        (final: _: (import ./pkgs final) // {
+          context7-account-broker = final.callPackage "${inputs.context7-account-broker}/nix/package.nix" { };
+        })
       ];
       pkgs = import nixpkgs {
         system = "x86_64-linux";
         inherit overlays;
         config.allowUnfreePredicate = package: nixpkgs.lib.getName package == "sleev";
       };
-      customPackages = import ./pkgs pkgs;
+      customPackages = (import ./pkgs pkgs) // { inherit (pkgs) context7-account-broker; };
       # nix-update follows each package's own versioning: npm releases regenerate the lock, release tarballs use the stable version, and VCS packages track their branch.
-      releaseTarballs = [ "helium" "kache" "zen-browser" ];
-      # Keep OpenChamber on 1.x while the workstations run OpenCode 1.x; unpin both together.
-      pinnedPackages = [ "openchamber" ];
-      localPackages = [ "host-tools" "sleev" "opencode-extensions" "opencode-idle-watchdog" ];
+      releaseTarballs = [ "helium" "kache" "zen-browser" "opencode" ];
+      localPackages = [ "host-tools" "sleev" "opencode-extensions" "opencode-idle-watchdog" "context7-account-broker" "t3-cache-warmer" ];
       updateVersionFlag = name:
         if builtins.elem name releaseTarballs then
           "--version stable"
@@ -58,7 +62,7 @@
       updateCommands = builtins.concatStringsSep "\n" (
         builtins.map
           (name: "nix-update --flake ${updateVersionFlag name} ${nixpkgs.lib.escapeShellArg name}")
-          (nixpkgs.lib.subtractLists (pinnedPackages ++ localPackages) (builtins.attrNames customPackages))
+          (nixpkgs.lib.subtractLists localPackages (builtins.attrNames customPackages))
       );
       updatePackages = pkgs.writeShellApplication {
         name = "update-packages";
@@ -100,7 +104,10 @@
       }) hostDirs;
     in
     {
-      packages.x86_64-linux = customPackages // { update-packages = updatePackages; };
+      packages.x86_64-linux = customPackages // {
+        update-packages = updatePackages;
+        workstation-memory-config = pkgs.callPackage ./arch/memory.nix { };
+      };
 
       nixosModules = hostModules;
       nixosConfigurations = builtins.mapAttrs (_: module: nixpkgs.lib.nixosSystem {
@@ -131,6 +138,7 @@
           (pkgs.runCommand "${name}-invariants" { } ''touch "$out"'')
       ) {
         hosts = ./tests/hosts.nix;
+        memory = ./tests/memory.nix;
         predator = ./tests/predator.nix;
       } // {
         hermes-browser-policy = pkgs.runCommand "hermes-browser-policy-tests" {

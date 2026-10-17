@@ -1,5 +1,5 @@
 use crate::util;
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -26,6 +26,25 @@ pub enum Operation {
         input: Option<PathBuf>,
         #[arg(long)]
         dry_run: bool,
+    },
+    /// Reconcile live T3 settings with the portable bundle in either direction.
+    ///
+    /// When only one side changed since the last sync, that side wins. When
+    /// both changed, sync does nothing and exits nonzero; resolve it with
+    /// --force-apply (bundle wins) or --force-capture (live wins). Every
+    /// overwrite and conflict is archived under
+    /// ~/.local/state/agent-tools/t3-settings-history/ for recovery.
+    Sync {
+        #[arg(long)]
+        input: Option<PathBuf>,
+        #[arg(long)]
+        dry_run: bool,
+        /// Overwrite live settings with the bundle to resolve a conflict (bundle wins).
+        #[arg(long, conflicts_with = "force_capture")]
+        force_apply: bool,
+        /// Overwrite the bundle with live settings to resolve a conflict (live wins).
+        #[arg(long, conflicts_with = "force_apply")]
+        force_capture: bool,
     },
 }
 
@@ -182,6 +201,9 @@ impl Policy {
     // Unknown object fields survive; lists are replaced as complete values.
     fn merge(&self, current: &mut Value, saved: Option<&Value>, rule: &Value) -> bool {
         let rule = self.rule(rule);
+        if rule.is_object() && !current.is_object() && saved.is_some_and(Value::is_object) {
+            *current = object();
+        }
         if rule.is_object() && current.is_object() && saved.is_none_or(Value::is_object) {
             let rules = rule.as_object().unwrap();
             let empty = Map::new();
@@ -333,12 +355,7 @@ impl SettingsFile {
         })
     }
 
-    fn write(self) -> Result<bool> {
-        if let Some(bytes) = &self.original {
-            if serde_json::from_slice::<Value>(bytes)? == self.value {
-                return Ok(false);
-            }
-        }
+    fn verify_unchanged(&self) -> Result<()> {
         let latest = match fs::read(&self.path) {
             Ok(bytes) => Some(bytes),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
@@ -349,6 +366,16 @@ impl SettingsFile {
             "{} changed during restore; retry after closing the settings editor",
             self.path.display()
         );
+        Ok(())
+    }
+
+    fn write(self) -> Result<bool> {
+        if let Some(bytes) = &self.original {
+            if serde_json::from_slice::<Value>(bytes)? == self.value {
+                return Ok(false);
+            }
+        }
+        self.verify_unchanged()?;
         fs::create_dir_all(self.path.parent().context("Settings path needs a parent")?)?;
         util::atomic_write(&self.path, &json_bytes(&self.value)?)?;
         Ok(true)
@@ -371,7 +398,9 @@ struct Session {
 }
 
 fn cli(base_dir: &Path, args: &[&str]) -> Result<Vec<u8>> {
-    let result = Command::new("t3")
+    let program =
+        PathBuf::from(std::env::var_os("HOME").context("HOME is unset")?).join(".local/bin/t3");
+    let result = Command::new(program)
         .args(args)
         .arg("--base-dir")
         .arg(base_dir)
@@ -387,11 +416,18 @@ fn cli(base_dir: &Path, args: &[&str]) -> Result<Vec<u8>> {
 
 impl Session {
     fn open(base_dir: &Path, write: bool) -> Result<Self> {
-        let runtime: Value = serde_json::from_slice(
-            &fs::read(base_dir.join("userdata/server-runtime.json"))
-                .context("Start the T3 background server before capturing or restoring projects")?,
-        )
-        .context("Parsing T3 server runtime")?;
+        let runtime_path = base_dir.join("userdata/server-runtime.json");
+        let runtime: Value = util::wait_for_file(
+            &runtime_path,
+            std::time::Duration::from_secs(60),
+            || match fs::read(&runtime_path) {
+                Ok(bytes) => Ok(Some(
+                    serde_json::from_slice(&bytes).context("Parsing T3 server runtime")?,
+                )),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+                Err(error) => Err(error).context("Reading T3 server runtime"),
+            },
+        )?;
         let origin = runtime["origin"]
             .as_str()
             .context("Start the T3 background server before capturing or restoring projects")?
@@ -749,12 +785,130 @@ fn restore_server(
     Ok(())
 }
 
+fn configure_native_opencode(server: &mut Value, home: &Path) -> Result<()> {
+    let Some(providers) = server
+        .get_mut("providerInstances")
+        .and_then(Value::as_object_mut)
+    else {
+        return Ok(());
+    };
+    let mut password = None;
+    for provider in providers.values_mut() {
+        if provider["driver"] != "opencode" || provider["enabled"] != true {
+            continue;
+        }
+        let Some(server_url) = provider["config"]["serverUrl"].as_str() else {
+            continue;
+        };
+        let url = url::Url::parse(server_url)?;
+        if url.scheme() != "http"
+            || !matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"))
+            || url.path() != "/"
+            || url.port_or_known_default() != Some(14096)
+        {
+            continue;
+        }
+        let password = match password {
+            Some(ref password) => password,
+            None => password.insert(crate::opencode::wait_password(
+                &home.join(".config/opencode/service.json"),
+            )?),
+        };
+        provider["config"]
+            .as_object_mut()
+            .context("OpenCode config requires an object")?
+            .insert("serverPassword".into(), json!(password));
+    }
+    Ok(())
+}
+
+/// Lenient twin of the `configure_native_opencode` match: a background
+/// reconciliation must skip odd providers, never fail the whole sync on them.
+fn uses_native_opencode(provider: &Value) -> bool {
+    if provider["driver"] != "opencode" || provider["enabled"] != true {
+        return false;
+    }
+    let Some(server_url) = provider["config"]["serverUrl"].as_str() else {
+        return false;
+    };
+    let Ok(url) = url::Url::parse(server_url) else {
+        return false;
+    };
+    url.scheme() == "http"
+        && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"))
+        && url.path() == "/"
+        && url.port_or_known_default() == Some(14096)
+}
+
+/// Read-only check for `ensure_native_password`, also used to preview the
+/// refresh on dry runs that otherwise report no action.
+fn native_password_stale(home: &Path, base_dir: &Path) -> Result<bool> {
+    let server = SettingsFile::read(base_dir.join("userdata/settings.json"), object())?;
+    let Some(password) = crate::opencode::password(&home.join(".config/opencode/service.json"))?
+    else {
+        return Ok(false);
+    };
+    Ok(server
+        .value
+        .get("providerInstances")
+        .and_then(Value::as_object)
+        .is_some_and(|providers| {
+            providers
+                .values()
+                .filter(|p| uses_native_opencode(p))
+                .any(|p| {
+                    p["config"].get("serverPassword").and_then(Value::as_str) != Some(&password)
+                })
+        }))
+}
+
+/// Re-inject the native OpenCode password when only it changed. The password
+/// is excluded from sync comparisons, so an otherwise-in-sync run would never
+/// notice a rotation. Non-blocking: a missing service file simply skips.
+fn ensure_native_password(home: &Path, base_dir: &Path) -> Result<bool> {
+    if !native_password_stale(home, base_dir)? {
+        return Ok(false);
+    }
+    let mut server = SettingsFile::read(base_dir.join("userdata/settings.json"), object())?;
+    let Some(password) = crate::opencode::password(&home.join(".config/opencode/service.json"))?
+    else {
+        return Ok(false);
+    };
+    let Some(providers) = server
+        .value
+        .get_mut("providerInstances")
+        .and_then(Value::as_object_mut)
+    else {
+        return Ok(false);
+    };
+    let mut changed = false;
+    for provider in providers.values_mut() {
+        if !uses_native_opencode(provider) {
+            continue;
+        }
+        let config = provider["config"]
+            .as_object_mut()
+            .context("OpenCode config requires an object")?;
+        if config.get("serverPassword").and_then(Value::as_str) != Some(&password) {
+            config.insert("serverPassword".into(), json!(password));
+            changed = true;
+        }
+    }
+    if changed {
+        server.write()?;
+    }
+    Ok(changed)
+}
+
+const SECTIONS: [&str; 4] = ["client", "desktop", "keybindings", "server"];
+
 fn apply(
     policy: &Policy,
     mut bundle: Bundle,
     home: &Path,
     base_dir: &Path,
     dry_run: bool,
+    record: bool,
 ) -> Result<()> {
     validate_bundle(policy, &bundle)?;
     transform_paths(&mut bundle, home, false);
@@ -781,6 +935,7 @@ fn apply(
     let ids = restore_projects(&session, &bundle, home, dry_run)?;
     server = SettingsFile::read(dir.join("settings.json"), object())?;
     restore_server(policy, &mut server.value, &bundle, &ids)?;
+    configure_native_opencode(&mut server.value, home)?;
     if dry_run {
         println!(
             "Validated portable settings and {} existing projects; no settings or projects changed",
@@ -788,15 +943,619 @@ fn apply(
         );
         return Ok(());
     }
+    let files = [client, desktop, keybindings, server];
+    // Project mutations above take seconds; recheck every file before writing
+    // any of them so a concurrent editor cannot cause a partial restore.
+    for file in &files {
+        file.verify_unchanged()?;
+    }
+    let snapshots = original_snapshots(&files.iter().collect::<Vec<_>>());
     let mut changed = 0;
-    for file in [client, desktop, keybindings, server] {
+    for file in files {
         changed += usize::from(file.write()?);
+    }
+    if record && changed > 0 {
+        let mut before_all = Map::new();
+        let mut after_all = Map::new();
+        for ((before, after), section) in snapshots.into_iter().zip(SECTIONS) {
+            before_all.insert(section.to_owned(), before);
+            after_all.insert(section.to_owned(), after);
+        }
+        let before = Value::Object(before_all);
+        let after = Value::Object(after_all);
+        record_history(
+            home,
+            "apply",
+            false,
+            diff_summary(&before, &after),
+            &before,
+            &after,
+        )?;
     }
     println!(
         "Merged portable settings into {changed} files and restored {} projects. Restart the desktop to reload client preferences",
         ids.len()
     );
     Ok(())
+}
+
+fn original_snapshots(files: &[&SettingsFile]) -> Vec<(Value, Value)> {
+    files
+        .iter()
+        .map(|file| {
+            let before = file
+                .original
+                .as_ref()
+                .and_then(|bytes| serde_json::from_slice(bytes).ok())
+                .unwrap_or(Value::Null);
+            (before, file.value.clone())
+        })
+        .collect()
+}
+
+const SYNC_STATE_VERSION: u32 = 1;
+const HISTORY_KEEP: usize = 30;
+const MAX_DIFF_LINES: usize = 120;
+const DIFF_VALUE_LIMIT: usize = 160;
+
+/// Last reconciled content of both sides, used to detect who changed.
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct SyncState {
+    version: u32,
+    bundle: Value,
+    live: Option<Value>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct HistoryEntry {
+    timestamp: String,
+    direction: String,
+    forced: bool,
+    diff: Vec<String>,
+    before: Value,
+    after: Value,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum Decision {
+    InSync,
+    CaptureLive,
+    ApplyBundle,
+    Provision,
+    /// No sync record yet, but live settings exist and differ from the bundle.
+    /// Without a common ancestor this is adoption (fresh-machine onboarding),
+    /// not a conflict: the live side is backed up to history, then the bundle
+    /// is applied.
+    AdoptBundle,
+    Conflict,
+}
+
+fn decide(load: &StateLoad, live: Option<&Value>, bundle: &Value) -> Decision {
+    let Some(live) = live else {
+        return Decision::Provision;
+    };
+    // Agreeing sides are in sync even against a stale record: manual capture
+    // and apply rewrite one side without recording sync state.
+    if live == bundle {
+        return Decision::InSync;
+    }
+    match load {
+        // No common ancestor exists to call this a conflict: the live side
+        // is backed up to history, then the bundle is applied.
+        StateLoad::Absent => Decision::AdoptBundle,
+        // Without a usable record neither side can be proven unchanged, so
+        // stop instead of picking a winner.
+        StateLoad::Unusable => Decision::Conflict,
+        StateLoad::Present(state) => {
+            let live_changed = state.live.as_ref() != Some(live);
+            let bundle_changed = &state.bundle != bundle;
+            match (live_changed, bundle_changed) {
+                (false, false) => Decision::InSync,
+                (true, false) => Decision::CaptureLive,
+                (false, true) => Decision::ApplyBundle,
+                (true, true) => Decision::Conflict,
+            }
+        }
+    }
+}
+
+fn sync_state_path(home: &Path) -> PathBuf {
+    home.join(".local/state/agent-tools/t3-settings-sync.json")
+}
+
+fn history_dir(home: &Path) -> PathBuf {
+    home.join(".local/state/agent-tools/t3-settings-history")
+}
+
+/// How the last reconciliation record loaded. Only a missing record means
+/// fresh-machine onboarding; a corrupt record or one from a newer version
+/// must stop like a conflict instead of silently adopting the bundle over
+/// live customizations.
+enum StateLoad {
+    Absent,
+    Unusable,
+    Present(SyncState),
+}
+
+fn load_state(home: &Path) -> StateLoad {
+    let path = sync_state_path(home);
+    let bytes = match fs::read(&path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return StateLoad::Absent,
+        Err(error) => {
+            eprintln!(
+                "warning: cannot read T3 sync state at {}: {error}",
+                path.display()
+            );
+            return StateLoad::Unusable;
+        }
+    };
+    match serde_json::from_slice::<SyncState>(&bytes) {
+        Ok(state) if state.version == SYNC_STATE_VERSION => StateLoad::Present(state),
+        Ok(_) => {
+            eprintln!("warning: ignoring T3 sync state with an unsupported version");
+            StateLoad::Unusable
+        }
+        Err(error) => {
+            eprintln!("warning: ignoring corrupt T3 sync state: {error}");
+            StateLoad::Unusable
+        }
+    }
+}
+
+fn save_state(home: &Path, state: &SyncState) -> Result<()> {
+    let path = sync_state_path(home);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    util::atomic_write(&path, &json_bytes(state)?)?;
+    Ok(())
+}
+
+fn record_history(
+    home: &Path,
+    direction: &str,
+    forced: bool,
+    diff: Vec<String>,
+    before: &Value,
+    after: &Value,
+) -> Result<()> {
+    let dir = history_dir(home);
+    fs::create_dir_all(&dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(&dir, fs::Permissions::from_mode(0o700));
+    }
+    let entry = HistoryEntry {
+        timestamp: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        direction: direction.to_owned(),
+        forced,
+        diff,
+        before: before.clone(),
+        after: after.clone(),
+    };
+    let name = format!(
+        "{}-{}.json",
+        chrono::Utc::now().format("%Y%m%dT%H%M%S%.9fZ"),
+        direction
+    );
+    util::atomic_write(&dir.join(&name), &json_bytes(&entry)?)?;
+    let mut names: Vec<_> = fs::read_dir(&dir)?
+        .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+        .filter(|name| name.ends_with(".json"))
+        .collect();
+    names.sort();
+    while names.len() > HISTORY_KEEP {
+        let _ = fs::remove_file(dir.join(names.remove(0)));
+    }
+    Ok(())
+}
+
+/// Newest history entry, so an unchanged conflict stops re-archiving itself
+/// on every trigger and evicting real recovery snapshots from retention.
+fn last_history_entry(home: &Path) -> Option<HistoryEntry> {
+    let dir = history_dir(home);
+    let latest = fs::read_dir(&dir)
+        .ok()?
+        .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+        .filter(|name| name.ends_with(".json"))
+        .max()?;
+    serde_json::from_slice(&fs::read(dir.join(latest)).ok()?).ok()
+}
+
+fn describe(value: &Value) -> String {
+    let text = serde_json::to_string(value).unwrap_or_else(|_| "?".into());
+    if text.chars().count() > DIFF_VALUE_LIMIT {
+        let truncated: String = text.chars().take(DIFF_VALUE_LIMIT).collect();
+        format!("{truncated}…")
+    } else {
+        text
+    }
+}
+
+fn diff_values(old: &Value, new: &Value, path: &str, out: &mut Vec<String>) {
+    if old == new || out.len() >= MAX_DIFF_LINES {
+        return;
+    }
+    match (old, new) {
+        (Value::Object(old), Value::Object(new)) => {
+            let mut keys: BTreeSet<&String> = BTreeSet::new();
+            keys.extend(old.keys());
+            keys.extend(new.keys());
+            for key in keys {
+                let child = if path.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{path}.{key}")
+                };
+                match (old.get(key), new.get(key)) {
+                    (Some(o), Some(n)) => diff_values(o, n, &child, out),
+                    (Some(o), None) => {
+                        out.push(format!("{child}: {} → (absent)", describe(o)));
+                    }
+                    (None, Some(n)) => {
+                        out.push(format!("{child}: (absent) → {}", describe(n)));
+                    }
+                    (None, None) => unreachable!(),
+                }
+                if out.len() >= MAX_DIFF_LINES {
+                    return;
+                }
+            }
+        }
+        (Value::Array(old), Value::Array(new)) => {
+            if old.len() != new.len() {
+                out.push(format!(
+                    "{path}: [{} items → {} items]",
+                    old.len(),
+                    new.len()
+                ));
+            }
+            for (index, (o, n)) in old.iter().zip(new.iter()).enumerate() {
+                diff_values(o, n, &format!("{path}[{index}]"), out);
+                if out.len() >= MAX_DIFF_LINES {
+                    return;
+                }
+            }
+            for (index, item) in new.iter().enumerate().skip(old.len()) {
+                out.push(format!("{path}[{index}]: (absent) → {}", describe(item)));
+            }
+            for (index, item) in old.iter().enumerate().skip(new.len()) {
+                out.push(format!("{path}[{index}]: {} → (absent)", describe(item)));
+            }
+        }
+        _ => out.push(format!("{path}: {} → {}", describe(old), describe(new))),
+    }
+}
+
+fn diff_summary(old: &Value, new: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    diff_values(old, new, "", &mut out);
+    if out.len() >= MAX_DIFF_LINES {
+        out.push(format!("… (truncated at {MAX_DIFF_LINES} lines)"));
+    }
+    out
+}
+
+fn print_diff(diff: &[String]) {
+    if diff.is_empty() {
+        println!("  (no content changes)");
+    }
+    for line in diff {
+        println!("  {line}");
+    }
+}
+
+fn read_bundle_file(path: &Path) -> Result<Option<Bundle>> {
+    match fs::read(path) {
+        Ok(bytes) => Ok(Some(
+            serde_json::from_slice(&bytes)
+                .with_context(|| format!("Parsing {}", path.display()))?,
+        )),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error).with_context(|| format!("Reading {}", path.display())),
+    }
+}
+
+fn bundle_value(bundle: &Bundle) -> Result<Value> {
+    serde_json::to_value(bundle).context("Serializing portable bundle")
+}
+
+fn write_bundle_file(path: &Path, base_dir: &Path, bundle: &Bundle) -> Result<bool> {
+    let output = capture_destination(path, base_dir)?;
+    let bytes = json_bytes(bundle)?;
+    match fs::read(&output) {
+        Ok(current) if current == bytes => Ok(false),
+        Ok(_) | Err(_) => {
+            util::atomic_write(&output, &bytes)?;
+            Ok(true)
+        }
+    }
+}
+
+fn sync_apply_and_snapshot(
+    policy: &Policy,
+    bundle: Bundle,
+    bundle_val: Value,
+    live_val: Option<Value>,
+    home: &Path,
+    base_dir: &Path,
+    forced: bool,
+    direction: &str,
+) -> Result<()> {
+    let before = live_val.clone().unwrap_or_else(|| json!({}));
+    apply(policy, bundle, home, base_dir, false, false)?;
+    // The common operation only needs the post-apply snapshot and the diff
+    // against it; a failed re-read falls back to the intended bundle values
+    // with unknown live content.
+    let live = match capture(policy, home, base_dir) {
+        Ok(fresh) => Some(bundle_value(&fresh)?),
+        Err(error) => {
+            eprintln!("warning: applied the bundle but could not re-read live settings: {error:#}");
+            None
+        }
+    };
+    let after = live.as_ref().unwrap_or(&bundle_val);
+    let diff = diff_summary(&before, after);
+    // A no-op forced sync still refreshes state, but an empty diff is
+    // not worth a history slot.
+    if !diff.is_empty() {
+        print_diff(&diff);
+        record_history(home, direction, forced, diff, &before, &after)?;
+    }
+    save_state(
+        home,
+        &SyncState {
+            version: SYNC_STATE_VERSION,
+            bundle: bundle_val,
+            live,
+        },
+    )?;
+    println!("t3-settings sync: applied the portable bundle to live T3 settings");
+    Ok(())
+}
+
+fn sync(
+    policy: &Policy,
+    home: &Path,
+    base_dir: &Path,
+    input: Option<PathBuf>,
+    dry_run: bool,
+    force_apply: bool,
+    force_capture: bool,
+) -> Result<()> {
+    let bundle_path = input.unwrap_or_else(|| home.join(".config/t3code/portable-settings.json"));
+    let Some(bundle) = read_bundle_file(&bundle_path)? else {
+        println!(
+            "t3-settings sync: no portable bundle at {}; apply editable dotfiles to restore T3 preferences",
+            bundle_path.display()
+        );
+        return Ok(());
+    };
+    validate_bundle(policy, &bundle)?;
+    let bundle_val = bundle_value(&bundle)?;
+    let live_bundle = if base_dir.join("userdata").try_exists()? {
+        Some(capture(policy, home, base_dir)?)
+    } else {
+        None
+    };
+    let live_val = live_bundle.as_ref().map(bundle_value).transpose()?;
+    let load = load_state(home);
+    let mut decision = decide(&load, live_val.as_ref(), &bundle_val);
+    // The force flags resolve a conflict, not a decided direction: a flag
+    // aimed at the side that did not change would silently destroy the side
+    // that did, so outside a conflict the natural decision stands.
+    if decision == Decision::Conflict {
+        if force_capture {
+            ensure!(
+                live_bundle.is_some(),
+                "t3-settings sync --force-capture needs live T3 userdata"
+            );
+            decision = Decision::CaptureLive;
+        } else if force_apply {
+            decision = if live_bundle.is_none() {
+                Decision::Provision
+            } else {
+                Decision::ApplyBundle
+            };
+        }
+    } else if force_capture || force_apply {
+        let flag = if force_capture {
+            "--force-capture"
+        } else {
+            "--force-apply"
+        };
+        println!(
+            "t3-settings sync: ignoring {flag} outside a conflict; taking the decided direction"
+        );
+    }
+    // Adoption and plain applies push the bundle down; adoption only adds a
+    // backup notice since there is no previous sync record to compare against.
+    let adopting = matches!(decision, Decision::AdoptBundle);
+    match decision {
+        Decision::InSync => {
+            if dry_run {
+                println!("t3-settings sync: live settings and portable bundle match (dry run)");
+                if native_password_stale(home, base_dir)? {
+                    println!(
+                        "t3-settings sync: would refresh the native OpenCode service password in live settings (dry run)"
+                    );
+                }
+                return Ok(());
+            }
+            // The service credential is excluded from sync comparisons, so a
+            // rotation would otherwise go unnoticed on this path. The refresh
+            // leaves an audit entry: portable snapshots cannot show a
+            // password change, and raw snapshots must not archive secrets.
+            if ensure_native_password(home, base_dir)? {
+                println!(
+                    "t3-settings sync: refreshed the native OpenCode service password in live settings"
+                );
+                let snapshot = live_val
+                    .as_ref()
+                    .context("t3-settings sync: live T3 settings vanished")?;
+                record_history(
+                    home,
+                    "password",
+                    false,
+                    vec![
+                        "refreshed the native OpenCode service password in live settings"
+                            .to_owned(),
+                    ],
+                    snapshot,
+                    snapshot,
+                )?;
+            }
+            // Refresh stale records (manual capture/apply converge the sides
+            // without recording state) so the next change compares correctly.
+            let stale = match &load {
+                StateLoad::Present(state) => state.bundle != bundle_val || state.live != live_val,
+                _ => true,
+            };
+            if stale {
+                save_state(
+                    home,
+                    &SyncState {
+                        version: SYNC_STATE_VERSION,
+                        bundle: bundle_val,
+                        live: live_val,
+                    },
+                )?;
+                println!(
+                    "t3-settings sync: live settings and portable bundle match; recorded sync state"
+                );
+            } else {
+                println!("t3-settings sync: already in sync; nothing to do");
+            }
+            Ok(())
+        }
+        Decision::Provision => {
+            if dry_run {
+                println!(
+                    "t3-settings sync: would apply the portable bundle to fresh T3 userdata (dry run)"
+                );
+                return Ok(());
+            }
+            println!(
+                "t3-settings sync: no live T3 settings; provisioning from the portable bundle"
+            );
+            sync_apply_and_snapshot(
+                policy,
+                bundle,
+                bundle_val,
+                None,
+                home,
+                base_dir,
+                force_apply,
+                "apply",
+            )
+        }
+        Decision::CaptureLive => {
+            let live = live_bundle.context("t3-settings sync: live T3 settings vanished")?;
+            let live_v = live_val.context("t3-settings sync: live T3 settings vanished")?;
+            let diff = diff_summary(&bundle_val, &live_v);
+            if dry_run {
+                println!(
+                    "t3-settings sync: would capture live settings into the portable bundle (dry run)"
+                );
+                print_diff(&diff);
+                return Ok(());
+            }
+            if write_bundle_file(&bundle_path, base_dir, &live)? {
+                print_diff(&diff);
+                record_history(home, "capture", force_capture, diff, &bundle_val, &live_v)?;
+            }
+            save_state(
+                home,
+                &SyncState {
+                    version: SYNC_STATE_VERSION,
+                    bundle: live_v.clone(),
+                    live: Some(live_v),
+                },
+            )?;
+            println!(
+                "t3-settings sync: captured live T3 settings into {}",
+                bundle_path.display()
+            );
+            Ok(())
+        }
+        Decision::ApplyBundle | Decision::AdoptBundle => {
+            let live_v = live_val.context("t3-settings sync: live T3 settings vanished")?;
+            let diff = diff_summary(&live_v, &bundle_val);
+            let (direction, target) = if adopting {
+                ("adopt", "over unrecorded live settings")
+            } else {
+                ("apply", "to live T3 settings")
+            };
+            if adopting {
+                println!(
+                    "t3-settings sync: no previous sync record; backing up live settings to history, then adopting the portable bundle"
+                );
+            }
+            if dry_run {
+                println!(
+                    "t3-settings sync: would {direction} the portable bundle {target} (dry run)"
+                );
+                print_diff(&diff);
+                return Ok(());
+            }
+            if adopting {
+                print_diff(&diff);
+            }
+            sync_apply_and_snapshot(
+                policy,
+                bundle,
+                bundle_val,
+                Some(live_v),
+                home,
+                base_dir,
+                force_apply,
+                direction,
+            )
+        }
+        Decision::Conflict => {
+            let live_v = live_val.context("t3-settings sync: live T3 settings vanished")?;
+            // decide() only reports a conflict against a previous sync record
+            // or an unusable one; without a record there is no baseline, so
+            // the full sides render instead of changes.
+            let (live_base, bundle_base) = match &load {
+                StateLoad::Present(state) => (state.live.as_ref(), Some(&state.bundle)),
+                _ => {
+                    eprintln!(
+                        "warning: T3 sync record is missing or unusable; stopping instead of picking a winner"
+                    );
+                    (None, None)
+                }
+            };
+            let mut combined = vec!["live changes since last sync:".to_owned()];
+            combined.extend(diff_summary(live_base.unwrap_or(&Value::Null), &live_v));
+            combined.push("bundle changes since last sync:".to_owned());
+            combined.extend(diff_summary(
+                bundle_base.unwrap_or(&Value::Null),
+                &bundle_val,
+            ));
+            if dry_run {
+                println!("t3-settings sync: would stop on conflicting changes (dry run)");
+                print_diff(&combined);
+                return Ok(());
+            }
+            eprintln!(
+                "t3-settings sync: CONFLICT — live settings and the portable bundle both changed; doing nothing"
+            );
+            print_diff(&combined);
+            let duplicate = last_history_entry(home)
+                .is_some_and(|entry| entry.direction == "conflict" && entry.diff == combined);
+            if !duplicate {
+                record_history(home, "conflict", false, combined, &bundle_val, &live_v)?;
+            }
+            bail!(
+                "resolve with `t3-settings sync --force-capture` (live settings win) or `t3-settings sync --force-apply` (bundle wins); details archived under {}",
+                history_dir(home).display()
+            );
+        }
+    }
 }
 
 fn capture_destination(output: &Path, base_dir: &Path) -> Result<PathBuf> {
@@ -840,12 +1599,29 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
             let output = capture_destination(&output, &base_dir)?;
             let bundle = capture(&policy, &home, &base_dir)?;
             validate_bundle(&policy, &bundle)?;
-            util::atomic_write(&output, &json_bytes(&bundle)?)?;
-            println!(
-                "Captured allowed settings and {} projects into {}",
-                bundle.projects.len(),
-                output.display()
-            );
+            let new_val = bundle_value(&bundle)?;
+            let before: Value = read_bundle_file(&output)
+                .ok()
+                .flatten()
+                .and_then(|old| bundle_value(&old).ok())
+                .unwrap_or(Value::Null);
+            if write_bundle_file(&output, &base_dir, &bundle)? {
+                record_history(
+                    &home,
+                    "capture",
+                    false,
+                    diff_summary(&before, &new_val),
+                    &before,
+                    &new_val,
+                )?;
+                println!(
+                    "Captured allowed settings and {} projects into {}",
+                    bundle.projects.len(),
+                    output.display()
+                );
+            } else {
+                println!("Portable bundle already matches live settings; nothing to do");
+            }
         }
         Operation::Apply { input, dry_run } => {
             let input = input.unwrap_or(default_bundle);
@@ -853,7 +1629,23 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
                 &fs::read(&input).with_context(|| format!("Reading {}", input.display()))?,
             )
             .context("Parsing portable T3 bundle")?;
-            apply(&policy, bundle, &home, &base_dir, dry_run)?;
+            apply(&policy, bundle, &home, &base_dir, dry_run, true)?;
+        }
+        Operation::Sync {
+            input,
+            dry_run,
+            force_apply,
+            force_capture,
+        } => {
+            sync(
+                &policy,
+                &home,
+                &base_dir,
+                input,
+                dry_run,
+                force_apply,
+                force_capture,
+            )?;
         }
     }
     Ok(())
@@ -862,6 +1654,51 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_credentials_only_replace_matching_local_enabled_opencode() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let config = root.path().join(".config/opencode");
+        fs::create_dir_all(&config)?;
+        fs::write(
+            config.join("service.json"),
+            r#"{"password":"generated-private"}"#,
+        )?;
+        let mut settings = json!({"providerInstances": {
+            "native": {"driver":"opencode","enabled":true,"config":{"serverUrl":"http://127.0.0.1:14096","serverPassword":"stale","other":"keep"}},
+            "remote": {"driver":"opencode","enabled":true,"config":{"serverUrl":"http://example.test:14096","serverPassword":"remote"}},
+            "other-port": {"driver":"opencode","enabled":true,"config":{"serverUrl":"http://localhost:17000","serverPassword":"other"}},
+            "disabled": {"driver":"opencode","enabled":false,"config":{"serverUrl":"http://localhost:14096","serverPassword":"disabled"}}
+        }});
+        configure_native_opencode(&mut settings, root.path())?;
+        let providers = &settings["providerInstances"];
+        assert_eq!(
+            providers["native"]["config"]["serverPassword"],
+            "generated-private"
+        );
+        assert_eq!(providers["native"]["config"]["other"], "keep");
+        for (id, password) in [
+            ("remote", "remote"),
+            ("other-port", "other"),
+            ("disabled", "disabled"),
+        ] {
+            assert_eq!(providers[id]["config"]["serverPassword"], password);
+        }
+        let policy = Policy::new();
+        let portable = policy.capture_entries("provider", &settings, "providerInstances")?;
+        assert!(
+            portable
+                .values()
+                .all(|provider| provider["config"].get("serverPassword").is_none())
+        );
+        settings["providerInstances"]
+            .as_object_mut()
+            .unwrap()
+            .remove("native");
+        fs::remove_file(config.join("service.json"))?;
+        configure_native_opencode(&mut settings, root.path())?;
+        Ok(())
+    }
 
     #[test]
     fn capture_rejects_malformed_server_records_without_printing_values() {
@@ -904,7 +1741,11 @@ mod tests {
             json!({"driver":"opencode", "enabled":false, "config":{"serverUrl":"http://localhost:14096"}})
         );
         assert!(policy.validate("provider", &source).is_err());
-        assert!(validate_provider(&json!({"driver":"opencode", "config":{"serverUrl":"http://user:secret@localhost"}}), None).is_err());
+        assert!(validate_provider(
+            &json!({"driver":"opencode", "config":{"serverUrl":"http://user:secret@localhost"}}),
+            None
+        )
+        .is_err());
         assert_eq!(
             excluded.unknown,
             BTreeSet::from(["providers.opencode.config.futureCredential".to_owned()])
@@ -916,6 +1757,38 @@ mod tests {
         assert!(error.contains("provider.config.futureCredential"));
         assert!(error.contains("provider.config.serverPassword"));
         assert!(!error.contains("secret"));
+    }
+
+    #[test]
+    fn pull_request_link_preference_is_portable() {
+        let policy = Policy::new();
+        for enabled in [true, false] {
+            let saved = json!({"pullRequestLinksOpenInApp": enabled});
+            let selected = policy.capture("client", &saved, "client").unwrap();
+            assert_eq!(selected, saved);
+            policy.validate("client", &selected).unwrap();
+
+            let mut local = json!({"pullRequestLinksOpenInApp": !enabled});
+            policy.merge_section("client", &mut local, &selected);
+            assert_eq!(local, saved);
+            policy.merge_section("client", &mut local, &object());
+            assert_eq!(local, object());
+        }
+    }
+
+    #[test]
+    fn auto_resume_limited_threads_is_portable() {
+        let policy = Policy::new();
+        for enabled in [true, false] {
+            let saved = json!({"autoResumeLimitedThreads": enabled});
+            let selected = policy.capture("server", &saved, "server").unwrap();
+            assert_eq!(selected, saved);
+            policy.validate("server", &selected).unwrap();
+
+            let mut local = json!({"autoResumeLimitedThreads": !enabled});
+            policy.merge_section("server", &mut local, &selected);
+            assert_eq!(local, saved);
+        }
     }
 
     #[test]
@@ -1081,5 +1954,302 @@ mod tests {
             serde_json::from_slice::<Value>(&fs::read(&path).unwrap()).unwrap()["serverPassword"],
             "keep"
         );
+    }
+
+    #[test]
+    fn empty_managed_maps_are_stable_across_repeated_restores() {
+        let policy = Policy::new();
+        let saved =
+            json!({"loadBalancingWeights": {}, "providerModelPreferences": {}, "favorites": []});
+        let mut current = json!({"loadBalancingWeights": null, "providerModelPreferences": {}, "future-local-field": "keep"});
+        policy.merge_section("client", &mut current, &saved);
+        let first = current.clone();
+        assert!(current.get("loadBalancingWeights").is_none());
+        assert!(current.get("providerModelPreferences").is_none());
+        assert_eq!(current["future-local-field"], "keep");
+        for _ in 0..3 {
+            policy.merge_section("client", &mut current, &saved);
+            assert_eq!(current, first);
+        }
+    }
+
+    fn sync_bundle(value: Value) -> Value {
+        let mut bundle = value;
+        bundle["version"] = json!(1);
+        bundle
+    }
+
+    #[test]
+    fn sync_decision_matrix() {
+        let base = sync_bundle(json!({"client": {"a": 1}}));
+        let live_changed = sync_bundle(json!({"client": {"a": 2}}));
+        let bundle_changed = sync_bundle(json!({"client": {"a": 3}}));
+
+        // No prior record: matching sides initialize, differing sides are
+        // adopted (no common ancestor exists to call it a conflict).
+        assert_eq!(
+            decide(&StateLoad::Absent, Some(&base), &base),
+            Decision::InSync
+        );
+        assert_eq!(
+            decide(&StateLoad::Absent, Some(&live_changed), &base),
+            Decision::AdoptBundle
+        );
+        // No live settings means provisioning.
+        assert_eq!(decide(&StateLoad::Absent, None, &base), Decision::Provision);
+        // An unusable record (corrupt or newer version) cannot prove either
+        // side unchanged: agreeing sides are still in sync, but differing
+        // sides stop instead of adopting.
+        assert_eq!(
+            decide(&StateLoad::Unusable, Some(&base), &base),
+            Decision::InSync
+        );
+        assert_eq!(
+            decide(&StateLoad::Unusable, Some(&live_changed), &base),
+            Decision::Conflict
+        );
+        assert_eq!(
+            decide(&StateLoad::Unusable, None, &base),
+            Decision::Provision
+        );
+
+        let synced = SyncState {
+            version: SYNC_STATE_VERSION,
+            bundle: base.clone(),
+            live: Some(base.clone()),
+        };
+        let load = StateLoad::Present(synced);
+        assert_eq!(decide(&load, Some(&base), &base), Decision::InSync);
+        // Only live changed: capture wins.
+        assert_eq!(
+            decide(&load, Some(&live_changed), &base),
+            Decision::CaptureLive
+        );
+        // Only the bundle changed: apply wins.
+        assert_eq!(
+            decide(&load, Some(&base), &bundle_changed),
+            Decision::ApplyBundle
+        );
+        // Both changed: conflict.
+        assert_eq!(
+            decide(&load, Some(&live_changed), &bundle_changed),
+            Decision::Conflict
+        );
+        // Live reappeared after a provisioning that could not snapshot it: the
+        // sides agree, so this is in sync and the record is refreshed.
+        let provisioned = StateLoad::Present(SyncState {
+            version: SYNC_STATE_VERSION,
+            bundle: base.clone(),
+            live: None,
+        });
+        assert_eq!(decide(&provisioned, Some(&base), &base), Decision::InSync);
+        // Agreeing sides are in sync even against a stale record: manual
+        // capture/apply converge the sides without recording sync state.
+        let stale = StateLoad::Present(SyncState {
+            version: SYNC_STATE_VERSION,
+            bundle: sync_bundle(json!({"client": {"a": 0}})),
+            live: Some(sync_bundle(json!({"client": {"a": 0}}))),
+        });
+        assert_eq!(decide(&stale, Some(&base), &base), Decision::InSync);
+    }
+
+    #[test]
+    fn settings_file_rejects_concurrent_modification() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let path = root.path().join("settings.json");
+        fs::write(&path, b"{}")?;
+        let file = SettingsFile::read(path.clone(), object())?;
+        file.verify_unchanged()?;
+        fs::write(&path, b"{\"a\": 1}")?;
+        assert!(file.verify_unchanged().is_err());
+        Ok(())
+    }
+
+    fn native_password_tree(
+        root: &Path,
+        service: Option<&str>,
+        config: Value,
+    ) -> Result<(PathBuf, PathBuf)> {
+        let home = root.join("home");
+        let base = root.join("t3");
+        fs::create_dir_all(base.join("userdata"))?;
+        if let Some(service) = service {
+            fs::create_dir_all(home.join(".config/opencode"))?;
+            fs::write(home.join(".config/opencode/service.json"), service)?;
+        }
+        fs::write(
+            base.join("userdata/settings.json"),
+            serde_json::to_vec(&json!({"providerInstances": {"local": config}}))?,
+        )?;
+        Ok((home, base))
+    }
+
+    fn native_config(server_password: Option<&str>) -> Value {
+        let mut config = json!({
+            "driver": "opencode",
+            "enabled": true,
+            "config": {"serverUrl": "http://localhost:14096/"},
+        });
+        if let Some(password) = server_password {
+            config["config"]["serverPassword"] = json!(password);
+        }
+        config
+    }
+
+    #[test]
+    fn ensure_native_password_injects_stale_password_once() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let (home, base) = native_password_tree(
+            root.path(),
+            Some(r#"{"password": "rotated"}"#),
+            native_config(Some("old")),
+        )?;
+        assert!(ensure_native_password(&home, &base)?);
+        let after: Value = serde_json::from_slice(&fs::read(base.join("userdata/settings.json"))?)?;
+        assert_eq!(
+            after["providerInstances"]["local"]["config"]["serverPassword"],
+            "rotated"
+        );
+        assert!(!ensure_native_password(&home, &base)?);
+        Ok(())
+    }
+
+    #[test]
+    fn ensure_native_password_skips_without_service_or_native_provider() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        // Native provider but no service file: leave live settings alone.
+        let (home, base) = native_password_tree(root.path(), None, native_config(Some("old")))?;
+        assert!(!ensure_native_password(&home, &base)?);
+        let after: Value = serde_json::from_slice(&fs::read(base.join("userdata/settings.json"))?)?;
+        assert_eq!(
+            after["providerInstances"]["local"]["config"]["serverPassword"],
+            "old"
+        );
+        // Service file present but no native provider: nothing to do.
+        let other = root.path().join("other");
+        fs::create_dir_all(other.join("userdata"))?;
+        fs::write(
+            other.join("userdata/settings.json"),
+            serde_json::to_vec(&json!({"providerInstances": {
+                "remote": {"driver": "opencode", "enabled": true,
+                           "config": {"serverUrl": "http://example.com/"}},
+            }}))?,
+        )?;
+        assert!(!ensure_native_password(&home, &other)?);
+        Ok(())
+    }
+
+    #[test]
+    fn sync_diff_renders_nested_changes() {
+        let old = json!({
+            "client": {"a": 1, "gone": true, "nested": {"x": [1, 2]}},
+            "server": {"keep": "same"},
+        });
+        let new = json!({
+            "client": {"a": 2, "nested": {"x": [1, 2, 3]}, "added": "yes"},
+            "server": {"keep": "same"},
+        });
+        let diff = diff_summary(&old, &new);
+        assert!(diff.iter().any(|line| line == "client.a: 1 → 2"));
+        assert!(
+            diff.iter()
+                .any(|line| line == "client.added: (absent) → \"yes\"")
+        );
+        assert!(
+            diff.iter()
+                .any(|line| line == "client.gone: true → (absent)")
+        );
+        assert!(
+            diff.iter()
+                .any(|line| line == "client.nested.x: [2 items → 3 items]")
+        );
+        assert!(diff_summary(&old, &old).is_empty());
+    }
+
+    #[test]
+    fn sync_diff_truncates_long_values() {
+        let long: String = "v".repeat(DIFF_VALUE_LIMIT + 10);
+        let diff = diff_summary(&json!({"k": "short"}), &json!({"k": long}));
+        assert_eq!(diff.len(), 1);
+        assert!(diff[0].ends_with('…'));
+    }
+
+    #[test]
+    fn sync_state_roundtrips_and_rejects_garbage() -> Result<()> {
+        let home = tempfile::tempdir()?;
+        assert!(matches!(load_state(home.path()), StateLoad::Absent));
+        let state = SyncState {
+            version: SYNC_STATE_VERSION,
+            bundle: json!({"version": 1}),
+            live: Some(json!({"version": 1})),
+        };
+        save_state(home.path(), &state)?;
+        let loaded = match load_state(home.path()) {
+            StateLoad::Present(loaded) => loaded,
+            _ => bail!("state should load"),
+        };
+        assert_eq!(loaded.bundle, state.bundle);
+        assert_eq!(loaded.live, state.live);
+        fs::write(sync_state_path(home.path()), b"not json")?;
+        assert!(matches!(load_state(home.path()), StateLoad::Unusable));
+        fs::write(
+            sync_state_path(home.path()),
+            json!({"version": 999, "bundle": {}, "live": null}).to_string(),
+        )?;
+        assert!(matches!(load_state(home.path()), StateLoad::Unusable));
+        Ok(())
+    }
+
+    #[test]
+    fn sync_history_prunes_to_retention() -> Result<()> {
+        let home = tempfile::tempdir()?;
+        for index in 0..HISTORY_KEEP + 5 {
+            record_history(
+                home.path(),
+                "capture",
+                false,
+                vec![format!("change {index}")],
+                &json!({}),
+                &json!({"index": index}),
+            )?;
+        }
+        let names: Vec<String> = fs::read_dir(history_dir(home.path()))?
+            .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+            .collect();
+        assert_eq!(names.len(), HISTORY_KEEP);
+        let mut sorted = names.clone();
+        sorted.sort();
+        assert_eq!(names.iter().max(), sorted.last());
+        Ok(())
+    }
+
+    #[test]
+    fn sync_conflict_history_skips_identical_reruns() -> Result<()> {
+        let home = tempfile::tempdir()?;
+        let diff = vec!["live changes since last sync:".to_owned()];
+        assert!(last_history_entry(home.path()).is_none());
+        record_history(
+            home.path(),
+            "conflict",
+            false,
+            diff.clone(),
+            &json!({}),
+            &json!({}),
+        )?;
+        let entry = last_history_entry(home.path()).context("history should load")?;
+        assert_eq!(entry.direction, "conflict");
+        assert_eq!(entry.diff, diff);
+        // A different direction must not compare equal.
+        record_history(
+            home.path(),
+            "capture",
+            false,
+            diff.clone(),
+            &json!({}),
+            &json!({}),
+        )?;
+        let entry = last_history_entry(home.path()).context("history should load")?;
+        assert_eq!(entry.direction, "capture");
+        Ok(())
     }
 }
