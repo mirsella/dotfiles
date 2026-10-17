@@ -1,4 +1,6 @@
-//! Strict, first-suspend, untraced Q/M/H trials. Legacy plans retain their rules.
+//! Schema 2: first-suspend, untraced Q/M/H/D trials with 15-minute sleep targets.
+//! D is the overnight-aged daytime window (12 h to 12 h 30 awake) for arms that
+//! are prepared the evening before.
 use super::*;
 use std::{collections::BTreeMap, os::unix::fs::MetadataExt};
 
@@ -58,7 +60,7 @@ impl Plan {
             )?;
         }
         for (key, expected) in [
-            ("schema_version", "1"),
+            ("schema_version", "2"),
             ("pm_trace", "0"),
             ("recorder", "off"),
             ("mem_sleep", "deep"),
@@ -107,17 +109,18 @@ impl Plan {
                 format!("invalid store path: {key}"),
             )?;
         }
-        let (minimum, maximum, length) = match values["profile"].as_str() {
-            "Q" => (1800, 2400, 180),
-            "M" => (10800, 11700, 180),
-            "H" => (28800, 29700, 900),
-            _ => return Err("only first-suspend Q/M/H profiles are implemented".into()),
+        let (minimum, maximum) = match values["profile"].as_str() {
+            "Q" => (1800, 2400),
+            "M" => (10800, 11700),
+            "H" => (28800, 29700),
+            "D" => (43200, 45000),
+            _ => return Err("only first-suspend Q/M/H/D profiles are implemented".into()),
         };
         let due: u64 = values["due"].parse()?;
         let wake: u64 = values["wake"].parse()?;
         check(
-            wake.checked_sub(due) == Some(length),
-            "profile sleep duration mismatch",
+            wake.checked_sub(due) == Some(900),
+            "schema 2 requires a 15-minute sleep target",
         )?;
         let start: u64 = values["daytime_start"].parse()?;
         let end: u64 = values["daytime_end"].parse()?;
@@ -323,8 +326,15 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
         plan.preflight(true)?;
         ntp_stopped = true;
         output("systemctl", &["stop", "systemd-timesyncd.service"])?;
-        marker(&format!("BEGIN trial={} boot={} due_epoch={} wake_epoch={} profile={} pm_async={} pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced",
-            plan.get("trial_id"), plan.get("boot"), plan.due, plan.wake, plan.get("profile"), plan.get("pm_async")))?;
+        marker(&format!(
+            "BEGIN trial={} boot={} due_epoch={} wake_epoch={} profile={} pm_async={} pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced",
+            plan.get("trial_id"),
+            plan.get("boot"),
+            plan.due,
+            plan.wake,
+            plan.get("profile"),
+            plan.get("pm_async")
+        ))?;
         output("journalctl", &["--sync"])?;
         plan.identity()?;
         let uptime = text("/proc/uptime")?
@@ -412,7 +422,10 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
             returned.unwrap()
         ),
     )?;
-    marker(&format!("VERIFIED trial={} one timed deep cycle; fresh NTP and storage healthy; physical sleep evidence still required", plan.get("trial_id")))
+    marker(&format!(
+        "VERIFIED trial={} one timed deep cycle; fresh NTP and storage healthy; physical sleep evidence still required",
+        plan.get("trial_id")
+    ))
 }
 
 fn load(path: &str, hash: &str) -> Result<(Plan, String)> {
@@ -509,19 +522,25 @@ pub fn run(path: &str, hash: &str, execute: bool) -> Result<()> {
 mod tests {
     use super::*;
     fn manifest() -> String {
-        "schema_version=1\ntrial_id=serial-m-test\nprofile=M\nboot=214d0240-3825-4946-8492-c30bf530eba0\ngeneration=/nix/store/g-system\nkernel=/nix/store/k/bzImage\nmodules=/nix/store/m\nruntime=/nix/store/r/bin/predator-pm-study\ndue=20000\nwake=20180\npm_async=0\npm_trace=0\nrecorder=off\nmem_sleep=deep\npm_test=none\ntpm=initialized\nec=not-run\nlogged_in_users=allow\nordinal=1\ndaytime_start=19900\ndaytime_end=21000".into()
+        "schema_version=2\ntrial_id=serial-m-test\nprofile=M\nboot=214d0240-3825-4946-8492-c30bf530eba0\ngeneration=/nix/store/g-system\nkernel=/nix/store/k/bzImage\nmodules=/nix/store/m\nruntime=/nix/store/r/bin/predator-pm-study\ndue=20000\nwake=20900\npm_async=0\npm_trace=0\nrecorder=off\nmem_sleep=deep\npm_test=none\ntpm=initialized\nec=not-run\nlogged_in_users=allow\nordinal=1\ndaytime_start=19900\ndaytime_end=21100".into()
     }
     #[test]
     fn strict_manifest_rejects_silent_defaults_and_conflicting_modes() {
-        assert!(Plan::parse(&manifest()).is_ok());
+        for profile in ["Q", "M", "H", "D"] {
+            let data = manifest().replace("profile=M", &format!("profile={profile}"));
+            assert!(Plan::parse(&data).is_ok());
+            assert!(Plan::parse(&data.replace("wake=20900", "wake=20180")).is_err());
+            assert!(Plan::parse(&data.replace("schema_version=2", "schema_version=1")).is_err());
+        }
         for change in [
             manifest() + "\nunknown=1",
             manifest() + "\npm_async=1",
             manifest().replace("recorder=off", "recorder=rtc"),
             manifest().replace("ordinal=1", "ordinal=2"),
             manifest().replace("profile=M", "profile=L"),
-            manifest().replace("wake=20180", "wake=20900"),
-            manifest().replace("daytime_end=21000", "daytime_end=20200"),
+            manifest().replace("wake=20900", "wake=20899"),
+            manifest().replace("wake=20900", "wake=20901"),
+            manifest().replace("daytime_end=21100", "daytime_end=21079"),
             manifest().replace("pm_async=0\n", ""),
         ] {
             assert!(Plan::parse(&change).is_err(), "accepted {change}");

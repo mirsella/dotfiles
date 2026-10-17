@@ -45,7 +45,11 @@ fn unit_arg(value: &str) -> String {
 }
 
 fn service(config: &str, text: &str) -> String {
-    format!("[Unit]\nDescription=Predator study Telegram notice\n[Service]\nType=oneshot\nTimeoutStartSec=25s\nUMask=0077\nExecStart=/usr/bin/curl --silent --show-error --fail --connect-timeout 5 --max-time 20 --config {} --data-urlencode {}\n", unit_arg(config), unit_arg(&format!("text={text}")))
+    format!(
+        "[Unit]\nDescription=Predator study Telegram notice\n[Service]\nType=oneshot\nTimeoutStartSec=25s\nUMask=0077\nExecStart=/usr/bin/curl --silent --show-error --fail --connect-timeout 5 --max-time 20 --config {} --data-urlencode {}\n",
+        unit_arg(config),
+        unit_arg(&format!("text={text}"))
+    )
 }
 
 fn notice(trial: &Trial, event: &str) -> String {
@@ -92,7 +96,10 @@ fn provision(trial: &Trial, config: &str) -> Result<()> {
         format!("url = \"https://api.telegram.org/bot{token}/sendMessage\"\ndata-urlencode = \"chat_id={chat}\"\n").as_bytes()
     )?;
     let result = child.wait_with_output()?;
-    check(result.status.success(), "Pi Telegram credential provisioning failed; inspect existing per-trial config before retrying")?;
+    check(
+        result.status.success(),
+        "Pi Telegram credential provisioning failed; inspect existing per-trial config before retrying",
+    )?;
     write_new(
         &trial.out.join("notification-credentials.txt"),
         format!(
@@ -118,7 +125,11 @@ pub(super) fn arm(trial: &Trial) -> Result<()> {
     }
     for kind in ["wake", "retry", "probe", "snapshot"] {
         let unit = format!("{}-{kind}", trial.base());
-        guard += &format!("test \"$(systemctl show {}.timer -p SubState --value)\" = waiting\ntest ! -e /run/systemd/system/{}.service.d/60-telegram.conf\n", quote(&unit), unit);
+        guard += &format!(
+            "test \"$(systemctl show {}.timer -p SubState --value)\" = waiting\ntest ! -e /run/systemd/system/{}.service.d/60-telegram.conf\n",
+            quote(&unit),
+            unit
+        );
     }
     trial.remote("notification-preflight", PI, &guard)?;
     provision(trial, &config)?;
@@ -155,7 +166,13 @@ pub(super) fn arm(trial: &Trial) -> Result<()> {
             &service(&config, &format!("{prefix}\n{message}")),
         )?;
     }
-    script += &install(&format!("/run/systemd/system/{}.timer", notice(trial, "start")), &format!("[Unit]\nDescription=Predator study start-window notice\n[Timer]\nOnCalendar=@{}\nAccuracySec=1s\nRandomizedDelaySec=0\nPersistent=no\n", trial.due))?;
+    script += &install(
+        &format!("/run/systemd/system/{}.timer", notice(trial, "start")),
+        &format!(
+            "[Unit]\nDescription=Predator study start-window notice\n[Timer]\nOnCalendar=@{}\nAccuracySec=1s\nRandomizedDelaySec=0\nPersistent=no\n",
+            trial.due
+        ),
+    )?;
     for kind in ["wake", "retry", "probe", "snapshot"] {
         let directory = format!("/run/systemd/system/{}-{kind}.service.d", trial.base());
         script += &format!("mkdir -p {}\n", quote(&directory));
@@ -168,9 +185,19 @@ pub(super) fn arm(trial: &Trial) -> Result<()> {
             ),
         )?;
     }
-    script += &format!("systemctl daemon-reload\nsystemctl start {}.timer\ntest \"$(systemctl show {}.timer -p SubState --value)\" = waiting\nsystemctl start {}.service\njournalctl -u {}.service --no-pager -o cat\n", quote(&notice(trial, "start")), quote(&notice(trial, "start")), quote(&notice(trial, "setup")), quote(&notice(trial, "setup")));
+    script += &format!(
+        "systemctl daemon-reload\nsystemctl start {}.timer\ntest \"$(systemctl show {}.timer -p SubState --value)\" = waiting\nsystemctl start {}.service\njournalctl -u {}.service --no-pager -o cat\n",
+        quote(&notice(trial, "start")),
+        quote(&notice(trial, "start")),
+        quote(&notice(trial, "setup")),
+        quote(&notice(trial, "setup"))
+    );
     for kind in ["wake", "retry", "probe", "snapshot"] {
-        script += &format!("test \"$(systemctl show {}-{kind}.timer -p SubState --value)\" = waiting\nsystemctl show {}-{kind}.service -p ExecStart -p OnSuccess -p OnFailure\n", quote(&trial.base()), quote(&trial.base()));
+        script += &format!(
+            "test \"$(systemctl show {}-{kind}.timer -p SubState --value)\" = waiting\nsystemctl show {}-{kind}.service -p ExecStart -p OnSuccess -p OnFailure\n",
+            quote(&trial.base()),
+            quote(&trial.base())
+        );
     }
     script += &format!(
         "systemctl cat {}.timer\nstat -c '%a %U %n' {}\n",
@@ -190,7 +217,10 @@ pub(super) fn collect(trial: &Trial) -> Result<()> {
     let mut script = String::from("set -eu\ndate --iso-8601=seconds\n");
     for event in EVENTS {
         let unit = notice(trial, event);
-        script += &format!("systemctl show {u}.service -p LoadState -p ActiveState -p Result -p ExecMainStatus\njournalctl -u {u}.service --no-pager -o short-iso-precise\n", u=quote(&unit));
+        script += &format!(
+            "systemctl show {u}.service -p LoadState -p ActiveState -p Result -p ExecMainStatus\njournalctl -u {u}.service --no-pager -o short-iso-precise\n",
+            u = quote(&unit)
+        );
     }
     trial.remote("notification-results", PI, &script)?;
     Ok(())

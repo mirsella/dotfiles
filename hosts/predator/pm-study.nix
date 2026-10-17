@@ -51,6 +51,7 @@ in
     after = [
       "network-online.target"
       "NetworkManager.service"
+      "NetworkManager-ensure-profiles.service"
       "predator-pm-preserve-rtc.service"
     ];
     path = [

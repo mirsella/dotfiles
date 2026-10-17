@@ -6,3 +6,7 @@ edition = "2024"
 [[bin]]
 name = "predator-pm-study"
 path = "main.rs"
+
+[[bin]]
+name = "predator-pm-control"
+path = "control.rs"

@@ -11,6 +11,7 @@ use std::{
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 mod automatic;
+mod trial;
 const STATE: &str = "/var/lib/predator-pm-study";
 fn not_held() -> Result<()> {
     check(
@@ -66,6 +67,7 @@ fn save(name: &str, data: &str) -> Result<()> {
         .mode(0o600)
         .open(format!("{STATE}/{name}"))?;
     file.write_all(data.as_bytes())?;
+    file.sync_all()?;
     Ok(())
 }
 fn preserve_rtc() -> Result<()> {
@@ -455,6 +457,9 @@ fn capture() -> Result<()> {
     ))
 }
 fn preflight(boot: &str, tpm: TpmState, ec_state: EcState) -> Result<Baseline> {
+    preflight_pm(boot, tpm, ec_state, "1")
+}
+fn preflight_pm(boot: &str, tpm: TpmState, ec_state: EcState, pm_async: &str) -> Result<Baseline> {
     check(
         text("/proc/sys/kernel/random/boot_id")? == boot,
         "boot changed",
@@ -496,7 +501,7 @@ fn preflight(boot: &str, tpm: TpmState, ec_state: EcState) -> Result<Baseline> {
     }
     for (path, value) in [
         ("/sys/power/pm_trace", "0"),
-        ("/sys/power/pm_async", "1"),
+        ("/sys/power/pm_async", pm_async),
         ("/sys/power/pm_debug_messages", "1"),
         ("/sys/power/pm_print_times", "1"),
         ("/sys/module/kernel/parameters/initcall_debug", "Y"),
@@ -719,6 +724,75 @@ fn clock_handoff() -> Result<()> {
         "networkd still owns runtime network state",
     )?;
     check(
+        !Path::new("/sys/module/pm_stage").exists()
+            || text("/sys/module/pm_stage/parameters/armed")? == "N",
+        "refusing clock repair while RTC recording is armed",
+    )?;
+    // An externally assumed initrd connection can have an address and gateway
+    // but no DNS. Activate the already declaratively installed profile instead
+    // of treating that inherited interface as a completed handoff.
+    const LAN_UUID: &str = "c4e6863b-7f76-4a4d-9a48-9937af0b5a36";
+    check(
+        output(
+            "systemctl",
+            &[
+                "show",
+                "NetworkManager.service",
+                "-p",
+                "ActiveState",
+                "--value",
+            ],
+        )? == "active",
+        "NetworkManager is not active",
+    )?;
+    if output(
+        "nmcli",
+        &["-g", "GENERAL.CON-UUID", "device", "show", "enp3s0f1"],
+    )? != LAN_UUID
+    {
+        let profile = output(
+            "nmcli",
+            &[
+                "-g",
+                "connection.uuid,connection.interface-name,ipv4.method,ipv4.addresses,ipv4.gateway,ipv4.dns",
+                "connection",
+                "show",
+                "predator-pm-study-lan",
+            ],
+        )?;
+        check(
+            profile
+                == format!(
+                    "{LAN_UUID}\nenp3s0f1\nmanual\n192.168.1.19/24\n192.168.1.1\n192.168.1.1"
+                ),
+            "declared study LAN profile changed; refusing automatic handoff",
+        )?;
+        marker(
+            "NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient",
+        )?;
+        output(
+            "nmcli",
+            &[
+                "--wait",
+                "30",
+                "connection",
+                "up",
+                "uuid",
+                LAN_UUID,
+                "ifname",
+                "enp3s0f1",
+            ],
+        )?;
+    }
+    check(
+        output(
+            "nmcli",
+            &["-g", "GENERAL.CON-UUID", "device", "show", "enp3s0f1"],
+        )? == LAN_UUID
+            && output("nmcli", &["-g", "IP4.DNS", "device", "show", "enp3s0f1"])? == "192.168.1.1",
+        "study LAN profile did not restore expected DNS",
+    )?;
+    check(
         output(
             "systemctl",
             &[
@@ -740,11 +814,6 @@ fn clock_handoff() -> Result<()> {
             )?
             .is_empty(),
         "NetworkManager has not completed the LAN handoff",
-    )?;
-    check(
-        !Path::new("/sys/module/pm_stage").exists()
-            || text("/sys/module/pm_stage/parameters/armed")? == "N",
-        "refusing clock repair while RTC recording is armed",
     )?;
     let state = Path::new("/run/systemd/netif/state");
     match fs::symlink_metadata(state) {
@@ -1066,6 +1135,9 @@ fn main() -> Result<()> {
         Some("capture") => capture(),
         Some("preserve-rtc") => preserve_rtc(),
         Some("clock-handoff") => clock_handoff(),
+        Some("restore-trial") => trial::restore(args.get(2).ok_or("missing trial file")?, args.get(3).ok_or("missing manifest SHA256")?),
+        Some("check-trial") => trial::run(args.get(2).ok_or("missing trial file")?, args.get(3).ok_or("missing manifest SHA256")?, false),
+        Some("attempt-trial") => trial::run(args.get(2).ok_or("missing trial file")?, args.get(3).ok_or("missing manifest SHA256")?, true),
         Some("check") => preflight(args.get(2).ok_or("missing boot ID")?, TpmState::Absent, EcState::NotRun).map(|_| ()),
         Some("check-arm") => preflight(
             args.get(2).ok_or("missing boot ID")?,
@@ -1088,7 +1160,7 @@ fn main() -> Result<()> {
         Some("assist-next-boot") => automatic::assist(args.get(2).ok_or("missing assistant request")?),
         Some("telegram") => automatic::telegram(args.get(2).ok_or("missing notification text")?),
         _ => Err(
-            "usage: predator-pm-study capture|preserve-rtc|check BOOT|check-arm BOOT absent|initialized [not-run|boot-writes]|attempt BOOT DUE WAKE|check-plan FILE|attempt-plan FILE|unlock-root|unlock-fast|auto-prepare PREVIOUS_BOOT|auto-arm BOOT|assist-next-boot REQUEST|telegram TEXT".into(),
+            "usage: predator-pm-study capture|preserve-rtc|clock-handoff|check BOOT|check-arm BOOT absent|initialized [not-run|boot-writes]|attempt BOOT DUE WAKE|check-plan FILE|attempt-plan FILE|check-trial FILE SHA256|attempt-trial FILE SHA256|unlock-root|unlock-fast|auto-prepare PREVIOUS_BOOT|auto-arm BOOT|assist-next-boot REQUEST|telegram TEXT".into(),
         ),
     }
 }

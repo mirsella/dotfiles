@@ -1,4 +1,5 @@
 //! Attended one-shot trial scheduling and collection. Run on the archive host.
+mod notifications;
 use std::{
     env,
     error::Error,
@@ -13,6 +14,9 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 const PI: &str = "192.168.1.166";
 const PREDATOR: &str = "192.168.1.19";
 const LOG: &str = "/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log";
+/// Bounded read size for the Pi netconsole log. Long single-stream `cat`
+/// transfers stall on this link; short `dd` reads with retries are reliable.
+const PI_CHUNK: u64 = 32768;
 
 fn check(ok: bool, message: impl Into<String>) -> Result<()> {
     if ok {
@@ -52,6 +56,40 @@ fn hash(path: &Path) -> Result<String> {
         .next()
         .ok_or("missing SHA256")?
         .into())
+}
+fn ssh_wait(host: &str, script: &str) -> Result<std::process::Output> {
+    let mut child = Command::new("timeout")
+        .args([
+            "150s",
+            "ssh",
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "ConnectTimeout=5",
+            "-o",
+            "ServerAliveInterval=10",
+            "-o",
+            "ServerAliveCountMax=2",
+            "-p",
+            "22",
+            "-l",
+            "mirsella",
+            host,
+            "sudo",
+            "-n",
+            "bash",
+            "-s",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    child
+        .stdin
+        .take()
+        .ok_or("missing SSH stdin")?
+        .write_all(script.as_bytes())?;
+    Ok(child.wait_with_output()?)
 }
 
 struct Trial {
@@ -109,38 +147,7 @@ impl Trial {
             !dest.exists() && !self.out.join(format!("{name}.meta")).exists(),
             format!("capture already exists: {name}; use a new capture directory"),
         )?;
-        let mut child = Command::new("timeout")
-            .args([
-                "150s",
-                "ssh",
-                "-o",
-                "BatchMode=yes",
-                "-o",
-                "ConnectTimeout=5",
-                "-o",
-                "ServerAliveInterval=10",
-                "-o",
-                "ServerAliveCountMax=2",
-                "-p",
-                "22",
-                "-l",
-                "mirsella",
-                host,
-                "sudo",
-                "-n",
-                "bash",
-                "-s",
-            ])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
-        child
-            .stdin
-            .take()
-            .ok_or("missing SSH stdin")?
-            .write_all(script.as_bytes())?;
-        let result = child.wait_with_output()?;
+        let result = ssh_wait(host, script)?;
         write_new(&dest, &result.stdout)?;
         write_new(
             &self.out.join(format!("{name}.meta")),
@@ -183,21 +190,115 @@ impl Trial {
 
     fn snapshot(&self, phase: &str) -> Result<()> {
         let remote = self.pi_result(phase);
-        self.remote(&format!("{phase}-pi-netconsole"), PI, &format!("set -eu\numask 077\nmkdir -p /home/mirsella/dev/predator-pm-debug/.agents-local\nif ! test -e {p}; then (set -o noclobber; cat {log} > {p}); fi\ncat {p}\n", p=quote(&remote), log=quote(LOG)))?;
-        let remote_hash = self.remote(
-            &format!("{phase}-pi-hash"),
-            PI,
-            &format!("set -eu\nsha256sum {}\n", quote(&remote)),
-        )?;
+        let name = format!("{phase}-pi-netconsole");
+        let dest = self.out.join(format!("{name}.txt"));
         check(
-            remote_hash.split_whitespace().next()
-                == Some(hash(&self.out.join(format!("{phase}-pi-netconsole.txt")))?.as_str()),
+            !dest.exists() && !self.out.join(format!("{name}.meta")).exists(),
+            format!("capture already exists: {name}; use a new capture directory"),
+        )?;
+        let info = self.remote(
+            &format!("{name}-info"),
+            PI,
+            &format!(
+                "set -eu\numask 077\nmkdir -p /home/mirsella/dev/predator-pm-debug/.agents-local\nif ! test -e {p}; then (set -o noclobber; cat {log} > {p}); fi\nstat -c %s {p}\nsha256sum {p}\n",
+                p = quote(&remote),
+                log = quote(LOG)
+            ),
+        )?;
+        let mut lines = info.lines();
+        let size: u64 = lines
+            .next()
+            .ok_or("missing Pi snapshot size")?
+            .trim()
+            .parse()?;
+        let remote_hash = lines
+            .next()
+            .ok_or("missing Pi snapshot hash")?
+            .split_whitespace()
+            .next()
+            .ok_or("missing Pi snapshot hash")?
+            .to_string();
+        let mut data = Vec::with_capacity(size as usize);
+        let mut offset = 0u64;
+        while offset < size {
+            let count = std::cmp::min(PI_CHUNK, size - offset);
+            let mut fetch = None;
+            let mut last = String::from("no attempt");
+            for attempt in 1..=3u32 {
+                match ssh_wait(
+                    PI,
+                    &format!(
+                        "set -eu\nsudo -n dd if={p} iflag=skip_bytes,count_bytes skip={offset} count={count} 2>/dev/null\n",
+                        p = quote(&remote)
+                    ),
+                ) {
+                    Ok(result)
+                        if result.status.success() && result.stdout.len() as u64 == count =>
+                    {
+                        fetch = Some(result.stdout);
+                        break;
+                    }
+                    Ok(result) => {
+                        last = format!(
+                            "attempt {attempt}: read {} of {count} bytes",
+                            result.stdout.len()
+                        )
+                    }
+                    Err(error) => last = format!("attempt {attempt}: {error}"),
+                }
+            }
+            let chunk = match fetch {
+                Some(chunk) => chunk,
+                None => {
+                    write_new(&dest, &data)?;
+                    return Err(format!(
+                        "{name} failed at offset {offset}: {last}; preserved {dest:?}"
+                    )
+                    .into());
+                }
+            };
+            data.extend_from_slice(&chunk);
+            offset += count;
+        }
+        write_new(&dest, &data)?;
+        check(
+            hash(&dest)? == remote_hash,
             "fixed Pi snapshot hash mismatch",
-        )
+        )?;
+        write_new(
+            &self.out.join(format!("{name}.meta")),
+            format!(
+                "host={PI}\nsize={size}\nremote_sha256={remote_hash}\nchunk_bytes={PI_CHUNK}\nstderr:\nlong single-stream transfers stall on this link; fetched with dd iflag=skip_bytes,count_bytes and per-chunk retries\n"
+            )
+            .as_bytes(),
+        )?;
+        Ok(())
     }
 
     fn timer(unit: &str, when: u64, command: &str) -> String {
-        format!("systemd-run --unit={u} --on-calendar=@{when} --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot {command}\ntest \"$(systemctl show {u}.timer -p SubState --value)\" = waiting\nsystemctl cat {u}.timer {u}.service\n", u=quote(unit))
+        format!(
+            "systemd-run --unit={u} --on-calendar=@{when} --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot {command}\ntest \"$(systemctl show {u}.timer -p SubState --value)\" = waiting\nsystemctl cat {u}.timer {u}.service\n",
+            u = quote(unit)
+        )
+    }
+
+    fn rehearse(&self) -> Result<()> {
+        self.check("rehearsal-check")?;
+        let unit = format!("{}-rehearsal", self.base());
+        for (name, host, command) in [
+            (
+                "rehearsal-primary",
+                PREDATOR,
+                "/run/current-system/sw/bin/true",
+            ),
+            ("rehearsal-observer", PI, "/usr/bin/true"),
+        ] {
+            self.remote(name, host, &format!(
+                "set -eu\ntest \"$(systemctl show {u}.timer -p LoadState --value)\" = not-found\n{timer}systemctl stop {u}.timer\ntest \"$(systemctl show {u}.timer -p ActiveState --value)\" = inactive\nsystemctl show {u}.timer -p ActiveState -p SubState\n",
+                u=quote(&unit), timer=Self::timer(&unit, epoch()? + 600, command)
+            ))?;
+        }
+        Ok(())
     }
 
     fn observer(&self) -> Result<()> {
@@ -244,14 +345,19 @@ impl Trial {
         primary?;
         let mut script = String::from("set -eu\n");
         for kind in ["wake", "retry", "probe", "snapshot"] {
-            script += &format!("if test \"$(systemctl show {u}.timer -p LoadState --value)\" != not-found; then systemctl stop {u}.timer; fi\n", u=quote(&format!("{}-{kind}", self.base())));
+            script += &format!(
+                "if test \"$(systemctl show {u}.timer -p LoadState --value)\" != not-found; then systemctl stop {u}.timer; fi\n",
+                u = quote(&format!("{}-{kind}", self.base()))
+            );
         }
         let observer = self.remote(&format!("{name}-observer"), PI, &script);
         observer?;
+        notifications::cancel(self)?;
         Ok(())
     }
 
     fn arm(&self) -> Result<()> {
+        notifications::credentials()?;
         check(
             epoch()? + 300 < self.due,
             "need at least five minutes before primary due",
@@ -276,8 +382,19 @@ impl Trial {
         self.remote("unused-observer", PI, &unused)?;
         let result: Result<()> = (|| {
             self.observer()?;
-            let command = format!("--property=TimeoutStartSec=12min --property=Environment=PATH=/run/current-system/sw/bin {} {} attempt-trial {} {}",
-                quote(&format!("--property=ExecStopPost={} restore-trial {} {}", self.runtime, self.remote_plan(), self.hash)), quote(&self.runtime), quote(&self.remote_plan()), quote(&self.hash));
+            notifications::arm(self)?;
+            let command = format!(
+                "--property=TimeoutStartSec=25min --property=Environment=PATH=/run/current-system/sw/bin {} {} attempt-trial {} {}",
+                quote(&format!(
+                    "--property=ExecStopPost={} restore-trial {} {}",
+                    self.runtime,
+                    self.remote_plan(),
+                    self.hash
+                )),
+                quote(&self.runtime),
+                quote(&self.remote_plan()),
+                quote(&self.hash)
+            );
             let script = format!(
                 "set -eu\ntest \"$(date +%s)\" -lt {}\n{} check-trial {} {}\n{}",
                 self.due - 60,
@@ -316,7 +433,10 @@ impl Trial {
         let mut observer =
             String::from("set -eu\ndate --iso-8601=seconds\ncat /proc/sys/kernel/random/boot_id\n");
         for kind in ["wake", "retry", "probe", "snapshot"] {
-            observer += &format!("systemctl show {u}.service -p Result -p ExecMainStatus -p ExecMainStartTimestamp -p ExecMainExitTimestamp\njournalctl -u {u}.service --no-pager -o short-iso-precise\n", u=quote(&format!("{}-{kind}", self.base())));
+            observer += &format!(
+                "systemctl show {u}.service -p Result -p ExecMainStatus -p ExecMainStartTimestamp -p ExecMainExitTimestamp\njournalctl -u {u}.service --no-pager -o short-iso-precise\n",
+                u = quote(&format!("{}-{kind}", self.base()))
+            );
         }
         if let Err(error) = self.remote("result-observer", PI, &observer) {
             issues.push(error.to_string());
@@ -324,7 +444,15 @@ impl Trial {
         if let Err(error) = self.snapshot("result") {
             issues.push(error.to_string());
         }
-        let script = format!("set -eu\ndate --iso-8601=seconds\ncat /proc/sys/kernel/random/boot_id /proc/uptime\nreadlink -f /run/booted-system /run/current-system\nfor file in /var/lib/predator-pm-study/{}-*.txt; do if test -f \"$file\"; then printf '\\nARTIFACT=%s\\n' \"$file\"; cat \"$file\"; fi; done\njournalctl --boot={} -u {}.service -u systemd-suspend.service --no-pager -o short-iso-precise\njournalctl --boot={} -k --no-pager -o short-monotonic\ntimedatectl status\ntimedatectl timesync-status\nzpool status\nfindmnt -rn -t zfs -o SOURCE,TARGET\ncat /sys/power/pm_async /sys/power/suspend_stats/success /sys/power/suspend_stats/fail\n", self.id, quote(&self.boot), quote(&self.base()), quote(&self.boot));
+        // journalctl requires the compact boot ID; /proc exposes a dashed UUID.
+        let journal_boot = self.boot.replace('-', "");
+        let script = format!(
+            "set -eu\ndate --iso-8601=seconds\ncat /proc/sys/kernel/random/boot_id /proc/uptime\nreadlink -f /run/booted-system /run/current-system\nfor file in /var/lib/predator-pm-study/{}-*.txt; do if test -f \"$file\"; then printf '\\nARTIFACT=%s\\n' \"$file\"; cat \"$file\"; fi; done\njournalctl --boot={} -u {}.service -u systemd-suspend.service --no-pager -o short-iso-precise\njournalctl --boot={} -k --no-pager -o short-monotonic\ntimedatectl status\ntimedatectl timesync-status\nzpool status\nfindmnt -rn -t zfs -o SOURCE,TARGET\ncat /sys/power/pm_async /sys/power/suspend_stats/success /sys/power/suspend_stats/fail\n",
+            self.id,
+            quote(&journal_boot),
+            quote(&self.base()),
+            quote(&journal_boot)
+        );
         if let Err(error) = self.remote("result-predator", PREDATOR, &script) {
             issues.push(error.to_string());
         }
@@ -357,15 +485,18 @@ fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();
     check(
         args.len() == 4,
-        "usage: predator-pm-control stage|check|arm|cancel|collect MANIFEST CAPTURE_DIRECTORY",
+        "usage: predator-pm-control stage|check|rehearse|arm|cancel|collect|notifications|notification-status MANIFEST CAPTURE_DIRECTORY",
     )?;
     let trial = Trial::load(Path::new(&args[2]), Path::new(&args[3]))?;
     match args[1].as_str() {
         "stage" => trial.stage(),
+        "rehearse" => trial.rehearse(),
         "check" => trial.check("check").map(|value| println!("{value}")),
         "arm" => trial.arm(),
         "cancel" => trial.cancel("cancel"),
         "collect" => trial.collect(),
+        "notifications" => notifications::arm(&trial),
+        "notification-status" => notifications::collect(&trial),
         _ => Err("unknown control action".into()),
     }
 }
