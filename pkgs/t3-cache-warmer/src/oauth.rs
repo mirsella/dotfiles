@@ -14,7 +14,7 @@ use jiff::Timestamp;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-use crate::config::Config;
+use crate::config::{Config, valid_redirect_uri};
 use crate::state::Credential;
 
 pub fn login(config: &Config) -> Result<Credential> {
@@ -24,16 +24,24 @@ pub fn login(config: &Config) -> Result<Credential> {
             .http_status_as_error(false)
             .build(),
     );
-    let base = config.base_url.trim_end_matches('/');
+    let base = config.base_url()?;
+    let base = base.trim_end_matches('/');
+    let redirect_uri = config
+        .redirect_uri
+        .clone()
+        .unwrap_or_else(|| format!("{base}/callback"));
+    if !valid_redirect_uri(&redirect_uri) {
+        bail!("redirectUri must be http://127.0.0.1:<port> or http://localhost:<port>");
+    }
     let verifier = random_token(32);
     let challenge = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
     let state_token = random_token(16);
-    let client_id = register(&agent, base, &config.redirect_uri)?;
+    let client_id = register(&agent, base, &redirect_uri)?;
     let pairing = pairing_code(&config.t3_cli_path)?;
     let authorization = json!({
         "response_type": "code",
         "client_id": client_id,
-        "redirect_uri": config.redirect_uri,
+        "redirect_uri": redirect_uri,
         "code_challenge": challenge,
         "code_challenge_method": "S256",
         "state": state_token,
@@ -45,7 +53,7 @@ pub fn login(config: &Config) -> Result<Credential> {
         .query_pairs([
             ("response_type", "code"),
             ("client_id", client_id.as_str()),
-            ("redirect_uri", config.redirect_uri.as_str()),
+            ("redirect_uri", redirect_uri.as_str()),
             ("code_challenge", challenge.as_str()),
             ("code_challenge_method", "S256"),
             ("state", state_token.as_str()),
@@ -91,7 +99,7 @@ pub fn login(config: &Config) -> Result<Credential> {
         .send_form([
             ("grant_type", "authorization_code"),
             ("code", code.as_str()),
-            ("redirect_uri", config.redirect_uri.as_str()),
+            ("redirect_uri", redirect_uri.as_str()),
             ("client_id", client_id.as_str()),
             ("code_verifier", verifier.as_str()),
         ])
@@ -116,7 +124,7 @@ pub fn login(config: &Config) -> Result<Credential> {
         expires_at: Timestamp::from_second(Timestamp::now().as_second() + expires_in)
             .context("T3 returned an out-of-range credential expiry")?,
         client_id,
-        redirect_uri: config.redirect_uri.clone(),
+        redirect_uri: redirect_uri.clone(),
         scope: token
             .get("scope")
             .and_then(Value::as_str)

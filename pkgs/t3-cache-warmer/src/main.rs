@@ -4,7 +4,7 @@ mod policy;
 mod state;
 mod t3;
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -18,7 +18,7 @@ use serde_json::Value;
 use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::Signals;
 
-use crate::config::Config;
+use crate::config::{Config, runtime_origin};
 use crate::policy::{Decision, ThreadView, decide, next_wakeup, observe, seed, within_day_window};
 use crate::state::{Credential, State};
 use crate::t3::{T3Client, is_credential_rejected};
@@ -64,6 +64,14 @@ fn main() -> Result<()> {
     if let Some(dir) = cli.state_dir {
         config.state_dir = Some(dir);
     }
+    if let Some(override_url) = &config.base_url
+        && let Some(origin) = runtime_origin()
+        && override_url.trim_end_matches('/') != origin.trim_end_matches('/')
+    {
+        log(&format!(
+            "warning: configured baseUrl {override_url} differs from the running T3 server at {origin}"
+        ));
+    }
     match cli.command {
         Command_::Login => login(&config),
         Command_::Once { dry_run } => once(&config, dry_run),
@@ -105,14 +113,15 @@ fn once(config: &Config, dry_run: bool) -> Result<()> {
     let mut state = State::load(&state_path)?;
     let now = Timestamp::now();
     state.prune(now, config.prune_days);
-    let mut client = T3Client::new(&config.base_url, credential.access_token);
+    let base_url = config.base_url()?;
+    let mut client = T3Client::new(&base_url, credential.access_token);
     let summary = match pass(config, &mut client, &mut state, &state_path, dry_run) {
         Ok(summary) => summary,
         Err(error) if is_credential_rejected(&error) && config.auto_renew && !dry_run => {
             log("credential rejected; signing in again…");
             let credential = oauth::login(config)?;
             credential.save(&credential_path)?;
-            let mut client = T3Client::new(&config.base_url, credential.access_token);
+            let mut client = T3Client::new(&base_url, credential.access_token);
             pass(config, &mut client, &mut state, &state_path, dry_run)?
         }
         Err(error) => return Err(error),
@@ -257,6 +266,7 @@ struct TickSummary {
     warmed: u32,
     observed: u32,
     errors: u32,
+    skipped: BTreeMap<&'static str, u32>,
 }
 
 /// Lists, observes, and warms one pass. Observations are folded into `state`
@@ -274,6 +284,7 @@ fn tick(
         warmed: 0,
         observed: 0,
         errors: 0,
+        skipped: BTreeMap::new(),
     };
     let mut seen: HashSet<String> = HashSet::new();
     for project in &projects {
@@ -294,37 +305,42 @@ fn tick(
             entry.provider = view.provider.clone();
             entry.model = view.model.clone();
             observe(entry, &view, now, config.send_grace_seconds);
-            if let Decision::Warm = decide(config, &view, entry, now) {
-                // Unique per attempt: the key deduplicates sends server-side,
-                // so a new keepalive must never reuse an earlier key (the
-                // refresh counter resets on real activity and would otherwise
-                // collide across epochs).
-                static SEND_SEQ: AtomicU64 = AtomicU64::new(0);
-                let seq = SEND_SEQ.fetch_add(1, Ordering::Relaxed);
-                let request_id = format!(
-                    "cache-warm-{}-r{}-{}-{seq}",
-                    short_id(&view.id),
-                    entry.refreshes + 1,
-                    now.as_second()
-                );
-                if dry_run {
-                    log(&format!("would warm {} ({})", view.id, view.title));
-                    summary.warmed += 1;
-                    continue;
+            match decide(config, &view, entry, now) {
+                Decision::Skip { reason } => {
+                    *summary.skipped.entry(reason.label()).or_insert(0) += 1;
                 }
-                match client.thread_send(&view.id, &config.keepalive_message, &request_id) {
-                    Ok(_) => {
-                        entry.pending_warm_at = Some(Timestamp::now());
-                        entry.pending_seen_running = false;
-                        entry.refreshes += 1;
-                        entry.last_error = None;
+                Decision::Warm => {
+                    // Unique per attempt: the key deduplicates sends server-side,
+                    // so a new keepalive must never reuse an earlier key (the
+                    // refresh counter resets on real activity and would otherwise
+                    // collide across epochs).
+                    static SEND_SEQ: AtomicU64 = AtomicU64::new(0);
+                    let seq = SEND_SEQ.fetch_add(1, Ordering::Relaxed);
+                    let request_id = format!(
+                        "cache-warm-{}-r{}-{}-{seq}",
+                        short_id(&view.id),
+                        entry.refreshes + 1,
+                        now.as_second()
+                    );
+                    if dry_run {
+                        log(&format!("would warm {} ({})", view.id, view.title));
                         summary.warmed += 1;
-                        log(&format!("warmed {} ({})", view.id, view.title));
+                        continue;
                     }
-                    Err(error) => {
-                        entry.last_error = Some(format!("{error:#}"));
-                        summary.errors += 1;
-                        eprintln!("{NAME}: warm {}: {error:#}", view.id);
+                    match client.thread_send(&view.id, &config.keepalive_message, &request_id) {
+                        Ok(_) => {
+                            entry.pending_warm_at = Some(Timestamp::now());
+                            entry.pending_seen_running = false;
+                            entry.refreshes += 1;
+                            entry.last_error = None;
+                            summary.warmed += 1;
+                            log(&format!("warmed {} ({})", view.id, view.title));
+                        }
+                        Err(error) => {
+                            entry.last_error = Some(format!("{error:#}"));
+                            summary.errors += 1;
+                            eprintln!("{NAME}: warm {}: {error:#}", view.id);
+                        }
                     }
                 }
             }
@@ -336,13 +352,23 @@ fn tick(
     // scheduler chase their stale due times. Narrowing config.projects
     // therefore also stops tracking the removed projects.
     state.threads.retain(|id, _| seen.contains(id));
-    Ok(format!(
+    let mut line = format!(
         "observed {} threads in {} projects, warmed {}, {} errors",
         summary.observed,
         projects.len(),
         summary.warmed,
         summary.errors
-    ))
+    );
+    if !summary.skipped.is_empty() {
+        let skipped = summary
+            .skipped
+            .iter()
+            .map(|(reason, count)| format!("{reason} {count}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        line.push_str(&format!(", skipped {skipped}"));
+    }
+    Ok(line)
 }
 
 /// Resolves which projects to scan: the config allowlist, or everything live.

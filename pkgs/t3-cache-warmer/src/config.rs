@@ -38,8 +38,9 @@ pub struct Rule {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct Config {
-    /// T3 server base URL.
-    pub base_url: String,
+    /// T3 server base URL. `None` discovers the origin of the running T3
+    /// server from its runtime file, so a moved port keeps working.
+    pub base_url: Option<String>,
     /// How the `login`/renewal flow reaches the `t3` CLI for a pairing code.
     pub t3_cli_path: String,
     /// Local hours warming may run in.
@@ -60,8 +61,9 @@ pub struct Config {
     pub auto_renew: bool,
     /// Drop thread state not seen for this many days.
     pub prune_days: u64,
-    /// OAuth loopback redirect registered for the client. Never opened.
-    pub redirect_uri: String,
+    /// OAuth loopback redirect registered for the client. `None` derives
+    /// `<baseUrl>/callback`. Never opened.
+    pub redirect_uri: Option<String>,
     /// The keepalive prompt. Reply is expected to be a single word.
     pub keepalive_message: String,
     /// Project ids to consider. Empty means every project.
@@ -77,7 +79,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            base_url: "http://127.0.0.1:3774".to_owned(),
+            base_url: None,
             t3_cli_path: "t3".to_owned(),
             day_window: DayWindow::default(),
             active_window_minutes: 150,
@@ -87,7 +89,7 @@ impl Default for Config {
             send_grace_seconds: 300,
             auto_renew: true,
             prune_days: 7,
-            redirect_uri: "http://127.0.0.1:47811/callback".to_owned(),
+            redirect_uri: None,
             keepalive_message: "[cache keepalive] reply with just: ok".to_owned(),
             projects: Vec::new(),
             skip_subagents: true,
@@ -112,7 +114,9 @@ impl Config {
 
     pub fn validate(&self) -> Result<()> {
         // This build has no TLS stack, so https:// could never work.
-        if !self.base_url.starts_with("http://") {
+        if let Some(base_url) = &self.base_url
+            && !base_url.starts_with("http://")
+        {
             bail!("baseUrl must use plain http://");
         }
         let start = parse_hhmm(&self.day_window.start, "dayWindow.start")?;
@@ -134,7 +138,9 @@ impl Config {
         if self.send_grace_seconds < 60 {
             bail!("sendGraceSeconds must be at least 60");
         }
-        if !valid_redirect_uri(&self.redirect_uri) {
+        if let Some(redirect_uri) = &self.redirect_uri
+            && !valid_redirect_uri(redirect_uri)
+        {
             bail!("redirectUri must be http://127.0.0.1:<port> or http://localhost:<port>");
         }
         if self.keepalive_message.trim().is_empty() {
@@ -165,12 +171,45 @@ impl Config {
         let home = std::env::var_os("HOME").context("HOME is not set")?;
         Ok(PathBuf::from(home).join(".local/state/t3-cache-warmer"))
     }
+
+    /// The T3 server base URL: the configured override, or the origin of the
+    /// running T3 server from its runtime file. Resolved per call so a server
+    /// restarted on another port is picked up.
+    pub fn base_url(&self) -> Result<String> {
+        let url = match &self.base_url {
+            Some(url) => url.clone(),
+            None => runtime_origin()
+                .context("no baseUrl configured and the running T3 server could not be located")?,
+        };
+        if !url.starts_with("http://") {
+            bail!("baseUrl must use plain http://");
+        }
+        Ok(url)
+    }
+}
+
+/// The origin the running T3 server published in its runtime file, when it
+/// exists and parses. Best-effort: a missing or malformed file means no
+/// discovery source, and callers report that through their own error path.
+pub fn runtime_origin() -> Option<String> {
+    let home = std::env::var_os("HOME")?;
+    runtime_origin_from(&PathBuf::from(home).join(".t3/userdata/server-runtime.json"))
+}
+
+fn runtime_origin_from(path: &Path) -> Option<String> {
+    let text = std::fs::read_to_string(path).ok()?;
+    let runtime: serde_json::Value = serde_json::from_str(&text).ok()?;
+    if let Some(origin) = runtime.get("origin").and_then(serde_json::Value::as_str) {
+        return Some(origin.to_owned());
+    }
+    let port = runtime.get("port").and_then(serde_json::Value::as_u64)?;
+    Some(format!("http://127.0.0.1:{port}"))
 }
 
 /// True for `http://127.0.0.1:<port>[...]` or `http://localhost:<port>[...]`.
 /// A string prefix is not enough: `http://127.0.0.1:1@evil.com/` would pass
 /// one while pointing at another host entirely.
-fn valid_redirect_uri(uri: &str) -> bool {
+pub fn valid_redirect_uri(uri: &str) -> bool {
     let Some(authority) = uri
         .strip_prefix("http://")
         .and_then(|rest| rest.split('/').next())
@@ -254,7 +293,7 @@ mod tests {
     #[test]
     fn rejects_unusable_scalars() {
         let config = Config {
-            base_url: "https://t3.example.com".to_owned(),
+            base_url: Some("https://t3.example.com".to_owned()),
             ..Config::default()
         };
         assert!(config.validate().is_err(), "no TLS stack for https");
@@ -287,5 +326,41 @@ mod tests {
         assert!(!valid_redirect_uri("http://127.0.0.1/callback"));
         assert!(!valid_redirect_uri("https://127.0.0.1:39001/callback"));
         assert!(!valid_redirect_uri("http://example.com:39001/callback"));
+    }
+
+    #[test]
+    fn reads_the_runtime_origin() {
+        let dir = std::env::temp_dir().join(format!("warmer-config-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("create test dir");
+        let path = dir.join("server-runtime.json");
+        std::fs::write(&path, r#"{"origin":"http://127.0.0.1:3999","port":3999}"#).expect("write");
+        assert_eq!(
+            runtime_origin_from(&path).as_deref(),
+            Some("http://127.0.0.1:3999")
+        );
+        std::fs::write(&path, r#"{"port":4001}"#).expect("write");
+        assert_eq!(
+            runtime_origin_from(&path).as_deref(),
+            Some("http://127.0.0.1:4001"),
+            "origin falls back to the port"
+        );
+        std::fs::write(&path, "not json").expect("write");
+        assert_eq!(runtime_origin_from(&path), None);
+        assert_eq!(runtime_origin_from(&dir.join("missing.json")), None);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn explicit_base_url_wins_and_must_be_plain_http() {
+        let config = Config {
+            base_url: Some("http://127.0.0.1:9".to_owned()),
+            ..Config::default()
+        };
+        assert_eq!(config.base_url().expect("resolve"), "http://127.0.0.1:9");
+        let config = Config {
+            base_url: Some("https://127.0.0.1:9".to_owned()),
+            ..Config::default()
+        };
+        assert!(config.base_url().is_err(), "no TLS stack for https");
     }
 }

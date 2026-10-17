@@ -40,6 +40,24 @@ pub enum SkipReason {
     CacheFresh,
 }
 
+impl SkipReason {
+    /// Stable label for logs. The exhaustive match keeps every variant named
+    /// as variants come and go.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Settled => "settled",
+            Self::Snoozed => "snoozed",
+            Self::Subagent => "subagent",
+            Self::Running => "running",
+            Self::NoRule => "no-rule",
+            Self::OutsideHours => "outside-hours",
+            Self::IdleTooLong => "idle-too-long",
+            Self::BudgetSpent => "budget-spent",
+            Self::CacheFresh => "cache-fresh",
+        }
+    }
+}
+
 /// Seeds the state of a thread we have never seen. Until the first refresh
 /// cycle the current activity is treated as the source of a fresh cache.
 pub fn seed(view: &ThreadView) -> ThreadState {
@@ -267,6 +285,27 @@ pub fn observe(state: &mut ThreadState, view: &ThreadView, now: Timestamp, grace
 mod tests {
     use super::*;
     use crate::config::{Config, Rule};
+
+    #[test]
+    fn skip_labels_are_distinct() {
+        let reasons = [
+            SkipReason::Settled,
+            SkipReason::Snoozed,
+            SkipReason::Subagent,
+            SkipReason::Running,
+            SkipReason::NoRule,
+            SkipReason::OutsideHours,
+            SkipReason::IdleTooLong,
+            SkipReason::BudgetSpent,
+            SkipReason::CacheFresh,
+        ];
+        let mut labels: Vec<&str> = reasons.iter().copied().map(SkipReason::label).collect();
+        labels.sort_unstable();
+        let count = labels.len();
+        labels.dedup();
+        assert_eq!(labels.len(), count, "labels must be distinct");
+        assert!(labels.iter().all(|label| !label.is_empty()));
+    }
 
     fn timestamp(text: &str) -> Timestamp {
         text.parse().expect("timestamp")
