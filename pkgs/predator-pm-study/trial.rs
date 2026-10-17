@@ -1,6 +1,9 @@
-//! Schema 2: first-suspend, untraced Q/M/H/D trials with 15-minute sleep targets.
-//! D is the overnight-aged daytime window (12 h to 12 h 30 awake) for arms that
-//! are prepared the evening before.
+//! Schema 2: untraced Q/M/H/D/E trials with 15-minute sleep targets. Ordinal 1 is
+//! the boot's first suspend, aged from boot; ordinal 2 is a repeat suspend on the
+//! same boot, aged from the last verified return. D is the overnight-aged daytime
+//! window (12 h to 12 h 30 awake) for arms that are prepared the evening before.
+//! E is the 7-hour evening window (7 h 00 to 7 h 15 awake) for repeat suspends
+//! timed to about 18:00.
 use super::*;
 use std::{collections::BTreeMap, os::unix::fs::MetadataExt};
 
@@ -67,7 +70,6 @@ impl Plan {
             ("pm_test", "none"),
             ("tpm", "initialized"),
             ("ec", "not-run"),
-            ("ordinal", "1"),
         ] {
             check(
                 values[key] == expected,
@@ -77,6 +79,11 @@ impl Plan {
         check(
             matches!(values["pm_async"].as_str(), "0" | "1"),
             "invalid pm_async",
+        )?;
+        let ordinal: u8 = values["ordinal"].parse()?;
+        check(
+            matches!(ordinal, 1 | 2),
+            format!("unsupported ordinal: {}", values["ordinal"]),
         )?;
         LoginPolicy::from_plan(data)?;
         let id = &values["trial_id"];
@@ -114,7 +121,8 @@ impl Plan {
             "M" => (10800, 11700),
             "H" => (28800, 29700),
             "D" => (43200, 45000),
-            _ => return Err("only first-suspend Q/M/H/D profiles are implemented".into()),
+            "E" => (25200, 26100),
+            _ => return Err("only Q/M/H/D/E profiles are implemented".into()),
         };
         let due: u64 = values["due"].parse()?;
         let wake: u64 = values["wake"].parse()?;
@@ -191,9 +199,15 @@ impl Plan {
             EcState::NotRun,
             self.get("pm_async"),
         )?;
+        let ordinal: u64 = self.get("ordinal").parse()?;
         check(
-            before.successes == 0 && before.markers == 0,
-            "first-suspend trial has previous cycles/markers",
+            before.successes == ordinal - 1 && before.markers == 0,
+            format!(
+                "ordinal {ordinal} requires {} prior cycles and no markers; found {} cycles, {} markers",
+                ordinal - 1,
+                before.successes,
+                before.markers
+            ),
         )?;
         self.age(before.awake_seconds, now()?, execute)?;
         check(
@@ -286,6 +300,7 @@ fn raw_return(plan: &Plan, returned: u64, result: &Result<()>) -> Result<()> {
 }
 
 fn attempt(plan: &Plan, data: &str) -> Result<()> {
+    let ordinal: u64 = plan.get("ordinal").parse()?;
     plan.save("requested", data)?; // create_new is the duplicate-attempt guard.
     let mut ntp_stopped = false;
     let mut returned = None;
@@ -323,26 +338,22 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
             ),
         )?;
         output("rtcwake", &["--mode", "disable"])?;
-        plan.preflight(true)?;
+        let before = plan.preflight(true)?;
         ntp_stopped = true;
         output("systemctl", &["stop", "systemd-timesyncd.service"])?;
         marker(&format!(
-            "BEGIN trial={} boot={} due_epoch={} wake_epoch={} profile={} pm_async={} pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced",
+            "BEGIN trial={} boot={} due_epoch={} wake_epoch={} profile={} ordinal={} pm_async={} pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced",
             plan.get("trial_id"),
             plan.get("boot"),
             plan.due,
             plan.wake,
             plan.get("profile"),
+            ordinal,
             plan.get("pm_async")
         ))?;
         output("journalctl", &["--sync"])?;
         plan.identity()?;
-        let uptime = text("/proc/uptime")?
-            .split_whitespace()
-            .next()
-            .ok_or("missing uptime")?
-            .parse::<f64>()? as u64;
-        plan.age(uptime, now()?, true)?;
+        plan.age(before.awake_seconds, now()?, true)?;
         check(
             text("/sys/power/pm_async")? == plan.get("pm_async"),
             "PM setting changed at entry",
@@ -367,16 +378,16 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
         return Err(format!("request/entry/return failed: {error}; clock={clock:?}").into());
     }
     check(
-        text("/sys/power/suspend_stats/success")? == "1"
+        text("/sys/power/suspend_stats/success")?.parse::<u64>()? == ordinal
             && text("/sys/power/suspend_stats/fail")? == "0",
-        "kernel did not complete one successful cycle",
+        format!("kernel did not complete suspend cycle {ordinal} successfully"),
     )?;
     check(
         completed_cycles(&text(format!(
             "{STATE}/{}-after-kernel.txt",
             plan.get("trial_id")
         ))?)?
-            == 1,
+            == ordinal,
         "kernel cycle incomplete",
     )?;
     check(
@@ -414,7 +425,7 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
             format!("RECOVERY_FAILURE: missing {mount}"),
         )?;
     }
-    let record = record_completion(plan.get("boot"), 1, 0, now()?)?;
+    let record = record_completion(plan.get("boot"), ordinal, 0, now()?)?;
     plan.save(
         "completed",
         &format!(
@@ -423,7 +434,7 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
         ),
     )?;
     marker(&format!(
-        "VERIFIED trial={} one timed deep cycle; fresh NTP and storage healthy; physical sleep evidence still required",
+        "VERIFIED trial={} timed deep cycle {ordinal}; fresh NTP and storage healthy; physical sleep evidence still required",
         plan.get("trial_id")
     ))
 }
@@ -526,7 +537,7 @@ mod tests {
     }
     #[test]
     fn strict_manifest_rejects_silent_defaults_and_conflicting_modes() {
-        for profile in ["Q", "M", "H", "D"] {
+        for profile in ["Q", "M", "H", "D", "E"] {
             let data = manifest().replace("profile=M", &format!("profile={profile}"));
             assert!(Plan::parse(&data).is_ok());
             assert!(Plan::parse(&data.replace("wake=20900", "wake=20180")).is_err());
@@ -536,7 +547,7 @@ mod tests {
             manifest() + "\nunknown=1",
             manifest() + "\npm_async=1",
             manifest().replace("recorder=off", "recorder=rtc"),
-            manifest().replace("ordinal=1", "ordinal=2"),
+            manifest().replace("ordinal=1", "ordinal=3"),
             manifest().replace("profile=M", "profile=L"),
             manifest().replace("wake=20900", "wake=20899"),
             manifest().replace("wake=20900", "wake=20901"),
@@ -544,6 +555,17 @@ mod tests {
             manifest().replace("pm_async=0\n", ""),
         ] {
             assert!(Plan::parse(&change).is_err(), "accepted {change}");
+        }
+    }
+    #[test]
+    fn repeat_suspend_ordinal_two_is_explicit_and_bounded() {
+        assert!(Plan::parse(&manifest().replace("ordinal=1", "ordinal=2")).is_ok());
+        for ordinal in ["0", "3", "x"] {
+            assert!(
+                Plan::parse(&manifest().replace("ordinal=1", &format!("ordinal={ordinal}")))
+                    .is_err(),
+                "accepted ordinal={ordinal}"
+            );
         }
     }
     #[test]

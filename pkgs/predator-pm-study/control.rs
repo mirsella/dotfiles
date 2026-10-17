@@ -312,7 +312,7 @@ impl Trial {
                     .find_map(|word| word.strip_prefix("nonce="))
             })
             .ok_or("missing readiness nonce")?;
-        self.remote("observer-ready", PI, &format!("set -eu\ntest \"$(timedatectl show -p NTPSynchronized --value)\" = yes\nsystemctl is-active predator-netconsole-20261006.service\ntest \"$(sha256sum /home/mirsella/wol_predator.py | cut -d' ' -f1)\" = 53a767e2eb6275439bba73272b6e65db5991e670d6c933da00b92fc2b2e048b6\ngrep -F {} {}\ncat /proc/sys/kernel/random/boot_id\ndate --iso-8601=seconds\n", quote(&format!("nonce={nonce}")), quote(LOG)))?;
+        self.remote("observer-ready", PI, &format!("set -eu\ntest \"$(timedatectl show -p NTPSynchronized --value)\" = yes\nsystemctl is-active predator-netconsole-20261006.service\ntest \"$(sha256sum /home/mirsella/wol_predator.py | cut -d' ' -f1)\" = ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8\ngrep -F {} {}\ncat /proc/sys/kernel/random/boot_id\ndate --iso-8601=seconds\n", quote(&format!("nonce={nonce}")), quote(LOG)))?;
         self.snapshot("baseline")?;
         let mut script = String::from("set -eu\n");
         // Check all names before creating any units, so rollback owns every name.
