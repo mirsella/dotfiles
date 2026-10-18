@@ -1,9 +1,7 @@
-//! Schema 2: untraced Q/M/H/D/E trials with 15-minute sleep targets. Ordinal 1 is
-//! the boot's first suspend, aged from boot; ordinal 2 is a repeat suspend on the
-//! same boot, aged from the last verified return. D is the overnight-aged daytime
-//! window (12 h to 12 h 30 awake) for arms that are prepared the evening before.
-//! E is the 7-hour evening window (7 h 00 to 7 h 15 awake) for repeat suspends
-//! timed to about 18:00.
+//! Schema 2: untraced Q/M/H/D/E trials with 16-minute wake delays and at least
+//! 15 minutes of measured sleep. The extra minute allows for entry overhead.
+//! Ordinal 1 is the boot's first suspend, aged from boot; ordinal 2 is a repeat
+//! on the same boot, aged from the last verified completion.
 use super::*;
 use std::{collections::BTreeMap, os::unix::fs::MetadataExt};
 
@@ -127,8 +125,8 @@ impl Plan {
         let due: u64 = values["due"].parse()?;
         let wake: u64 = values["wake"].parse()?;
         check(
-            wake.checked_sub(due) == Some(900),
-            "schema 2 requires a 15-minute sleep target",
+            wake.checked_sub(due) == Some(960),
+            "this runtime requires a 16-minute wake delay to allow 15 minutes asleep",
         )?;
         let start: u64 = values["daytime_start"].parse()?;
         let end: u64 = values["daytime_end"].parse()?;
@@ -299,11 +297,39 @@ fn raw_return(plan: &Plan, returned: u64, result: &Result<()>) -> Result<()> {
     )
 }
 
+fn verified_sleep_seconds(journal: &str, ordinal: u64) -> Result<f64> {
+    let mut last = None;
+    for (index, (_, suffix)) in journal
+        .lines()
+        .filter_map(|line| line.split_once("Timekeeping suspended for "))
+        .enumerate()
+    {
+        let seconds: f64 = suffix
+            .strip_suffix(" seconds")
+            .ok_or("malformed kernel sleep duration")?
+            .parse()?;
+        check(
+            seconds.is_finite() && seconds >= 0.0,
+            "invalid kernel sleep duration",
+        )?;
+        last = Some((index + 1, seconds));
+    }
+    let (count, seconds) = last.ok_or("missing kernel sleep duration")?;
+    check(
+        count as u64 == ordinal,
+        "sleep duration count does not match completed cycle ordinal",
+    )?;
+    check(
+        seconds >= 900.0,
+        format!("SHORT_SLEEP: kernel measured {seconds:.3}s; at least 900s required"),
+    )?;
+    Ok(seconds)
+}
+
 fn attempt(plan: &Plan, data: &str) -> Result<()> {
     let ordinal: u64 = plan.get("ordinal").parse()?;
     plan.save("requested", data)?; // create_new is the duplicate-attempt guard.
     let mut ntp_stopped = false;
-    let mut returned = None;
     let result = (|| {
         capture()?;
         plan.preflight(true)?;
@@ -359,35 +385,31 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
             "PM setting changed at entry",
         )?;
         let request = suspend_and_wait(LoginPolicy::from_plan(data)?);
-        let epoch = now()?;
-        returned = Some(epoch);
-        raw_return(plan, epoch, &request)?;
-        request
+        let returned = now()?;
+        raw_return(plan, returned, &request)?;
+        request.map(|()| returned)
     })();
     let clock = if ntp_stopped { restore_clock() } else { Ok(()) };
     plan.save(
         "recovery",
         &format!(
-            "request={result:?}\nclock={clock:?}\n{}\n{}\n{}\n",
+            "request={:?}\nclock={clock:?}\n{}\n{}\n{}\n",
+            result.as_ref().map(|_| ()),
             captured("timedatectl", &["timesync-status"]),
             captured("zpool", &["status"]),
             captured("findmnt", &["-rn", "-t", "zfs", "-o", "SOURCE,TARGET"])
         ),
     )?;
-    if let Err(error) = result {
-        return Err(format!("request/entry/return failed: {error}; clock={clock:?}").into());
-    }
+    let returned =
+        result.map_err(|error| format!("request/entry/return failed: {error}; clock={clock:?}"))?;
     check(
         text("/sys/power/suspend_stats/success")?.parse::<u64>()? == ordinal
             && text("/sys/power/suspend_stats/fail")? == "0",
         format!("kernel did not complete suspend cycle {ordinal} successfully"),
     )?;
+    let kernel = text(format!("{STATE}/{}-after-kernel.txt", plan.get("trial_id")))?;
     check(
-        completed_cycles(&text(format!(
-            "{STATE}/{}-after-kernel.txt",
-            plan.get("trial_id")
-        ))?)?
-            == ordinal,
+        completed_cycles(&kernel)? == ordinal,
         "kernel cycle incomplete",
     )?;
     check(
@@ -398,17 +420,16 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
     plan.save(
         "kernel-completed",
         &format!(
-            "boot={}\nreturned_epoch={}\nclock={clock:?}\n",
-            plan.get("boot"),
-            returned.ok_or("no return time")?
+            "boot={}\nreturned_epoch={returned}\nclock={clock:?}\n",
+            plan.get("boot")
         ),
     )?;
     clock.map_err(|error| format!("RECOVERY_FAILURE after complete kernel cycle: {error}"))?;
     check(
-        (plan.wake.saturating_sub(2)..=plan.wake + 180)
-            .contains(&returned.ok_or("missing return time")?),
+        (plan.wake.saturating_sub(2)..=plan.wake + 180).contains(&returned),
         "EARLY_OR_LATE_WAKE: kernel returned outside planned WoL window",
     )?;
+    let sleep_seconds = verified_sleep_seconds(&kernel, ordinal)?;
     check(
         output("zpool", &["status", "-x"])? == "all pools are healthy",
         "RECOVERY_FAILURE: unhealthy pool",
@@ -429,12 +450,11 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
     plan.save(
         "completed",
         &format!(
-            "{record}returned_epoch={}\nphysical_sleep=AWAITING_OWNER_GRAPH\n",
-            returned.unwrap()
+            "{record}returned_epoch={returned}\nsleep_seconds={sleep_seconds:.3}\nphysical_sleep=AWAITING_OWNER_GRAPH\n"
         ),
     )?;
     marker(&format!(
-        "VERIFIED trial={} timed deep cycle {ordinal}; fresh NTP and storage healthy; physical sleep evidence still required",
+        "VERIFIED trial={} timed deep cycle {ordinal}; slept {sleep_seconds:.3}s; fresh NTP and storage healthy; physical sleep evidence still required",
         plan.get("trial_id")
     ))
 }
@@ -533,14 +553,14 @@ pub fn run(path: &str, hash: &str, execute: bool) -> Result<()> {
 mod tests {
     use super::*;
     fn manifest() -> String {
-        "schema_version=2\ntrial_id=serial-m-test\nprofile=M\nboot=214d0240-3825-4946-8492-c30bf530eba0\ngeneration=/nix/store/g-system\nkernel=/nix/store/k/bzImage\nmodules=/nix/store/m\nruntime=/nix/store/r/bin/predator-pm-study\ndue=20000\nwake=20900\npm_async=0\npm_trace=0\nrecorder=off\nmem_sleep=deep\npm_test=none\ntpm=initialized\nec=not-run\nlogged_in_users=allow\nordinal=1\ndaytime_start=19900\ndaytime_end=21100".into()
+        "schema_version=2\ntrial_id=serial-m-test\nprofile=M\nboot=214d0240-3825-4946-8492-c30bf530eba0\ngeneration=/nix/store/g-system\nkernel=/nix/store/k/bzImage\nmodules=/nix/store/m\nruntime=/nix/store/r/bin/predator-pm-study\ndue=20000\nwake=20960\npm_async=0\npm_trace=0\nrecorder=off\nmem_sleep=deep\npm_test=none\ntpm=initialized\nec=not-run\nlogged_in_users=allow\nordinal=1\ndaytime_start=19900\ndaytime_end=21200".into()
     }
     #[test]
     fn strict_manifest_rejects_silent_defaults_and_conflicting_modes() {
         for profile in ["Q", "M", "H", "D", "E"] {
             let data = manifest().replace("profile=M", &format!("profile={profile}"));
             assert!(Plan::parse(&data).is_ok());
-            assert!(Plan::parse(&data.replace("wake=20900", "wake=20180")).is_err());
+            assert!(Plan::parse(&data.replace("wake=20960", "wake=20180")).is_err());
             assert!(Plan::parse(&data.replace("schema_version=2", "schema_version=1")).is_err());
         }
         for change in [
@@ -549,9 +569,10 @@ mod tests {
             manifest().replace("recorder=off", "recorder=rtc"),
             manifest().replace("ordinal=1", "ordinal=3"),
             manifest().replace("profile=M", "profile=L"),
-            manifest().replace("wake=20900", "wake=20899"),
-            manifest().replace("wake=20900", "wake=20901"),
-            manifest().replace("daytime_end=21100", "daytime_end=21079"),
+            manifest().replace("wake=20960", "wake=20900"),
+            manifest().replace("wake=20960", "wake=20959"),
+            manifest().replace("wake=20960", "wake=20961"),
+            manifest().replace("daytime_end=21200", "daytime_end=21139"),
             manifest().replace("pm_async=0\n", ""),
         ] {
             assert!(Plan::parse(&change).is_err(), "accepted {change}");
@@ -567,6 +588,33 @@ mod tests {
                 "accepted ordinal={ordinal}"
             );
         }
+    }
+    #[test]
+    fn measured_sleep_must_meet_minimum_on_the_current_cycle() {
+        let line = |seconds: &str| {
+            format!("[ 1942.478482] predator kernel: Timekeeping suspended for {seconds} seconds\n")
+        };
+        assert_eq!(verified_sleep_seconds(&line("900.000"), 1).unwrap(), 900.0);
+        assert!(
+            verified_sleep_seconds(&line("897.522"), 1)
+                .unwrap_err()
+                .to_string()
+                .starts_with("SHORT_SLEEP:")
+        );
+        assert_eq!(
+            verified_sleep_seconds(&(line("897.522") + &line("957.100")), 2).unwrap(),
+            957.1
+        );
+        assert!(verified_sleep_seconds(&(line("957.100") + &line("897.522")), 2).is_err());
+        assert!(verified_sleep_seconds(&line("957.100"), 2).is_err());
+        assert!(verified_sleep_seconds(&(line("957.100") + &line("957.100")), 1).is_err());
+        assert!(verified_sleep_seconds("", 1).is_err());
+        for invalid in ["NaN", "inf", "-1", "unknown"] {
+            assert!(verified_sleep_seconds(&line(invalid), 1).is_err());
+            assert!(verified_sleep_seconds(&(line(invalid) + &line("957.100")), 2).is_err());
+            assert!(verified_sleep_seconds(&(line("957.100") + &line(invalid)), 2).is_err());
+        }
+        assert!(verified_sleep_seconds("Timekeeping suspended for 957.100 minutes", 1).is_err());
     }
     #[test]
     fn age_guard_distinguishes_prepare_from_entry_and_rejects_missed_windows() {
