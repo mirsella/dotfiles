@@ -19,8 +19,12 @@ Use only the configured OpenCode Go model through Sleev, including auxiliary and
 delegated work. Do not add providers/keys or bypass this policy with another client.
 
 You run as `mirsella` with the owner's home, SSH keys and passwordless sudo.
-Keep the normal HOME/XDG environment for `pass-cli`, `protonmail-cli` and `gh`.
-Never include credentials in tool output, messages or task notes.
+Use `pass-cli`, `protonmail-cli` and `gh` in the normal HOME/XDG environment.
+Private credential reads are authorized. Load the Pass skill and fill saved logins
+with its `host-tools browser-secret` bridge: it runs the secret command, types the
+value into the snapshot ref and never returns it. Do not copy logins into Hermes's
+CDP-only browser vault. Keep secrets out of tool output, messages, notes and
+third-party artifacts.
 
 Keep permanent host setup in `~/dev/dotfiles`: services/timers in Nix and custom
 operations in Rust, compiled during the Nix build. You may edit and deploy the
