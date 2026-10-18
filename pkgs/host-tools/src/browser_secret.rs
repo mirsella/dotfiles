@@ -43,12 +43,21 @@ struct Tabs {
 }
 #[derive(Deserialize)]
 struct Tab {
+    /// A tab whose entry is missing or whose value is not a string cannot be
+    /// addressed at all, so it stays unselectable instead of aborting the
+    /// listing: one bad entry cannot hide the other tabs.
     #[serde(rename = "tabId")]
-    id: String,
+    id: Option<Value>,
     /// Missing while the native browser no longer reports the tracked tab. The
     /// URL stays unparsed, and any value that is not a string counts as
     /// unreadable, so one bad entry cannot hide the other tabs.
     url: Option<Value>,
+}
+
+impl Tab {
+    fn id(&self) -> Option<&str> {
+        self.id.as_ref().and_then(Value::as_str)
+    }
 }
 
 fn configuration() -> Result<Browser> {
@@ -116,12 +125,16 @@ fn local_client() -> Agent {
 
 fn select_tab<'a>(tabs: &'a [Tab], origin: &Origin, id: Option<&str>) -> Result<&'a Tab> {
     let mut matching = tabs.iter().filter(|tab| {
-        tab.url
-            .as_ref()
-            .and_then(Value::as_str)
-            .and_then(|url| url.parse::<Url>().ok())
-            .is_some_and(|url| url.origin() == *origin)
-            && id.is_none_or(|id| id == tab.id)
+        let Some(current) = tab.id() else {
+            return false;
+        };
+        id.is_none_or(|id| id == current)
+            && tab
+                .url
+                .as_ref()
+                .and_then(Value::as_str)
+                .and_then(|url| url.parse::<Url>().ok())
+                .is_some_and(|url| url.origin() == *origin)
     });
     let first = matching
         .next()
@@ -132,7 +145,7 @@ fn select_tab<'a>(tabs: &'a [Tab], origin: &Origin, id: Option<&str>) -> Result<
             [first, second]
                 .into_iter()
                 .chain(matching)
-                .map(|tab| tab.id.as_str())
+                .filter_map(Tab::id)
                 .collect::<Vec<_>>()
                 .join(", ")
         );
@@ -222,11 +235,14 @@ fn fill(browser: &Browser, options: &Options) -> Result<()> {
         .map_err(|_| anyhow!("Invalid native browser tab list"))?;
     let tab = select_tab(&tabs.tabs, &origin, options.tab.as_deref())?;
     let value = secret(options)?;
+    let tab_id = tab
+        .id()
+        .context("Selected browser tab lost its identifier")?;
     let mut target = browser.endpoint.clone();
     target
         .path_segments_mut()
         .expect("validated HTTP URL")
-        .extend(["tabs", &tab.id, "type"]);
+        .extend(["tabs", tab_id, "type"]);
     let mut response = browser
         .client
         .post(target.as_str())
@@ -297,20 +313,24 @@ mod tests {
     fn selection_and_secret_decoding_preserve_values_without_guessing() {
         let tabs = vec![
             Tab {
-                id: "a".into(),
+                id: Some("a".into()),
                 url: Some("https://login.example.com/form".into()),
             },
             Tab {
-                id: "b".into(),
+                id: Some("b".into()),
                 url: Some("https://login.example.com/other".into()),
             },
             Tab {
-                id: "unreported".into(),
+                id: Some("unreported".into()),
                 url: None,
             },
             Tab {
-                id: "unreadable".into(),
+                id: Some("unreadable".into()),
                 url: Some("not a URL".into()),
+            },
+            Tab {
+                id: Some(json!(7)),
+                url: Some("https://login.example.com/numbered".into()),
             },
         ];
         let origin = "https://login.example.com/form"
@@ -320,13 +340,22 @@ mod tests {
         let other: Url = "https://other.example.com".parse().unwrap();
         assert!(select_tab(&tabs, &other.origin(), None).is_err());
         assert!(select_tab(&tabs, &origin, None).is_err());
-        assert_eq!(select_tab(&tabs, &origin, Some("b")).unwrap().id, "b");
-        assert_eq!(select_tab(&tabs[..1], &origin, None).unwrap().id, "a");
+        assert_eq!(
+            select_tab(&tabs, &origin, Some("b")).unwrap().id(),
+            Some("b")
+        );
+        assert_eq!(
+            select_tab(&tabs[..1], &origin, None).unwrap().id(),
+            Some("a")
+        );
         assert!(select_tab(&tabs, &origin, Some("missing")).is_err());
         // A tab the native browser no longer reports is never matched.
         assert!(select_tab(&tabs, &origin, Some("unreported")).is_err());
         // One unreadable URL must not hide the tabs the bridge can still use.
         assert!(select_tab(&tabs, &origin, Some("unreadable")).is_err());
+        // Neither must an identifier that is not a string: it is unaddressable,
+        // so it stays out of the match set and out of the disambiguation list.
+        assert!(select_tab(&tabs, &origin, Some("7")).is_err());
         assert!(
             select_tab(&tabs, &origin, None)
                 .err()
