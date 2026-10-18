@@ -41,22 +41,32 @@ struct Browser {
 struct Tabs {
     tabs: Vec<Tab>,
 }
+/// One entry of the native browser's tab list, kept as raw JSON: an entry the
+/// bridge cannot read entirely is skipped instead of failing the listing, so one
+/// bad entry cannot hide the other tabs.
 #[derive(Deserialize)]
 struct Tab {
-    /// A tab whose entry is missing or whose value is not a string cannot be
-    /// addressed at all, so it stays unselectable instead of aborting the
-    /// listing: one bad entry cannot hide the other tabs.
     #[serde(rename = "tabId")]
     id: Option<Value>,
-    /// Missing while the native browser no longer reports the tracked tab. The
-    /// URL stays unparsed, and any value that is not a string counts as
-    /// unreadable, so one bad entry cannot hide the other tabs.
+    /// Missing while the native browser no longer reports the tracked tab.
     url: Option<Value>,
 }
 
 impl Tab {
+    /// Identifier the native browser reports for the tab, when it is a string: a
+    /// tab without one cannot be addressed at all.
     fn id(&self) -> Option<&str> {
         self.id.as_ref().and_then(Value::as_str)
+    }
+
+    /// Origin of the tab's last reported URL, when that URL is a string that
+    /// parses.
+    fn origin(&self) -> Option<Origin> {
+        self.url
+            .as_ref()
+            .and_then(Value::as_str)
+            .and_then(|url| url.parse::<Url>().ok())
+            .map(|url| url.origin())
     }
 }
 
@@ -123,34 +133,24 @@ fn local_client() -> Agent {
         .into()
 }
 
-fn select_tab<'a>(tabs: &'a [Tab], origin: &Origin, id: Option<&str>) -> Result<&'a Tab> {
-    let mut matching = tabs.iter().filter(|tab| {
-        let Some(current) = tab.id() else {
-            return false;
-        };
-        id.is_none_or(|id| id == current)
-            && tab
-                .url
-                .as_ref()
-                .and_then(Value::as_str)
-                .and_then(|url| url.parse::<Url>().ok())
-                .is_some_and(|url| url.origin() == *origin)
-    });
-    let first = matching
-        .next()
-        .context("No matching browser page; check its HTTPS origin and tab")?;
-    if let Some(second) = matching.next() {
-        bail!(
+/// The identifier of the single tab on `origin`, so the caller never has to
+/// read the entry again: a tab without a usable identifier is not selectable.
+fn select_tab<'a>(tabs: &'a [Tab], origin: &Origin, id: Option<&str>) -> Result<&'a str> {
+    let matching: Vec<_> = tabs
+        .iter()
+        .filter(|tab| {
+            id.is_none_or(|id| tab.id() == Some(id)) && tab.origin().as_ref() == Some(origin)
+        })
+        .filter_map(Tab::id)
+        .collect();
+    match matching.as_slice() {
+        [tab] => Ok(tab),
+        [] => bail!("No matching browser page; check its HTTPS origin and tab"),
+        ids => bail!(
             "Several pages match; use --tab with one of: {}",
-            [first, second]
-                .into_iter()
-                .chain(matching)
-                .filter_map(Tab::id)
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+            ids.join(", ")
+        ),
     }
-    Ok(first)
 }
 
 fn secret(options: &Options) -> Result<String> {
@@ -233,11 +233,8 @@ fn fill(browser: &Browser, options: &Options) -> Result<()> {
         .body_mut()
         .read_json()
         .map_err(|_| anyhow!("Invalid native browser tab list"))?;
-    let tab = select_tab(&tabs.tabs, &origin, options.tab.as_deref())?;
+    let tab_id = select_tab(&tabs.tabs, &origin, options.tab.as_deref())?;
     let value = secret(options)?;
-    let tab_id = tab
-        .id()
-        .context("Selected browser tab lost its identifier")?;
     let mut target = browser.endpoint.clone();
     target
         .path_segments_mut()
@@ -310,7 +307,7 @@ mod tests {
     }
 
     #[test]
-    fn selection_and_secret_decoding_preserve_values_without_guessing() {
+    fn selection_skips_tabs_the_bridge_cannot_address() {
         let tabs = vec![
             Tab {
                 id: Some("a".into()),
@@ -339,15 +336,8 @@ mod tests {
             .origin();
         let other: Url = "https://other.example.com".parse().unwrap();
         assert!(select_tab(&tabs, &other.origin(), None).is_err());
-        assert!(select_tab(&tabs, &origin, None).is_err());
-        assert_eq!(
-            select_tab(&tabs, &origin, Some("b")).unwrap().id(),
-            Some("b")
-        );
-        assert_eq!(
-            select_tab(&tabs[..1], &origin, None).unwrap().id(),
-            Some("a")
-        );
+        assert_eq!(select_tab(&tabs, &origin, Some("b")).unwrap(), "b");
+        assert_eq!(select_tab(&tabs[..1], &origin, None).unwrap(), "a");
         assert!(select_tab(&tabs, &origin, Some("missing")).is_err());
         // A tab the native browser no longer reports is never matched.
         assert!(select_tab(&tabs, &origin, Some("unreported")).is_err());
@@ -363,6 +353,10 @@ mod tests {
                 .to_string()
                 .ends_with("a, b")
         );
+    }
+
+    #[test]
+    fn secret_sources_strip_line_endings_without_guessing() {
         assert_eq!(secret(&options()).unwrap(), "  dummy-password  ");
         let mut options = options();
         options.command[2] = "printf '  dummy-password  \\r\\n'".into();

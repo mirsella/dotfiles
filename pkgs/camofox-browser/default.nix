@@ -52,7 +52,7 @@ buildNpmPackage {
               throw Object.assign(new Error("Fill target is not in the expected origin"), { statusCode: 409, code: "target_origin_changed" });
             }
           }
-          if (mode === "fill") {' \
+          if (mode === '"'"'fill'"'"') {' \
       --replace-fail "    log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
       "    if (req.body.expectedOrigin !== undefined) { err.message = 'Credential fill failed'; err.stack = undefined; }
     log('error', 'type failed', { reqId: req.reqId, error: err.message });" \

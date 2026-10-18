@@ -17,7 +17,7 @@ const index = (marker) => {
 const only = (marker) => {
   const count = source.split(marker).length - 1;
   assert.equal(count, 1, `patched server.js must contain one ${marker}, found ${count}`);
-  return source.indexOf(marker);
+  return index(marker);
 };
 
 const pageCheck = only("page_origin_changed");
@@ -42,5 +42,10 @@ assert(
   source.slice(emit, emitEnd).includes('expectedOrigin !== undefined ? ""'),
   "a credential fill must emit an empty payload text",
 );
+
+// Only the check in front of upstream's fill branch is ours. A replacement that
+// mangles that line would leave typing broken while every marker still exists.
+index("if (mode === 'fill') {");
+assert(!source.includes("mode === fill)"), "the fill branch lost its string literal");
 
 console.log("camofox guard order holds");
