@@ -30,6 +30,57 @@ Faces.SensorFace {
     readonly property var emphasizedSensorIds: root.controller.highPrioritySensorIds.filter(function(id) {
         return root.controller.lowPrioritySensorIds.indexOf(id) !== -1
     })
+    // Maps the highlighted legend row to the index of the line it points at:
+    // the plain row index when the legend lists the chart's own lines, or
+    // the sensor's index in the given list when the legend lists low
+    // priority sensors instead.
+    function highlightedLineIndex(sensorIds) {
+        if (!legend.lowPriorityLegend || legend.highlightedIndex < 0) {
+            return legend.highlightedIndex
+        }
+        return sensorIds.indexOf(root.controller.lowPrioritySensorIds[legend.highlightedIndex])
+    }
+
+    // Keeps a chart's value sources in sync with a sensor data model: one
+    // history source per sensor, sampled like the main chart. Used for the
+    // emphasized overlay and the hidden legend chart.
+    component SensorHistorySources: Instantiator {
+        required property Charts.Chart chart
+        required property Sensors.SensorDataModel sensorData
+
+        model: sensorData.sensors
+
+        delegate: Charts.HistoryProxySource {
+            id: history
+
+            source: Charts.ModelSource {
+                model: sensorData
+                column: index
+                roleName: "Value"
+            }
+            interval: {
+                if (root.controller.updateRateLimit > 0) {
+                    return root.controller.updateRateLimit
+                }
+                if (sensorData.ready) {
+                    return sensorData.headerData(index, Qt.Horizontal, Sensors.SensorDataModel.UpdateInterval) ?? 0
+                }
+                return 0
+            }
+            maximumHistory: interval > 0 ? (root.controller.faceConfiguration.historyAmount * 1000) / interval : 0
+            fillMode: Charts.HistoryProxySource.FillFromEnd
+            property var connection: Connections {
+                target: root.controller
+                function onUpdateRateLimitChanged() {
+                    history.clear()
+                }
+            }
+        }
+
+        onObjectAdded: (index, object) => chart.insertValueSource(index, object)
+        onObjectRemoved: (object) => chart.removeValueSource(object)
+    }
+
     // Arbitrary minimumWidth to make easier to align plasmoids in a predictable way
     Layout.minimumWidth: Kirigami.Units.gridUnit * 8
     Layout.preferredWidth: Math.max(titleMetrics.width, legend.preferredWidth)
@@ -96,15 +147,7 @@ Faces.SensorFace {
 
                     controller: root.controller
 
-                    // The legend may list low priority sensors instead of the
-                    // chart's own lines; map a highlighted legend row back to
-                    // the matching line of this chart.
-                    highlight: {
-                        if (!legend.lowPriorityLegend || legend.highlightedIndex < 0) {
-                            return legend.highlightedIndex
-                        }
-                        return root.controller.highPrioritySensorIds.indexOf(root.controller.lowPrioritySensorIds[legend.highlightedIndex])
-                    }
+                    highlight: root.highlightedLineIndex(root.controller.highPrioritySensorIds)
 
                     ChartsControls.GridLines {
                         id: horizontalLines
@@ -132,13 +175,7 @@ Faces.SensorFace {
                     visible: root.emphasizedSensorIds.length > 0
                     z: 1
 
-                    // Same mapping as the main chart, for the emphasized lines.
-                    highlight: {
-                        if (!legend.lowPriorityLegend || legend.highlightedIndex < 0) {
-                            return legend.highlightedIndex
-                        }
-                        return root.emphasizedSensorIds.indexOf(root.controller.lowPrioritySensorIds[legend.highlightedIndex])
-                    }
+                    highlight: root.highlightedLineIndex(root.emphasizedSensorIds)
 
                     direction: compactRepresentation.direction
                     interpolate: compactRepresentation.interpolate
@@ -165,39 +202,9 @@ Faces.SensorFace {
                         sensorColors: root.controller.sensorColors
                     }
 
-                    Instantiator {
-                        model: emphasizedSensorsModel.sensors
-                        delegate: Charts.HistoryProxySource {
-                            id: history
-                            source: Charts.ModelSource {
-                                model: emphasizedSensorsModel
-                                column: index
-                                roleName: "Value"
-                            }
-                            interval: {
-                                if (root.controller.updateRateLimit > 0) {
-                                    return root.controller.updateRateLimit
-                                }
-                                if (emphasizedSensorsModel.ready) {
-                                    return emphasizedSensorsModel.headerData(index, Qt.Horizontal, Sensors.SensorDataModel.UpdateInterval) ?? 0
-                                }
-                                return 0
-                            }
-                            maximumHistory: interval > 0 ? (root.controller.faceConfiguration.historyAmount * 1000) / interval : 0
-                            fillMode: Charts.HistoryProxySource.FillFromEnd
-                            property var connection: Connections {
-                                target: root.controller
-                                function onUpdateRateLimitChanged() {
-                                    history.clear()
-                                }
-                            }
-                        }
-                        onObjectAdded: (index, object) => {
-                            emphasizedChart.insertValueSource(index, object)
-                        }
-                        onObjectRemoved: (object) => {
-                            emphasizedChart.removeValueSource(object)
-                        }
+                    SensorHistorySources {
+                        chart: emphasizedChart
+                        sensorData: emphasizedSensorsModel
                     }
                 }
             }
@@ -207,8 +214,8 @@ Faces.SensorFace {
         // this face. A widget that additionally configures low priority
         // sensors (like the CPU temperature) gets a short legend limited to
         // those sensors instead of every high priority line; the rows are
-        // read from a hidden chart that carries only those sensors, so they
-        // still show chips and live values.
+        // read from a hidden chart carrying only those sensors so they keep
+        // their names, colors and live values.
         Faces.ExtendedLegend {
             id: legend
             Layout.fillWidth: true
@@ -217,8 +224,6 @@ Faces.SensorFace {
             readonly property bool lowPriorityLegend: root.controller.lowPrioritySensorIds.length > 0
             chart: legend.lowPriorityLegend ? legendChart : compactRepresentation
             sourceModel: root.showLegend ? (legend.lowPriorityLegend ? legendSensorsModel : compactRepresentation.sensorsModel) : null
-            sensorIds: []
-            updateRateLimit: root.controller.updateRateLimit
         }
 
         // Hidden helper chart: draws nothing, but holds one value source per
@@ -257,39 +262,9 @@ Faces.SensorFace {
                 indexColumns: true
             }
 
-            Instantiator {
-                model: legendSensorsModel.sensors
-                delegate: Charts.HistoryProxySource {
-                    id: history
-                    source: Charts.ModelSource {
-                        model: legendSensorsModel
-                        column: index
-                        roleName: "Value"
-                    }
-                    interval: {
-                        if (root.controller.updateRateLimit > 0) {
-                            return root.controller.updateRateLimit
-                        }
-                        if (legendSensorsModel.ready) {
-                            return legendSensorsModel.headerData(index, Qt.Horizontal, Sensors.SensorDataModel.UpdateInterval) ?? 0
-                        }
-                        return 0
-                    }
-                    maximumHistory: interval > 0 ? (root.controller.faceConfiguration.historyAmount * 1000) / interval : 0
-                    fillMode: Charts.HistoryProxySource.FillFromEnd
-                    property var connection: Connections {
-                        target: root.controller
-                        function onUpdateRateLimitChanged() {
-                            history.clear()
-                        }
-                    }
-                }
-                onObjectAdded: (index, object) => {
-                    legendChart.insertValueSource(index, object)
-                }
-                onObjectRemoved: (object) => {
-                    legendChart.removeValueSource(object)
-                }
+            SensorHistorySources {
+                chart: legendChart
+                sensorData: legendSensorsModel
             }
         }
 
