@@ -61,7 +61,9 @@ The flake discovers these directories and sets hostnames automatically.
   /nix/var/nix/profiles/system --set` that path and run its
   `bin/switch-to-configuration switch`. A `systemd-run` user unit has no `nix`
   on PATH, so run the build over ssh. Poll a long build's exit status instead
-  of restarting it.
+  of restarting it. Its Hermes workspace `AGENTS.md` is re-seeded from
+  `hosts/predator/hermes/agent-AGENTS.md` on every activation, so keep
+  instruction edits in the repository.
 - Predator's initrd OS separator and signed SHA-256 PCR 11 policies protect all
   five disks. Root unlocks at `enter-initrd`; data unlocks at
   `enter-initrd:leave-initrd`, before the host sysinit phase. Keep the Nix-managed

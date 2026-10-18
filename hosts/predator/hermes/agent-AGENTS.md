@@ -1,3 +1,9 @@
+# Instructions
+
+This file is written by NixOS activation from `hosts/predator/hermes/agent-AGENTS.md`
+in the dotfiles repository. Editing this copy in the workspace is lost on the next
+activation; ask the owner to land durable instruction changes in the repository.
+
 # Browser
 
 Hermes's native browser tools use Camofox and the shared `home-browser` session.
