@@ -25,18 +25,20 @@ pub fn login(config: &Config) -> Result<Credential> {
             .build(),
     );
     let base = config.base_url()?;
-    let base = base.trim_end_matches('/');
     let redirect_uri = config
         .redirect_uri
         .clone()
-        .unwrap_or_else(|| format!("{base}/callback"));
+        .unwrap_or_else(|| loopback_callback(&base));
     if !valid_redirect_uri(&redirect_uri) {
-        bail!("redirectUri must be http://127.0.0.1:<port> or http://localhost:<port>");
+        bail!(
+            "redirectUri must be http://127.0.0.1:<port> or http://localhost:<port>; \
+             set it explicitly when baseUrl {base} carries no port"
+        );
     }
     let verifier = random_token(32);
     let challenge = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
     let state_token = random_token(16);
-    let client_id = register(&agent, base, &redirect_uri)?;
+    let client_id = register(&agent, &base, &redirect_uri)?;
     let pairing = pairing_code(&config.t3_cli_path)?;
     let authorization = json!({
         "response_type": "code",
@@ -124,13 +126,27 @@ pub fn login(config: &Config) -> Result<Credential> {
         expires_at: Timestamp::from_second(Timestamp::now().as_second() + expires_in)
             .context("T3 returned an out-of-range credential expiry")?,
         client_id,
-        redirect_uri: redirect_uri.clone(),
+        redirect_uri,
         scope: token
             .get("scope")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_owned(),
     })
+}
+
+/// The OAuth redirect is never opened: the pairing flow reads the code from
+/// the redirect URL itself, so a loopback callback keeps the client working
+/// whatever host the server binds. The port comes from the server origin.
+fn loopback_callback(base: &str) -> String {
+    let port = base
+        .rsplit_once(':')
+        .map(|(_, port)| port)
+        .filter(|port| !port.is_empty() && port.bytes().all(|byte| byte.is_ascii_digit()));
+    match port {
+        Some(port) => format!("http://127.0.0.1:{port}/callback"),
+        None => format!("{base}/callback"),
+    }
 }
 
 /// Registers this client and returns its id.
@@ -243,6 +259,23 @@ mod tests {
         );
         assert_eq!(query_param("code=a+b", "code").as_deref(), Some("a b"));
         assert_eq!(query_param("code=%E2%9C%93", "code").as_deref(), Some("✓"));
+    }
+
+    #[test]
+    fn derives_a_loopback_callback_from_the_origin_port() {
+        assert_eq!(
+            loopback_callback("http://192.168.1.19:3773"),
+            "http://127.0.0.1:3773/callback"
+        );
+        assert_eq!(
+            loopback_callback("http://[::1]:3773"),
+            "http://127.0.0.1:3773/callback"
+        );
+        assert_eq!(
+            loopback_callback("http://127.0.0.1"),
+            "http://127.0.0.1/callback",
+            "a portless base cannot derive a loopback port and fails validation"
+        );
     }
 
     #[test]

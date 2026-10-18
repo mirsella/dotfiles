@@ -66,7 +66,7 @@ fn main() -> Result<()> {
     }
     if let Some(override_url) = &config.base_url
         && let Some(origin) = runtime_origin()
-        && override_url.trim_end_matches('/') != origin.trim_end_matches('/')
+        && !same_origin(override_url, &origin)
     {
         log(&format!(
             "warning: configured baseUrl {override_url} differs from the running T3 server at {origin}"
@@ -399,29 +399,20 @@ fn parse_thread(raw: &Value) -> Option<ThreadView> {
     let text = |key: &str| raw.get(key).and_then(Value::as_str).unwrap_or_default();
     let flag = |key: &str| raw.get(key).and_then(Value::as_bool).unwrap_or(false);
     let id = raw.get("threadId")?.as_str()?.to_owned();
-    let status = raw
-        .get("status")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_owned();
     let updated_at = raw
         .get("updatedAt")
         .and_then(Value::as_str)
         .and_then(|stamp| stamp.parse::<Timestamp>().ok())?;
-    let subagent = raw
-        .get("relationshipToParent")
-        .and_then(Value::as_str)
-        .is_some_and(|relationship| relationship == "subagent");
     Some(ThreadView {
         id,
         title: text("title").to_owned(),
         settled: flag("settled"),
         snoozed: flag("snoozed"),
-        status,
+        status: text("status").to_owned(),
         provider: text("providerInstanceId").to_owned(),
         model: text("model").to_owned(),
         updated_at,
-        subagent,
+        subagent: text("relationshipToParent") == "subagent",
     })
 }
 
@@ -430,6 +421,22 @@ fn short_id(id: &str) -> String {
         .filter(|character| character.is_ascii_alphanumeric())
         .take(12)
         .collect()
+}
+
+/// Whether two http origins name the same server. Loopback spellings are
+/// interchangeable: localhost, 127.0.0.1 and [::1] mean the same host.
+fn same_origin(a: &str, b: &str) -> bool {
+    fn key(url: &str) -> (&str, &str) {
+        let rest = url.trim_end_matches('/');
+        let rest = rest.strip_prefix("http://").unwrap_or(rest);
+        let (host, port) = rest.rsplit_once(':').unwrap_or((rest, ""));
+        let host = match host {
+            "localhost" | "::1" | "[::1]" => "127.0.0.1",
+            host => host,
+        };
+        (host, port)
+    }
+    key(a) == key(b)
 }
 
 fn log(message: &str) {
@@ -503,5 +510,13 @@ mod tests {
     fn request_ids_are_stable_per_refresh() {
         assert_eq!(short_id("mcp:c8fe983b-6ed2"), "mcpc8fe983b6");
         assert_eq!(short_id("thread:abc/def+ghi").len(), 12);
+    }
+
+    #[test]
+    fn loopback_spellings_are_the_same_origin() {
+        assert!(same_origin("http://localhost:3773", "http://127.0.0.1:3773"));
+        assert!(same_origin("http://[::1]:3773/", "http://127.0.0.1:3773"));
+        assert!(!same_origin("http://127.0.0.1:3773", "http://127.0.0.1:3774"));
+        assert!(!same_origin("http://127.0.0.1:3773", "http://192.168.1.19:3773"));
     }
 }

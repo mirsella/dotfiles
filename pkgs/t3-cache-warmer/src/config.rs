@@ -61,8 +61,8 @@ pub struct Config {
     pub auto_renew: bool,
     /// Drop thread state not seen for this many days.
     pub prune_days: u64,
-    /// OAuth loopback redirect registered for the client. `None` derives
-    /// `<baseUrl>/callback`. Never opened.
+    /// OAuth loopback redirect registered for the client. `None` derives a
+    /// loopback callback on the server's port. Never opened.
     pub redirect_uri: Option<String>,
     /// The keepalive prompt. Reply is expected to be a single word.
     pub keepalive_message: String,
@@ -113,9 +113,10 @@ impl Config {
     }
 
     pub fn validate(&self) -> Result<()> {
-        // This build has no TLS stack, so https:// could never work.
+        // This build has no TLS stack, so https:// could never work, and a
+        // bare "http://" trims down to nothing.
         if let Some(base_url) = &self.base_url
-            && !base_url.starts_with("http://")
+            && !base_url.trim_end_matches('/').starts_with("http://")
         {
             bail!("baseUrl must use plain http://");
         }
@@ -174,13 +175,16 @@ impl Config {
 
     /// The T3 server base URL: the configured override, or the origin of the
     /// running T3 server from its runtime file. Resolved per call so a server
-    /// restarted on another port is picked up.
+    /// restarted on another port is picked up. Returned without trailing
+    /// slashes so callers can join paths directly.
     pub fn base_url(&self) -> Result<String> {
         let url = match &self.base_url {
             Some(url) => url.clone(),
-            None => runtime_origin()
-                .context("no baseUrl configured and the running T3 server could not be located")?,
+            None => runtime_origin().context(
+                "no baseUrl configured and no origin in ~/.t3/userdata/server-runtime.json",
+            )?,
         };
+        let url = url.trim_end_matches('/').to_owned();
         if !url.starts_with("http://") {
             bail!("baseUrl must use plain http://");
         }
@@ -353,14 +357,23 @@ mod tests {
     #[test]
     fn explicit_base_url_wins_and_must_be_plain_http() {
         let config = Config {
-            base_url: Some("http://127.0.0.1:9".to_owned()),
+            base_url: Some("http://127.0.0.1:9/".to_owned()),
             ..Config::default()
         };
-        assert_eq!(config.base_url().expect("resolve"), "http://127.0.0.1:9");
+        assert_eq!(
+            config.base_url().expect("resolve"),
+            "http://127.0.0.1:9",
+            "trailing slashes are dropped for path joins"
+        );
         let config = Config {
             base_url: Some("https://127.0.0.1:9".to_owned()),
             ..Config::default()
         };
         assert!(config.base_url().is_err(), "no TLS stack for https");
+        let config = Config {
+            base_url: Some("http://".to_owned()),
+            ..Config::default()
+        };
+        assert!(config.base_url().is_err(), "a bare scheme has no host");
     }
 }
