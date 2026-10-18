@@ -16,6 +16,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::{
+    borrow::Cow,
     future::Future,
     net::SocketAddr,
     path::{Component, Path as FsPath, PathBuf},
@@ -186,76 +187,75 @@ fn quoted_form(text: &str) -> String {
         .replace('\r', "\\r")
         .replace('\t', "\\t")
 }
-/// Replaces the value and its escaped rendering anywhere in the text, or
-/// `None` when the text holds neither so callers keep the original bytes.
-fn redact_text(text: &str, secrets: &[String]) -> Option<String> {
-    let mut redacted = text.to_owned();
-    let mut matched = false;
-    for secret in secrets {
-        let quoted = quoted_form(secret);
-        for form in [secret.as_str(), quoted.as_str()] {
-            if redacted.contains(form) {
-                redacted = redacted.replace(form, "[redacted]");
-                matched = true;
+/// Responses deeper than this limit cannot be fully inspected and are rejected.
+const REDACTION_DEPTH: u8 = 64;
+/// Raw and snapshot-escaped patterns, prepared once for the entire response.
+struct Redactor<'a> {
+    forms: Vec<Cow<'a, str>>,
+}
+impl<'a> Redactor<'a> {
+    fn new(secrets: &'a [String]) -> Self {
+        let mut forms = Vec::with_capacity(secrets.len() * 2);
+        for secret in secrets {
+            forms.push(Cow::Borrowed(secret.as_str()));
+            let quoted = quoted_form(secret);
+            if quoted != *secret {
+                forms.push(Cow::Owned(quoted));
             }
         }
+        Self { forms }
     }
-    matched.then_some(redacted)
-}
-/// Depth past which the walk gives up. A body that reaches it cannot be
-/// forwarded, so the limit doubles as the point of no return.
-const REDACTION_DEPTH: u8 = 64;
-fn redact_value(value: &mut Value, secrets: &[String], depth: u8, truncated: &mut bool) -> bool {
-    if depth > REDACTION_DEPTH {
-        *truncated = true;
-        return false;
-    }
-    match value {
-        Value::String(text) => {
-            let Some(redacted) = redact_text(text, secrets) else {
-                return false;
-            };
-            *text = redacted;
-            true
+    /// Allocate a replacement only when a pattern matches.
+    fn text(&self, text: &str) -> Option<String> {
+        let mut redacted = Cow::Borrowed(text);
+        for form in &self.forms {
+            if redacted.contains(form.as_ref()) {
+                redacted = Cow::Owned(redacted.replace(form.as_ref(), "[redacted]"));
+            }
         }
-        Value::Array(items) => items.iter_mut().fold(false, |changed, item| {
-            redact_value(item, secrets, depth + 1, truncated) || changed
-        }),
-        Value::Object(fields) => fields.values_mut().fold(false, |changed, field| {
-            redact_value(field, secrets, depth + 1, truncated) || changed
-        }),
-        _ => false,
+        match redacted {
+            Cow::Borrowed(_) => None,
+            Cow::Owned(text) => Some(text),
+        }
     }
-}
-/// What a response body needs before it may reach the agent.
-enum Redaction {
-    /// Nothing matched a remembered secret, or the body was not JSON.
-    Unchanged,
-    /// The body was rewritten with every match replaced.
-    Rewritten(Bytes),
-    /// The walk stopped at the depth limit, so the body cannot be forwarded.
-    Incomplete,
-}
-/// Redact every remembered secret in a JSON response body. A body the walk
-/// cannot cover in full reports [`Redaction::Incomplete`] instead of passing
-/// through, because a secret below the depth limit must never be served.
-fn redact_response(bytes: &Bytes, secrets: &[String]) -> Redaction {
-    let Ok(mut value) = serde_json::from_slice(bytes) else {
-        return Redaction::Unchanged;
-    };
-    let mut truncated = false;
-    let changed = redact_value(&mut value, secrets, 0, &mut truncated);
-    if truncated {
-        return Redaction::Incomplete;
+    fn value(&self, value: &mut Value, depth: u8) -> Result<()> {
+        ensure!(
+            depth <= REDACTION_DEPTH,
+            "Browser response exceeds the redaction depth limit"
+        );
+        match value {
+            Value::String(text) => {
+                if let Some(redacted) = self.text(text) {
+                    *text = redacted;
+                }
+                Ok(())
+            }
+            Value::Array(items) => items
+                .iter_mut()
+                .try_for_each(|item| self.value(item, depth + 1)),
+            Value::Object(fields) => fields.iter_mut().try_for_each(|(key, field)| {
+                // Renaming keys could overwrite an existing field. Reject
+                // them without allocating replacements or logging the key.
+                ensure!(
+                    !self.forms.iter().any(|form| key.contains(form.as_ref())),
+                    "Browser response contains a credential in an object key"
+                );
+                self.value(field, depth + 1)
+            }),
+            _ => Ok(()),
+        }
     }
-    if !changed {
-        return Redaction::Unchanged;
-    }
-    match serde_json::to_vec(&value) {
-        Ok(rewritten) => Redaction::Rewritten(Bytes::from(rewritten)),
-        // Serializing a parsed body cannot fail; if it ever did, the
-        // unredacted bytes still must not be forwarded.
-        Err(_) => Redaction::Incomplete,
+    /// Only fully inspected JSON may pass through. Parser diagnostics can
+    /// include response data, so errors deliberately omit their source.
+    fn json(&self, bytes: &Bytes) -> Result<Bytes> {
+        let mut value: Value = serde_json::from_slice(bytes)
+            .map_err(|_| anyhow::anyhow!("Browser response is not inspectable JSON"))?;
+        self.value(&mut value, 0)?;
+        // Never reuse the original bytes: duplicate keys can hide overwritten
+        // values from the parsed tree, even when its surviving values are clean.
+        serde_json::to_vec(&value)
+            .map(Bytes::from)
+            .map_err(|_| anyhow::anyhow!("Could not serialize the redacted browser response"))
     }
 }
 struct App {
@@ -741,8 +741,9 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         let tabs = runtime.browser.tab().map_or_else(Vec::new, |tab| {
             let mut entry = json!({"tabId":tab,"userId":USER,"listItemId":USER});
             if let Some(url) = discovery.as_ref().and_then(|tabs| tab_url(tabs, tab)) {
-                let url =
-                    redact_text(url, &runtime.secrets_for(tab)).unwrap_or_else(|| url.to_owned());
+                let url = Redactor::new(&runtime.secrets_for(tab))
+                    .text(url)
+                    .unwrap_or_else(|| url.to_owned());
                 entry["url"] = json!(url);
             }
             vec![entry]
@@ -824,18 +825,20 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         app.save(&runtime).await.map_err(failure)?;
     }
     let secrets = runtime.secrets_for(&tab);
-    let bytes = if secrets.is_empty() {
+    // Screenshots are intentionally binary, not text-redactable. Do not let a
+    // MIME label alone exempt an error body or a different endpoint from JSON
+    // inspection.
+    let png_screenshot = *method == Method::GET
+        && path.ends_with("/screenshot")
+        && status.is_success()
+        && content_type
+            .as_ref()
+            .is_some_and(|mime| mime == "image/png")
+        && bytes.starts_with(b"\x89PNG\r\n\x1a\n");
+    let bytes = if secrets.is_empty() || png_screenshot {
         bytes
     } else {
-        match redact_response(&bytes, &secrets) {
-            Redaction::Unchanged => bytes,
-            Redaction::Rewritten(redacted) => redacted,
-            Redaction::Incomplete => {
-                return Err(failure(anyhow::anyhow!(
-                    "Response is nested deeper than {REDACTION_DEPTH} levels; refusing to forward it unredacted"
-                )));
-            }
-        }
+        Redactor::new(&secrets).json(&bytes).map_err(failure)?
     };
     let mut result = (status, bytes).into_response();
     if let Some(value) = content_type {
@@ -1119,6 +1122,13 @@ mod tests {
         task: tokio::task::JoinHandle<()>,
         counts: Arc<Mutex<Counts>>,
     }
+    impl Fixture {
+        async fn get(&self, path: &str) -> Response {
+            api(State(self.app.clone()), request(Method::GET, path, ""))
+                .await
+                .into_response()
+        }
+    }
     #[derive(Default)]
     struct Counts {
         running: bool,
@@ -1135,6 +1145,7 @@ mod tests {
         fail_type: bool,
         typed: Vec<String>,
         snapshot_text: Option<String>,
+        page_response: Option<(StatusCode, &'static str, Bytes)>,
         created_tabs: u32,
         navigations: Vec<String>,
         delayed_creation: Option<Arc<StatusWait>>,
@@ -1150,6 +1161,28 @@ mod tests {
         fn drop(&mut self) {
             self.task.abort();
         }
+    }
+    async fn mock_page_response(
+        State(counts): State<Arc<Mutex<Counts>>>,
+        axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
+    ) -> Response {
+        let mut counts = counts.lock().await;
+        counts.snapshots += 1;
+        if counts.missing_tab {
+            return (
+                StatusCode::NOT_FOUND,
+                axum::Json(json!({"error":"Tab not found"})),
+            )
+                .into_response();
+        }
+        if let Some((status, mime, bytes)) = &counts.page_response {
+            return (*status, [(header::CONTENT_TYPE, *mime)], bytes.clone()).into_response();
+        }
+        let snapshot = counts
+            .snapshot_text
+            .clone()
+            .unwrap_or_else(|| "current page".into());
+        axum::Json(json!({"snapshot":snapshot, "query":uri.query()})).into_response()
     }
     async fn fixture() -> Fixture {
         let counts = Arc::new(Mutex::new(Counts {
@@ -1210,15 +1243,8 @@ mod tests {
                 counts.lock().await.navigations.push(url.clone());
                 axum::Json(json!({"ok":true,"url":url}))
             }))
-            .route("/tabs/shared-tab/snapshot", get(|State(counts): State<Arc<Mutex<Counts>>>, axum::extract::OriginalUri(uri): axum::extract::OriginalUri| async move {
-                let mut counts = counts.lock().await;
-                counts.snapshots += 1;
-                if counts.missing_tab {
-                    return (StatusCode::NOT_FOUND, axum::Json(json!({"error":"Tab not found"}))).into_response();
-                }
-                let snapshot = counts.snapshot_text.clone().unwrap_or_else(|| "current page".into());
-                axum::Json(json!({"snapshot":snapshot, "query":uri.query()})).into_response()
-            }))
+            .route("/tabs/shared-tab/snapshot", get(mock_page_response))
+            .route("/tabs/shared-tab/screenshot", get(mock_page_response))
             .route("/tabs/shared-tab/type", post(|State(counts): State<Arc<Mutex<Counts>>>, axum::Json(data): axum::Json<Value>| async move {
                 assert_eq!(data["userId"], USER);
                 let mut counts = counts.lock().await;
@@ -1272,6 +1298,18 @@ mod tests {
             task,
             counts,
         }
+    }
+    async fn credential_fixture(secret: &str) -> Fixture {
+        let f = fixture().await;
+        api(State(f.app.clone()), request(Method::POST, "/tabs", "{}"))
+            .await
+            .unwrap();
+        f.app
+            .runtime
+            .lock()
+            .await
+            .remember_secret("shared-tab", secret.into());
+        f
     }
     fn viewer_headers() -> HeaderMap {
         let mut h = HeaderMap::new();
@@ -1683,8 +1721,10 @@ mod tests {
             ),
         )
         .await
-        .unwrap();
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        .unwrap_err();
+        // The backend's empty 500 body is not inspectable JSON, so the proxy
+        // rejects it rather than forwarding it. The credential stays remembered.
+        assert_eq!(response.0, StatusCode::BAD_GATEWAY);
         assert_eq!(f.counts.lock().await.typed, ["hunter2"]);
         // The page took the value even though the response failed, so the fill
         // must already be remembered for the snapshots that follow.
@@ -1700,17 +1740,16 @@ mod tests {
         );
     }
     #[test]
-    fn credential_redaction_covers_quoted_values_and_leaves_other_bodies_alone() {
+    fn credential_redaction_covers_quoted_values_and_preserves_unrelated_fields() {
         let secrets = vec!["hunter2".to_owned(), "quo\"te".to_owned()];
+        let redactor = Redactor::new(&secrets);
         let body = json!({
             "url": "https://example.com/login",
             "snapshot": "- textbox \"Password\": hunter2\n- textbox \"Code\": \"quo\\\"te\"\n- textbox \"User\": hunter3",
             "structure": {"forms": [{"fields": [{"value": "hunter2"}, {"value": "unrelated"}, {"value": "quo\\\"te"}]}]},
         });
         let bytes = Bytes::from(serde_json::to_vec(&body).unwrap());
-        let Redaction::Rewritten(rewritten) = redact_response(&bytes, &secrets) else {
-            panic!("expected a rewritten body");
-        };
+        let rewritten = redactor.json(&bytes).unwrap();
         let redacted: Value = serde_json::from_slice(&rewritten).unwrap();
         assert_eq!(
             redacted["snapshot"],
@@ -1731,21 +1770,25 @@ mod tests {
             "[redacted]"
         );
         assert_eq!(redacted["url"], "https://example.com/login");
-        // Only bodies that changed are rewritten: an image and a clean JSON
-        // response both pass through untouched.
-        assert!(matches!(
-            redact_response(&Bytes::from_static(b"\x89PNG hunter2"), &secrets),
-            Redaction::Unchanged
-        ));
+        // Clean JSON keeps its meaning. Binary responses must be exempted
+        // explicitly by the caller, not on a parser failure.
+        assert!(
+            redactor
+                .json(&Bytes::from_static(b"\x89PNG hunter2"))
+                .is_err()
+        );
+        assert!(redactor.text("unrelated").is_none());
         let clean = Bytes::from(serde_json::to_vec(&json!({"snapshot": "current page"})).unwrap());
-        assert!(matches!(
-            redact_response(&clean, &secrets),
-            Redaction::Unchanged
-        ));
+        let rewritten = redactor.json(&clean).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<Value>(&rewritten).unwrap(),
+            json!({"snapshot": "current page"})
+        );
     }
     #[test]
     fn redaction_stops_at_the_depth_limit() {
         let secrets = vec!["hunter2".to_owned()];
+        let redactor = Redactor::new(&secrets);
         let nested = |levels: usize| {
             let mut value = json!("hunter2");
             for _ in 0..levels {
@@ -1753,16 +1796,143 @@ mod tests {
             }
             Bytes::from(serde_json::to_vec(&value).unwrap())
         };
-        // A value the walk can reach is redacted; one past the limit reports
-        // the body as unredactable so the caller refuses to forward it.
-        assert!(matches!(
-            redact_response(&nested(REDACTION_DEPTH as usize), &secrets),
-            Redaction::Rewritten(_)
+        assert!(redactor.json(&nested(REDACTION_DEPTH as usize)).is_ok());
+        assert!(
+            redactor
+                .json(&nested(REDACTION_DEPTH as usize + 1))
+                .is_err()
+        );
+    }
+    #[tokio::test]
+    async fn uninspectable_page_responses_never_reach_the_agent() {
+        const SECRET: &str = "synthetic-redaction-credential";
+        let f = credential_fixture(SECRET).await;
+        let nested = |levels: usize| {
+            Bytes::from(format!(
+                "{}\"{SECRET}\"{}",
+                "[".repeat(levels),
+                "]".repeat(levels)
+            ))
+        };
+        let cases = [
+            ("walker depth", nested(REDACTION_DEPTH as usize + 1)),
+            ("parser depth", nested(256)),
+            (
+                "malformed JSON",
+                Bytes::from(format!("{{\"snapshot\":\"{SECRET}\"")),
+            ),
+            (
+                "plain text",
+                Bytes::from(format!("upstream error: {SECRET}")),
+            ),
+            (
+                "object key collision",
+                Bytes::from(
+                    serde_json::to_vec(&json!({
+                        "nested": {SECRET: "hidden", "[redacted]": "existing"}
+                    }))
+                    .unwrap(),
+                ),
+            ),
+            (
+                "escaped object key",
+                Bytes::from(
+                    serde_json::to_vec(&json!({
+                        "nested": {format!("prefix {}", quoted_form("quo\"te")): "hidden"}
+                    }))
+                    .unwrap(),
+                ),
+            ),
+        ];
+        f.app
+            .runtime
+            .lock()
+            .await
+            .remember_secret("shared-tab", "quo\"te".into());
+        let secrets = [SECRET.into(), "quo\"te".into()];
+        let redactor = Redactor::new(&secrets);
+        for (name, bytes) in cases {
+            let error = redactor.json(&bytes).unwrap_err().to_string();
+            assert!(!error.contains(SECRET), "{name}");
+            assert!(!error.contains("quo"), "{name}");
+            // A text label must not exempt a response from JSON inspection.
+            for mime in ["application/json", "text/plain"] {
+                f.counts.lock().await.page_response = Some((StatusCode::OK, mime, bytes.clone()));
+                let response = f.get("/tabs/shared-tab/snapshot").await;
+                assert_eq!(response.status(), StatusCode::BAD_GATEWAY, "{name}");
+                let body = to_bytes(response.into_body(), 65536).await.unwrap();
+                assert_eq!(
+                    body.as_ref(),
+                    b"Browser operation failed. Retry; see the private service log.",
+                    "{name}"
+                );
+            }
+        }
+    }
+    #[tokio::test]
+    async fn overwritten_json_fields_cannot_forward_uninspected_credentials() {
+        const SECRET: &str = "synthetic-redaction-credential";
+        let f = credential_fixture(SECRET).await;
+        f.counts.lock().await.page_response = Some((
+            StatusCode::OK,
+            "application/json",
+            Bytes::from(format!(
+                r#"{{"snapshot":"{SECRET}","snapshot":"current page"}}"#
+            )),
         ));
-        assert!(matches!(
-            redact_response(&nested(REDACTION_DEPTH as usize + 1), &secrets),
-            Redaction::Incomplete
+        let response = f.get("/tabs/shared-tab/snapshot").await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), 65536).await.unwrap();
+        assert_eq!(body.as_ref(), br#"{"snapshot":"current page"}"#);
+    }
+    #[tokio::test]
+    async fn only_successful_png_screenshots_bypass_json_redaction() {
+        const SECRET: &str = "synthetic-redaction-credential";
+        let f = credential_fixture(SECRET).await;
+        let png = Bytes::from_static(b"\x89PNG\r\n\x1a\nsynthetic screenshot bytes");
+        f.counts.lock().await.page_response = Some((StatusCode::OK, "image/png", png.clone()));
+        let response = f.get("/tabs/shared-tab/screenshot").await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()[header::CONTENT_TYPE], "image/png");
+        assert_eq!(to_bytes(response.into_body(), 65536).await.unwrap(), png);
+        for (path, status, mime, body) in [
+            ("snapshot", StatusCode::OK, "image/png", png.clone()),
+            (
+                "screenshot",
+                StatusCode::BAD_REQUEST,
+                "image/png",
+                png.clone(),
+            ),
+            ("screenshot", StatusCode::OK, "text/plain", png.clone()),
+            (
+                "screenshot",
+                StatusCode::OK,
+                "image/png",
+                Bytes::from_static(SECRET.as_bytes()),
+            ),
+        ] {
+            f.counts.lock().await.page_response = Some((status, mime, body));
+            let response = f.get(&format!("/tabs/shared-tab/{path}")).await;
+            assert_eq!(
+                response.status(),
+                StatusCode::BAD_GATEWAY,
+                "{path} {status} {mime}"
+            );
+            let received = to_bytes(response.into_body(), 65536).await.unwrap();
+            assert_eq!(
+                received.as_ref(),
+                b"Browser operation failed. Retry; see the private service log."
+            );
+        }
+        // A screenshot error that is valid JSON still has its text redacted.
+        f.counts.lock().await.page_response = Some((
+            StatusCode::BAD_REQUEST,
+            "application/json",
+            Bytes::from(serde_json::to_vec(&json!({"error": SECRET})).unwrap()),
         ));
+        let response = f.get("/tabs/shared-tab/screenshot").await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(json_body(response).await, json!({"error":"[redacted]"}));
     }
     #[test]
     fn remembered_secrets_stay_bounded_and_scoped_to_their_tab() {
@@ -1786,7 +1956,9 @@ mod tests {
             vec!["password".to_owned(), "pass".to_owned()]
         );
         assert_eq!(
-            redact_text("my password is secure", &runtime.secrets_for("tab-d")).unwrap(),
+            Redactor::new(&runtime.secrets_for("tab-d"))
+                .text("my password is secure")
+                .unwrap(),
             "my [redacted] is secure"
         );
         for index in 0..MAX_SECRETS + 4 {

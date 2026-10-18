@@ -19,9 +19,9 @@ jobs:
       # A cold store cannot evaluate the profiles with --no-build: the Hermes
       # configuration reads uv.lock out of the built hermes-python-source store
       # path, so the evaluation itself needs that build. Build every check
-      # instead, plus the camofox package so a patch whose anchor no longer
-      # applies fails here rather than at deploy time.
-      - name: Build the checks and the camofox patch
+      # instead, plus host-tools with its Rust tests and the camofox package
+      # so regressions and broken patch anchors fail before deployment.
+      - name: Build the checks, host-tools tests, and the camofox patch
         run: |
           nix build --no-link \
             .#checks.x86_64-linux.hosts \
@@ -31,4 +31,5 @@ jobs:
             .#checks.x86_64-linux.host-tools-fmt \
             .#checks.x86_64-linux.data-unlock \
             .#checks.x86_64-linux.arch-maintenance \
+            .#host-tools \
             .#camofox-browser
