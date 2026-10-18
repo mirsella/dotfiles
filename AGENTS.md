@@ -77,8 +77,9 @@ The flake discovers these directories and sets hostnames automatically.
   path without `path:`) so Nix excludes `.agents-local/`. Add new source files to
   the Git index before evaluating; they do not need to be committed.
 - `nix flake check . --no-build --no-update-lock-file` evaluates all profiles
-  and runs the host-isolation and Predator boot/storage invariants through `checks`. GitHub Actions runs
-  that same check on pushes to `main`. Format Rust with the flake's pinned
+  and runs the host-isolation and Predator boot/storage invariants through `checks`. GitHub Actions builds
+  the evaluation-only checks (host isolation, memory, Predator, browser policy
+  and formatting) on pushes to `main`; the VM tests stay on a real host. Format Rust with the flake's pinned
   rustfmt (`nix fmt`); a newer local rustfmt can reformat code the gate accepts.
   Run focused Cargo tests for monitoring, backups and suspend changes. The
   `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during
