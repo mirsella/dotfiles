@@ -79,7 +79,8 @@ The flake discovers these directories and sets hostnames automatically.
 - `nix flake check . --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`. GitHub Actions builds
   the evaluation-only checks (host isolation, memory, Predator, browser policy
-  and formatting) on pushes to `main`; the VM tests stay on a real host. Format Rust with the flake's pinned
+  and formatting) on pushes to `main`; the `data-unlock` and `arch-maintenance` checks stay with
+  `nix flake check` on a real host. Format `pkgs/host-tools` with the flake's pinned
   rustfmt (`nix fmt`); a newer local rustfmt can reformat code the gate accepts.
   Run focused Cargo tests for monitoring, backups and suspend changes. The
   `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during

@@ -17,10 +17,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
       # A cold store cannot evaluate the profiles with --no-build: the Hermes
-      # configuration reads a uv.lock out of a built path, so the evaluation
-      # itself needs that build. Build the cheap invariant checks instead and
-      # leave the NixOS VM tests (data-unlock, arch-maintenance) to
-      # `nix flake check` on a real host.
+      # configuration reads uv.lock out of the built hermes-python-source store
+      # path, so the evaluation itself needs that build. Build the cheap
+      # invariant checks instead and leave the data-unlock and arch-maintenance
+      # checks to `nix flake check` on a real host.
       - name: Build the invariant checks
         run: |
           nix build --no-link \

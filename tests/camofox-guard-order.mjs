@@ -43,9 +43,9 @@ assert(
   "a credential fill must emit an empty payload text",
 );
 
-// Only the check in front of upstream's fill branch is ours. A replacement that
-// mangles that line would leave typing broken while every marker still exists.
-index("if (mode === 'fill') {");
-assert(!source.includes("mode === fill)"), "the fill branch lost its string literal");
+// Only the check in front of upstream's fill branch is ours. The anchor below
+// is the one the patch uses, so the untouched /act copy cannot satisfy it: a
+// mangled replacement would leave typing broken while every marker still exists.
+only("\n      if (mode === 'fill') {");
 
 console.log("camofox guard order holds");

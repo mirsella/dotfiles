@@ -145,7 +145,16 @@ fn select_tab<'a>(tabs: &'a [Tab], origin: &Origin, id: Option<&str>) -> Result<
         .collect();
     match matching.as_slice() {
         [tab] => Ok(tab),
-        [] => bail!("No matching browser page; check its HTTPS origin and tab"),
+        [] => {
+            let unreadable = tabs.iter().filter(|tab| tab.id().is_none()).count();
+            if unreadable == 0 {
+                bail!("No matching browser page; check its HTTPS origin and tab");
+            }
+            bail!(
+                "No matching browser page: {unreadable} of {} tab entries report no usable identifier",
+                tabs.len()
+            );
+        }
         ids => bail!(
             "Several pages match; use --tab with one of: {}",
             ids.join(", ")
@@ -344,8 +353,13 @@ mod tests {
         // One unreadable URL must not hide the tabs the bridge can still use.
         assert!(select_tab(&tabs, &origin, Some("unreadable")).is_err());
         // Neither must an identifier that is not a string: it is unaddressable,
-        // so it stays out of the match set and out of the disambiguation list.
-        assert!(select_tab(&tabs, &origin, Some("7")).is_err());
+        // and a listing without one says so instead of blaming the origin.
+        assert!(
+            select_tab(&tabs, &origin, Some("7"))
+                .unwrap_err()
+                .to_string()
+                .contains("no usable identifier")
+        );
         assert!(
             select_tab(&tabs, &origin, None)
                 .err()
