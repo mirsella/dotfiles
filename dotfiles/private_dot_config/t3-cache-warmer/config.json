@@ -12,7 +12,7 @@
   "projects": [],
   "skipSubagents": true,
   "rules": [
-    { "provider": "codex", "modelContains": "gpt", "ttlSeconds": 1680 },
+    { "provider": "opencode", "modelContains": "openai/gpt", "ttlSeconds": 1680 },
     { "provider": "opencode", "modelContains": "deepseek", "ttlSeconds": 3600 }
   ]
 }
