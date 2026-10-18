@@ -147,6 +147,8 @@
           PYTHONDONTWRITEBYTECODE=1 python3 ${./tests/hermes-browser-policy.py} ${builtins.head self.nixosConfigurations.predator.config.services.hermes-agent.extraPlugins}
           touch "$out"
         '';
+        # Format with this pinned rustfmt: a newer local one can reformat code
+        # that this version already accepts, so a clean local check is not proof.
         host-tools-fmt = pkgs.runCommand "host-tools-fmt" {
           nativeBuildInputs = [ pkgs.rustfmt pkgs.findutils ];
         } ''

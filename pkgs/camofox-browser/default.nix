@@ -32,7 +32,9 @@ buildNpmPackage {
     # A credential fill is bound to an exact origin twice: the page must still be
     # there, and the element the fill resolves to must live in a document on that
     # same origin. The second check runs on the resolved locator, so it also
-    # covers a ref re-resolved after a refresh and elements inside frames.
+    # covers a ref re-resolved after a refresh and elements inside frames. Its
+    # anchor also matches the /act copy of the fill block, where the injected
+    # guard reads an undefined req.body and never fires.
     substituteInPlace server.js \
       --replace-fail '// Resolve and focus the target if ref/selector provided' \
       'if (req.body.expectedOrigin !== undefined) {
