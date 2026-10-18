@@ -1700,6 +1700,21 @@ mod tests {
         assert!(redact_response(&clean, &secrets).is_none());
     }
     #[test]
+    fn redaction_stops_at_the_depth_limit() {
+        let secrets = vec!["hunter2".to_owned()];
+        let nested = |levels: usize| {
+            let mut value = json!("hunter2");
+            for _ in 0..levels {
+                value = json!({ "a": value });
+            }
+            Bytes::from(serde_json::to_vec(&value).unwrap())
+        };
+        // A value the walk can reach is redacted; one past the cutoff passes
+        // through untouched rather than being rewritten.
+        assert!(redact_response(&nested(64), &secrets).is_some());
+        assert!(redact_response(&nested(65), &secrets).is_none());
+    }
+    #[test]
     fn remembered_secrets_stay_bounded_and_scoped_to_their_tab() {
         let mut runtime = Runtime::default();
         runtime.remember_secret("tab-a", "first".into());
