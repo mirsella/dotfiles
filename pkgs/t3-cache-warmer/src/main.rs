@@ -8,18 +8,18 @@ use std::collections::{BTreeMap, HashSet};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use clap::{Parser, Subcommand};
 use jiff::{Timestamp, tz::TimeZone};
-use serde_json::Value;
 use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::Signals;
 
 use crate::config::{Config, runtime_origin};
-use crate::policy::{Decision, ThreadView, decide, next_wakeup, observe, seed, within_day_window};
+use crate::policy::{Decision, decide, next_wait, observe};
 use crate::state::{Credential, State};
 use crate::t3::{T3Client, is_credential_rejected};
 
@@ -74,7 +74,10 @@ fn main() -> Result<()> {
     }
     match cli.command {
         Command_::Login => login(&config),
-        Command_::Once { dry_run } => once(&config, dry_run),
+        Command_::Once { dry_run } => {
+            let mut state = State::load(&config.state_dir()?.join("state.json"))?;
+            once(&config, &mut state, dry_run)
+        }
         Command_::Run { dry_run } => run(&config, dry_run),
         Command_::Status => status(&config),
     }
@@ -104,25 +107,24 @@ fn login(config: &Config) -> Result<()> {
 }
 
 /// One warming pass over every configured project.
-fn once(config: &Config, dry_run: bool) -> Result<()> {
+fn once(config: &Config, state: &mut State, dry_run: bool) -> Result<()> {
     let dir = config.state_dir()?;
     let credential_path = dir.join("credential.json");
     let state_path = dir.join("state.json");
     let credential = Credential::load(&credential_path)?
         .context("no credential stored yet; run `t3-cache-warmer login` first")?;
-    let mut state = State::load(&state_path)?;
     let now = Timestamp::now();
     state.prune(now, config.prune_days);
     let base_url = config.base_url()?;
     let mut client = T3Client::new(&base_url, credential.access_token);
-    let summary = match pass(config, &mut client, &mut state, &state_path, dry_run) {
+    let summary = match pass(config, &mut client, state, &state_path, dry_run) {
         Ok(summary) => summary,
         Err(error) if is_credential_rejected(&error) && config.auto_renew && !dry_run => {
             log("credential rejected; signing in again…");
             let credential = oauth::login(config)?;
             credential.save(&credential_path)?;
             let mut client = T3Client::new(&base_url, credential.access_token);
-            pass(config, &mut client, &mut state, &state_path, dry_run)?
+            pass(config, &mut client, state, &state_path, dry_run)?
         }
         Err(error) => return Err(error),
     };
@@ -138,20 +140,25 @@ fn pass(
     state_path: &Path,
     dry_run: bool,
 ) -> Result<String> {
-    let outcome = tick(config, client, state, dry_run);
-    let saved = state.save(state_path);
-    let summary = outcome?;
-    saved?;
-    Ok(summary)
+    let outcome = tick(config, client, state, state_path, dry_run);
+    match (outcome, state.save(state_path)) {
+        (Err(error), Err(save_error)) => {
+            Err(error.context(format!("also failed saving state: {save_error:#}")))
+        }
+        (outcome, Ok(())) => outcome,
+        (_, Err(error)) => Err(error),
+    }
 }
 
 fn run(config: &Config, dry_run: bool) -> Result<()> {
     let stop = Arc::new(AtomicBool::new(false));
     let flag = stop.clone();
+    let runner = std::thread::current();
     let mut signals = Signals::new([SIGINT, SIGTERM]).context("watch for SIGINT/SIGTERM")?;
     std::thread::spawn(move || {
         signals.forever().next();
         flag.store(true, Ordering::Relaxed);
+        runner.unpark();
     });
     log(&format!(
         "warming up to {}s before cache expiry{}",
@@ -159,47 +166,20 @@ fn run(config: &Config, dry_run: bool) -> Result<()> {
         if dry_run { " (dry run)" } else { "" }
     ));
     let dir = config.state_dir()?;
-    let state_path = dir.join("state.json");
+    let mut state = State::load(&dir.join("state.json"))?;
     while !stop.load(Ordering::Relaxed) {
-        if let Err(error) = once(config, dry_run) {
+        if let Err(error) = once(config, &mut state, dry_run) {
             eprintln!("{NAME}: {error:#}");
         }
         if stop.load(Ordering::Relaxed) {
             break;
         }
-        let wait = sleep_for(config, &state_path);
+        let wait = next_wait(&state, config, Timestamp::now());
         log(&format!("next pass in {}", humane(wait)));
         sleep_until(&stop, wait);
     }
     log("stopping");
     Ok(())
-}
-
-/// How long `run` sleeps between passes: until the next refresh comes due.
-/// Inside the day window this is capped at `tick_seconds` so new threads and
-/// activity are noticed promptly; outside it the daemon sleeps until the
-/// window reopens. A due instant already past means the thread was unwarmable
-/// (e.g. still running), so re-check soon without hammering the server.
-fn sleep_for(config: &Config, state_path: &Path) -> Duration {
-    const OVERDUE_RECHECK: Duration = Duration::from_secs(15);
-    let cap = Duration::from_secs(config.tick_seconds);
-    let now = Timestamp::now();
-    let Ok(state) = State::load(state_path) else {
-        return cap;
-    };
-    let Some(due) = next_wakeup(&state, config, now) else {
-        return cap;
-    };
-    let wait = due.as_second() - now.as_second();
-    if wait <= 0 {
-        return OVERDUE_RECHECK.min(cap);
-    }
-    let wait = Duration::from_secs(wait as u64);
-    if within_day_window(config, now) {
-        wait.min(cap)
-    } else {
-        wait
-    }
 }
 
 /// Sleeps until `wait` elapses, waking early on SIGINT/SIGTERM.
@@ -210,7 +190,7 @@ fn sleep_until(stop: &AtomicBool, wait: Duration) {
         if remaining.is_zero() {
             break;
         }
-        std::thread::sleep(remaining.min(Duration::from_secs(1)));
+        std::thread::park_timeout(remaining);
     }
 }
 
@@ -246,11 +226,19 @@ fn status(config: &Config) -> Result<()> {
     };
     let mut entries: Vec<_> = state.threads.iter().collect();
     entries.sort_by_key(|(_, thread)| thread.seen_updated_at);
+    let now = Timestamp::now();
     for (id, thread) in entries {
+        let decision = match decide(config, thread, now) {
+            Decision::Warm => "due",
+            Decision::Skip { reason } => reason.label(),
+        };
         writeln!(
             out,
-            "- {id} [{} refreshes] cache={} activity={} {} {}",
+            "- {id} [{decision}, {} refreshes] provider={} model={} status={} cache={} activity={} {} {}",
             thread.refreshes,
+            thread.provider,
+            thread.model,
+            thread.status,
             show(thread.last_cache_at),
             show(thread.last_activity_at),
             thread.title,
@@ -262,6 +250,7 @@ fn status(config: &Config) -> Result<()> {
     Ok(())
 }
 
+#[derive(Default)]
 struct TickSummary {
     warmed: u32,
     observed: u32,
@@ -276,72 +265,70 @@ fn tick(
     config: &Config,
     client: &mut T3Client,
     state: &mut State,
+    state_path: &Path,
     dry_run: bool,
 ) -> Result<String> {
-    let now = Timestamp::now();
-    let projects = project_ids(config, client)?;
-    let mut summary = TickSummary {
-        warmed: 0,
-        observed: 0,
-        errors: 0,
-        skipped: BTreeMap::new(),
+    let projects = if config.projects.is_empty() {
+        client.project_ids().context("list T3 projects")?
+    } else {
+        config.projects.clone()
     };
+    let mut summary = TickSummary::default();
     let mut seen: HashSet<String> = HashSet::new();
     for project in &projects {
         let threads = client
             .thread_list(project)
             .with_context(|| format!("list threads of project {project}"))?;
-        for raw in &threads {
-            let Some(view) = parse_thread(raw) else {
-                continue;
-            };
+        for view in threads {
+            let now = Timestamp::now();
             summary.observed += 1;
             seen.insert(view.id.clone());
-            let entry = state
-                .threads
-                .entry(view.id.clone())
-                .or_insert_with(|| seed(&view));
-            entry.title = view.title.clone();
-            entry.provider = view.provider.clone();
-            entry.model = view.model.clone();
+            let entry = state.threads.entry(view.id.clone()).or_default();
             observe(entry, &view, now, config.send_grace_seconds);
-            match decide(config, &view, entry, now) {
-                Decision::Skip { reason } => {
-                    *summary.skipped.entry(reason.label()).or_insert(0) += 1;
+            if let Decision::Skip { reason } = decide(config, entry, now) {
+                *summary.skipped.entry(reason.label()).or_insert(0) += 1;
+                continue;
+            }
+            if dry_run {
+                log(&format!("would warm {} ({})", view.id, view.title));
+                summary.warmed += 1;
+                continue;
+            }
+            let request_id = format!("cache-warm-{}", random_token::<16>());
+            // Persist before sending: a crash or lost HTTP response cannot
+            // cause an immediate duplicate. Uncertain sends consume budget.
+            let previous = (
+                entry.pending_warm_at,
+                entry.pending_seen_running,
+                entry.refreshes,
+            );
+            entry.pending_warm_at = Some(now);
+            entry.pending_seen_running = false;
+            entry.refreshes += 1;
+            if let Err(error) = state.save(state_path) {
+                let entry = state.threads.get_mut(&view.id).expect("observed thread");
+                (
+                    entry.pending_warm_at,
+                    entry.pending_seen_running,
+                    entry.refreshes,
+                ) = previous;
+                return Err(error);
+            }
+            let outcome = client.thread_send(&view.id, &config.keepalive_message, &request_id);
+            let entry = state.threads.get_mut(&view.id).expect("observed thread");
+            match outcome {
+                Ok(_) => {
+                    entry.last_error = None;
+                    summary.warmed += 1;
+                    log(&format!("warmed {} ({})", view.id, view.title));
                 }
-                Decision::Warm => {
-                    // Unique per attempt: the key deduplicates sends server-side,
-                    // so a new keepalive must never reuse an earlier key (the
-                    // refresh counter resets on real activity and would otherwise
-                    // collide across epochs).
-                    static SEND_SEQ: AtomicU64 = AtomicU64::new(0);
-                    let seq = SEND_SEQ.fetch_add(1, Ordering::Relaxed);
-                    let request_id = format!(
-                        "cache-warm-{}-r{}-{}-{seq}",
-                        short_id(&view.id),
-                        entry.refreshes + 1,
-                        now.as_second()
+                Err(error) => {
+                    entry.last_error = Some(format!("{error:#}"));
+                    summary.errors += 1;
+                    eprintln!(
+                        "{NAME}: warm {}: {error:#}; send may have been accepted, waiting {}s before retry",
+                        view.id, config.send_grace_seconds
                     );
-                    if dry_run {
-                        log(&format!("would warm {} ({})", view.id, view.title));
-                        summary.warmed += 1;
-                        continue;
-                    }
-                    match client.thread_send(&view.id, &config.keepalive_message, &request_id) {
-                        Ok(_) => {
-                            entry.pending_warm_at = Some(Timestamp::now());
-                            entry.pending_seen_running = false;
-                            entry.refreshes += 1;
-                            entry.last_error = None;
-                            summary.warmed += 1;
-                            log(&format!("warmed {} ({})", view.id, view.title));
-                        }
-                        Err(error) => {
-                            entry.last_error = Some(format!("{error:#}"));
-                            summary.errors += 1;
-                            eprintln!("{NAME}: warm {}: {error:#}", view.id);
-                        }
-                    }
                 }
             }
         }
@@ -371,56 +358,10 @@ fn tick(
     Ok(line)
 }
 
-/// Resolves which projects to scan: the config allowlist, or everything live.
-fn project_ids(config: &Config, client: &mut T3Client) -> Result<Vec<String>> {
-    if !config.projects.is_empty() {
-        return Ok(config.projects.clone());
-    }
-    let projects = client.project_list().context("list T3 projects")?;
-    let ids = projects
-        .iter()
-        .filter_map(|project| {
-            project
-                .get("id")
-                .or_else(|| project.get("projectId"))
-                .and_then(Value::as_str)
-                .map(str::to_owned)
-        })
-        .collect::<Vec<_>>();
-    if ids.is_empty() {
-        bail!("T3 reported no projects");
-    }
-    Ok(ids)
-}
-
-/// Shapes one `t3_thread_list` entry into a view. Returns `None` for entries
-/// that do not carry the fields warming needs.
-fn parse_thread(raw: &Value) -> Option<ThreadView> {
-    let text = |key: &str| raw.get(key).and_then(Value::as_str).unwrap_or_default();
-    let flag = |key: &str| raw.get(key).and_then(Value::as_bool).unwrap_or(false);
-    let id = raw.get("threadId")?.as_str()?.to_owned();
-    let updated_at = raw
-        .get("updatedAt")
-        .and_then(Value::as_str)
-        .and_then(|stamp| stamp.parse::<Timestamp>().ok())?;
-    Some(ThreadView {
-        id,
-        title: text("title").to_owned(),
-        settled: flag("settled"),
-        snoozed: flag("snoozed"),
-        status: text("status").to_owned(),
-        provider: text("providerInstanceId").to_owned(),
-        model: text("model").to_owned(),
-        updated_at,
-        subagent: text("relationshipToParent") == "subagent",
-    })
-}
-
-fn short_id(id: &str) -> String {
-    id.chars()
-        .filter(|character| character.is_ascii_alphanumeric())
-        .take(12)
-        .collect()
+fn random_token<const N: usize>() -> String {
+    let mut bytes = [0; N];
+    getrandom::fill(&mut bytes).expect("operating system randomness");
+    URL_SAFE_NO_PAD.encode(bytes)
 }
 
 /// Whether two http origins name the same server. Loopback spellings are
@@ -450,73 +391,181 @@ fn log(message: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::policy::is_quiescent;
+    use crate::state::ThreadState;
+    use crate::t3::tests::mock_server;
     use serde_json::json;
 
     #[test]
-    fn parses_a_list_entry() {
-        let raw = json!({
-            "threadId": "thread:abc",
-            "title": "Fix login",
-            "settled": false,
-            "snoozed": false,
-            "status": "idle",
-            "providerInstanceId": "codex",
-            "model": "gpt-6.1-sol",
-            "updatedAt": "2026-10-14T09:00:00Z",
-            "relationshipToParent": null,
-        });
-        let view = parse_thread(&raw).expect("view");
-        assert_eq!(view.id, "thread:abc");
-        assert!(!view.subagent);
-        assert_eq!(view.provider, "codex");
-    }
-
-    #[test]
-    fn marks_subagents() {
-        let raw = json!({
-            "threadId": "thread:sub",
-            "title": "Sub",
-            "settled": false,
-            "snoozed": false,
-            "status": "idle",
-            "providerInstanceId": "opencode",
-            "model": "claude-5",
-            "updatedAt": "2026-10-14T09:00:00Z",
-            "relationshipToParent": "subagent",
-        });
-        assert!(parse_thread(&raw).expect("view").subagent);
-    }
-
-    #[test]
-    fn rejects_entries_without_timestamps() {
-        let raw = json!({ "threadId": "thread:x" });
-        assert!(parse_thread(&raw).is_none());
-    }
-
-    #[test]
-    fn missing_status_is_not_warmable() {
-        // Unknown states must fail closed: only explicitly quiescent ones
-        // may receive keepalives.
-        let raw = json!({
-            "threadId": "thread:x",
-            "updatedAt": "2026-10-14T09:00:00Z",
-        });
-        let view = parse_thread(&raw).expect("view");
-        assert!(!is_quiescent(&view.status));
-    }
-
-    #[test]
-    fn request_ids_are_stable_per_refresh() {
-        assert_eq!(short_id("mcp:c8fe983b-6ed2"), "mcpc8fe983b6");
-        assert_eq!(short_id("thread:abc/def+ghi").len(), 12);
-    }
-
-    #[test]
     fn loopback_spellings_are_the_same_origin() {
-        assert!(same_origin("http://localhost:3773", "http://127.0.0.1:3773"));
+        assert!(same_origin(
+            "http://localhost:3773",
+            "http://127.0.0.1:3773"
+        ));
         assert!(same_origin("http://[::1]:3773/", "http://127.0.0.1:3773"));
-        assert!(!same_origin("http://127.0.0.1:3773", "http://127.0.0.1:3774"));
-        assert!(!same_origin("http://127.0.0.1:3773", "http://192.168.1.19:3773"));
+        assert!(!same_origin(
+            "http://127.0.0.1:3773",
+            "http://127.0.0.1:3774"
+        ));
+        assert!(!same_origin(
+            "http://127.0.0.1:3773",
+            "http://192.168.1.19:3773"
+        ));
+    }
+
+    #[test]
+    fn shutdown_unparks_a_long_wait() {
+        let stop = Arc::new(AtomicBool::new(false));
+        let flag = stop.clone();
+        let (started, start) = std::sync::mpsc::channel();
+        let (finished, finish) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            started.send(()).unwrap();
+            sleep_until(&flag, Duration::from_secs(120));
+            finished.send(()).unwrap();
+        });
+        start.recv_timeout(Duration::from_secs(1)).unwrap();
+        stop.store(true, Ordering::Relaxed);
+        worker.thread().unpark();
+        finish
+            .recv_timeout(Duration::from_secs(1))
+            .expect("shutdown wakes the parked thread");
+        worker.join().unwrap();
+    }
+
+    #[test]
+    fn malformed_listing_preserves_state_and_reports_save_failures() {
+        let (base, server) = mock_server(
+            &["initialize", "t3_thread_list", "t3_thread_list"],
+            |_, _| {
+                Some(
+                    json!({ "threads": [{ "threadId": "malformed", "updatedAt": "not-a-timestamp" }] }),
+                )
+            },
+        );
+        let directory =
+            std::env::temp_dir().join(format!("warmer-malformed-list-{}", std::process::id()));
+        let state_path = directory.join("state.json");
+        let config = Config {
+            projects: vec!["project".to_owned()],
+            ..Config::default()
+        };
+        let mut state = State::default();
+        state
+            .threads
+            .insert("preserved".to_owned(), ThreadState::default());
+        state.save(&state_path).unwrap();
+        let mut client = T3Client::new(&base, "test".to_owned());
+        let error = pass(&config, &mut client, &mut state, &state_path, true).unwrap_err();
+        assert!(
+            format!("{error:#}").contains("invalid threads"),
+            "{error:#}"
+        );
+        let saved = State::load(&state_path).unwrap();
+        assert_eq!(saved.threads.len(), 1);
+        assert!(saved.threads.contains_key("preserved"));
+
+        // The listing error must not hide a simultaneous state-write failure.
+        let error = pass(
+            &config,
+            &mut client,
+            &mut state,
+            &state_path.join("child"),
+            true,
+        )
+        .unwrap_err();
+        let message = format!("{error:#}");
+        assert!(message.contains("invalid threads"), "{message}");
+        assert!(message.contains("also failed saving state"), "{message}");
+        server.join().unwrap();
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn failed_save_allows_retry_and_lost_response_blocks_duplicates() {
+        let updated = Timestamp::now()
+            .checked_sub(jiff::Span::new().minutes(30))
+            .unwrap();
+        let threads = json!({ "threads": [{
+            "threadId": "thread-1", "title": "Test", "status": "completed",
+            "providerInstanceId": "opencode", "model": "openai/gpt-6-astra",
+            "updatedAt": updated.to_string()
+        }] });
+        let directory =
+            std::env::temp_dir().join(format!("warmer-lost-send-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let blocked_directory = directory.join("not-a-directory");
+        std::fs::write(&blocked_directory, b"").unwrap();
+        let state_path = directory.join("state.json");
+        let saved_path = state_path.clone();
+        let (base, server) = mock_server(
+            &[
+                "initialize",
+                "t3_thread_list",
+                "t3_thread_list",
+                "t3_thread_send",
+                "t3_thread_list",
+            ],
+            move |name, arguments| {
+                if name == "t3_thread_send" {
+                    let saved = State::load(&saved_path).unwrap();
+                    assert!(
+                        saved.threads["thread-1"].pending_warm_at.is_some(),
+                        "persist before the side effect"
+                    );
+                    assert_eq!(arguments["mode"], "auto");
+                    assert!(
+                        arguments["clientRequestId"]
+                            .as_str()
+                            .unwrap()
+                            .starts_with("cache-warm-")
+                    );
+                    // T3 may have queued this request, but the response is lost.
+                    None
+                } else {
+                    Some(threads.clone())
+                }
+            },
+        );
+        let local = Timestamp::now().to_zoned(TimeZone::system());
+        // A wrapping window which contains the present hour in every time zone.
+        let config = Config {
+            projects: vec!["project-1".to_owned()],
+            max_refreshes_per_activity: 1,
+            day_window: crate::config::DayWindow {
+                start: jiff::civil::time(local.hour(), 0, 0, 0),
+                end: jiff::civil::time((local.hour() + 23) % 24, 0, 0, 0),
+            },
+            rules: vec![crate::config::Rule {
+                provider: Some("opencode".to_owned()),
+                model_contains: "openai/gpt".to_owned(),
+                ttl_seconds: 1680,
+            }],
+            ..Config::default()
+        };
+        let mut client = T3Client::new(&base, "test".to_owned());
+        let mut state = State::default();
+        pass(
+            &config,
+            &mut client,
+            &mut state,
+            &blocked_directory.join("state.json"),
+            false,
+        )
+        .expect_err("failed persistence must prevent sending");
+        let entry = &state.threads["thread-1"];
+        assert!(entry.pending_warm_at.is_none());
+        assert!(!entry.pending_seen_running);
+        assert_eq!(entry.refreshes, 0);
+
+        // Storage recovers; retry using the same state retained by the daemon.
+        let summary = tick(&config, &mut client, &mut state, &state_path, false).unwrap();
+        assert!(summary.contains("1 errors"), "{summary}");
+        // Restart from disk, before another listing has acknowledged the send.
+        let mut state = State::load(&state_path).unwrap();
+        let summary = tick(&config, &mut client, &mut state, &state_path, false).unwrap();
+        assert!(summary.contains("pending-warm 1"), "{summary}");
+        assert_eq!(state.threads["thread-1"].refreshes, 1);
+        server.join().unwrap();
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }

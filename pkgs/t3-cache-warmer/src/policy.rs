@@ -1,25 +1,12 @@
 //! Pure gating and cache-attribution logic, kept free of I/O so it is cheap
 //! to test from a fixed clock.
 
-use jiff::{Span, Timestamp, tz::TimeZone};
+use jiff::{Span, Timestamp, Zoned, tz::TimeZone};
+use std::time::Duration;
 
-use crate::config::{Config, parse_hhmm};
+use crate::config::Config;
 use crate::state::{State, ThreadState};
-
-/// One thread as reported by `t3_thread_list`.
-#[derive(Debug, Clone)]
-pub struct ThreadView {
-    pub id: String,
-    pub title: String,
-    pub settled: bool,
-    pub snoozed: bool,
-    /// Run status; `idle` means nothing is running.
-    pub status: String,
-    pub provider: String,
-    pub model: String,
-    pub updated_at: Timestamp,
-    pub subagent: bool,
-}
+use crate::t3::ThreadView;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Decision {
@@ -38,6 +25,7 @@ pub enum SkipReason {
     IdleTooLong,
     BudgetSpent,
     CacheFresh,
+    PendingWarm,
 }
 
 impl SkipReason {
@@ -54,67 +42,48 @@ impl SkipReason {
             Self::IdleTooLong => "idle-too-long",
             Self::BudgetSpent => "budget-spent",
             Self::CacheFresh => "cache-fresh",
+            Self::PendingWarm => "pending-warm",
         }
     }
 }
 
-/// Seeds the state of a thread we have never seen. Until the first refresh
-/// cycle the current activity is treated as the source of a fresh cache.
-pub fn seed(view: &ThreadView) -> ThreadState {
-    ThreadState {
-        title: view.title.clone(),
-        provider: view.provider.clone(),
-        model: view.model.clone(),
-        last_activity_at: Some(view.updated_at),
-        last_cache_at: Some(view.updated_at),
-        seen_updated_at: Some(view.updated_at),
-        settled: view.settled,
-        snoozed: view.snoozed,
-        subagent: view.subagent,
-        ..ThreadState::default()
-    }
-}
-
 /// Decides whether one thread should be warmed now.
-pub fn decide(config: &Config, view: &ThreadView, state: &ThreadState, now: Timestamp) -> Decision {
-    let skip = |reason| Decision::Skip { reason };
-    if view.settled {
-        return skip(SkipReason::Settled);
-    }
-    if view.snoozed {
-        return skip(SkipReason::Snoozed);
-    }
-    if view.subagent && config.skip_subagents {
-        return skip(SkipReason::Subagent);
-    }
-    if !is_quiescent(&view.status) {
-        return skip(SkipReason::Running);
-    }
-    if !within_day_window(config, now) {
-        return skip(SkipReason::OutsideHours);
-    }
-    let (ttl, last_cache) = match stored_gate(config, &view.provider, &view.model, state, now) {
-        Ok(gate) => gate,
-        Err(reason) => return skip(reason),
+pub fn decide(config: &Config, state: &ThreadState, now: Timestamp) -> Decision {
+    let due = match refresh_at(config, state, &now.to_zoned(TimeZone::system())) {
+        Ok(due) => due,
+        Err(reason) => return Decision::Skip { reason },
     };
-    if now < refresh_due_after(last_cache, ttl, config.lead_seconds) {
-        return skip(SkipReason::CacheFresh);
+    if now < due {
+        return Decision::Skip {
+            reason: SkipReason::CacheFresh,
+        };
     }
     Decision::Warm
 }
 
-/// Eligibility from stored beliefs alone: the rule TTL and cache base when a
-/// pass could warm this thread once quiescent and in-hours, or the reason it
-/// would skip. Shared by [`decide`] and [`next_wakeup`] so the scheduler
-/// never wakes for threads no pass would warm.
-fn stored_gate(
+/// One eligibility check for decisions, scheduling, and status output.
+fn refresh_at(
     config: &Config,
-    provider: &str,
-    model: &str,
     state: &ThreadState,
-    now: Timestamp,
-) -> Result<(u64, Timestamp), SkipReason> {
-    let Some(ttl) = rule_ttl(config, provider, model) else {
+    local: &Zoned,
+) -> Result<Timestamp, SkipReason> {
+    if state.settled {
+        return Err(SkipReason::Settled);
+    }
+    if state.snoozed {
+        return Err(SkipReason::Snoozed);
+    }
+    if state.subagent && config.skip_subagents {
+        return Err(SkipReason::Subagent);
+    }
+    if !is_quiescent(&state.status) {
+        return Err(SkipReason::Running);
+    }
+    if !config.day_window.contains(local.time()) {
+        return Err(SkipReason::OutsideHours);
+    }
+    let now = local.timestamp();
+    let Some(ttl) = rule_ttl(config, &state.provider, &state.model) else {
         return Err(SkipReason::NoRule);
     };
     let Some(last_activity) = state.last_activity_at else {
@@ -123,32 +92,31 @@ fn stored_gate(
     if now.as_second() - last_activity.as_second() > config.active_window_minutes as i64 * 60 {
         return Err(SkipReason::IdleTooLong);
     }
-    let last_cache = state.last_cache_at.unwrap_or(last_activity);
-    if state.pending_warm_at.is_some()
-        && now < refresh_due_after(last_cache, ttl, config.lead_seconds)
+    if state
+        .pending_warm_at
+        .is_some_and(|sent| now < refresh_due_after(sent, config.send_grace_seconds, 0))
     {
-        // A keepalive is still in flight and its cache write is not due yet;
-        // let it land before deciding again. Past due the block lifts: the
-        // freshness check below re-arms the refresh instead of letting the
-        // cache go stale behind a slow turn.
-        return Err(SkipReason::CacheFresh);
+        // An accepted send may not appear in T3's listing immediately. Its
+        // acknowledgement window, not the old cache timestamp, blocks resends.
+        return Err(SkipReason::PendingWarm);
     }
     if state.refreshes >= config.max_refreshes_per_activity {
         return Err(SkipReason::BudgetSpent);
     }
-    Ok((ttl, last_cache))
+    Ok(refresh_due_after(
+        state.last_cache_at.unwrap_or(last_activity),
+        ttl,
+        config.lead_seconds,
+    ))
 }
 
 /// The moment a cache written at `last_cache` should be refreshed: its TTL
 /// minus the configured lead time. This is the single canonical definition
-/// of "due", shared by [`decide`] and [`next_wakeup`].
-pub fn refresh_due_after(
-    last_cache: Timestamp,
-    ttl_seconds: u64,
-    lead_seconds: u64,
-) -> Timestamp {
+/// of "due", shared by [`decide`] and [`next_wait`].
+pub fn refresh_due_after(last_cache: Timestamp, ttl_seconds: u64, lead_seconds: u64) -> Timestamp {
     let threshold = (ttl_seconds as i64 - lead_seconds as i64).max(0);
-    Timestamp::from_second(last_cache.as_second() + threshold)
+    last_cache
+        .checked_add(Span::new().seconds(threshold))
         .expect("cache due timestamp in range")
 }
 
@@ -171,64 +139,31 @@ pub fn rule_ttl(config: &Config, provider: &str, model: &str) -> Option<u64> {
         .map(|rule| rule.ttl_seconds)
 }
 
-/// Whether the local wall clock is inside the configured window.
-pub fn within_day_window(config: &Config, now: Timestamp) -> bool {
-    let (Ok(start), Ok(end)) = (
-        parse_hhmm(&config.day_window.start, "start"),
-        parse_hhmm(&config.day_window.end, "end"),
-    ) else {
-        return false;
-    };
-    let zoned = now.to_zoned(TimeZone::system());
-    let minutes = i16::from(zoned.hour()) * 60 + i16::from(zoned.minute());
-    within_window(minutes, start as i16, end as i16)
-}
-
-fn within_window(minutes: i16, start: i16, end: i16) -> bool {
-    if start <= end {
-        minutes >= start && minutes < end
-    } else {
-        minutes >= start || minutes < end
+/// Discovery is periodic; known refresh deadlines can wake the daemon sooner.
+/// Overdue eligible threads need a retry after a failed send, while running
+/// and pending threads wait for the next discovery pass.
+pub fn next_wait(state: &State, config: &Config, now: Timestamp) -> Duration {
+    let local = now.to_zoned(TimeZone::system());
+    if !config.day_window.contains(local.time()) {
+        return config
+            .day_window
+            .next_start(&local)
+            .duration_since(now)
+            .unsigned_abs();
     }
-}
-
-/// The next moment `run` should wake: the earliest refresh due among threads
-/// a pass could warm, or the day window reopening when outside it. `None`
-/// means nothing is scheduled and the caller should fall back to its cap.
-pub fn next_wakeup(state: &State, config: &Config, now: Timestamp) -> Option<Timestamp> {
-    if !within_day_window(config, now) {
-        return next_window_start(config, now);
-    }
-    state
+    let cap = Duration::from_secs(config.tick_seconds);
+    let Some(due) = state
         .threads
         .values()
-        .filter_map(|thread| {
-            if thread.settled || thread.snoozed {
-                return None;
-            }
-            if config.skip_subagents && thread.subagent {
-                return None;
-            }
-            let (ttl, last_cache) =
-                stored_gate(config, &thread.provider, &thread.model, thread, now).ok()?;
-            Some(refresh_due_after(last_cache, ttl, config.lead_seconds))
-        })
+        .filter_map(|thread| refresh_at(config, thread, &local).ok())
         .min()
-}
-
-/// Next local occurrence of the day window's start after `now`.
-fn next_window_start(config: &Config, now: Timestamp) -> Option<Timestamp> {
-    let start = parse_hhmm(&config.day_window.start, "start").ok()?;
-    let zoned = now.to_zoned(TimeZone::system());
-    let today = zoned
-        .date()
-        .at((start / 60) as i8, (start % 60) as i8, 0, 0)
-        .to_zoned(TimeZone::system())
-        .ok()?;
-    if today.timestamp() > now {
-        return Some(today.timestamp());
+    else {
+        return cap;
+    };
+    if due <= now {
+        return Duration::from_secs(15).min(cap);
     }
-    Some(today.checked_add(Span::new().days(1)).ok()?.timestamp())
+    due.duration_since(now).unsigned_abs().min(cap)
 }
 
 /// Folds a new observation of a thread into our belief about its cache.
@@ -251,11 +186,15 @@ fn next_window_start(config: &Config, now: Timestamp) -> Option<Timestamp> {
 /// Call this once per thread per tick, for every thread the list reports.
 pub fn observe(state: &mut ThreadState, view: &ThreadView, now: Timestamp, grace_seconds: u64) {
     if let Some(sent) = state.pending_warm_at
-        && now.as_second() > sent.as_second() + grace_seconds as i64
+        && now >= refresh_due_after(sent, grace_seconds, 0)
     {
         state.pending_warm_at = None;
         state.pending_seen_running = false;
     }
+    state.title.clone_from(&view.title);
+    state.provider.clone_from(&view.provider);
+    state.model.clone_from(&view.model);
+    state.status.clone_from(&view.status);
     state.settled = view.settled;
     state.snoozed = view.snoozed;
     state.subagent = view.subagent;
@@ -298,6 +237,7 @@ mod tests {
             SkipReason::IdleTooLong,
             SkipReason::BudgetSpent,
             SkipReason::CacheFresh,
+            SkipReason::PendingWarm,
         ];
         let mut labels: Vec<&str> = reasons.iter().copied().map(SkipReason::label).collect();
         labels.sort_unstable();
@@ -318,8 +258,8 @@ mod tests {
             settled: false,
             snoozed: false,
             status: "idle".to_owned(),
-            provider: "codex".to_owned(),
-            model: "gpt-6.1-sol".to_owned(),
+            provider: "opencode".to_owned(),
+            model: "openai/gpt-6.1-sol".to_owned(),
             updated_at: timestamp(updated_at),
             subagent: false,
         }
@@ -330,8 +270,8 @@ mod tests {
             lead_seconds: 30,
             rules: vec![
                 Rule {
-                    provider: Some("codex".to_owned()),
-                    model_contains: "gpt".to_owned(),
+                    provider: Some("opencode".to_owned()),
+                    model_contains: "openai/gpt".to_owned(),
                     ttl_seconds: 1800,
                 },
                 Rule {
@@ -345,24 +285,16 @@ mod tests {
     }
 
     fn warm_state(updated_at: &str) -> ThreadState {
-        ThreadState {
-            last_activity_at: Some(timestamp(updated_at)),
-            last_cache_at: Some(timestamp(updated_at)),
-            seen_updated_at: Some(timestamp(updated_at)),
-            ..ThreadState::default()
-        }
+        let mut state = ThreadState::default();
+        observe(&mut state, &view(updated_at), timestamp(updated_at), 300);
+        state
     }
 
     #[test]
     fn warms_when_due_and_active() {
         let config = config();
         let state = warm_state("2026-10-14T09:00:00Z");
-        let decision = decide(
-            &config,
-            &view("2026-10-14T09:00:00Z"),
-            &state,
-            timestamp("2026-10-14T09:45:00Z"),
-        );
+        let decision = decide(&config, &state, timestamp("2026-10-14T09:45:00Z"));
         assert_eq!(decision, Decision::Warm);
     }
 
@@ -370,12 +302,7 @@ mod tests {
     fn skips_until_ttl_elapsed() {
         let config = config();
         let state = warm_state("2026-10-14T09:00:00Z");
-        let decision = decide(
-            &config,
-            &view("2026-10-14T09:00:00Z"),
-            &state,
-            timestamp("2026-10-14T09:20:00Z"),
-        );
+        let decision = decide(&config, &state, timestamp("2026-10-14T09:20:00Z"));
         assert_eq!(
             decision,
             Decision::Skip {
@@ -386,27 +313,17 @@ mod tests {
 
     #[test]
     fn warms_at_the_lead_time_not_the_ttl() {
-        // codex/gpt rule: ttl 1800, lead 30, so due 1770s after the write.
+        // TTL 1800, lead 30, so due 1770s after the write.
         let config = config();
         let state = warm_state("2026-10-14T09:00:00Z");
-        let fresh = decide(
-            &config,
-            &view("2026-10-14T09:00:00Z"),
-            &state,
-            timestamp("2026-10-14T09:29:29Z"),
-        );
+        let fresh = decide(&config, &state, timestamp("2026-10-14T09:29:29Z"));
         assert_eq!(
             fresh,
             Decision::Skip {
                 reason: SkipReason::CacheFresh
             }
         );
-        let due = decide(
-            &config,
-            &view("2026-10-14T09:00:00Z"),
-            &state,
-            timestamp("2026-10-14T09:29:30Z"),
-        );
+        let due = decide(&config, &state, timestamp("2026-10-14T09:29:30Z"));
         assert_eq!(due, Decision::Warm);
     }
 
@@ -424,94 +341,114 @@ mod tests {
         );
     }
 
-    fn tracked(cache_at: &str) -> ThreadState {
-        ThreadState {
-            provider: "codex".to_owned(),
-            model: "gpt-6.1-sol".to_owned(),
-            ..warm_state(cache_at)
-        }
-    }
-
     #[test]
-    fn next_wakeup_picks_the_earliest_due_thread() {
-        let config = config();
+    fn next_wait_picks_the_earliest_due_thread() {
+        let mut config = config();
+        config.tick_seconds = 3600;
         let mut state = State::default();
         // Due 09:29:30 and 09:39:30 respectively.
-        state.threads.insert("a".to_owned(), tracked("2026-10-14T09:00:00Z"));
-        state.threads.insert("b".to_owned(), tracked("2026-10-14T09:10:00Z"));
-        let wake = next_wakeup(&state, &config, timestamp("2026-10-14T09:05:00Z"));
-        assert_eq!(wake, Some(timestamp("2026-10-14T09:29:30Z")));
+        state
+            .threads
+            .insert("a".to_owned(), warm_state("2026-10-14T09:00:00Z"));
+        state
+            .threads
+            .insert("b".to_owned(), warm_state("2026-10-14T09:10:00Z"));
+        let wait = next_wait(&state, &config, timestamp("2026-10-14T09:05:00Z"));
+        assert_eq!(wait, Duration::from_secs(24 * 60 + 30));
     }
 
     #[test]
     fn scheduler_only_schedules_warmable_threads() {
-        // A thread `next_wakeup` wakes for must be one `decide` would warm
-        // once quiescent: both go through the same stored gates.
-        let config = config();
+        let mut config = config();
+        config.tick_seconds = 3600;
         let mut state = State::default();
-        state.threads.insert("a".to_owned(), tracked("2026-10-14T09:00:00Z"));
+        state
+            .threads
+            .insert("a".to_owned(), warm_state("2026-10-14T09:00:00Z"));
         let now = timestamp("2026-10-14T09:05:00Z");
-        let wake = next_wakeup(&state, &config, now).expect("scheduled");
+        let wake = now.checked_add(next_wait(&state, &config, now)).unwrap();
         let thread = state.threads.get("a").expect("tracked");
-        assert_eq!(
-            decide(&config, &view("2026-10-14T09:00:00Z"), thread, wake),
-            Decision::Warm
-        );
+        assert_eq!(decide(&config, thread, wake), Decision::Warm);
     }
 
     #[test]
-    fn pending_blocks_until_due_then_yields() {
+    fn pending_blocks_overdue_resends_until_its_grace_expires() {
         let config = config();
         let mut state = warm_state("2026-10-14T09:00:00Z");
-        state.pending_warm_at = Some(timestamp("2026-10-14T09:04:00Z"));
-        let view = view("2026-10-14T09:00:00Z");
+        state.pending_warm_at = Some(timestamp("2026-10-14T09:40:00Z"));
         assert_eq!(
-            decide(&config, &view, &state, timestamp("2026-10-14T09:10:00Z")),
+            decide(&config, &state, timestamp("2026-10-14T09:44:59.999Z")),
             Decision::Skip {
-                reason: SkipReason::CacheFresh
+                reason: SkipReason::PendingWarm
             },
-            "in-flight keepalive, cache not due yet"
+            "the old cache is overdue but the send is still pending"
         );
         assert_eq!(
-            decide(&config, &view, &state, timestamp("2026-10-14T09:40:00Z")),
+            decide(&config, &state, timestamp("2026-10-14T09:45:00Z")),
             Decision::Warm,
-            "past due the block lifts instead of going stale"
+            "an unacknowledged send can be retried after its grace window"
         );
     }
 
     #[test]
-    fn seed_copies_the_parking_flags() {
+    fn observe_updates_thread_identity_status_and_parking_flags() {
         let mut seen = view("2026-10-14T09:00:00Z");
         seen.settled = true;
         seen.snoozed = true;
         seen.subagent = true;
-        let state = seed(&seen);
+        seen.status = "running".to_owned();
+        let mut state = ThreadState::default();
+        observe(&mut state, &seen, seen.updated_at, 300);
         assert!(state.settled && state.snoozed && state.subagent);
+        assert_eq!(state.status, "running");
+        assert_eq!(state.provider, "opencode");
+        assert_eq!(state.model, "openai/gpt-6.1-sol");
     }
 
     #[test]
-    fn next_wakeup_ignores_unwarmable_threads() {
-        let config = config();
+    fn next_wait_ignores_unwarmable_threads() {
+        let mut config = config();
+        config.tick_seconds = 3600;
         let now = timestamp("2026-10-14T09:05:00Z");
         let cases: Vec<(&str, ThreadState)> = vec![
             ("pending", {
-                let mut thread = tracked("2026-10-14T09:00:00Z");
+                let mut thread = warm_state("2026-10-14T09:00:00Z");
                 thread.pending_warm_at = Some(timestamp("2026-10-14T09:04:00Z"));
                 thread
             }),
             ("spent budget", {
-                let mut thread = tracked("2026-10-14T09:00:00Z");
+                let mut thread = warm_state("2026-10-14T09:00:00Z");
                 thread.refreshes = config.max_refreshes_per_activity;
                 thread
             }),
-            ("stale activity", tracked("2026-10-14T02:00:00Z")),
+            ("stale activity", warm_state("2026-10-14T02:00:00Z")),
             ("settled", {
-                let mut thread = tracked("2026-10-14T09:00:00Z");
+                let mut thread = warm_state("2026-10-14T09:00:00Z");
                 thread.settled = true;
                 thread
             }),
+            ("running", {
+                let mut thread = warm_state("2026-10-14T09:00:00Z");
+                thread.status = "running".to_owned();
+                thread
+            }),
+            ("unknown status", {
+                let mut thread = warm_state("2026-10-14T09:00:00Z");
+                thread.status.clear();
+                thread
+            }),
+            ("snoozed", {
+                let mut thread = warm_state("2026-10-14T09:00:00Z");
+                thread.snoozed = true;
+                thread
+            }),
+            ("subagent", {
+                let mut thread = warm_state("2026-10-14T09:00:00Z");
+                thread.subagent = true;
+                thread
+            }),
             ("no rule", {
-                let mut thread = tracked("2026-10-14T09:00:00Z");
+                let mut thread = warm_state("2026-10-14T09:00:00Z");
                 thread.model = "unknown-model".to_owned();
                 thread
             }),
@@ -519,17 +456,21 @@ mod tests {
         for (name, thread) in cases {
             let mut state = State::default();
             state.threads.insert("thread".to_owned(), thread);
-            assert_eq!(next_wakeup(&state, &config, now), None, "{name}");
+            assert_eq!(
+                next_wait(&state, &config, now),
+                Duration::from_secs(3600),
+                "{name}"
+            );
         }
         assert_eq!(
-            next_wakeup(&State::default(), &config, now),
-            None,
+            next_wait(&State::default(), &config, now),
+            Duration::from_secs(3600),
             "no threads"
         );
     }
 
     #[test]
-    fn next_wakeup_outside_hours_waits_for_the_window_to_reopen() {
+    fn next_wait_outside_hours_waits_for_the_window_to_reopen() {
         let mut config = config();
         let now = timestamp("2026-10-14T09:05:00Z");
         let zoned = now.to_zoned(TimeZone::system());
@@ -541,25 +482,69 @@ mod tests {
         } else {
             (minutes + 120, minutes + 240)
         };
-        config.day_window.start = format!("{:02}:{:02}", start / 60, start % 60);
-        config.day_window.end = format!("{:02}:{:02}", end / 60, end % 60);
-        assert!(!within_day_window(&config, now));
-        let wake = next_wakeup(&State::default(), &config, now).expect("reopening is scheduled");
-        assert!(wake > now);
+        config.day_window.start = jiff::civil::time((start / 60) as i8, (start % 60) as i8, 0, 0);
+        config.day_window.end = jiff::civil::time((end / 60) as i8, (end % 60) as i8, 0, 0);
+        assert!(!config.day_window.contains(zoned.time()));
         let mut expected = (start - minutes).rem_euclid(1440) as i64 * 60;
         if expected == 0 {
             expected = 86_400;
         }
-        assert_eq!(wake.as_second() - now.as_second(), expected);
+        assert_eq!(
+            next_wait(&State::default(), &config, now),
+            Duration::from_secs(expected as u64)
+        );
+    }
+
+    #[test]
+    fn discovery_interval_does_not_delay_a_known_refresh_deadline() {
+        let mut config = config();
+        config.tick_seconds = 120;
+        let mut state = State::default();
+        state
+            .threads
+            .insert("a".to_owned(), warm_state("2026-10-14T09:00:00.250Z"));
+        assert_eq!(
+            next_wait(&state, &config, timestamp("2026-10-14T09:28:00.500Z")),
+            Duration::from_millis(89_750),
+            "wake exactly at the refresh deadline, preserving fractional seconds"
+        );
+        assert_eq!(
+            next_wait(&state, &config, timestamp("2026-10-14T09:05:00Z")),
+            Duration::from_secs(120),
+            "discover new activity before distant deadlines"
+        );
+    }
+
+    #[test]
+    fn overdue_retries_only_wake_eligible_threads() {
+        let mut config = config();
+        config.tick_seconds = 120;
+        let now = timestamp("2026-10-14T09:40:00Z");
+        let mut state = State::default();
+        state
+            .threads
+            .insert("a".to_owned(), warm_state("2026-10-14T09:00:00Z"));
+        assert_eq!(next_wait(&state, &config, now), Duration::from_secs(15));
+
+        state.threads.get_mut("a").unwrap().pending_warm_at = Some(now);
+        assert_eq!(next_wait(&state, &config, now), Duration::from_secs(120));
+
+        let thread = state.threads.get_mut("a").unwrap();
+        thread.pending_warm_at = None;
+        thread.status = "running".to_owned();
+        assert_eq!(next_wait(&state, &config, now), Duration::from_secs(120));
+        assert_eq!(
+            next_wait(&State::default(), &config, now),
+            Duration::from_secs(120)
+        );
     }
 
     #[test]
     fn skips_without_matching_rule() {
         let config = config();
-        let mut thread = view("2026-10-14T09:00:00Z");
-        thread.model = "deepseek-v4.1-flash".to_owned();
-        let state = warm_state("2026-10-14T09:00:00Z");
-        let decision = decide(&config, &thread, &state, timestamp("2026-10-14T10:00:00Z"));
+        let mut state = warm_state("2026-10-14T09:00:00Z");
+        state.model = "deepseek-v4.1-flash".to_owned();
+        let decision = decide(&config, &state, timestamp("2026-10-14T10:00:00Z"));
         assert_eq!(
             decision,
             Decision::Skip {
@@ -570,26 +555,36 @@ mod tests {
 
     #[test]
     fn first_rule_wins() {
-        let config = config();
-        assert_eq!(rule_ttl(&config, "codex", "gpt-6.1-sol"), Some(1800));
-        assert_eq!(rule_ttl(&config, "opencode", "gpt-6.1-sol"), None);
+        let mut config = config();
+        config.rules.push(Rule {
+            provider: None,
+            model_contains: "gpt".to_owned(),
+            ttl_seconds: 300,
+        });
+        assert_eq!(
+            rule_ttl(&config, "opencode", "openai/gpt-6.1-sol"),
+            Some(1800)
+        );
+        assert_eq!(
+            rule_ttl(&config, "other-provider", "openai/gpt-6.1-sol"),
+            Some(300)
+        );
         assert_eq!(rule_ttl(&config, "opencode", "claude-5"), Some(300));
     }
 
     #[test]
     fn treats_completed_threads_as_warmable_but_not_failed_ones() {
         let config = config();
-        let state = warm_state("2026-10-14T09:00:00Z");
         let now = timestamp("2026-10-14T10:00:00Z");
 
-        let mut completed = view("2026-10-14T09:00:00Z");
+        let mut completed = warm_state("2026-10-14T09:00:00Z");
         completed.status = "completed".to_owned();
-        assert_eq!(decide(&config, &completed, &state, now), Decision::Warm);
+        assert_eq!(decide(&config, &completed, now), Decision::Warm);
 
-        let mut failed = view("2026-10-14T09:00:00Z");
+        let mut failed = warm_state("2026-10-14T09:00:00Z");
         failed.status = "failed".to_owned();
         assert_eq!(
-            decide(&config, &failed, &state, now),
+            decide(&config, &failed, now),
             Decision::Skip {
                 reason: SkipReason::Running
             }
@@ -599,40 +594,39 @@ mod tests {
     #[test]
     fn skips_busy_or_parked_threads() {
         let config = config();
-        let state = warm_state("2026-10-14T09:00:00Z");
         let now = timestamp("2026-10-14T10:00:00Z");
 
-        let mut thread = view("2026-10-14T09:00:00Z");
+        let mut thread = warm_state("2026-10-14T09:00:00Z");
         thread.status = "running".to_owned();
         assert_eq!(
-            decide(&config, &thread, &state, now),
+            decide(&config, &thread, now),
             Decision::Skip {
                 reason: SkipReason::Running
             }
         );
 
-        let mut thread = view("2026-10-14T09:00:00Z");
+        let mut thread = warm_state("2026-10-14T09:00:00Z");
         thread.settled = true;
         assert_eq!(
-            decide(&config, &thread, &state, now),
+            decide(&config, &thread, now),
             Decision::Skip {
                 reason: SkipReason::Settled
             }
         );
 
-        let mut thread = view("2026-10-14T09:00:00Z");
+        let mut thread = warm_state("2026-10-14T09:00:00Z");
         thread.snoozed = true;
         assert_eq!(
-            decide(&config, &thread, &state, now),
+            decide(&config, &thread, now),
             Decision::Skip {
                 reason: SkipReason::Snoozed
             }
         );
 
-        let mut thread = view("2026-10-14T09:00:00Z");
+        let mut thread = warm_state("2026-10-14T09:00:00Z");
         thread.subagent = true;
         assert_eq!(
-            decide(&config, &thread, &state, now),
+            decide(&config, &thread, now),
             Decision::Skip {
                 reason: SkipReason::Subagent
             }
@@ -645,7 +639,7 @@ mod tests {
         let now = timestamp("2026-10-14T15:00:00Z");
         let state = warm_state("2026-10-14T09:00:00Z");
         assert_eq!(
-            decide(&config, &view("2026-10-14T09:00:00Z"), &state, now),
+            decide(&config, &state, now),
             Decision::Skip {
                 reason: SkipReason::IdleTooLong
             }
@@ -654,7 +648,7 @@ mod tests {
         let mut spent = warm_state("2026-10-14T14:30:00Z");
         spent.refreshes = config.max_refreshes_per_activity;
         assert_eq!(
-            decide(&config, &view("2026-10-14T14:30:00Z"), &spent, now),
+            decide(&config, &spent, now),
             Decision::Skip {
                 reason: SkipReason::BudgetSpent
             }
@@ -789,19 +783,12 @@ mod tests {
     }
 
     #[test]
-    fn window_boundaries_and_wrap() {
-        assert!(within_window(600, 480, 1380), "10:00 inside 08:00-23:00");
-        assert!(within_window(480, 480, 1380), "start inclusive");
-        assert!(!within_window(1380, 480, 1380), "end exclusive");
-        assert!(within_window(1400, 1320, 360), "23:20 inside 22:00-06:00");
-        assert!(within_window(60, 1320, 360), "01:00 inside 22:00-06:00");
-        assert!(!within_window(600, 1320, 360), "10:00 outside 22:00-06:00");
-    }
-
-    #[test]
     fn seeding_treats_current_state_as_fresh() {
-        let state = seed(&view("2026-10-14T09:00:00Z"));
-        assert_eq!(state.last_activity_at, Some(timestamp("2026-10-14T09:00:00Z")));
+        let state = warm_state("2026-10-14T09:00:00Z");
+        assert_eq!(
+            state.last_activity_at,
+            Some(timestamp("2026-10-14T09:00:00Z"))
+        );
         assert_eq!(state.last_cache_at, state.last_activity_at);
         assert_eq!(state.refreshes, 0);
     }

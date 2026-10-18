@@ -15,6 +15,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
 use crate::config::{Config, valid_redirect_uri};
+use crate::random_token;
 use crate::state::Credential;
 
 pub fn login(config: &Config) -> Result<Credential> {
@@ -35,9 +36,9 @@ pub fn login(config: &Config) -> Result<Credential> {
              set it explicitly when baseUrl {base} carries no port"
         );
     }
-    let verifier = random_token(32);
+    let verifier = random_token::<32>();
     let challenge = URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()));
-    let state_token = random_token(16);
+    let state_token = random_token::<16>();
     let client_id = register(&agent, &base, &redirect_uri)?;
     let pairing = pairing_code(&config.t3_cli_path)?;
     let authorization = json!({
@@ -223,12 +224,6 @@ fn response_text(mut response: ureq::http::Response<ureq::Body>) -> Result<Strin
 
 fn response_json(response: ureq::http::Response<ureq::Body>) -> Result<Value> {
     serde_json::from_str(&response_text(response)?).context("parse T3 JSON response")
-}
-
-fn random_token(bytes: usize) -> String {
-    let mut buffer = vec![0u8; bytes];
-    getrandom::fill(&mut buffer).expect("operating system randomness");
-    URL_SAFE_NO_PAD.encode(buffer)
 }
 
 fn query_param(query: &str, key: &str) -> Option<String> {

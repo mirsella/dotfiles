@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
+use jiff::{Timestamp, Zoned, civil::Time};
 use serde::Deserialize;
 
 /// Which local hours warming may run in. `start > end` wraps midnight.
@@ -8,17 +9,43 @@ use serde::Deserialize;
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct DayWindow {
     /// Local time, `HH:MM`.
-    pub start: String,
+    pub start: Time,
     /// Local time, `HH:MM`. exclusive.
-    pub end: String,
+    pub end: Time,
 }
 
 impl Default for DayWindow {
     fn default() -> Self {
         Self {
-            start: "08:00".to_owned(),
-            end: "23:00".to_owned(),
+            start: jiff::civil::time(8, 0, 0, 0),
+            end: jiff::civil::time(23, 0, 0, 0),
         }
+    }
+}
+
+impl DayWindow {
+    pub fn contains(&self, time: Time) -> bool {
+        if self.start <= self.end {
+            time >= self.start && time < self.end
+        } else {
+            time >= self.start || time < self.end
+        }
+    }
+
+    pub fn next_start(&self, now: &Zoned) -> Timestamp {
+        let opening = |date| {
+            now.with()
+                .date(date)
+                .time(self.start)
+                .build()
+                .expect("day window opening in range")
+        };
+        let today = opening(now.date());
+        if today.timestamp() > now.timestamp() {
+            return today.timestamp();
+        }
+        // Reapply the configured time, rather than carrying a DST gap's adjustment.
+        opening(now.date().tomorrow().expect("tomorrow in range")).timestamp()
     }
 }
 
@@ -27,7 +54,7 @@ impl Default for DayWindow {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct Rule {
-    /// Provider instance id, e.g. `codex` or `opencode`. `None` matches any.
+    /// T3 provider instance id, e.g. `opencode`. `None` matches any.
     pub provider: Option<String>,
     /// Substring of the thread model id, e.g. `gpt`, `claude`, `gemini`.
     pub model_contains: String,
@@ -120,9 +147,7 @@ impl Config {
         {
             bail!("baseUrl must use plain http://");
         }
-        let start = parse_hhmm(&self.day_window.start, "dayWindow.start")?;
-        let end = parse_hhmm(&self.day_window.end, "dayWindow.end")?;
-        if start == end {
+        if self.day_window.start == self.day_window.end {
             bail!("dayWindow.start and dayWindow.end must differ");
         }
         if self.tick_seconds < 5 || self.tick_seconds > 3600 {
@@ -232,26 +257,10 @@ pub fn valid_redirect_uri(uri: &str) -> bool {
         && port.bytes().all(|byte| byte.is_ascii_digit())
 }
 
-/// Parses `HH:MM` into minutes since local midnight.
-pub fn parse_hhmm(value: &str, field: &str) -> Result<u16> {
-    let (hours, minutes) = value
-        .split_once(':')
-        .with_context(|| format!("{field} must look like HH:MM"))?;
-    let hours: u16 = hours
-        .parse()
-        .with_context(|| format!("{field} has an invalid hour"))?;
-    let minutes: u16 = minutes
-        .parse()
-        .with_context(|| format!("{field} has an invalid minute"))?;
-    if hours > 23 || minutes > 59 {
-        bail!("{field} is not a valid time of day");
-    }
-    Ok(hours * 60 + minutes)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use jiff::civil::time;
 
     #[test]
     fn defaults_parse_and_validate() {
@@ -259,11 +268,83 @@ mod tests {
     }
 
     #[test]
-    fn wraps_are_parsed() {
-        assert_eq!(parse_hhmm("00:00", "t").unwrap(), 0);
-        assert_eq!(parse_hhmm("23:59", "t").unwrap(), 1439);
-        assert!(parse_hhmm("24:00", "t").is_err());
-        assert!(parse_hhmm("8", "t").is_err());
+    fn parses_window_times_at_the_config_boundary() {
+        let window: DayWindow = serde_json::from_str(r#"{"start":"00:00","end":"23:59"}"#).unwrap();
+        assert_eq!(window.start, time(0, 0, 0, 0));
+        assert_eq!(window.end, time(23, 59, 0, 0));
+        for invalid in ["24:00", "08:60", "8", "not a time"] {
+            let value = serde_json::json!({"start": invalid});
+            assert!(
+                serde_json::from_value::<Config>(serde_json::json!({"dayWindow": value})).is_err(),
+                "{invalid}"
+            );
+        }
+    }
+
+    #[test]
+    fn window_boundaries_and_wrap() {
+        let daytime = DayWindow::default();
+        assert!(daytime.contains(time(10, 0, 0, 0)));
+        assert!(daytime.contains(time(8, 0, 0, 0)), "start inclusive");
+        assert!(!daytime.contains(time(23, 0, 0, 0)), "end exclusive");
+        let overnight = DayWindow {
+            start: time(22, 0, 0, 0),
+            end: time(6, 0, 0, 0),
+        };
+        assert!(overnight.contains(time(23, 20, 0, 0)));
+        assert!(overnight.contains(time(1, 0, 0, 0)));
+        assert!(!overnight.contains(time(10, 0, 0, 0)));
+        assert!(overnight.contains(time(22, 0, 0, 0)));
+        assert!(!overnight.contains(time(6, 0, 0, 0)));
+    }
+
+    #[test]
+    fn next_opening_follows_local_dates_across_dst_changes() {
+        let window = DayWindow::default();
+        for (now, expected) in [
+            (
+                "2026-10-18T07:00+02[Europe/Paris]",
+                "2026-10-18T08:00+02[Europe/Paris]",
+            ),
+            (
+                "2026-10-18T08:00+02[Europe/Paris]",
+                "2026-10-19T08:00+02[Europe/Paris]",
+            ),
+            (
+                "2026-03-28T23:30+01[Europe/Paris]",
+                "2026-03-29T08:00+02[Europe/Paris]",
+            ),
+            (
+                "2026-10-24T23:30+02[Europe/Paris]",
+                "2026-10-25T08:00+01[Europe/Paris]",
+            ),
+        ] {
+            let now: Zoned = now.parse().unwrap();
+            let expected: Zoned = expected.parse().unwrap();
+            assert_eq!(window.next_start(&now), expected.timestamp(), "{now}");
+        }
+    }
+
+    #[test]
+    fn next_opening_reapplies_configured_time_after_dst_disambiguation() {
+        let window = DayWindow {
+            start: time(2, 30, 0, 0),
+            end: time(6, 0, 0, 0),
+        };
+        for (now, expected) in [
+            (
+                "2026-03-29T05:00+02[Europe/Paris]",
+                "2026-03-30T02:30+02[Europe/Paris]",
+            ),
+            (
+                "2026-10-25T02:15+01[Europe/Paris]",
+                "2026-10-25T02:30+01[Europe/Paris]",
+            ),
+        ] {
+            let now: Zoned = now.parse().unwrap();
+            let expected: Zoned = expected.parse().unwrap();
+            assert_eq!(window.next_start(&now), expected.timestamp(), "{now}");
+        }
     }
 
     #[test]
@@ -313,8 +394,8 @@ mod tests {
         assert!(config.validate().is_err(), "blank keepalive");
         let config = Config {
             day_window: DayWindow {
-                start: "09:00".to_owned(),
-                end: "09:00".to_owned(),
+                start: time(9, 0, 0, 0),
+                end: time(9, 0, 0, 0),
             },
             ..Config::default()
         };

@@ -43,6 +43,7 @@ pub struct ThreadState {
     pub title: String,
     pub provider: String,
     pub model: String,
+    pub status: String,
     /// Newest activity that was not one of our keepalives.
     pub last_activity_at: Option<Timestamp>,
     /// Newest activity believed to have written the prompt cache.

@@ -4,10 +4,41 @@
 
 use std::time::Duration;
 
-use anyhow::{Context, Result};
-use serde_json::{json, Value};
+use anyhow::{Context, Result, ensure};
+use jiff::Timestamp;
+use serde::{Deserialize, de::DeserializeOwned};
+use serde_json::{Value, json};
 
 pub const PROTOCOL_VERSION: &str = "2025-06-18";
+
+/// The fields needed to observe and warm a listed thread.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThreadView {
+    #[serde(rename = "threadId")]
+    pub id: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub settled: bool,
+    #[serde(default)]
+    pub snoozed: bool,
+    pub status: String,
+    #[serde(rename = "providerInstanceId")]
+    pub provider: String,
+    pub model: String,
+    pub updated_at: Timestamp,
+    #[serde(
+        default,
+        rename = "relationshipToParent",
+        deserialize_with = "is_subagent"
+    )]
+    pub subagent: bool,
+}
+
+fn is_subagent<'de, D: serde::Deserializer<'de>>(value: D) -> Result<bool, D::Error> {
+    Ok(Option::<String>::deserialize(value)?.as_deref() == Some("subagent"))
+}
 
 /// The 401 marker: the stored credential is no longer accepted.
 #[derive(Debug)]
@@ -68,7 +99,10 @@ impl T3Client {
     pub fn new(base_url: &str, token: String) -> Self {
         let agent = ureq::Agent::new_with_config(
             ureq::Agent::config_builder()
-                .timeout_global(Some(Duration::from_secs(120)))
+                // These calls only list local state or enqueue a turn. Waiting
+                // two minutes can consume another thread's entire refresh lead.
+                .timeout_connect(Some(Duration::from_secs(3)))
+                .timeout_global(Some(Duration::from_secs(10)))
                 .http_status_as_error(false)
                 .build(),
         );
@@ -83,8 +117,8 @@ impl T3Client {
 
     /// Calls an MCP tool and returns its decoded result, re-initializing the
     /// session once when the server forgot it.
-    pub fn call_tool(&mut self, name: &str, arguments: Value) -> Result<Value> {
-        match self.call_tool_once(name, arguments.clone()) {
+    fn call_tool(&mut self, name: &str, arguments: &Value) -> Result<Value> {
+        match self.call_tool_once(name, arguments) {
             Err(McpError::Session(message)) => {
                 self.session = None;
                 self.call_tool_once(name, arguments)
@@ -95,12 +129,12 @@ impl T3Client {
         }
     }
 
-    fn call_tool_once(&mut self, name: &str, arguments: Value) -> Result<Value, McpError> {
+    fn call_tool_once(&mut self, name: &str, arguments: &Value) -> Result<Value, McpError> {
         let result = self.send_rpc(
             "tools/call",
             json!({ "name": name, "arguments": arguments }),
         )?;
-        decode_tool_result(name, &result)
+        decode_tool_result(name, result)
     }
 
     fn send_rpc(&mut self, method: &str, params: Value) -> Result<Value, McpError> {
@@ -136,22 +170,20 @@ impl T3Client {
             .and_then(|value| value.to_str().ok())
             .unwrap_or_default()
             .to_owned();
-        let text = response.body_mut().read_to_string().unwrap_or_default();
+        let text = response.body_mut().read_to_string().map_err(|error| {
+            McpError::Other(format!("read /mcp response (HTTP {status}): {error}"))
+        })?;
 
         if !(200..300).contains(&status) {
             return Err(failure_for(status, &text));
         }
-        if method == "initialize" {
-            self.session = match session_header {
-                Some(session) => Some(session),
-                None => {
-                    return Err(McpError::Session(
-                        "server answered initialize without a session id".to_owned(),
-                    ));
-                }
-            };
+        let mut payload = parse_rpc_body(&content_type, &text)?;
+        if payload["jsonrpc"] != "2.0" || payload["id"] != id {
+            return Err(McpError::Other(format!(
+                "invalid JSON-RPC response to {method}: {}",
+                truncate(&text, 400)
+            )));
         }
-        let payload = parse_rpc_body(&content_type, &text)?;
         if let Some(error) = payload.get("error") {
             let message = error.to_string();
             if message.contains("session") {
@@ -161,7 +193,15 @@ impl T3Client {
                 "MCP error from {method}: {message}"
             )));
         }
-        Ok(payload.get("result").cloned().unwrap_or(Value::Null))
+        let result = payload.get_mut("result").map(Value::take).ok_or_else(|| {
+            McpError::Other(format!("missing result in JSON-RPC response to {method}"))
+        })?;
+        if method == "initialize" {
+            self.session = Some(session_header.ok_or_else(|| {
+                McpError::Session("server answered initialize without a session id".to_owned())
+            })?);
+        }
+        Ok(result)
     }
 
     fn initialize(&mut self) -> Result<(), McpError> {
@@ -176,58 +216,71 @@ impl T3Client {
         .map(|_| ())
     }
 
-    pub fn project_list(&mut self) -> Result<Vec<Value>> {
-        let result = self.call_tool("t3_project_list", json!({}))?;
-        let projects = result
-            .get("projects")
-            .and_then(Value::as_array)
-            .or_else(|| result.as_array())
-            .context("t3_project_list returned no projects array")?
-            .clone();
-        Ok(projects
+    pub fn project_ids(&mut self) -> Result<Vec<String>> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Project {
+            id: String,
+            deleted_at: Option<Timestamp>,
+        }
+        let projects: Vec<Project> = self.list("t3_project_list", "projects", json!({}))?;
+        let ids: Vec<_> = projects
             .into_iter()
-            .filter(|project| {
-                project
-                    .get("deletedAt")
-                    .is_none_or(|deleted| deleted.is_null())
-            })
-            .collect())
+            .filter(|project| project.deleted_at.is_none())
+            .map(|project| project.id)
+            .collect();
+        ensure!(!ids.is_empty(), "T3 reported no projects");
+        Ok(ids)
     }
 
     /// Lists live, non-snoozed threads of one project, following the cursor.
-    pub fn thread_list(&mut self, project_id: &str) -> Result<Vec<Value>> {
-        let mut threads = Vec::new();
-        let mut cursor: Option<String> = None;
-        for _ in 0..50 {
-            let mut arguments = json!({
+    pub fn thread_list(&mut self, project_id: &str) -> Result<Vec<ThreadView>> {
+        self.list(
+            "t3_thread_list",
+            "threads",
+            json!({
                 "projectId": project_id,
                 "settled": false,
                 "snoozed": false,
                 "includeSubagents": true,
                 "limit": 100,
-            });
-            if let Some(cursor) = &cursor {
-                arguments["cursor"] = json!(cursor);
-            }
-            let result = self.call_tool("t3_thread_list", arguments)?;
-            // Fail closed on an unexpected shape: an empty page would make the
-            // pass drop every tracked thread of this project as disappeared.
+            }),
+        )
+    }
+
+    fn list<T: DeserializeOwned>(
+        &mut self,
+        name: &str,
+        field: &str,
+        mut arguments: Value,
+    ) -> Result<Vec<T>> {
+        let mut items = Vec::new();
+        for _ in 0..50 {
+            let mut result = self.call_tool(name, &arguments)?;
             let page = result
-                .get("threads")
-                .and_then(Value::as_array)
-                .context("t3_thread_list returned no threads array")?
-                .clone();
-            threads.extend(page);
-            cursor = result
-                .get("nextCursor")
-                .and_then(Value::as_str)
-                .filter(|cursor| !cursor.is_empty())
-                .map(str::to_owned);
-            if cursor.is_none() {
-                break;
-            }
+                .get_mut(field)
+                .with_context(|| format!("{name} returned no {field} array"))?
+                .take();
+            // Parse the whole page before returning it: malformed listings must
+            // never look like disappeared threads and erase their saved state.
+            items.extend(
+                serde_json::from_value::<Vec<T>>(page)
+                    .with_context(|| format!("invalid {field} from {name}"))?,
+            );
+            let cursor: Option<String> = serde_json::from_value(
+                result
+                    .get_mut("nextCursor")
+                    .map(Value::take)
+                    .unwrap_or(Value::Null),
+            )
+            .with_context(|| format!("invalid nextCursor from {name}"))?;
+            let Some(cursor) = cursor else {
+                return Ok(items);
+            };
+            ensure!(!cursor.is_empty(), "empty nextCursor from {name}");
+            arguments["cursor"] = json!(cursor);
         }
-        Ok(threads)
+        anyhow::bail!("{name} exceeded 50 pages")
     }
 
     pub fn thread_send(
@@ -238,7 +291,7 @@ impl T3Client {
     ) -> Result<Value> {
         self.call_tool(
             "t3_thread_send",
-            json!({
+            &json!({
                 "threadId": thread_id,
                 "message": message,
                 "mode": "auto",
@@ -249,18 +302,33 @@ impl T3Client {
 }
 
 /// Decodes an MCP tool result: `content[0].text` is JSON for T3's tools.
-fn decode_tool_result(name: &str, result: &Value) -> Result<Value, McpError> {
-    let text = result
-        .pointer("/content/0/text")
-        .and_then(Value::as_str)
-        .unwrap_or_default();
+fn decode_tool_result(name: &str, mut result: Value) -> Result<Value, McpError> {
     if result.get("isError").and_then(Value::as_bool) == Some(true) {
-        return Err(McpError::Other(format!("tool {name} failed: {text}")));
+        return Err(McpError::Other(format!(
+            "tool {name} failed: {}",
+            truncate(&result.to_string(), 400)
+        )));
     }
-    if text.is_empty() {
-        return Ok(result.clone());
+    let value = if let Some(value) = result.get_mut("structuredContent") {
+        value.take()
+    } else {
+        let text = result
+            .pointer("/content/0/text")
+            .and_then(Value::as_str)
+            .ok_or_else(|| {
+                McpError::Other(format!(
+                    "tool {name} returned no structured content or JSON text"
+                ))
+            })?;
+        serde_json::from_str::<Value>(text)
+            .map_err(|error| McpError::Other(format!("invalid JSON from tool {name}: {error}")))?
+    };
+    if !value.is_object() {
+        return Err(McpError::Other(format!(
+            "tool {name} returned a non-object result"
+        )));
     }
-    Ok(serde_json::from_str(text).unwrap_or_else(|_| Value::String(text.to_owned())))
+    Ok(value)
 }
 
 /// Handles both plain JSON and `text/event-stream` responses.
@@ -277,9 +345,6 @@ fn parse_rpc_body(content_type: &str, text: &str) -> Result<Value, McpError> {
             "no JSON in event stream: {}",
             truncate(text, 400)
         )));
-    }
-    if text.trim().is_empty() {
-        return Ok(Value::Null);
     }
     serde_json::from_str(text).map_err(|error| {
         McpError::Other(format!(
@@ -301,15 +366,184 @@ fn truncate(text: &str, limit: usize) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+
+    /// A local MCP server that checks request order and can lose a reply.
+    pub(crate) fn mock_server(
+        expected: &'static [&'static str],
+        mut reply: impl FnMut(&str, &Value) -> Option<Value> + Send + 'static,
+    ) -> (String, std::thread::JoinHandle<()>) {
+        use std::io::{BufRead, BufReader, Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let server = std::thread::spawn(move || {
+            for &name in expected {
+                let (socket, _) = listener.accept().unwrap();
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(2)))
+                    .unwrap();
+                let mut reader = BufReader::new(socket);
+                let mut length = 0;
+                loop {
+                    let mut line = String::new();
+                    assert_ne!(
+                        reader.read_line(&mut line).unwrap(),
+                        0,
+                        "incomplete request headers"
+                    );
+                    if line == "\r\n" {
+                        break;
+                    }
+                    if let Some(value) = line.to_ascii_lowercase().strip_prefix("content-length:") {
+                        length = value.trim().parse().unwrap();
+                    }
+                }
+                let mut bytes = vec![0; length];
+                reader.read_exact(&mut bytes).unwrap();
+                let request: Value = serde_json::from_slice(&bytes).unwrap();
+                let result = if name == "initialize" {
+                    assert_eq!(request["method"], name);
+                    json!({})
+                } else {
+                    assert_eq!(request["params"]["name"], name);
+                    let Some(value) = reply(name, &request["params"]["arguments"]) else {
+                        continue;
+                    };
+                    json!({ "content": [{ "type": "text", "text": value.to_string() }] })
+                };
+                let body =
+                    json!({ "jsonrpc": "2.0", "id": request["id"], "result": result }).to_string();
+                write!(reader.get_mut(), "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nmcp-session-id: test\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{body}", body.len()).unwrap();
+            }
+        });
+        (base, server)
+    }
+
+    fn listed_thread() -> Value {
+        json!({
+            "threadId": "thread-1", "title": "Test", "status": "completed",
+            "providerInstanceId": "opencode", "model": "openai/gpt-6-astra",
+            "updatedAt": "2026-10-14T09:00:00Z"
+        })
+    }
+
+    #[test]
+    fn parses_threads_and_subagent_relationships() {
+        let mut raw = listed_thread();
+        let view: ThreadView = serde_json::from_value(raw.clone()).unwrap();
+        assert_eq!(view.id, "thread-1");
+        assert_eq!(view.provider, "opencode");
+        assert!(!view.subagent);
+        for (relationship, subagent) in [
+            (Value::Null, false),
+            (json!("subagent"), true),
+            (json!("fork"), false),
+        ] {
+            raw["relationshipToParent"] = relationship;
+            assert_eq!(
+                serde_json::from_value::<ThreadView>(raw.clone())
+                    .unwrap()
+                    .subagent,
+                subagent
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_threads_with_missing_or_malformed_warming_metadata() {
+        for field in [
+            "threadId",
+            "status",
+            "providerInstanceId",
+            "model",
+            "updatedAt",
+        ] {
+            let mut raw = listed_thread();
+            raw.as_object_mut().unwrap().remove(field);
+            assert!(
+                serde_json::from_value::<ThreadView>(raw).is_err(),
+                "missing {field}"
+            );
+        }
+        for (field, value) in [
+            ("updatedAt", json!("invalid")),
+            ("settled", json!("false")),
+            ("relationshipToParent", json!(true)),
+        ] {
+            let mut raw = listed_thread();
+            raw[field] = value;
+            assert!(
+                serde_json::from_value::<ThreadView>(raw).is_err(),
+                "malformed {field}"
+            );
+        }
+    }
+
+    #[test]
+    fn paginates_projects_and_excludes_deleted_ones() {
+        let (base, server) = mock_server(
+            &["initialize", "t3_project_list", "t3_project_list"],
+            |_, arguments| {
+                if arguments.get("cursor").is_none() {
+                    Some(
+                        json!({ "projects": [{"id": "first"}, {"id": "deleted", "deletedAt": "2026-10-14T09:00:00Z"}], "nextCursor": "second-page" }),
+                    )
+                } else {
+                    assert_eq!(arguments["cursor"], "second-page");
+                    Some(json!({ "projects": [{"id": "second"}], "nextCursor": null }))
+                }
+            },
+        );
+        let mut client = T3Client::new(&base, "test".to_owned());
+        assert_eq!(client.project_ids().unwrap(), ["first", "second"]);
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn rejects_invalid_cursors_instead_of_returning_partial_results() {
+        let (base, server) = mock_server(&["initialize", "t3_project_list"], |_, _| {
+            Some(json!({ "projects": [{"id": "first"}], "nextCursor": 42 }))
+        });
+        let error = T3Client::new(&base, "test".to_owned())
+            .project_ids()
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("invalid nextCursor"),
+            "{error:#}"
+        );
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn rejects_missing_or_invalid_tool_acknowledgements() {
+        for result in [
+            Value::Null,
+            json!({}),
+            json!({ "structuredContent": null }),
+            json!({ "content": [] }),
+            json!({ "content": [{ "text": "" }] }),
+            json!({ "content": [{ "text": "ok" }] }),
+            json!({ "content": [{ "text": "null" }] }),
+        ] {
+            assert!(
+                decode_tool_result("t3_thread_send", result.clone()).is_err(),
+                "{result}"
+            );
+        }
+        let structured = json!({ "structuredContent": { "threads": [] }, "content": [{ "text": "unparsed text" }] });
+        assert_eq!(
+            decode_tool_result("t3_thread_list", structured).unwrap(),
+            json!({ "threads": [] })
+        );
+    }
 
     #[test]
     fn decodes_json_tool_content() {
         let result = json!({
             "content": [{ "type": "text", "text": "{\"threads\": [], \"nextCursor\": null}" }],
         });
-        let decoded = decode_tool_result("t3_thread_list", &result).unwrap();
+        let decoded = decode_tool_result("t3_thread_list", result).unwrap();
         assert_eq!(decoded["threads"], json!([]));
     }
 
@@ -319,7 +553,7 @@ mod tests {
             "isError": true,
             "content": [{ "type": "text", "text": "OrchestratorMcpFailure { code: \"target_required\" }" }],
         });
-        let error = decode_tool_result("t3_thread_list", &result).unwrap_err();
+        let error = decode_tool_result("t3_thread_list", result).unwrap_err();
         assert!(error.into_anyhow().to_string().contains("target_required"));
     }
 
@@ -336,6 +570,43 @@ mod tests {
         let parsed = parse_rpc_body("application/json", "{\"result\":1}").unwrap();
         assert_eq!(parsed["result"], json!(1));
         assert!(parse_rpc_body("application/json", "not json").is_err());
+        assert!(parse_rpc_body("application/json", "").is_err());
+    }
+
+    #[test]
+    fn reports_response_body_timeouts_instead_of_accepting_empty_results() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+        use std::sync::mpsc;
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let (finished, finish) = mpsc::channel();
+        let server = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(2)))
+                .unwrap();
+            socket.read(&mut [0; 4096]).unwrap();
+            // Announce a body, send only one byte, and hold the connection
+            // until the client has timed out reading the rest.
+            socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{").unwrap();
+            let _ = finish.recv_timeout(Duration::from_secs(2));
+        });
+        let mut client = T3Client::new(&base, "test".to_owned());
+        client.session = Some("test".to_owned());
+        client.agent = ureq::Agent::new_with_config(
+            ureq::Agent::config_builder()
+                .timeout_global(Some(Duration::from_millis(100)))
+                .build(),
+        );
+        let error = client.call_tool("t3_project_list", &json!({})).unwrap_err();
+        finished.send(()).unwrap();
+        server.join().unwrap();
+        assert!(
+            error.to_string().contains("read /mcp response (HTTP 200)"),
+            "{error:#}"
+        );
     }
 
     #[test]
