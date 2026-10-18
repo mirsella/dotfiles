@@ -1,7 +1,7 @@
 //! Retry missed ADB mDNS connections without retaining an obsolete IP or port.
 
 use crate::util;
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{Context, Result, bail, ensure};
 use std::{
     io::{self, Read, Write},
     net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream},
@@ -292,9 +292,11 @@ mod tests {
             "adb-phone-new._adb-tls-connect._tcp. device\n",
             "192.168.1.76:41325 device\n",
         ] {
-            assert!(cycle(devices, &[("host:mdns:services", DISCOVERY)])
-                .unwrap()
-                .is_some());
+            assert!(
+                cycle(devices, &[("host:mdns:services", DISCOVERY)])
+                    .unwrap()
+                    .is_some()
+            );
         }
     }
 
@@ -362,10 +364,12 @@ mod tests {
                 ),
             ],
         );
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("failed to authenticate"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("failed to authenticate")
+        );
     }
 
     #[test]
@@ -432,11 +436,13 @@ mod tests {
 
         assert_eq!(client.query("host:mdns:services")?, "phone");
         assert_eq!(client.query("host:devices")?, "");
-        assert!(client
-            .query("host:connect:192.168.1.76:41325")
-            .unwrap_err()
-            .to_string()
-            .contains("denied"));
+        assert!(
+            client
+                .query("host:connect:192.168.1.76:41325")
+                .unwrap_err()
+                .to_string()
+                .contains("denied")
+        );
         let mut tracker = client.request("host:track-devices")?;
         let mut devices = read_frame(&mut tracker)?;
         assert_eq!(devices, "phone device\n");

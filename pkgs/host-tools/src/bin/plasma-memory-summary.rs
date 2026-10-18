@@ -145,18 +145,22 @@ mod tests {
         let root = tempfile::tempdir()?;
         assert_eq!(swap_usage(HEADER, root.path())?, Swap::default());
         assert!(summary("MemTotal: 10 kB\n", HEADER, root.path()).is_err());
-        assert!(summary(
-            "MemTotal: 10 kB\nMemAvailable: 11 kB\n",
-            HEADER,
-            root.path()
-        )
-        .is_err());
+        assert!(
+            summary(
+                "MemTotal: 10 kB\nMemAvailable: 11 kB\n",
+                HEADER,
+                root.path()
+            )
+            .is_err()
+        );
         assert!(swap_usage(&format!("{HEADER}/swap file 1 2 -1\n"), root.path()).is_err());
-        assert!(swap_usage(
-            &format!("{HEADER}/dev/zram0 partition 10 1 100\n"),
-            root.path()
-        )
-        .is_err());
+        assert!(
+            swap_usage(
+                &format!("{HEADER}/dev/zram0 partition 10 1 100\n"),
+                root.path()
+            )
+            .is_err()
+        );
         Ok(())
     }
 }
