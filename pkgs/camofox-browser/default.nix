@@ -29,14 +29,25 @@ buildNpmPackage {
     substituteInPlace lib/config.js \
       --replace-fail 'parseInt(process.env.TAB_INACTIVITY_MS) || 300000' \
       'Number.isNaN(parseInt(process.env.TAB_INACTIVITY_MS)) ? 300000 : parseInt(process.env.TAB_INACTIVITY_MS)'
+    # A credential fill is bound to an exact origin twice: the page must still
+    # be there, and the ref must not point into a cross-origin frame.
     substituteInPlace server.js \
       --replace-fail '// Resolve and focus the target if ref/selector provided' \
-      'if (req.body.expectedOrigin !== undefined && new URL(tabState.page.url()).origin !== req.body.expectedOrigin) {
-        throw Object.assign(new Error("Page origin changed before credential fill"), { statusCode: 409, code: "page_origin_changed" });
+      'if (req.body.expectedOrigin !== undefined) {
+        if (new URL(tabState.page.url()).origin !== req.body.expectedOrigin) {
+          throw Object.assign(new Error("Page origin changed before credential fill"), { statusCode: 409, code: "page_origin_changed" });
+        }
+        const frameUrl = req.body.ref ? tabState.refs.get(req.body.ref)?.frameUrl : null;
+        if (frameUrl && new URL(frameUrl).origin !== req.body.expectedOrigin) {
+          throw Object.assign(new Error("Fill target belongs to another origin"), { statusCode: 409, code: "frame_origin_changed" });
+        }
       }
       // Resolve and focus the target if ref/selector provided' \
-      --replace-fail "log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
-      "log('error', 'type failed', { reqId: req.reqId, error: req.body.expectedOrigin !== undefined ? 'Credential fill failed' : err.message });" \
+      --replace-fail "    log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
+      "    if (req.body.expectedOrigin !== undefined) { err.message = 'Credential fill failed'; err.stack = undefined; }
+    log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
+      --replace-fail "    pluginEvents.emit('tab:type', typeEventPayload({ userId: req.body.userId, tabId, text: req.body.text, ref: req.body.ref, mode: req.body.mode }));" \
+      "    pluginEvents.emit('tab:type', typeEventPayload({ userId: req.body.userId, tabId, text: req.body.expectedOrigin !== undefined ? '' : req.body.text, ref: req.body.ref, mode: req.body.mode }));" \
       --replace-fail '// Pre-warm browser so first request doesn'"'"'t eat a 6-7s cold start' \
       'if (process.env.CAMOFOX_PREWARM !== "false") {' \
       --replace-fail '// Idle self-shutdown removed -- Fly manages machine lifecycle via fly.toml.' \

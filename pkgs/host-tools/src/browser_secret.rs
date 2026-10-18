@@ -45,7 +45,8 @@ struct Tabs {
 struct Tab {
     #[serde(rename = "tabId")]
     id: String,
-    url: Url,
+    /// Missing while the native browser no longer reports the tracked tab.
+    url: Option<Url>,
 }
 
 fn configuration() -> Result<Browser> {
@@ -112,9 +113,10 @@ fn local_client() -> Agent {
 }
 
 fn select_tab<'a>(tabs: &'a [Tab], origin: &Origin, id: Option<&str>) -> Result<&'a Tab> {
-    let mut matching = tabs
-        .iter()
-        .filter(|tab| tab.url.origin() == *origin && id.is_none_or(|id| id == tab.id));
+    let mut matching = tabs.iter().filter(|tab| {
+        tab.url.as_ref().is_some_and(|url| url.origin() == *origin)
+            && id.is_none_or(|id| id == tab.id)
+    });
     let first = matching
         .next()
         .context("No matching browser page; check its HTTPS origin and tab")?;
@@ -290,20 +292,26 @@ mod tests {
         let tabs = vec![
             Tab {
                 id: "a".into(),
-                url: "https://login.example.com/form".parse().unwrap(),
+                url: Some("https://login.example.com/form".parse().unwrap()),
             },
             Tab {
                 id: "b".into(),
-                url: "https://login.example.com/other".parse().unwrap(),
+                url: Some("https://login.example.com/other".parse().unwrap()),
+            },
+            Tab {
+                id: "unreported".into(),
+                url: None,
             },
         ];
-        let origin = tabs[0].url.origin();
+        let origin = tabs[0].url.as_ref().unwrap().origin();
         let other: Url = "https://other.example.com".parse().unwrap();
         assert!(select_tab(&tabs, &other.origin(), None).is_err());
         assert!(select_tab(&tabs, &origin, None).is_err());
         assert_eq!(select_tab(&tabs, &origin, Some("b")).unwrap().id, "b");
         assert_eq!(select_tab(&tabs[..1], &origin, None).unwrap().id, "a");
         assert!(select_tab(&tabs, &origin, Some("missing")).is_err());
+        // A tab the native browser no longer reports is never matched.
+        assert!(select_tab(&tabs, &origin, Some("unreported")).is_err());
         assert!(
             select_tab(&tabs, &origin, None)
                 .err()

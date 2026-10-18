@@ -386,6 +386,17 @@ fn shared_tab(tabs: &Value, retained: Option<&str>) -> Result<Option<String>> {
     Ok(selected.map(str::to_owned))
 }
 
+/// The live URL of the tracked tab, so the credential bridge can bind a fill to
+/// an exact origin instead of trusting the page it is about to type into.
+fn tab_url(tabs: &Value, tab: &str) -> Option<String> {
+    tabs["tabs"]
+        .as_array()?
+        .iter()
+        .find(|entry| entry["tabId"].as_str() == Some(tab))
+        .and_then(|entry| entry["url"].as_str())
+        .map(str::to_owned)
+}
+
 fn page(csrf: &str, stock: &str) -> Result<(Bytes, header::HeaderValue)> {
     // Keep the packaged UI and its input handlers upstream-owned. Replace only
     // its bootstrap with the authenticated, lazy-start deployment adapter.
@@ -543,9 +554,11 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         // Hermes's five-second adoption probe must only discover existing
         // tabs. Creating a blank tab here can make its subsequent ensure-tab
         // path skip the requested navigation, or cancel startup mid-creation.
+        // The credential bridge reads the same listing, so it also carries the
+        // tracked tab's live URL for binding a fill to an exact origin.
         let observed = app.runtime.lock().await.browser.clone();
         let running = app.backend_running().await.map_err(failure)?;
-        let discovery = if running && !matches!(observed, Browser::Ready(_)) {
+        let discovery = if running {
             Some(
                 app.backend(Method::GET, &format!("/tabs?userId={USER}"), None)
                     .await
@@ -560,8 +573,10 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         if runtime.browser == observed {
             if !running {
                 runtime.browser = Browser::Stopped;
-            } else if let Some(tabs) = discovery {
-                let tab = shared_tab(&tabs, runtime.browser.tab()).map_err(failure)?;
+            } else if !matches!(observed, Browser::Ready(_))
+                && let Some(tabs) = discovery.as_ref()
+            {
+                let tab = shared_tab(tabs, runtime.browser.tab()).map_err(failure)?;
                 let changed = runtime.browser.tab() != tab.as_deref();
                 runtime.browser = Browser::Undiscovered(tab);
                 if changed {
@@ -573,7 +588,11 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
             runtime.last_activity = Instant::now();
         }
         let tabs = runtime.browser.tab().map_or_else(Vec::new, |tab| {
-            vec![json!({"tabId":tab,"userId":USER,"listItemId":USER})]
+            let mut entry = json!({"tabId":tab,"userId":USER,"listItemId":USER});
+            if let Some(url) = discovery.as_ref().and_then(|tabs| tab_url(tabs, tab)) {
+                entry["url"] = json!(url);
+            }
+            vec![entry]
         });
         return Ok(axum::Json(json!({"tabs":tabs})).into_response());
     }
@@ -967,7 +986,7 @@ mod tests {
                     let mut counts = counts.lock().await;
                     counts.tab_reads += 1;
                     let tabs = if counts.tab_exists {
-                        json!({"tabs":[{"tabId":"newer-other-tab","listItemId":"other"},{"tabId":"shared-tab","listItemId":USER}]})
+                        json!({"tabs":[{"tabId":"newer-other-tab","listItemId":"other","url":"https://example.com/other"},{"tabId":"shared-tab","listItemId":USER,"url":"https://example.com/shared"}]})
                     } else { json!({"tabs":[]}) };
                     (counts.delayed_tabs.take(), tabs)
                 };
@@ -1354,6 +1373,35 @@ mod tests {
         assert_eq!(counts.starts, 1);
         assert_eq!(counts.created_tabs, 1);
         assert_eq!(counts.navigations, ["https://en.wikipedia.org/wiki/Hermes"]);
+    }
+    #[tokio::test]
+    async fn tab_listing_reports_the_shared_tab_url_for_credential_fills() {
+        let f = fixture().await;
+        api(State(f.app.clone()), request(Method::POST, "/tabs", "{}"))
+            .await
+            .unwrap();
+        let response = api(State(f.app.clone()), request(Method::GET, "/tabs", ""))
+            .await
+            .unwrap();
+        let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
+        assert_eq!(
+            serde_json::from_slice::<Value>(&bytes).unwrap(),
+            json!({"tabs":[{"tabId":"shared-tab","userId":USER,"listItemId":USER,"url":"https://example.com/shared"}]})
+        );
+        // A tab the native browser no longer lists carries no URL, so the
+        // credential bridge never matches it.
+        f.counts.lock().await.tab_exists = false;
+        let response = api(State(f.app.clone()), request(Method::GET, "/tabs", ""))
+            .await
+            .unwrap();
+        let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
+        assert_eq!(
+            serde_json::from_slice::<Value>(&bytes).unwrap(),
+            json!({"tabs":[{"tabId":"shared-tab","userId":USER,"listItemId":USER}]})
+        );
+        assert!(
+            matches!(&f.app.runtime.lock().await.browser, Browser::Ready(tab) if tab == "shared-tab")
+        );
     }
     #[tokio::test]
     async fn canceled_startup_does_not_release_inflight_tab_creation() {
