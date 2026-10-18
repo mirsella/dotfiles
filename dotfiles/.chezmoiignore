@@ -40,6 +40,9 @@ kde shortcuts.kksrc
 .local/bin/context7-account-broker
 .local/bin/composio-mcp-headers
 .local/bin/kache
+# Home Manager loads CodexBar's SOPS key without putting credentials in its editable config.
+.local/bin/codexbar
+.config/codexbar/opencode.env
 # Home Manager owns the portable settings helper.
 .local/bin/t3-settings
 # The Nix bootstrap and native updaters own these agent installs.

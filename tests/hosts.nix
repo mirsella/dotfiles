@@ -183,6 +183,14 @@ assert lib.assertMsg (lib.all
     "laptop"
   ]
 ) "Desktop homes must share Git signing keys and install secrets only through Home Manager";
+assert lib.assertMsg (
+  lib.all (home:
+    home.sops.secrets.codexbar_opencode_env.path == "${home.home.homeDirectory}/.config/codexbar/opencode.env"
+    && home.sops.secrets.codexbar_opencode_env.mode == "0600"
+    && home.home.file.".local/bin/codexbar".force
+  ) workstationHomes
+  && !(server.home-manager.users.mirsella.sops.secrets ? codexbar_opencode_env)
+) "CodexBar must use a private Home Manager secret and launcher on workstations only";
 assert lib.assertMsg
   (lib.all (
     home:

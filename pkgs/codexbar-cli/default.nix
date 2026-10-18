@@ -18,9 +18,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   };
   sourceRoot = ".";
   nativeBuildInputs = [ autoPatchelfHook makeWrapper ];
-  buildInputs = [ gcc-unwrapped.lib ];
-  # Swift loads these libraries at runtime rather than linking them directly.
-  runtimeDependencies = [ (lib.getLib curl) (lib.getLib sqlite) ];
+  buildInputs = [ gcc-unwrapped.lib curl sqlite ];
   dontBuild = true;
   dontStrip = true;
 

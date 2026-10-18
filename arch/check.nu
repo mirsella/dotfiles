@@ -20,6 +20,12 @@ for b in [git, nu, nvim, delta, difft, mergiraf, git-lfs, atuin, starship, zoxid
     }
 }
 
+for package in [codexbar-cli, plasma6-applets-codexbar] {
+    if (do { ^pacman -Q $package } | complete | get exit_code) != 0 {
+        $missing ++= [$"native package missing: ($package) \(install with paru -S ($package))"]
+    }
+}
+
 if not (("~/.ssh/id_ed25519" | path expand) | path exists) {
     $missing ++= ["~/.ssh/id_ed25519 missing; needed as the sops age key"]
 }

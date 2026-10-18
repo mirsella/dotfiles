@@ -108,6 +108,31 @@ supplies other binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
+### CodexBar
+
+Main and laptop share the OpenCode Go key in `secrets/codexbar.yaml`, encrypted
+with SOPS for the existing age recipients. Home Manager decrypts it into
+`~/.config/codexbar/opencode.env` with mode `0600`. The managed
+`~/.local/bin/codexbar` launcher loads that file only for CodexBar. Chezmoi owns
+the provider settings in `~/.config/codexbar/config.json`; keep API keys out of
+that JSON file.
+
+NixOS installs the pinned CLI and Plasma widget through the workstation profile.
+On Arch, install their native packages before activating Home Manager:
+
+```sh
+paru -S --needed codexbar-cli plasma6-applets-codexbar
+home_profile=$(nix build ".#homeConfigurations.$(hostname).activationPackage" --no-link --print-out-paths)
+"$home_profile/activate"
+chezmoi apply ~/.config/codexbar/config.json
+codexbar usage --provider opencodego --source api --format json
+```
+
+After pulling dotfiles updates on another workstation, repeat the activation
+and chezmoi apply. Home Manager reloads the secret automatically. The key needs
+no browser login there. Refresh the Plasma widget after changing its credentials. Codex still
+uses each machine's own local login.
+
 ### OpenCode, Codex and T3 Code
 
 All three hosts import `modules/home/agent-tools.nix`. Home Manager runs the

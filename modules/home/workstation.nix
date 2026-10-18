@@ -16,7 +16,7 @@ let
     );
 in
 {
-  imports = [ ./electron-theme.nix ./desktop-mcp.nix ./adb-wireless.nix ];
+  imports = [ ./electron-theme.nix ./desktop-mcp.nix ./adb-wireless.nix ./codexbar.nix ];
 
   programs.git.settings.commit.gpgsign = true;
   home.packages = [
