@@ -181,7 +181,7 @@ Faces.SensorFace {
                     interpolate: compactRepresentation.interpolate
                     stacked: false
                     fillOpacity: 0
-                    lineWidth: 4
+                    lineWidth: 2
 
                     yRange.automatic: false
                     yRange.from: compactRepresentation.yRange.from
