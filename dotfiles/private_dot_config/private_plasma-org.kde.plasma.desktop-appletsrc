@@ -301,6 +301,7 @@ DialogHeight=540
 DialogWidth=720
 
 [Containments][54][Applets][34][Configuration][SensorColors]
+cpu/all/averageTemperature=255,255,255
 cpu/cpu0/usage=61,174,233
 cpu/cpu1/usage=61,142,233
 cpu/cpu10/usage=233,61,196
@@ -335,8 +336,8 @@ cpu/cpu8/usage=206,61,233
 cpu/cpu9/usage=233,61,228
 
 [Containments][54][Applets][34][Configuration][Sensors]
-highPrioritySensorIds=["cpu/cpu.*/usage"]
-lowPrioritySensorIds=["cpu/all/averageFrequency","lmsensors/zenpower-pci-00c3/temp1"]
+highPrioritySensorIds=["cpu/cpu.*/usage","cpu/all/averageTemperature"]
+lowPrioritySensorIds=["cpu/all/averageTemperature","cpu/all/averageFrequency"]
 totalSensors=["cpu/all/usage"]
 
 [Containments][54][Applets][41]
