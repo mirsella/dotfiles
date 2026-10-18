@@ -54,8 +54,14 @@ The flake discovers these directories and sets hostnames automatically.
 - Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
   especially `flake.lock` (the weekly upgrade updates nixpkgs there). Sync only
   reviewed changes; do not use whole-tree `rsync --delete` over concurrent work.
-  Rebuild with `ssh predator 'sudo nixos-rebuild switch --flake /home/mirsella/dev/dotfiles#predator'`.
-  Run long rebuilds detached and poll the unit log and exit status.
+  Root cannot evaluate this checkout (a Git flake owned by another user), so
+  build as `mirsella` and activate as root: `nix build` the
+  `nixosConfigurations.predator.config.system.build.toplevel` output with
+  `--print-out-paths --no-link`, then `sudo nix-env -p
+  /nix/var/nix/profiles/system --set` that path and run its
+  `bin/switch-to-configuration switch`. A `systemd-run` user unit has no `nix`
+  on PATH, so run the build over ssh. Poll a long build's exit status instead
+  of restarting it.
 - Predator's initrd OS separator and signed SHA-256 PCR 11 policies protect all
   five disks. Root unlocks at `enter-initrd`; data unlocks at
   `enter-initrd:leave-initrd`, before the host sysinit phase. Keep the Nix-managed

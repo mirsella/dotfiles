@@ -91,6 +91,16 @@ the flake reference has no fragment:
 sudo nixos-rebuild switch --flake /home/mirsella/dev/dotfiles
 ```
 
+Predator's checkout is owned by `mirsella`, and root cannot evaluate a Git flake
+owned by another user (`repository path ... is not owned by current user`), so
+`sudo nixos-rebuild` fails there. Build as the owner and activate as root:
+
+```sh
+toplevel=$(nix build '/home/mirsella/dev/dotfiles#nixosConfigurations.predator.config.system.build.toplevel' --print-out-paths --no-link)
+sudo nix-env -p /nix/var/nix/profiles/system --set "$toplevel"
+sudo "$toplevel/bin/switch-to-configuration" switch
+```
+
 For the current Arch installations, use `homeConfigurations.main` or
 `homeConfigurations.laptop` with standalone Home Manager. Pacman/AUR still own
 their application binaries, except the writable agent installs below. NixOS
