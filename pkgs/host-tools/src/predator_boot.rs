@@ -493,7 +493,7 @@ struct BootSnapshot {
     work: TempDir,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Debug)]
 struct BootEntry {
     id: String,
     path: Option<PathBuf>,
@@ -509,29 +509,32 @@ struct BootEntry {
 /// ESP at all. Prefer a flagged image that is really installed, and otherwise
 /// fall back to the newest plain generation, the image a `nixos-*` wildcard
 /// default boots.
-fn boot_image(entries: Vec<BootEntry>, esp: &Path) -> Result<BootEntry> {
-    let images: Vec<BootEntry> = entries
-        .into_iter()
-        .filter(|entry| {
-            entry
-                .path
-                .as_deref()
-                .is_some_and(|path| path.starts_with(esp.join("EFI/Linux")))
-        })
-        .collect();
-    if let Some(entry) = images.iter().find(|entry| entry.is_default) {
-        return Ok(entry.clone());
-    }
-    images
+fn boot_image<'a>(entries: &'a [BootEntry], esp: &Path) -> Result<&'a BootEntry> {
+    let images = esp.join("EFI/Linux");
+    let installed = |entry: &BootEntry| {
+        entry
+            .path
+            .as_deref()
+            .is_some_and(|path| path.starts_with(&images))
+    };
+    if let Some(entry) = entries
         .iter()
+        .find(|entry| entry.is_default && installed(entry))
+    {
+        return Ok(entry);
+    }
+    entries
+        .iter()
+        .filter(|entry| installed(entry))
         .filter_map(|entry| Some((generation(&entry.id)?, entry)))
         .max_by_key(|(number, _)| *number)
-        .map(|(_, entry)| entry.clone())
+        .map(|(_, entry)| entry)
         .context("no managed Predator generation is installed under EFI/Linux")
 }
 
-/// The generation number in `nixos-generation-<number>-<hash>.efi`. Returns
-/// `None` for specialisation images, which never hold the plain default.
+/// The generation number in `nixos-generation-<number>-<hash>.efi`, or `None`
+/// for specialisation images. A plain image is what a wildcard default picks in
+/// practice, since only its hex hash follows the generation number.
 fn generation(id: &str) -> Option<u32> {
     let rest = id.strip_prefix("nixos-generation-")?;
     let (number, _) = rest.split_once('-')?;
@@ -548,12 +551,14 @@ impl BootSnapshot {
                 .args(["list", "--json=short", "--esp-path"])
                 .arg(&config.esp),
         )?)?;
-        let default = boot_image(entries, &config.esp)?;
+        let default = boot_image(&entries, &config.esp)?;
         let image = default
             .path
+            .as_deref()
             .context("default entry has no image to preserve")?;
-        let image_bytes = fs::read(&image)?;
-        verify_image(config, &image).context("previous default image is not authenticated")?;
+        let image_bytes = fs::read(image)
+            .with_context(|| format!("the image to preserve is missing: {}", image.display()))?;
+        verify_image(config, image).context("previous default image is not authenticated")?;
         let sections = sections(&image_bytes)?;
         let [kernel, initrd] = authenticated_payloads(&sections, &config.esp)
             .context("previous default payloads are not authenticated")?;
@@ -562,7 +567,7 @@ impl BootSnapshot {
             let relative = target.strip_prefix(&config.esp)?;
             copy_file(target, &work.path().join(relative))
         };
-        for path in [&kernel, &initrd, &image] {
+        for path in [kernel.as_path(), initrd.as_path(), image] {
             save(path)?;
         }
         let artifacts = boot_artifacts(&config.esp)?;
@@ -581,7 +586,7 @@ impl BootSnapshot {
         save(&config.esp.join("loader/loader.conf"))?;
         fs::write(work.path().join("default-entry"), &default.id)?;
         Ok(Self {
-            default: default.id,
+            default: default.id.clone(),
             artifacts,
             work,
         })
@@ -1222,32 +1227,33 @@ mod tests {
         );
     }
 
+    fn entry(images: &Path, id: &str, flagged: bool) -> BootEntry {
+        BootEntry {
+            id: id.into(),
+            path: Some(images.join(id)),
+            is_default: flagged,
+        }
+    }
+
     #[test]
     fn boot_image_skips_stale_efivar_entries_and_specialisations() {
         let esp = tempfile::tempdir().unwrap();
         let images = esp.path().join("EFI/Linux");
-        let entry = |id: &str, flagged: bool| BootEntry {
-            id: id.into(),
-            path: Some(images.join(id)),
-            is_default: flagged,
-        };
-        let selected = boot_image(
-            vec![
-                BootEntry {
-                    id: "nixos-generation-151-zmdz.efi".into(),
-                    path: Some("/sys/firmware/efi/efivars/LoaderEntries".into()),
-                    is_default: true,
-                },
-                entry("nixos-generation-155-aaaa.efi", false),
-                entry("nixos-generation-156-bbbb.efi", false),
-                entry(
-                    "nixos-generation-157-specialisation-pm-study-cccc.efi",
-                    false,
-                ),
-            ],
-            esp.path(),
-        )
-        .unwrap();
+        let entries = [
+            BootEntry {
+                id: "nixos-generation-151-zmdz.efi".into(),
+                path: Some("/sys/firmware/efi/efivars/LoaderEntries".into()),
+                is_default: true,
+            },
+            entry(&images, "nixos-generation-155-aaaa.efi", false),
+            entry(&images, "nixos-generation-156-bbbb.efi", false),
+            entry(
+                &images,
+                "nixos-generation-157-specialisation-pm-study-cccc.efi",
+                false,
+            ),
+        ];
+        let selected = boot_image(&entries, esp.path()).unwrap();
         assert_eq!(selected.id, "nixos-generation-156-bbbb.efi");
     }
 
@@ -1255,26 +1261,18 @@ mod tests {
     fn boot_image_keeps_a_flagged_image_that_is_installed() {
         let esp = tempfile::tempdir().unwrap();
         let images = esp.path().join("EFI/Linux");
-        let entry = |id: &str, flagged: bool| BootEntry {
-            id: id.into(),
-            path: Some(images.join(id)),
-            is_default: flagged,
-        };
-        let selected = boot_image(
-            vec![
-                entry("nixos-generation-155-aaaa.efi", true),
-                entry("nixos-generation-156-bbbb.efi", false),
-            ],
-            esp.path(),
-        )
-        .unwrap();
+        let entries = [
+            entry(&images, "nixos-generation-155-aaaa.efi", true),
+            entry(&images, "nixos-generation-156-bbbb.efi", false),
+        ];
+        let selected = boot_image(&entries, esp.path()).unwrap();
         assert_eq!(selected.id, "nixos-generation-155-aaaa.efi");
     }
 
     #[test]
     fn boot_image_fails_when_no_generation_is_installed() {
         let esp = tempfile::tempdir().unwrap();
-        let error = boot_image(Vec::new(), esp.path()).unwrap_err();
+        let error = boot_image(&[], esp.path()).unwrap_err();
         assert!(error.to_string().contains("no managed Predator generation"));
     }
 
