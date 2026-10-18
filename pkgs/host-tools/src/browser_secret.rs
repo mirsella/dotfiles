@@ -45,8 +45,9 @@ struct Tabs {
 struct Tab {
     #[serde(rename = "tabId")]
     id: String,
-    /// Missing while the native browser no longer reports the tracked tab.
-    url: Option<Url>,
+    /// Missing while the native browser no longer reports the tracked tab. The
+    /// URL stays unparsed so one unreadable entry cannot hide the other tabs.
+    url: Option<String>,
 }
 
 fn configuration() -> Result<Browser> {
@@ -114,7 +115,10 @@ fn local_client() -> Agent {
 
 fn select_tab<'a>(tabs: &'a [Tab], origin: &Origin, id: Option<&str>) -> Result<&'a Tab> {
     let mut matching = tabs.iter().filter(|tab| {
-        tab.url.as_ref().is_some_and(|url| url.origin() == *origin)
+        tab.url
+            .as_deref()
+            .and_then(|url| url.parse::<Url>().ok())
+            .is_some_and(|url| url.origin() == *origin)
             && id.is_none_or(|id| id == tab.id)
     });
     let first = matching
@@ -292,18 +296,25 @@ mod tests {
         let tabs = vec![
             Tab {
                 id: "a".into(),
-                url: Some("https://login.example.com/form".parse().unwrap()),
+                url: Some("https://login.example.com/form".into()),
             },
             Tab {
                 id: "b".into(),
-                url: Some("https://login.example.com/other".parse().unwrap()),
+                url: Some("https://login.example.com/other".into()),
             },
             Tab {
                 id: "unreported".into(),
                 url: None,
             },
+            Tab {
+                id: "unreadable".into(),
+                url: Some("not a URL".into()),
+            },
         ];
-        let origin = tabs[0].url.as_ref().unwrap().origin();
+        let origin = "https://login.example.com/form"
+            .parse::<Url>()
+            .unwrap()
+            .origin();
         let other: Url = "https://other.example.com".parse().unwrap();
         assert!(select_tab(&tabs, &other.origin(), None).is_err());
         assert!(select_tab(&tabs, &origin, None).is_err());
@@ -312,6 +323,8 @@ mod tests {
         assert!(select_tab(&tabs, &origin, Some("missing")).is_err());
         // A tab the native browser no longer reports is never matched.
         assert!(select_tab(&tabs, &origin, Some("unreported")).is_err());
+        // One unreadable URL must not hide the tabs the bridge can still use.
+        assert!(select_tab(&tabs, &origin, Some("unreadable")).is_err());
         assert!(
             select_tab(&tabs, &origin, None)
                 .err()
