@@ -27,8 +27,8 @@
     "environmentIdentificationMode": "artwork",
     "favorites": [
       {
-        "provider": "opencode",
-        "model": "opencode-go/step-5-preview-free"
+        "model": "opencode-go/step-5-preview-free",
+        "provider": "opencode"
       }
     ],
     "followUpBehavior": "queue",
@@ -76,6 +76,7 @@
   },
   "server": {
     "addProjectBaseDirectory": "~/dev",
+    "autoResumeLimitedThreads": true,
     "branchNamePrefix": "",
     "defaultAutoPull": true,
     "defaultModelSelection": {
@@ -124,6 +125,10 @@
       },
       {
         "model": "openai/gpt-6.1-sol",
+        "provider": "opencode"
+      },
+      {
+        "model": "opencode/deepseek-v4.1-flash-free",
         "provider": "opencode"
       }
     ],
@@ -396,7 +401,6 @@
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
       "worktreeAfterDays": 4,
-      "worktreeKeepWhen": "uncommitted-changes",
       "worktreeOnDelete": true,
       "worktreeOnMerge": true,
       "worktreeUnchanged": true
@@ -407,16 +411,16 @@
     "serverExposureMode": "network-accessible"
   },
   "providers": {
+    "claudeAgent": {
+      "driver": "claudeAgent",
+      "enabled": false
+    },
     "codex": {
       "config": {
         "binaryPath": "~/.local/bin/codex"
       },
       "driver": "codex",
       "enabled": true
-    },
-    "claudeAgent": {
-      "driver": "claudeAgent",
-      "enabled": false
     },
     "opencode": {
       "config": {
