@@ -47,7 +47,7 @@ buildNpmPackage {
       "    if (req.body.expectedOrigin !== undefined) { err.message = 'Credential fill failed'; err.stack = undefined; }
     log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
       --replace-fail "    pluginEvents.emit('tab:type', typeEventPayload({ userId: req.body.userId, tabId, text: req.body.text, ref: req.body.ref, mode: req.body.mode }));" \
-      "    pluginEvents.emit('tab:type', typeEventPayload({ userId: req.body.userId, tabId, text: req.body.expectedOrigin !== undefined ? '' : req.body.text, ref: req.body.ref, mode: req.body.mode }));" \
+      "    pluginEvents.emit('tab:type', typeEventPayload({ userId: req.body.userId, tabId, text: req.body.expectedOrigin !== undefined ? \"\" : req.body.text, ref: req.body.ref, mode: req.body.mode }));" \
       --replace-fail '// Pre-warm browser so first request doesn'"'"'t eat a 6-7s cold start' \
       'if (process.env.CAMOFOX_PREWARM !== "false") {' \
       --replace-fail '// Idle self-shutdown removed -- Fly manages machine lifecycle via fly.toml.' \
