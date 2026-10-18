@@ -32,9 +32,9 @@ buildNpmPackage {
     # A credential fill is bound to an exact origin twice: the page must still be
     # there, and the element the fill resolves to must live in a document on that
     # same origin. The second check runs on the resolved locator, so it also
-    # covers a ref re-resolved after a refresh and elements inside frames. Its
-    # anchor also matches the /act copy of the fill block, where the injected
-    # guard reads an undefined req.body and never fires.
+    # covers a ref re-resolved after a refresh and elements inside frames. The
+    # anchor is newline-exact, so the guard lands only in the /tabs/:tabId/type
+    # handler, never in the /act copy of the same block.
     substituteInPlace server.js \
       --replace-fail '// Resolve and focus the target if ref/selector provided' \
       'if (req.body.expectedOrigin !== undefined) {
@@ -43,15 +43,16 @@ buildNpmPackage {
         }
       }
       // Resolve and focus the target if ref/selector provided' \
-      --replace-fail '      if (mode === '"'"'fill'"'"') {' \
-      '      if (mode === "fill" && req.body.expectedOrigin !== undefined) {
-        const fillTarget = locator || tabState.page.locator(selector);
-        const fillOrigin = await fillTarget.evaluate((element) => (element.ownerDocument && element.ownerDocument.location ? element.ownerDocument.location.origin : ""));
-        if (fillOrigin !== req.body.expectedOrigin) {
-          throw Object.assign(new Error("Fill target is not in the expected origin"), { statusCode: 409, code: "target_origin_changed" });
-        }
-      }
-      if (mode === "fill") {' \
+      --replace-fail $'\n      if (mode === \'fill\') {' \
+    '
+          if (mode === "fill" && req.body.expectedOrigin !== undefined) {
+            const fillTarget = locator || tabState.page.locator(selector);
+            const fillOrigin = await fillTarget.evaluate((element) => (element.ownerDocument && element.ownerDocument.location ? element.ownerDocument.location.origin : ""));
+            if (fillOrigin !== req.body.expectedOrigin) {
+              throw Object.assign(new Error("Fill target is not in the expected origin"), { statusCode: 409, code: "target_origin_changed" });
+            }
+          }
+          if (mode === "fill") {' \
       --replace-fail "    log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
       "    if (req.body.expectedOrigin !== undefined) { err.message = 'Credential fill failed'; err.stack = undefined; }
     log('error', 'type failed', { reqId: req.reqId, error: err.message });" \

@@ -173,5 +173,18 @@
           touch "$out"
         '';
       };
+      formatter.x86_64-linux = pkgs.writeShellApplication {
+        name = "fmt";
+        runtimeInputs = [ pkgs.rustfmt pkgs.findutils ];
+        text = ''
+          find pkgs/host-tools/src -name '*.rs' -print0 | xargs -0 rustfmt --edition 2024
+        '';
+      };
+      devShells.x86_64-linux.default = pkgs.mkShell {
+        packages = with pkgs; [ cargo clippy dbus openssl pkg-config python3 rustc rustfmt sqlite ];
+        shellHook = ''
+          echo "Use the flake toolchain: 'nix fmt' to format, 'cargo test --offline' to test."
+        '';
+      };
     };
 }

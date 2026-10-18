@@ -12,9 +12,17 @@ const index = (marker) => {
   return at;
 };
 
-const pageCheck = index("page_origin_changed");
-const targetCheck = index("target_origin_changed");
-const targetOrigin = index("element.ownerDocument.location.origin");
+// The guard belongs to exactly one handler. A second copy would mean the
+// patch anchor drifted, so a count of one is part of the contract.
+const only = (marker) => {
+  const count = source.split(marker).length - 1;
+  assert.equal(count, 1, `patched server.js must contain one ${marker}, found ${count}`);
+  return source.indexOf(marker);
+};
+
+const pageCheck = only("page_origin_changed");
+const targetCheck = only("target_origin_changed");
+const targetOrigin = only("element.ownerDocument.location.origin");
 const fill = index("await fillLocator(");
 assert(pageCheck < fill, "the page origin must be checked before filling");
 assert(targetCheck < fill, "the fill target's origin must be checked before filling");
@@ -23,7 +31,7 @@ assert(
   "the resolved element's own document origin must be the checked value",
 );
 
-const redaction = index("err.message = 'Credential fill failed'");
+const redaction = only("err.message = 'Credential fill failed'");
 const errorLog = index("log('error', 'type failed'");
 assert(redaction < errorLog, "a credential-fill error must be redacted before it is logged");
 
