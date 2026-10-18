@@ -377,6 +377,9 @@ subprocesses. A disconnect wakes it immediately; while disconnected it retries
 discovery every two seconds through ADB's local server at `127.0.0.1:5037`.
 ADB's native auto-connect handles new announcements. The service starts the server
 if it exits and logs state changes and connection errors to the user journal.
+It waits up to 90 seconds for a default route before starting: the ADB server
+binds its mDNS responder to the interfaces that exist when it starts, so a login
+that beats the Wi-Fi lease would otherwise leave discovery dead until restart.
 
 On Arch it uses Android Studio's SDK at
 `~/.local/share/android/sdk/platform-tools/adb`; NixOS uses `android-tools`.
