@@ -30,6 +30,9 @@ For TOTP, add `--json-pointer /totp` and use
 `pass-cli item totp --vault-name Personal --item-title TITLE --output json`.
 If several tabs match the origin, the bridge reports their IDs; select one with
 `--tab ID`. It checks the origin again under the native tab lock before filling.
+The browser also refuses the fill when the page, or the input's own document, is
+no longer on that origin. Later text responses show `[redacted]` instead of the
+typed value; screenshots still show it, so verify with a snapshot.
 It does not submit the form. Continue with normal browser tools afterward.
 
 Hermes's built-in browser vault is CDP-only and does not support Camofox or Proton

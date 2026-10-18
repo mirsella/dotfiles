@@ -105,11 +105,25 @@ impl Browser {
         !matches!(self, Self::Stopped)
     }
 }
+/// A value typed through the credential-fill bridge. It stays in memory only,
+/// long enough for later page responses to redact it again.
+struct Secret {
+    tab: String,
+    value: String,
+    created: Instant,
+}
+/// Credential values are forgotten after this long; a page holds them no longer.
+const SECRET_TTL: Duration = Duration::from_secs(900);
+const MAX_SECRETS: usize = 8;
+/// A listing that only decorates an already live tab must stay well inside the
+/// five-second adoption probe of the tools that call it.
+const READY_LISTING_TIMEOUT: Duration = Duration::from_secs(2);
 struct Runtime {
     browser: Browser,
     last_activity: Instant,
     error: Option<String>,
     viewers: usize,
+    secrets: Vec<Secret>,
 }
 impl Default for Runtime {
     fn default() -> Self {
@@ -118,8 +132,78 @@ impl Default for Runtime {
             last_activity: Instant::now(),
             error: None,
             viewers: 0,
+            secrets: Vec::new(),
         }
     }
+}
+impl Runtime {
+    fn remember_secret(&mut self, tab: &str, value: String) {
+        self.secrets
+            .retain(|secret| secret.created.elapsed() < SECRET_TTL && secret.value != value);
+        self.secrets.push(Secret {
+            tab: tab.to_owned(),
+            value,
+            created: Instant::now(),
+        });
+        if self.secrets.len() > MAX_SECRETS {
+            self.secrets.remove(0);
+        }
+    }
+    fn secrets_for(&self, tab: &str) -> Vec<String> {
+        self.secrets
+            .iter()
+            .filter(|secret| secret.tab == tab && secret.created.elapsed() < SECRET_TTL)
+            .map(|secret| secret.value.clone())
+            .collect()
+    }
+}
+/// A snapshot renders a value verbatim or as a quoted scalar, which escapes
+/// backslashes, quotes and control characters.
+fn quoted_form(text: &str) -> String {
+    text.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
+}
+fn redact_text(text: &str, secrets: &[String]) -> String {
+    let mut redacted = text.to_owned();
+    for secret in secrets {
+        redacted = redacted.replace(secret.as_str(), "[redacted]");
+        let quoted = quoted_form(secret);
+        if quoted != *secret {
+            redacted = redacted.replace(&quoted, "[redacted]");
+        }
+    }
+    redacted
+}
+fn redact_value(value: &mut Value, secrets: &[String], depth: u8) {
+    if depth > 64 {
+        return;
+    }
+    match value {
+        Value::String(text) => {
+            if secrets.iter().any(|secret| text.contains(secret.as_str())) {
+                *text = redact_text(text, secrets);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                redact_value(item, secrets, depth + 1);
+            }
+        }
+        Value::Object(fields) => {
+            for field in fields.values_mut() {
+                redact_value(field, secrets, depth + 1);
+            }
+        }
+        _ => {}
+    }
+}
+fn redact_response(bytes: &Bytes, secrets: &[String]) -> Option<Bytes> {
+    let mut value: Value = serde_json::from_slice(bytes).ok()?;
+    redact_value(&mut value, secrets, 0);
+    serde_json::to_vec(&value).ok().map(Bytes::from)
 }
 struct App {
     config: Config,
@@ -388,13 +472,12 @@ fn shared_tab(tabs: &Value, retained: Option<&str>) -> Result<Option<String>> {
 
 /// The live URL of the tracked tab, so the credential bridge can bind a fill to
 /// an exact origin instead of trusting the page it is about to type into.
-fn tab_url(tabs: &Value, tab: &str) -> Option<String> {
+fn tab_url<'a>(tabs: &'a Value, tab: &str) -> Option<&'a str> {
     tabs["tabs"]
         .as_array()?
         .iter()
         .find(|entry| entry["tabId"].as_str() == Some(tab))
         .and_then(|entry| entry["url"].as_str())
-        .map(str::to_owned)
 }
 
 fn page(csrf: &str, stock: &str) -> Result<(Bytes, header::HeaderValue)> {
@@ -558,14 +641,26 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         // tracked tab's live URL for binding a fill to an exact origin.
         let observed = app.runtime.lock().await.browser.clone();
         let running = app.backend_running().await.map_err(failure)?;
-        let discovery = if running {
-            Some(
-                app.backend(Method::GET, &format!("/tabs?userId={USER}"), None)
-                    .await
-                    .map_err(failure)?,
-            )
-        } else {
+        let ready = matches!(observed, Browser::Ready(_));
+        let listing_path = format!("/tabs?userId={USER}");
+        let listing = app.backend(Method::GET, &listing_path, None);
+        let discovery = if !running {
             None
+        } else if ready {
+            // Once the tab is live, the listing only supplies the URL that
+            // binds a credential fill to an origin. A slow or failing listing
+            // must not fail or stall the passive adoption probe.
+            match tokio::time::timeout(READY_LISTING_TIMEOUT, listing).await {
+                Ok(Ok(tabs)) => Some(tabs),
+                outcome => {
+                    eprintln!(
+                        "browser-control: tab listing unavailable for a live tab: {outcome:?}"
+                    );
+                    None
+                }
+            }
+        } else {
+            Some(listing.await.map_err(failure)?)
         };
         let mut runtime = app.runtime.lock().await;
         // A real operation may have started or stopped the browser while this
@@ -599,7 +694,11 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
     // One lifecycle lock coalesces cold launches and keeps idle shutdown out of
     // an actual HTTP operation. It does not reserve ownership or block viewers.
     let mut runtime = app.started(false).await.map_err(failure)?;
-    let tab = runtime.browser.tab().expect("startup selects a tab");
+    let tab = runtime
+        .browser
+        .tab()
+        .expect("startup selects a tab")
+        .to_owned();
     if route == ToolRoute::Tabs {
         if let Some(url) = data
             .get("url")
@@ -616,12 +715,22 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         }
         return Ok(axum::Json(json!({"tabId":tab})).into_response());
     }
-    if route != ToolRoute::Tab(tab) {
+    if route != ToolRoute::Tab(tab.as_str()) {
         return Err((
             StatusCode::NOT_FOUND,
             "Live tab was lost; navigate again to reopen the saved task URL".into(),
         ));
     }
+    // A credential fill is the one request whose value must not come back:
+    // remember it so later page responses can redact it again.
+    let credential = if *method == Method::POST && data.contains_key("expectedOrigin") {
+        data.get("text")
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .filter(|text| !text.is_empty())
+    } else {
+        None
+    };
     let mut upstream = app
         .client
         .request(method.clone(), url)
@@ -641,6 +750,11 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         .await
         .map_err(|error| failure(error.into()))?;
     runtime.last_activity = Instant::now();
+    if status.is_success()
+        && let Some(value) = credential
+    {
+        runtime.remember_secret(&tab, value);
+    }
     if status == StatusCode::NOT_FOUND
         && serde_json::from_slice::<Value>(&bytes)
             .ok()
@@ -651,6 +765,12 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         runtime.browser = Browser::Undiscovered(None);
         app.save(&runtime).await.map_err(failure)?;
     }
+    let secrets = runtime.secrets_for(&tab);
+    let bytes = if secrets.is_empty() {
+        bytes
+    } else {
+        redact_response(&bytes, &secrets).unwrap_or(bytes)
+    };
     let mut result = (status, bytes).into_response();
     if let Some(value) = content_type {
         result.headers_mut().insert(header::CONTENT_TYPE, value);
@@ -945,6 +1065,9 @@ mod tests {
         snapshots: u32,
         missing_tab: bool,
         tab_exists: bool,
+        fail_tabs: bool,
+        typed: Vec<String>,
+        snapshot_text: Option<String>,
         created_tabs: u32,
         navigations: Vec<String>,
         delayed_creation: Option<Arc<StatusWait>>,
@@ -985,6 +1108,9 @@ mod tests {
                 let (delay, tabs) = {
                     let mut counts = counts.lock().await;
                     counts.tab_reads += 1;
+                    if counts.fail_tabs {
+                        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                    }
                     let tabs = if counts.tab_exists {
                         json!({"tabs":[{"tabId":"newer-other-tab","listItemId":"other","url":"https://example.com/other"},{"tabId":"shared-tab","listItemId":USER,"url":"https://example.com/shared"}]})
                     } else { json!({"tabs":[]}) };
@@ -994,7 +1120,7 @@ mod tests {
                     delay.started.notify_one();
                     delay.release.notified().await;
                 }
-                axum::Json(tabs)
+                axum::Json(tabs).into_response()
             }).post(|State(counts): State<Arc<Mutex<Counts>>>, axum::Json(data): axum::Json<Value>| async move {
                 if data.get("url").is_some_and(|url| !url.as_str().is_some_and(|url| url.starts_with("https://") || url.starts_with("http://"))) {
                     return (StatusCode::BAD_REQUEST, axum::Json(json!({"error":"Only HTTP(S) URLs allowed"}))).into_response();
@@ -1023,7 +1149,13 @@ mod tests {
                 if counts.missing_tab {
                     return (StatusCode::NOT_FOUND, axum::Json(json!({"error":"Tab not found"}))).into_response();
                 }
-                axum::Json(json!({"snapshot":"current page", "query":uri.query()})).into_response()
+                let snapshot = counts.snapshot_text.clone().unwrap_or_else(|| "current page".into());
+                axum::Json(json!({"snapshot":snapshot, "query":uri.query()})).into_response()
+            }))
+            .route("/tabs/shared-tab/type", post(|State(counts): State<Arc<Mutex<Counts>>>, axum::Json(data): axum::Json<Value>| async move {
+                assert_eq!(data["userId"], USER);
+                counts.lock().await.typed.push(data["text"].as_str().unwrap().to_owned());
+                axum::Json(json!({"ok":true}))
             }))
             .route("/vnc/status", get(|State(counts): State<Arc<Mutex<Counts>>>| async move {
                 counts.lock().await.vnc_reads += 1;
@@ -1178,6 +1310,9 @@ mod tests {
             .header(header::AUTHORIZATION, "Bearer test-agent")
             .body(Body::from(body.to_owned()))
             .unwrap()
+    }
+    async fn json_body(response: Response) -> Value {
+        serde_json::from_slice(&to_bytes(response.into_body(), 65536).await.unwrap()).unwrap()
     }
     #[test]
     fn stock_ui_keeps_native_controls_and_rejects_changed_bootstrap_contract() {
@@ -1360,11 +1495,7 @@ mod tests {
             )
             .await
             .unwrap();
-            let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
-            assert_eq!(
-                serde_json::from_slice::<Value>(&bytes).unwrap(),
-                json!({"tabs":[]})
-            );
+            assert_eq!(json_body(response).await, json!({"tabs":[]}));
         }
         assert_eq!(f.counts.lock().await.starts, 0);
         assert_eq!(f.counts.lock().await.created_tabs, 0);
@@ -1383,9 +1514,8 @@ mod tests {
         let response = api(State(f.app.clone()), request(Method::GET, "/tabs", ""))
             .await
             .unwrap();
-        let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
         assert_eq!(
-            serde_json::from_slice::<Value>(&bytes).unwrap(),
+            json_body(response).await,
             json!({"tabs":[{"tabId":"shared-tab","userId":USER,"listItemId":USER,"url":"https://example.com/shared"}]})
         );
         // A tab the native browser no longer lists carries no URL, so the
@@ -1394,14 +1524,117 @@ mod tests {
         let response = api(State(f.app.clone()), request(Method::GET, "/tabs", ""))
             .await
             .unwrap();
-        let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
         assert_eq!(
-            serde_json::from_slice::<Value>(&bytes).unwrap(),
+            json_body(response).await,
             json!({"tabs":[{"tabId":"shared-tab","userId":USER,"listItemId":USER}]})
         );
-        assert!(
-            matches!(&f.app.runtime.lock().await.browser, Browser::Ready(tab) if tab == "shared-tab")
+        assert_eq!(f.app.runtime.lock().await.browser.tab(), Some("shared-tab"));
+    }
+    #[tokio::test]
+    async fn ready_tab_listing_failures_do_not_fail_the_passive_probe() {
+        let f = fixture().await;
+        {
+            let mut counts = f.counts.lock().await;
+            counts.running = true;
+            counts.fail_tabs = true;
+        }
+        f.app.runtime.lock().await.browser = Browser::Ready("shared-tab".into());
+        // The entry survives without the URL the listing could not supply, so
+        // the adoption probe cannot mistake a live tab for a cold browser.
+        let response = api(
+            State(f.app.clone()),
+            request(Method::GET, "/tabs?userId=home-browser", ""),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            json_body(response).await,
+            json!({"tabs":[{"tabId":"shared-tab","userId":USER,"listItemId":USER}]})
         );
+        // Without a live tab the listing is load-bearing, so its failure stays
+        // fatal for the caller.
+        f.app.runtime.lock().await.browser = Browser::Undiscovered(None);
+        let error = api(
+            State(f.app.clone()),
+            request(Method::GET, "/tabs?userId=home-browser", ""),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.0, StatusCode::BAD_GATEWAY);
+    }
+    #[tokio::test]
+    async fn credential_fill_values_are_redacted_from_later_page_responses() {
+        let f = fixture().await;
+        api(State(f.app.clone()), request(Method::POST, "/tabs", "{}"))
+            .await
+            .unwrap();
+        f.counts.lock().await.snapshot_text = Some("hunter2 and visible text".into());
+        api(
+            State(f.app.clone()),
+            request(
+                Method::POST,
+                "/tabs/shared-tab/type",
+                r#"{"userId":"home-browser","ref":"e1","text":"hunter2","mode":"fill","expectedOrigin":"https://example.com"}"#,
+            ),
+        )
+        .await
+        .unwrap();
+        // The value reached the browser, and only the later response hides it.
+        assert_eq!(f.counts.lock().await.typed, ["hunter2"]);
+        let response = api(
+            State(f.app.clone()),
+            request(Method::GET, "/tabs/shared-tab/snapshot", ""),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            json_body(response).await["snapshot"],
+            "[redacted] and visible text"
+        );
+    }
+    #[test]
+    fn credential_redaction_covers_quoted_values_and_leaves_other_bodies_alone() {
+        let secrets = vec!["hunter2".to_owned(), "quo\"te".to_owned()];
+        let body = json!({
+            "url": "https://example.com/login",
+            "snapshot": "- textbox \"Password\": hunter2\n- textbox \"Code\": \"quo\\\"te\"\n- textbox \"User\": hunter3",
+            "structure": {"forms": [{"fields": [{"value": "hunter2"}, {"value": "unrelated"}]}]},
+        });
+        let bytes = Bytes::from(serde_json::to_vec(&body).unwrap());
+        let redacted: Value =
+            serde_json::from_slice(&redact_response(&bytes, &secrets).unwrap()).unwrap();
+        assert_eq!(
+            redacted["snapshot"],
+            "- textbox \"Password\": [redacted]\n- textbox \"Code\": \"[redacted]\"\n- textbox \"User\": hunter3"
+        );
+        assert_eq!(
+            redacted["structure"]["forms"][0]["fields"][0]["value"],
+            "[redacted]"
+        );
+        assert_eq!(
+            redacted["structure"]["forms"][0]["fields"][1]["value"],
+            "unrelated"
+        );
+        assert_eq!(redacted["url"], "https://example.com/login");
+        // Only JSON responses are rewritten; an image body passes through.
+        assert!(redact_response(&Bytes::from_static(b"\x89PNG hunter2"), &secrets).is_none());
+    }
+    #[test]
+    fn remembered_secrets_stay_bounded_and_scoped_to_their_tab() {
+        let mut runtime = Runtime::default();
+        runtime.remember_secret("tab-a", "first".into());
+        runtime.remember_secret("tab-a", "first".into());
+        runtime.remember_secret("tab-b", "second".into());
+        assert_eq!(runtime.secrets_for("tab-a"), vec!["first".to_owned()]);
+        assert_eq!(runtime.secrets_for("tab-b"), vec!["second".to_owned()]);
+        assert!(runtime.secrets_for("tab-c").is_empty());
+        for index in 0..MAX_SECRETS + 4 {
+            runtime.remember_secret("tab-a", format!("value-{index}"));
+        }
+        let remembered = runtime.secrets_for("tab-a");
+        let newest = format!("value-{}", MAX_SECRETS + 3);
+        assert_eq!(remembered.len(), MAX_SECRETS);
+        assert_eq!(remembered.last().map(String::as_str), Some(newest.as_str()));
     }
     #[tokio::test]
     async fn canceled_startup_does_not_release_inflight_tab_creation() {
@@ -1688,8 +1921,7 @@ mod tests {
         )
         .await
         .unwrap();
-        let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
-        let data: Value = serde_json::from_slice(&bytes).unwrap();
+        let data = json_body(response).await;
         let query = url::form_urlencoded::parse(data["query"].as_str().unwrap().as_bytes())
             .collect::<Vec<_>>();
         assert_eq!(
