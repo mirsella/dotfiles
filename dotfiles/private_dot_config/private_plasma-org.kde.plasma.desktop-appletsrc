@@ -337,7 +337,7 @@ cpu/cpu9/usage=233,61,228
 
 [Containments][54][Applets][34][Configuration][Sensors]
 highPrioritySensorIds=["cpu/cpu.*/usage","cpu/all/averageTemperature"]
-lowPrioritySensorIds=["cpu/all/averageTemperature","cpu/all/averageFrequency"]
+lowPrioritySensorIds=["cpu/all/averageTemperature","cpu/all/averageFrequency","cpu/all/usage"]
 totalSensors=["cpu/all/usage"]
 
 [Containments][54][Applets][41]
