@@ -8,8 +8,6 @@ use std::{
     os::unix::fs::{PermissionsExt, symlink},
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    thread,
-    time::Duration,
 };
 
 #[derive(Deserialize)]
@@ -416,7 +414,7 @@ pub fn composio_mcp_headers() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::os::unix::process::CommandExt;
+    use std::{os::unix::process::CommandExt, thread, time::Duration};
 
     fn scratch() -> tempfile::TempDir {
         tempfile::Builder::new()
@@ -518,6 +516,7 @@ mod tests {
         // kernel is still closing the copy's handle. That error is transient, so
         // retry it instead of failing the build on the race.
         let mut child = None;
+        let mut last_busy = None;
         for _ in 0..50 {
             match Command::new(&installed)
                 .arg0("cat")
@@ -531,12 +530,16 @@ mod tests {
                     break;
                 }
                 Err(error) if error.raw_os_error() == Some(libc::ETXTBSY) => {
+                    last_busy = Some(error);
                     thread::sleep(Duration::from_millis(100));
                 }
                 Err(error) => panic!("spawning the installed AppImage failed: {error}"),
             }
         }
-        let mut child = child.expect("the installed AppImage stayed busy");
+        let mut child = child.unwrap_or_else(|| {
+            let error = last_busy.expect("only a busy spawn can exhaust the retries");
+            panic!("the installed AppImage stayed busy: {error}")
+        });
         let write_error = fs::File::options()
             .write(true)
             .open(&installed)
