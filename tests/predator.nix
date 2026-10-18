@@ -293,7 +293,7 @@ assert lib.assertMsg (
   && server.sops.secrets.hermes_caddy_env.restartUnits == [ "caddy.service" ]
   && server.services.caddy.virtualHosts."http://:80".extraConfig
     == "redir https://mirsella.mooo.com{uri} 308\n"
-) "Hermes must use the owner account and editable runtime settings while its browser stays private";
+) "Hermes must use the owner account with the Nix-owned approval gate, while its browser stays private";
 assert lib.assertMsg (
   server.services.hermes-agent.backend.mode == "dashboard"
   && server.services.hermes-agent.backend.host == "127.0.0.1"

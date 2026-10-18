@@ -252,7 +252,8 @@ in {
         TELEGRAM_ALLOW_ALL_USERS = "false";
         GATEWAY_ALLOW_ALL_USERS = "false";
       };
-      # Inference and browser routing are Nix-owned; other settings remain editable.
+      # Keys set here are Nix-owned and reapplied on activation; everything else
+      # in the Hermes config stays editable.
       settings = {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
         # Smart approval keeps the guardian review, but the 300 s default is too
