@@ -137,6 +137,11 @@ impl Default for Runtime {
     }
 }
 impl Runtime {
+    /// The browser session is gone, so no remembered credential has a tab left.
+    fn stop_browser(&mut self) {
+        self.browser = Browser::Stopped;
+        self.secrets.clear();
+    }
     fn remember_secret(&mut self, tab: &str, value: String) {
         self.secrets
             .retain(|secret| secret.created.elapsed() < SECRET_TTL && secret.value != value);
@@ -145,8 +150,17 @@ impl Runtime {
             value,
             created: Instant::now(),
         });
-        if self.secrets.len() > MAX_SECRETS {
-            self.secrets.remove(0);
+        // The cap is per tab: fills on one login page must not evict another
+        // tab's remembered credential. The oldest value of this tab goes first.
+        if self
+            .secrets
+            .iter()
+            .filter(|secret| secret.tab == tab)
+            .count()
+            > MAX_SECRETS
+            && let Some(index) = self.secrets.iter().position(|secret| secret.tab == tab)
+        {
+            self.secrets.remove(index);
         }
     }
     fn secrets_for(&self, tab: &str) -> Vec<String> {
@@ -438,7 +452,7 @@ impl App {
             }
             self.backend(Method::POST, "/stop", Some(json!({}))).await?;
         }
-        runtime.browser = Browser::Stopped;
+        runtime.stop_browser();
         runtime.error = None;
         self.save(runtime).await
     }
@@ -667,7 +681,7 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         // passive probe was in flight. Its state takes precedence over ours.
         if runtime.browser == observed {
             if !running {
-                runtime.browser = Browser::Stopped;
+                runtime.stop_browser();
             } else if !matches!(observed, Browser::Ready(_))
                 && let Some(tabs) = discovery.as_ref()
             {
@@ -1635,6 +1649,11 @@ mod tests {
         let newest = format!("value-{}", MAX_SECRETS + 3);
         assert_eq!(remembered.len(), MAX_SECRETS);
         assert_eq!(remembered.last().map(String::as_str), Some(newest.as_str()));
+        // Filling many fields on one page never evicts another tab's value.
+        assert_eq!(runtime.secrets_for("tab-b"), vec!["second".to_owned()]);
+        runtime.stop_browser();
+        assert!(runtime.secrets_for("tab-b").is_empty());
+        assert!(matches!(runtime.browser, Browser::Stopped));
     }
     #[tokio::test]
     async fn canceled_startup_does_not_release_inflight_tab_creation() {
