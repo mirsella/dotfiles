@@ -30,6 +30,13 @@ buildNpmPackage {
       --replace-fail 'parseInt(process.env.TAB_INACTIVITY_MS) || 300000' \
       'Number.isNaN(parseInt(process.env.TAB_INACTIVITY_MS)) ? 300000 : parseInt(process.env.TAB_INACTIVITY_MS)'
     substituteInPlace server.js \
+      --replace-fail '// Resolve and focus the target if ref/selector provided' \
+      'if (req.body.expectedOrigin !== undefined && new URL(tabState.page.url()).origin !== req.body.expectedOrigin) {
+        throw Object.assign(new Error("Page origin changed before credential fill"), { statusCode: 409, code: "page_origin_changed" });
+      }
+      // Resolve and focus the target if ref/selector provided' \
+      --replace-fail "log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
+      "log('error', 'type failed', { reqId: req.reqId, error: req.body.expectedOrigin !== undefined ? 'Credential fill failed' : err.message });" \
       --replace-fail '// Pre-warm browser so first request doesn'"'"'t eat a 6-7s cold start' \
       'if (process.env.CAMOFOX_PREWARM !== "false") {' \
       --replace-fail '// Idle self-shutdown removed -- Fly manages machine lifecycle via fly.toml.' \

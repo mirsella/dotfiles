@@ -4,6 +4,7 @@ mod agent_tools;
 mod backup;
 mod boot_keys;
 mod browser;
+mod browser_secret;
 mod fan_control;
 mod hardware;
 mod hermes;
@@ -87,6 +88,8 @@ enum Commands {
         #[arg(long)]
         config: PathBuf,
     },
+    /// Fill a browser field from a command's stdout without exposing the value.
+    BrowserSecret(browser_secret::Options),
     HermesProvision {
         #[arg(long, default_value = ".")]
         root: PathBuf,
@@ -194,6 +197,7 @@ fn run() -> Result<()> {
         Commands::ArchUki { config } => uki::run(&config),
         Commands::PredatorBoot { config, action } => predator_boot::run(&config, action),
         Commands::BrowserControl { config } => browser::run(&config),
+        Commands::BrowserSecret(options) => browser_secret::run(options),
         Commands::HermesProvision {
             root,
             ssh_to_age,

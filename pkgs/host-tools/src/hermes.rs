@@ -208,7 +208,7 @@ fn valid_environment_key(key: &str) -> bool {
         && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
 }
 
-fn parse_environment(text: &str) -> Result<BTreeMap<String, String>> {
+pub(crate) fn parse_environment(text: &str) -> Result<BTreeMap<String, String>> {
     text.lines()
         .filter(|line| !line.trim().is_empty() && !line.trim_start().starts_with('#'))
         .map(|line| {

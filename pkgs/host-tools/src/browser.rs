@@ -48,26 +48,36 @@ impl Config {
             ("backend", &self.backend, "http"),
             ("websocket", &self.websocket, "ws"),
         ] {
-            let loopback = match url.host() {
-                Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
-                Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
-                _ => false,
-            };
             ensure!(
-                url.scheme() == scheme
-                    && loopback
-                    && url.username().is_empty()
-                    && url.password().is_none(),
+                private_url(url, scheme),
                 "Private {name} must use a literal loopback address without URL credentials"
             );
         }
-        let origin: reqwest::Url = self.origin.parse().context("invalid viewer origin")?;
-        ensure!(
-            origin.scheme() == "https" && origin.origin().ascii_serialization() == self.origin,
-            "Viewer origin must be an exact HTTPS origin"
-        );
+        https_origin(&self.origin, "viewer origin")?;
         Ok(())
     }
+}
+
+/// Private endpoints must use a literal loopback address without URL credentials:
+/// a hostname could resolve elsewhere than it appears to.
+pub(crate) fn private_url(url: &reqwest::Url, scheme: &str) -> bool {
+    let loopback = match url.host() {
+        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+        _ => false,
+    };
+    url.scheme() == scheme && loopback && url.username().is_empty() && url.password().is_none()
+}
+
+/// Match pages and the viewer by an exact HTTPS origin, never a path, query or
+/// URL credentials that could point somewhere else.
+pub(crate) fn https_origin(value: &str, label: &str) -> Result<reqwest::Url> {
+    let url: reqwest::Url = value.parse().with_context(|| format!("invalid {label}"))?;
+    ensure!(
+        url.scheme() == "https" && url.origin().ascii_serialization() == value,
+        "{label} must be an exact HTTPS origin without path, query or URL credentials"
+    );
+    Ok(url)
 }
 // Only the tab identity survives a controller restart. Activity and readiness
 // belong to this process, not a wall-clock record rewritten on every tool call.
