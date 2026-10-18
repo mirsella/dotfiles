@@ -130,14 +130,9 @@ buildNpmPackage {
     cp -r server.js lib plugins package.json camofox.config.json node_modules "$out/lib/camofox-browser/"
     # Every patch must leave parseable JavaScript behind.
     ${nodejs_22}/bin/node --check "$out/lib/camofox-browser/server.js"
-    # A silent loss of a credential-fill protection would let a secret reach
-    # logs, plugin events, or a page the bridge did not bind to its origin.
-    for marker in 'page_origin_changed' 'target_origin_changed' 'Credential fill failed' 'expectedOrigin !== undefined ? ""'; do
-      grep -qF "$marker" "$out/lib/camofox-browser/server.js" || {
-        echo "camofox-browser: missing credential-fill protection: $marker" >&2
-        exit 1
-      }
-    done
+    # The guard test asserts the protections are present and still run before
+    # the fill they protect, so a silent loss cannot ship.
+    ${nodejs_22}/bin/node ${../../tests/camofox-guard-order.mjs} "$out/lib/camofox-browser/server.js"
     # lib/cookies.js imports this shared parser even without an MCP server.
     mkdir -p "$out/lib/camofox-browser/mcp/lib"
     cp mcp/lib/cookies.mjs "$out/lib/camofox-browser/mcp/lib/"
