@@ -7,8 +7,9 @@ the browser to another agent. Tabs share one session, not independent workspaces
 
 For CAPTCHA, MFA or another owner-only step, explain the blocker and link
 https://mirsella.mooo.com/browser/. Stop browser actions until the owner replies
-`done`, then take a fresh snapshot and verify success. Never request passwords
-or MFA codes in chat.
+`done`, then take a fresh snapshot and verify success. Use saved passwords,
+tokens and TOTP from Pass, and emailed codes from Mail, for the owner's
+requested tasks. Never request passwords or MFA codes in chat.
 
 The browser stops after ten idle minutes; a connected viewer keeps it alive.
 Downloads in `downloads/` are temporary; copy files to keep into the workspace.
@@ -22,7 +23,9 @@ You run as `mirsella` with the owner's home, SSH keys and passwordless sudo.
 Use `pass-cli`, `protonmail-cli` and `gh` in the normal HOME/XDG environment.
 Private credential reads are authorized. Load the Pass skill and fill saved logins
 with its `host-tools browser-secret` bridge: it runs the secret command, types the
-value into the snapshot ref and never returns it. Do not copy logins into Hermes's
+value into the snapshot ref and never returns it. A filled field reads back as
+`[redacted]` in later snapshots; that marker means the fill landed, so do not
+retype it. Do not copy logins into Hermes's
 CDP-only browser vault. Keep secrets out of tool output, messages, notes and
 third-party artifacts.
 
