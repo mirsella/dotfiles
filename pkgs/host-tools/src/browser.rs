@@ -202,8 +202,12 @@ fn redact_text(text: &str, secrets: &[String]) -> Option<String> {
     }
     matched.then_some(redacted)
 }
-fn redact_value(value: &mut Value, secrets: &[String], depth: u8) -> bool {
-    if depth > 64 {
+/// Depth past which the walk gives up. A body that reaches it cannot be
+/// forwarded, so the limit doubles as the point of no return.
+const REDACTION_DEPTH: u8 = 64;
+fn redact_value(value: &mut Value, secrets: &[String], depth: u8, truncated: &mut bool) -> bool {
+    if depth > REDACTION_DEPTH {
+        *truncated = true;
         return false;
     }
     match value {
@@ -215,20 +219,44 @@ fn redact_value(value: &mut Value, secrets: &[String], depth: u8) -> bool {
             true
         }
         Value::Array(items) => items.iter_mut().fold(false, |changed, item| {
-            redact_value(item, secrets, depth + 1) || changed
+            redact_value(item, secrets, depth + 1, truncated) || changed
         }),
         Value::Object(fields) => fields.values_mut().fold(false, |changed, field| {
-            redact_value(field, secrets, depth + 1) || changed
+            redact_value(field, secrets, depth + 1, truncated) || changed
         }),
         _ => false,
     }
 }
-fn redact_response(bytes: &Bytes, secrets: &[String]) -> Option<Bytes> {
-    let mut value: Value = serde_json::from_slice(bytes).ok()?;
-    if !redact_value(&mut value, secrets, 0) {
-        return None;
+/// What a response body needs before it may reach the agent.
+enum Redaction {
+    /// Nothing matched a remembered secret, or the body was not JSON.
+    Unchanged,
+    /// The body was rewritten with every match replaced.
+    Rewritten(Bytes),
+    /// The walk stopped at the depth limit, so the body cannot be forwarded.
+    Incomplete,
+}
+/// Redact every remembered secret in a JSON response body. A body the walk
+/// cannot cover in full reports [`Redaction::Incomplete`] instead of passing
+/// through, because a secret below the depth limit must never be served.
+fn redact_response(bytes: &Bytes, secrets: &[String]) -> Redaction {
+    let Ok(mut value) = serde_json::from_slice(bytes) else {
+        return Redaction::Unchanged;
+    };
+    let mut truncated = false;
+    let changed = redact_value(&mut value, secrets, 0, &mut truncated);
+    if truncated {
+        return Redaction::Incomplete;
     }
-    serde_json::to_vec(&value).ok().map(Bytes::from)
+    if !changed {
+        return Redaction::Unchanged;
+    }
+    match serde_json::to_vec(&value) {
+        Ok(rewritten) => Redaction::Rewritten(Bytes::from(rewritten)),
+        // Serializing a parsed body cannot fail; if it ever did, the
+        // unredacted bytes still must not be forwarded.
+        Err(_) => Redaction::Incomplete,
+    }
 }
 struct App {
     config: Config,
@@ -799,7 +827,15 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
     let bytes = if secrets.is_empty() {
         bytes
     } else {
-        redact_response(&bytes, &secrets).unwrap_or(bytes)
+        match redact_response(&bytes, &secrets) {
+            Redaction::Unchanged => bytes,
+            Redaction::Rewritten(redacted) => redacted,
+            Redaction::Incomplete => {
+                return Err(failure(anyhow::anyhow!(
+                    "Response is nested deeper than {REDACTION_DEPTH} levels; refusing to forward it unredacted"
+                )));
+            }
+        }
     };
     let mut result = (status, bytes).into_response();
     if let Some(value) = content_type {
@@ -1672,8 +1708,10 @@ mod tests {
             "structure": {"forms": [{"fields": [{"value": "hunter2"}, {"value": "unrelated"}, {"value": "quo\\\"te"}]}]},
         });
         let bytes = Bytes::from(serde_json::to_vec(&body).unwrap());
-        let redacted: Value =
-            serde_json::from_slice(&redact_response(&bytes, &secrets).unwrap()).unwrap();
+        let Redaction::Rewritten(rewritten) = redact_response(&bytes, &secrets) else {
+            panic!("expected a rewritten body");
+        };
+        let redacted: Value = serde_json::from_slice(&rewritten).unwrap();
         assert_eq!(
             redacted["snapshot"],
             "- textbox \"Password\": [redacted]\n- textbox \"Code\": \"[redacted]\"\n- textbox \"User\": hunter3"
@@ -1695,9 +1733,15 @@ mod tests {
         assert_eq!(redacted["url"], "https://example.com/login");
         // Only bodies that changed are rewritten: an image and a clean JSON
         // response both pass through untouched.
-        assert!(redact_response(&Bytes::from_static(b"\x89PNG hunter2"), &secrets).is_none());
+        assert!(matches!(
+            redact_response(&Bytes::from_static(b"\x89PNG hunter2"), &secrets),
+            Redaction::Unchanged
+        ));
         let clean = Bytes::from(serde_json::to_vec(&json!({"snapshot": "current page"})).unwrap());
-        assert!(redact_response(&clean, &secrets).is_none());
+        assert!(matches!(
+            redact_response(&clean, &secrets),
+            Redaction::Unchanged
+        ));
     }
     #[test]
     fn redaction_stops_at_the_depth_limit() {
@@ -1709,10 +1753,16 @@ mod tests {
             }
             Bytes::from(serde_json::to_vec(&value).unwrap())
         };
-        // A value the walk can reach is redacted; one past the cutoff passes
-        // through untouched rather than being rewritten.
-        assert!(redact_response(&nested(64), &secrets).is_some());
-        assert!(redact_response(&nested(65), &secrets).is_none());
+        // A value the walk can reach is redacted; one past the limit reports
+        // the body as unredactable so the caller refuses to forward it.
+        assert!(matches!(
+            redact_response(&nested(REDACTION_DEPTH as usize), &secrets),
+            Redaction::Rewritten(_)
+        ));
+        assert!(matches!(
+            redact_response(&nested(REDACTION_DEPTH as usize + 1), &secrets),
+            Redaction::Incomplete
+        ));
     }
     #[test]
     fn remembered_secrets_stay_bounded_and_scoped_to_their_tab() {
