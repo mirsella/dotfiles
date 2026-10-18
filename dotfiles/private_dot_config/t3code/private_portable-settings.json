@@ -868,6 +868,13 @@
             "id": "bsp",
             "name": "bsp",
             "runOnWorktreeCreate": false
+          },
+          {
+            "command": "just bc --backend-url http://localhost:3000 -m",
+            "icon": "play",
+            "id": "bc-local-backend",
+            "name": "bc local backend",
+            "runOnWorktreeCreate": false
           }
         ],
         "defaultThreadEnvMode": "worktree"

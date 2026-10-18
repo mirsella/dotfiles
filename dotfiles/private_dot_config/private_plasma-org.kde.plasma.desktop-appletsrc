@@ -96,7 +96,7 @@ immutability=1
 plugin=com.github.psimaker.codexbar
 
 [Containments][3][Applets][56][Configuration]
-popupHeight=522
+popupHeight=320
 popupWidth=342
 
 [Containments][3][Applets][56][Configuration][ConfigDialog]
