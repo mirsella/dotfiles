@@ -8,7 +8,7 @@ Number of Actions=0
 
 [PlasmaViews][Panel 3]
 alignment=132
-floating=0
+floating=1
 floatingApplets=0
 panelLengthMode=1
 panelVisibility=2

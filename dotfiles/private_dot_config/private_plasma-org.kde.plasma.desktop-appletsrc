@@ -243,14 +243,13 @@ immutability=1
 plugin=org.kde.plasma.dwellclicker
 
 [Containments][3][Applets][8][ConfigDialog]
-DialogHeight=1052
-DialogWidth=1920
+DialogHeight=975
+DialogWidth=1504
 
 [Containments][3][Applets][8][General]
-extraItems=org.kde.plasma.bluetooth,org.kde.plasma.brightness,org.kde.plasma.cameraindicator,org.kde.plasma.mediacontroller,org.kde.plasma.keyboardindicator,org.kde.kscreen,org.kde.plasma.vault,org.kde.plasma.printmanager,org.kde.plasma.volume,org.kde.kdeconnect,org.kde.plasma.clipboard,org.kde.plasma.notifications,org.kde.plasma.devicenotifier,org.kde.plasma.weather,org.kde.plasma.keyboardlayout,org.kde.plasma.battery,org.kde.plasma.diskquota,org.kde.plasma.manage-inputmethod,org.kde.plasma.networkmanagement,org.kde.plasma.dwellclicker,org.kde.kupapplet
-hiddenItems=org.kde.plasma.devicenotifier,org.kde.plasma.weather,org.kde.plasma.keyboardlayout,org.kde.plasma.manage-inputmethod,org.kde.plasma.networkmanagement
+extraItems=org.kde.plasma.brightness,org.kde.plasma.cameraindicator,org.kde.plasma.mediacontroller,org.kde.plasma.keyboardindicator,org.kde.kscreen,org.kde.plasma.vault,org.kde.plasma.printmanager,org.kde.plasma.clipboard,org.kde.plasma.notifications,org.kde.plasma.devicenotifier,org.kde.plasma.keyboardlayout,org.kde.plasma.battery,org.kde.plasma.diskquota,org.kde.plasma.manage-inputmethod,org.kde.plasma.dwellclicker,org.kde.kupapplet,org.kde.plasma.bluetooth,org.kde.plasma.networkmanagement,org.kde.plasma.volume,org.kde.plasma.weather,org.kde.kdeconnect
+hiddenItems=org.kde.plasma.weather,org.kde.kdeconnect
 knownItems=org.kde.plasma.bluetooth,org.kde.plasma.battery,org.kde.plasma.brightness,org.kde.plasma.cameraindicator,org.kde.plasma.clipboard,org.kde.plasma.devicenotifier,org.kde.plasma.manage-inputmethod,org.kde.plasma.mediacontroller,org.kde.plasma.notifications,org.kde.plasma.keyboardindicator,org.kde.kscreen,org.kde.plasma.keyboardlayout,org.kde.plasma.networkmanagement,org.kde.plasma.volume,org.kde.plasma.vault,org.kde.plasma.printmanager,org.kde.kdeconnect,org.kde.plasma.weather,org.kde.plasma.dwellclicker,org.kde.kupapplet
-shownItems=org.kde.plasma.volume,org.kde.kdeconnect,org.kde.plasma.clipboard,org.kde.plasma.notifications,org.kde.plasma.battery
 
 [Containments][3][General]
 AppletOrder=4;5;6;56;7;8;21;22
