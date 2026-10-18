@@ -8,6 +8,8 @@ use std::{
     os::unix::fs::{PermissionsExt, symlink},
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    thread,
+    time::Duration,
 };
 
 #[derive(Deserialize)]
@@ -512,13 +514,29 @@ mod tests {
             .expect("cat must be on the test PATH");
         fs::copy(executable, &installed).unwrap();
         fs::set_permissions(&installed, fs::Permissions::from_mode(0o755)).unwrap();
-        let mut child = Command::new(&installed)
-            .arg0("cat")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .unwrap();
+        // A sandbox can briefly report the freshly copied file as busy while the
+        // kernel is still closing the copy's handle. That error is transient, so
+        // retry it instead of failing the build on the race.
+        let mut child = None;
+        for _ in 0..50 {
+            match Command::new(&installed)
+                .arg0("cat")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+            {
+                Ok(spawned) => {
+                    child = Some(spawned);
+                    break;
+                }
+                Err(error) if error.raw_os_error() == Some(libc::ETXTBSY) => {
+                    thread::sleep(Duration::from_millis(100));
+                }
+                Err(error) => panic!("spawning the installed AppImage failed: {error}"),
+            }
+        }
+        let mut child = child.expect("the installed AppImage stayed busy");
         let write_error = fs::File::options()
             .write(true)
             .open(&installed)
