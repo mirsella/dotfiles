@@ -198,8 +198,6 @@ Faces.SensorFace {
                         id: emphasizedSensorsModel
                         sensors: root.emphasizedSensorIds
                         updateRateLimit: root.controller.updateRateLimit
-                        sensorLabels: root.controller.sensorLabels
-                        sensorColors: root.controller.sensorColors
                     }
 
                     SensorHistorySources {
@@ -274,7 +272,6 @@ Faces.SensorFace {
             sensors: root.controller.lowPrioritySensorIds
             updateRateLimit: root.controller.updateRateLimit
             sensorLabels: root.controller.sensorLabels
-            sensorColors: root.controller.sensorColors
         }
     }
 }
