@@ -143,8 +143,9 @@ impl Runtime {
         self.secrets.clear();
     }
     fn remember_secret(&mut self, tab: &str, value: String) {
-        self.secrets
-            .retain(|secret| secret.created.elapsed() < SECRET_TTL && secret.value != value);
+        self.secrets.retain(|secret| {
+            secret.created.elapsed() < SECRET_TTL && (secret.tab != tab || secret.value != value)
+        });
         self.secrets.push(Secret {
             tab: tab.to_owned(),
             value,
@@ -164,11 +165,16 @@ impl Runtime {
         }
     }
     fn secrets_for(&self, tab: &str) -> Vec<String> {
-        self.secrets
+        let mut secrets: Vec<String> = self
+            .secrets
             .iter()
             .filter(|secret| secret.tab == tab && secret.created.elapsed() < SECRET_TTL)
             .map(|secret| secret.value.clone())
-            .collect()
+            .collect();
+        // Longest first: a value that starts with an older secret would
+        // otherwise keep its tail readable after the shorter one matched.
+        secrets.sort_by_key(|secret| std::cmp::Reverse(secret.len()));
+        secrets
     }
 }
 /// A snapshot renders a value verbatim or as a quoted scalar, which escapes
@@ -180,43 +186,48 @@ fn quoted_form(text: &str) -> String {
         .replace('\r', "\\r")
         .replace('\t', "\\t")
 }
-fn redact_text(text: &str, secrets: &[String]) -> String {
+/// Replaces the value and its escaped rendering anywhere in the text, or
+/// `None` when the text holds neither so callers keep the original bytes.
+fn redact_text(text: &str, secrets: &[String]) -> Option<String> {
     let mut redacted = text.to_owned();
+    let mut matched = false;
     for secret in secrets {
-        redacted = redacted.replace(secret.as_str(), "[redacted]");
         let quoted = quoted_form(secret);
-        if quoted != *secret {
-            redacted = redacted.replace(&quoted, "[redacted]");
+        for form in [secret.as_str(), quoted.as_str()] {
+            if redacted.contains(form) {
+                redacted = redacted.replace(form, "[redacted]");
+                matched = true;
+            }
         }
     }
-    redacted
+    matched.then_some(redacted)
 }
-fn redact_value(value: &mut Value, secrets: &[String], depth: u8) {
+fn redact_value(value: &mut Value, secrets: &[String], depth: u8) -> bool {
     if depth > 64 {
-        return;
+        return false;
     }
     match value {
         Value::String(text) => {
-            if secrets.iter().any(|secret| text.contains(secret.as_str())) {
-                *text = redact_text(text, secrets);
-            }
+            let Some(redacted) = redact_text(text, secrets) else {
+                return false;
+            };
+            *text = redacted;
+            true
         }
-        Value::Array(items) => {
-            for item in items {
-                redact_value(item, secrets, depth + 1);
-            }
-        }
-        Value::Object(fields) => {
-            for field in fields.values_mut() {
-                redact_value(field, secrets, depth + 1);
-            }
-        }
-        _ => {}
+        Value::Array(items) => items.iter_mut().fold(false, |changed, item| {
+            redact_value(item, secrets, depth + 1) || changed
+        }),
+        Value::Object(fields) => fields.values_mut().fold(false, |changed, field| {
+            redact_value(field, secrets, depth + 1) || changed
+        }),
+        _ => false,
     }
 }
 fn redact_response(bytes: &Bytes, secrets: &[String]) -> Option<Bytes> {
     let mut value: Value = serde_json::from_slice(bytes).ok()?;
-    redact_value(&mut value, secrets, 0);
+    if !redact_value(&mut value, secrets, 0) {
+        return None;
+    }
     serde_json::to_vec(&value).ok().map(Bytes::from)
 }
 struct App {
@@ -386,6 +397,9 @@ impl App {
     async fn start_browser(&self, runtime: &mut Runtime, viewer: bool) -> Result<()> {
         if !self.backend_running().await? {
             runtime.browser = Browser::Undiscovered(None);
+            // That browser and its tabs are gone with it, so nothing can still
+            // hold the credentials filled into them.
+            runtime.secrets.clear();
             // A timed-out launch may still have created Firefox. Keep it under
             // idle cleanup even if we never receive the launch response.
             runtime.last_activity = Instant::now();
@@ -699,6 +713,8 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         let tabs = runtime.browser.tab().map_or_else(Vec::new, |tab| {
             let mut entry = json!({"tabId":tab,"userId":USER,"listItemId":USER});
             if let Some(url) = discovery.as_ref().and_then(|tabs| tab_url(tabs, tab)) {
+                let url =
+                    redact_text(url, &runtime.secrets_for(tab)).unwrap_or_else(|| url.to_owned());
                 entry["url"] = json!(url);
             }
             vec![entry]
@@ -736,7 +752,9 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         ));
     }
     // A credential fill is the one request whose value must not come back:
-    // remember it so later page responses can redact it again.
+    // remember it so later page responses can redact it again. It is remembered
+    // before sending, because a fill that reaches the page and then loses its
+    // response must not leave the value readable in every later snapshot.
     let credential = if *method == Method::POST && data.contains_key("expectedOrigin") {
         data.get("text")
             .and_then(Value::as_str)
@@ -744,6 +762,9 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
             .filter(|text| !text.is_empty())
     } else {
         None
+    };
+    if let Some(value) = credential {
+        runtime.remember_secret(&tab, value);
     };
     let mut upstream = app
         .client
@@ -764,11 +785,6 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         .await
         .map_err(|error| failure(error.into()))?;
     runtime.last_activity = Instant::now();
-    if status.is_success()
-        && let Some(value) = credential
-    {
-        runtime.remember_secret(&tab, value);
-    }
     if status == StatusCode::NOT_FOUND
         && serde_json::from_slice::<Value>(&bytes)
             .ok()
@@ -1080,6 +1096,7 @@ mod tests {
         missing_tab: bool,
         tab_exists: bool,
         fail_tabs: bool,
+        fail_type: bool,
         typed: Vec<String>,
         snapshot_text: Option<String>,
         created_tabs: u32,
@@ -1168,8 +1185,12 @@ mod tests {
             }))
             .route("/tabs/shared-tab/type", post(|State(counts): State<Arc<Mutex<Counts>>>, axum::Json(data): axum::Json<Value>| async move {
                 assert_eq!(data["userId"], USER);
-                counts.lock().await.typed.push(data["text"].as_str().unwrap().to_owned());
-                axum::Json(json!({"ok":true}))
+                let mut counts = counts.lock().await;
+                counts.typed.push(data["text"].as_str().unwrap().to_owned());
+                if counts.fail_type {
+                    return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                }
+                axum::Json(json!({"ok":true})).into_response()
             }))
             .route("/vnc/status", get(|State(counts): State<Arc<Mutex<Counts>>>| async move {
                 counts.lock().await.vnc_reads += 1;
@@ -1606,13 +1627,49 @@ mod tests {
             "[redacted] and visible text"
         );
     }
+    #[tokio::test]
+    async fn a_fill_that_loses_its_response_still_redacts() {
+        let f = fixture().await;
+        api(State(f.app.clone()), request(Method::POST, "/tabs", "{}"))
+            .await
+            .unwrap();
+        {
+            let mut counts = f.counts.lock().await;
+            counts.snapshot_text = Some("hunter2 stays visible".into());
+            counts.fail_type = true;
+        }
+        let response = api(
+            State(f.app.clone()),
+            request(
+                Method::POST,
+                "/tabs/shared-tab/type",
+                r#"{"userId":"home-browser","ref":"e1","text":"hunter2","mode":"fill","expectedOrigin":"https://example.com"}"#,
+            ),
+        )
+        .await
+        .unwrap();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(f.counts.lock().await.typed, ["hunter2"]);
+        // The page took the value even though the response failed, so the fill
+        // must already be remembered for the snapshots that follow.
+        let response = api(
+            State(f.app.clone()),
+            request(Method::GET, "/tabs/shared-tab/snapshot", ""),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            json_body(response).await["snapshot"],
+            "[redacted] stays visible"
+        );
+    }
     #[test]
     fn credential_redaction_covers_quoted_values_and_leaves_other_bodies_alone() {
         let secrets = vec!["hunter2".to_owned(), "quo\"te".to_owned()];
         let body = json!({
             "url": "https://example.com/login",
             "snapshot": "- textbox \"Password\": hunter2\n- textbox \"Code\": \"quo\\\"te\"\n- textbox \"User\": hunter3",
-            "structure": {"forms": [{"fields": [{"value": "hunter2"}, {"value": "unrelated"}]}]},
+            "structure": {"forms": [{"fields": [{"value": "hunter2"}, {"value": "unrelated"}, {"value": "quo\\\"te"}]}]},
         });
         let bytes = Bytes::from(serde_json::to_vec(&body).unwrap());
         let redacted: Value =
@@ -1629,9 +1686,18 @@ mod tests {
             redacted["structure"]["forms"][0]["fields"][1]["value"],
             "unrelated"
         );
+        // A value escaped by the page is redacted even when its raw form never
+        // appears in the same response.
+        assert_eq!(
+            redacted["structure"]["forms"][0]["fields"][2]["value"],
+            "[redacted]"
+        );
         assert_eq!(redacted["url"], "https://example.com/login");
-        // Only JSON responses are rewritten; an image body passes through.
+        // Only bodies that changed are rewritten: an image and a clean JSON
+        // response both pass through untouched.
         assert!(redact_response(&Bytes::from_static(b"\x89PNG hunter2"), &secrets).is_none());
+        let clean = Bytes::from(serde_json::to_vec(&json!({"snapshot": "current page"})).unwrap());
+        assert!(redact_response(&clean, &secrets).is_none());
     }
     #[test]
     fn remembered_secrets_stay_bounded_and_scoped_to_their_tab() {
@@ -1642,13 +1708,30 @@ mod tests {
         assert_eq!(runtime.secrets_for("tab-a"), vec!["first".to_owned()]);
         assert_eq!(runtime.secrets_for("tab-b"), vec!["second".to_owned()]);
         assert!(runtime.secrets_for("tab-c").is_empty());
+        // The same value on another tab belongs to both tabs.
+        runtime.remember_secret("tab-c", "first".into());
+        assert_eq!(runtime.secrets_for("tab-a"), vec!["first".to_owned()]);
+        assert_eq!(runtime.secrets_for("tab-c"), vec!["first".to_owned()]);
+        // A longer value must be replaced before a shorter secret that is its
+        // prefix, or the longer value's tail would survive the redaction.
+        runtime.remember_secret("tab-d", "pass".into());
+        runtime.remember_secret("tab-d", "password".into());
+        assert_eq!(
+            runtime.secrets_for("tab-d"),
+            vec!["password".to_owned(), "pass".to_owned()]
+        );
+        assert_eq!(
+            redact_text("my password is secure", &runtime.secrets_for("tab-d")).unwrap(),
+            "my [redacted] is secure"
+        );
         for index in 0..MAX_SECRETS + 4 {
             runtime.remember_secret("tab-a", format!("value-{index}"));
         }
         let remembered = runtime.secrets_for("tab-a");
         let newest = format!("value-{}", MAX_SECRETS + 3);
         assert_eq!(remembered.len(), MAX_SECRETS);
-        assert_eq!(remembered.last().map(String::as_str), Some(newest.as_str()));
+        assert!(remembered.contains(&newest));
+        assert!(!remembered.contains(&"value-0".to_owned()));
         // Filling many fields on one page never evicts another tab's value.
         assert_eq!(runtime.secrets_for("tab-b"), vec!["second".to_owned()]);
         runtime.stop_browser();

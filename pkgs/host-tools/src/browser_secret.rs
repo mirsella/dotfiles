@@ -46,8 +46,9 @@ struct Tab {
     #[serde(rename = "tabId")]
     id: String,
     /// Missing while the native browser no longer reports the tracked tab. The
-    /// URL stays unparsed so one unreadable entry cannot hide the other tabs.
-    url: Option<String>,
+    /// URL stays unparsed, and any value that is not a string counts as
+    /// unreadable, so one bad entry cannot hide the other tabs.
+    url: Option<Value>,
 }
 
 fn configuration() -> Result<Browser> {
@@ -116,7 +117,8 @@ fn local_client() -> Agent {
 fn select_tab<'a>(tabs: &'a [Tab], origin: &Origin, id: Option<&str>) -> Result<&'a Tab> {
     let mut matching = tabs.iter().filter(|tab| {
         tab.url
-            .as_deref()
+            .as_ref()
+            .and_then(Value::as_str)
             .and_then(|url| url.parse::<Url>().ok())
             .is_some_and(|url| url.origin() == *origin)
             && id.is_none_or(|id| id == tab.id)
