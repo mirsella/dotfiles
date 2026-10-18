@@ -31,7 +31,7 @@ Private credential reads are authorized. Load the Pass skill and fill saved logi
 with its `host-tools browser-secret` bridge: it runs the secret command, types the
 value into the snapshot ref and never returns it. A filled field reads back as
 `[redacted]` in later snapshots; that marker means the fill landed, so do not
-retype it. Do not copy logins into Hermes's
+retype it or screenshot the field to check it. Do not copy logins into Hermes's
 CDP-only browser vault. Keep secrets out of tool output, messages, notes and
 third-party artifacts.
 

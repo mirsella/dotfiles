@@ -33,7 +33,8 @@ If several tabs match the origin, the bridge reports their IDs; select one with
 The browser also refuses the fill when the page, or the input's own document, is
 no longer on that origin. Later text responses show `[redacted]` instead of the
 typed value, and that marker means the fill landed, so do not retype it.
-Screenshots still show the value, so verify with a snapshot.
+Screenshots and downloads still show the value, so never screenshot a filled
+field to check it: `[redacted]` is the proof the fill landed.
 It does not submit the form. Continue with normal browser tools afterward.
 
 Hermes's built-in browser vault is CDP-only and does not support Camofox or Proton

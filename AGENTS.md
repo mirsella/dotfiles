@@ -32,7 +32,10 @@ The flake discovers these directories and sets hostnames automatically.
   instead of staying dead.
 - Chezmoi owns editable app configuration. Home Manager owns packages, generated
   Git/SSH settings, user services and SOPS wiring. Keep each path under one
-  owner; `.chezmoiignore` lists the HM-owned paths.
+  owner; `.chezmoiignore` lists the HM-owned paths. Predator uses this same
+  checkout as its chezmoi source, but activation never applies it: run
+  `chezmoi apply` there after changing managed files and watch `chezmoi status`
+  for drift, since a stale copy there is otherwise invisible.
 - OpenCode extensions and their tests live in `pkgs/opencode-extensions`; Home
   Manager installs the compiled plugins. Its editable JSON settings remain in
   chezmoi. The idle watchdog is compiled from `pkgs/opencode-idle-watchdog`.
@@ -74,7 +77,9 @@ The flake discovers these directories and sets hostnames automatically.
   path without `path:`) so Nix excludes `.agents-local/`. Add new source files to
   the Git index before evaluating; they do not need to be committed.
 - `nix flake check . --no-build --no-update-lock-file` evaluates all profiles
-  and runs the host-isolation and Predator boot/storage invariants through `checks`.
+  and runs the host-isolation and Predator boot/storage invariants through `checks`. GitHub Actions runs
+  that same check on pushes to `main`. Format Rust with the flake's pinned
+  rustfmt (`nix fmt`); a newer local rustfmt can reformat code the gate accepts.
   Run focused Cargo tests for monitoring, backups and suspend changes. The
   `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during
   `nix flake check` without `--no-build`.
