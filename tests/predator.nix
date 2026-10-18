@@ -227,7 +227,8 @@ assert lib.assertMsg (
   && lib.hasInfix "base: \"/hermes/\"" server.services.hermes-agent.package.hermesWeb.postPatch
   && server.services.hermes-agent.documents ? "AGENTS.md"
   && !(server.services.hermes-agent.settings ? hooks)
-  && !(server.services.hermes-agent.settings ? approvals)
+  && server.services.hermes-agent.settings.approvals.mode == "smart"
+  && server.services.hermes-agent.settings.approvals.timeout == 3600
   && !(server.services.hermes-agent.settings ? toolsets)
   && server.sops.secrets.hermes_gateway_env.owner == "mirsella"
   && server.sops.secrets.hermes_gateway_env.mode == "0400"

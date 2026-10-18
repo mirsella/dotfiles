@@ -255,6 +255,13 @@ in {
       # Inference and browser routing are Nix-owned; other settings remain editable.
       settings = {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
+        # Smart approval keeps the guardian review, but the 300 s default is too
+        # tight for chat: a flagged command that lands while the owner is away
+        # dies on the timeout. Give him an hour to answer.
+        approvals = {
+          mode = "smart";
+          timeout = 3600;
+        };
         agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-evaluation" ];
         agent.reasoning_overrides."deepseek-v4.1-flash" = "max";
         plugins.enabled = [ "browser-policy" ];
