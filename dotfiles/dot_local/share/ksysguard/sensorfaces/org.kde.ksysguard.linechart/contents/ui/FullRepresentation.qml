@@ -228,11 +228,22 @@ Faces.SensorFace {
             id: legendChart
             visible: false
 
+            // Sensors without a configured color would get a black chip in
+            // the legend, which looks broken; map them to a transparent
+            // color so only entries with a real chart color (the
+            // temperature) show an indicator.
             colorSource: Charts.MapProxySource {
                 source: Charts.ArraySource {
                     array: root.controller.lowPrioritySensorIds
                 }
-                map: root.controller.sensorColors
+                map: {
+                    var colors = {};
+                    for (var i = 0; i < root.controller.lowPrioritySensorIds.length; ++i) {
+                        var id = root.controller.lowPrioritySensorIds[i];
+                        colors[id] = root.controller.sensorColors[id] || "transparent";
+                    }
+                    return colors;
+                }
             }
 
             nameSource: Charts.ModelSource {
