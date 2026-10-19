@@ -19,7 +19,7 @@ use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::Signals;
 
 use crate::config::{Config, runtime_origin};
-use crate::policy::{Decision, decide, next_wait, observe};
+use crate::policy::{Decision, decide, next_wait, observe, observe_run, warming_ttl};
 use crate::state::{Credential, State};
 use crate::t3::{T3Client, is_credential_rejected};
 
@@ -239,7 +239,7 @@ fn status(config: &Config) -> Result<()> {
             thread.provider,
             thread.model,
             thread.status,
-            show(thread.last_cache_at),
+            show(thread.last_cache_at()),
             show(thread.last_activity_at),
             thread.title,
             thread.last_error.as_deref().unwrap_or_default(),
@@ -280,11 +280,38 @@ fn tick(
             .thread_list(project)
             .with_context(|| format!("list threads of project {project}"))?;
         for view in threads {
-            let now = Timestamp::now();
             summary.observed += 1;
             seen.insert(view.id.clone());
             let entry = state.threads.entry(view.id.clone()).or_default();
+            let now = Timestamp::now();
             observe(entry, &view, now, config.send_grace_seconds);
+            if let Err(reason) = warming_ttl(config, entry, &now.to_zoned(TimeZone::system())) {
+                *summary.skipped.entry(reason.label()).or_insert(0) += 1;
+                continue;
+            }
+            if let Some(run_id) = &view.latest_run_id
+                && !entry.has_run(run_id)
+            {
+                let result = client
+                    .completed_run(&view.id, run_id)
+                    .with_context(|| format!("read latest run of thread {}", view.id));
+                match result {
+                    Ok(run) => {
+                        observe_run(entry, run, config.send_grace_seconds);
+                        entry.last_error = None;
+                    }
+                    Err(error) => {
+                        if is_credential_rejected(&error) {
+                            return Err(error);
+                        }
+                        entry.last_error = Some(format!("{error:#}"));
+                        summary.errors += 1;
+                        eprintln!("{NAME}: {error:#}; skipping this thread");
+                        continue;
+                    }
+                }
+            }
+            let now = Timestamp::now();
             if let Decision::Skip { reason } = decide(config, entry, now) {
                 *summary.skipped.entry(reason.label()).or_insert(0) += 1;
                 continue;
@@ -395,6 +422,24 @@ mod tests {
     use crate::t3::tests::mock_server;
     use serde_json::json;
 
+    fn active_config() -> Config {
+        let local = Timestamp::now().to_zoned(TimeZone::system());
+        Config {
+            projects: vec!["project-1".to_owned()],
+            max_refreshes_per_activity: 1,
+            day_window: crate::config::DayWindow {
+                start: jiff::civil::time(local.hour(), 0, 0, 0),
+                end: jiff::civil::time((local.hour() + 23) % 24, 0, 0, 0),
+            },
+            rules: vec![crate::config::Rule {
+                provider: Some("opencode".to_owned()),
+                model_contains: "openai/gpt".to_owned(),
+                ttl_seconds: 1680,
+            }],
+            ..Config::default()
+        }
+    }
+
     #[test]
     fn loopback_spellings_are_the_same_origin() {
         assert!(same_origin(
@@ -481,6 +526,41 @@ mod tests {
     }
 
     #[test]
+    fn run_history_failure_never_warms_from_an_older_run() {
+        let updated = Timestamp::now()
+            .checked_sub(jiff::Span::new().hours(1))
+            .unwrap();
+        let (base, server) = mock_server(
+            &["initialize", "t3_thread_list", "t3_thread_read"],
+            move |name, _| {
+                Some(if name == "t3_thread_list" {
+                    json!({ "threads": [{
+                        "threadId": "thread-1", "status": "completed",
+                        "providerInstanceId": "opencode", "model": "openai/gpt-6-astra",
+                        "latestRunId": "run-1", "updatedAt": updated.to_string()
+                    }] })
+                } else {
+                    json!({ "recentRuns": [] })
+                })
+            },
+        );
+        let mut state = State::default();
+        let entry = state.threads.entry("thread-1".to_owned()).or_default();
+        entry.last_run = Some(crate::t3::CompletedRun {
+            run_id: "older-run".to_owned(),
+            completed_at: updated,
+        });
+        entry.last_activity_at = Some(updated);
+        let mut client = T3Client::new(&base, "test".to_owned());
+        let config = active_config();
+        let result = tick(&config, &mut client, &mut state, Path::new("unused"), false).unwrap();
+        assert!(result.contains("warmed 0, 1 errors"), "{result}");
+        assert!(state.threads["thread-1"].last_error.is_some());
+        assert!(state.threads["thread-1"].pending_warm_at.is_none());
+        server.join().unwrap();
+    }
+
+    #[test]
     fn failed_save_allows_retry_and_lost_response_blocks_duplicates() {
         let updated = Timestamp::now()
             .checked_sub(jiff::Span::new().minutes(30))
@@ -488,6 +568,7 @@ mod tests {
         let threads = json!({ "threads": [{
             "threadId": "thread-1", "title": "Test", "status": "completed",
             "providerInstanceId": "opencode", "model": "openai/gpt-6-astra",
+            "latestRunId": "run-1",
             "updatedAt": updated.to_string()
         }] });
         let directory =
@@ -501,12 +582,17 @@ mod tests {
             &[
                 "initialize",
                 "t3_thread_list",
+                "t3_thread_read",
                 "t3_thread_list",
                 "t3_thread_send",
                 "t3_thread_list",
             ],
             move |name, arguments| {
-                if name == "t3_thread_send" {
+                if name == "t3_thread_read" {
+                    Some(json!({ "recentRuns": [{
+                        "runId": "run-1", "completedAt": updated.to_string()
+                    }] }))
+                } else if name == "t3_thread_send" {
                     let saved = State::load(&saved_path).unwrap();
                     assert!(
                         saved.threads["thread-1"].pending_warm_at.is_some(),
@@ -526,22 +612,7 @@ mod tests {
                 }
             },
         );
-        let local = Timestamp::now().to_zoned(TimeZone::system());
-        // A wrapping window which contains the present hour in every time zone.
-        let config = Config {
-            projects: vec!["project-1".to_owned()],
-            max_refreshes_per_activity: 1,
-            day_window: crate::config::DayWindow {
-                start: jiff::civil::time(local.hour(), 0, 0, 0),
-                end: jiff::civil::time((local.hour() + 23) % 24, 0, 0, 0),
-            },
-            rules: vec![crate::config::Rule {
-                provider: Some("opencode".to_owned()),
-                model_contains: "openai/gpt".to_owned(),
-                ttl_seconds: 1680,
-            }],
-            ..Config::default()
-        };
+        let config = active_config();
         let mut client = T3Client::new(&base, "test".to_owned());
         let mut state = State::default();
         pass(
@@ -567,5 +638,51 @@ mod tests {
         assert_eq!(state.threads["thread-1"].refreshes, 1);
         server.join().unwrap();
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn reads_history_only_when_the_latest_run_changes_even_after_restart() {
+        let completed = Timestamp::now();
+        let mut listings = 0;
+        let (base, server) = mock_server(
+            &[
+                "initialize",
+                "t3_thread_list",
+                "t3_thread_read",
+                "t3_thread_list",
+                "t3_thread_list",
+                "t3_thread_read",
+            ],
+            move |name, _| {
+                Some(if name == "t3_thread_list" {
+                    listings += 1;
+                    json!({ "threads": [{
+                        "threadId": "thread-1", "status": "completed",
+                        "providerInstanceId": "opencode", "model": "openai/gpt-6-astra",
+                        "latestRunId": if listings < 3 { "run-1" } else { "run-2" },
+                        "updatedAt": completed.checked_add(jiff::Span::new().seconds(listings)).unwrap().to_string()
+                    }] })
+                } else {
+                    json!({ "recentRuns": [{
+                        "runId": if listings < 3 { "run-1" } else { "run-2" },
+                        "completedAt": completed.to_string()
+                    }] })
+                })
+            },
+        );
+        let config = active_config();
+        let mut client = T3Client::new(&base, "test".to_owned());
+        let mut state = State::default();
+        tick(&config, &mut client, &mut state, Path::new("unused"), true).unwrap();
+        // Exercise the persisted cache without touching the real state file.
+        let mut state: State =
+            serde_json::from_value(serde_json::to_value(&state).unwrap()).unwrap();
+        state.threads.get_mut("thread-1").unwrap().refreshes = 1;
+        tick(&config, &mut client, &mut state, Path::new("unused"), true).unwrap();
+        assert_eq!(state.threads["thread-1"].refreshes, 1);
+        tick(&config, &mut client, &mut state, Path::new("unused"), true).unwrap();
+        assert!(state.threads["thread-1"].has_run("run-2"));
+        assert_eq!(state.threads["thread-1"].refreshes, 0);
+        server.join().unwrap();
     }
 }

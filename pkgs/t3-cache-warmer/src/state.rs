@@ -8,6 +8,8 @@ use anyhow::{Context, Result};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
+use crate::t3::CompletedRun;
+
 /// The MCP OAuth credential. Lives in its own file so state stays shareable.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -46,9 +48,9 @@ pub struct ThreadState {
     pub status: String,
     /// Newest activity that was not one of our keepalives.
     pub last_activity_at: Option<Timestamp>,
-    /// Newest activity believed to have written the prompt cache.
-    pub last_cache_at: Option<Timestamp>,
-    /// `updatedAt` as last observed, used to spot activity we did not cause.
+    /// Reuse this completion while T3 reports the same run ID.
+    pub last_run: Option<CompletedRun>,
+    /// Thread metadata timestamp, used only for pruning, not cache freshness.
     pub seen_updated_at: Option<Timestamp>,
     /// Set while a keepalive turn is expected to settle into the thread.
     pub pending_warm_at: Option<Timestamp>,
@@ -61,6 +63,18 @@ pub struct ThreadState {
     pub subagent: bool,
     pub refreshes: u32,
     pub last_error: Option<String>,
+}
+
+impl ThreadState {
+    pub fn has_run(&self, run_id: &str) -> bool {
+        self.last_run
+            .as_ref()
+            .is_some_and(|run| run.run_id == run_id)
+    }
+
+    pub fn last_cache_at(&self) -> Option<Timestamp> {
+        self.last_run.as_ref().map(|run| run.completed_at)
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use crate::config::Config;
 use crate::state::{State, ThreadState};
-use crate::t3::ThreadView;
+use crate::t3::{CompletedRun, ThreadView};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Decision {
@@ -61,12 +61,8 @@ pub fn decide(config: &Config, state: &ThreadState, now: Timestamp) -> Decision 
     Decision::Warm
 }
 
-/// One eligibility check for decisions, scheduling, and status output.
-fn refresh_at(
-    config: &Config,
-    state: &ThreadState,
-    local: &Zoned,
-) -> Result<Timestamp, SkipReason> {
+/// Gates shared by run-history discovery, decisions, scheduling, and status.
+pub fn warming_ttl(config: &Config, state: &ThreadState, local: &Zoned) -> Result<u64, SkipReason> {
     if state.settled {
         return Err(SkipReason::Settled);
     }
@@ -82,10 +78,17 @@ fn refresh_at(
     if !config.day_window.contains(local.time()) {
         return Err(SkipReason::OutsideHours);
     }
+    rule_ttl(config, &state.provider, &state.model).ok_or(SkipReason::NoRule)
+}
+
+fn refresh_at(
+    config: &Config,
+    state: &ThreadState,
+    local: &Zoned,
+) -> Result<Timestamp, SkipReason> {
+    let ttl = warming_ttl(config, state, local)?;
     let now = local.timestamp();
-    let Some(ttl) = rule_ttl(config, &state.provider, &state.model) else {
-        return Err(SkipReason::NoRule);
-    };
+    let last_cache = state.last_cache_at().ok_or(SkipReason::IdleTooLong)?;
     let Some(last_activity) = state.last_activity_at else {
         return Err(SkipReason::IdleTooLong);
     };
@@ -103,17 +106,13 @@ fn refresh_at(
     if state.refreshes >= config.max_refreshes_per_activity {
         return Err(SkipReason::BudgetSpent);
     }
-    Ok(refresh_due_after(
-        state.last_cache_at.unwrap_or(last_activity),
-        ttl,
-        config.lead_seconds,
-    ))
+    Ok(refresh_due_after(last_cache, ttl, config.lead_seconds))
 }
 
 /// The moment a cache written at `last_cache` should be refreshed: its TTL
 /// minus the configured lead time. This is the single canonical definition
 /// of "due", shared by [`decide`] and [`next_wait`].
-pub fn refresh_due_after(last_cache: Timestamp, ttl_seconds: u64, lead_seconds: u64) -> Timestamp {
+fn refresh_due_after(last_cache: Timestamp, ttl_seconds: u64, lead_seconds: u64) -> Timestamp {
     let threshold = (ttl_seconds as i64 - lead_seconds as i64).max(0);
     last_cache
         .checked_add(Span::new().seconds(threshold))
@@ -123,12 +122,12 @@ pub fn refresh_due_after(last_cache: Timestamp, ttl_seconds: u64, lead_seconds: 
 /// Statuses in which a thread is doing nothing and may receive a keepalive.
 /// `completed` is T3's state for a thread whose last run finished; anything
 /// else (`running`, `preparing`, `failed`, …) means hands off.
-pub fn is_quiescent(status: &str) -> bool {
+fn is_quiescent(status: &str) -> bool {
     matches!(status, "idle" | "completed")
 }
 
 /// The TTL of the first matching rule, or `None` when nothing matches.
-pub fn rule_ttl(config: &Config, provider: &str, model: &str) -> Option<u64> {
+fn rule_ttl(config: &Config, provider: &str, model: &str) -> Option<u64> {
     config
         .rules
         .iter()
@@ -166,24 +165,8 @@ pub fn next_wait(state: &State, config: &Config, now: Timestamp) -> Duration {
     due.duration_since(now).unsigned_abs().min(cap)
 }
 
-/// Folds a new observation of a thread into our belief about its cache.
-///
-/// A pending keepalive expires with the observation once its grace window
-/// has passed, whether or not its turn was ever seen: a keepalive run is a
-/// one-word reply, so by then it either failed or this process missed the
-/// run, and holding the thread's budget hostage forever would be worse than
-/// warming it once more. Expiring here rather than in a separate step keeps
-/// the ordering with attribution impossible to get wrong: a reply that lands
-/// past the grace window reads as fresh activity and re-arms the budget,
-/// while the `Running` gate in [`decide`] is what protects a turn that is
-/// genuinely still in flight.
-///
-/// Activity that lands within a pending keepalive's grace window, or while
-/// that keepalive's turn was seen running, is attributed to the keepalive: it
-/// refreshes the cache without resetting the refresh budget or counting as
-/// the user returning. Anything else is real activity.
-///
-/// Call this once per thread per tick, for every thread the list reports.
+/// Observe metadata and expire pending sends before attributing any new run.
+/// Metadata changes, including visits, never refresh the cache.
 pub fn observe(state: &mut ThreadState, view: &ThreadView, now: Timestamp, grace_seconds: u64) {
     if let Some(sent) = state.pending_warm_at
         && now >= refresh_due_after(sent, grace_seconds, 0)
@@ -201,20 +184,29 @@ pub fn observe(state: &mut ThreadState, view: &ThreadView, now: Timestamp, grace
     if state.pending_warm_at.is_some() && !is_quiescent(&view.status) {
         state.pending_seen_running = true;
     }
-    if state.seen_updated_at != Some(view.updated_at) {
-        let ours = state.pending_warm_at.is_some_and(|sent| {
-            view.updated_at.as_second() <= sent.as_second() + grace_seconds as i64
-                || state.pending_seen_running
-        });
-        state.seen_updated_at = Some(view.updated_at);
-        state.last_cache_at = Some(view.updated_at);
-        if !ours {
-            state.last_activity_at = Some(view.updated_at);
-            state.refreshes = 0;
-        }
+    state.seen_updated_at = Some(view.updated_at);
+    if view.latest_run_id.is_none() {
+        state.last_run = None;
+        state.last_activity_at = None;
     }
-    if state.pending_warm_at.is_some() && state.pending_seen_running && is_quiescent(&view.status) {
-        // Our keepalive turn finished; stop attributing later activity to it.
+}
+
+/// Only a newly completed run can refresh the cache or reset the user budget.
+pub fn observe_run(state: &mut ThreadState, run: CompletedRun, grace_seconds: u64) {
+    if state.has_run(&run.run_id) {
+        return;
+    }
+    let ours = state.pending_warm_at.is_some_and(|sent| {
+        run.completed_at >= sent
+            && (run.completed_at.as_second() <= sent.as_second() + grace_seconds as i64
+                || state.pending_seen_running)
+    });
+    if !ours {
+        state.last_activity_at = Some(run.completed_at);
+        state.refreshes = 0;
+    }
+    state.last_run = Some(run);
+    if state.pending_seen_running {
         state.pending_seen_running = false;
         state.pending_warm_at = None;
     }
@@ -261,6 +253,7 @@ mod tests {
             provider: "opencode".to_owned(),
             model: "openai/gpt-6.1-sol".to_owned(),
             updated_at: timestamp(updated_at),
+            latest_run_id: Some(format!("run-{updated_at}")),
             subagent: false,
         }
     }
@@ -287,7 +280,15 @@ mod tests {
     fn warm_state(updated_at: &str) -> ThreadState {
         let mut state = ThreadState::default();
         observe(&mut state, &view(updated_at), timestamp(updated_at), 300);
+        observe_run(&mut state, completed_run(updated_at), 300);
         state
+    }
+
+    fn completed_run(at: &str) -> CompletedRun {
+        CompletedRun {
+            run_id: format!("run-{at}"),
+            completed_at: timestamp(at),
+        }
     }
 
     #[test]
@@ -659,20 +660,17 @@ mod tests {
     fn counts_our_keepalive_and_its_reply_as_ours() {
         let mut state = ThreadState {
             last_activity_at: Some(timestamp("2026-10-14T09:00:00Z")),
-            last_cache_at: Some(timestamp("2026-10-14T09:00:00Z")),
+            last_run: Some(completed_run("2026-10-14T09:00:00Z")),
             seen_updated_at: Some(timestamp("2026-10-14T09:00:00Z")),
             refreshes: 1,
             pending_warm_at: Some(timestamp("2026-10-14T09:40:00Z")),
             ..ThreadState::default()
         };
 
-        // Our send appears.
-        observe(
-            &mut state,
-            &view("2026-10-14T09:40:01Z"),
-            timestamp("2026-10-14T09:40:01Z"),
-            300,
-        );
+        let mut running = view("2026-10-14T09:40:01Z");
+        running.status = "running".to_owned();
+        observe(&mut state, &running, running.updated_at, 300);
+        assert!(state.pending_seen_running);
         assert_eq!(state.refreshes, 1, "budget untouched");
         assert_eq!(
             state.last_activity_at,
@@ -687,12 +685,13 @@ mod tests {
             timestamp("2026-10-14T09:40:30Z"),
             300,
         );
-        assert_eq!(state.last_cache_at, Some(timestamp("2026-10-14T09:40:30Z")));
+        observe_run(&mut state, completed_run("2026-10-14T09:40:30Z"), 300);
         assert_eq!(
-            state.pending_warm_at,
-            Some(timestamp("2026-10-14T09:40:00Z")),
-            "cleared only once the turn was seen running"
+            state.last_cache_at(),
+            Some(timestamp("2026-10-14T09:40:30Z"))
         );
+        assert!(state.pending_warm_at.is_none());
+        assert!(!state.pending_seen_running);
         assert_eq!(state.refreshes, 1);
 
         // Real activity afterwards resets the budget.
@@ -702,6 +701,7 @@ mod tests {
             timestamp("2026-10-14T10:30:00Z"),
             300,
         );
+        observe_run(&mut state, completed_run("2026-10-14T10:30:00Z"), 300);
         assert_eq!(state.refreshes, 0);
         assert_eq!(
             state.last_activity_at,
@@ -713,7 +713,7 @@ mod tests {
     fn a_reply_past_the_grace_window_counts_as_fresh_activity() {
         let mut state = ThreadState {
             last_activity_at: Some(timestamp("2026-10-14T09:00:00Z")),
-            last_cache_at: Some(timestamp("2026-10-14T09:00:00Z")),
+            last_run: Some(completed_run("2026-10-14T09:00:00Z")),
             seen_updated_at: Some(timestamp("2026-10-14T09:00:00Z")),
             refreshes: 1,
             pending_warm_at: Some(timestamp("2026-10-14T09:40:00Z")),
@@ -735,6 +735,7 @@ mod tests {
             timestamp("2026-10-14T09:55:00Z"),
             300,
         );
+        observe_run(&mut state, completed_run("2026-10-14T09:55:00Z"), 300);
         assert_eq!(state.refreshes, 0);
         assert_eq!(
             state.last_activity_at,
@@ -789,7 +790,61 @@ mod tests {
             state.last_activity_at,
             Some(timestamp("2026-10-14T09:00:00Z"))
         );
-        assert_eq!(state.last_cache_at, state.last_activity_at);
+        assert_eq!(state.last_cache_at(), state.last_activity_at);
         assert_eq!(state.refreshes, 0);
+    }
+
+    #[test]
+    fn visits_and_provider_updates_do_not_refresh_the_cache_or_budget() {
+        let mut config = config();
+        config.rules[0].ttl_seconds = 1680;
+        let mut thread = view("2026-10-19T14:37:59.204Z");
+        let mut state = warm_state("2026-10-19T14:37:59.204Z");
+        state.refreshes = 1;
+        thread.updated_at = timestamp("2026-10-19T15:12:51.540Z");
+        observe(&mut state, &thread, thread.updated_at, 300);
+        assert_eq!(
+            state.last_cache_at(),
+            Some(timestamp("2026-10-19T14:37:59.204Z"))
+        );
+        assert_eq!(state.last_activity_at, state.last_cache_at());
+        assert_eq!(state.refreshes, 1);
+        assert_eq!(decide(&config, &state, thread.updated_at), Decision::Warm);
+    }
+
+    #[test]
+    fn only_completed_runs_establish_cache_freshness() {
+        let mut state = ThreadState {
+            last_activity_at: Some(timestamp("2026-10-19T15:12:51.540Z")),
+            seen_updated_at: Some(timestamp("2026-10-19T15:12:51.540Z")),
+            ..ThreadState::default()
+        };
+        let mut thread = view("2026-10-19T15:12:51.540Z");
+        observe(&mut state, &thread, thread.updated_at, 300);
+        assert!(state.last_cache_at().is_none());
+        assert_eq!(
+            decide(&config(), &state, thread.updated_at),
+            Decision::Skip {
+                reason: SkipReason::IdleTooLong
+            }
+        );
+        observe_run(&mut state, completed_run("2026-10-19T14:37:59.204Z"), 300);
+        assert_eq!(
+            state.last_cache_at(),
+            Some(timestamp("2026-10-19T14:37:59.204Z"))
+        );
+        assert_eq!(state.last_activity_at, state.last_cache_at());
+        thread.latest_run_id = None;
+        observe(&mut state, &thread, thread.updated_at, 300);
+        assert!(state.last_cache_at().is_none());
+        assert!(state.last_activity_at.is_none());
+    }
+
+    #[test]
+    fn repeated_run_observations_preserve_the_budget() {
+        let mut state = warm_state("2026-10-14T09:00:00Z");
+        state.refreshes = 2;
+        observe_run(&mut state, completed_run("2026-10-14T09:00:00Z"), 300);
+        assert_eq!(state.refreshes, 2);
     }
 }

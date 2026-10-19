@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result, ensure};
 use jiff::Timestamp;
-use serde::{Deserialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 
 pub const PROTOCOL_VERSION: &str = "2025-06-18";
@@ -28,12 +28,22 @@ pub struct ThreadView {
     pub provider: String,
     pub model: String,
     pub updated_at: Timestamp,
+    // Require the field; only an explicit null means the thread has no runs.
+    #[serde(deserialize_with = "Option::deserialize")]
+    pub latest_run_id: Option<String>,
     #[serde(
         default,
         rename = "relationshipToParent",
         deserialize_with = "is_subagent"
     )]
     pub subagent: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompletedRun {
+    pub run_id: String,
+    pub completed_at: Timestamp,
 }
 
 fn is_subagent<'de, D: serde::Deserializer<'de>>(value: D) -> Result<bool, D::Error> {
@@ -248,6 +258,29 @@ impl T3Client {
         )
     }
 
+    pub fn completed_run(&mut self, thread_id: &str, run_id: &str) -> Result<CompletedRun> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Snapshot {
+            recent_runs: Vec<CompletedRun>,
+        }
+        let snapshot: Snapshot = serde_json::from_value(self.call_tool(
+            "t3_thread_read",
+            &json!({
+                "threadId": thread_id,
+                "runLimit": 1,
+                "limit": 1,
+                "maxCharsPerItem": 256,
+            }),
+        )?)
+        .context("invalid run history from t3_thread_read")?;
+        snapshot
+            .recent_runs
+            .into_iter()
+            .find(|run| run.run_id == run_id)
+            .context("latest run changed or missing from t3_thread_read; retry next pass")
+    }
+
     fn list<T: DeserializeOwned>(
         &mut self,
         name: &str,
@@ -424,6 +457,7 @@ pub(crate) mod tests {
         json!({
             "threadId": "thread-1", "title": "Test", "status": "completed",
             "providerInstanceId": "opencode", "model": "openai/gpt-6-astra",
+            "latestRunId": null,
             "updatedAt": "2026-10-14T09:00:00Z"
         })
     }
@@ -451,6 +485,49 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn reads_actual_run_completion_and_rejects_races_or_missing_history() {
+        let completed: Timestamp = "2026-10-19T14:37:59.204Z".parse().unwrap();
+        let (base, server) = mock_server(
+            &[
+                "initialize",
+                "t3_thread_read",
+                "t3_thread_read",
+                "t3_thread_read",
+                "t3_thread_read",
+            ],
+            move |_, arguments| {
+                assert_eq!(arguments["runLimit"], 1);
+                assert_eq!(arguments["limit"], 1);
+                Some(match arguments["threadId"].as_str().unwrap() {
+                    "completed" => json!({ "recentRuns": [{
+                        "runId": "run-1", "completedAt": completed.to_string()
+                    }] }),
+                    "running" => json!({ "recentRuns": [{
+                        "runId": "run-1", "completedAt": null
+                    }] }),
+                    "changed" => json!({ "recentRuns": [{
+                        "runId": "run-2", "completedAt": completed.to_string()
+                    }] }),
+                    "missing" => json!({ "recentRuns": [] }),
+                    other => panic!("unexpected thread {other}"),
+                })
+            },
+        );
+        let mut client = T3Client::new(&base, "test".to_owned());
+        assert_eq!(
+            client
+                .completed_run("completed", "run-1")
+                .unwrap()
+                .completed_at,
+            completed
+        );
+        for id in ["running", "changed", "missing"] {
+            assert!(client.completed_run(id, "run-1").is_err(), "{id}");
+        }
+        server.join().unwrap();
+    }
+
+    #[test]
     fn rejects_threads_with_missing_or_malformed_warming_metadata() {
         for field in [
             "threadId",
@@ -458,6 +535,7 @@ pub(crate) mod tests {
             "providerInstanceId",
             "model",
             "updatedAt",
+            "latestRunId",
         ] {
             let mut raw = listed_thread();
             raw.as_object_mut().unwrap().remove(field);
@@ -468,6 +546,7 @@ pub(crate) mod tests {
         }
         for (field, value) in [
             ("updatedAt", json!("invalid")),
+            ("latestRunId", json!(42)),
             ("settled", json!("false")),
             ("relationshipToParent", json!(true)),
         ] {
