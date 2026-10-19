@@ -186,6 +186,22 @@ assert lib.assertMsg (
     [ "/srv/backup" "/srv/data/fast" "/var/lib/nextcloud/data" ]
 ) "Every scheduled backup must ping its healthchecks.io check and restic must back up from mounted sources";
 assert lib.assertMsg (
+  lib.all (change:
+    let updated = (flake.nixosConfigurations.predator.extendModules {
+      modules = [ change ];
+    }).config;
+    in lib.all (unit:
+      map toString updated.systemd.services.${unit}.restartTriggers
+        != map toString server.systemd.services.${unit}.restartTriggers
+    ) [ "hermes-agent" "hermes-backend" ]
+  ) [
+    { services.hermes-agent.settings.approvals.mode = lib.mkForce "smart"; }
+    { services.hermes-agent.documents."AGENTS.md" = lib.mkForce "Restart test instructions"; }
+    { services.hermes-agent.hermesHomeFiles."SOUL.md" = lib.mkForce "Restart test personality"; }
+    { services.hermes-agent.extraPlugins = lib.mkForce []; }
+  ]
+) "Managed Hermes config, instructions, personality and plugin changes must restart both services";
+assert lib.assertMsg (
   server.services.hermes-agent.user == "mirsella"
   && server.services.hermes-agent.group == "hermes-private"
   && server.users.groups.hermes-private.members == [ "mirsella" ]
@@ -195,7 +211,7 @@ assert lib.assertMsg (
    && server.services.hermes-agent.settings.skills.disabled == [ "personal-accounts" ]
    && !(server.services.hermes-agent.hermesHomeFiles ? "skills/personal-accounts/SKILL.md")
    && server.services.hermes-agent.settings.browser == { backend = "browserbase"; cloud_provider = "camofox"; }
-   && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-cdp" "browser-use" "browser-evaluation" ]
+   && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-unsupported" ]
    && server.services.hermes-agent.settings.plugins.enabled == [ "browser-policy" ]
    && server.services.hermes-agent.settings.model.provider == "opencode-go"
     && server.services.hermes-agent.settings.model.default == "deepseek-v4.1-flash"
@@ -227,8 +243,7 @@ assert lib.assertMsg (
   && lib.hasInfix "base: \"/hermes/\"" server.services.hermes-agent.package.hermesWeb.postPatch
   && server.services.hermes-agent.documents ? "AGENTS.md"
   && !(server.services.hermes-agent.settings ? hooks)
-  && server.services.hermes-agent.settings.approvals.mode == "smart"
-  && server.services.hermes-agent.settings.approvals.timeout == 3600
+  && server.services.hermes-agent.settings.approvals.mode == "off"
   && !(server.services.hermes-agent.settings ? toolsets)
   && server.sops.secrets.hermes_gateway_env.owner == "mirsella"
   && server.sops.secrets.hermes_gateway_env.mode == "0400"

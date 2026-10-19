@@ -28,33 +28,40 @@ with tempfile.TemporaryDirectory() as directory:
     manager.discover_and_load()
     plugin = next(p for p in manager.list_plugins() if p["name"] == "browser-policy")
     assert plugin["enabled"] and not plugin["error"], plugin
-    assert resolve_toolset("browser-evaluation") == ["browser_console"]
-
-    def names(disabled):
-        schemas = get_tool_definitions(
-            enabled_toolsets=["browser"],
-            disabled_toolsets=disabled,
-            quiet_mode=True,
-            skip_tool_search_assembly=True,
-        )
-        return {schema["function"]["name"] for schema in schemas}
-
-    available = names([])
-    assert "browser_console" in available, available
-    restricted = names(["browser-cdp", "browser-use", "browser-evaluation"])
-    assert {"browser_navigate", "browser_snapshot", "browser_type"} <= restricted
-    assert not restricted & {
+    unsupported = {
         "browser_console",
         "browser_cdp",
         "browser_exec",
         "browser_dialog",
+        "browser_vault_list",
+        "browser_vault_unlock",
+        "browser_vault_fill",
+        "browser_vault_save_login",
+        "browser_vault_enter_code",
     }
-    assert restricted == available - {
-        "browser_console",
-        "browser_cdp",
-        "browser_exec",
-        "browser_dialog",
-    }
-    print(
-        "Native browser policy loads and hides unsupported tools without adding tools"
-    )
+    assert set(resolve_toolset("browser-unsupported")) == unsupported
+
+    def tools_for(toolset, disabled=None):
+        return {
+            schema["function"]["name"]: schema["function"]
+            for schema in get_tool_definitions(
+                enabled_toolsets=[toolset],
+                disabled_toolsets=disabled,
+                quiet_mode=True,
+                skip_tool_search_assembly=True,
+            )
+        }
+
+    available = set(tools_for("browser"))
+    assert {"browser_console", "browser_vault_fill"} <= available, available
+    supported = available - unsupported
+    assert {"browser_navigate", "browser_snapshot", "browser_type"} <= supported
+    for toolset in ["browser", "hermes-cli", "hermes-telegram"]:
+        tools = tools_for(toolset, ["browser-unsupported"])
+        assert not tools.keys() & unsupported, (toolset, tools.keys() & unsupported)
+        assert tools.keys() & available == supported, (toolset, tools.keys() & available)
+        for name in supported:
+            description = tools[name]["description"]
+            assert "Vault note:" not in description, (toolset, name, description)
+            assert "Never type a password" not in description, (toolset, name, description)
+    print("Camofox tools exclude the CDP vault and allow direct credential entry")

@@ -158,6 +158,11 @@ let
     test -r ${lib.escapeShellArg config.sops.secrets.hermes_gateway_env.path}
     ${gatewayEnvironment} ${state}/.hermes/.env 0600 ${lib.escapeShellArgs config.services.hermes-agent.environmentFiles}
   '';
+  # Activation updates mutable files without changing either service's command.
+  managedState = pkgs.writeText "hermes-managed-state" (
+    config.system.activationScripts.hermes-agent-setup.text
+    + config.system.activationScripts.hermes-settings.text
+  );
   isolationRules = pkgs.writeText "predator-hermes-network.nft" ''
     destroy table inet predator_hermes
     table inet predator_hermes {
@@ -256,14 +261,8 @@ in {
       # in the Hermes config stays editable.
       settings = {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
-        # Smart approval keeps the guardian review, but the 300 s default is too
-        # tight for chat: a flagged command that lands while the owner is away
-        # dies on the timeout. Give him an hour to answer.
-        approvals = {
-          mode = "smart";
-          timeout = 3600;
-        };
-        agent.disabled_toolsets = [ "browser-cdp" "browser-use" "browser-evaluation" ];
+        approvals.mode = "off";
+        agent.disabled_toolsets = [ "browser-unsupported" ];
         agent.reasoning_overrides."deepseek-v4.1-flash" = "max";
         plugins.enabled = [ "browser-policy" ];
         model = { provider = "opencode-go"; default = "deepseek-v4.1-flash"; base_url = ""; api_key = ""; };
@@ -316,6 +315,7 @@ in {
       };
     };
     systemd.services.hermes-agent = {
+      restartTriggers = [ managedState ];
       wantedBy = lib.mkForce (lib.optional cfg.messaging "multi-user.target");
       requires = [ "hermes-browser-control.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
       after = [ "hermes-browser-control.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
@@ -326,6 +326,7 @@ in {
       serviceConfig = ownerService;
     };
     systemd.services.hermes-backend = {
+      restartTriggers = [ managedState ];
       requires = [ "hermes-network-isolation.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" ];
       after = [ "hermes-network-isolation.service" "sops-install-secrets.service" "sleev-gateway.service" "hermes-secret-service.service" "hermes-agent.service" ];
       wants = [ "hermes-agent.service" ];
