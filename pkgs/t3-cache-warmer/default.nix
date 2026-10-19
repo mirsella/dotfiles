@@ -1,4 +1,4 @@
-{ lib, rustPlatform }:
+{ lib, rustPlatform, tzdata }:
 rustPlatform.buildRustPackage {
   pname = "t3-cache-warmer";
   version = "0.1.0";
@@ -11,6 +11,9 @@ rustPlatform.buildRustPackage {
     ];
   };
   cargoLock.lockFile = ./Cargo.lock;
+  preCheck = ''
+    export TZDIR=${tzdata}/share/zoneinfo
+  '';
   meta = {
     description = "Keep prompt caches warm on active T3 Code threads";
     mainProgram = "t3-cache-warmer";
