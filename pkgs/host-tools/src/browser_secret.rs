@@ -41,9 +41,8 @@ struct Browser {
 struct Tabs {
     tabs: Vec<Tab>,
 }
-/// One entry of the native browser's tab list, kept as raw JSON: an entry the
-/// bridge cannot read entirely is skipped instead of failing the listing, so one
-/// bad entry cannot hide the other tabs.
+/// Raw identifier and URL fields let selection skip unreadable values without
+/// hiding the other tabs. The surrounding tab list must still have a valid shape.
 #[derive(Deserialize)]
 struct Tab {
     #[serde(rename = "tabId")]
@@ -317,28 +316,18 @@ mod tests {
 
     #[test]
     fn selection_skips_tabs_the_bridge_cannot_address() {
-        let tabs = vec![
-            Tab {
-                id: Some("a".into()),
-                url: Some("https://login.example.com/form".into()),
-            },
-            Tab {
-                id: Some("b".into()),
-                url: Some("https://login.example.com/other".into()),
-            },
-            Tab {
-                id: Some("unreported".into()),
-                url: None,
-            },
-            Tab {
-                id: Some("unreadable".into()),
-                url: Some("not a URL".into()),
-            },
-            Tab {
-                id: Some(json!(7)),
-                url: Some("https://login.example.com/numbered".into()),
-            },
-        ];
+        let tabs = serde_json::from_value::<Tabs>(json!({"tabs": [
+            {"tabId": "a", "url": "https://login.example.com/form"},
+            {"tabId": "b", "url": "https://login.example.com/other"},
+            {"tabId": "unreported"},
+            {"tabId": "unreadable", "url": "not a URL"},
+            {"tabId": "numeric-url", "url": 7},
+            {"tabId": 7, "url": "https://login.example.com/numbered"},
+            {"url": "https://login.example.com/missing-id"},
+            {"tabId": null, "url": "https://login.example.com/null-id"}
+        ]}))
+        .unwrap()
+        .tabs;
         let origin = "https://login.example.com/form"
             .parse::<Url>()
             .unwrap()
@@ -347,11 +336,9 @@ mod tests {
         assert!(select_tab(&tabs, &other.origin(), None).is_err());
         assert_eq!(select_tab(&tabs, &origin, Some("b")).unwrap(), "b");
         assert_eq!(select_tab(&tabs[..1], &origin, None).unwrap(), "a");
-        assert!(select_tab(&tabs, &origin, Some("missing")).is_err());
-        // A tab the native browser no longer reports is never matched.
-        assert!(select_tab(&tabs, &origin, Some("unreported")).is_err());
-        // One unreadable URL must not hide the tabs the bridge can still use.
-        assert!(select_tab(&tabs, &origin, Some("unreadable")).is_err());
+        for id in ["missing", "unreported", "unreadable", "numeric-url"] {
+            assert!(select_tab(&tabs, &origin, Some(id)).is_err(), "{id}");
+        }
         // Neither must an identifier that is not a string: it is unaddressable,
         // and a listing without one says so instead of blaming the origin.
         assert!(
@@ -362,8 +349,7 @@ mod tests {
         );
         assert!(
             select_tab(&tabs, &origin, None)
-                .err()
-                .unwrap()
+                .unwrap_err()
                 .to_string()
                 .ends_with("a, b")
         );
