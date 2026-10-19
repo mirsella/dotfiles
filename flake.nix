@@ -107,6 +107,15 @@
       packages.x86_64-linux = customPackages // {
         update-packages = updatePackages;
         workstation-memory-config = pkgs.callPackage ./arch/memory.nix { };
+        ci = pkgs.linkFarm "dotfiles-ci" (
+          nixpkgs.lib.mapAttrsToList
+            (name: path: { name = "check-${name}"; inherit path; })
+            self.checks.x86_64-linux
+          ++ [
+            { name = "host-tools"; path = pkgs.host-tools; }
+            { name = "camofox-browser"; path = pkgs.camofox-browser; }
+          ]
+        );
       };
 
       nixosModules = hostModules;
@@ -183,7 +192,9 @@
       devShells.x86_64-linux.default = pkgs.mkShell {
         packages = with pkgs; [ cargo clippy dbus openssl pkg-config python3 rustc rustfmt sqlite ];
         shellHook = ''
-          echo "Use the flake toolchain: 'nix fmt' to format, 'cargo test --offline' to test."
+          # Workstation Cargo settings use nightly-only flags and backends.
+          export CARGO_HOME="''${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/host-tools-cargo"
+          echo "Use the flake toolchain: 'nix fmt' to format, 'cargo test --manifest-path pkgs/host-tools/Cargo.toml' to test."
         '';
       };
     };

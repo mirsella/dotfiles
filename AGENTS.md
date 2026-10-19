@@ -78,8 +78,8 @@ The flake discovers these directories and sets hostnames automatically.
   the Git index before evaluating; they do not need to be committed.
 - `nix flake check . --no-build --no-update-lock-file` evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`. GitHub Actions builds
-  the checks, host-tools with its Rust tests, and the camofox-browser package on
-  pushes to `main`. Format `pkgs/host-tools` with the flake's pinned
+  `.#ci` on pushes to `main`: every declared check, host-tools with its Rust tests,
+  and camofox-browser. Format `pkgs/host-tools` with the flake's pinned
   rustfmt (`nix fmt`); a newer local rustfmt can reformat code the gate accepts.
   Run focused Cargo tests for monitoring, backups and suspend changes. The
   `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during
