@@ -12,6 +12,9 @@ buildNpmPackage {
   npmInstallFlags = [ "--omit=dev" ];
   npmRebuildFlags = [ "--ignore-scripts" ];
   nativeBuildInputs = [ python3 makeWrapper ];
+  # Keep credential guards as a normal JavaScript diff, without shell quoting.
+  patches = [ ./credential-fill.patch ];
+  patchFlags = [ "-p1" "--fuzz=0" ];
   env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
   dontNpmBuild = true;
   buildPhase = ''
@@ -29,35 +32,7 @@ buildNpmPackage {
     substituteInPlace lib/config.js \
       --replace-fail 'parseInt(process.env.TAB_INACTIVITY_MS) || 300000' \
       'Number.isNaN(parseInt(process.env.TAB_INACTIVITY_MS)) ? 300000 : parseInt(process.env.TAB_INACTIVITY_MS)'
-    # A credential fill is bound to an exact origin twice: the page must still be
-    # there, and the element the fill resolves to must live in a document on that
-    # same origin. The second check runs on the resolved locator, so it also
-    # covers a ref re-resolved after a refresh and elements inside frames. The
-    # anchor is newline-exact, so the guard lands only in the /tabs/:tabId/type
-    # handler, never in the /act copy of the same block.
     substituteInPlace server.js \
-      --replace-fail '// Resolve and focus the target if ref/selector provided' \
-      'if (req.body.expectedOrigin !== undefined) {
-        if (new URL(tabState.page.url()).origin !== req.body.expectedOrigin) {
-          throw Object.assign(new Error("Page origin changed before credential fill"), { statusCode: 409, code: "page_origin_changed" });
-        }
-      }
-      // Resolve and focus the target if ref/selector provided' \
-      --replace-fail $'\n      if (mode === \'fill\') {' \
-    '
-          if (mode === "fill" && req.body.expectedOrigin !== undefined) {
-            const fillTarget = locator || tabState.page.locator(selector);
-            const fillOrigin = await fillTarget.evaluate((element) => (element.ownerDocument && element.ownerDocument.location ? element.ownerDocument.location.origin : ""));
-            if (fillOrigin !== req.body.expectedOrigin) {
-              throw Object.assign(new Error("Fill target is not in the expected origin"), { statusCode: 409, code: "target_origin_changed" });
-            }
-          }
-          if (mode === '"'"'fill'"'"') {' \
-      --replace-fail "    log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
-      "    if (req.body.expectedOrigin !== undefined) { err.message = 'Credential fill failed'; err.stack = undefined; }
-    log('error', 'type failed', { reqId: req.reqId, error: err.message });" \
-      --replace-fail "    pluginEvents.emit('tab:type', typeEventPayload({ userId: req.body.userId, tabId, text: req.body.text, ref: req.body.ref, mode: req.body.mode }));" \
-      "    pluginEvents.emit('tab:type', typeEventPayload({ userId: req.body.userId, tabId, text: req.body.expectedOrigin !== undefined ? \"\" : req.body.text, ref: req.body.ref, mode: req.body.mode }));" \
       --replace-fail '// Pre-warm browser so first request doesn'"'"'t eat a 6-7s cold start' \
       'if (process.env.CAMOFOX_PREWARM !== "false") {' \
       --replace-fail '// Idle self-shutdown removed -- Fly manages machine lifecycle via fly.toml.' \
