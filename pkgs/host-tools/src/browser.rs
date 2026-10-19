@@ -165,27 +165,13 @@ impl Runtime {
             self.secrets.remove(index);
         }
     }
-    fn secrets_for(&self, tab: &str) -> Vec<String> {
-        let mut secrets: Vec<String> = self
-            .secrets
+    fn secrets_for(&self, tab: &str) -> Vec<&str> {
+        self.secrets
             .iter()
             .filter(|secret| secret.tab == tab && secret.created.elapsed() < SECRET_TTL)
-            .map(|secret| secret.value.clone())
-            .collect();
-        // Longest first: a value that starts with an older secret would
-        // otherwise keep its tail readable after the shorter one matched.
-        secrets.sort_by_key(|secret| std::cmp::Reverse(secret.len()));
-        secrets
+            .map(|secret| secret.value.as_str())
+            .collect()
     }
-}
-/// A snapshot renders a value verbatim or as a quoted scalar, which escapes
-/// backslashes, quotes and control characters.
-fn quoted_form(text: &str) -> String {
-    text.replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
-        .replace('\t', "\\t")
 }
 /// Responses deeper than this limit cannot be fully inspected and are rejected.
 const REDACTION_DEPTH: u8 = 64;
@@ -194,29 +180,33 @@ struct Redactor<'a> {
     forms: Vec<Cow<'a, str>>,
 }
 impl<'a> Redactor<'a> {
-    fn new(secrets: &'a [String]) -> Self {
+    fn new(secrets: &[&'a str]) -> Self {
         let mut forms = Vec::with_capacity(secrets.len() * 2);
-        for secret in secrets {
-            forms.push(Cow::Borrowed(secret.as_str()));
-            let quoted = quoted_form(secret);
-            if quoted != *secret {
+        for &secret in secrets {
+            forms.push(Cow::Borrowed(secret));
+            // Snapshot scalars use JSON escaping, without the surrounding quotes.
+            let mut quoted =
+                serde_json::to_string(secret).expect("String serialization is infallible");
+            quoted.truncate(quoted.len() - 1);
+            quoted.remove(0);
+            if quoted != secret {
                 forms.push(Cow::Owned(quoted));
             }
         }
+        // Encoded patterns can be longer than other raw secrets. Match the
+        // longest actual pattern first so a prefix cannot leave its tail visible.
+        forms.sort_by_key(|form| std::cmp::Reverse(form.len()));
         Self { forms }
     }
     /// Allocate a replacement only when a pattern matches.
-    fn text(&self, text: &str) -> Option<String> {
+    fn text<'text>(&self, text: &'text str) -> Cow<'text, str> {
         let mut redacted = Cow::Borrowed(text);
         for form in &self.forms {
             if redacted.contains(form.as_ref()) {
                 redacted = Cow::Owned(redacted.replace(form.as_ref(), "[redacted]"));
             }
         }
-        match redacted {
-            Cow::Borrowed(_) => None,
-            Cow::Owned(text) => Some(text),
-        }
+        redacted
     }
     fn value(&self, value: &mut Value, depth: u8) -> Result<()> {
         ensure!(
@@ -225,7 +215,7 @@ impl<'a> Redactor<'a> {
         );
         match value {
             Value::String(text) => {
-                if let Some(redacted) = self.text(text) {
+                if let Cow::Owned(redacted) = self.text(text) {
                     *text = redacted;
                 }
                 Ok(())
@@ -741,10 +731,11 @@ async fn api(State(app): State<Shared>, request: Request<Body>) -> WebResult {
         let tabs = runtime.browser.tab().map_or_else(Vec::new, |tab| {
             let mut entry = json!({"tabId":tab,"userId":USER,"listItemId":USER});
             if let Some(url) = discovery.as_ref().and_then(|tabs| tab_url(tabs, tab)) {
-                let url = Redactor::new(&runtime.secrets_for(tab))
-                    .text(url)
-                    .unwrap_or_else(|| url.to_owned());
-                entry["url"] = json!(url);
+                entry["url"] = Value::String(
+                    Redactor::new(&runtime.secrets_for(tab))
+                        .text(url)
+                        .into_owned(),
+                );
             }
             vec![entry]
         });
@@ -1741,7 +1732,7 @@ mod tests {
     }
     #[test]
     fn credential_redaction_covers_quoted_values_and_preserves_unrelated_fields() {
-        let secrets = vec!["hunter2".to_owned(), "quo\"te".to_owned()];
+        let secrets = ["hunter2", "quo\"te"];
         let redactor = Redactor::new(&secrets);
         let body = json!({
             "url": "https://example.com/login",
@@ -1777,7 +1768,10 @@ mod tests {
                 .json(&Bytes::from_static(b"\x89PNG hunter2"))
                 .is_err()
         );
-        assert!(redactor.text("unrelated").is_none());
+        assert!(matches!(
+            redactor.text("unrelated"),
+            Cow::Borrowed("unrelated")
+        ));
         let clean = Bytes::from(serde_json::to_vec(&json!({"snapshot": "current page"})).unwrap());
         let rewritten = redactor.json(&clean).unwrap();
         assert_eq!(
@@ -1786,20 +1780,34 @@ mod tests {
         );
     }
     #[test]
-    fn redaction_stops_at_the_depth_limit() {
-        let secrets = vec!["hunter2".to_owned()];
+    fn credential_patterns_cover_json_escapes_and_longest_matches() {
+        let controls = "\0\u{8}\u{c}\u{1f}";
+        let secrets = ["pass", "password", r"\n\t", "\n\tX", controls];
         let redactor = Redactor::new(&secrets);
-        let nested = |levels: usize| {
-            let mut value = json!("hunter2");
+        for text in ["password", "\n\tX", r"\n\tX", controls, r"\u0000\b\f\u001f"] {
+            assert_eq!(redactor.text(text), "[redacted]", "{text:?}");
+        }
+    }
+    #[test]
+    fn redaction_stops_at_the_depth_limit() {
+        let secrets = ["hunter2"];
+        let redactor = Redactor::new(&secrets);
+        let nested = |levels: usize, text: &str| {
+            let mut value = json!(text);
             for _ in 0..levels {
                 value = json!({ "a": value });
             }
             Bytes::from(serde_json::to_vec(&value).unwrap())
         };
-        assert!(redactor.json(&nested(REDACTION_DEPTH as usize)).is_ok());
+        assert_eq!(
+            redactor
+                .json(&nested(REDACTION_DEPTH as usize, "hunter2"))
+                .unwrap(),
+            nested(REDACTION_DEPTH as usize, "[redacted]")
+        );
         assert!(
             redactor
-                .json(&nested(REDACTION_DEPTH as usize + 1))
+                .json(&nested(REDACTION_DEPTH as usize + 1, "hunter2"))
                 .is_err()
         );
     }
@@ -1838,7 +1846,7 @@ mod tests {
                 "escaped object key",
                 Bytes::from(
                     serde_json::to_vec(&json!({
-                        "nested": {format!("prefix {}", quoted_form("quo\"te")): "hidden"}
+                        "nested": {"prefix quo\\\"te": "hidden"}
                     }))
                     .unwrap(),
                 ),
@@ -1849,7 +1857,7 @@ mod tests {
             .lock()
             .await
             .remember_secret("shared-tab", "quo\"te".into());
-        let secrets = [SECRET.into(), "quo\"te".into()];
+        let secrets = [SECRET, "quo\"te"];
         let redactor = Redactor::new(&secrets);
         for (name, bytes) in cases {
             let error = redactor.json(&bytes).unwrap_err().to_string();
@@ -1940,37 +1948,23 @@ mod tests {
         runtime.remember_secret("tab-a", "first".into());
         runtime.remember_secret("tab-a", "first".into());
         runtime.remember_secret("tab-b", "second".into());
-        assert_eq!(runtime.secrets_for("tab-a"), vec!["first".to_owned()]);
-        assert_eq!(runtime.secrets_for("tab-b"), vec!["second".to_owned()]);
+        assert_eq!(runtime.secrets_for("tab-a"), ["first"]);
+        assert_eq!(runtime.secrets_for("tab-b"), ["second"]);
         assert!(runtime.secrets_for("tab-c").is_empty());
         // The same value on another tab belongs to both tabs.
         runtime.remember_secret("tab-c", "first".into());
-        assert_eq!(runtime.secrets_for("tab-a"), vec!["first".to_owned()]);
-        assert_eq!(runtime.secrets_for("tab-c"), vec!["first".to_owned()]);
-        // A longer value must be replaced before a shorter secret that is its
-        // prefix, or the longer value's tail would survive the redaction.
-        runtime.remember_secret("tab-d", "pass".into());
-        runtime.remember_secret("tab-d", "password".into());
-        assert_eq!(
-            runtime.secrets_for("tab-d"),
-            vec!["password".to_owned(), "pass".to_owned()]
-        );
-        assert_eq!(
-            Redactor::new(&runtime.secrets_for("tab-d"))
-                .text("my password is secure")
-                .unwrap(),
-            "my [redacted] is secure"
-        );
+        assert_eq!(runtime.secrets_for("tab-a"), ["first"]);
+        assert_eq!(runtime.secrets_for("tab-c"), ["first"]);
         for index in 0..MAX_SECRETS + 4 {
             runtime.remember_secret("tab-a", format!("value-{index}"));
         }
         let remembered = runtime.secrets_for("tab-a");
         let newest = format!("value-{}", MAX_SECRETS + 3);
         assert_eq!(remembered.len(), MAX_SECRETS);
-        assert!(remembered.contains(&newest));
-        assert!(!remembered.contains(&"value-0".to_owned()));
+        assert!(remembered.contains(&newest.as_str()));
+        assert!(!remembered.contains(&"value-0"));
         // Filling many fields on one page never evicts another tab's value.
-        assert_eq!(runtime.secrets_for("tab-b"), vec!["second".to_owned()]);
+        assert_eq!(runtime.secrets_for("tab-b"), ["second"]);
         runtime.stop_browser();
         assert!(runtime.secrets_for("tab-b").is_empty());
         assert!(matches!(runtime.browser, Browser::Stopped));
