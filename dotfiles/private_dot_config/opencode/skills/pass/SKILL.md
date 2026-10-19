@@ -31,10 +31,12 @@ For TOTP, add `--json-pointer /totp` and use
 If several tabs match the origin, the bridge reports their IDs; select one with
 `--tab ID`. It checks the origin again under the native tab lock before filling.
 The browser also refuses the fill when the page, or the input's own document, is
-no longer on that origin. Later text responses show `[redacted]` instead of the
-typed value, and that marker means the fill landed, so do not retype it.
-Screenshots and downloads still show the value, so never screenshot a filled
-field to check it: `[redacted]` is the proof the fill landed.
+no longer on that origin. Use the bridge's successful confirmation as the fill
+result. Later text responses replace remembered credential strings with
+`[redacted]`; a marker elsewhere does not confirm that the intended field was
+filled. After an uncertain result, inspect that field in a fresh text snapshot
+before retrying. Screenshots and downloads can expose credentials, so never
+screenshot a filled field to check it.
 It does not submit the form. Continue with normal browser tools afterward.
 
 Hermes's built-in browser vault is CDP-only and does not support Camofox or Proton
