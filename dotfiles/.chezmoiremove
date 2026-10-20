@@ -9,6 +9,9 @@
 .cache/opencode/packages/@dietrichgebert/ponytail
 .cache/opencode/packages/@dietrichgebert/ponytail@latest
 
+# v2 keeps the native service credential in the state directory.
+.config/opencode/server.env
+
 # DCP tui plugin is no longer cloned by chezmoi.
 .cache/opencode/tui-plugins/opencode-dcp
 .claude/.ponytail-active

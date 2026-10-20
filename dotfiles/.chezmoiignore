@@ -64,7 +64,6 @@ kde shortcuts.kksrc
 .ssh/config
 # sops-nix owns service secrets on HM hosts (single writer).
 .config/telegram.env
-.config/opencode/server.env
 .config/openchamber/server.env
 .config/environment.d/55-secrets.conf
 .config/stuff/config.toml
