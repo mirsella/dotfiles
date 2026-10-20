@@ -789,16 +789,23 @@ not proof of a firmware fault. Recovery does not disable thermal protection or
 raise the configured limits.
 
 Profile cycles have a ten-minute cooldown, saved in the service's state directory
-so restarting the service cannot bypass it. After a cycle, the watcher checks
-for five seconds of improved power or clocks under load. If it cannot verify an
-improvement within 20 seconds, it stops cycling until AC performance mode is
-re-entered. The cooldown still applies. If the charger or selected profile changes
-during recovery, the watcher aborts rather than forcing performance mode.
+so restarting the service cannot bypass it. Once the recovery commands finish,
+the watcher observes for up to three minutes. Five seconds at or above 20 W counts
+as recovery even if CPU use falls; high clocks alone count only while CPU use is
+at least 60%. An unsuccessful or inconclusive attempt does not disable monitoring
+or future recovery. Another sustained low-power episode can trigger an attempt
+after the cooldown expires. If the charger or selected profile changes during
+recovery, the watcher aborts rather than forcing performance mode.
+If returning from balanced to performance fails, it retries that step every five
+seconds while the charger and profile checks still permit it.
 
 Read recovery decisions with `journalctl --user -u ryzenadj-laptop` on Arch, or
 `journalctl -u ryzenadj-laptop` on NixOS. While a busy CPU is stuck at low power
 and clocks, the watcher logs temperatures, recovery state and remaining cooldown
-at most once per minute, even when recovery is blocked.
+at most once per minute, even when recovery is blocked. Episode start and sustained
+recovery are logged separately from command completion, including delayed recovery
+after the verification window. These observations do not prove the commands caused
+the recovery.
 
 ## Main's fan configuration
 

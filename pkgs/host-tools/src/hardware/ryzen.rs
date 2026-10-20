@@ -17,9 +17,10 @@ const LIMITS: [(&str, f64); 5] = [
 ];
 const SUSPECT_TIME: Duration = Duration::from_secs(20);
 const RETRY_TIME: Duration = Duration::from_secs(15);
-const VERIFY_TIME: Duration = Duration::from_secs(20);
+const VERIFY_TIME: Duration = Duration::from_secs(180);
 const HEALTHY_TIME: Duration = Duration::from_secs(5);
 const CYCLE_COOLDOWN: Duration = Duration::from_secs(600);
+const RESTORE_RETRY: Duration = Duration::from_secs(5);
 
 fn privileged_command(program: &str) -> Command {
     if unsafe { libc::geteuid() } == 0 {
@@ -103,8 +104,8 @@ fn ac_online() -> Result<bool> {
     Ok(ac.trim() == "1")
 }
 
-fn ac_performance() -> Result<bool> {
-    Ok(ac_online()? && util::read("/sys/firmware/acpi/platform_profile")?.trim() == "performance")
+fn ac_profile(expected: &str) -> Result<bool> {
+    Ok(ac_online()? && util::read("/sys/firmware/acpi/platform_profile")?.trim() == expected)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -129,7 +130,60 @@ impl Sample {
     }
 
     fn recovered(self) -> bool {
-        self.busy >= 60.0 && (self.watts >= 20.0 || self.mhz >= 2400.0)
+        // Power above the observed cap is evidence even after the workload eases.
+        // High idle clocks alone do not establish that the cap has lifted.
+        self.watts >= 20.0 || (self.busy >= 60.0 && self.mhz >= 2400.0)
+    }
+
+    fn sustained_recovery(self, now: Duration, since: &mut Option<Duration>) -> bool {
+        if !self.recovered() {
+            *since = None;
+            return false;
+        }
+        now - *since.get_or_insert(now) >= HEALTHY_TIME
+    }
+}
+
+#[derive(Default)]
+enum Episode {
+    #[default]
+    Clear,
+    Underpowered {
+        since: Duration,
+        healthy_since: Option<Duration>,
+    },
+}
+
+#[derive(Debug, PartialEq)]
+enum EpisodeEvent {
+    Started,
+    Recovered(Duration),
+}
+
+impl Episode {
+    // Track observed episodes independently of recovery attempts and their cooldown.
+    fn observe(&mut self, now: Duration, sample: Sample) -> Option<EpisodeEvent> {
+        match self {
+            Self::Clear if sample.underpowered() => {
+                *self = Self::Underpowered {
+                    since: now,
+                    healthy_since: None,
+                };
+                Some(EpisodeEvent::Started)
+            }
+            Self::Underpowered {
+                since,
+                healthy_since,
+            } => {
+                if sample.sustained_recovery(now, healthy_since) {
+                    let duration = now - *since;
+                    *self = Self::Clear;
+                    return Some(EpisodeEvent::Recovered(duration));
+                }
+                None
+            }
+            Self::Clear => None,
+        }
     }
 }
 
@@ -210,7 +264,7 @@ enum Action {
     Reapply,
     Cycle,
     Verified,
-    Failed,
+    StillCapped,
     Unconfirmed,
 }
 
@@ -224,37 +278,37 @@ enum Recovery {
         since: Duration,
         healthy_since: Option<Duration>,
     },
-    Disabled,
 }
 
 impl Recovery {
     fn settings_applied(&mut self) {
         match self {
             Self::Verifying { healthy_since, .. } => *healthy_since = None,
-            Self::Disabled => {}
             _ => *self = Self::Watching,
         }
     }
 
+    fn cycle_completed(&mut self, now: Duration) {
+        *self = Self::Verifying {
+            since: now,
+            healthy_since: None,
+        };
+    }
+
     fn observe(&mut self, now: Duration, sample: Sample, cycle_allowed: bool) -> Option<Action> {
         match self {
-            Self::Disabled => None,
             Self::Verifying {
                 since,
                 healthy_since,
             } => {
-                if sample.recovered() {
-                    if now - *healthy_since.get_or_insert(now) >= HEALTHY_TIME {
-                        *self = Self::Watching;
-                        return Some(Action::Verified);
-                    }
-                } else {
-                    *healthy_since = None;
+                if sample.sustained_recovery(now, healthy_since) {
+                    *self = Self::Watching;
+                    return Some(Action::Verified);
                 }
                 if now - *since >= VERIFY_TIME {
-                    *self = Self::Disabled;
+                    *self = Self::Watching;
                     return Some(if sample.suspect() {
-                        Action::Failed
+                        Action::StillCapped
                     } else {
                         Action::Unconfirmed
                     });
@@ -274,42 +328,44 @@ impl Recovery {
                 Some(Action::Reapply)
             }
             Self::Retried(since) if now - *since >= RETRY_TIME => {
-                *self = Self::Verifying {
-                    since: now,
-                    healthy_since: None,
-                };
+                *self = Self::Watching;
                 Some(Action::Cycle)
             }
             Self::Suspect(_) | Self::Retried(_) => None,
         }
     }
 
-    fn execute(&mut self, action: Action, cooldown: &mut Cooldown) {
+    fn execute(&mut self, action: Action, cooldown: &mut Cooldown, start: Instant) {
         match action {
-            Action::Reapply => {
-                if let Err(error) = apply() {
-                    eprintln!(
-                        "RyzenAdj retry failed: {error:#}; waiting for telemetry before profile recovery"
-                    );
-                }
-            }
+            Action::Reapply => match apply() {
+                Ok(_) => println!(
+                    "Reapplied maximum-performance policy and custom limits; continuing observation"
+                ),
+                Err(error) => eprintln!(
+                    "RyzenAdj retry failed: {error:#}; waiting for telemetry before profile recovery"
+                ),
+            },
             Action::Cycle => {
                 if let Err(error) = recover_profile(cooldown) {
-                    *self = Self::Disabled;
+                    *self = Self::Watching;
                     eprintln!(
-                        "Profile recovery failed: {error:#}; disabling further cycles for this AC performance session"
+                        "Profile recovery command failed: {error:#}; monitoring continues, with further attempts subject to the {CYCLE_COOLDOWN:?} cooldown"
                     );
                 } else {
+                    // Start the verification window after all recovery commands finish.
+                    self.cycle_completed(start.elapsed());
                     println!(
-                        "Cycled balanced -> performance and reapplied limits; checking recovery under load"
+                        "Cycled balanced -> performance and reapplied policy and limits; observing recovery for up to {VERIFY_TIME:?}"
                     );
                 }
             }
             Action::Verified => {
-                println!("Power or clocks recovered under sustained load after the profile cycle")
+                println!(
+                    "Power or clocks improved for {HEALTHY_TIME:?} during post-cycle observation"
+                )
             }
-            Action::Failed | Action::Unconfirmed => eprintln!(
-                "Profile recovery did not produce a verified improvement; disabling further cycles for this AC performance session"
+            Action::StillCapped | Action::Unconfirmed => eprintln!(
+                "Post-cycle observation {action:?} after {VERIFY_TIME:?}; monitoring continues, with further attempts subject to the {CYCLE_COOLDOWN:?} cooldown"
             ),
         }
     }
@@ -368,37 +424,41 @@ fn state_directory() -> Result<PathBuf> {
 }
 
 fn cycle_profile(
-    mut still_selected: impl FnMut(&str) -> Result<bool>,
-    mut set: impl FnMut(&str) -> Result<()>,
+    mut transition: impl FnMut(&str, &str) -> Result<bool>,
+    mut wait_before_retry: impl FnMut(),
 ) -> Result<bool> {
-    if !still_selected("performance")? {
+    if !transition("performance", "balanced")? {
         return Ok(false);
     }
-    set("balanced")?;
-    // Do not force performance after unplugging or a concurrent user profile change.
-    if !still_selected("balanced")? {
-        return Ok(false);
+    loop {
+        match transition("balanced", "performance") {
+            Ok(restored) => return Ok(restored),
+            Err(error) => {
+                eprintln!(
+                    "Could not restore performance after selecting balanced: {error:#}; retrying the guarded return step in {RESTORE_RETRY:?}"
+                );
+                wait_before_retry();
+            }
+        }
     }
-    set("performance")?;
-    Ok(true)
 }
 
 fn recover_profile(cooldown: &mut Cooldown) -> Result<()> {
     cooldown.record()?;
     let cycled = cycle_profile(
-        |expected| {
-            Ok(ac_online()?
-                && util::read("/sys/firmware/acpi/platform_profile")?.trim() == expected
-                && util::output("powerprofilesctl", &["get"])?.trim() == expected)
-        },
-        |profile| {
+        |from, to| {
+            // Do not force performance after unplugging or a concurrent user profile change.
+            if !ac_profile(from)? || util::output("powerprofilesctl", &["get"])?.trim() != from {
+                return Ok(false);
+            }
             // A user service has no active login session for polkit authorization.
-            util::command_output(privileged_command("powerprofilesctl").args(["set", profile]))?;
-            Ok(())
+            util::command_output(privileged_command("powerprofilesctl").args(["set", to]))?;
+            Ok(true)
         },
+        || thread::sleep(RESTORE_RETRY),
     )?;
     ensure!(
-        cycled && ac_performance()?,
+        cycled && ac_profile("performance")?,
         "profile recovery aborted: AC or profile selection changed"
     );
     apply()?;
@@ -407,7 +467,7 @@ fn recover_profile(cooldown: &mut Cooldown) -> Result<()> {
 
 pub fn ryzenadj(watch: bool) -> Result<()> {
     if !watch {
-        if ac_performance()? {
+        if ac_profile("performance")? {
             print!("{}", apply()?);
         } else {
             eprintln!("skipped: requires AC power and the performance profile");
@@ -417,11 +477,12 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
     let mut monitor = Monitor::new()?;
     let mut cooldown = Cooldown::load(&state_directory()?, SystemTime::now(), Instant::now())?;
     let mut recovery = Recovery::default();
+    let mut episode = Episode::default();
     let mut entered = false;
     let mut last_status = None::<Instant>;
     let start = Instant::now();
     loop {
-        if ac_performance()? {
+        if ac_profile("performance")? {
             let table = output(&["-i"])?;
             if !entered || !limits_match(&table)? {
                 apply()?;
@@ -432,6 +493,10 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
                 recovery.settings_applied();
             } else if let Some(sample) = monitor.sample(&table)? {
                 let now = Instant::now();
+                if let Some(event) = episode.observe(start.elapsed(), sample) {
+                    println!("Low-power episode {event:?}: {sample:?}; recovery={recovery:?}");
+                    last_status = None;
+                }
                 if sample.underpowered()
                     && last_status.is_none_or(|last| now - last >= Duration::from_secs(60))
                 {
@@ -445,10 +510,14 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
                     recovery.observe(start.elapsed(), sample, now >= cooldown.ready_at)
                 {
                     println!("RyzenAdj recovery {action:?}: {sample:?}");
-                    recovery.execute(action, &mut cooldown);
+                    recovery.execute(action, &mut cooldown, start);
                 }
             }
         } else {
+            if matches!(episode, Episode::Underpowered { .. }) {
+                println!("Stopped observing low-power episode: left AC performance mode");
+            }
+            episode = Episode::default();
             entered = false;
             monitor.previous = None;
             recovery = Recovery::default();
@@ -461,7 +530,6 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cell::RefCell;
 
     const TABLE: &str = "| STAPM LIMIT | 53.000 | stapm-limit |\n\
         | PPT LIMIT FAST | 53.000 | fast-limit |\n\
@@ -557,6 +625,7 @@ mod tests {
             recovery.observe(at(35), capped(), true),
             Some(Action::Cycle)
         );
+        recovery.cycle_completed(at(35));
         recovery
     }
 
@@ -676,13 +745,13 @@ mod tests {
     }
 
     #[test]
-    fn failed_or_unverifiable_cycles_disable_further_attempts() {
+    fn unsuccessful_cycles_resume_detection_after_the_cooldown() {
         for (sample, expected) in [
-            (capped(), Action::Failed),
+            (capped(), Action::StillCapped),
             (
                 Sample {
                     busy: 10.0,
-                    ..recovered()
+                    ..capped()
                 },
                 Action::Unconfirmed,
             ),
@@ -695,9 +764,118 @@ mod tests {
             ),
         ] {
             let mut recovery = cycled();
-            assert_eq!(recovery.observe(at(55), sample, false), Some(expected));
-            assert_eq!(recovery.observe(at(1000), capped(), true), None);
+            assert_eq!(recovery.observe(at(55), sample, false), None);
+            assert_eq!(recovery.observe(at(214), sample, false), None);
+            assert_eq!(recovery.observe(at(215), sample, false), Some(expected));
+            assert_eq!(recovery.observe(at(500), capped(), false), None);
+            assert_eq!(recovery.observe(at(634), capped(), false), None);
+            assert_eq!(recovery.observe(at(635), capped(), true), None);
+            assert_eq!(
+                recovery.observe(at(655), capped(), true),
+                Some(Action::Reapply)
+            );
+            assert_eq!(
+                recovery.observe(at(670), capped(), true),
+                Some(Action::Cycle)
+            );
         }
+    }
+
+    #[test]
+    fn delayed_recovery_counts_even_after_cpu_load_drops() {
+        let mut recovery = cycled();
+        assert_eq!(recovery.observe(at(55), capped(), false), None);
+        assert_eq!(recovery.observe(at(150), capped(), false), None);
+        let partial_load = Sample {
+            busy: 35.0,
+            ..recovered()
+        };
+        assert_eq!(recovery.observe(at(160), partial_load, false), None);
+        assert_eq!(recovery.observe(at(164), partial_load, false), None);
+        assert_eq!(
+            recovery.observe(at(165), partial_load, false),
+            Some(Action::Verified)
+        );
+        // A new episode is still eligible once the persisted cooldown permits it.
+        assert_eq!(recovery.observe(at(635), capped(), true), None);
+        assert_eq!(
+            recovery.observe(at(655), capped(), true),
+            Some(Action::Reapply)
+        );
+    }
+
+    #[test]
+    fn idle_clocks_do_not_verify_recovery_but_sustained_power_does() {
+        let idle = Sample {
+            busy: 10.0,
+            mhz: 4000.0,
+            ..capped()
+        };
+        assert!(!idle.recovered());
+        assert!(
+            Sample {
+                watts: 20.0,
+                ..idle
+            }
+            .recovered()
+        );
+        assert!(Sample { busy: 60.0, ..idle }.recovered());
+        let mut recovery = cycled();
+        assert_eq!(recovery.observe(at(36), idle, false), None);
+        assert_eq!(
+            recovery.observe(at(215), idle, false),
+            Some(Action::Unconfirmed)
+        );
+    }
+
+    #[test]
+    fn verification_window_starts_when_commands_finish() {
+        let mut recovery = cycled();
+        recovery.cycle_completed(at(50));
+        assert_eq!(recovery.observe(at(215), capped(), false), None);
+        assert_eq!(
+            recovery.observe(at(230), capped(), false),
+            Some(Action::StillCapped)
+        );
+    }
+
+    #[test]
+    fn episodes_log_late_recovery_and_recurrence_independently_of_attempts() {
+        let mut episode = Episode::default();
+        assert_eq!(
+            episode.observe(at(0), capped()),
+            Some(EpisodeEvent::Started)
+        );
+        assert_eq!(episode.observe(at(180), capped()), None);
+        let partial_load = Sample {
+            busy: 35.0,
+            ..recovered()
+        };
+        assert_eq!(episode.observe(at(240), partial_load), None);
+        // A relapse resets the healthy streak rather than ending the episode.
+        assert_eq!(episode.observe(at(244), capped()), None);
+        assert_eq!(episode.observe(at(245), partial_load), None);
+        assert_eq!(
+            episode.observe(at(250), partial_load),
+            Some(EpisodeEvent::Recovered(at(250)))
+        );
+        assert_eq!(episode.observe(at(251), partial_load), None);
+        assert_eq!(
+            episode.observe(at(260), capped()),
+            Some(EpisodeEvent::Started)
+        );
+        // Becoming idle is not evidence that the cap lifted.
+        let idle = Sample {
+            busy: 5.0,
+            ..capped()
+        };
+        assert_eq!(episode.observe(at(270), idle), None);
+        assert_eq!(episode.observe(at(280), idle), None);
+        assert_eq!(episode.observe(at(300), recovered()), None);
+        assert_eq!(
+            episode.observe(at(305), recovered()),
+            Some(EpisodeEvent::Recovered(at(45)))
+        );
     }
 
     #[test]
@@ -714,7 +892,29 @@ mod tests {
     }
 
     #[test]
-    fn settings_changes_restart_detection_without_reenabling_failed_cycles() {
+    fn settings_changes_do_not_reset_the_observed_episode_recovery() {
+        let mut episode = Episode::default();
+        let mut recovery = cycled();
+        assert_eq!(
+            episode.observe(at(35), capped()),
+            Some(EpisodeEvent::Started)
+        );
+        assert_eq!(episode.observe(at(40), recovered()), None);
+        assert_eq!(recovery.observe(at(40), recovered(), false), None);
+        recovery.settings_applied();
+        assert_eq!(
+            episode.observe(at(45), recovered()),
+            Some(EpisodeEvent::Recovered(at(10)))
+        );
+        assert_eq!(recovery.observe(at(45), recovered(), false), None);
+        assert_eq!(
+            recovery.observe(at(50), recovered(), false),
+            Some(Action::Verified)
+        );
+    }
+
+    #[test]
+    fn settings_changes_restart_detection_without_shortening_verification() {
         let mut recovery = Recovery::default();
         recovery.observe(at(0), capped(), true);
         recovery.settings_applied();
@@ -739,53 +939,77 @@ mod tests {
         recovery.observe(at(36), recovered(), false);
         recovery.settings_applied();
         assert_eq!(
-            recovery.observe(at(55), capped(), false),
-            Some(Action::Failed)
+            recovery.observe(at(215), capped(), false),
+            Some(Action::StillCapped)
         );
         recovery.settings_applied();
         assert_eq!(recovery.observe(at(1000), capped(), true), None);
+        assert_eq!(
+            recovery.observe(at(1020), capped(), true),
+            Some(Action::Reapply)
+        );
     }
 
     #[test]
-    fn profile_cycle_checks_intent_before_each_change_and_stops_on_errors() {
-        for stop_after_check in [0, 1, 2] {
-            let log = RefCell::new(Vec::new());
-            let mut checks = 0;
+    fn profile_cycle_stops_on_cancellation_or_initial_failure() {
+        for allowed in 0..=2 {
+            let mut transitions = Vec::new();
             let did_cycle = cycle_profile(
-                |profile| {
-                    log.borrow_mut().push(format!("check:{profile}"));
-                    let allowed = checks < stop_after_check;
-                    checks += 1;
-                    Ok(allowed)
+                |from, to| {
+                    transitions.push(format!("{from}->{to}"));
+                    Ok(transitions.len() <= allowed)
                 },
-                |profile| {
-                    log.borrow_mut().push(format!("set:{profile}"));
-                    Ok(())
-                },
+                || panic!("cancelled transitions must not retry"),
             )
             .unwrap();
-            assert_eq!(did_cycle, stop_after_check == 2);
-            let expected = [
-                "check:performance",
-                "set:balanced",
-                "check:balanced",
-                "set:performance",
-            ];
-            let length = [1, 3, 4][stop_after_check];
-            assert_eq!(*log.borrow(), &expected[..length]);
+            assert_eq!(did_cycle, allowed == 2);
+            assert_eq!(
+                transitions,
+                ["performance->balanced", "balanced->performance"][..(allowed + 1).min(2)]
+            );
         }
-        let sets = RefCell::new(Vec::new());
+        let mut sets = Vec::new();
         assert!(
             cycle_profile(
-                |_| Ok(true),
-                |profile| {
-                    sets.borrow_mut().push(profile.to_owned());
+                |_, to| {
+                    sets.push(to.to_owned());
                     anyhow::bail!("simulated profile control error")
-                }
+                },
+                || panic!("failed initial transitions must not retry"),
             )
             .is_err()
         );
-        assert_eq!(*sets.borrow(), ["balanced"]);
+        assert_eq!(sets, ["balanced"]);
+    }
+
+    #[test]
+    fn failed_return_retries_only_the_guarded_performance_transition() -> Result<()> {
+        for failures in [1, 3] {
+            for cancelled in [false, true] {
+                let mut transitions = Vec::new();
+                let mut waits = 0;
+                let restored = cycle_profile(
+                    |from, to| {
+                        transitions.push(format!("{from}->{to}"));
+                        if (2..2 + failures).contains(&transitions.len()) {
+                            anyhow::bail!("performance setter temporarily unavailable");
+                        }
+                        Ok(transitions.len() == 1 || !cancelled)
+                    },
+                    || waits += 1,
+                )?;
+                assert_eq!(restored, !cancelled);
+                assert_eq!(waits, failures);
+                assert_eq!(transitions.len(), failures + 2);
+                assert_eq!(transitions[0], "performance->balanced");
+                assert!(
+                    transitions[1..]
+                        .iter()
+                        .all(|step| step == "balanced->performance")
+                );
+            }
+        }
+        Ok(())
     }
 
     #[test]
