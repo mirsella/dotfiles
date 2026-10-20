@@ -80,16 +80,12 @@
     "branchNamePrefix": "",
     "defaultAutoPull": true,
     "defaultModelSelection": {
-      "instanceId": "codex",
-      "model": "gpt-6.1-sol",
+      "instanceId": "opencode",
+      "model": "openai/gpt-6.1-sol",
       "options": [
         {
-          "id": "reasoningEffort",
-          "value": "xhigh"
-        },
-        {
-          "id": "serviceTier",
-          "value": "default"
+          "id": "variant",
+          "value": "high"
         }
       ]
     },

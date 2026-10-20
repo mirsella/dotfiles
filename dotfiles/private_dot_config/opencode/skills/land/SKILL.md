@@ -14,6 +14,8 @@ Keep checks proportional and reuse valid results already obtained.
 Main may hold another session's work; merge around it if Git permits, never stashing,
 committing, or discarding it. If it blocks, leave main alone.
 
-Leave the branch and worktree in place; do not push. The host recreates and cleans up on its own.
+git push main after.
+
+if the user mention "settle" its in t3 code to settle your own thread when done with this.
 
 Briefly report landed or queued, branch/commits, and checks.
