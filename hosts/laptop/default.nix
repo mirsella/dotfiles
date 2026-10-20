@@ -4,6 +4,12 @@
 
   boot.tmp.tmpfsSize = "16G";
 
+  services.fprintd.enable = true;
+  environment.etc."xdg/kscreenlockerrc".text = ''
+    [Authenticators]
+    Fingerprint=true
+  '';
+
   hardware.cpu.amd.ryzen-smu.enable = true;
   systemd.services.ryzenadj-laptop = {
     description = "Apply RyzenAdj performance limits";

@@ -69,6 +69,18 @@ assert lib.assertMsg (
   ) (builtins.attrValues desktops)
 ) "Desktop and server roles must remain separate";
 assert lib.assertMsg (
+  laptop.services.fprintd.enable
+  && laptop.security.pam.services.kde-fingerprint.fprintAuth
+  && !laptop.security.pam.services.kde.fprintAuth
+  && lib.hasInfix "Fingerprint=true" laptop.environment.etc."xdg/kscreenlockerrc".text
+  &&
+    lib.all (host: !host.services.fprintd.enable && !(host.environment.etc ? "xdg/kscreenlockerrc"))
+      [
+        main
+        server
+      ]
+) "Only laptop must enable fingerprint unlock, alongside Plasma's separate password authenticator";
+assert lib.assertMsg (
   server.predator.hermes.enable
   && lib.all (
     c:
