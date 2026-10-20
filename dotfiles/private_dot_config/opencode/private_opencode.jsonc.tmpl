@@ -76,26 +76,14 @@
   },
   "permissions": [
     {
-      "action": "shell",
+      "action": "*",
       "resource": "*",
       "effect": "allow"
-    },
-    {
-      "action": "external_directory",
-      "resource": "*",
-      "effect": "allow"
-    },
-    {
-      "action": "read",
-      "resource": "*",
-      "effect": "allow"
-    },
-    {
-      "action": "todo",
-      "resource": "*",
-      "effect": "deny"
     }
   ],
+  "websearch": {
+    "provider": "random"
+  },
   "providers": {
     {{- if $llamaModel }}
     "llama.cpp": {
