@@ -772,16 +772,21 @@ and their tests; upstream application internals are managed by their packages.
 ## Laptop RyzenAdj recovery
 
 `ryzenadj-laptop` maintains the laptop's existing limits on AC power in performance
-mode. It checks once per second. If CPU use stays at or above 60% while package power
+mode. Each application selects `ryzenadj --max-performance` first, then writes the
+custom power and temperature limits. This applies on startup, entry into AC
+performance mode, readback drift and recovery retries, including after a profile
+cycle.
+
+It checks once per second. If CPU use stays at or above 60% while package power
 is at most 17 W and mean CPU frequency is at most 1.8 GHz for 20 seconds, it
 reapplies RyzenAdj. If the same condition persists for another 15 seconds, it
 cycles balanced to performance through `powerprofilesctl`, then reapplies the limits.
 
 Recovery requires a core temperature below 85°C and an APU skin reading below
-50°C. It skips severe memory pressure, where full memory PSI averages at least
-5% over ten seconds. These checks are a heuristic for the observed low-power
-state, not proof of a firmware fault. Recovery does not disable thermal protection
-or raise the configured limits.
+50°C. CPU use excludes I/O wait; memory pressure does not veto recovery when the
+CPUs are still busy. These checks are a heuristic for the observed low-power state,
+not proof of a firmware fault. Recovery does not disable thermal protection or
+raise the configured limits.
 
 Profile cycles have a ten-minute cooldown, saved in the service's state directory
 so restarting the service cannot bypass it. After a cycle, the watcher checks
@@ -791,7 +796,9 @@ re-entered. The cooldown still applies. If the charger or selected profile chang
 during recovery, the watcher aborts rather than forcing performance mode.
 
 Read recovery decisions with `journalctl --user -u ryzenadj-laptop` on Arch, or
-`journalctl -u ryzenadj-laptop` on NixOS.
+`journalctl -u ryzenadj-laptop` on NixOS. While a busy CPU is stuck at low power
+and clocks, the watcher logs temperatures, recovery state and remaining cooldown
+at most once per minute, even when recovery is blocked.
 
 ## Main's fan configuration
 

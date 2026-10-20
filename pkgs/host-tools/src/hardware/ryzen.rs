@@ -48,7 +48,13 @@ fn output(args: &[&str]) -> Result<String> {
 }
 
 fn apply() -> Result<String> {
-    output(&[
+    apply_with(output)
+}
+
+fn apply_with(mut run: impl FnMut(&[&str]) -> Result<String>) -> Result<String> {
+    // Select the policy first, then restore our limits rather than firmware defaults.
+    run(&["--max-performance"]).context("set RyzenAdj maximum-performance policy")?;
+    run(&[
         "--fast-limit=53000",
         "--slow-limit=35000",
         "--apu-slow-limit=41000",
@@ -108,18 +114,18 @@ struct Sample {
     busy: f64,
     core_c: f64,
     skin_c: f64,
-    memory_stall: f64,
 }
 
 impl Sample {
+    fn underpowered(self) -> bool {
+        self.busy >= 60.0 && self.watts <= 17.0 && self.mhz <= 1800.0
+    }
+
     fn suspect(self) -> bool {
-        // A low wattage alone is normal when idle or waiting for memory.
-        self.busy >= 60.0
-            && self.watts <= 17.0
-            && self.mhz <= 1800.0
+        // Memory pressure can coexist with a CPU cap. CPU busy time excludes I/O wait.
+        self.underpowered()
             && (10.0..85.0).contains(&self.core_c)
             && (10.0..50.0).contains(&self.skin_c)
-            && self.memory_stall < 5.0
     }
 
     fn recovered(self) -> bool {
@@ -146,23 +152,6 @@ fn cpu_ticks(stat: &str) -> Result<(u64, u64)> {
             .parse()?;
     }
     Ok((ticks.iter().sum(), ticks[3] + ticks[4]))
-}
-
-fn memory_stall(pressure: &str) -> Result<f64> {
-    let full = pressure
-        .lines()
-        .find(|line| line.starts_with("full "))
-        .context("missing memory full PSI")?;
-    let avg: f64 = full
-        .split_whitespace()
-        .find_map(|field| field.strip_prefix("avg10="))
-        .context("missing memory PSI avg10")?
-        .parse()?;
-    ensure!(
-        avg.is_finite() && (0.0..=100.0).contains(&avg),
-        "invalid memory PSI: {avg}"
-    );
-    Ok(avg)
 }
 
 struct Monitor {
@@ -212,7 +201,6 @@ impl Monitor {
             busy: 100.0 * (total - idle) as f64 / total as f64,
             core_c: value(table, "THM VALUE CORE")?,
             skin_c: value(table, "STT VALUE APU")?,
-            memory_stall: memory_stall(&util::read("/proc/pressure/memory")?)?,
         }))
     }
 }
@@ -226,7 +214,7 @@ enum Action {
     Unconfirmed,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 enum Recovery {
     #[default]
     Watching,
@@ -430,28 +418,41 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
     let mut cooldown = Cooldown::load(&state_directory()?, SystemTime::now(), Instant::now())?;
     let mut recovery = Recovery::default();
     let mut entered = false;
+    let mut last_status = None::<Instant>;
     let start = Instant::now();
     loop {
         if ac_performance()? {
             let table = output(&["-i"])?;
             if !entered || !limits_match(&table)? {
                 apply()?;
-                println!("Applied AC performance limits on entry or readback drift");
+                println!("Applied AC performance policy and limits on entry or readback drift");
                 entered = true;
                 // Never diagnose a failed recovery using samples from before a settings change.
                 monitor.previous = None;
                 recovery.settings_applied();
-            } else if let Some(sample) = monitor.sample(&table)?
-                && let Some(action) =
-                    recovery.observe(start.elapsed(), sample, Instant::now() >= cooldown.ready_at)
-            {
-                println!("RyzenAdj recovery {action:?}: {sample:?}");
-                recovery.execute(action, &mut cooldown);
+            } else if let Some(sample) = monitor.sample(&table)? {
+                let now = Instant::now();
+                if sample.underpowered()
+                    && last_status.is_none_or(|last| now - last >= Duration::from_secs(60))
+                {
+                    println!(
+                        "Low-power performance status: {sample:?}; recovery={recovery:?}; cooldown_remaining={:?}",
+                        cooldown.ready_at.saturating_duration_since(now)
+                    );
+                    last_status = Some(now);
+                }
+                if let Some(action) =
+                    recovery.observe(start.elapsed(), sample, now >= cooldown.ready_at)
+                {
+                    println!("RyzenAdj recovery {action:?}: {sample:?}");
+                    recovery.execute(action, &mut cooldown);
+                }
             }
         } else {
             entered = false;
             monitor.previous = None;
             recovery = Recovery::default();
+            last_status = None;
         }
         thread::sleep(Duration::from_secs(1));
     }
@@ -480,8 +481,41 @@ mod tests {
             busy: 80.0,
             core_c: 69.0,
             skin_c: 46.0,
-            memory_stall: 0.5,
         }
+    }
+
+    #[test]
+    fn selects_maximum_performance_before_custom_limits() -> Result<()> {
+        let mut commands = Vec::new();
+        let table = apply_with(|args| {
+            commands.push(args.join(" "));
+            Ok(if commands.len() == 1 {
+                "policy enabled".to_owned()
+            } else {
+                TABLE.to_owned()
+            })
+        })?;
+        assert_eq!(
+            commands,
+            [
+                "--max-performance",
+                "--fast-limit=53000 --slow-limit=35000 --apu-slow-limit=41000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=90 -i",
+            ]
+        );
+        assert_eq!(table, TABLE);
+        Ok(())
+    }
+
+    #[test]
+    fn stops_if_maximum_performance_policy_is_rejected() {
+        let mut commands = Vec::new();
+        let error = apply_with(|args| {
+            commands.push(args.join(" "));
+            anyhow::bail!("SMU rejected policy")
+        })
+        .unwrap_err();
+        assert_eq!(commands, ["--max-performance"]);
+        assert!(format!("{error:#}").contains("SMU rejected policy"));
     }
 
     #[test]
@@ -542,26 +576,13 @@ mod tests {
     }
 
     #[test]
-    fn reads_cpu_ticks_without_double_counting_guests_and_validates_psi() {
+    fn reads_cpu_ticks_without_double_counting_guests() {
         assert_eq!(
             cpu_ticks("cpu 1 2 3 4 5 6 7 8 100 200\ncpu0 0").unwrap(),
             (36, 9)
         );
         assert!(cpu_ticks("cpu0 1 2 3 4 5 6 7 8").is_err());
         assert!(cpu_ticks("cpu 1 2 3").is_err());
-        assert_eq!(
-            memory_stall("some avg10=12.0\nfull avg10=4.20 avg60=2.0").unwrap(),
-            4.2
-        );
-        for invalid in [
-            "some avg10=0",
-            "full total=0",
-            "full avg10=nan",
-            "full avg10=101",
-            "full avg10=-1",
-        ] {
-            assert!(memory_stall(invalid).is_err());
-        }
     }
 
     #[test]
@@ -579,7 +600,7 @@ mod tests {
     }
 
     #[test]
-    fn does_not_recover_idle_hot_memory_stalled_or_already_fast_samples() {
+    fn does_not_recover_idle_hot_or_already_fast_samples() {
         for sample in [
             Sample {
                 busy: 59.0,
@@ -609,15 +630,32 @@ mod tests {
                 skin_c: 0.0,
                 ..capped()
             },
-            Sample {
-                memory_stall: 5.0,
-                ..capped()
-            },
         ] {
             assert!(!sample.suspect());
             let mut recovery = Recovery::default();
             assert_eq!(recovery.observe(at(0), sample, true), None);
             assert_eq!(recovery.observe(at(60), sample, true), None);
+        }
+    }
+
+    #[test]
+    fn observed_cap_with_concurrent_swapping_still_reaches_profile_recovery() {
+        // Live recurrence: memory full PSI was 5.84%, but CPUs remained 90% busy.
+        let observed = Sample {
+            watts: 16.681,
+            mhz: 1170.25,
+            busy: 90.0,
+            core_c: 69.815,
+            skin_c: 45.131,
+        };
+        let mut recovery = Recovery::default();
+        for second in 0..=35 {
+            let expected = match second {
+                20 => Some(Action::Reapply),
+                35 => Some(Action::Cycle),
+                _ => None,
+            };
+            assert_eq!(recovery.observe(at(second), observed, true), expected);
         }
     }
 
