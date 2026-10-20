@@ -129,6 +129,11 @@ assert lib.assertMsg (
   && !(flake.homeConfigurations.main.config.systemd.user.services ? ryzenadj-laptop)
 ) "RyzenAdj must run only on laptop, once as a system service on NixOS or a user service on Arch";
 assert lib.assertMsg (
+  lib.toList laptop.systemd.services.ryzenadj-laptop.serviceConfig.StateDirectory == [ "ryzenadj-laptop" ]
+  && lib.toList flake.homeConfigurations.laptop.config.systemd.user.services.ryzenadj-laptop.Service.StateDirectory == [ "ryzenadj-laptop" ]
+  && lib.any (package: lib.getName package == "power-profiles-daemon") laptop.systemd.services.ryzenadj-laptop.path
+) "RyzenAdj recovery must retain its cooldown across restarts and have powerprofilesctl available";
+assert lib.assertMsg (
   lib.all
     (
       name:

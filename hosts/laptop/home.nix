@@ -23,7 +23,7 @@
   };
 
   systemd.user.services.ryzenadj-laptop = lib.mkIf (!isNixOS) {
-    Unit.Description = "Apply RyzenAdj performance limits";
+    Unit.Description = "Maintain RyzenAdj limits and recover stuck performance throttling";
     Service = {
       Type = "simple";
       ExecStartPre = "/usr/bin/sudo -n /usr/bin/modprobe ryzen_smu";
@@ -31,6 +31,8 @@
       Environment = "PATH=/usr/bin:/bin";
       Restart = "on-failure";
       RestartSec = 5;
+      StateDirectory = "ryzenadj-laptop";
+      StateDirectoryMode = "0700";
     };
     Install.WantedBy = [ "default.target" ];
   };

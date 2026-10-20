@@ -9,9 +9,10 @@ use std::{
     os::unix::fs::{FileExt, OpenOptionsExt},
     path::Path,
     process::{Command, Stdio},
-    thread,
-    time::Duration,
 };
+
+mod ryzen;
+pub use ryzen::ryzenadj;
 
 pub fn lid() -> Result<()> {
     let text = util::read("/proc/acpi/button/lid/LID0/state")?;
@@ -53,76 +54,6 @@ pub fn keyboard_off() -> Result<()> {
         );
     }
     Ok(())
-}
-
-fn ryzen_output(args: &[&str]) -> Result<String> {
-    if unsafe { libc::geteuid() } == 0 {
-        util::output("ryzenadj", args)
-    } else {
-        let mut argv = vec!["-n", "ryzenadj"];
-        argv.extend_from_slice(args);
-        util::output("sudo", &argv)
-    }
-}
-
-pub fn parse_limits(text: &str) -> Result<Vec<f64>> {
-    [
-        "PPT LIMIT FAST",
-        "PPT LIMIT SLOW",
-        "PPT LIMIT APU",
-        "THM LIMIT CORE",
-        "STT LIMIT APU",
-    ]
-    .into_iter()
-    .map(|label| {
-        let line = text
-            .lines()
-            .find(|line| line.contains(label))
-            .with_context(|| format!("missing RyzenAdj {label}"))?;
-        let value: f64 = line
-            .split_whitespace()
-            .nth(5)
-            .context("invalid RyzenAdj row")?
-            .parse()?;
-        ensure!(value.is_finite(), "non-finite RyzenAdj limit");
-        Ok(value)
-    })
-    .collect()
-}
-
-pub fn ryzenadj(watch: bool) -> Result<()> {
-    loop {
-        let ac = util::read("/sys/class/power_supply/ACAD/online")?;
-        ensure!(matches!(ac.trim(), "0" | "1"), "unexpected AC state");
-        let profile = util::read("/sys/firmware/acpi/platform_profile")?;
-        if ac.trim() == "1" && profile.trim() == "performance" {
-            let changed =
-                !watch || parse_limits(&ryzen_output(&["-i"])?)? != [53.0, 35.0, 41.0, 100.0, 90.0];
-            if changed {
-                println!("Applying AC performance limits");
-                print!(
-                    "{}",
-                    ryzen_output(&[
-                        "--fast-limit=53000",
-                        "--slow-limit=35000",
-                        "--apu-slow-limit=41000",
-                        "--skin-temp-limit=45000",
-                        "--tctl-temp=100",
-                        "--apu-skin-temp=90",
-                        "-i"
-                    ])?
-                );
-            }
-        } else if !watch {
-            eprintln!("skipped: requires AC power and the performance profile");
-        }
-        if !watch {
-            return Ok(());
-        }
-        // Firmware can reset limits without emitting an event. Preserve the
-        // existing five-second hardware polling interval.
-        thread::sleep(Duration::from_secs(5));
-    }
 }
 
 const CARD: &str = "bluez_card.54_B7_E5_C2_75_28";

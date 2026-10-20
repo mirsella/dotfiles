@@ -769,6 +769,30 @@ Tests for the recurring programs live in `pkgs/host-tools/src/tests.rs` and run
 as part of the Nix package build. Python remains only in manual/one-time tools
 and their tests; upstream application internals are managed by their packages.
 
+## Laptop RyzenAdj recovery
+
+`ryzenadj-laptop` maintains the laptop's existing limits on AC power in performance
+mode. It checks once per second. If CPU use stays at or above 60% while package power
+is at most 17 W and mean CPU frequency is at most 1.8 GHz for 20 seconds, it
+reapplies RyzenAdj. If the same condition persists for another 15 seconds, it
+cycles balanced to performance through `powerprofilesctl`, then reapplies the limits.
+
+Recovery requires a core temperature below 85°C and an APU skin reading below
+50°C. It skips severe memory pressure, where full memory PSI averages at least
+5% over ten seconds. These checks are a heuristic for the observed low-power
+state, not proof of a firmware fault. Recovery does not disable thermal protection
+or raise the configured limits.
+
+Profile cycles have a ten-minute cooldown, saved in the service's state directory
+so restarting the service cannot bypass it. After a cycle, the watcher checks
+for five seconds of improved power or clocks under load. If it cannot verify an
+improvement within 20 seconds, it stops cycling until AC performance mode is
+re-entered. The cooldown still applies. If the charger or selected profile changes
+during recovery, the watcher aborts rather than forcing performance mode.
+
+Read recovery decisions with `journalctl --user -u ryzenadj-laptop` on Arch, or
+`journalctl -u ryzenadj-laptop` on NixOS.
+
 ## Main's fan configuration
 
 Main uses the standard lm-sensors `fancontrol` service. A small `host-tools`
