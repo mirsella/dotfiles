@@ -43,8 +43,24 @@ pub struct ThreadView {
 #[serde(rename_all = "camelCase")]
 pub struct CompletedRun {
     pub run_id: String,
+    /// T3 run start is a conservative lower bound on provider requests. MCP
+    /// does not expose individual requests; long runs may therefore go cold
+    /// conservatively instead of getting a fresh TTL at completion.
+    #[serde(default)]
+    pub started_at: Option<Timestamp>,
     pub completed_at: Timestamp,
 }
+
+#[derive(Debug)]
+pub struct DispatchExpired;
+
+impl std::fmt::Display for DispatchExpired {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "cache expired before dispatch")
+    }
+}
+
+impl std::error::Error for DispatchExpired {}
 
 fn is_subagent<'de, D: serde::Deserializer<'de>>(value: D) -> Result<bool, D::Error> {
     Ok(Option::<String>::deserialize(value)?.as_deref() == Some("subagent"))
@@ -68,6 +84,7 @@ pub fn is_credential_rejected(error: &anyhow::Error) -> bool {
 
 #[derive(Debug, PartialEq, Eq)]
 enum McpError {
+    Expired,
     Credential(String),
     Session(String),
     Other(String),
@@ -76,6 +93,7 @@ enum McpError {
 impl McpError {
     fn into_anyhow(self) -> anyhow::Error {
         match self {
+            Self::Expired => anyhow::Error::new(DispatchExpired),
             Self::Credential(body) => anyhow::Error::new(CredentialRejected).context(body),
             Self::Session(message) => anyhow::anyhow!("MCP session invalid: {message}"),
             Self::Other(message) => anyhow::anyhow!("{message}"),
@@ -103,6 +121,8 @@ pub struct T3Client {
     token: String,
     session: Option<String>,
     next_id: u64,
+    #[cfg(test)]
+    pub(crate) clock: Option<Box<dyn Fn() -> Timestamp>>,
 }
 
 impl T3Client {
@@ -122,16 +142,23 @@ impl T3Client {
             token,
             session: None,
             next_id: 1,
+            #[cfg(test)]
+            clock: None,
         }
     }
 
     /// Calls an MCP tool and returns its decoded result, re-initializing the
     /// session once when the server forgot it.
-    fn call_tool(&mut self, name: &str, arguments: &Value) -> Result<Value> {
-        match self.call_tool_once(name, arguments) {
+    fn call_tool(
+        &mut self,
+        name: &str,
+        arguments: &Value,
+        deadline: Option<Timestamp>,
+    ) -> Result<Value> {
+        match self.call_tool_once(name, arguments, deadline) {
             Err(McpError::Session(message)) => {
                 self.session = None;
-                self.call_tool_once(name, arguments)
+                self.call_tool_once(name, arguments, deadline)
                     .map_err(McpError::into_anyhow)
                     .with_context(|| format!("retried {name} after: {message}"))
             }
@@ -139,15 +166,27 @@ impl T3Client {
         }
     }
 
-    fn call_tool_once(&mut self, name: &str, arguments: &Value) -> Result<Value, McpError> {
+    fn call_tool_once(
+        &mut self,
+        name: &str,
+        arguments: &Value,
+        deadline: Option<Timestamp>,
+    ) -> Result<Value, McpError> {
         let result = self.send_rpc(
             "tools/call",
             json!({ "name": name, "arguments": arguments }),
+            deadline,
         )?;
         decode_tool_result(name, result)
     }
 
-    fn send_rpc(&mut self, method: &str, params: Value) -> Result<Value, McpError> {
+    fn send_rpc(
+        &mut self,
+        method: &str,
+        params: Value,
+        deadline: Option<Timestamp>,
+    ) -> Result<Value, McpError> {
+        self.remaining_send_time(deadline)?;
         if method != "initialize" && self.session.is_none() {
             self.initialize()?;
         }
@@ -165,8 +204,17 @@ impl T3Client {
                 .header("mcp-session-id", session)
                 .header("mcp-protocol-version", PROTOCOL_VERSION);
         }
+        let body = body.to_string();
+        // Initialization, retry recovery, serialization, and durable state writes
+        // must not carry a previously valid decision past its expiry.
+        if let Some(remaining) = self.remaining_send_time(deadline)? {
+            request = request
+                .config()
+                .timeout_global(Some(remaining.min(Duration::from_secs(10))))
+                .build();
+        }
         let mut response = request
-            .send(body.to_string())
+            .send(body)
             .map_err(|error| McpError::Other(format!("POST /mcp: {error}")))?;
         let status = response.status().as_u16();
         let session_header = response
@@ -222,8 +270,31 @@ impl T3Client {
                 "capabilities": {},
                 "clientInfo": { "name": "t3-cache-warmer", "version": env!("CARGO_PKG_VERSION") },
             }),
+            None,
         )
         .map(|_| ())
+    }
+
+    fn remaining_send_time(
+        &self,
+        deadline: Option<Timestamp>,
+    ) -> Result<Option<Duration>, McpError> {
+        let now = || {
+            #[cfg(test)]
+            if let Some(clock) = &self.clock {
+                return clock();
+            }
+            Timestamp::now()
+        };
+        deadline
+            .map(|deadline| {
+                let now = now();
+                if now >= deadline {
+                    return Err(McpError::Expired);
+                }
+                Ok(deadline.duration_since(now).unsigned_abs())
+            })
+            .transpose()
     }
 
     pub fn project_ids(&mut self) -> Result<Vec<String>> {
@@ -272,13 +343,20 @@ impl T3Client {
                 "limit": 1,
                 "maxCharsPerItem": 256,
             }),
+            None,
         )?)
         .context("invalid run history from t3_thread_read")?;
-        snapshot
+        let run = snapshot
             .recent_runs
             .into_iter()
             .find(|run| run.run_id == run_id)
-            .context("latest run changed or missing from t3_thread_read; retry next pass")
+            .context("latest run changed or missing from t3_thread_read; retry next pass")?;
+        ensure!(
+            run.started_at
+                .is_none_or(|started| started <= run.completed_at),
+            "run starts after completion"
+        );
+        Ok(run)
     }
 
     fn list<T: DeserializeOwned>(
@@ -289,7 +367,7 @@ impl T3Client {
     ) -> Result<Vec<T>> {
         let mut items = Vec::new();
         for _ in 0..50 {
-            let mut result = self.call_tool(name, &arguments)?;
+            let mut result = self.call_tool(name, &arguments, None)?;
             let page = result
                 .get_mut(field)
                 .with_context(|| format!("{name} returned no {field} array"))?
@@ -321,6 +399,7 @@ impl T3Client {
         thread_id: &str,
         message: &str,
         client_request_id: &str,
+        deadline: Timestamp,
     ) -> Result<Value> {
         self.call_tool(
             "t3_thread_send",
@@ -330,6 +409,7 @@ impl T3Client {
                 "mode": "auto",
                 "clientRequestId": client_request_id,
             }),
+            Some(deadline),
         )
     }
 }
@@ -407,6 +487,21 @@ pub(crate) mod tests {
         expected: &'static [&'static str],
         mut reply: impl FnMut(&str, &Value) -> Option<Value> + Send + 'static,
     ) -> (String, std::thread::JoinHandle<()>) {
+        mock_rpc_server(expected, move |name, params| {
+            let result = if name == "initialize" {
+                json!({})
+            } else {
+                let value = reply(name, &params["arguments"])?;
+                json!({ "content": [{ "type": "text", "text": value.to_string() }] })
+            };
+            Some(json!({ "result": result }))
+        })
+    }
+
+    fn mock_rpc_server(
+        expected: &'static [&'static str],
+        mut reply: impl FnMut(&str, &Value) -> Option<Value> + Send + 'static,
+    ) -> (String, std::thread::JoinHandle<()>) {
         use std::io::{BufRead, BufReader, Read, Write};
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
@@ -435,18 +530,17 @@ pub(crate) mod tests {
                 let mut bytes = vec![0; length];
                 reader.read_exact(&mut bytes).unwrap();
                 let request: Value = serde_json::from_slice(&bytes).unwrap();
-                let result = if name == "initialize" {
+                if name == "initialize" {
                     assert_eq!(request["method"], name);
-                    json!({})
                 } else {
                     assert_eq!(request["params"]["name"], name);
-                    let Some(value) = reply(name, &request["params"]["arguments"]) else {
-                        continue;
-                    };
-                    json!({ "content": [{ "type": "text", "text": value.to_string() }] })
+                }
+                let Some(mut body) = reply(name, &request["params"]) else {
+                    continue;
                 };
-                let body =
-                    json!({ "jsonrpc": "2.0", "id": request["id"], "result": result }).to_string();
+                body["jsonrpc"] = json!("2.0");
+                body["id"] = request["id"].clone();
+                let body = body.to_string();
                 write!(reader.get_mut(), "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nmcp-session-id: test\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{body}", body.len()).unwrap();
             }
         });
@@ -500,7 +594,7 @@ pub(crate) mod tests {
                 assert_eq!(arguments["limit"], 1);
                 Some(match arguments["threadId"].as_str().unwrap() {
                     "completed" => json!({ "recentRuns": [{
-                        "runId": "run-1", "completedAt": completed.to_string()
+                        "runId": "run-1", "startedAt": "2026-10-19T14:25:52.466Z", "completedAt": completed.to_string()
                     }] }),
                     "running" => json!({ "recentRuns": [{
                         "runId": "run-1", "completedAt": null
@@ -525,6 +619,44 @@ pub(crate) mod tests {
             assert!(client.completed_run(id, "run-1").is_err(), "{id}");
         }
         server.join().unwrap();
+    }
+
+    #[test]
+    fn expiry_during_initialization_or_recovery_prevents_dispatch() {
+        use std::sync::{
+            Arc,
+            atomic::{AtomicUsize, Ordering},
+        };
+        let deadline: Timestamp = "2026-10-20T12:00:00Z".parse().unwrap();
+        for recovering in [false, true] {
+            let expected: &'static [&'static str] = if recovering {
+                &["initialize", "t3_thread_send", "initialize"]
+            } else {
+                &["initialize"]
+            };
+            let (base, server) = mock_rpc_server(expected, |name, _| {
+                Some(if name == "initialize" {
+                    json!({ "result": {} })
+                } else {
+                    json!({ "error": { "message": "session expired" } })
+                })
+            });
+            let checks = Arc::new(AtomicUsize::new(0));
+            let mut client = T3Client::new(&base, "test".to_owned());
+            client.clock = Some(Box::new(move || {
+                let check = checks.fetch_add(1, Ordering::Relaxed);
+                if check >= if recovering { 3 } else { 1 } {
+                    deadline
+                } else {
+                    deadline.checked_sub(Duration::from_secs(1)).unwrap()
+                }
+            }));
+            let error = client
+                .thread_send("thread-1", "keepalive", "request-1", deadline)
+                .unwrap_err();
+            assert!(error.is::<DispatchExpired>(), "{error:#}");
+            server.join().unwrap();
+        }
     }
 
     #[test]
@@ -679,7 +811,9 @@ pub(crate) mod tests {
                 .timeout_global(Some(Duration::from_millis(100)))
                 .build(),
         );
-        let error = client.call_tool("t3_project_list", &json!({})).unwrap_err();
+        let error = client
+            .call_tool("t3_project_list", &json!({}), None)
+            .unwrap_err();
         finished.send(()).unwrap();
         server.join().unwrap();
         assert!(

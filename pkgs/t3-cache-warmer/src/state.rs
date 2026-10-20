@@ -48,6 +48,8 @@ pub struct ThreadState {
     pub status: String,
     /// Newest activity that was not one of our keepalives.
     pub last_activity_at: Option<Timestamp>,
+    /// Legacy activity is untrusted until a different run is observed.
+    pub awaiting_user_activity: bool,
     /// Reuse this completion while T3 reports the same run ID.
     pub last_run: Option<CompletedRun>,
     /// Thread metadata timestamp, used only for pruning, not cache freshness.
@@ -73,14 +75,25 @@ impl ThreadState {
     }
 
     pub fn last_cache_at(&self) -> Option<Timestamp> {
-        self.last_run.as_ref().map(|run| run.completed_at)
+        self.last_run.as_ref().and_then(|run| run.started_at)
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct State {
+    #[serde(default)]
+    pub schema_version: u32,
     pub threads: BTreeMap<String, ThreadState>,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            schema_version: 1,
+            threads: BTreeMap::new(),
+        }
+    }
 }
 
 impl State {
@@ -90,8 +103,29 @@ impl State {
         }
         let text = std::fs::read_to_string(path)
             .with_context(|| format!("read state {}", path.display()))?;
-        let state: Self = serde_json::from_str(&text)
-            .with_context(|| format!("parse state {}", path.display()))?;
+        Self::parse(&text).with_context(|| format!("parse state {}", path.display()))
+    }
+
+    fn parse(text: &str) -> Result<Self> {
+        // Missing version identifies both metadata-based and completion-based
+        // files. Never manufacture fresh user activity from their first read.
+        let mut state: Self = serde_json::from_str(text)?;
+        anyhow::ensure!(
+            state.schema_version <= 1,
+            "unsupported warmer state version"
+        );
+        if state.schema_version == 0 {
+            for thread in state.threads.values_mut() {
+                thread.last_run = None;
+                thread.last_activity_at = None;
+                thread.awaiting_user_activity = true;
+            }
+            eprintln!(
+                "t3-cache-warmer: upgraded {} legacy entries; preserved budgets, awaiting new user activity",
+                state.threads.len()
+            );
+        }
+        state.schema_version = 1;
         Ok(state)
     }
 
@@ -166,6 +200,49 @@ fn set_mode_600(path: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn legacy_state_preserves_budgets_and_waits_for_a_different_run() {
+        use crate::policy::observe_run;
+        for old_run in [
+            serde_json::Value::Null,
+            serde_json::json!({
+                "runId": "keepalive", "completedAt": "2026-10-20T10:00:00Z"
+            }),
+        ] {
+            let mut state = State::parse(
+                &serde_json::json!({ "threads": { "thread-1": {
+                    "lastActivityAt": "2026-10-20T09:00:00Z", "lastCacheAt": "2026-10-20T10:00:00Z",
+                    "lastRun": old_run, "refreshes": 3
+                }}})
+                .to_string(),
+            )
+            .unwrap();
+            assert_eq!(state.schema_version, 1);
+            let entry = state.threads.get_mut("thread-1").unwrap();
+            assert!(entry.awaiting_user_activity);
+            assert!(entry.last_activity_at.is_none());
+            let run = CompletedRun {
+                run_id: "keepalive".to_owned(),
+                started_at: Some("2026-10-20T09:59:00Z".parse().unwrap()),
+                completed_at: "2026-10-20T10:00:00Z".parse().unwrap(),
+            };
+            observe_run(entry, run.clone(), 300);
+            assert_eq!(entry.refreshes, 3);
+            assert!(entry.awaiting_user_activity);
+            let mut restored = State::parse(&serde_json::to_string(&state).unwrap()).unwrap();
+            let entry = restored.threads.get_mut("thread-1").unwrap();
+            observe_run(entry, run.clone(), 300);
+            assert_eq!(entry.refreshes, 3);
+            let mut next = run;
+            next.run_id = "new-user-run".to_owned();
+            observe_run(entry, next, 300);
+            assert!(!entry.awaiting_user_activity);
+            assert_eq!(entry.refreshes, 0);
+            assert!(entry.last_activity_at.is_some());
+        }
+        assert!(State::parse(r#"{"schemaVersion":2,"threads":{}}"#).is_err());
+    }
 
     #[test]
     fn private_files_are_created_mode_600() {

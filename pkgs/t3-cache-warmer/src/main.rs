@@ -19,9 +19,9 @@ use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::Signals;
 
 use crate::config::{Config, runtime_origin};
-use crate::policy::{Decision, decide, next_wait, observe, observe_run, warming_ttl};
+use crate::policy::{SkipReason, decide, next_wait, observe, observe_run, warming_ttl};
 use crate::state::{Credential, State};
-use crate::t3::{T3Client, is_credential_rejected};
+use crate::t3::{DispatchExpired, T3Client, is_credential_rejected};
 
 const NAME: &str = "t3-cache-warmer";
 
@@ -229,8 +229,8 @@ fn status(config: &Config) -> Result<()> {
     let now = Timestamp::now();
     for (id, thread) in entries {
         let decision = match decide(config, thread, now) {
-            Decision::Warm => "due",
-            Decision::Skip { reason } => reason.label(),
+            Ok(_) => "due",
+            Err(reason) => reason.label(),
         };
         writeln!(
             out,
@@ -312,10 +312,13 @@ fn tick(
                 }
             }
             let now = Timestamp::now();
-            if let Decision::Skip { reason } = decide(config, entry, now) {
-                *summary.skipped.entry(reason.label()).or_insert(0) += 1;
-                continue;
-            }
+            let deadline = match decide(config, entry, now) {
+                Ok(deadline) => deadline,
+                Err(reason) => {
+                    *summary.skipped.entry(reason.label()).or_insert(0) += 1;
+                    continue;
+                }
+            };
             if dry_run {
                 log(&format!("would warm {} ({})", view.id, view.title));
                 summary.warmed += 1;
@@ -341,9 +344,25 @@ fn tick(
                 ) = previous;
                 return Err(error);
             }
-            let outcome = client.thread_send(&view.id, &config.keepalive_message, &request_id);
+            let outcome =
+                client.thread_send(&view.id, &config.keepalive_message, &request_id, deadline);
             let entry = state.threads.get_mut(&view.id).expect("observed thread");
             match outcome {
+                Err(error) if error.is::<DispatchExpired>() => {
+                    (
+                        entry.pending_warm_at,
+                        entry.pending_seen_running,
+                        entry.refreshes,
+                    ) = previous;
+                    *summary
+                        .skipped
+                        .entry(SkipReason::CacheExpired.label())
+                        .or_insert(0) += 1;
+                    log(&format!(
+                        "skipped {}: cache expired before dispatch",
+                        view.id
+                    ));
+                }
                 Ok(_) => {
                     entry.last_error = None;
                     summary.warmed += 1;
@@ -549,6 +568,7 @@ mod tests {
         let entry = state.threads.entry("thread-1".to_owned()).or_default();
         entry.last_run = Some(crate::t3::CompletedRun {
             run_id: "older-run".to_owned(),
+            started_at: Some(updated),
             completed_at: updated,
         });
         entry.last_activity_at = Some(updated);
@@ -589,7 +609,7 @@ mod tests {
                         json!({ "recentRuns": [] })
                     } else {
                         json!({ "recentRuns": [{
-                            "runId": "keepalive-run", "completedAt": completed.to_string()
+                            "runId": "keepalive-run", "startedAt": completed.to_string(), "completedAt": completed.to_string()
                         }] })
                     }
                 })
@@ -601,6 +621,7 @@ mod tests {
             ThreadState {
                 last_run: Some(crate::t3::CompletedRun {
                     run_id: "previous-run".to_owned(),
+                    started_at: Some(activity),
                     completed_at: activity,
                 }),
                 last_activity_at: Some(activity),
@@ -658,7 +679,7 @@ mod tests {
             move |name, arguments| {
                 if name == "t3_thread_read" {
                     Some(json!({ "recentRuns": [{
-                        "runId": "run-1", "completedAt": updated.to_string()
+                        "runId": "run-1", "startedAt": updated.to_string(), "completedAt": updated.to_string()
                     }] }))
                 } else if name == "t3_thread_send" {
                     let saved = State::load(&saved_path).unwrap();
@@ -728,7 +749,7 @@ mod tests {
                     }] })
                 } else {
                     json!({ "recentRuns": [{
-                        "runId": "run-1", "completedAt": completed.to_string()
+                        "runId": "run-1", "startedAt": completed.to_string(), "completedAt": completed.to_string()
                     }] })
                 })
             },
@@ -748,6 +769,53 @@ mod tests {
             assert_eq!(state.threads["thread-1"].refreshes, 0);
             assert!(state.threads["thread-1"].pending_warm_at.is_none());
         }
+        server.join().unwrap();
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn expiry_after_durable_save_restores_budget_without_dispatch() {
+        let now = Timestamp::now();
+        let started = now.checked_sub(Duration::from_secs(1500)).unwrap();
+        let expires = started.checked_add(Duration::from_secs(1680)).unwrap();
+        let (base, server) = mock_server(
+            &["initialize", "t3_thread_list", "t3_thread_read"],
+            move |name, _| {
+                Some(if name == "t3_thread_list" {
+                    json!({"threads":[{
+                        "threadId":"thread-1", "status":"completed", "providerInstanceId":"opencode", "model":"openai/gpt-6.1-sol", "latestRunId":"run-1", "updatedAt":now.to_string()
+                    }]})
+                } else {
+                    json!({"recentRuns":[{"runId":"run-1", "startedAt":started.to_string(), "completedAt":now.to_string()}]})
+                })
+            },
+        );
+        let directory =
+            std::env::temp_dir().join(format!("warmer-dispatch-expiry-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let state_path = directory.join("state.json");
+        let saved_path = state_path.clone();
+        let mut client = T3Client::new(&base, "test".to_owned());
+        client.clock = Some(Box::new(move || {
+            let saved = State::load(&saved_path).unwrap();
+            assert_eq!(saved.threads["thread-1"].refreshes, 1);
+            assert!(saved.threads["thread-1"].pending_warm_at.is_some());
+            expires
+        }));
+        let mut state = State::default();
+        let summary = pass(
+            &active_config(),
+            &mut client,
+            &mut state,
+            &state_path,
+            false,
+        )
+        .unwrap();
+        assert!(summary.contains("warmed 0, 0 errors"), "{summary}");
+        assert!(summary.contains("cache-expired 1"), "{summary}");
+        let saved = State::load(&state_path).unwrap();
+        assert_eq!(saved.threads["thread-1"].refreshes, 0);
+        assert!(saved.threads["thread-1"].pending_warm_at.is_none());
         server.join().unwrap();
         std::fs::remove_dir_all(directory).unwrap();
     }
@@ -777,7 +845,7 @@ mod tests {
                 } else {
                     json!({ "recentRuns": [{
                         "runId": if listings < 3 { "run-1" } else { "run-2" },
-                        "completedAt": completed.to_string()
+                        "startedAt": completed.to_string(), "completedAt": completed.to_string()
                     }] })
                 })
             },
