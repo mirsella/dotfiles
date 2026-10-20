@@ -1,7 +1,7 @@
 //! Pure gating and cache-attribution logic, kept free of I/O so it is cheap
 //! to test from a fixed clock.
 
-use jiff::{Span, Timestamp, Zoned, tz::TimeZone};
+use jiff::{Timestamp, Zoned, tz::TimeZone};
 use std::time::Duration;
 
 use crate::config::Config;
@@ -25,6 +25,7 @@ pub enum SkipReason {
     IdleTooLong,
     BudgetSpent,
     CacheFresh,
+    CacheExpired,
     PendingWarm,
 }
 
@@ -42,6 +43,7 @@ impl SkipReason {
             Self::IdleTooLong => "idle-too-long",
             Self::BudgetSpent => "budget-spent",
             Self::CacheFresh => "cache-fresh",
+            Self::CacheExpired => "cache-expired",
             Self::PendingWarm => "pending-warm",
         }
     }
@@ -97,7 +99,7 @@ fn refresh_at(
     }
     if state
         .pending_warm_at
-        .is_some_and(|sent| now < refresh_due_after(sent, config.send_grace_seconds, 0))
+        .is_some_and(|sent| now < deadline_after(sent, config.send_grace_seconds))
     {
         // An accepted send may not appear in T3's listing immediately. Its
         // acknowledgement window, not the old cache timestamp, blocks resends.
@@ -106,17 +108,19 @@ fn refresh_at(
     if state.refreshes >= config.max_refreshes_per_activity {
         return Err(SkipReason::BudgetSpent);
     }
-    Ok(refresh_due_after(last_cache, ttl, config.lead_seconds))
+    // Keep an existing cache alive; never pay to recreate one after expiry.
+    let expires_at = deadline_after(last_cache, ttl);
+    if now >= expires_at {
+        return Err(SkipReason::CacheExpired);
+    }
+    Ok(expires_at
+        .checked_sub(Duration::from_secs(config.lead_seconds))
+        .expect("refresh deadline in timestamp range"))
 }
 
-/// The moment a cache written at `last_cache` should be refreshed: its TTL
-/// minus the configured lead time. This is the single canonical definition
-/// of "due", shared by [`decide`] and [`next_wait`].
-fn refresh_due_after(last_cache: Timestamp, ttl_seconds: u64, lead_seconds: u64) -> Timestamp {
-    let threshold = (ttl_seconds as i64 - lead_seconds as i64).max(0);
-    last_cache
-        .checked_add(Span::new().seconds(threshold))
-        .expect("cache due timestamp in range")
+fn deadline_after(at: Timestamp, seconds: u64) -> Timestamp {
+    at.checked_add(Duration::from_secs(seconds))
+        .expect("deadline in timestamp range")
 }
 
 /// Statuses in which a thread is doing nothing and may receive a keepalive.
@@ -169,9 +173,18 @@ pub fn next_wait(state: &State, config: &Config, now: Timestamp) -> Duration {
 /// Metadata changes, including visits, never refresh the cache.
 pub fn observe(state: &mut ThreadState, view: &ThreadView, now: Timestamp, grace_seconds: u64) {
     if let Some(sent) = state.pending_warm_at
-        && now >= refresh_due_after(sent, grace_seconds, 0)
+        && now >= deadline_after(sent, grace_seconds)
     {
-        state.pending_warm_at = None;
+        // A failed history read must not turn an already completed keepalive
+        // into user activity. Retain its attribution until that run is read;
+        // the expired grace window no longer blocks sends in refresh_at.
+        if view
+            .latest_run_id
+            .as_deref()
+            .is_none_or(|run_id| state.has_run(run_id))
+        {
+            state.pending_warm_at = None;
+        }
         state.pending_seen_running = false;
     }
     state.title.clone_from(&view.title);
@@ -196,17 +209,19 @@ pub fn observe_run(state: &mut ThreadState, run: CompletedRun, grace_seconds: u6
     if state.has_run(&run.run_id) {
         return;
     }
-    let ours = state.pending_warm_at.is_some_and(|sent| {
-        run.completed_at >= sent
-            && (run.completed_at.as_second() <= sent.as_second() + grace_seconds as i64
-                || state.pending_seen_running)
+    let pending = state
+        .pending_warm_at
+        .filter(|&sent| run.completed_at >= sent);
+    let ours = pending.is_some_and(|sent| {
+        run.completed_at.as_second() <= sent.as_second() + grace_seconds as i64
+            || state.pending_seen_running
     });
     if !ours {
         state.last_activity_at = Some(run.completed_at);
         state.refreshes = 0;
     }
     state.last_run = Some(run);
-    if state.pending_seen_running {
+    if pending.is_some() {
         state.pending_seen_running = false;
         state.pending_warm_at = None;
     }
@@ -229,6 +244,7 @@ mod tests {
             SkipReason::IdleTooLong,
             SkipReason::BudgetSpent,
             SkipReason::CacheFresh,
+            SkipReason::CacheExpired,
             SkipReason::PendingWarm,
         ];
         let mut labels: Vec<&str> = reasons.iter().copied().map(SkipReason::label).collect();
@@ -292,54 +308,40 @@ mod tests {
     }
 
     #[test]
-    fn warms_when_due_and_active() {
+    fn warms_only_in_the_refresh_window() {
         let config = config();
-        let state = warm_state("2026-10-14T09:00:00Z");
-        let decision = decide(&config, &state, timestamp("2026-10-14T09:45:00Z"));
-        assert_eq!(decision, Decision::Warm);
-    }
-
-    #[test]
-    fn skips_until_ttl_elapsed() {
-        let config = config();
-        let state = warm_state("2026-10-14T09:00:00Z");
-        let decision = decide(&config, &state, timestamp("2026-10-14T09:20:00Z"));
-        assert_eq!(
-            decision,
-            Decision::Skip {
-                reason: SkipReason::CacheFresh
-            }
-        );
-    }
-
-    #[test]
-    fn warms_at_the_lead_time_not_the_ttl() {
-        // TTL 1800, lead 30, so due 1770s after the write.
-        let config = config();
-        let state = warm_state("2026-10-14T09:00:00Z");
-        let fresh = decide(&config, &state, timestamp("2026-10-14T09:29:29Z"));
-        assert_eq!(
-            fresh,
-            Decision::Skip {
-                reason: SkipReason::CacheFresh
-            }
-        );
-        let due = decide(&config, &state, timestamp("2026-10-14T09:29:30Z"));
-        assert_eq!(due, Decision::Warm);
-    }
-
-    #[test]
-    fn refresh_due_subtracts_the_lead_time() {
-        let base = timestamp("2026-10-14T09:00:00Z");
-        assert_eq!(
-            refresh_due_after(base, 1800, 30),
-            timestamp("2026-10-14T09:29:30Z")
-        );
-        assert_eq!(
-            refresh_due_after(base, 20, 30),
-            base,
-            "a lead past the ttl means due now"
-        );
+        let state = warm_state("2026-10-14T09:00:00.250Z");
+        for (at, expected) in [
+            (
+                "2026-10-14T09:20:00Z",
+                Decision::Skip {
+                    reason: SkipReason::CacheFresh,
+                },
+            ),
+            (
+                "2026-10-14T09:29:30.249999999Z",
+                Decision::Skip {
+                    reason: SkipReason::CacheFresh,
+                },
+            ),
+            ("2026-10-14T09:29:30.250Z", Decision::Warm),
+            ("2026-10-14T09:29:45Z", Decision::Warm),
+            ("2026-10-14T09:30:00.249999999Z", Decision::Warm),
+            (
+                "2026-10-14T09:30:00.250Z",
+                Decision::Skip {
+                    reason: SkipReason::CacheExpired,
+                },
+            ),
+            (
+                "2026-10-14T09:45:00Z",
+                Decision::Skip {
+                    reason: SkipReason::CacheExpired,
+                },
+            ),
+        ] {
+            assert_eq!(decide(&config, &state, timestamp(at)), expected, "{at}");
+        }
     }
 
     #[test]
@@ -373,21 +375,23 @@ mod tests {
     }
 
     #[test]
-    fn pending_blocks_overdue_resends_until_its_grace_expires() {
+    fn pending_blocks_resends_but_does_not_revive_an_expired_cache() {
         let config = config();
         let mut state = warm_state("2026-10-14T09:00:00Z");
-        state.pending_warm_at = Some(timestamp("2026-10-14T09:40:00Z"));
+        state.pending_warm_at = Some(timestamp("2026-10-14T09:29:30Z"));
         assert_eq!(
-            decide(&config, &state, timestamp("2026-10-14T09:44:59.999Z")),
+            decide(&config, &state, timestamp("2026-10-14T09:34:29.999Z")),
             Decision::Skip {
                 reason: SkipReason::PendingWarm
             },
             "the old cache is overdue but the send is still pending"
         );
         assert_eq!(
-            decide(&config, &state, timestamp("2026-10-14T09:45:00Z")),
-            Decision::Warm,
-            "an unacknowledged send can be retried after its grace window"
+            decide(&config, &state, timestamp("2026-10-14T09:34:30Z")),
+            Decision::Skip {
+                reason: SkipReason::CacheExpired
+            },
+            "missing acknowledgement is not evidence of a fresh cache"
         );
     }
 
@@ -423,6 +427,7 @@ mod tests {
                 thread
             }),
             ("stale activity", warm_state("2026-10-14T02:00:00Z")),
+            ("expired cache", warm_state("2026-10-14T08:35:00Z")),
             ("settled", {
                 let mut thread = warm_state("2026-10-14T09:00:00Z");
                 thread.settled = true;
@@ -520,7 +525,7 @@ mod tests {
     fn overdue_retries_only_wake_eligible_threads() {
         let mut config = config();
         config.tick_seconds = 120;
-        let now = timestamp("2026-10-14T09:40:00Z");
+        let now = timestamp("2026-10-14T09:29:45Z");
         let mut state = State::default();
         state
             .threads
@@ -534,6 +539,12 @@ mod tests {
         thread.pending_warm_at = None;
         thread.status = "running".to_owned();
         assert_eq!(next_wait(&state, &config, now), Duration::from_secs(120));
+        state.threads.get_mut("a").unwrap().status = "completed".to_owned();
+        assert_eq!(
+            next_wait(&state, &config, timestamp("2026-10-14T09:30:00Z")),
+            Duration::from_secs(120),
+            "expired caches wait for discovery, not overdue-send retries"
+        );
         assert_eq!(
             next_wait(&State::default(), &config, now),
             Duration::from_secs(120)
@@ -576,7 +587,7 @@ mod tests {
     #[test]
     fn treats_completed_threads_as_warmable_but_not_failed_ones() {
         let config = config();
-        let now = timestamp("2026-10-14T10:00:00Z");
+        let now = timestamp("2026-10-14T09:29:45Z");
 
         let mut completed = warm_state("2026-10-14T09:00:00Z");
         completed.status = "completed".to_owned();
@@ -646,7 +657,7 @@ mod tests {
             }
         );
 
-        let mut spent = warm_state("2026-10-14T14:30:00Z");
+        let mut spent = warm_state("2026-10-14T14:30:15Z");
         spent.refreshes = config.max_refreshes_per_activity;
         assert_eq!(
             decide(&config, &spent, now),
@@ -747,20 +758,22 @@ mod tests {
 
     #[test]
     fn pending_expires_with_the_observation_past_its_grace_window() {
+        let mut unchanged = view("2026-10-14T09:40:00Z");
+        unchanged.latest_run_id = None;
         let mut state = ThreadState {
             pending_warm_at: Some(timestamp("2026-10-14T09:40:00Z")),
             ..ThreadState::default()
         };
         observe(
             &mut state,
-            &view("2026-10-14T09:40:00Z"),
+            &unchanged,
             timestamp("2026-10-14T09:42:00Z"),
             300,
         );
         assert!(state.pending_warm_at.is_some(), "still inside grace");
         observe(
             &mut state,
-            &view("2026-10-14T09:50:00Z"),
+            &unchanged,
             timestamp("2026-10-14T09:50:00Z"),
             300,
         );
@@ -775,7 +788,7 @@ mod tests {
         };
         observe(
             &mut stuck,
-            &view("2026-10-14T09:50:00Z"),
+            &unchanged,
             timestamp("2026-10-14T09:50:00Z"),
             300,
         );
@@ -809,7 +822,35 @@ mod tests {
         );
         assert_eq!(state.last_activity_at, state.last_cache_at());
         assert_eq!(state.refreshes, 1);
-        assert_eq!(decide(&config, &state, thread.updated_at), Decision::Warm);
+        assert_eq!(
+            decide(&config, &state, thread.updated_at),
+            Decision::Skip {
+                reason: SkipReason::CacheExpired
+            }
+        );
+    }
+
+    #[test]
+    fn a_new_run_rearms_warming_after_the_previous_cache_expired() {
+        let config = config();
+        let mut state = warm_state("2026-10-14T09:00:00Z");
+        assert_eq!(
+            decide(&config, &state, timestamp("2026-10-14T10:00:00Z")),
+            Decision::Skip {
+                reason: SkipReason::CacheExpired
+            }
+        );
+        observe_run(&mut state, completed_run("2026-10-14T10:00:00Z"), 300);
+        assert_eq!(
+            decide(&config, &state, timestamp("2026-10-14T10:00:00Z")),
+            Decision::Skip {
+                reason: SkipReason::CacheFresh
+            }
+        );
+        assert_eq!(
+            decide(&config, &state, timestamp("2026-10-14T10:29:30Z")),
+            Decision::Warm
+        );
     }
 
     #[test]

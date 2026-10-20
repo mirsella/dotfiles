@@ -427,6 +427,7 @@ mod tests {
         Config {
             projects: vec!["project-1".to_owned()],
             max_refreshes_per_activity: 1,
+            lead_seconds: 300,
             day_window: crate::config::DayWindow {
                 start: jiff::civil::time(local.hour(), 0, 0, 0),
                 end: jiff::civil::time((local.hour() + 23) % 24, 0, 0, 0),
@@ -528,7 +529,7 @@ mod tests {
     #[test]
     fn run_history_failure_never_warms_from_an_older_run() {
         let updated = Timestamp::now()
-            .checked_sub(jiff::Span::new().hours(1))
+            .checked_sub(jiff::Span::new().minutes(25))
             .unwrap();
         let (base, server) = mock_server(
             &["initialize", "t3_thread_list", "t3_thread_read"],
@@ -561,9 +562,76 @@ mod tests {
     }
 
     #[test]
+    fn delayed_history_read_preserves_the_keepalive_budget() {
+        let now = Timestamp::now();
+        let activity = now.checked_sub(jiff::Span::new().minutes(25)).unwrap();
+        let sent = now.checked_sub(jiff::Span::new().seconds(400)).unwrap();
+        let completed = now.checked_sub(jiff::Span::new().seconds(200)).unwrap();
+        let mut reads = 0;
+        let (base, server) = mock_server(
+            &[
+                "initialize",
+                "t3_thread_list",
+                "t3_thread_read",
+                "t3_thread_list",
+                "t3_thread_read",
+            ],
+            move |name, _| {
+                Some(if name == "t3_thread_list" {
+                    json!({ "threads": [{
+                        "threadId": "thread-1", "status": "completed",
+                        "providerInstanceId": "opencode", "model": "openai/gpt-6.1-sol",
+                        "latestRunId": "keepalive-run", "updatedAt": now.to_string()
+                    }] })
+                } else {
+                    reads += 1;
+                    if reads == 1 {
+                        json!({ "recentRuns": [] })
+                    } else {
+                        json!({ "recentRuns": [{
+                            "runId": "keepalive-run", "completedAt": completed.to_string()
+                        }] })
+                    }
+                })
+            },
+        );
+        let mut state = State::default();
+        state.threads.insert(
+            "thread-1".to_owned(),
+            ThreadState {
+                last_run: Some(crate::t3::CompletedRun {
+                    run_id: "previous-run".to_owned(),
+                    completed_at: activity,
+                }),
+                last_activity_at: Some(activity),
+                pending_warm_at: Some(sent),
+                refreshes: 1,
+                ..ThreadState::default()
+            },
+        );
+        let config = active_config();
+        let mut client = T3Client::new(&base, "test".to_owned());
+        let summary = tick(&config, &mut client, &mut state, Path::new("unused"), false).unwrap();
+        assert!(summary.contains("warmed 0, 1 errors"), "{summary}");
+        assert_eq!(state.threads["thread-1"].pending_warm_at, Some(sent));
+        // Attribution survives persistence while history is unavailable.
+        let mut state: State =
+            serde_json::from_value(serde_json::to_value(&state).unwrap()).unwrap();
+        let summary = tick(&config, &mut client, &mut state, Path::new("unused"), false).unwrap();
+        assert!(summary.contains("budget-spent 1"), "{summary}");
+        let entry = &state.threads["thread-1"];
+        assert_eq!(entry.refreshes, 1);
+        assert_eq!(entry.last_activity_at, Some(activity));
+        assert_eq!(entry.last_cache_at(), Some(completed));
+        assert!(entry.pending_warm_at.is_none());
+        assert!(!entry.pending_seen_running);
+        server.join().unwrap();
+    }
+
+    #[test]
     fn failed_save_allows_retry_and_lost_response_blocks_duplicates() {
         let updated = Timestamp::now()
-            .checked_sub(jiff::Span::new().minutes(30))
+            .checked_sub(jiff::Span::new().minutes(25))
             .unwrap();
         let threads = json!({ "threads": [{
             "threadId": "thread-1", "title": "Test", "status": "completed",
@@ -636,6 +704,50 @@ mod tests {
         let summary = tick(&config, &mut client, &mut state, &state_path, false).unwrap();
         assert!(summary.contains("pending-warm 1"), "{summary}");
         assert_eq!(state.threads["thread-1"].refreshes, 1);
+        server.join().unwrap();
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn expired_runs_are_never_sent_keepalives_even_after_visits_and_restart() {
+        let visited = Timestamp::now();
+        let completed = visited.checked_sub(jiff::Span::new().hours(1)).unwrap();
+        let (base, server) = mock_server(
+            &[
+                "initialize",
+                "t3_thread_list",
+                "t3_thread_read",
+                "t3_thread_list",
+            ],
+            move |name, _| {
+                Some(if name == "t3_thread_list" {
+                    json!({ "threads": [{
+                        "threadId": "thread-1", "status": "completed",
+                        "providerInstanceId": "opencode", "model": "openai/gpt-6.1-sol",
+                        "latestRunId": "run-1", "updatedAt": visited.to_string()
+                    }] })
+                } else {
+                    json!({ "recentRuns": [{
+                        "runId": "run-1", "completedAt": completed.to_string()
+                    }] })
+                })
+            },
+        );
+        let directory =
+            std::env::temp_dir().join(format!("warmer-expired-run-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let state_path = directory.join("state.json");
+        let config = active_config();
+        let mut client = T3Client::new(&base, "test".to_owned());
+        let mut state = State::default();
+        for _ in 0..2 {
+            let summary = pass(&config, &mut client, &mut state, &state_path, false).unwrap();
+            assert!(summary.contains("warmed 0, 0 errors"), "{summary}");
+            assert!(summary.contains("cache-expired 1"), "{summary}");
+            state = State::load(&state_path).unwrap();
+            assert_eq!(state.threads["thread-1"].refreshes, 0);
+            assert!(state.threads["thread-1"].pending_warm_at.is_none());
+        }
         server.join().unwrap();
         std::fs::remove_dir_all(directory).unwrap();
     }
