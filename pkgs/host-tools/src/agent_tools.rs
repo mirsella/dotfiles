@@ -70,15 +70,10 @@ fn install(
     vars: &[(&str, &str)],
     args: &[&str],
 ) -> Result<()> {
-    // Upstream downloads can be large; never stage them in RAM-backed /tmp.
-    let temporary = tempfile::Builder::new()
-        .prefix(".agent-tools-install-")
-        .tempdir_in(home.join("dev"))?;
     let status = Command::new(&config.shell)
         .arg(installer)
         .args(args)
         .env("HOME", home)
-        .env("TMPDIR", temporary.path())
         .env(
             "PATH",
             format!(
@@ -216,7 +211,6 @@ pub fn bootstrap(package: &Path) -> Result<()> {
         .open(state.join("install.lock"))?;
     eprintln!("agent-tools: waiting for installation lock");
     lock.lock()?;
-    fs::create_dir_all(home.join("dev/.cache/agent-tools"))?;
     let bin = home.join(".local/bin");
     fs::create_dir_all(&bin)?;
 
@@ -322,7 +316,6 @@ fn ensure_t3_service(home: &Path) -> Result<()> {
     crate::util::command_output(
         Command::new(home.join(".local/bin/t3"))
             .args(["service", "install"])
-            .env("TMPDIR", home.join("dev/.cache/agent-tools"))
             .stdin(Stdio::null()),
     )
     .context("install T3 background service")?;
@@ -359,37 +352,33 @@ pub fn environment(file: &Path) -> Result<()> {
             .filter(|path| path != &local_bin),
     );
     let path = env::join_paths(paths)?;
-    let tmp = home.join("dev/.cache/agent-tools");
-    fs::create_dir_all(&tmp)?;
     let existing = match fs::read_to_string(file) {
         Ok(existing) => existing,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
         Err(error) => return Err(error.into()),
     };
-    let contents =
-        environment_contents(&existing, path.to_str().context("PATH is not UTF-8")?, &tmp)?;
+    let contents = environment_contents(&existing, path.to_str().context("PATH is not UTF-8")?)?;
     if contents == existing {
         return Ok(());
     }
     crate::util::atomic_write(file, contents.as_bytes())
 }
 
-fn environment_contents(existing: &str, path: &str, tmp: &Path) -> Result<String> {
+fn environment_contents(existing: &str, path: &str) -> Result<String> {
     let mut contents = String::with_capacity(existing.len() + path.len() + 64);
+    // Drop TMPDIR left by older versions so T3 uses its normal temporary directory.
     for line in existing
         .lines()
         .filter(|line| !line.starts_with("PATH=") && !line.starts_with("TMPDIR="))
     {
         writeln!(contents, "{line}")?;
     }
-    for (name, value) in [("PATH", path), ("TMPDIR", crate::util::path(tmp)?)] {
-        ensure!(
-            !value.contains(['\n', '\r']),
-            "{name} must not contain a newline"
-        );
-        let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
-        writeln!(contents, "{name}=\"{escaped}\"")?;
-    }
+    ensure!(
+        !path.contains(['\n', '\r']),
+        "PATH must not contain a newline"
+    );
+    let escaped = path.replace('\\', "\\\\").replace('"', "\\\"");
+    writeln!(contents, "PATH=\"{escaped}\"")?;
     Ok(contents)
 }
 
@@ -627,26 +616,16 @@ mod tests {
 
     #[test]
     fn service_environment_keeps_other_exports_and_replaces_stale_paths() {
-        let existing = "PATH=\"/old/path\"\nEXAMPLE=\"keep this export\"\nTMPDIR=\"/tmp\"\n";
-        let output = environment_contents(
-            existing,
-            "/home/user/.local/bin:/usr/bin",
-            Path::new("/home/user/dev/cache"),
-        )
-        .unwrap();
+        let existing = "PATH=\"/old/path\"\nEXAMPLE=\"keep this export\"\nTMPDIR=\"/home/user/dev/.cache/agent-tools\"\n";
+        let output = environment_contents(existing, "/home/user/.local/bin:/usr/bin").unwrap();
         assert_eq!(
             output,
-            "EXAMPLE=\"keep this export\"\nPATH=\"/home/user/.local/bin:/usr/bin\"\nTMPDIR=\"/home/user/dev/cache\"\n"
+            "EXAMPLE=\"keep this export\"\nPATH=\"/home/user/.local/bin:/usr/bin\"\n"
         );
         assert_eq!(
-            environment_contents(
-                &output,
-                "/home/user/.local/bin:/usr/bin",
-                Path::new("/home/user/dev/cache")
-            )
-            .unwrap(),
+            environment_contents(&output, "/home/user/.local/bin:/usr/bin").unwrap(),
             output
         );
-        assert!(environment_contents("", "bad\nPATH", Path::new("/cache")).is_err());
+        assert!(environment_contents("", "bad\nPATH").is_err());
     }
 }

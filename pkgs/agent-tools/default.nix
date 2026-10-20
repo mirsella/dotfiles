@@ -46,7 +46,6 @@ let
     hash = "sha256-flm2OUAW74PtHpRoR3aeAb821AYsXFryV3/T4igoX9k=";
   };
   desktopLauncher = writeShellScript "t3code-nightly" ''
-    export TMPDIR="$HOME/dev/.cache/agent-tools"
     exec ${lib.optionalString isNixOS "${lib.getExe appimage-run} "}"$HOME/.local/share/t3code/app/T3-Code-nightly.AppImage" "$@"
   '';
   desktopEntry = writeText "t3code.desktop" ''

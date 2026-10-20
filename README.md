@@ -177,7 +177,8 @@ updating that seed only affects fresh installs.
 Nix supplies the `t3code`/`t3code-nightly` launchers and desktop menu entry. On
 NixOS the launcher uses `appimage-run`; Arch runs the AppImage directly. A service
 drop-in puts `~/.local/bin` first in T3's PATH while preserving existing shell
-exports. Downloads use disk-backed scratch space under `~/dev`. T3 owns its
+exports without overriding T3's temporary directory. Bootstrap installers also
+use their default temporary directories. T3 owns its
 background-service unit and updater state. Bootstrap installs the T3 service
 when a user manager is available; setup finishes on the next user login otherwise.
 Home Manager starts `agent-tools-setup.service` after activation. It waits for
