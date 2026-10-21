@@ -22,7 +22,6 @@ in
 {
   imports = [
     ./agent-tools.nix
-    ./t3-cache-warmer.nix
   ];
 
   home = {

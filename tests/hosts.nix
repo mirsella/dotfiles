@@ -13,15 +13,7 @@ let
     desktops.${name}.home-manager.users.mirsella
     flake.homeConfigurations.${name}.config
   ]) (builtins.attrNames desktops);
-  agentHomes = workstationHomes ++ [ server.home-manager.users.mirsella ];
-  cacheWarmer = lib.getExe flake.packages.x86_64-linux.t3-cache-warmer;
 in
-assert lib.assertMsg (lib.all (
-  home:
-  home.home.file.".local/bin/t3-cache-warmer".source == cacheWarmer
-  && home.systemd.user.services.t3-cache-warmer.Service.ExecStart
-  == [ "${cacheWarmer} --config %h/.config/t3-cache-warmer/config.json run" ]
-) agentHomes) "Every T3 installation must run the cache warmer with its provider allowlist config";
 assert lib.assertMsg (lib.all (
   home:
   let
