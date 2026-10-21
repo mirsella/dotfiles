@@ -179,19 +179,16 @@ fn proc_file(path: &Path, name: &str) -> Result<Option<Vec<u8>>> {
     }
 }
 
-fn nul_strings(bytes: &[u8]) -> Result<Vec<String>> {
+fn nul_strings(bytes: &[u8]) -> Vec<String> {
     bytes
         .split(|byte| *byte == 0)
         .filter(|value| !value.is_empty())
-        .map(|value| {
-            std::str::from_utf8(value)
-                .map(str::to_owned)
-                .context("/proc command line contains invalid UTF-8")
-        })
+        .map(|value| String::from_utf8_lossy(value).into_owned())
         .collect()
 }
 
-fn env_value(environment: &[u8], name: &[u8]) -> Result<Option<String>> {
+fn env_entry(environment: &[u8], name: &[u8]) -> Result<Option<String>> {
+    let mut found = None;
     for entry in environment.split(|byte| *byte == 0) {
         let Some(value) = entry
             .strip_prefix(name)
@@ -199,12 +196,26 @@ fn env_value(environment: &[u8], name: &[u8]) -> Result<Option<String>> {
         else {
             continue;
         };
-        let value = std::str::from_utf8(value)
-            .context("/proc environment contains invalid UTF-8")?
-            .to_owned();
-        return Ok((!value.trim().is_empty()).then_some(value));
+        // Environment values are arbitrary bytes. Decode them the same way a
+        // UTF-8 runtime does instead of aborting the whole process scan.
+        // Duplicate keys keep the last value, as process.env does.
+        found = Some(String::from_utf8_lossy(value).into_owned());
     }
-    Ok(None)
+    Ok(found)
+}
+
+fn env_value(environment: &[u8], name: &[u8]) -> Result<Option<String>> {
+    Ok(env_entry(environment, name)?.filter(|value| !value.trim().is_empty()))
+}
+
+fn password_from_env(environment: &[u8]) -> Result<Option<String>> {
+    // v2 uses OPENCODE_PASSWORD first. The legacy name is only consulted when
+    // the primary key is absent; an empty primary key still suppresses it.
+    let value = match env_entry(environment, b"OPENCODE_PASSWORD")? {
+        Some(value) => Some(value),
+        None => env_entry(environment, b"OPENCODE_SERVER_PASSWORD")?,
+    };
+    Ok(value.filter(|value| !value.is_empty()))
 }
 
 fn basic_authorization(username: &str, password: &str) -> String {
@@ -235,12 +246,87 @@ fn xdg_dir(environment: &[u8], variable: &[u8], fallback: &str) -> Result<Option
     Ok(env_value(environment, b"HOME")?.map(|home| PathBuf::from(home).join(fallback)))
 }
 
-fn native_service_password(environment: &[u8]) -> Result<Option<String>> {
-    // The v2 service writes its runtime credential to the state directory.
-    if let Some(state) = xdg_dir(environment, b"XDG_STATE_HOME", ".local/state")?
-        && let Some(password) = service_password(&state.join("opencode/service.json"))?
-    {
+fn service_files(directory: &Path) -> Result<Vec<PathBuf>> {
+    let entries = match fs::read_dir(directory) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(error).with_context(|| format!("read {}", directory.display())),
+    };
+    let mut files = Vec::new();
+    for entry in entries {
+        let entry = entry.with_context(|| format!("read {}", directory.display()))?;
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if !name.starts_with("service") || !name.ends_with(".json") {
+            continue;
+        }
+        let file_type = match entry.file_type() {
+            Ok(file_type) => file_type,
+            Err(error) if proc_entry_gone(&error) => continue,
+            Err(error) => return Err(error).with_context(|| format!("read {}", path.display())),
+        };
+        if file_type.is_file() {
+            files.push(path);
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+fn service_registration_password(path: &Path, pid: i32) -> Result<Option<Option<String>>> {
+    let bytes = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error).with_context(|| format!("read {}", path.display())),
+    };
+    let config: serde_json::Map<String, Value> = match serde_json::from_slice(&bytes) {
+        Ok(config) => config,
+        Err(_) => return Ok(None),
+    };
+    if config.get("pid").and_then(Value::as_i64) != Some(i64::from(pid)) {
+        return Ok(None);
+    }
+    // A matching registration is authoritative even when its password is
+    // missing, so never fall through to another channel's configuration.
+    Ok(Some(match config.get("password") {
+        Some(Value::String(value)) => (!value.is_empty()).then(|| value.clone()),
+        _ => None,
+    }))
+}
+
+fn config_service_password(directory: &Path) -> Result<Option<String>> {
+    if let Some(password) = service_password(&directory.join("service.json"))? {
         return Ok(Some(password));
+    }
+    let mut candidates = Vec::new();
+    for path in service_files(directory)? {
+        if path.file_name().and_then(|name| name.to_str()) == Some("service.json") {
+            continue;
+        }
+        if let Some(password) = service_password(&path)? {
+            candidates.push(password);
+        }
+    }
+    // Without a registration PID, a single channel file is unambiguous.
+    match candidates.len() {
+        0 => Ok(None),
+        1 => Ok(candidates.pop()),
+        _ => Ok(None),
+    }
+}
+
+fn native_service_password(environment: &[u8], pid: i32) -> Result<Option<String>> {
+    // The v2 service writes its runtime credential to a channel-specific
+    // registration in the state directory. Match its PID so stale channels
+    // cannot supply another server's password.
+    if let Some(state) = xdg_dir(environment, b"XDG_STATE_HOME", ".local/state")? {
+        for path in service_files(&state.join("opencode"))? {
+            if let Some(password) = service_registration_password(&path, pid)? {
+                return Ok(password);
+            }
+        }
     }
 
     // Older installs only wrote the credential to the config directory.
@@ -251,27 +337,95 @@ fn native_service_password(environment: &[u8]) -> Result<Option<String>> {
             None => return Ok(None),
         },
     };
-    service_password(&directory.join("service.json"))
+    config_service_password(&directory)
 }
 
-fn is_server_command(args: &[String]) -> bool {
-    let mut args = args.iter().skip(1);
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "serve" => {
-                return !args.any(|arg| arg == "--stdio" || arg.starts_with("--stdio="));
-            }
-            "--print-logs" => {}
-            "--log-level" => {
-                if args.next().is_none() {
-                    return false;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct ServerMode {
+    service: bool,
+}
+
+fn bool_flag_value(value: &str) -> Option<bool> {
+    match value {
+        "true" | "yes" | "on" | "1" | "y" => Some(true),
+        "false" | "no" | "off" | "0" | "n" => Some(false),
+        _ => None,
+    }
+}
+
+fn server_mode(args: &[String]) -> Option<ServerMode> {
+    let mut index = 1;
+    let mut serve = false;
+    let mut service = false;
+    let mut stdio = false;
+    while index < args.len() {
+        let arg = &args[index];
+        if !serve {
+            match arg.as_str() {
+                "serve" => {
+                    serve = true;
+                    index += 1;
+                }
+                "--print-logs" => index += 1,
+                "--log-level" => {
+                    if index + 1 >= args.len() {
+                        return None;
+                    }
+                    index += 2;
+                }
+                _ => {
+                    if let Some(value) = arg.strip_prefix("--print-logs=") {
+                        bool_flag_value(value)?;
+                        index += 1;
+                    } else if arg.starts_with("--log-level=") {
+                        index += 1;
+                    } else {
+                        return None;
+                    }
                 }
             }
-            _ if arg.starts_with("--log-level=") => {}
-            _ => return false,
+            continue;
+        }
+        match arg.as_str() {
+            "--service" => {
+                service = true;
+                index += 1;
+            }
+            "--stdio" => {
+                stdio = true;
+                index += 1;
+            }
+            "--print-logs" => index += 1,
+            "--log-level" | "--hostname" | "--port" | "--cors" => {
+                if index + 1 >= args.len() {
+                    return None;
+                }
+                index += 2;
+            }
+            _ => {
+                if let Some(value) = arg.strip_prefix("--service=") {
+                    service = bool_flag_value(value)?;
+                } else if let Some(value) = arg.strip_prefix("--stdio=") {
+                    stdio = bool_flag_value(value)?;
+                } else if let Some(value) = arg.strip_prefix("--print-logs=") {
+                    bool_flag_value(value)?;
+                } else if !arg.starts_with("--log-level=")
+                    && !arg.starts_with("--hostname=")
+                    && !arg.starts_with("--port=")
+                    && !arg.starts_with("--cors=")
+                {
+                    return None;
+                }
+                index += 1;
+            }
         }
     }
-    false
+    (serve && !stdio).then_some(ServerMode { service })
+}
+
+#[cfg(test)]
+fn is_server_command(args: &[String]) -> bool {
+    server_mode(args).is_some()
 }
 
 fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
@@ -304,22 +458,21 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
         let Some(cmdline) = proc_file(&path, "cmdline")? else {
             continue;
         };
-        let args = nul_strings(&cmdline)?;
+        let args = nul_strings(&cmdline);
         if args.is_empty() {
-            bail!("opencode pid {pid} has an empty cmdline");
-        }
-        if !is_server_command(&args) {
+            // Zombies and exiting processes keep a comm but lose their argv.
             continue;
         }
+        let Some(mode) = server_mode(&args) else {
+            continue;
+        };
         let Some(environment) = proc_file(&path, "environ")? else {
             continue;
         };
-        let password = if args.iter().any(|arg| arg == "--service") {
-            native_service_password(&environment)?
+        let password = if mode.service {
+            native_service_password(&environment, pid)?
         } else {
-            // v2 uses OPENCODE_PASSWORD; do not fall back to the legacy
-            // OPENCODE_SERVER_PASSWORD alias.
-            env_value(&environment, b"OPENCODE_PASSWORD")?
+            password_from_env(&environment)?
         };
         let authorization = password
             .as_deref()
@@ -440,6 +593,53 @@ fn is_transient(error: &ureq::Error) -> bool {
     }
 }
 
+fn error_status(error: &anyhow::Error) -> Option<u16> {
+    error
+        .chain()
+        .find_map(|cause| cause.downcast_ref::<ureq::Error>())
+        .and_then(|error| match error {
+            ureq::Error::StatusCode(status) => Some(*status),
+            _ => None,
+        })
+}
+
+fn is_v2_version(version: &str) -> bool {
+    version == "local"
+        || version == "2"
+        || version.starts_with("2.")
+        || version.starts_with("v2.")
+        || version.starts_with("0.0.0-dev-")
+        || version.starts_with("0.0.0-beta-")
+        || version.starts_with("0.0.0-next-")
+        || version.starts_with("0.0.0-alpha-")
+}
+
+fn is_v2_api(api: &OpenCodeApi<'_>) -> bool {
+    if api.get("/api/info").is_ok_and(|value| {
+        value
+            .get("version")
+            .and_then(Value::as_str)
+            .is_some_and(is_v2_version)
+    }) {
+        return true;
+    }
+    // A local or embedded v2 build may report "local"/"unknown". The active
+    // session endpoint exists only in v2, so use its shape as a fallback.
+    api.active().is_ok()
+}
+
+fn encode_path_segment(value: &str) -> String {
+    let mut encoded = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+            encoded.push(char::from(byte));
+        } else {
+            write!(encoded, "%{byte:02X}").expect("writing to a string cannot fail");
+        }
+    }
+    encoded
+}
+
 impl OpenCodeApi<'_> {
     fn get(&self, path: &str) -> Result<Value> {
         self.get_query(path, &[])
@@ -513,18 +713,34 @@ impl OpenCodeApi<'_> {
         self.get_query(path, &[("location[directory]", directory)])
     }
 
+    fn get_location_optional(&self, path: &str, directory: &str) -> Result<Option<Value>> {
+        match self.get_location(path, directory) {
+            Ok(page) => Ok(Some(page)),
+            // The location was removed after its sessions were listed. No
+            // scoped form or permission can survive that, so treat it as empty.
+            Err(error) if error_status(&error) == Some(404) => Ok(None),
+            Err(error) => Err(error),
+        }
+    }
+
     fn forms(&self, directory: &str) -> Result<Vec<Value>> {
-        page_array(
-            self.get_location("/api/form", directory)
-                .context("pending forms")?,
-        )
+        match self
+            .get_location_optional("/api/form", directory)
+            .context("pending forms")?
+        {
+            Some(page) => page_array(page),
+            None => Ok(Vec::new()),
+        }
     }
 
     fn permissions(&self, directory: &str) -> Result<Vec<Value>> {
-        page_array(
-            self.get_location("/api/permission/request", directory)
-                .context("pending permissions")?,
-        )
+        match self
+            .get_location_optional("/api/permission/request", directory)
+            .context("pending permissions")?
+        {
+            Some(page) => page_array(page),
+            None => Ok(Vec::new()),
+        }
     }
 
     fn global_directories(&self) -> Result<Vec<String>> {
@@ -542,6 +758,7 @@ impl OpenCodeApi<'_> {
     }
 
     fn latest_assistant(&self, session: &str) -> Result<Value> {
+        let session = encode_path_segment(session);
         let page = self.get_query(
             &format!("/api/session/{session}/message"),
             &[("limit", "1"), ("order", "desc"), ("type", "assistant")],
@@ -578,6 +795,19 @@ fn active_part(part: &Value) -> bool {
     )
 }
 
+fn subagent_background(part: &Value) -> bool {
+    match part
+        .pointer("/state/input/background")
+        .or_else(|| part.pointer("/state/metadata/background"))
+    {
+        None => false,
+        Some(Value::Bool(value)) => *value,
+        // A malformed value must not make a background task look like a
+        // foreground wait the watchdog can safely suspend through.
+        Some(_) => true,
+    }
+}
+
 fn waiting_sessions<'a>(
     status: &'a serde_json::Map<String, Value>,
     questions: &'a [Value],
@@ -605,6 +835,7 @@ fn waiting_sessions<'a>(
                     .is_some_and(|parts| {
                         parts.iter().any(|part| {
                             active_part(part)
+                                && part.get("type").and_then(Value::as_str) == Some("tool")
                                 && part.get("name").and_then(Value::as_str) == Some("question")
                         })
                     })
@@ -625,11 +856,9 @@ fn waiting_sessions<'a>(
                     .all(|part| {
                         part.get("type").and_then(Value::as_str) == Some("tool")
                             && part.get("name").and_then(Value::as_str) == Some("subagent")
+                            && !subagent_background(part)
                             && part.pointer("/state/metadata").is_some_and(|metadata| {
-                                matches!(
-                                    metadata.get("background"),
-                                    None | Some(Value::Bool(false))
-                                ) && metadata
+                                metadata
                                     .get("sessionID")
                                     .and_then(Value::as_str)
                                     .is_some_and(|child| waiting.contains(child))
@@ -870,17 +1099,10 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
             .into_iter()
             .filter_map(|inode| listeners.get(&inode))
             .find(|url| {
-                OpenCodeApi {
+                is_v2_api(&OpenCodeApi {
                     client,
                     url,
                     authorization: process.authorization.as_deref(),
-                }
-                .get("/api/info")
-                .is_ok_and(|value| {
-                    value
-                        .get("version")
-                        .and_then(Value::as_str)
-                        .is_some_and(|version| version.starts_with("2."))
                 })
             })
             .cloned()
@@ -1135,10 +1357,25 @@ fn clean_text(value: &str) -> String {
         .collect()
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Key {
+    Quit,
+    Up,
+    Down,
+    PageUp,
+    PageDown,
+    Home,
+    End,
+    Ignore,
+}
+
 struct Dashboard {
     termios: Option<libc::termios>,
     action: Option<String>,
     terminal_size: std::cell::Cell<(u16, u16)>,
+    scroll: std::cell::Cell<usize>,
+    page: std::cell::Cell<usize>,
+    max_scroll: std::cell::Cell<usize>,
 }
 
 impl Dashboard {
@@ -1177,6 +1414,9 @@ impl Dashboard {
             termios,
             action,
             terminal_size: std::cell::Cell::new(Self::terminal_size()),
+            scroll: std::cell::Cell::new(0),
+            page: std::cell::Cell::new(1),
+            max_scroll: std::cell::Cell::new(0),
         }
     }
 
@@ -1204,27 +1444,140 @@ impl Dashboard {
         );
     }
 
+    fn read_byte() -> Option<u8> {
+        let mut byte = 0_u8;
+        (unsafe { libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1) } == 1)
+            .then_some(byte)
+    }
+
+    fn stdin_ready(timeout_ms: i32) -> bool {
+        let mut descriptor = libc::pollfd {
+            fd: libc::STDIN_FILENO,
+            events: libc::POLLIN,
+            revents: 0,
+        };
+        unsafe { libc::poll(&mut descriptor, 1, timeout_ms) > 0 }
+    }
+
+    fn read_key() -> Option<Key> {
+        match Self::read_byte()? {
+            b'q' => Some(Key::Quit),
+            b'k' => Some(Key::Up),
+            b'j' => Some(Key::Down),
+            0x1b => {
+                if !Self::stdin_ready(10) {
+                    return Some(Key::Ignore);
+                }
+                let Some(second) = Self::read_byte() else {
+                    return Some(Key::Ignore);
+                };
+                if !matches!(second, b'[' | b'O') {
+                    return Some(Key::Ignore);
+                }
+                if !Self::stdin_ready(10) {
+                    return Some(Key::Ignore);
+                }
+                let Some(third) = Self::read_byte() else {
+                    return Some(Key::Ignore);
+                };
+                match third {
+                    b'A' => Some(Key::Up),
+                    b'B' => Some(Key::Down),
+                    b'H' => Some(Key::Home),
+                    b'F' => Some(Key::End),
+                    b'1'..=b'9' => {
+                        if !Self::stdin_ready(10) {
+                            return Some(Key::Ignore);
+                        }
+                        let Some(fourth) = Self::read_byte() else {
+                            return Some(Key::Ignore);
+                        };
+                        match (third, fourth) {
+                            (b'1', b'~') | (b'7', b'~') => Some(Key::Home),
+                            (b'4', b'~') | (b'8', b'~') => Some(Key::End),
+                            (b'5', b'~') => Some(Key::PageUp),
+                            (b'6', b'~') => Some(Key::PageDown),
+                            _ => Some(Key::Ignore),
+                        }
+                    }
+                    _ => Some(Key::Ignore),
+                }
+            }
+            _ => Some(Key::Ignore),
+        }
+    }
+
+    fn scroll_by(&self, delta: isize) -> bool {
+        let current = self.scroll.get();
+        let next = if delta < 0 {
+            current.saturating_sub(delta.unsigned_abs())
+        } else {
+            current.saturating_add(delta as usize)
+        }
+        .min(self.max_scroll.get());
+        if next == current {
+            false
+        } else {
+            self.scroll.set(next);
+            true
+        }
+    }
+
     fn wait(
         &self,
         cancellation: &Cancellation,
         duration: Duration,
-        mut on_resize: impl FnMut(),
+        mut on_redraw: impl FnMut(),
     ) -> Option<i32> {
         if self.termios.is_none() {
             return cancellation.wait(duration);
         }
         let started = Instant::now();
         loop {
-            let mut byte = 0_u8;
-            if unsafe { libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1) }
-                == 1
-                && byte == b'q'
-            {
-                return Some(0);
+            if let Some(key) = Self::read_key() {
+                match key {
+                    Key::Quit => return Some(0),
+                    Key::Up => {
+                        if self.scroll_by(-1) {
+                            on_redraw();
+                        }
+                    }
+                    Key::Down => {
+                        if self.scroll_by(1) {
+                            on_redraw();
+                        }
+                    }
+                    Key::PageUp => {
+                        let page = self.page.get().max(1) as isize;
+                        if self.scroll_by(-page) {
+                            on_redraw();
+                        }
+                    }
+                    Key::PageDown => {
+                        let page = self.page.get().max(1) as isize;
+                        if self.scroll_by(page) {
+                            on_redraw();
+                        }
+                    }
+                    Key::Home => {
+                        if self.scroll.get() != 0 {
+                            self.scroll.set(0);
+                            on_redraw();
+                        }
+                    }
+                    Key::End => {
+                        let end = self.max_scroll.get();
+                        if self.scroll.get() != end {
+                            self.scroll.set(end);
+                            on_redraw();
+                        }
+                    }
+                    Key::Ignore => {}
+                }
             }
             let terminal_size = Self::terminal_size();
             if terminal_size != self.terminal_size.replace(terminal_size) {
-                on_resize();
+                on_redraw();
             }
             let remaining = duration.saturating_sub(started.elapsed());
             if let Some(signal) = cancellation.wait(remaining.min(Duration::from_millis(25))) {
@@ -1239,12 +1592,12 @@ impl Dashboard {
     fn run_work<T: Send + 'static>(
         &self,
         cancellation: &Cancellation,
-        mut on_resize: impl FnMut(),
+        mut on_redraw: impl FnMut(),
         work: impl FnOnce() -> T + Send + 'static,
     ) -> std::result::Result<T, i32> {
         let worker = thread::spawn(work);
         while !worker.is_finished() {
-            if let Some(signal) = self.wait(cancellation, Duration::from_millis(25), &mut on_resize)
+            if let Some(signal) = self.wait(cancellation, Duration::from_millis(25), &mut on_redraw)
             {
                 return Err(signal);
             }
@@ -1362,23 +1715,55 @@ impl Dashboard {
                 Cell::new(title),
             ]);
         }
-        let mut frame = format!(
+        let mut body = table.to_string();
+        if !evaluation.blockers.is_empty() {
+            body.push_str("\n\n\x1b[31mAPI errors\x1b[0m");
+            for failure in &evaluation.blockers {
+                body.push_str("\n  ");
+                body.push_str(&clean_text(failure));
+            }
+        }
+        let body_lines: Vec<&str> = body.lines().collect();
+        let mut top = format!(
             "\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n{}\n",
             Self::status_line(evaluation, check, idle, required_idle, next_scan),
         );
         if let Some(action) = &self.action {
-            writeln!(frame, "\x1b[2mon idle       |\x1b[0m  {action}")
+            writeln!(top, "\x1b[2mon idle       |\x1b[0m  {action}")
                 .expect("writing to a string cannot fail");
         }
-        write!(frame, "\n{table}").expect("writing to a string cannot fail");
-        if !evaluation.blockers.is_empty() {
-            frame.push_str("\n\n\x1b[31mAPI errors\x1b[0m");
-            for failure in &evaluation.blockers {
-                frame.push_str("\n  ");
-                frame.push_str(&clean_text(failure));
-            }
+        top.push('\n');
+
+        // Keep the title, status and footer fixed; scroll the table and API
+        // errors through the remaining terminal rows.
+        let height = usize::from(self.terminal_size.get().1);
+        let top_height = top.lines().count();
+        let bottom_height = 3;
+        let available = height.saturating_sub(top_height + bottom_height);
+        let max_scroll = body_lines.len().saturating_sub(available);
+        let scroll = self.scroll.get().min(max_scroll);
+        let visible_end = (scroll + available).min(body_lines.len());
+        self.scroll.set(scroll);
+        self.page.set(available.max(1));
+        self.max_scroll.set(max_scroll);
+
+        let mut frame = top;
+        frame.push_str(&body_lines[scroll..visible_end].join("\n"));
+        let mut footer = String::from("\n\n\x1b[2mq / Ctrl-C to exit");
+        if max_scroll > 0 {
+            write!(
+                footer,
+                "  |  lines {}-{}/{}  |  ↑↓ PgUp/PgDn Home/End",
+                scroll + 1,
+                visible_end,
+                body_lines.len()
+            )
+            .expect("writing to a string cannot fail");
+        } else {
+            footer.push_str("  |  ↑↓ PgUp/PgDn Home/End");
         }
-        frame.push_str("\n\n\x1b[2mq / Ctrl-C to exit\x1b[0m\n");
+        footer.push_str("\x1b[0m\n");
+        frame.push_str(&footer);
         self.render(&frame);
     }
 }
@@ -1410,7 +1795,21 @@ fn signal_exit(state: &State, signal: i32) -> i32 {
     128 + signal
 }
 
+fn session_exclusions(ignored_sessions: &[String], self_session: Option<&str>) -> Vec<String> {
+    let mut exclusions = ignored_sessions.to_vec();
+    if let Some(session) = self_session.filter(|session| !session.is_empty())
+        && !exclusions.iter().any(|existing| existing == session)
+    {
+        exclusions.push(session.to_owned());
+    }
+    exclusions
+}
+
 fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Result<i32> {
+    // The v2 shell tool exposes the launching session to the command. Prefer
+    // that over inferring the session from its latest shell tool call.
+    let self_session = env::var("OPENCODE_SESSION_ID").ok();
+    let ignored_sessions = session_exclusions(&options.ignored_sessions, self_session.as_deref());
     let client = ureq::Agent::new_with_config(
         ureq::Agent::config_builder()
             .timeout_global(Some(Duration::from_secs(REQUEST_TIMEOUT_SECS)))
@@ -1442,7 +1841,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         };
         evaluate(
             &scan,
-            &options.ignored_sessions,
+            &ignored_sessions,
             stuck_after,
             &mut stuck_tracker,
             &report,
@@ -1522,7 +1921,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
                 };
             let final_evaluation = evaluate(
                 &final_scan,
-                &options.ignored_sessions,
+                &ignored_sessions,
                 stuck_after,
                 &mut stuck_tracker,
                 &report,
@@ -1554,7 +1953,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             Ok(result) => {
                 evaluation = evaluate(
                     &result?,
-                    &options.ignored_sessions,
+                    &ignored_sessions,
                     stuck_after,
                     &mut stuck_tracker,
                     &report,
@@ -1671,11 +2070,15 @@ mod tests {
     use std::net::TcpListener;
 
     fn serve_json(responses: Vec<Value>) -> (String, JoinHandle<Vec<String>>) {
+        serve_statuses(responses.into_iter().map(|body| (200, body)).collect())
+    }
+
+    fn serve_statuses(responses: Vec<(u16, Value)>) -> (String, JoinHandle<Vec<String>>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
         let server = thread::spawn(move || {
             let mut requests = Vec::new();
-            for body in responses {
+            for (status, body) in responses {
                 let (mut stream, _) = listener.accept().unwrap();
                 stream
                     .set_read_timeout(Some(Duration::from_secs(5)))
@@ -1692,8 +2095,13 @@ mod tests {
                 }
                 requests.push(request);
                 let body = serde_json::to_vec(&body).unwrap();
+                let reason = match status {
+                    200 => "OK",
+                    404 => "Not Found",
+                    _ => "Error",
+                };
                 write!(stream,
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                     body.len(),
                 ).unwrap();
                 stream.write_all(&body).unwrap();
@@ -1778,6 +2186,107 @@ mod tests {
     }
 
     #[test]
+    fn missing_locations_have_no_scoped_requests() {
+        let (url, server) = serve_statuses(vec![
+            (
+                404,
+                json!({"_tag": "LocationNotFoundError", "message": "location not found"}),
+            ),
+            (200, json!({"data": []})),
+        ]);
+        let client = test_client();
+        let api = OpenCodeApi {
+            client: &client,
+            url: &url,
+            authorization: None,
+        };
+        assert!(api.forms("/tmp/removed").unwrap().is_empty());
+        assert!(api.permissions("/tmp/removed").unwrap().is_empty());
+        assert_eq!(server.join().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn recognizes_http_status_from_request_context() {
+        let error = anyhow::Error::new(ureq::Error::StatusCode(404)).context("GET /api/form");
+        assert_eq!(error_status(&error), Some(404));
+    }
+
+    #[test]
+    fn accepts_v2_versions_from_every_channel() {
+        for version in [
+            "2",
+            "2.1.2",
+            "v2.1.2",
+            "local",
+            "0.0.0-dev-20261021",
+            "0.0.0-beta-20261021",
+            "0.0.0-next-20261021",
+            "0.0.0-alpha-20261021",
+        ] {
+            assert!(is_v2_version(version), "{version}");
+        }
+        for version in ["1.15.0", "0.15.0", "0.0.0-dev", "unknown"] {
+            assert!(!is_v2_version(version), "{version}");
+        }
+    }
+
+    #[test]
+    fn latest_assistant_encodes_session_id_path_segments() {
+        let (url, server) = serve_json(vec![
+            json!({"data": [{"type": "assistant", "content": []}]}),
+        ]);
+        let client = test_client();
+        let api = OpenCodeApi {
+            client: &client,
+            url: &url,
+            authorization: None,
+        };
+        assert!(api.latest_assistant("ses_a/b?c").is_ok());
+        let requests = server.join().unwrap();
+        assert!(requests[0].lines().next().unwrap().starts_with(
+            "GET /api/session/ses_a%2Fb%3Fc/message?limit=1&order=desc&type=assistant "
+        ));
+        assert_eq!(encode_path_segment("ses_a/b?c d%"), "ses_a%2Fb%3Fc%20d%25");
+    }
+
+    #[test]
+    fn ignores_empty_and_non_utf8_cmdlines() {
+        assert!(nul_strings(b"").is_empty());
+        assert_eq!(
+            nul_strings(b"opencode\0serve\0\xff\0"),
+            ["opencode", "serve", "\u{fffd}"]
+        );
+    }
+
+    #[test]
+    fn reads_lossy_environment_values_and_v2_password_precedence() {
+        assert_eq!(
+            password_from_env(b"OPENCODE_PASSWORD=\xff\0").unwrap(),
+            Some("\u{fffd}".to_owned())
+        );
+        assert_eq!(
+            password_from_env(b"OPENCODE_SERVER_PASSWORD=legacy\0").unwrap(),
+            Some("legacy".to_owned())
+        );
+        assert_eq!(
+            password_from_env(b"OPENCODE_PASSWORD=primary\0OPENCODE_SERVER_PASSWORD=legacy\0")
+                .unwrap(),
+            Some("primary".to_owned())
+        );
+        // An empty primary key is still present and suppresses the legacy key.
+        assert_eq!(
+            password_from_env(b"OPENCODE_PASSWORD=\0OPENCODE_SERVER_PASSWORD=legacy\0").unwrap(),
+            None
+        );
+        assert_eq!(password_from_env(b"OPENCODE_PASSWORD=\0").unwrap(), None);
+        // Duplicate keys keep the last value, matching process.env.
+        assert_eq!(
+            password_from_env(b"OPENCODE_PASSWORD=first\0OPENCODE_PASSWORD=last\0").unwrap(),
+            Some("last".to_owned())
+        );
+    }
+
+    #[test]
     fn discovers_only_serve_processes() {
         assert!(is_server_command(&["opencode".into(), "serve".into()]));
         assert!(is_server_command(&[
@@ -1801,13 +2310,53 @@ mod tests {
             "--print-logs".into(),
             "serve".into()
         ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "--print-logs=false".into(),
+            "serve".into()
+        ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "--print-logs=yes".into(),
+            "serve".into()
+        ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "serve".into(),
+            "--stdio=false".into()
+        ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "serve".into(),
+            "--stdio=no".into()
+        ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "serve".into(),
+            "--service=true".into()
+        ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "serve".into(),
+            "--hostname".into(),
+            "--stdio".into()
+        ]));
         for command in [
             vec!["opencode".into()],
             vec!["opencode".into(), "attach".into()],
             vec!["opencode".into(), "--standalone".into()],
             vec!["opencode".into(), "--version".into()],
             vec!["opencode".into(), "serve".into(), "--stdio".into()],
-            vec!["opencode".into(), "--log-level".into(), "debug".into()],
+            vec!["opencode".into(), "serve".into(), "--stdio=true".into()],
+            vec!["opencode".into(), "serve".into(), "--stdio=yes".into()],
+            vec!["opencode".into(), "serve".into(), "--stdio=maybe".into()],
+            vec![
+                "opencode".into(),
+                "--print-logs=maybe".into(),
+                "serve".into(),
+            ],
+            vec!["opencode".into(), "serve".into(), "--help".into()],
+            vec!["opencode".into(), "--standalone".into(), "serve".into()],
             vec![
                 "opencode".into(),
                 "--log-level".into(),
@@ -1818,10 +2367,26 @@ mod tests {
         ] {
             assert!(!is_server_command(&command));
         }
+
+        assert!(
+            !server_mode(&["opencode".into(), "serve".into()])
+                .unwrap()
+                .service
+        );
+        assert!(
+            server_mode(&["opencode".into(), "serve".into(), "--service=true".into()])
+                .unwrap()
+                .service
+        );
+        assert!(
+            !server_mode(&["opencode".into(), "serve".into(), "--service=false".into()])
+                .unwrap()
+                .service
+        );
     }
 
     #[test]
-    fn native_service_password_prefers_state_and_falls_back_to_config() {
+    fn native_service_password_matches_registration_pid_and_channel() {
         let root =
             std::env::temp_dir().join(format!("{NAME}-service-password-{}", std::process::id()));
         let state = root.join("state/opencode");
@@ -1837,15 +2402,65 @@ mod tests {
         );
         let environment = environment.as_bytes();
         assert_eq!(
-            native_service_password(environment).unwrap(),
+            native_service_password(environment, 7).unwrap(),
             Some("config".to_owned())
         );
-        fs::write(state.join("service.json"), r#"{"password":"state"}"#).unwrap();
+
+        // A stale registration for another PID must not supply a password.
+        fs::write(
+            state.join("service.json"),
+            r#"{"pid":8,"password":"stale"}"#,
+        )
+        .unwrap();
         assert_eq!(
-            native_service_password(environment).unwrap(),
+            native_service_password(environment, 7).unwrap(),
+            Some("config".to_owned())
+        );
+
+        // The matching registration wins over every config fallback.
+        fs::write(
+            state.join("service.json"),
+            r#"{"pid":7,"password":"state"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            native_service_password(environment, 7).unwrap(),
             Some("state".to_owned())
         );
+
+        // Channel-specific registrations are found by PID.
         fs::remove_file(state.join("service.json")).unwrap();
+        fs::write(
+            state.join("service-dev.json"),
+            r#"{"pid":7,"password":"dev"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            native_service_password(environment, 7).unwrap(),
+            Some("dev".to_owned())
+        );
+
+        // A matching registration without a password is authoritative and
+        // must not fall through to a different channel's config.
+        fs::remove_file(state.join("service-dev.json")).unwrap();
+        fs::write(state.join("service.json"), r#"{"pid":7}"#).unwrap();
+        assert_eq!(native_service_password(environment, 7).unwrap(), None);
+
+        // Without a registration, one channel config is unambiguous.
+        fs::remove_file(state.join("service.json")).unwrap();
+        fs::remove_file(config.join("service.json")).unwrap();
+        fs::write(config.join("service-local.json"), r#"{"password":"local"}"#).unwrap();
+        assert_eq!(
+            native_service_password(environment, 7).unwrap(),
+            Some("local".to_owned())
+        );
+        fs::write(
+            config.join("service-dev.json"),
+            r#"{"password":"dev-config"}"#,
+        )
+        .unwrap();
+        assert_eq!(native_service_password(environment, 7).unwrap(), None);
+
         let custom = root.join("custom");
         fs::create_dir_all(&custom).unwrap();
         fs::write(custom.join("service.json"), r#"{"password":"custom"}"#).unwrap();
@@ -1855,11 +2470,40 @@ mod tests {
             custom.display(),
         );
         assert_eq!(
-            native_service_password(custom_environment.as_bytes()).unwrap(),
+            native_service_password(custom_environment.as_bytes(), 7).unwrap(),
             Some("custom".to_owned())
         );
-        fs::write(state.join("service.json"), r#"{"password":false}"#).unwrap();
-        assert!(native_service_password(environment).is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn native_service_password_ignores_malformed_state_but_reports_bad_config() {
+        let root =
+            std::env::temp_dir().join(format!("{NAME}-service-malformed-{}", std::process::id()));
+        let state = root.join("state/opencode");
+        let config = root.join("config/opencode");
+        fs::create_dir_all(&state).unwrap();
+        fs::create_dir_all(&config).unwrap();
+        fs::write(config.join("service.json"), r#"{"password":"config"}"#).unwrap();
+        let environment = format!(
+            "HOME={}\0XDG_STATE_HOME={}\0XDG_CONFIG_HOME={}\0",
+            root.display(),
+            root.join("state").display(),
+            root.join("config").display(),
+        );
+        let environment = environment.as_bytes();
+
+        // A corrupt state registration is ignored, not fatal.
+        fs::write(state.join("service.json"), "{").unwrap();
+        assert_eq!(
+            native_service_password(environment, 7).unwrap(),
+            Some("config".to_owned())
+        );
+
+        // A corrupt config is a real configuration error.
+        fs::remove_file(state.join("service.json")).unwrap();
+        fs::write(config.join("service.json"), r#"{"password":false}"#).unwrap();
+        assert!(native_service_password(environment, 7).is_err());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -2137,6 +2781,82 @@ mod tests {
     }
 
     #[test]
+    fn subagent_background_uses_v2_input_and_legacy_metadata() {
+        let input = |value: Value| {
+            json!({
+                "type": "tool",
+                "name": "subagent",
+                "state": {"status": "running", "input": {"background": value}}
+            })
+        };
+        assert!(subagent_background(&input(json!(true))));
+        assert!(!subagent_background(&input(json!(false))));
+        assert!(subagent_background(&input(json!("false"))));
+        assert!(!subagent_background(&json!({
+            "state": {"status": "running", "input": {}}
+        })));
+        assert!(subagent_background(&json!({
+            "state": {"status": "running", "metadata": {"background": true}}
+        })));
+
+        let fixture = |background: Value| {
+            json!({
+                "status": {"parent": {"type": "busy"}, "leaf": {"type": "busy"}},
+                "questions": [{"sessionID": "leaf"}],
+                "assistants": {
+                    "parent": {
+                        "content": [{
+                            "type": "tool",
+                            "name": "subagent",
+                            "state": {
+                                "status": "running",
+                                "input": {"background": background},
+                                "metadata": {"sessionID": "leaf"}
+                            }
+                        }]
+                    }
+                }
+            })
+        };
+        assert_eq!(
+            blockers_of(
+                &workspace_state(&fixture(json!(true))),
+                &HashSet::new(),
+                &HashSet::new()
+            ),
+            ["parent:busy"]
+        );
+        assert!(
+            blockers_of(
+                &workspace_state(&fixture(json!(false))),
+                &HashSet::new(),
+                &HashSet::new()
+            )
+            .is_empty()
+        );
+    }
+
+    #[test]
+    fn dashboard_scrolls_within_bounds() {
+        let dashboard = Dashboard {
+            termios: None,
+            action: None,
+            terminal_size: std::cell::Cell::new((80, 24)),
+            scroll: std::cell::Cell::new(0),
+            page: std::cell::Cell::new(4),
+            max_scroll: std::cell::Cell::new(10),
+        };
+        assert!(dashboard.scroll_by(3));
+        assert_eq!(dashboard.scroll.get(), 3);
+        assert!(dashboard.scroll_by(-10));
+        assert_eq!(dashboard.scroll.get(), 0);
+        assert!(dashboard.scroll_by(100));
+        assert_eq!(dashboard.scroll.get(), 10);
+        assert!(!dashboard.scroll_by(1));
+        assert_eq!(dashboard.page.get(), 4);
+    }
+
+    #[test]
     fn excludes_sessions_running_the_watchdog() {
         let mut message: Value = serde_json::from_str(
             r#"{
@@ -2347,6 +3067,21 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(options.ignored_sessions, ["ses_old", "ses_other"]);
+    }
+
+    #[test]
+    fn excludes_the_launching_session_without_duplicates() {
+        let ignored = vec!["ses_manual".to_owned()];
+        assert_eq!(
+            session_exclusions(&ignored, Some("ses_self")),
+            ["ses_manual", "ses_self"]
+        );
+        assert_eq!(
+            session_exclusions(&ignored, Some("ses_manual")),
+            ["ses_manual"]
+        );
+        assert_eq!(session_exclusions(&ignored, Some("")), ["ses_manual"]);
+        assert_eq!(session_exclusions(&ignored, None), ["ses_manual"]);
     }
 
     #[test]
