@@ -585,15 +585,18 @@ on invocation.
 
 The separate `t3-idle-watchdog` waits on T3 Code's local orchestration shell
 API. It discovers the running `t3 serve` process and active CLI, issues a
-short-lived read-only bearer token with `t3 auth session issue`, and excludes a
+read-only bearer token with a configurable TTL (12h by default), and excludes a
 thread with `--ignore-thread` or a `T3CODE_THREAD_ID`/`T3_THREAD_ID` supplied by
 the launcher. T3 does not currently set a thread ID for shell commands, so pass
 `--ignore-thread <thread-id>` when launching it from inside a T3 thread. Pending
 questions, permissions and thread waits are shown as waiting without blocking
 idle; queued, running and background work block. Pull-request watch monitors are
 treated as external waits, so they do not keep the watchdog from suspending. Use
-`--once` to print the current classification without waiting. Home Manager
-installs both watchdog commands under `~/.local/bin`.
+`--once` to print the current classification without waiting; it exits 0 when
+idle, 2 when blocked, and 1 on errors. By default an unavailable API blocks
+forever; `--stuck-after SECONDS` drops only transport failures after that delay;
+all other errors remain blocking. Home Manager installs
+both watchdog commands under `~/.local/bin`.
 
 ## Agent prompts
 

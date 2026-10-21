@@ -33,6 +33,8 @@ const REQUEST_TIMEOUT_SECS: u64 = 10;
 const REQUEST_ATTEMPTS: u32 = 3;
 const TOKEN_COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
 const TOKEN_REFRESH_MARGIN: Duration = Duration::from_secs(300);
+const REVOKE_TIMEOUT: Duration = Duration::from_secs(5);
+const REVOKE_ATTEMPTS: u32 = 2;
 const ORCHESTRATION_PROTOCOL: &str = "2";
 const HEADERS: [&str; 6] = ["STATUS", "AGE", "UPDATED", "PROJECT", "THREAD", "TITLE"];
 
@@ -86,7 +88,7 @@ struct Options {
     #[arg(long = "ignore-thread", value_name = "THREAD", action = clap::ArgAction::Append)]
     ignored_threads: Vec<String>,
 
-    /// Stop blocking when the T3 API has been unreachable for this long (0 blocks forever).
+    /// Stop blocking after this long only for transport failures (0 blocks forever; all other errors block).
     #[arg(long, default_value_t = 0, value_name = "SECONDS")]
     stuck_after: u64,
 
@@ -443,7 +445,7 @@ impl Dashboard {
             "\x1b[2mcheck #{check}  |\x1b[0m  {}  |  {} blocking  |  {} waiting  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s",
             evaluation.state(),
             evaluation.blockers.len(),
-            evaluation.waiting,
+            evaluation.waiting_threads(),
         )
     }
 
@@ -611,7 +613,7 @@ enum TokenSource {
 
 struct IssuedToken {
     token: String,
-    session_id: Option<String>,
+    session_id: String,
     expires_at: Timestamp,
     expires_at_display: String,
 }
@@ -719,7 +721,7 @@ impl Auth {
         self.token = Some(issued.token);
         self.expires_at = Some(issued.expires_at);
         self.expires_at_display = Some(issued.expires_at_display);
-        self.session_id = issued.session_id;
+        self.session_id = Some(issued.session_id);
         if let Some(old_session) = old_session
             && self.session_id.as_deref() != Some(old_session.as_str())
         {
@@ -796,7 +798,9 @@ fn parse_issued_token(value: &Value) -> Result<IssuedToken> {
     let session_id = value
         .get("sessionId")
         .and_then(Value::as_str)
-        .map(str::to_owned);
+        .filter(|session_id| !session_id.is_empty())
+        .context("t3 auth session issue returned no sessionId")?
+        .to_owned();
     let expires_at_display = value
         .get("expiresAt")
         .and_then(Value::as_str)
@@ -813,14 +817,43 @@ fn parse_issued_token(value: &Value) -> Result<IssuedToken> {
 }
 
 fn revoke_session(t3: &Path, base_dir: &Path, session_id: &str) {
-    let mut command = Command::new(t3);
-    command
-        .args(["auth", "session", "revoke", session_id, "--base-dir"])
-        .arg(base_dir)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
-    let _ = run_status_timeout(command, Duration::from_secs(2));
+    for attempt in 0..REVOKE_ATTEMPTS {
+        let mut command = Command::new(t3);
+        command
+            .args(["auth", "session", "revoke", session_id, "--base-dir"])
+            .arg(base_dir)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        if run_status_timeout(command, REVOKE_TIMEOUT).is_some_and(|status| status.success()) {
+            return;
+        }
+        if attempt + 1 < REVOKE_ATTEMPTS {
+            thread::sleep(Duration::from_millis(200));
+        }
+    }
+    eprintln!("{NAME}: failed to revoke T3 session {session_id}");
+}
+
+fn wait_child_timeout(child: &mut Child, timeout: Duration) -> io::Result<Option<ExitStatus>> {
+    let started = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return Ok(Some(status)),
+            Ok(None) => {}
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(error);
+            }
+        }
+        if started.elapsed() >= timeout {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Ok(None);
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
 }
 
 fn run_output_timeout(mut command: Command, timeout: Duration) -> Result<Output> {
@@ -830,46 +863,15 @@ fn run_output_timeout(mut command: Command, timeout: Duration) -> Result<Output>
         .stderr(Stdio::piped())
         .spawn()
         .context("spawn command")?;
-    let started = Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => return child.wait_with_output().context("collect command output"),
-            Ok(None) => {}
-            Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(error).context("wait for command");
-            }
-        }
-        if started.elapsed() >= timeout {
-            let _ = child.kill();
-            let _ = child.wait();
-            bail!("command timed out after {}s", timeout.as_secs());
-        }
-        thread::sleep(Duration::from_millis(10));
+    match wait_child_timeout(&mut child, timeout).context("wait for command")? {
+        Some(_) => child.wait_with_output().context("collect command output"),
+        None => bail!("command timed out after {}s", timeout.as_secs()),
     }
 }
 
 fn run_status_timeout(mut command: Command, timeout: Duration) -> Option<ExitStatus> {
     let mut child = command.spawn().ok()?;
-    let started = Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => return Some(status),
-            Ok(None) => {}
-            Err(_) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return None;
-            }
-        }
-        if started.elapsed() >= timeout {
-            let _ = child.kill();
-            let _ = child.wait();
-            return None;
-        }
-        thread::sleep(Duration::from_millis(10));
-    }
+    wait_child_timeout(&mut child, timeout).ok().flatten()
 }
 
 struct ServerProcess {
@@ -884,16 +886,19 @@ fn resolve_config(options: &Options) -> Result<Config> {
         .base_dir
         .clone()
         .or_else(|| env::var_os("T3CODE_HOME").map(PathBuf::from));
+    let home_base_dir = PathBuf::from(&home).join(".t3");
     let default_base_dir = explicit_base_dir
         .clone()
-        .unwrap_or_else(|| PathBuf::from(home).join(".t3"));
+        .unwrap_or_else(|| home_base_dir.clone());
     let server = discover_server(&default_base_dir);
     let base_dir = explicit_base_dir
         .clone()
         .or_else(|| server.as_ref().and_then(|server| server.base_dir.clone()))
         .unwrap_or(default_base_dir);
     let server = server.as_ref().filter(|server| {
-        explicit_base_dir.is_none() || server.base_dir.as_deref() == Some(base_dir.as_path())
+        explicit_base_dir.is_none()
+            || server.base_dir.as_deref() == Some(base_dir.as_path())
+            || (server.base_dir.is_none() && base_dir == home_base_dir)
     });
     let url = options
         .url
@@ -929,10 +934,7 @@ fn resolve_config(options: &Options) -> Result<Config> {
         "T3_THREAD_ID",
         "T3CODE_CURRENT_THREAD_ID",
     ] {
-        if let Ok(thread) = env::var(variable)
-            && !thread.is_empty()
-            && !ignored_threads.iter().any(|existing| existing == &thread)
-        {
+        if let Ok(thread) = env::var(variable) {
             ignored_threads.push(thread);
         }
     }
@@ -1081,9 +1083,7 @@ fn active_version_binary(base_dir: &Path) -> Option<PathBuf> {
 struct ShellSnapshot {
     #[serde(default)]
     schema_version: Option<u64>,
-    #[serde(default)]
     threads: Vec<ThreadShell>,
-    #[serde(default)]
     archived_threads: Vec<ThreadShell>,
     #[serde(default)]
     projects: Vec<ProjectShell>,
@@ -1144,10 +1144,9 @@ struct ThreadVerdict {
 }
 
 struct ScanEvaluation {
-    excluded: HashSet<String>,
+    excluded_threads: usize,
     rows: Vec<ThreadVerdict>,
     blockers: Vec<String>,
-    waiting: usize,
     api_error: Option<String>,
     api_stuck: bool,
 }
@@ -1164,27 +1163,44 @@ impl ScanEvaluation {
     fn blocking_threads(&self) -> usize {
         self.rows.iter().filter(|row| row.blocker.is_some()).count()
     }
+
+    fn waiting_threads(&self) -> usize {
+        self.rows.iter().filter(|row| row.waiting).count()
+    }
 }
 
 #[derive(Debug)]
 enum ScanError {
     Unauthorized(String),
-    Other(anyhow::Error),
+    Unreachable(String),
+    Fatal(anyhow::Error),
 }
 
 enum AcquireError {
     Signal(i32),
     Unauthorized(String),
-    Api(String),
+    Unreachable(String),
+    Fatal(String),
 }
 
 fn is_transient(error: &ureq::Error) -> bool {
     match error {
         ureq::Error::Timeout(_)
         | ureq::Error::ConnectionFailed
+        | ureq::Error::HostNotFound
         | ureq::Error::Io(_)
         | ureq::Error::Protocol(_) => true,
         ureq::Error::StatusCode(status) => *status == 429 || *status >= 500,
+        _ => false,
+    }
+}
+
+fn is_unreachable(error: &ureq::Error) -> bool {
+    match error {
+        ureq::Error::Timeout(_)
+        | ureq::Error::ConnectionFailed
+        | ureq::Error::HostNotFound
+        | ureq::Error::Io(_) => true,
         _ => false,
     }
 }
@@ -1209,12 +1225,12 @@ fn fetch_shell(
                     .body_mut()
                     .read_to_string()
                     .with_context(|| format!("read GET {endpoint}"))
-                    .map_err(ScanError::Other)?;
+                    .map_err(ScanError::Fatal)?;
                 let snapshot: ShellSnapshot = serde_json::from_str(&body)
                     .with_context(|| format!("parse GET {endpoint}"))
-                    .map_err(ScanError::Other)?;
+                    .map_err(ScanError::Fatal)?;
                 if snapshot.schema_version != Some(2) {
-                    return Err(ScanError::Other(anyhow::anyhow!(
+                    return Err(ScanError::Fatal(anyhow::anyhow!(
                         "GET {endpoint} returned unsupported shell schema {:?}",
                         snapshot.schema_version
                     )));
@@ -1228,9 +1244,13 @@ fn fetch_shell(
                 thread::sleep(Duration::from_millis(500 * u64::from(attempt)));
             }
             Err(error) => {
-                return Err(ScanError::Other(
-                    anyhow::Error::new(error).context(format!("GET {endpoint}")),
-                ));
+                let unreachable = is_unreachable(&error);
+                let error = anyhow::Error::new(error).context(format!("GET {endpoint}"));
+                return Err(if unreachable {
+                    ScanError::Unreachable(format!("{error:#}"))
+                } else {
+                    ScanError::Fatal(error)
+                });
             }
         }
     }
@@ -1252,7 +1272,8 @@ fn run_fetch(
     }) {
         Ok(Ok(snapshot)) => Ok(snapshot),
         Ok(Err(ScanError::Unauthorized(message))) => Err(AcquireError::Unauthorized(message)),
-        Ok(Err(ScanError::Other(error))) => Err(AcquireError::Api(format!("{error:#}"))),
+        Ok(Err(ScanError::Unreachable(message))) => Err(AcquireError::Unreachable(message)),
+        Ok(Err(ScanError::Fatal(error))) => Err(AcquireError::Fatal(format!("{error:#}"))),
         Err(signal) => Err(AcquireError::Signal(signal)),
     }
 }
@@ -1264,26 +1285,26 @@ fn fetch_with_auth(
 ) -> std::result::Result<ShellSnapshot, AcquireError> {
     if let Some(message) = auth
         .ensure_fresh()
-        .map_err(|error| AcquireError::Api(format!("{error:#}")))?
+        .map_err(|error| AcquireError::Fatal(format!("{error:#}")))?
     {
         report(message);
     }
     let token = auth
         .token()
-        .map_err(|error| AcquireError::Api(format!("{error:#}")))?
+        .map_err(|error| AcquireError::Fatal(format!("{error:#}")))?
         .to_owned();
     match fetch(&token) {
         Err(AcquireError::Unauthorized(message)) => {
             report(format!(
-                "T3 rejected the bearer token ({message}); issuing a replacement"
+                "T3 rejected the bearer token ({message}); refreshing it"
             ));
             let message = auth
                 .refresh_after_401()
-                .map_err(|error| AcquireError::Api(format!("{error:#}")))?;
+                .map_err(|error| AcquireError::Fatal(format!("{error:#}")))?;
             report(message);
             let token = auth
                 .token()
-                .map_err(|error| AcquireError::Api(format!("{error:#}")))?
+                .map_err(|error| AcquireError::Fatal(format!("{error:#}")))?
                 .to_owned();
             fetch(&token)
         }
@@ -1291,53 +1312,72 @@ fn fetch_with_auth(
     }
 }
 
-fn acquire_snapshot(
-    dashboard: &Dashboard,
-    cancellation: &Cancellation,
-    auth: &mut Auth,
-    client: &ureq::Agent,
-    url: &str,
-    report: &dyn Fn(String),
-    on_redraw: &mut dyn FnMut(),
-) -> std::result::Result<ShellSnapshot, AcquireError> {
-    fetch_with_auth(auth, report, |token| {
-        run_fetch(dashboard, cancellation, client, url, token, || on_redraw())
-    })
+struct ApiHealth {
+    failure_since: Option<Instant>,
+    stuck: bool,
+    fatal: bool,
+    fatal_reported: bool,
+    stuck_after: Duration,
 }
 
-fn apply_scan(
-    result: std::result::Result<ShellSnapshot, AcquireError>,
-    api_failure: &mut Option<Instant>,
-    api_stuck: &mut bool,
-    stuck_after: u64,
-    ignored_threads: &[String],
-    report: &dyn Fn(String),
-) -> std::result::Result<ScanEvaluation, i32> {
-    match result {
-        Ok(snapshot) => {
-            *api_failure = None;
-            *api_stuck = false;
-            Ok(evaluate(Some(&snapshot), None, ignored_threads, false))
+impl ApiHealth {
+    fn new(stuck_after: Duration) -> Self {
+        Self {
+            failure_since: None,
+            stuck: false,
+            fatal: false,
+            fatal_reported: false,
+            stuck_after,
         }
-        Err(AcquireError::Signal(signal)) => Err(signal),
-        Err(AcquireError::Api(error)) | Err(AcquireError::Unauthorized(error)) => {
-            let now = Instant::now();
-            if api_failure.is_none() {
-                *api_failure = Some(now);
-                report(format!("T3 API scan failed: {error}"));
+    }
+
+    fn apply(
+        &mut self,
+        result: std::result::Result<ShellSnapshot, AcquireError>,
+        ignored_threads: &[String],
+        report: &dyn Fn(String),
+    ) -> std::result::Result<ScanEvaluation, i32> {
+        match result {
+            Ok(snapshot) => {
+                self.failure_since = None;
+                self.stuck = false;
+                self.fatal = false;
+                self.fatal_reported = false;
+                Ok(evaluate(Some(&snapshot), None, ignored_threads, false))
             }
-            let elapsed = api_failure
-                .map(|started| started.elapsed())
-                .unwrap_or_default();
-            let stuck = stuck_after > 0 && elapsed >= Duration::from_secs(stuck_after);
-            if stuck && !*api_stuck {
-                *api_stuck = true;
-                report(format!(
-                    "T3 API unavailable for {}s; no longer blocking idle",
-                    elapsed.as_secs()
-                ));
+            Err(AcquireError::Signal(signal)) => Err(signal),
+            Err(AcquireError::Unreachable(error)) => {
+                let now = Instant::now();
+                let started = match self.failure_since {
+                    Some(started) => started,
+                    None => {
+                        self.failure_since = Some(now);
+                        report(format!("T3 API scan failed: {error}"));
+                        now
+                    }
+                };
+                let elapsed = now.duration_since(started);
+                let stuck =
+                    !self.fatal && !self.stuck_after.is_zero() && elapsed >= self.stuck_after;
+                if stuck && !self.stuck {
+                    self.stuck = true;
+                    report(format!(
+                        "T3 API unavailable for {}s; no longer blocking idle",
+                        elapsed.as_secs()
+                    ));
+                }
+                Ok(evaluate(None, Some(error), ignored_threads, stuck))
             }
-            Ok(evaluate(None, Some(error), ignored_threads, *api_stuck))
+            Err(AcquireError::Unauthorized(error)) | Err(AcquireError::Fatal(error)) => {
+                self.failure_since = None;
+                self.stuck = false;
+                self.fatal = true;
+                if !self.fatal_reported {
+                    self.fatal_reported = true;
+                    report(format!("T3 API scan failed: {error}"));
+                }
+                Ok(evaluate(None, Some(error), ignored_threads, false))
+            }
         }
     }
 }
@@ -1348,15 +1388,17 @@ fn evaluate(
     ignored_threads: &[String],
     api_stuck: bool,
 ) -> ScanEvaluation {
-    let excluded = ignored_threads.iter().cloned().collect::<HashSet<_>>();
+    let excluded = ignored_threads
+        .iter()
+        .map(String::as_str)
+        .collect::<HashSet<_>>();
     let mut rows = Vec::new();
     let mut blockers = Vec::new();
-    let mut waiting = 0;
     if let Some(snapshot) = snapshot {
         let projects = snapshot
             .projects
             .iter()
-            .map(|project| (project.id.clone(), project.title.clone()))
+            .map(|project| (project.id.as_str(), project.title.as_str()))
             .collect::<HashMap<_, _>>();
         let mut seen = HashSet::new();
         for thread in snapshot
@@ -1364,15 +1406,12 @@ fn evaluate(
             .iter()
             .chain(snapshot.archived_threads.iter())
         {
-            if !seen.insert(thread.id.clone()) {
+            if !seen.insert(thread.id.as_str()) {
                 continue;
             }
             if let Some(verdict) = classify_thread(thread, &excluded, &projects) {
                 if let Some(blocker) = &verdict.blocker {
                     blockers.push(blocker.clone());
-                }
-                if verdict.waiting {
-                    waiting += 1;
                 }
                 rows.push(verdict);
             }
@@ -1384,10 +1423,9 @@ fn evaluate(
         blockers.push(format!("T3 API: {error}"));
     }
     ScanEvaluation {
-        excluded,
+        excluded_threads: excluded.len(),
         rows,
         blockers,
-        waiting,
         api_error,
         api_stuck,
     }
@@ -1395,15 +1433,15 @@ fn evaluate(
 
 fn classify_thread(
     thread: &ThreadShell,
-    excluded: &HashSet<String>,
-    projects: &HashMap<String, String>,
+    excluded: &HashSet<&str>,
+    projects: &HashMap<&str, &str>,
 ) -> Option<ThreadVerdict> {
     if thread.deleted_at.is_some() {
         return None;
     }
     let project = projects
-        .get(&thread.project_id)
-        .cloned()
+        .get(thread.project_id.as_str())
+        .map(|title| (*title).to_owned())
         .unwrap_or_else(|| short_id(&thread.project_id));
     let created = parse_timestamp(&thread.created_at);
     let updated = parse_timestamp(&thread.updated_at);
@@ -1418,90 +1456,73 @@ fn classify_thread(
         updated,
         waiting,
     };
-    if excluded.contains(&thread.id) {
+    let id = short_id(&thread.id);
+    let blocked =
+        |label, color, reason: String| verdict(label, color, Some(format!("{id}:{reason}")), false);
+    let queued = || blocked("QUEUED", Color::Yellow, "queued".to_owned());
+    let waiting = || verdict("WAITING", Color::Blue, None, true);
+    if excluded.contains(thread.id.as_str()) {
         return Some(verdict("IGNORED", Color::Cyan, None, false));
     }
     if let Some(task) = thread
         .pending_background_tasks
         .as_deref()
-        .unwrap_or(&[])
+        .unwrap_or_default()
         .iter()
         .find(|task| !is_pull_request_watch(task))
     {
-        return Some(verdict(
+        return Some(blocked(
             "BACKGROUND",
             Color::Yellow,
-            Some(format!(
-                "{}:background({})",
-                short_id(&thread.id),
-                task.kind
-            )),
-            false,
+            format!("background({})", task.kind),
         ));
     }
-    if thread.blocked_on_thread_wait == Some(true) {
-        return Some(verdict("WAITING", Color::Blue, None, true));
-    }
-    if thread
+    let active_activity = matches!(
+        thread.activity_run_status.as_deref(),
+        Some("preparing" | "starting" | "running")
+    );
+    let waiting_on_thread = thread.blocked_on_thread_wait == Some(true);
+    let waiting_on_request = thread
         .pending_runtime_request
         .as_ref()
-        .is_some_and(|request| request.blocking != Some(false))
-    {
-        return Some(verdict("WAITING", Color::Blue, None, true));
+        .is_some_and(|request| request.blocking != Some(false));
+    if thread.status == "queued" && (!active_activity || waiting_on_thread || waiting_on_request) {
+        return Some(queued());
+    }
+    if waiting_on_thread || waiting_on_request {
+        return Some(waiting());
     }
     if let Some(status) = thread.activity_run_status.as_deref() {
         return Some(match status {
-            "preparing" | "starting" | "running" => verdict(
-                "RUNNING",
-                Color::Yellow,
-                Some(format!("{}:{status}", short_id(&thread.id))),
-                false,
-            ),
-            "waiting" => verdict(
-                "WAITING?",
-                Color::Red,
-                Some(format!("{}:waiting", short_id(&thread.id))),
-                false,
-            ),
-            other => verdict(
-                "UNKNOWN",
-                Color::Red,
-                Some(format!("{}:activity:{other}", short_id(&thread.id))),
-                false,
-            ),
+            "preparing" | "starting" | "running" => {
+                blocked("RUNNING", Color::Yellow, status.to_owned())
+            }
+            "waiting" if only_pull_request_watches(thread) => waiting(),
+            "waiting" => blocked("WAITING?", Color::Red, "waiting".to_owned()),
+            other => blocked("UNKNOWN", Color::Red, format!("activity:{other}")),
         });
     }
     match thread.status.as_str() {
-        "preparing" | "starting" | "running" => Some(verdict(
-            "RUNNING",
-            Color::Yellow,
-            Some(format!("{}:{}", short_id(&thread.id), thread.status)),
-            false,
-        )),
-        "queued" => Some(verdict(
-            "QUEUED",
-            Color::Yellow,
-            Some(format!("{}:queued", short_id(&thread.id))),
-            false,
-        )),
-        "waiting" => Some(verdict(
-            "WAITING?",
-            Color::Red,
-            Some(format!("{}:waiting", short_id(&thread.id))),
-            false,
-        )),
+        "preparing" | "starting" | "running" => {
+            Some(blocked("RUNNING", Color::Yellow, thread.status.clone()))
+        }
+        "queued" => Some(queued()),
+        "waiting" if only_pull_request_watches(thread) => Some(waiting()),
+        "waiting" => Some(blocked("WAITING?", Color::Red, "waiting".to_owned())),
         "idle" | "completed" | "interrupted" | "failed" | "cancelled" | "rolled_back" => None,
-        other => Some(verdict(
-            "UNKNOWN",
-            Color::Red,
-            Some(format!("{}:status:{other}", short_id(&thread.id))),
-            false,
-        )),
+        other => Some(blocked("UNKNOWN", Color::Red, format!("status:{other}"))),
     }
 }
 
 fn is_pull_request_watch(task: &PendingBackgroundTask) -> bool {
     task.kind == "monitor" && task.task_id.starts_with("pull-request-watch:")
+}
+
+fn only_pull_request_watches(thread: &ThreadShell) -> bool {
+    thread
+        .pending_background_tasks
+        .as_deref()
+        .is_some_and(|tasks| !tasks.is_empty() && tasks.iter().all(is_pull_request_watch))
 }
 
 fn wait_until_idle(
@@ -1510,9 +1531,9 @@ fn wait_until_idle(
     config: &Config,
     auth: &mut Auth,
     command: &[OsString],
+    cancellation: &Cancellation,
 ) -> Result<i32> {
     let client = http_client();
-    let cancellation = Cancellation::new()?;
     let dashboard = Dashboard::new(command);
     let report = |message: String| {
         if dashboard.termios.is_some() {
@@ -1546,29 +1567,26 @@ fn wait_until_idle(
         state.root.display(),
     ));
     dashboard.loading();
-    let mut api_failure = None;
-    let mut api_stuck = false;
+    let mut api = ApiHealth::new(Duration::from_secs(options.stuck_after));
+    let mut scan = |on_redraw: &mut dyn FnMut()| {
+        let result = fetch_with_auth(auth, &report, |token| {
+            run_fetch(
+                &dashboard,
+                cancellation,
+                &client,
+                &config.url,
+                token,
+                || on_redraw(),
+            )
+        });
+        api.apply(result, &config.ignored_threads, &report)
+    };
     let mut evaluation = {
         let mut on_redraw = || dashboard.loading();
-        let result = acquire_snapshot(
-            &dashboard,
-            &cancellation,
-            auth,
-            &client,
-            &config.url,
-            &report,
-            &mut on_redraw,
-        );
-        match apply_scan(
-            result,
-            &mut api_failure,
-            &mut api_stuck,
-            options.stuck_after,
-            &config.ignored_threads,
-            &report,
-        ) {
+        match scan(&mut on_redraw) {
             Ok(evaluation) => evaluation,
             Err(signal) => {
+                drop(scan);
                 drop(dashboard);
                 return Ok(signal_exit(state, signal));
             }
@@ -1610,29 +1628,13 @@ fn wait_until_idle(
         };
         draw(options.interval);
         if let Some(signal) =
-            dashboard.wait(&cancellation, Duration::ZERO, || draw(options.interval))
+            dashboard.wait(cancellation, Duration::ZERO, || draw(options.interval))
         {
             break Some(signal);
         }
         if consecutive_idle >= options.required_idle_checks {
             let mut on_redraw = || draw(options.interval);
-            let result = acquire_snapshot(
-                &dashboard,
-                &cancellation,
-                auth,
-                &client,
-                &config.url,
-                &report,
-                &mut on_redraw,
-            );
-            match apply_scan(
-                result,
-                &mut api_failure,
-                &mut api_stuck,
-                options.stuck_after,
-                &config.ignored_threads,
-                &report,
-            ) {
+            match scan(&mut on_redraw) {
                 Ok(final_evaluation) => {
                     if final_evaluation.blockers.is_empty() {
                         break None;
@@ -1647,7 +1649,7 @@ fn wait_until_idle(
         let mut remaining = options.interval;
         while remaining > 0 {
             if let Some(signal) =
-                dashboard.wait(&cancellation, Duration::from_secs(1), || draw(remaining))
+                dashboard.wait(cancellation, Duration::from_secs(1), || draw(remaining))
             {
                 break 'checks Some(signal);
             }
@@ -1661,42 +1663,35 @@ fn wait_until_idle(
             );
         }
         let mut on_redraw = || draw(0);
-        let result = acquire_snapshot(
-            &dashboard,
-            &cancellation,
-            auth,
-            &client,
-            &config.url,
-            &report,
-            &mut on_redraw,
-        );
-        match apply_scan(
-            result,
-            &mut api_failure,
-            &mut api_stuck,
-            options.stuck_after,
-            &config.ignored_threads,
-            &report,
-        ) {
+        match scan(&mut on_redraw) {
             Ok(next_evaluation) => evaluation = next_evaluation,
             Err(signal) => break Some(signal),
         }
     };
 
+    drop(scan);
     drop(dashboard);
     if let Some(signal) = signal {
         return Ok(signal_exit(state, signal));
     }
     state.log("idle confirmed");
     auth.revoke();
+    if let Some(signal) = cancellation.wait(Duration::ZERO) {
+        return Ok(signal_exit(state, signal));
+    }
     if command.is_empty() {
         Ok(0)
     } else {
-        Ok(run_command(state, &cancellation, command))
+        Ok(run_command(state, cancellation, command))
     }
 }
 
-fn check_once(state: &State, config: &Config, auth: &mut Auth) -> Result<i32> {
+fn check_once(
+    state: &State,
+    config: &Config,
+    auth: &mut Auth,
+    cancellation: &Cancellation,
+) -> Result<i32> {
     if auth.is_issued() {
         state.log(auth.describe());
     }
@@ -1710,6 +1705,9 @@ fn check_once(state: &State, config: &Config, auth: &mut Auth) -> Result<i32> {
             return Ok(1);
         }
     };
+    if let Some(signal) = cancellation.wait(Duration::ZERO) {
+        return Ok(signal_exit(state, signal));
+    }
     let evaluation = evaluate(Some(&snapshot), None, &config.ignored_threads, false);
     print_once(&evaluation);
     Ok(if evaluation.blockers.is_empty() { 0 } else { 2 })
@@ -1724,7 +1722,8 @@ fn acquire_snapshot_sync(
     fetch_with_auth(auth, report, |token| {
         fetch_shell(client, url, token).map_err(|error| match error {
             ScanError::Unauthorized(message) => AcquireError::Unauthorized(message),
-            ScanError::Other(error) => AcquireError::Api(format!("{error:#}")),
+            ScanError::Unreachable(message) => AcquireError::Unreachable(message),
+            ScanError::Fatal(error) => AcquireError::Fatal(format!("{error:#}")),
         })
     })
     .map_err(|error| match error {
@@ -1732,7 +1731,7 @@ fn acquire_snapshot_sync(
         AcquireError::Unauthorized(message) => {
             format!("T3 rejected the refreshed bearer token: {message}")
         }
-        AcquireError::Api(message) => message,
+        AcquireError::Unreachable(message) | AcquireError::Fatal(message) => message,
     })
 }
 
@@ -1742,12 +1741,9 @@ fn print_once(evaluation: &ScanEvaluation) {
         "blocking={} threads={} waiting={} excluded={}",
         evaluation.blockers.len(),
         evaluation.blocking_threads(),
-        evaluation.waiting,
-        evaluation.excluded.len()
+        evaluation.waiting_threads(),
+        evaluation.excluded_threads
     );
-    if let Some(error) = &evaluation.api_error {
-        println!("T3 API: {error}");
-    }
     println!(
         "{:<10} {:<8} {:<8} {:<20} {:<8} TITLE",
         "STATUS", "AGE", "UPDATED", "PROJECT", "THREAD"
@@ -1803,6 +1799,18 @@ fn command_display(command: &[OsString]) -> String {
         .join(" ")
 }
 
+fn systemctl_command() -> OsString {
+    [
+        "/run/current-system/sw/bin/systemctl",
+        "/usr/bin/systemctl",
+        "/bin/systemctl",
+    ]
+    .into_iter()
+    .find(|path| Path::new(path).is_file())
+    .map(OsString::from)
+    .unwrap_or_else(|| OsString::from("systemctl"))
+}
+
 fn resolve_command(command: &[OsString]) -> Vec<OsString> {
     if let [shortcut] = command {
         let action = match shortcut.to_str() {
@@ -1812,13 +1820,16 @@ fn resolve_command(command: &[OsString]) -> Vec<OsString> {
             _ => None,
         };
         if let Some(action) = action {
-            return ["/usr/bin/systemctl", action].map(OsString::from).into();
+            return [systemctl_command(), OsString::from(action)].into();
         }
     }
     command.to_vec()
 }
 
 fn run_command(state: &State, cancellation: &Cancellation, command: &[OsString]) -> i32 {
+    if let Some(signal) = cancellation.wait(Duration::ZERO) {
+        return signal_exit(state, signal);
+    }
     state.log(format!("running command: {}", command_display(command)));
     let Some((program, arguments)) = command.split_first() else {
         state.log("could not run command: empty command");
@@ -1861,11 +1872,22 @@ fn execute() -> Result<i32> {
     let state = State::discover()?;
     let config = resolve_config(&options)?;
     let command = resolve_command(&options.command);
+    let cancellation = Cancellation::new()?;
     let mut auth = Auth::new(&config)?;
-    if options.once {
-        return check_once(&state, &config, &mut auth);
+    if let Some(signal) = cancellation.wait(Duration::ZERO) {
+        return Ok(signal_exit(&state, signal));
     }
-    wait_until_idle(&state, &options, &config, &mut auth, &command)
+    if options.once {
+        return check_once(&state, &config, &mut auth, &cancellation);
+    }
+    wait_until_idle(
+        &state,
+        &options,
+        &config,
+        &mut auth,
+        &command,
+        &cancellation,
+    )
 }
 
 fn main() {
@@ -1892,10 +1914,9 @@ fn summarize(items: &[String], limit: usize) -> String {
 
 fn summarize_text(value: &str, limit: usize) -> String {
     let value = clean_text(value);
-    if value.chars().count() <= limit {
-        value
-    } else {
-        value.chars().take(limit).collect::<String>() + "..."
+    match value.char_indices().nth(limit) {
+        Some((end, _)) => format!("{}...", &value[..end]),
+        None => value,
     }
 }
 
@@ -1937,6 +1958,7 @@ fn parse_timestamp(value: &str) -> Option<Timestamp> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::RefCell;
     use std::io::{Read, Write};
     use std::net::TcpListener;
 
@@ -1960,6 +1982,26 @@ mod tests {
         classify_thread(thread, &HashSet::new(), &HashMap::new())
     }
 
+    fn serve_response(status: &str, body: &str) -> (String, thread::JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind test server");
+        let address = listener.local_addr().expect("test server address");
+        let status = status.to_owned();
+        let body = body.to_owned();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept test request");
+            let mut buffer = [0_u8; 8192];
+            stream.read(&mut buffer).expect("read test request");
+            let response = format!(
+                "HTTP/1.1 {status}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            stream
+                .write_all(response.as_bytes())
+                .expect("write test response");
+        });
+        (format!("http://{address}"), server)
+    }
+
     #[test]
     fn running_activity_blocks_even_when_latest_status_is_queued() {
         let mut thread = thread("running-thread", "queued");
@@ -1975,6 +2017,31 @@ mod tests {
         let verdict = classify(&thread).expect("queued thread has a verdict");
         assert_eq!(verdict.label, "QUEUED");
         assert!(verdict.blocker.is_some());
+    }
+
+    #[test]
+    fn queued_run_blocks_even_while_waiting_on_another_thread() {
+        let mut thread = thread("queued-wait-thread", "queued");
+        thread.activity_run_status = Some("running".to_owned());
+        thread.blocked_on_thread_wait = Some(true);
+        let verdict = classify(&thread).expect("queued thread has a verdict");
+        assert_eq!(verdict.label, "QUEUED");
+        assert!(verdict.blocker.is_some());
+        assert!(!verdict.waiting);
+    }
+
+    #[test]
+    fn queued_run_blocks_even_with_only_a_pr_watch_waiting() {
+        let mut thread = thread("queued-pr-thread", "queued");
+        thread.activity_run_status = Some("waiting".to_owned());
+        thread.pending_background_tasks = Some(vec![PendingBackgroundTask {
+            task_id: "pull-request-watch:org/repo#1".to_owned(),
+            kind: "monitor".to_owned(),
+        }]);
+        let verdict = classify(&thread).expect("queued thread has a verdict");
+        assert_eq!(verdict.label, "QUEUED");
+        assert!(verdict.blocker.is_some());
+        assert!(!verdict.waiting);
     }
 
     #[test]
@@ -2036,10 +2103,24 @@ mod tests {
     }
 
     #[test]
+    fn pull_request_watch_waiting_is_non_blocking() {
+        let mut thread = thread("pr-watch-wait-thread", "waiting");
+        thread.activity_run_status = Some("waiting".to_owned());
+        thread.pending_background_tasks = Some(vec![PendingBackgroundTask {
+            task_id: "pull-request-watch:org/repo#1".to_owned(),
+            kind: "monitor".to_owned(),
+        }]);
+        let verdict = classify(&thread).expect("PR watch wait has a verdict");
+        assert_eq!(verdict.label, "WAITING");
+        assert!(verdict.waiting);
+        assert!(verdict.blocker.is_none());
+    }
+
+    #[test]
     fn self_thread_is_excluded() {
         let mut thread = thread("self-thread", "running");
         thread.activity_run_status = Some("running".to_owned());
-        let excluded = HashSet::from(["self-thread".to_owned()]);
+        let excluded = HashSet::from(["self-thread"]);
         let verdict = classify_thread(&thread, &excluded, &HashMap::new())
             .expect("self thread has a verdict");
         assert_eq!(verdict.label, "IGNORED");
@@ -2079,7 +2160,7 @@ mod tests {
         };
         let evaluation = evaluate(Some(&snapshot), None, &[], false);
         assert_eq!(evaluation.blocking_threads(), 1);
-        assert_eq!(evaluation.waiting, 1);
+        assert_eq!(evaluation.waiting_threads(), 1);
         assert_eq!(evaluation.blockers.len(), 1);
     }
 
@@ -2090,6 +2171,109 @@ mod tests {
         let evaluation = evaluate(None, Some("connection refused".to_owned()), &[], true);
         assert!(evaluation.blockers.is_empty());
         assert!(evaluation.api_stuck);
+    }
+
+    #[test]
+    fn api_health_reports_failure_once_and_sticks_after_threshold() {
+        let messages = RefCell::new(Vec::new());
+        let report = |message: String| messages.borrow_mut().push(message);
+        let mut health = ApiHealth::new(Duration::from_secs(1));
+
+        let evaluation = health
+            .apply(
+                Err(AcquireError::Unreachable("down".to_owned())),
+                &[],
+                &report,
+            )
+            .expect("API failure does not signal");
+        assert!(!evaluation.api_stuck);
+        assert_eq!(messages.borrow().len(), 1);
+
+        health.failure_since = Some(Instant::now() - Duration::from_secs(2));
+        let evaluation = health
+            .apply(
+                Err(AcquireError::Unreachable("down".to_owned())),
+                &[],
+                &report,
+            )
+            .expect("API failure does not signal");
+        assert!(evaluation.api_stuck);
+        assert_eq!(messages.borrow().len(), 2);
+
+        let snapshot = ShellSnapshot {
+            schema_version: Some(2),
+            threads: Vec::new(),
+            archived_threads: Vec::new(),
+            projects: Vec::new(),
+        };
+        health
+            .apply(Ok(snapshot), &[], &report)
+            .expect("successful scan does not signal");
+        assert!(health.failure_since.is_none());
+        assert!(!health.stuck);
+        assert_eq!(messages.borrow().len(), 2);
+    }
+
+    #[test]
+    fn api_health_never_uses_stuck_escape_for_fatal_errors() {
+        let messages = RefCell::new(Vec::new());
+        let report = |message: String| messages.borrow_mut().push(message);
+        let mut health = ApiHealth::new(Duration::from_secs(1));
+        health.failure_since = Some(Instant::now() - Duration::from_secs(2));
+
+        let evaluation = health
+            .apply(
+                Err(AcquireError::Fatal("invalid token".to_owned())),
+                &[],
+                &report,
+            )
+            .expect("fatal API error does not signal");
+        assert!(!evaluation.api_stuck);
+        assert_eq!(evaluation.blockers.len(), 1);
+        assert!(health.fatal);
+        assert!(health.failure_since.is_none());
+
+        health.failure_since = Some(Instant::now() - Duration::from_secs(2));
+        let evaluation = health
+            .apply(
+                Err(AcquireError::Unreachable("down".to_owned())),
+                &[],
+                &report,
+            )
+            .expect("API failure does not signal");
+        assert!(!evaluation.api_stuck);
+
+        let snapshot = ShellSnapshot {
+            schema_version: Some(2),
+            threads: Vec::new(),
+            archived_threads: Vec::new(),
+            projects: Vec::new(),
+        };
+        health
+            .apply(Ok(snapshot), &[], &report)
+            .expect("successful scan does not signal");
+        assert!(!health.fatal);
+
+        health.failure_since = Some(Instant::now() - Duration::from_secs(2));
+        let evaluation = health
+            .apply(
+                Err(AcquireError::Unreachable("down".to_owned())),
+                &[],
+                &report,
+            )
+            .expect("API failure does not signal");
+        assert!(evaluation.api_stuck);
+    }
+
+    #[test]
+    fn shell_snapshot_requires_thread_arrays() {
+        for value in [
+            serde_json::json!({"schemaVersion": 2}),
+            serde_json::json!({"schemaVersion": 2, "threads": []}),
+            serde_json::json!({"schemaVersion": 2, "archivedThreads": []}),
+        ] {
+            assert!(serde_json::from_value::<ShellSnapshot>(value).is_err());
+        }
     }
 
     #[test]
@@ -2144,23 +2328,32 @@ mod tests {
         });
         let issued = parse_issued_token(&value).expect("token parses");
         assert_eq!(issued.token, "secret-token");
-        assert_eq!(issued.session_id.as_deref(), Some("session-id"));
+        assert_eq!(issued.session_id, "session-id");
         assert_eq!(issued.expires_at_display, "2026-10-21T10:13:42.675Z");
+    }
+
+    #[test]
+    fn issued_token_requires_a_session_id() {
+        let value = serde_json::json!({
+            "token": "secret-token",
+            "expiresAt": "2026-10-21T10:13:42.675Z"
+        });
+        assert!(parse_issued_token(&value).is_err());
     }
 
     #[test]
     fn resolves_command_shortcuts() {
         assert_eq!(
             resolve_command(&[OsString::from("sleep")]),
-            ["/usr/bin/systemctl", "suspend"].map(OsString::from)
+            [systemctl_command(), OsString::from("suspend")]
         );
         assert_eq!(
             resolve_command(&[OsString::from("poweroff")]),
-            ["/usr/bin/systemctl", "poweroff"].map(OsString::from)
+            [systemctl_command(), OsString::from("poweroff")]
         );
         assert_eq!(
             resolve_command(&[OsString::from("hibernate")]),
-            ["/usr/bin/systemctl", "hibernate"].map(OsString::from)
+            [systemctl_command(), OsString::from("hibernate")]
         );
         assert_eq!(
             resolve_command(&[OsString::from("echo"), OsString::from("hi")]),
@@ -2175,6 +2368,40 @@ mod tests {
         let error = run_output_timeout(command, Duration::from_millis(100))
             .expect_err("command should time out");
         assert!(error.to_string().contains("timed out"));
+    }
+
+    #[test]
+    fn status_timeout_returns_exit_status() {
+        let mut command = Command::new("sh");
+        command.args(["-c", "exit 7"]);
+        let status = run_status_timeout(command, Duration::from_secs(1)).expect("child exits");
+        assert_eq!(status.code(), Some(7));
+    }
+
+    #[test]
+    fn only_transport_failures_are_unreachable() {
+        assert!(is_unreachable(&ureq::Error::HostNotFound));
+        assert!(is_unreachable(&ureq::Error::ConnectionFailed));
+        assert!(!is_unreachable(&ureq::Error::StatusCode(500)));
+        assert!(!is_unreachable(&ureq::Error::StatusCode(429)));
+    }
+
+    #[test]
+    fn fetch_shell_maps_unauthorized() {
+        let (url, server) = serve_response("401 Unauthorized", "");
+        let client = http_client();
+        let result = fetch_shell(&client, &url, "test-token");
+        assert!(matches!(result, Err(ScanError::Unauthorized(_))));
+        server.join().expect("test server finishes");
+    }
+
+    #[test]
+    fn fetch_shell_maps_truncated_json_as_fatal() {
+        let (url, server) = serve_response("200 OK", r#"{"schemaVersion":2,"threads":[]"#);
+        let client = http_client();
+        let result = fetch_shell(&client, &url, "test-token");
+        assert!(matches!(result, Err(ScanError::Fatal(_))));
+        server.join().expect("test server finishes");
     }
 
     #[test]
