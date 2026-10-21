@@ -435,6 +435,26 @@
       },
       "settings": {
         "baseURL": "http://127.0.0.1:17321"
+      },
+      // The zen/go catalogs ship a per-model baseURL that beats the provider
+      // settings above, bypassing sleev. Until that bug is fixed upstream, every
+      // model that must route through sleev needs its own baseURL override.
+      "models": {
+        "deepseek-v4.1-flash-free": {
+          "settings": {
+            "baseURL": "http://127.0.0.1:17321"
+          }
+        },
+        "deepseek-v4.1-flash": {
+          "settings": {
+            "baseURL": "http://127.0.0.1:17321"
+          }
+        },
+        "beam-free": {
+          "settings": {
+            "baseURL": "http://127.0.0.1:17321"
+          }
+        }
       }
     },
     "opencode-go": {
@@ -444,6 +464,23 @@
       },
       "settings": {
         "baseURL": "http://127.0.0.1:17321"
+      },
+      "models": {
+        "deepseek-v4.1-flash": {
+          "settings": {
+            "baseURL": "http://127.0.0.1:17321"
+          }
+        },
+        "muse-spark-1.3-contributor": {
+          "settings": {
+            "baseURL": "http://127.0.0.1:17321"
+          }
+        },
+        "beam-free": {
+          "settings": {
+            "baseURL": "http://127.0.0.1:17321"
+          }
+        }
       }
     },
     "deepinfra": {
