@@ -1,0 +1,36 @@
+2026-10-20T21:15:41+02:00
+
+Receiver and waker
+active
+ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8  /home/mirsella/wol_predator.py
+
+Frozen snapshot
+bytes=1201689 mtime=2026-10-20 20:43:11.571092390 +0200 file=/home/mirsella/dev/predator-pm-debug/.agents-local/r-async-h8-20261020-result.log
+d2c1ba165c52d45efaf9d7beb8e0583a5d1d09b722d7508bfc52c35a7b5eb8ed  /home/mirsella/dev/predator-pm-debug/.agents-local/r-async-h8-20261020-result.log
+
+Live receiver state
+bytes=1201689 mtime=2026-10-20 20:24:15.785389930 +0200 file=/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log
+# recv 2026-10-20T20:24:15+0200
+[29103.712884] ieee80211 phy0: PM: calling wiphy_suspend [cfg80211] @ 198766, parent: 0000:02:00.0
+# recv 2026-10-20T20:24:15+0200
+[29103.713302] i2c_hid_acpi i2c-SYNA7DB5:01: PM: calling acpi_subsys_suspend @ 198772, parent: i2c-1
+# recv 2026-10-20T20:24:15+0200
+[29103.713761] iTCO_wdt iTCO_wdt: PM: calling platform_pm_suspend @ 198737, parent: 0000:00:1f.4
+# recv 2026-10-20T20:24:15+0200
+[29103.716117] i2c_hid_acpi i2c-SYNA7DB5:01: PM: acpi_subsys_suspend returned 0 after 2798 usecs
+# recv 2026-10-20T20:24:15+0200
+[29103.716435] iTCO_wdt iTCO_wdt: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-20T20:24:15+0200
+[29103.718187] i2c_designware i2c_designware.1: PM: calling platform_pm_suspend @ 198772, parent: 0000:00:15.1
+
+LAN neighbor
+192.168.1.19 dev wlan0 FAILED 
+
+Pending study timers
+NEXT LEFT LAST                         PASSED     UNIT                                                 ACTIVATES
+-    -    Sat 2026-10-17 18:00:00 CEST 3 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 51min ago  predator-pm-r-async-h8-20261020-notice-start.timer   predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 2 days ago predator-pm-r-async-q30-20261018-notice-start.timer  predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 2 days ago predator-pm-r-serial-m15-20261017-notice-start.timer predator-pm-r-serial-m15-20261017-notice-start.service
+
+4 timers listed.

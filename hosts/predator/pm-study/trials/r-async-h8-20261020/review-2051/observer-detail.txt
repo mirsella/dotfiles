@@ -1,0 +1,122 @@
+2026-10-20T20:52:17+02:00
+
+Snapshot metadata
+size=1201689 mtime=2026-10-20 20:43:11.571092390 +0200 file=/home/mirsella/dev/predator-pm-debug/.agents-local/r-async-h8-20261020-result.log
+d2c1ba165c52d45efaf9d7beb8e0583a5d1d09b722d7508bfc52c35a7b5eb8ed  /home/mirsella/dev/predator-pm-debug/.agents-local/r-async-h8-20261020-result.log
+
+Trial execution markers in frozen snapshot
+107:[70087.358390] SUSPEND REQUEST logged_in_users=allow command=busctl ["call", "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "SuspendWithFlags", "t", "1"]
+111:[70087.522094] PM: suspend entry (deep)
+1143:[    0.137078] Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+2467:[  546.577364] PREFLIGHT boot=b0f7e947-a7bf-4410-aece-191277fd0a9d uptime=546.36 4062.16 awake_since_verified_return=545s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2479:[  609.499138] PREFLIGHT boot=b0f7e947-a7bf-4410-aece-191277fd0a9d uptime=609.28 4544.47 awake_since_verified_return=609s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2497:[  612.044754] PREFLIGHT boot=b0f7e947-a7bf-4410-aece-191277fd0a9d uptime=611.82 4563.08 awake_since_verified_return=611s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2515:[  621.932617] PREFLIGHT boot=b0f7e947-a7bf-4410-aece-191277fd0a9d uptime=621.71 4638.09 awake_since_verified_return=621s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2533:[11104.433380] PREFLIGHT boot=b0f7e947-a7bf-4410-aece-191277fd0a9d uptime=11104.26 86043.56 awake_since_verified_return=11104s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2557:[11107.704810] PREFLIGHT boot=b0f7e947-a7bf-4410-aece-191277fd0a9d uptime=11107.53 86065.51 awake_since_verified_return=11107s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2571:[11107.928886] SUSPEND REQUEST logged_in_users=allow command=busctl ["call", "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "SuspendWithFlags", "t", "1"]
+2575:[11108.098665] PM: suspend entry (deep)
+3075:[11145.393760] VERIFIED trial=r-serial-m15-20261017 timed deep cycle 1; fresh NTP and storage healthy; physical sleep evidence still required
+4259:[    0.136997] Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+5961:[   85.053893] PREFLIGHT boot=4f67b02a-fd49-416e-8731-8cb9c410719f uptime=85.05 499.69 awake_since_verified_return=84s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+5979:[   86.925231] PREFLIGHT boot=4f67b02a-fd49-416e-8731-8cb9c410719f uptime=86.92 513.32 awake_since_verified_return=86s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+5997:[   96.972833] PREFLIGHT boot=4f67b02a-fd49-416e-8731-8cb9c410719f uptime=96.96 589.28 awake_since_verified_return=96s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+7229:[    0.136994] Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+10139:[    0.137120] Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+11835:[   97.394510] PREFLIGHT boot=97c84d69-2b6a-497f-a992-d0dc7a4fb5a9 uptime=97.39 599.30 awake_since_verified_return=96s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+11853:[  107.619206] PREFLIGHT boot=97c84d69-2b6a-497f-a992-d0dc7a4fb5a9 uptime=107.61 676.83 awake_since_verified_return=107s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+11871:[  176.901696] PREFLIGHT boot=97c84d69-2b6a-497f-a992-d0dc7a4fb5a9 uptime=176.89 1209.55 awake_since_verified_return=176s prior_successes=0 prior_markers=0 active_generation=/nix/store/59ivsy25r7w82walr9h33s4a5p1c41hn-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+13225:[    0.137108] Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+14915:[ 4992.010584] PREFLIGHT boot=5026ab30-85d0-4f9b-9e35-ce176899500f uptime=4992.21 38496.85 awake_since_verified_return=4991s prior_successes=0 prior_markers=0 active_generation=/nix/store/dvy3qfqwnl6hg402sc267mpnja871278-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+14933:[ 5003.565796] PREFLIGHT boot=5026ab30-85d0-4f9b-9e35-ce176899500f uptime=5003.77 38585.96 awake_since_verified_return=5003s prior_successes=0 prior_markers=0 active_generation=/nix/store/dvy3qfqwnl6hg402sc267mpnja871278-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+14951:[ 5020.139304] PREFLIGHT boot=5026ab30-85d0-4f9b-9e35-ce176899500f uptime=5020.34 38714.70 awake_since_verified_return=5020s prior_successes=0 prior_markers=0 active_generation=/nix/store/dvy3qfqwnl6hg402sc267mpnja871278-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+16157:[    0.137040] Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+17837:[   46.422418] PREFLIGHT boot=5271820b-0d2c-4232-a00e-ebd0bf5c34d2 uptime=46.56 225.06 awake_since_verified_return=46s prior_successes=0 prior_markers=0 active_generation=/nix/store/ycxpwiix7p109pv8a1x53ac540s9pyxh-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+17855:[   49.046606] PREFLIGHT boot=5271820b-0d2c-4232-a00e-ebd0bf5c34d2 uptime=49.19 244.08 awake_since_verified_return=49s prior_successes=0 prior_markers=0 active_generation=/nix/store/ycxpwiix7p109pv8a1x53ac540s9pyxh-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+17885:[   68.894892] PREFLIGHT boot=5271820b-0d2c-4232-a00e-ebd0bf5c34d2 uptime=69.05 381.62 awake_since_verified_return=68s prior_successes=0 prior_markers=0 active_generation=/nix/store/ycxpwiix7p109pv8a1x53ac540s9pyxh-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+17903:[ 1937.208809] PREFLIGHT boot=5271820b-0d2c-4232-a00e-ebd0bf5c34d2 uptime=1937.38 14889.21 awake_since_verified_return=1937s prior_successes=0 prior_markers=0 active_generation=/nix/store/ycxpwiix7p109pv8a1x53ac540s9pyxh-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+17927:[ 1938.770513] PREFLIGHT boot=5271820b-0d2c-4232-a00e-ebd0bf5c34d2 uptime=1938.94 14900.11 awake_since_verified_return=1938s prior_successes=0 prior_markers=0 active_generation=/nix/store/ycxpwiix7p109pv8a1x53ac540s9pyxh-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+17941:[ 1939.037612] SUSPEND REQUEST logged_in_users=allow command=busctl ["call", "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "SuspendWithFlags", "t", "1"]
+17945:[ 1939.156645] PM: suspend entry (deep)
+18367:[ 1974.413255] VERIFIED trial=r-async-q30-20261018 timed deep cycle 1; fresh NTP and storage healthy; physical sleep evidence still required
+19431:[    0.136971] Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+19783:[  142.330705] PREFLIGHT boot=e5c893be-7bb2-4d97-aa2d-97103d7e0a23 uptime=142.03 933.74 awake_since_verified_return=141s prior_successes=0 prior_markers=0 active_generation=/nix/store/ycxpwiix7p109pv8a1x53ac540s9pyxh-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+19801:[  144.560173] PREFLIGHT boot=e5c893be-7bb2-4d97-aa2d-97103d7e0a23 uptime=144.26 949.97 awake_since_verified_return=144s prior_successes=0 prior_markers=0 active_generation=/nix/store/ycxpwiix7p109pv8a1x53ac540s9pyxh-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+19819:[  164.788607] PREFLIGHT boot=e5c893be-7bb2-4d97-aa2d-97103d7e0a23 uptime=164.49 1105.49 awake_since_verified_return=164s prior_successes=0 prior_markers=0 active_generation=/nix/store/ycxpwiix7p109pv8a1x53ac540s9pyxh-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+21079:[    0.137136] Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+22705:[   28.528962] CAPTURE CHECK boot=3e3c970d-025f-4b78-8e00-f911e202e948 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b nonce=1792491580
+22761:[  136.237996] CAPTURE CHECK boot=3e3c970d-025f-4b78-8e00-f911e202e948 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b nonce=1792491688
+22767:[  136.846788] PREFLIGHT boot=3e3c970d-025f-4b78-8e00-f911e202e948 uptime=136.89 868.20 awake_since_verified_return=136s prior_successes=0 prior_markers=0 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+22773:[  136.919540] TRIAL READY id=r-async-h8-20261020 profile=H pm_async=1 due=1792520651 wake=1792521611 manifest=ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e
+22779:[  139.977160] CAPTURE CHECK boot=3e3c970d-025f-4b78-8e00-f911e202e948 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b nonce=1792491691
+22785:[  140.157589] PREFLIGHT boot=3e3c970d-025f-4b78-8e00-f911e202e948 uptime=140.20 892.12 awake_since_verified_return=140s prior_successes=0 prior_markers=0 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+22791:[  140.219209] TRIAL READY id=r-async-h8-20261020 profile=H pm_async=1 due=1792520651 wake=1792521611 manifest=ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e
+22797:[  175.495534] CAPTURE CHECK boot=3e3c970d-025f-4b78-8e00-f911e202e948 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b nonce=1792491727
+22803:[  175.952925] PREFLIGHT boot=3e3c970d-025f-4b78-8e00-f911e202e948 uptime=176.00 1168.87 awake_since_verified_return=175s prior_successes=0 prior_markers=0 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+22809:[  176.012062] TRIAL READY id=r-async-h8-20261020 profile=H pm_async=1 due=1792520651 wake=1792521611 manifest=ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e
+22815:[29099.803677] CAPTURE CHECK boot=3e3c970d-025f-4b78-8e00-f911e202e948 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b nonce=1792520651
+22821:[29100.236735] PREFLIGHT boot=3e3c970d-025f-4b78-8e00-f911e202e948 uptime=29100.28 226266.74 awake_since_verified_return=29100s prior_successes=0 prior_markers=0 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+22845:[29103.234906] PREFLIGHT boot=3e3c970d-025f-4b78-8e00-f911e202e948 uptime=29103.28 226287.94 awake_since_verified_return=29103s prior_successes=0 prior_markers=0 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+22851:[29103.387383] BEGIN trial=r-async-h8-20261020 boot=3e3c970d-025f-4b78-8e00-f911e202e948 due_epoch=1792520651 wake_epoch=1792521611 profile=H ordinal=1 pm_async=1 pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced
+22859:[29103.475646] SUSPEND REQUEST logged_in_users=allow command=busctl ["call", "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "SuspendWithFlags", "t", "1"]
+22863:[29103.639790] PM: suspend entry (deep)
+
+All trial services and notification execution
+2026-10-20T20:24:11+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-notice-start.service - Predator study Telegram notice...
+2026-10-20T20:24:16+0200 raspberrypi curl[25854]: curl: (28) Failed to connect to api.telegram.org port 443 after 5001 ms: Timeout was reached
+2026-10-20T20:24:16+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-notice-start.service: Main process exited, code=exited, status=28/n/a
+2026-10-20T20:24:16+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-notice-start.service: Failed with result 'exit-code'.
+2026-10-20T20:24:16+0200 raspberrypi systemd[1]: Failed to start predator-pm-r-async-h8-20261020-notice-start.service - Predator study Telegram notice.
+2026-10-20T20:40:11+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-wake.service - /usr/bin/python3 /home/mirsella/wol_predator.py...
+2026-10-20T20:40:11+0200 raspberrypi python3[25895]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-20T20:40:11+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-wake.service: Deactivated successfully.
+2026-10-20T20:40:11+0200 raspberrypi systemd[1]: Finished predator-pm-r-async-h8-20261020-wake.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-20T20:40:11+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-wake.timer: Deactivated successfully.
+2026-10-20T20:40:11+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-wake.service: Triggering OnSuccess= dependencies.
+2026-10-20T20:40:11+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-notice-wake-ok.service - Predator study Telegram notice...
+2026-10-20T20:40:16+0200 raspberrypi curl[25896]: curl: (28) Failed to connect to api.telegram.org port 443 after 5000 ms: Timeout was reached
+2026-10-20T20:40:16+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-notice-wake-ok.service: Main process exited, code=exited, status=28/n/a
+2026-10-20T20:40:16+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-notice-wake-ok.service: Failed with result 'exit-code'.
+2026-10-20T20:40:16+0200 raspberrypi systemd[1]: Failed to start predator-pm-r-async-h8-20261020-notice-wake-ok.service - Predator study Telegram notice.
+2026-10-20T20:40:41+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-retry.service - /usr/bin/python3 /home/mirsella/wol_predator.py...
+2026-10-20T20:40:41+0200 raspberrypi python3[25901]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-20T20:40:41+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-retry.service: Deactivated successfully.
+2026-10-20T20:40:41+0200 raspberrypi systemd[1]: Finished predator-pm-r-async-h8-20261020-retry.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-20T20:40:41+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-retry.timer: Deactivated successfully.
+2026-10-20T20:40:41+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-retry.service: Triggering OnSuccess= dependencies.
+2026-10-20T20:40:41+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-notice-retry-ok.service - Predator study Telegram notice...
+2026-10-20T20:40:46+0200 raspberrypi curl[25902]: curl: (28) Failed to connect to api.telegram.org port 443 after 5001 ms: Timeout was reached
+2026-10-20T20:40:46+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-notice-retry-ok.service: Main process exited, code=exited, status=28/n/a
+2026-10-20T20:40:46+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-notice-retry-ok.service: Failed with result 'exit-code'.
+2026-10-20T20:40:46+0200 raspberrypi systemd[1]: Failed to start predator-pm-r-async-h8-20261020-notice-retry-ok.service - Predator study Telegram notice.
+2026-10-20T20:41:41+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19...
+2026-10-20T20:41:44+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-probe.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-20T20:41:44+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-probe.service: Failed with result 'exit-code'.
+2026-10-20T20:41:44+0200 raspberrypi systemd[1]: Failed to start predator-pm-r-async-h8-20261020-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19.
+2026-10-20T20:41:44+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-probe.timer: Deactivated successfully.
+2026-10-20T20:41:44+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-probe.service: Triggering OnFailure= dependencies.
+2026-10-20T20:41:44+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-notice-probe-failed.service - Predator study Telegram notice...
+2026-10-20T20:41:44+0200 raspberrypi curl[25907]: {"ok":true,"result":{"message_id":88671,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":932980505,"first_name":"mirsella","type":"private"},"date":1792521704,"text":"Predator / r-async-h8-20261020 / Pi observer\nSSH probe FAILED: Predator is unreachable. Possible hang; check power/LEDs. Preserve the graph and allow the snapshot at wake +3 minutes before attended recovery when practical."}}
+2026-10-20T20:41:44+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-notice-probe-failed.service: Deactivated successfully.
+2026-10-20T20:41:44+0200 raspberrypi systemd[1]: Finished predator-pm-r-async-h8-20261020-notice-probe-failed.service - Predator study Telegram notice.
+2026-10-20T20:43:11+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-async-h8-20261020-result.log...
+2026-10-20T20:43:11+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-snapshot.service: Deactivated successfully.
+2026-10-20T20:43:11+0200 raspberrypi systemd[1]: Finished predator-pm-r-async-h8-20261020-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-async-h8-20261020-result.log.
+2026-10-20T20:43:11+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-snapshot.timer: Deactivated successfully.
+2026-10-20T20:43:11+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-snapshot.service: Triggering OnSuccess= dependencies.
+2026-10-20T20:43:11+0200 raspberrypi systemd[1]: Starting predator-pm-r-async-h8-20261020-notice-snapshot-ok.service - Predator study Telegram notice...
+2026-10-20T20:43:11+0200 raspberrypi curl[25915]: {"ok":true,"result":{"message_id":88672,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":932980505,"first_name":"mirsella","type":"private"},"date":1792521791,"text":"Predator / r-async-h8-20261020 / Pi observer\nFull netconsole snapshot saved on Pi. Main-side collection follows. Preserve the power graph; final classification is pending."}}
+2026-10-20T20:43:11+0200 raspberrypi systemd[1]: predator-pm-r-async-h8-20261020-notice-snapshot-ok.service: Deactivated successfully.
+2026-10-20T20:43:11+0200 raspberrypi systemd[1]: Finished predator-pm-r-async-h8-20261020-notice-snapshot-ok.service - Predator study Telegram notice.
+
+Remaining study timers
+NEXT LEFT LAST                         PASSED        UNIT                                                 ACTIVATES
+-    -    Sat 2026-10-17 18:00:00 CEST 3 days ago    predator-pm-r-async-e7o2-20261017-notice-start.timer predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 28min ago     predator-pm-r-async-h8-20261020-notice-start.timer   predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 day 23h ago predator-pm-r-async-q30-20261018-notice-start.timer  predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 2 days ago    predator-pm-r-serial-m15-20261017-notice-start.timer predator-pm-r-serial-m15-20261017-notice-start.service
+
+4 timers listed.
+
+LAN neighbor and read-only SSH probe
+192.168.1.19 dev wlan0 FAILED 

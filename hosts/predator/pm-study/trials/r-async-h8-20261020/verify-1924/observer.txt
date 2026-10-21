@@ -1,0 +1,62 @@
+observed=2026-10-20T19:25:19+02:00
+
+Receiver
+active
+
+Waker
+ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8  /home/mirsella/wol_predator.py
+
+Observer timers
+NextElapseUSecRealtime=Tue 2026-10-20 20:24:11 CEST
+Id=predator-pm-r-async-h8-20261020-notice-start.timer
+LoadState=loaded
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Tue 2026-10-20 20:40:11 CEST
+Id=predator-pm-r-async-h8-20261020-wake.timer
+LoadState=loaded
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Tue 2026-10-20 20:40:41 CEST
+Id=predator-pm-r-async-h8-20261020-retry.timer
+LoadState=loaded
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Tue 2026-10-20 20:41:41 CEST
+Id=predator-pm-r-async-h8-20261020-probe.timer
+LoadState=loaded
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Tue 2026-10-20 20:43:11 CEST
+Id=predator-pm-r-async-h8-20261020-snapshot.timer
+LoadState=loaded
+ActiveState=active
+SubState=waiting
+NEXT                         LEFT          LAST                         PASSED        UNIT                                                 ACTIVATES
+Tue 2026-10-20 20:24:11 CEST 58min left    -                            -             predator-pm-r-async-h8-20261020-notice-start.timer   predator-pm-r-async-h8-20261020-notice-start.service
+Tue 2026-10-20 20:40:11 CEST 1h 14min left -                            -             predator-pm-r-async-h8-20261020-wake.timer           predator-pm-r-async-h8-20261020-wake.service
+Tue 2026-10-20 20:40:41 CEST 1h 15min left -                            -             predator-pm-r-async-h8-20261020-retry.timer          predator-pm-r-async-h8-20261020-retry.service
+Tue 2026-10-20 20:41:41 CEST 1h 16min left -                            -             predator-pm-r-async-h8-20261020-probe.timer          predator-pm-r-async-h8-20261020-probe.service
+Tue 2026-10-20 20:43:11 CEST 1h 17min left -                            -             predator-pm-r-async-h8-20261020-snapshot.timer       predator-pm-r-async-h8-20261020-snapshot.service
+-                            -             Sat 2026-10-17 18:00:00 CEST 3 days ago    predator-pm-r-async-e7o2-20261017-notice-start.timer predator-pm-r-async-e7o2-20261017-notice-start.service
+-                            -             Sun 2026-10-18 21:00:30 CEST 1 day 22h ago predator-pm-r-async-q30-20261018-notice-start.timer  predator-pm-r-async-q30-20261018-notice-start.service
+-                            -             Sat 2026-10-17 21:24:00 CEST 2 days ago    predator-pm-r-serial-m15-20261017-notice-start.timer predator-pm-r-serial-m15-20261017-notice-start.service
+
+8 timers listed.
+
+Receiver recent log
+[  175.495534] CAPTURE CHECK boot=3e3c970d-025f-4b78-8e00-f911e202e948 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b nonce=1792491727
+# recv 2026-10-20T12:22:07+0200
+[  175.495587] 
+# recv 2026-10-20T12:22:07+0200
+[  175.952921] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-20T12:22:07+0200
+[  175.952925] PREFLIGHT boot=3e3c970d-025f-4b78-8e00-f911e202e948 uptime=176.00 1168.87 awake_since_verified_return=175s prior_successes=0 prior_markers=0 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+# recv 2026-10-20T12:22:07+0200
+[  175.952944] 
+# recv 2026-10-20T12:22:08+0200
+[  176.012059] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-20T12:22:08+0200
+[  176.012062] TRIAL READY id=r-async-h8-20261020 profile=H pm_async=1 due=1792520651 wake=1792521611 manifest=ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e
+# recv 2026-10-20T12:22:08+0200
+[  176.012078] 

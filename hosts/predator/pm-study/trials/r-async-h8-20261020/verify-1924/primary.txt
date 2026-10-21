@@ -1,0 +1,87 @@
+observed=2026-10-20T19:25:18+02:00
+boot=3e3c970d-025f-4b78-8e00-f911e202e948
+btime 1792491551
+
+System identities
+/run/booted-system=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b
+/run/current-system=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b
+/run/booted-system/kernel=/nix/store/b1slgijwvdxlci37m675ai43by6nf8ak-linux-6.18.54/bzImage
+/run/booted-system/kernel-modules=/nix/store/6qf4yh1w3y4ams8hsa83m3s1bafqr4r5-linux-6.18.54-modules
+
+Runtime/control identities
+45b2e99d3700068ea268e84f168ee7e6786d8bb13a9b3c1d9910d835d507f51f  /nix/store/5qjb1am045yn7wxqgz24cr919amdza28-predator-pm-study-0.1.0/bin/predator-pm-study
+61221f9bb45b87b880a072a84cfd9805507cf1ab9672ee8aa053a644f4551d6c  /nix/store/5qjb1am045yn7wxqgz24cr919amdza28-predator-pm-study-0.1.0/bin/predator-pm-control
+
+Remote manifest
+ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e  /var/lib/predator-pm-study/r-async-h8-20261020-plan.conf
+schema_version=2
+trial_id=r-async-h8-20261020
+profile=H
+boot=3e3c970d-025f-4b78-8e00-f911e202e948
+generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b
+kernel=/nix/store/b1slgijwvdxlci37m675ai43by6nf8ak-linux-6.18.54/bzImage
+modules=/nix/store/6qf4yh1w3y4ams8hsa83m3s1bafqr4r5-linux-6.18.54-modules
+runtime=/nix/store/5qjb1am045yn7wxqgz24cr919amdza28-predator-pm-study-0.1.0/bin/predator-pm-study
+due=1792520651
+wake=1792521611
+pm_async=1
+pm_trace=0
+recorder=off
+mem_sleep=deep
+pm_test=none
+tpm=initialized
+ec=not-run
+logged_in_users=allow
+ordinal=1
+daytime_start=1792520051
+daytime_end=1792522211
+
+HOLD=absent
+suspend_success=0
+suspend_fail=0
+pm_async=1
+pm_trace=0
+mem_sleep=s2idle [deep]
+pm_test=[none] core processors platform devices freezer
+
+Primary timer
+Id=predator-pm-r-async-h8-20261020.timer
+LoadState=loaded
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Tue 2026-10-20 20:24:11 CEST
+Id=predator-pm-r-async-h8-20261020.service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+ExecMainStatus=0
+NEXT                          LEFT LAST PASSED UNIT                                  ACTIVATES
+Tue 2026-10-20 20:24:11 CEST 58min -         - predator-pm-r-async-h8-20261020.timer predator-pm-r-async-h8-20261020.service
+-                                - -         - predator-pm-next.timer                predator-pm-next.service
+
+2 timers listed.
+  UNIT                                    LOAD   ACTIVE   SUB     DESCRIPTION
+  predator-pm-capture.service             loaded inactive dead    Restore Predator suspend diagnostic capture
+  predator-pm-clock-handoff.service       loaded active   exited  Restore NTP after initrd networkd hands the LAN to NetworkManager
+  predator-pm-next.service                loaded inactive dead    Run and retain the planned long-awake S3 comparison
+  predator-pm-preserve-rtc.service        loaded active   exited  Preserve suspend phase RTC evidence before clock synchronization
+  predator-pm-r-async-h8-20261020.service loaded inactive dead    [systemd-run] /nix/store/5qjb1am045yn7wxqgz24cr919amdza28-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-async-h8-20261020-plan.conf ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e
+  predator-pm-next.timer                  loaded inactive dead    TPM-on EC-off comparison on October 12 at 09:52:52
+  predator-pm-r-async-h8-20261020.timer   loaded active   waiting [systemd-run] /nix/store/5qjb1am045yn7wxqgz24cr919amdza28-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-async-h8-20261020-plan.conf ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+7 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+No jobs running.
+
+Last completed state if present
+boot=5271820b-0d2c-4232-a00e-ebd0bf5c34d2
+successes=1
+markers=0
+completed_epoch=1792350965
+
+Trial artifact names only
+r-async-h8-20261020-plan.conf
