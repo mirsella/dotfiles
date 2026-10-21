@@ -10,6 +10,7 @@ use std::os::unix::fs::MetadataExt;
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
+use std::sync::Arc;
 use std::sync::mpsc::{self, Receiver};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -206,60 +207,20 @@ fn env_value(environment: &[u8], name: &[u8]) -> Result<Option<String>> {
     Ok(None)
 }
 
-fn server_env_value(name: &str) -> Result<Option<String>> {
-    if let Some(value) = env::var_os(name) {
-        let value = value
-            .into_string()
-            .map_err(|_| anyhow::anyhow!("{name} is not valid UTF-8"))?;
-        if !value.trim().is_empty() {
-            return Ok(Some(value));
-        }
-    }
-    let Some(home) = env::var_os("HOME") else {
-        return Ok(None);
-    };
-    let config = env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(home).join(".config"));
-    let path = config.join("opencode/server.env");
-    let contents = match fs::read_to_string(&path) {
-        Ok(contents) => contents,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error).with_context(|| format!("read {}", path.display())),
-    };
-    Ok(contents
-        .lines()
-        .filter_map(|line| line.trim().split_once('='))
-        .find(|(key, _)| *key == name)
-        .map(|(_, value)| value.trim().trim_matches(['\'', '"']).to_owned())
-        .filter(|value| !value.is_empty()))
-}
-
 fn basic_authorization(username: &str, password: &str) -> String {
     let encoded =
         base64::engine::general_purpose::STANDARD.encode(format!("{username}:{password}"));
     format!("Basic {encoded}")
 }
 
-fn generated_service_password(environment: &[u8]) -> Result<Option<String>> {
-    let root = match env_value(environment, b"XDG_CONFIG_HOME")? {
-        Some(root) => PathBuf::from(root),
-        None => {
-            PathBuf::from(env_value(environment, b"HOME")?.context("service process has no HOME")?)
-                .join(".config")
-        }
-    };
-    let directory = env_value(environment, b"OPENCODE_CONFIG_DIR")?
-        .map(PathBuf::from)
-        .unwrap_or_else(|| root.join("opencode"));
-    let path = directory.join("service.json");
-    let bytes = match fs::read(&path) {
+fn service_password(path: &Path) -> Result<Option<String>> {
+    let bytes = match fs::read(path) {
         Ok(bytes) => bytes,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error).context("read native OpenCode service credential"),
+        Err(error) => return Err(error).with_context(|| format!("read {}", path.display())),
     };
     let mut config: serde_json::Map<String, Value> =
-        serde_json::from_slice(&bytes).context("parse native OpenCode service configuration")?;
+        serde_json::from_slice(&bytes).with_context(|| format!("parse {}", path.display()))?;
     match config.remove("password") {
         None => Ok(None),
         Some(Value::String(value)) => Ok((!value.is_empty()).then_some(value)),
@@ -267,10 +228,54 @@ fn generated_service_password(environment: &[u8]) -> Result<Option<String>> {
     }
 }
 
+fn xdg_dir(environment: &[u8], variable: &[u8], fallback: &str) -> Result<Option<PathBuf>> {
+    if let Some(value) = env_value(environment, variable)? {
+        return Ok(Some(PathBuf::from(value)));
+    }
+    Ok(env_value(environment, b"HOME")?.map(|home| PathBuf::from(home).join(fallback)))
+}
+
+fn native_service_password(environment: &[u8]) -> Result<Option<String>> {
+    // The v2 service writes its runtime credential to the state directory.
+    if let Some(state) = xdg_dir(environment, b"XDG_STATE_HOME", ".local/state")?
+        && let Some(password) = service_password(&state.join("opencode/service.json"))?
+    {
+        return Ok(Some(password));
+    }
+
+    // Older installs only wrote the credential to the config directory.
+    let directory = match env_value(environment, b"OPENCODE_CONFIG_DIR")? {
+        Some(directory) => PathBuf::from(directory),
+        None => match xdg_dir(environment, b"XDG_CONFIG_HOME", ".config")? {
+            Some(root) => root.join("opencode"),
+            None => return Ok(None),
+        },
+    };
+    service_password(&directory.join("service.json"))
+}
+
+fn is_server_command(args: &[String]) -> bool {
+    let mut args = args.iter().skip(1);
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "serve" => {
+                return !args.any(|arg| arg == "--stdio" || arg.starts_with("--stdio="));
+            }
+            "--print-logs" => {}
+            "--log-level" => {
+                if args.next().is_none() {
+                    return false;
+                }
+            }
+            _ if arg.starts_with("--log-level=") => {}
+            _ => return false,
+        }
+    }
+    false
+}
+
 fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
     let uid = unsafe { libc::getuid() };
-    let configured_password =
-        server_env_value("OPENCODE_PASSWORD")?.or(server_env_value("OPENCODE_SERVER_PASSWORD")?);
     let mut processes = Vec::new();
     for entry in fs::read_dir("/proc").context("read /proc")? {
         let entry = entry.context("read /proc entry")?;
@@ -293,10 +298,7 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
         let Some(comm) = proc_file(&path, "comm")? else {
             continue;
         };
-        if !matches!(
-            comm.strip_suffix(b"\n"),
-            Some(b"opencode" | b"opencode.exe" | b"opencode2")
-        ) {
+        if comm.strip_suffix(b"\n") != Some(b"opencode") {
             continue;
         }
         let Some(cmdline) = proc_file(&path, "cmdline")? else {
@@ -306,23 +308,18 @@ fn opencode_processes() -> Result<Vec<OpenCodeProcess>> {
         if args.is_empty() {
             bail!("opencode pid {pid} has an empty cmdline");
         }
-        let subcommand = args.get(1).map(String::as_str);
-        if subcommand == Some("attach")
-            || args
-                .iter()
-                .any(|arg| arg == "--server" || arg.starts_with("--server="))
-        {
+        if !is_server_command(&args) {
             continue;
         }
         let Some(environment) = proc_file(&path, "environ")? else {
             continue;
         };
         let password = if args.iter().any(|arg| arg == "--service") {
-            generated_service_password(&environment)?
+            native_service_password(&environment)?
         } else {
+            // v2 uses OPENCODE_PASSWORD; do not fall back to the legacy
+            // OPENCODE_SERVER_PASSWORD alias.
             env_value(&environment, b"OPENCODE_PASSWORD")?
-                .or(env_value(&environment, b"OPENCODE_SERVER_PASSWORD")?)
-                .or_else(|| configured_password.clone())
         };
         let authorization = password
             .as_deref()
@@ -430,7 +427,6 @@ struct OpenCodeApi<'a> {
     client: &'a ureq::Agent,
     url: &'a str,
     authorization: Option<&'a str>,
-    directory: Option<&'a str>,
 }
 
 fn is_transient(error: &ureq::Error) -> bool {
@@ -458,9 +454,6 @@ impl OpenCodeApi<'_> {
             for (name, value) in query {
                 request = request.query(*name, *value);
             }
-            if let Some(directory) = self.directory {
-                request = request.query("directory", directory);
-            }
             if let Some(authorization) = self.authorization {
                 request = request.header("Authorization", authorization);
             }
@@ -479,12 +472,15 @@ impl OpenCodeApi<'_> {
         serde_json::from_str(&body).with_context(|| format!("parse GET {url}"))
     }
 
-    fn sessions(&self) -> Result<Vec<Value>> {
+    fn sessions(&self, directory: Option<&str>) -> Result<Vec<Value>> {
         let mut sessions = Vec::new();
         let mut cursor = None::<String>;
         let mut seen = HashSet::new();
         loop {
             let mut query = vec![("limit", "1000")];
+            if let Some(directory) = directory {
+                query.push(("directory", directory));
+            }
             if let Some(ref value) = cursor {
                 query.push(("cursor", value));
             }
@@ -505,8 +501,34 @@ impl OpenCodeApi<'_> {
         Ok(sessions)
     }
 
+    fn active(&self) -> Result<serde_json::Map<String, Value>> {
+        let mut page = self.get("/api/session/active")?;
+        match page.get_mut("data").map(Value::take) {
+            Some(Value::Object(active)) => Ok(active),
+            _ => bail!("active sessions have no data map"),
+        }
+    }
+
+    fn get_location(&self, path: &str, directory: &str) -> Result<Value> {
+        self.get_query(path, &[("location[directory]", directory)])
+    }
+
+    fn forms(&self, directory: &str) -> Result<Vec<Value>> {
+        page_array(
+            self.get_location("/api/form", directory)
+                .context("pending forms")?,
+        )
+    }
+
+    fn permissions(&self, directory: &str) -> Result<Vec<Value>> {
+        page_array(
+            self.get_location("/api/permission/request", directory)
+                .context("pending permissions")?,
+        )
+    }
+
     fn global_directories(&self) -> Result<Vec<String>> {
-        self.sessions()?
+        self.sessions(None)?
             .iter()
             .map(|session| {
                 session
@@ -667,7 +689,6 @@ fn classify_snapshot<'a>(
             match kind {
                 "idle" => ("IDLE", Color::Green, None),
                 "busy" => ("RUNNING", Color::Yellow, Some(format!("{session}:busy"))),
-                "retry" => ("RETRY", Color::Magenta, Some(format!("{session}:retry"))),
                 _ => ("UNKNOWN", Color::Red, Some(format!("{session}:unknown"))),
             }
         };
@@ -747,15 +768,15 @@ fn workspace_snapshot(
     url: String,
     authorization: Option<String>,
     directory: String,
+    active: &serde_json::Map<String, Value>,
 ) -> ApiSnapshot {
     let api = OpenCodeApi {
         client,
         url: &url,
         authorization: authorization.as_deref(),
-        directory: Some(&directory),
     };
     let state = (|| -> Result<WorkspaceState> {
-        let session_details = api.sessions()?;
+        let session_details = api.sessions(Some(&directory))?;
         let sessions: serde_json::Map<String, Value> = session_details
             .into_iter()
             .map(|details| {
@@ -767,29 +788,25 @@ fn workspace_snapshot(
                 Ok((id, details))
             })
             .collect::<Result<_>>()?;
-        let active_page = api.get("/api/session/active")?;
-        let active = active_page
-            .get("data")
-            .and_then(Value::as_object)
-            .context("active sessions have no data map")?;
         let mut status = serde_json::Map::new();
         for session in sessions.keys() {
-            if let Some(state) = active.get(session) {
-                if state.get("type").and_then(Value::as_str) != Some("running") {
-                    bail!("unknown active session state for {session}");
+            let kind = match active.get(session) {
+                Some(state) if state.get("type").and_then(Value::as_str) == Some("running") => {
+                    "busy"
                 }
-                status.insert(session.clone(), serde_json::json!({"type":"busy"}));
-            } else {
-                status.insert(session.clone(), serde_json::json!({"type":"idle"}));
-            }
+                Some(_) => bail!("unknown active session state for {session}"),
+                None => "idle",
+            };
+            status.insert(session.clone(), serde_json::json!({ "type": kind }));
         }
         let mut assistants = serde_json::Map::new();
         let mut unresolved_busy = Vec::new();
-        for session in status
-            .iter()
-            .filter(|(_, state)| status_kind(state) == "busy")
-            .map(|(session, _)| session)
-        {
+        let mut has_busy = false;
+        for (session, state) in &status {
+            if status_kind(state) != "busy" {
+                continue;
+            }
+            has_busy = true;
             match api.latest_assistant(session) {
                 Ok(message) => {
                     assistants.insert(session.clone(), message);
@@ -804,9 +821,14 @@ fn workspace_snapshot(
                 }),
             }
         }
-        let questions = page_array(api.get("/api/form")?).context("pending forms")?;
-        let permissions =
-            page_array(api.get("/api/permission/request")?).context("pending permissions")?;
+        // Pending forms and permissions only exist for busy sessions. Skipping
+        // the scoped requests also avoids a 404 for directories the server no
+        // longer knows, such as removed worktrees with historical sessions.
+        let (questions, permissions) = if has_busy {
+            (api.forms(&directory)?, api.permissions(&directory)?)
+        } else {
+            (Vec::new(), Vec::new())
+        };
         Ok(WorkspaceState {
             status,
             sessions,
@@ -852,7 +874,6 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
                     client,
                     url,
                     authorization: process.authorization.as_deref(),
-                    directory: None,
                 }
                 .get("/api/info")
                 .is_ok_and(|value| {
@@ -871,13 +892,18 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
             client,
             url: &url,
             authorization: process.authorization.as_deref(),
-            directory: None,
         };
-        let directories = api.global_directories();
-        let directories = match directories {
+        let directories = match api.global_directories() {
             Ok(directories) => directories,
             Err(error) => {
                 failures.push(format!("pid={} directories:{error:#}", process.pid));
+                continue;
+            }
+        };
+        let active = match api.active() {
+            Ok(active) => Arc::new(active),
+            Err(error) => {
+                failures.push(format!("pid={} active-sessions:{error:#}", process.pid));
                 continue;
             }
         };
@@ -887,13 +913,16 @@ fn api_snapshots(client: &ureq::Agent, processes: &[OpenCodeProcess]) -> ApiScan
                 url.clone(),
                 process.authorization.clone(),
                 directory,
+                Arc::clone(&active),
             ));
         }
     }
     let snapshots = thread::scope(|scope| {
         jobs.into_iter()
-            .map(|(pid, url, authorization, directory)| {
-                scope.spawn(move || workspace_snapshot(client, pid, url, authorization, directory))
+            .map(|(pid, url, authorization, directory, active)| {
+                scope.spawn(move || {
+                    workspace_snapshot(client, pid, url, authorization, directory, &active)
+                })
             })
             .collect::<Vec<_>>()
             .into_iter()
@@ -1682,7 +1711,7 @@ mod tests {
     }
 
     #[test]
-    fn workspace_query_preserves_existing_parameters_and_authentication() {
+    fn requests_preserve_query_parameters_and_authentication() {
         let (url, server) = serve_json(vec![json!({ "ok": true })]);
         let client = test_client();
         let authorization = basic_authorization("opencode", "secret");
@@ -1690,7 +1719,6 @@ mod tests {
             client: &client,
             url: &url,
             authorization: Some(&authorization),
-            directory: Some("/tmp/a b%+é"),
         };
         assert_eq!(
             api.get("/api/session?limit=1").unwrap(),
@@ -1700,7 +1728,7 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(
             requests[0].lines().next().unwrap(),
-            "GET /api/session?limit=1&directory=%2Ftmp%2Fa%20b%25%2B%C3%A9 HTTP/1.1"
+            "GET /api/session?limit=1 HTTP/1.1"
         );
         assert!(requests[0].lines().any(|line| {
             let Some((name, value)) = line.split_once(':') else {
@@ -1708,6 +1736,197 @@ mod tests {
             };
             name.eq_ignore_ascii_case("authorization") && value.trim() == authorization
         }));
+    }
+
+    #[test]
+    fn sessions_scope_by_directory() {
+        let (url, server) = serve_json(vec![json!({"data": [], "cursor": {"next": null}})]);
+        let client = test_client();
+        let api = OpenCodeApi {
+            client: &client,
+            url: &url,
+            authorization: None,
+        };
+        assert!(api.sessions(Some("/tmp/a b%+é")).unwrap().is_empty());
+        let requests = server.join().unwrap();
+        assert_eq!(
+            requests[0].lines().next().unwrap(),
+            "GET /api/session?limit=1000&directory=%2Ftmp%2Fa%20b%25%2B%C3%A9 HTTP/1.1"
+        );
+    }
+
+    #[test]
+    fn forms_and_permissions_scope_by_location() {
+        let (url, server) = serve_json(vec![json!({"data": []}), json!({"data": []})]);
+        let client = test_client();
+        let api = OpenCodeApi {
+            client: &client,
+            url: &url,
+            authorization: None,
+        };
+        assert!(api.forms("/tmp/a b%+é").unwrap().is_empty());
+        assert!(api.permissions("/tmp/a b%+é").unwrap().is_empty());
+        let requests = server.join().unwrap();
+        assert_eq!(
+            requests[0].lines().next().unwrap(),
+            "GET /api/form?location%5Bdirectory%5D=%2Ftmp%2Fa%20b%25%2B%C3%A9 HTTP/1.1"
+        );
+        assert_eq!(
+            requests[1].lines().next().unwrap(),
+            "GET /api/permission/request?location%5Bdirectory%5D=%2Ftmp%2Fa%20b%25%2B%C3%A9 HTTP/1.1"
+        );
+    }
+
+    #[test]
+    fn discovers_only_serve_processes() {
+        assert!(is_server_command(&["opencode".into(), "serve".into()]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "serve".into(),
+            "--service".into()
+        ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "--log-level".into(),
+            "debug".into(),
+            "serve".into()
+        ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "--log-level=debug".into(),
+            "serve".into()
+        ]));
+        assert!(is_server_command(&[
+            "opencode".into(),
+            "--print-logs".into(),
+            "serve".into()
+        ]));
+        for command in [
+            vec!["opencode".into()],
+            vec!["opencode".into(), "attach".into()],
+            vec!["opencode".into(), "--standalone".into()],
+            vec!["opencode".into(), "--version".into()],
+            vec!["opencode".into(), "serve".into(), "--stdio".into()],
+            vec!["opencode".into(), "--log-level".into(), "debug".into()],
+            vec![
+                "opencode".into(),
+                "--log-level".into(),
+                "debug".into(),
+                "serve".into(),
+                "--stdio".into(),
+            ],
+        ] {
+            assert!(!is_server_command(&command));
+        }
+    }
+
+    #[test]
+    fn native_service_password_prefers_state_and_falls_back_to_config() {
+        let root =
+            std::env::temp_dir().join(format!("{NAME}-service-password-{}", std::process::id()));
+        let state = root.join("state/opencode");
+        let config = root.join("config/opencode");
+        fs::create_dir_all(&state).unwrap();
+        fs::create_dir_all(&config).unwrap();
+        fs::write(config.join("service.json"), r#"{"password":"config"}"#).unwrap();
+        let environment = format!(
+            "HOME={}\0XDG_STATE_HOME={}\0XDG_CONFIG_HOME={}\0",
+            root.display(),
+            root.join("state").display(),
+            root.join("config").display(),
+        );
+        let environment = environment.as_bytes();
+        assert_eq!(
+            native_service_password(environment).unwrap(),
+            Some("config".to_owned())
+        );
+        fs::write(state.join("service.json"), r#"{"password":"state"}"#).unwrap();
+        assert_eq!(
+            native_service_password(environment).unwrap(),
+            Some("state".to_owned())
+        );
+        fs::remove_file(state.join("service.json")).unwrap();
+        let custom = root.join("custom");
+        fs::create_dir_all(&custom).unwrap();
+        fs::write(custom.join("service.json"), r#"{"password":"custom"}"#).unwrap();
+        let custom_environment = format!(
+            "HOME={}\0OPENCODE_CONFIG_DIR={}\0",
+            root.display(),
+            custom.display(),
+        );
+        assert_eq!(
+            native_service_password(custom_environment.as_bytes()).unwrap(),
+            Some("custom".to_owned())
+        );
+        fs::write(state.join("service.json"), r#"{"password":false}"#).unwrap();
+        assert!(native_service_password(environment).is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn workspace_snapshot_skips_location_requests_without_busy_sessions() {
+        let (url, server) = serve_json(vec![json!({
+            "data": [{"id": "ses_idle", "title": "Idle", "time": {"created": 1, "updated": 2}}],
+            "cursor": {"next": null}
+        })]);
+        let client = test_client();
+        let snapshot = workspace_snapshot(
+            &client,
+            7,
+            url,
+            None,
+            "/tmp/project".to_owned(),
+            &serde_json::Map::new(),
+        );
+        let state = snapshot.state.unwrap();
+        assert_eq!(state.status["ses_idle"]["type"], "idle");
+        assert!(state.questions.is_empty());
+        assert!(state.permissions.is_empty());
+        let requests = server.join().unwrap();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(
+            requests[0].lines().next().unwrap(),
+            "GET /api/session?limit=1000&directory=%2Ftmp%2Fproject HTTP/1.1"
+        );
+    }
+
+    #[test]
+    fn workspace_snapshot_scopes_requests_for_busy_sessions() {
+        let (url, server) = serve_json(vec![
+            json!({
+                "data": [{"id": "ses_busy", "title": "Busy", "time": {"created": 1, "updated": 2}}],
+                "cursor": {"next": null}
+            }),
+            json!({"data": [{"type": "assistant", "content": []}]}),
+            json!({"data": []}),
+            json!({"data": []}),
+        ]);
+        let client = test_client();
+        let active = serde_json::from_value(json!({"ses_busy": {"type": "running"}})).unwrap();
+        let snapshot =
+            workspace_snapshot(&client, 7, url, None, "/tmp/project".to_owned(), &active);
+        let state = snapshot.state.unwrap();
+        assert_eq!(state.status["ses_busy"]["type"], "busy");
+        assert!(state.unresolved_busy.is_empty());
+        let requests = server.join().unwrap();
+        assert_eq!(requests.len(), 4);
+        assert_eq!(
+            requests[0].lines().next().unwrap(),
+            "GET /api/session?limit=1000&directory=%2Ftmp%2Fproject HTTP/1.1"
+        );
+        assert!(
+            requests[1].lines().next().unwrap().starts_with(
+                "GET /api/session/ses_busy/message?limit=1&order=desc&type=assistant "
+            )
+        );
+        assert_eq!(
+            requests[2].lines().next().unwrap(),
+            "GET /api/form?location%5Bdirectory%5D=%2Ftmp%2Fproject HTTP/1.1"
+        );
+        assert_eq!(
+            requests[3].lines().next().unwrap(),
+            "GET /api/permission/request?location%5Bdirectory%5D=%2Ftmp%2Fproject HTTP/1.1"
+        );
     }
 
     #[test]
@@ -1723,7 +1942,6 @@ mod tests {
             client: &client,
             url: &url,
             authorization: None,
-            directory: None,
         };
         assert_eq!(api.global_directories().unwrap(), ["/a", "/m", "/z"]);
         let requests = server.join().unwrap();
@@ -1748,7 +1966,6 @@ mod tests {
             client: &client,
             url: &url,
             authorization: None,
-            directory: None,
         };
         assert_eq!(
             api.global_directories().unwrap_err().to_string(),

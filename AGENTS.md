@@ -38,7 +38,8 @@ The flake discovers these directories and sets hostnames automatically.
   for drift, since a stale copy there is otherwise invisible.
 - OpenCode extensions and their tests live in `pkgs/opencode-extensions`; Home
   Manager installs the compiled plugins. Its editable JSON settings remain in
-  chezmoi. The idle watchdog is compiled from `pkgs/opencode-idle-watchdog`.
+  chezmoi. The idle watchdog is compiled from `pkgs/opencode-idle-watchdog`,
+  discovers only `opencode serve` processes, and requires their v2 API.
 - OpenCode's skill files are the canonical prompts, owned by chezmoi. Edit them
   in `~/.config/opencode/skills` and use `chezmoi re-add` to save edits. Home Manager
   links `~/.agents/skills` to that directory for Codex and Hermes. The shared link

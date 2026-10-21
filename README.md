@@ -503,10 +503,13 @@ The bootstrap seeds OpenCode 2.0.28 and preserves existing v2 installs so T3 can
 update them. Its service runs `~/.local/bin/opencode` on Arch and NixOS.
 OpenChamber 2.3.1 stays managed by Arch packages or this flake on NixOS; remove
 the old manual `IgnorePkg = openchamber` pin when upgrading it.
-The native service generates its private password in
-`~/.config/opencode/service.json` and uses the fixed Basic username `opencode`.
-OpenChamber runs its own managed OpenCode and the idle watchdog reads that file.
-The old SOPS API password entry was removed.
+The native service records its runtime URL, PID and generated password in
+`~/.local/state/opencode/service.json` and uses the fixed Basic username
+`opencode`; `~/.config/opencode/service.json` remains a fallback.
+OpenChamber runs its own managed `opencode serve`. The idle watchdog reads each
+server's credential from its environment or the native service state and
+monitors only `opencode serve` processes that expose the v2 API. The old SOPS
+API password entry was removed.
 
 The shared `opencode.service` on port 14096 is retired: OpenChamber no longer
 attaches to it (`UnsetEnvironment` drops the old `OPENCODE_HOST` pins) and the
@@ -562,7 +565,8 @@ retired. The shared orchestration skill still describes the delegation workflow.
 Commands inherit the selected model. Native recovery replaces custom retry/subagent
 watchdog extensions; native terminal theme detection selects Rose Pine's light
 or dark palette. All native model variants remain available. The separate Rust
-idle watchdog uses the v2 server API.
+idle watchdog uses the v2 server API, ignores TUI and `--standalone` clients, and
+scopes pending forms and permission requests by `location[directory]`.
 
 `pkgs/opencode-extensions` owns the local server plugins and their tests.
 Its Nix build bundles dependencies with a locked toolchain. Home Manager installs the compiled files; chezmoi owns the JSON
