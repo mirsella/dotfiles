@@ -58,3 +58,7 @@
 
 # Renamed to the `pass` skill.
 .config/opencode/skills/password-manager
+
+# The T3 prompt-cache warmer was removed; its config and OAuth state are dead.
+.config/t3-cache-warmer
+.local/state/t3-cache-warmer
