@@ -5,6 +5,9 @@
 
 # OpenCode generates device-local service credentials and connection state.
 .config/opencode/service*.json
+# The v2 service keeps its runtime URL, PID and password in the state directory.
+.local/state/opencode/
+.local/state/opencode/**
 
 # vim: set ft=gitignore:
 cron/
