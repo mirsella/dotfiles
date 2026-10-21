@@ -568,7 +568,9 @@ or dark palette. All native model variants remain available. The separate Rust
 idle watchdog uses the v2 server API, ignores TUI and `--standalone` clients, and
 scopes pending forms and permission requests by `location[directory]`. Its
 terminal dashboard keeps the status header fixed and scrolls a long session list
-with the arrow keys or `j`/`k`, PgUp/PgDn, and Home/End; `q` exits.
+with the arrow keys or `j`/`k`, PgUp/PgDn, and Home/End; `q` exits. It lists
+running and waiting sessions plus sessions that were active earlier in the
+current watch, so old idle history does not fill the table.
 
 `pkgs/opencode-extensions` owns the local server plugins and their tests.
 Its Nix build bundles dependencies with a locked toolchain. Home Manager installs the compiled files; chezmoi owns the JSON
