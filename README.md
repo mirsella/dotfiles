@@ -572,16 +572,28 @@ with the arrow keys or `j`/`k`, PgUp/PgDn, and Home/End; `q` exits.
 
 `pkgs/opencode-extensions` owns the local server plugins and their tests.
 Its Nix build bundles dependencies with a locked toolchain. Home Manager installs the compiled files; chezmoi owns the JSON
-settings. Build and test the extensions and the compiled idle watchdog with:
+settings. Build and test the extensions and the compiled idle watchdogs with:
 
 ```sh
-nix build .#opencode-extensions .#opencode-idle-watchdog --no-link
+nix build .#opencode-extensions .#opencode-idle-watchdog .#t3-idle-watchdog --no-link
 ```
 
 On Arch, activate Home Manager before applying updated TUI settings. On NixOS,
 rebuild the system instead. Restart OpenCode to load the compiled plugins. The
 watchdog keeps the `opencode-idle-watchdog` command and no longer compiles itself
 on invocation.
+
+The separate `t3-idle-watchdog` waits on T3 Code's local orchestration shell
+API. It discovers the running `t3 serve` process and active CLI, issues a
+short-lived read-only bearer token with `t3 auth session issue`, and excludes a
+thread with `--ignore-thread` or a `T3CODE_THREAD_ID`/`T3_THREAD_ID` supplied by
+the launcher. T3 does not currently set a thread ID for shell commands, so pass
+`--ignore-thread <thread-id>` when launching it from inside a T3 thread. Pending
+questions, permissions and thread waits are shown as waiting without blocking
+idle; queued, running and background work block. Pull-request watch monitors are
+treated as external waits, so they do not keep the watchdog from suspending. Use
+`--once` to print the current classification without waiting. Home Manager
+installs both watchdog commands under `~/.local/bin`.
 
 ## Agent prompts
 

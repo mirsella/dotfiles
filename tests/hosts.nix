@@ -246,8 +246,11 @@ assert lib.assertMsg
     &&
       home.home.file.".local/bin/opencode-idle-watchdog".source
       == "${flake.packages.x86_64-linux.opencode-idle-watchdog}/bin/opencode-idle-watchdog"
+    &&
+      home.home.file.".local/bin/t3-idle-watchdog".source
+      == "${flake.packages.x86_64-linux.t3-idle-watchdog}/bin/t3-idle-watchdog"
   ) workstationHomes)
-  "Home Manager must install the compiled OpenCode extensions and watchdog on both operating systems";
+  "Home Manager must install the compiled OpenCode extensions and watchdogs on both operating systems";
 assert lib.assertMsg
   (lib.all (
     home:

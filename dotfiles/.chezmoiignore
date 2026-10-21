@@ -40,6 +40,7 @@ kde shortcuts.kksrc
 .config/opencode/chunks/
 .config/opencode/chunks/**
 .local/bin/opencode-idle-watchdog
+.local/bin/t3-idle-watchdog
 .local/bin/context7-account-broker
 .local/bin/composio-mcp-headers
 .local/bin/kache

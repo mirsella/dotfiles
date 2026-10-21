@@ -22,6 +22,7 @@ in
   home.packages = [
     pkgs.kache
     pkgs.opencode-idle-watchdog
+    pkgs.t3-idle-watchdog
     pkgs.rea
     pkgs.ghidra
     pkgs.context7-account-broker
@@ -47,6 +48,10 @@ in
   };
   home.file.".local/bin/opencode-idle-watchdog" = {
     source = lib.getExe pkgs.opencode-idle-watchdog;
+    force = true;
+  };
+  home.file.".local/bin/t3-idle-watchdog" = {
+    source = lib.getExe pkgs.t3-idle-watchdog;
     force = true;
   };
   home.file.".local/bin/context7-account-broker" = {
