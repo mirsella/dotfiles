@@ -4,34 +4,28 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::env;
 use std::ffi::OsString;
 use std::fmt::Write as _;
-use std::fs::{self, OpenOptions};
-use std::io::{self, IsTerminal, Write};
+use std::fs;
+use std::io;
 use std::os::unix::fs::MetadataExt;
-use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command};
 use std::sync::Arc;
-use std::sync::mpsc::{self, Receiver};
-use std::thread::{self, JoinHandle};
+use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result, bail};
 use base64::Engine;
 use clap::Parser;
-use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table, presets::UTF8_FULL};
-use jiff::Zoned;
-use serde_json::Value;
-use signal_hook::{
-    consts::{SIGINT, SIGTERM},
-    iterator::{Handle as SignalHandle, Signals},
+use comfy_table::Color;
+use idle_watchdog::dashboard::{Dashboard, DashboardRow, DashboardView};
+use idle_watchdog::runtime::{
+    Cancellation, DEFAULT_IDLE_CHECKS, DEFAULT_INTERVAL, REQUEST_ATTEMPTS, REQUEST_TIMEOUT_SECS,
+    State, clean_text, command_display, exit_with, http_client, resolve_command, run_command,
+    signal_exit, summarize,
 };
+use serde_json::Value;
 
 const NAME: &str = "opencode-idle-watchdog";
-const DEFAULT_INTERVAL: u64 = 30;
-const DEFAULT_IDLE_CHECKS: u32 = 3;
 const DEFAULT_STUCK_AFTER: u64 = 900;
-const REQUEST_TIMEOUT_SECS: u64 = 10;
-const REQUEST_ATTEMPTS: u32 = 3;
 const HEADERS: [&str; 6] = ["STATUS", "AGE", "UPDATED", "WORKSPACE", "SESSION", "TITLE"];
 
 #[derive(Parser)]
@@ -72,94 +66,6 @@ struct Options {
 
     #[arg(value_name = "COMMAND", num_args = 0..)]
     command: Vec<OsString>,
-}
-
-struct State {
-    root: PathBuf,
-    log_file: PathBuf,
-}
-
-impl State {
-    fn discover() -> Result<Self> {
-        let home = env::var_os("HOME").context("HOME is not set")?;
-        let cache = env::var_os("XDG_CACHE_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from(home).join(".cache"));
-        let root = cache.join(NAME);
-        Ok(Self {
-            log_file: root.join("watchdog.log"),
-            root,
-        })
-    }
-
-    fn log(&self, message: impl AsRef<str>) {
-        let line = self.timestamped(message);
-        println!("{line}");
-        let _ = io::stdout().flush();
-        self.write_log(&line);
-    }
-
-    fn record(&self, message: impl AsRef<str>) {
-        self.write_log(&self.timestamped(message));
-    }
-
-    fn timestamped(&self, message: impl AsRef<str>) -> String {
-        format!(
-            "[{}] {}",
-            Zoned::now().strftime("%Y-%m-%d %H:%M:%S"),
-            message.as_ref()
-        )
-    }
-
-    fn write_log(&self, line: &str) {
-        if fs::create_dir_all(&self.root).is_ok()
-            && let Ok(mut file) = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&self.log_file)
-        {
-            let _ = writeln!(file, "{line}");
-        }
-    }
-}
-
-struct Cancellation {
-    receiver: Receiver<i32>,
-    handle: SignalHandle,
-    worker: Option<JoinHandle<()>>,
-}
-
-impl Cancellation {
-    fn new() -> Result<Self> {
-        let mut signals = Signals::new([SIGINT, SIGTERM]).context("install signal handlers")?;
-        let handle = signals.handle();
-        let (sender, receiver) = mpsc::channel();
-        let worker = thread::spawn(move || {
-            for signal in signals.forever() {
-                if sender.send(signal).is_err() {
-                    break;
-                }
-            }
-        });
-        Ok(Self {
-            receiver,
-            handle,
-            worker: Some(worker),
-        })
-    }
-
-    fn wait(&self, duration: Duration) -> Option<i32> {
-        self.receiver.recv_timeout(duration).ok()
-    }
-}
-
-impl Drop for Cancellation {
-    fn drop(&mut self) {
-        self.handle.close();
-        if let Some(worker) = self.worker.take() {
-            let _ = worker.join();
-        }
-    }
 }
 
 struct OpenCodeProcess {
@@ -1392,14 +1298,6 @@ fn collect_scan(client: &ureq::Agent) -> Result<ApiScan> {
     Ok(api_snapshots(client, &opencode_processes()?))
 }
 
-fn summarize(items: &[String], limit: usize) -> String {
-    let mut visible: Vec<_> = items.iter().take(limit).cloned().collect();
-    if items.len() > limit {
-        visible.push(format!("... +{} more", items.len() - limit));
-    }
-    visible.join(" | ")
-}
-
 fn elapsed(millis: u64) -> String {
     let seconds = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -1415,451 +1313,6 @@ fn elapsed(millis: u64) -> String {
     }
 }
 
-fn clean_text(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| !character.is_control())
-        .collect()
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Key {
-    Quit,
-    Up,
-    Down,
-    PageUp,
-    PageDown,
-    Home,
-    End,
-    Ignore,
-}
-
-struct Dashboard {
-    termios: Option<libc::termios>,
-    action: Option<String>,
-    terminal_size: std::cell::Cell<(u16, u16)>,
-    scroll: std::cell::Cell<usize>,
-    page: std::cell::Cell<usize>,
-    max_scroll: std::cell::Cell<usize>,
-}
-
-impl Dashboard {
-    fn terminal_size() -> (u16, u16) {
-        let mut size = unsafe { std::mem::zeroed::<libc::winsize>() };
-        if unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) } == 0 {
-            (
-                if size.ws_col > 0 { size.ws_col } else { 80 },
-                if size.ws_row > 0 { size.ws_row } else { 24 },
-            )
-        } else {
-            (80, 24)
-        }
-    }
-
-    fn new(command: &[OsString]) -> Self {
-        let interactive = io::stdin().is_terminal() && io::stdout().is_terminal();
-        let mut original = unsafe { std::mem::zeroed::<libc::termios>() };
-        let termios =
-            if interactive && unsafe { libc::tcgetattr(libc::STDIN_FILENO, &mut original) } == 0 {
-                let mut cbreak = original;
-                cbreak.c_lflag &= !(libc::ICANON | libc::ECHO);
-                cbreak.c_cc[libc::VMIN] = 0;
-                cbreak.c_cc[libc::VTIME] = 0;
-                (unsafe { libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, &cbreak) } == 0)
-                    .then_some(original)
-            } else {
-                None
-            };
-        if termios.is_some() {
-            print!("\x1b[?1049h\x1b[?25l\x1b[?7l");
-            let _ = io::stdout().flush();
-        }
-        let action = (!command.is_empty()).then(|| command_display(command));
-        Self {
-            termios,
-            action,
-            terminal_size: std::cell::Cell::new(Self::terminal_size()),
-            scroll: std::cell::Cell::new(0),
-            page: std::cell::Cell::new(1),
-            max_scroll: std::cell::Cell::new(0),
-        }
-    }
-
-    fn render(&self, frame: &str) {
-        if self.termios.is_none() {
-            return;
-        }
-        let mut redraw = String::new();
-        for (row, line) in frame
-            .lines()
-            .take(usize::from(self.terminal_size.get().1))
-            .enumerate()
-        {
-            write!(redraw, "\x1b[{};1H\x1b[2K{line}", row + 1)
-                .expect("writing to a string cannot fail");
-        }
-        redraw.push_str("\x1b[J\x1b[H");
-        print!("{redraw}");
-        let _ = io::stdout().flush();
-    }
-
-    fn loading(&self) {
-        self.render(
-            "\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n\n\x1b[2mScanning sessions...\x1b[0m",
-        );
-    }
-
-    fn read_byte() -> Option<u8> {
-        let mut byte = 0_u8;
-        (unsafe { libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1) } == 1)
-            .then_some(byte)
-    }
-
-    fn stdin_ready(timeout_ms: i32) -> bool {
-        let mut descriptor = libc::pollfd {
-            fd: libc::STDIN_FILENO,
-            events: libc::POLLIN,
-            revents: 0,
-        };
-        unsafe { libc::poll(&mut descriptor, 1, timeout_ms) > 0 }
-    }
-
-    fn read_key() -> Option<Key> {
-        match Self::read_byte()? {
-            b'q' => Some(Key::Quit),
-            b'k' => Some(Key::Up),
-            b'j' => Some(Key::Down),
-            0x1b => {
-                if !Self::stdin_ready(10) {
-                    return Some(Key::Ignore);
-                }
-                let Some(second) = Self::read_byte() else {
-                    return Some(Key::Ignore);
-                };
-                if !matches!(second, b'[' | b'O') {
-                    return Some(Key::Ignore);
-                }
-                if !Self::stdin_ready(10) {
-                    return Some(Key::Ignore);
-                }
-                let Some(third) = Self::read_byte() else {
-                    return Some(Key::Ignore);
-                };
-                match third {
-                    b'A' => Some(Key::Up),
-                    b'B' => Some(Key::Down),
-                    b'H' => Some(Key::Home),
-                    b'F' => Some(Key::End),
-                    b'1'..=b'9' => {
-                        if !Self::stdin_ready(10) {
-                            return Some(Key::Ignore);
-                        }
-                        let Some(fourth) = Self::read_byte() else {
-                            return Some(Key::Ignore);
-                        };
-                        match (third, fourth) {
-                            (b'1', b'~') | (b'7', b'~') => Some(Key::Home),
-                            (b'4', b'~') | (b'8', b'~') => Some(Key::End),
-                            (b'5', b'~') => Some(Key::PageUp),
-                            (b'6', b'~') => Some(Key::PageDown),
-                            _ => Some(Key::Ignore),
-                        }
-                    }
-                    _ => Some(Key::Ignore),
-                }
-            }
-            _ => Some(Key::Ignore),
-        }
-    }
-
-    fn scroll_by(&self, delta: isize) -> bool {
-        let current = self.scroll.get();
-        let next = if delta < 0 {
-            current.saturating_sub(delta.unsigned_abs())
-        } else {
-            current.saturating_add(delta as usize)
-        }
-        .min(self.max_scroll.get());
-        if next == current {
-            false
-        } else {
-            self.scroll.set(next);
-            true
-        }
-    }
-
-    fn wait(
-        &self,
-        cancellation: &Cancellation,
-        duration: Duration,
-        mut on_redraw: impl FnMut(),
-    ) -> Option<i32> {
-        if self.termios.is_none() {
-            return cancellation.wait(duration);
-        }
-        let started = Instant::now();
-        loop {
-            if let Some(key) = Self::read_key() {
-                match key {
-                    Key::Quit => return Some(0),
-                    Key::Up => {
-                        if self.scroll_by(-1) {
-                            on_redraw();
-                        }
-                    }
-                    Key::Down => {
-                        if self.scroll_by(1) {
-                            on_redraw();
-                        }
-                    }
-                    Key::PageUp => {
-                        let page = self.page.get().max(1) as isize;
-                        if self.scroll_by(-page) {
-                            on_redraw();
-                        }
-                    }
-                    Key::PageDown => {
-                        let page = self.page.get().max(1) as isize;
-                        if self.scroll_by(page) {
-                            on_redraw();
-                        }
-                    }
-                    Key::Home => {
-                        if self.scroll.get() != 0 {
-                            self.scroll.set(0);
-                            on_redraw();
-                        }
-                    }
-                    Key::End => {
-                        let end = self.max_scroll.get();
-                        if self.scroll.get() != end {
-                            self.scroll.set(end);
-                            on_redraw();
-                        }
-                    }
-                    Key::Ignore => {}
-                }
-            }
-            let terminal_size = Self::terminal_size();
-            if terminal_size != self.terminal_size.replace(terminal_size) {
-                on_redraw();
-            }
-            let remaining = duration.saturating_sub(started.elapsed());
-            if let Some(signal) = cancellation.wait(remaining.min(Duration::from_millis(25))) {
-                return Some(signal);
-            }
-            if started.elapsed() >= duration {
-                return None;
-            }
-        }
-    }
-
-    fn run_work<T: Send + 'static>(
-        &self,
-        cancellation: &Cancellation,
-        mut on_redraw: impl FnMut(),
-        work: impl FnOnce() -> T + Send + 'static,
-    ) -> std::result::Result<T, i32> {
-        let worker = thread::spawn(work);
-        while !worker.is_finished() {
-            if let Some(signal) = self.wait(cancellation, Duration::from_millis(10), &mut on_redraw)
-            {
-                return Err(signal);
-            }
-        }
-        Ok(worker.join().expect("scan worker panicked"))
-    }
-
-    fn status_line(
-        evaluation: &ScanEvaluation,
-        check: u32,
-        idle: u32,
-        required_idle: u32,
-        next_scan: u64,
-    ) -> String {
-        let state = if evaluation.blockers.is_empty() {
-            "IDLE"
-        } else {
-            "BLOCKED"
-        };
-        format!(
-            "\x1b[2mcheck #{check}  |\x1b[0m  {state}  |  {} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s",
-            evaluation.active,
-        )
-    }
-
-    fn tick(
-        &self,
-        evaluation: &ScanEvaluation,
-        check: u32,
-        idle: u32,
-        required_idle: u32,
-        next_scan: u64,
-    ) {
-        if self.termios.is_some() {
-            print!(
-                "\x1b[2;1H\x1b[2K{}\x1b[H",
-                Self::status_line(evaluation, check, idle, required_idle, next_scan)
-            );
-            let _ = io::stdout().flush();
-        }
-    }
-
-    fn draw(
-        &self,
-        evaluation: &ScanEvaluation,
-        check: u32,
-        idle: u32,
-        required_idle: u32,
-        next_scan: u64,
-    ) {
-        if self.termios.is_none() {
-            return;
-        }
-        let mut rows = Vec::new();
-        for workspace in &evaluation.workspaces {
-            for verdict in &workspace.sessions {
-                let age = verdict
-                    .created
-                    .map(elapsed)
-                    .unwrap_or_else(|| "-".to_owned());
-                let updated = verdict
-                    .updated
-                    .map(elapsed)
-                    .unwrap_or_else(|| "-".to_owned());
-                rows.push((
-                    verdict.color,
-                    [
-                        verdict.label.to_owned(),
-                        age,
-                        updated,
-                        workspace.directory.clone(),
-                        verdict.session.clone(),
-                        verdict.title.clone(),
-                    ],
-                ));
-            }
-        }
-        rows.sort_unstable_by(|left, right| left.1.cmp(&right.1));
-        let width = self.terminal_size.get().0;
-        let mut table = Table::new();
-        table
-            .load_style(UTF8_FULL.with_rounded_corners().with_solid_inner_borders())
-            .set_content_arrangement(ContentArrangement::DynamicFullWidth)
-            .set_width(width)
-            .set_header(HEADERS);
-        for column in [1, 2] {
-            table
-                .column_mut(column)
-                .expect("age and updated columns exist")
-                .set_cell_alignment(CellAlignment::Right);
-        }
-        if rows.is_empty() {
-            let (label, color, message) = if evaluation.blockers.is_empty() {
-                ("IDLE", Color::Green, "No active sessions".to_owned())
-            } else {
-                ("BLOCKED", Color::Red, summarize(&evaluation.blockers, 2))
-            };
-            table.add_row([
-                Cell::new(label).fg(color),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(message),
-            ]);
-        }
-        for (color, row) in rows {
-            let [status, age, updated, workspace, session, title] = row;
-            table.add_row([
-                Cell::new(status).fg(color),
-                Cell::new(age),
-                Cell::new(updated),
-                Cell::new(workspace),
-                Cell::new(session),
-                Cell::new(title),
-            ]);
-        }
-        let mut body = table.to_string();
-        if !evaluation.blockers.is_empty() {
-            body.push_str("\n\n\x1b[31mAPI errors\x1b[0m");
-            for failure in &evaluation.blockers {
-                body.push_str("\n  ");
-                body.push_str(&clean_text(failure));
-            }
-        }
-        let body_lines: Vec<&str> = body.lines().collect();
-        let mut top = format!(
-            "\x1b[1;36mOPENCODE IDLE WATCHDOG\x1b[0m\n{}\n",
-            Self::status_line(evaluation, check, idle, required_idle, next_scan),
-        );
-        if let Some(action) = &self.action {
-            writeln!(top, "\x1b[2mon idle       |\x1b[0m  {action}")
-                .expect("writing to a string cannot fail");
-        }
-        top.push('\n');
-
-        // Keep the title, status and footer fixed; scroll the table and API
-        // errors through the remaining terminal rows.
-        let height = usize::from(self.terminal_size.get().1);
-        let top_height = top.lines().count();
-        let bottom_height = 3;
-        let available = height.saturating_sub(top_height + bottom_height);
-        let max_scroll = body_lines.len().saturating_sub(available);
-        let scroll = self.scroll.get().min(max_scroll);
-        let visible_end = (scroll + available).min(body_lines.len());
-        self.scroll.set(scroll);
-        self.page.set(available.max(1));
-        self.max_scroll.set(max_scroll);
-
-        let mut frame = top;
-        frame.push_str(&body_lines[scroll..visible_end].join("\n"));
-        let mut footer = String::from("\n\n\x1b[2mq / Ctrl-C to exit");
-        if max_scroll > 0 {
-            write!(
-                footer,
-                "  |  lines {}-{}/{}  |  ↑↓ PgUp/PgDn Home/End",
-                scroll + 1,
-                visible_end,
-                body_lines.len()
-            )
-            .expect("writing to a string cannot fail");
-        } else {
-            footer.push_str("  |  ↑↓ PgUp/PgDn Home/End");
-        }
-        footer.push_str("\x1b[0m\n");
-        frame.push_str(&footer);
-        self.render(&frame);
-    }
-}
-
-impl Drop for Dashboard {
-    fn drop(&mut self) {
-        if let Some(original) = &self.termios {
-            unsafe {
-                libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, original);
-            }
-        }
-        if self.termios.is_some() {
-            print!("\x1b[?7h\x1b[?25h\x1b[?1049l");
-            let _ = io::stdout().flush();
-        }
-    }
-}
-
-fn signal_exit(state: &State, signal: i32) -> i32 {
-    if signal == 0 {
-        state.log("watchdog exited");
-        return 0;
-    }
-    state.log(if signal == SIGINT {
-        "watchdog interrupted"
-    } else {
-        "watchdog terminated"
-    });
-    128 + signal
-}
-
 fn session_exclusions(ignored_sessions: &[String], self_session: Option<&str>) -> Vec<String> {
     let mut exclusions = ignored_sessions.to_vec();
     if let Some(session) = self_session.filter(|session| !session.is_empty())
@@ -1870,20 +1323,114 @@ fn session_exclusions(ignored_sessions: &[String], self_session: Option<&str>) -
     exclusions
 }
 
+fn dashboard_status(
+    evaluation: &ScanEvaluation,
+    check: u32,
+    idle: u32,
+    required_idle: u32,
+    next_scan: u64,
+) -> String {
+    let state = if evaluation.blockers.is_empty() {
+        "IDLE"
+    } else {
+        "BLOCKED"
+    };
+    format!(
+        "\x1b[2mcheck #{check}  |\x1b[0m  {state}  |  {} active  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s",
+        evaluation.active,
+    )
+}
+
+fn draw_dashboard(
+    dashboard: &Dashboard,
+    evaluation: &ScanEvaluation,
+    check: u32,
+    idle: u32,
+    required_idle: u32,
+    next_scan: u64,
+) {
+    let mut rows = Vec::new();
+    for workspace in &evaluation.workspaces {
+        for verdict in &workspace.sessions {
+            rows.push(DashboardRow {
+                status: verdict.label.to_owned(),
+                color: verdict.color,
+                age: verdict
+                    .created
+                    .map(elapsed)
+                    .unwrap_or_else(|| "-".to_owned()),
+                updated: verdict
+                    .updated
+                    .map(elapsed)
+                    .unwrap_or_else(|| "-".to_owned()),
+                scope: workspace.directory.clone(),
+                id: verdict.session.clone(),
+                title: verdict.title.clone(),
+            });
+        }
+    }
+    rows.sort_unstable_by(|left, right| {
+        (
+            &left.status,
+            &left.age,
+            &left.updated,
+            &left.scope,
+            &left.id,
+            &left.title,
+        )
+            .cmp(&(
+                &right.status,
+                &right.age,
+                &right.updated,
+                &right.scope,
+                &right.id,
+                &right.title,
+            ))
+    });
+    let empty = if evaluation.blockers.is_empty() {
+        (
+            "IDLE".to_owned(),
+            Color::Green,
+            "No active sessions".to_owned(),
+        )
+    } else {
+        (
+            "BLOCKED".to_owned(),
+            Color::Red,
+            summarize(&evaluation.blockers, 2),
+        )
+    };
+    let extra = (!evaluation.blockers.is_empty()).then(|| {
+        let mut errors = String::from("\x1b[31mAPI errors\x1b[0m");
+        for failure in &evaluation.blockers {
+            errors.push_str("\n  ");
+            errors.push_str(&clean_text(failure));
+        }
+        errors
+    });
+    dashboard.draw(DashboardView {
+        status: dashboard_status(evaluation, check, idle, required_idle, next_scan),
+        rows,
+        empty,
+        extra,
+    });
+}
+
 fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Result<i32> {
     // The v2 shell tool exposes the launching session to the command. Prefer
     // that over inferring the session from its latest shell tool call.
     let self_session = env::var("OPENCODE_SESSION_ID").ok();
     let ignored_sessions = session_exclusions(&options.ignored_sessions, self_session.as_deref());
-    let client = ureq::Agent::new_with_config(
-        ureq::Agent::config_builder()
-            .timeout_global(Some(Duration::from_secs(REQUEST_TIMEOUT_SECS)))
-            .build(),
-    );
+    let client = http_client();
     let cancellation = Cancellation::new()?;
-    let dashboard = Dashboard::new(command);
+    let dashboard = Dashboard::new(
+        command,
+        "OPENCODE IDLE WATCHDOG",
+        "Scanning sessions...",
+        HEADERS,
+    );
     let report = |message| {
-        if dashboard.termios.is_some() {
+        if dashboard.termios_active() {
             state.record(message);
         } else {
             state.log(message);
@@ -1902,7 +1449,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             Ok(result) => result?,
             Err(signal) => {
                 drop(dashboard);
-                return Ok(signal_exit(state, signal));
+                signal_exit(state, signal);
             }
         };
         evaluate(
@@ -1933,7 +1480,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
         } else {
             command_display(command)
         },
-        state.root.display()
+        state.root().display()
     );
     report(started);
 
@@ -1963,7 +1510,8 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
             ));
         }
         let draw = |next_scan| {
-            dashboard.draw(
+            draw_dashboard(
+                &dashboard,
                 &evaluation,
                 check,
                 consecutive_idle,
@@ -2009,13 +1557,13 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
                 break 'checks Some(signal);
             }
             remaining -= 1;
-            dashboard.tick(
+            dashboard.tick(&dashboard_status(
                 &evaluation,
                 check,
                 consecutive_idle,
                 options.required_idle_checks,
                 remaining,
-            );
+            ));
         }
         match dashboard.run_work(&cancellation, || draw(0), scan_work()) {
             Ok(result) => {
@@ -2034,7 +1582,7 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
 
     drop(dashboard);
     if let Some(signal) = signal {
-        return Ok(signal_exit(state, signal));
+        signal_exit(state, signal);
     }
     state.log("idle confirmed");
     if command.is_empty() {
@@ -2044,99 +1592,25 @@ fn wait_until_idle(state: &State, options: &Options, command: &[OsString]) -> Re
     }
 }
 
-fn terminate_child(child: &mut Child) {
-    let _ = child.kill();
-    let _ = child.wait();
-}
-
-fn command_display(command: &[OsString]) -> String {
-    command
-        .iter()
-        .map(|arg| format!("{arg:?}"))
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-fn resolve_command(command: &[OsString]) -> Vec<OsString> {
-    if let [shortcut] = command {
-        let action = match shortcut.to_str() {
-            Some("sleep" | "suspend") => Some("suspend"),
-            Some("poweroff") => Some("poweroff"),
-            Some("hibernate") => Some("hibernate"),
-            _ => None,
-        };
-        if let Some(action) = action {
-            return ["/usr/bin/systemctl", action].map(OsString::from).into();
-        }
-    }
-    command.to_vec()
-}
-
-fn run_command(state: &State, cancellation: &Cancellation, command: &[OsString]) -> i32 {
-    state.log(format!("running command: {}", command_display(command)));
-    let Some((program, arguments)) = command.split_first() else {
-        state.log("could not run command: empty command");
-        return 127;
-    };
-    let mut child = match Command::new(program).args(arguments).spawn() {
-        Ok(child) => child,
-        Err(error) => {
-            state.log(format!("could not run command: {error}"));
-            return 127;
-        }
-    };
-
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                let code = status
-                    .code()
-                    .or_else(|| status.signal().map(|signal| 128 + signal))
-                    .unwrap_or(1);
-                state.log(format!("command exited with status {code}"));
-                return code;
-            }
-            Ok(None) => {}
-            Err(error) => {
-                terminate_child(&mut child);
-                state.log(format!("could not wait for command: {error}"));
-                return 1;
-            }
-        }
-        if let Some(signal) = cancellation.wait(Duration::from_millis(50)) {
-            terminate_child(&mut child);
-            return signal_exit(state, signal);
-        }
-    }
-}
-
 fn execute() -> Result<i32> {
     let options = Options::parse();
-    let state = State::discover()?;
+    let state = State::discover(NAME)?;
     let command = resolve_command(&options.command);
     wait_until_idle(&state, &options, &command)
 }
 
 fn main() {
-    let code = match execute() {
-        Ok(code) => code,
-        Err(error) => {
-            if let Ok(state) = State::discover() {
-                state.log(format!("watchdog crashed: {error:#}"));
-            }
-            eprintln!("{NAME}: {error:#}");
-            1
-        }
-    };
-    std::process::exit(code);
+    exit_with(NAME, execute());
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+    use std::io::Write;
     use std::io::{BufRead, BufReader};
     use std::net::TcpListener;
+    use std::thread::JoinHandle;
 
     fn serve_json(responses: Vec<Value>) -> (String, JoinHandle<Vec<String>>) {
         serve_statuses(responses.into_iter().map(|body| (200, body)).collect())
@@ -3014,26 +2488,6 @@ mod tests {
     }
 
     #[test]
-    fn dashboard_scrolls_within_bounds() {
-        let dashboard = Dashboard {
-            termios: None,
-            action: None,
-            terminal_size: std::cell::Cell::new((80, 24)),
-            scroll: std::cell::Cell::new(0),
-            page: std::cell::Cell::new(4),
-            max_scroll: std::cell::Cell::new(10),
-        };
-        assert!(dashboard.scroll_by(3));
-        assert_eq!(dashboard.scroll.get(), 3);
-        assert!(dashboard.scroll_by(-10));
-        assert_eq!(dashboard.scroll.get(), 0);
-        assert!(dashboard.scroll_by(100));
-        assert_eq!(dashboard.scroll.get(), 10);
-        assert!(!dashboard.scroll_by(1));
-        assert_eq!(dashboard.page.get(), 4);
-    }
-
-    #[test]
     fn excludes_sessions_running_the_watchdog() {
         let mut message: Value = serde_json::from_str(
             r#"{
@@ -3281,47 +2735,8 @@ mod tests {
     }
 
     #[test]
-    fn resolves_shortcuts_and_preserves_direct_commands() {
-        for (shortcut, action) in [
-            ("sleep", "suspend"),
-            ("suspend", "suspend"),
-            ("poweroff", "poweroff"),
-            ("hibernate", "hibernate"),
-        ] {
-            assert_eq!(
-                resolve_command(&[shortcut.into()]),
-                ["/usr/bin/systemctl", action]
-            );
-        }
-        let direct = ["sleep", "30"].map(OsString::from);
-        assert_eq!(resolve_command(&direct), direct);
-        let direct = ["poweroff", "--force"].map(OsString::from);
-        assert_eq!(resolve_command(&direct), direct);
-    }
-
-    #[test]
-    fn command_display_shows_resolved_action() {
-        let command = resolve_command(&["sleep".into()]);
-        assert_eq!(
-            command_display(&command),
-            "\"/usr/bin/systemctl\" \"suspend\""
-        );
-    }
-
-    #[test]
     fn rejects_zero_controls() {
         assert!(Options::try_parse_from([NAME, "--interval", "0"]).is_err());
         assert!(Options::try_parse_from([NAME, "--required-idle-checks", "0"]).is_err());
-    }
-
-    #[test]
-    fn summarizes_overflow() {
-        let details = vec!["one".into(), "two".into(), "three".into()];
-        assert_eq!(summarize(&details, 2), "one | two | ... +1 more");
-    }
-
-    #[test]
-    fn cleans_terminal_text() {
-        assert_eq!(clean_text("hello\nworld"), "helloworld");
     }
 }

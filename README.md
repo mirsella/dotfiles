@@ -577,19 +577,24 @@ Its Nix build bundles dependencies with a locked toolchain. Home Manager install
 settings. Build and test the extensions and the compiled idle watchdogs with:
 
 ```sh
-nix build .#opencode-extensions .#opencode-idle-watchdog .#t3-idle-watchdog --no-link
+nix build .#opencode-extensions .#idle-watchdog --no-link
 ```
 
 On Arch, activate Home Manager before applying updated TUI settings. On NixOS,
 rebuild the system instead. Restart OpenCode to load the compiled plugins. The
-watchdog keeps the `opencode-idle-watchdog` command and no longer compiles itself
-on invocation.
+shared `pkgs/idle-watchdog` Cargo project builds both watchdog commands and no
+longer compiles itself on invocation.
 
-The separate `t3-idle-watchdog` waits on T3 Code's local orchestration shell
+The `opencode-idle-watchdog` command watches OpenCode's v2 server API. The
+`t3-idle-watchdog` command in the same package waits on T3 Code's local orchestration shell
 API. It discovers the running `t3 serve` process and active CLI, issues a
 read-only bearer token with a configurable TTL (12h by default), and excludes a
 thread with `--ignore-thread` or a `T3CODE_THREAD_ID`/`T3_THREAD_ID` supplied by
-the launcher. T3 does not currently set a thread ID for shell commands, so pass
+the launcher. Issued tokens are cached with mode 0600 at
+`~/.cache/t3-idle-watchdog/token.json` and reused until five minutes before
+expiry, so restarts avoid the T3 CLI; delete that file to force a fresh token.
+Tokens are not revoked on normal exit and expire with their TTL. T3 does not
+currently set a thread ID for shell commands, so pass
 `--ignore-thread <thread-id>` when launching it from inside a T3 thread. Pending
 questions, permissions and thread waits are shown as waiting without blocking
 idle; queued, running and background work block. Pull-request watch monitors are

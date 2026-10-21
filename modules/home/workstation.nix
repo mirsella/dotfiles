@@ -21,8 +21,7 @@ in
   programs.git.settings.commit.gpgsign = true;
   home.packages = [
     pkgs.kache
-    pkgs.opencode-idle-watchdog
-    pkgs.t3-idle-watchdog
+    pkgs.idle-watchdog
     pkgs.rea
     pkgs.ghidra
     pkgs.context7-account-broker
@@ -47,11 +46,11 @@ in
     force = true;
   };
   home.file.".local/bin/opencode-idle-watchdog" = {
-    source = lib.getExe pkgs.opencode-idle-watchdog;
+    source = "${pkgs.idle-watchdog}/bin/opencode-idle-watchdog";
     force = true;
   };
   home.file.".local/bin/t3-idle-watchdog" = {
-    source = lib.getExe pkgs.t3-idle-watchdog;
+    source = "${pkgs.idle-watchdog}/bin/t3-idle-watchdog";
     force = true;
   };
   home.file.".local/bin/context7-account-broker" = {

@@ -3,34 +3,29 @@
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::OsString;
-use std::fmt::Write as _;
-use std::fs::{self, OpenOptions};
-use std::io::{self, IsTerminal, Write};
-use std::os::unix::process::ExitStatusExt;
+use std::fs;
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
-use std::sync::mpsc::{self, Receiver};
-use std::thread::{self, JoinHandle};
+use std::thread;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 use clap::Parser;
-use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table, presets::UTF8_FULL};
-use jiff::{Timestamp, Zoned};
-use serde::Deserialize;
-use serde_json::Value;
-use signal_hook::{
-    consts::{SIGINT, SIGTERM},
-    iterator::{Handle as SignalHandle, Signals},
+use comfy_table::Color;
+use idle_watchdog::dashboard::{Dashboard, DashboardRow, DashboardView};
+use idle_watchdog::runtime::{
+    Cancellation, DEFAULT_IDLE_CHECKS, DEFAULT_INTERVAL, REQUEST_ATTEMPTS, State, clean_text,
+    command_display, exit_with, http_client, resolve_command, run_command, signal_exit, summarize,
 };
+use jiff::Timestamp;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use tempfile::NamedTempFile;
 
 const NAME: &str = "t3-idle-watchdog";
 const DEFAULT_URL: &str = "http://127.0.0.1:3773";
-const DEFAULT_INTERVAL: u64 = 30;
-const DEFAULT_IDLE_CHECKS: u32 = 3;
 const DEFAULT_TOKEN_TTL: &str = "12h";
-const REQUEST_TIMEOUT_SECS: u64 = 10;
-const REQUEST_ATTEMPTS: u32 = 3;
 const TOKEN_COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
 const TOKEN_REFRESH_MARGIN: Duration = Duration::from_secs(300);
 const REVOKE_TIMEOUT: Duration = Duration::from_secs(5);
@@ -100,501 +95,6 @@ struct Options {
     command: Vec<OsString>,
 }
 
-struct State {
-    root: PathBuf,
-    log_file: PathBuf,
-}
-
-impl State {
-    fn discover() -> Result<Self> {
-        let home = env::var_os("HOME").context("HOME is not set")?;
-        let cache = env::var_os("XDG_CACHE_HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from(home).join(".cache"));
-        let root = cache.join(NAME);
-        Ok(Self {
-            log_file: root.join("watchdog.log"),
-            root,
-        })
-    }
-
-    fn log(&self, message: impl AsRef<str>) {
-        let line = self.timestamped(message);
-        println!("{line}");
-        let _ = io::stdout().flush();
-        self.write_log(&line);
-    }
-
-    fn record(&self, message: impl AsRef<str>) {
-        self.write_log(&self.timestamped(message));
-    }
-
-    fn timestamped(&self, message: impl AsRef<str>) -> String {
-        format!(
-            "[{}] {}",
-            Zoned::now().strftime("%Y-%m-%d %H:%M:%S"),
-            message.as_ref()
-        )
-    }
-
-    fn write_log(&self, line: &str) {
-        if fs::create_dir_all(&self.root).is_ok()
-            && let Ok(mut file) = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&self.log_file)
-        {
-            let _ = writeln!(file, "{line}");
-        }
-    }
-}
-
-struct Cancellation {
-    receiver: Receiver<i32>,
-    handle: SignalHandle,
-    worker: Option<JoinHandle<()>>,
-}
-
-impl Cancellation {
-    fn new() -> Result<Self> {
-        let mut signals = Signals::new([SIGINT, SIGTERM]).context("install signal handlers")?;
-        let handle = signals.handle();
-        let (sender, receiver) = mpsc::channel();
-        let worker = thread::spawn(move || {
-            for signal in signals.forever() {
-                if sender.send(signal).is_err() {
-                    break;
-                }
-            }
-        });
-        Ok(Self {
-            receiver,
-            handle,
-            worker: Some(worker),
-        })
-    }
-
-    fn wait(&self, duration: Duration) -> Option<i32> {
-        self.receiver.recv_timeout(duration).ok()
-    }
-}
-
-impl Drop for Cancellation {
-    fn drop(&mut self) {
-        self.handle.close();
-        if let Some(worker) = self.worker.take() {
-            let _ = worker.join();
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Key {
-    Quit,
-    Up,
-    Down,
-    PageUp,
-    PageDown,
-    Home,
-    End,
-    Ignore,
-}
-
-struct Dashboard {
-    termios: Option<libc::termios>,
-    action: Option<String>,
-    terminal_size: std::cell::Cell<(u16, u16)>,
-    scroll: std::cell::Cell<usize>,
-    page: std::cell::Cell<usize>,
-    max_scroll: std::cell::Cell<usize>,
-}
-
-impl Dashboard {
-    fn terminal_size() -> (u16, u16) {
-        let mut size = unsafe { std::mem::zeroed::<libc::winsize>() };
-        if unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) } == 0 {
-            (
-                if size.ws_col > 0 { size.ws_col } else { 80 },
-                if size.ws_row > 0 { size.ws_row } else { 24 },
-            )
-        } else {
-            (80, 24)
-        }
-    }
-
-    fn new(command: &[OsString]) -> Self {
-        let interactive = io::stdin().is_terminal() && io::stdout().is_terminal();
-        let mut original = unsafe { std::mem::zeroed::<libc::termios>() };
-        let termios =
-            if interactive && unsafe { libc::tcgetattr(libc::STDIN_FILENO, &mut original) } == 0 {
-                let mut cbreak = original;
-                cbreak.c_lflag &= !(libc::ICANON | libc::ECHO);
-                cbreak.c_cc[libc::VMIN] = 0;
-                cbreak.c_cc[libc::VTIME] = 0;
-                (unsafe { libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, &cbreak) } == 0)
-                    .then_some(original)
-            } else {
-                None
-            };
-        if termios.is_some() {
-            print!("\x1b[?1049h\x1b[?25l\x1b[?7l");
-            let _ = io::stdout().flush();
-        }
-        let action = (!command.is_empty()).then(|| command_display(command));
-        Self {
-            termios,
-            action,
-            terminal_size: std::cell::Cell::new(Self::terminal_size()),
-            scroll: std::cell::Cell::new(0),
-            page: std::cell::Cell::new(1),
-            max_scroll: std::cell::Cell::new(0),
-        }
-    }
-
-    fn render(&self, frame: &str) {
-        if self.termios.is_none() {
-            return;
-        }
-        let mut redraw = String::new();
-        for (row, line) in frame
-            .lines()
-            .take(usize::from(self.terminal_size.get().1))
-            .enumerate()
-        {
-            write!(redraw, "\x1b[{};1H\x1b[2K{line}", row + 1)
-                .expect("writing to a string cannot fail");
-        }
-        redraw.push_str("\x1b[J\x1b[H");
-        print!("{redraw}");
-        let _ = io::stdout().flush();
-    }
-
-    fn loading(&self) {
-        self.render("\x1b[1;36mT3 IDLE WATCHDOG\x1b[0m\n\n\x1b[2mScanning threads...\x1b[0m");
-    }
-
-    fn read_byte() -> Option<u8> {
-        let mut byte = 0_u8;
-        (unsafe { libc::read(libc::STDIN_FILENO, std::ptr::from_mut(&mut byte).cast(), 1) } == 1)
-            .then_some(byte)
-    }
-
-    fn stdin_ready(timeout_ms: i32) -> bool {
-        let mut descriptor = libc::pollfd {
-            fd: libc::STDIN_FILENO,
-            events: libc::POLLIN,
-            revents: 0,
-        };
-        unsafe { libc::poll(&mut descriptor, 1, timeout_ms) > 0 }
-    }
-
-    fn read_key() -> Option<Key> {
-        match Self::read_byte()? {
-            b'q' => Some(Key::Quit),
-            b'k' => Some(Key::Up),
-            b'j' => Some(Key::Down),
-            0x1b => {
-                if !Self::stdin_ready(10) {
-                    return Some(Key::Ignore);
-                }
-                let Some(second) = Self::read_byte() else {
-                    return Some(Key::Ignore);
-                };
-                if !matches!(second, b'[' | b'O') {
-                    return Some(Key::Ignore);
-                }
-                if !Self::stdin_ready(10) {
-                    return Some(Key::Ignore);
-                }
-                let Some(third) = Self::read_byte() else {
-                    return Some(Key::Ignore);
-                };
-                match third {
-                    b'A' => Some(Key::Up),
-                    b'B' => Some(Key::Down),
-                    b'H' => Some(Key::Home),
-                    b'F' => Some(Key::End),
-                    b'1'..=b'9' => {
-                        if !Self::stdin_ready(10) {
-                            return Some(Key::Ignore);
-                        }
-                        let Some(fourth) = Self::read_byte() else {
-                            return Some(Key::Ignore);
-                        };
-                        match (third, fourth) {
-                            (b'1', b'~') | (b'7', b'~') => Some(Key::Home),
-                            (b'4', b'~') | (b'8', b'~') => Some(Key::End),
-                            (b'5', b'~') => Some(Key::PageUp),
-                            (b'6', b'~') => Some(Key::PageDown),
-                            _ => Some(Key::Ignore),
-                        }
-                    }
-                    _ => Some(Key::Ignore),
-                }
-            }
-            _ => Some(Key::Ignore),
-        }
-    }
-
-    fn scroll_by(&self, delta: isize) -> bool {
-        let current = self.scroll.get();
-        let next = if delta < 0 {
-            current.saturating_sub(delta.unsigned_abs())
-        } else {
-            current.saturating_add(delta as usize)
-        }
-        .min(self.max_scroll.get());
-        if next == current {
-            false
-        } else {
-            self.scroll.set(next);
-            true
-        }
-    }
-
-    fn wait(
-        &self,
-        cancellation: &Cancellation,
-        duration: Duration,
-        mut on_redraw: impl FnMut(),
-    ) -> Option<i32> {
-        if self.termios.is_none() {
-            return cancellation.wait(duration);
-        }
-        let started = Instant::now();
-        loop {
-            if let Some(key) = Self::read_key() {
-                match key {
-                    Key::Quit => return Some(0),
-                    Key::Up => {
-                        if self.scroll_by(-1) {
-                            on_redraw();
-                        }
-                    }
-                    Key::Down => {
-                        if self.scroll_by(1) {
-                            on_redraw();
-                        }
-                    }
-                    Key::PageUp => {
-                        let page = self.page.get().max(1) as isize;
-                        if self.scroll_by(-page) {
-                            on_redraw();
-                        }
-                    }
-                    Key::PageDown => {
-                        let page = self.page.get().max(1) as isize;
-                        if self.scroll_by(page) {
-                            on_redraw();
-                        }
-                    }
-                    Key::Home => {
-                        if self.scroll.get() != 0 {
-                            self.scroll.set(0);
-                            on_redraw();
-                        }
-                    }
-                    Key::End => {
-                        let end = self.max_scroll.get();
-                        if self.scroll.get() != end {
-                            self.scroll.set(end);
-                            on_redraw();
-                        }
-                    }
-                    Key::Ignore => {}
-                }
-            }
-            let terminal_size = Self::terminal_size();
-            if terminal_size != self.terminal_size.replace(terminal_size) {
-                on_redraw();
-            }
-            let remaining = duration.saturating_sub(started.elapsed());
-            if let Some(signal) = cancellation.wait(remaining.min(Duration::from_millis(25))) {
-                return Some(signal);
-            }
-            if started.elapsed() >= duration {
-                return None;
-            }
-        }
-    }
-
-    fn run_work<T: Send + 'static>(
-        &self,
-        cancellation: &Cancellation,
-        mut on_redraw: impl FnMut(),
-        work: impl FnOnce() -> T + Send + 'static,
-    ) -> std::result::Result<T, i32> {
-        let worker = thread::spawn(work);
-        while !worker.is_finished() {
-            if let Some(signal) = self.wait(cancellation, Duration::from_millis(25), &mut on_redraw)
-            {
-                return Err(signal);
-            }
-        }
-        Ok(worker.join().expect("scan worker panicked"))
-    }
-
-    fn status_line(
-        evaluation: &ScanEvaluation,
-        check: u32,
-        idle: u32,
-        required_idle: u32,
-        next_scan: u64,
-    ) -> String {
-        format!(
-            "\x1b[2mcheck #{check}  |\x1b[0m  {}  |  {} blocking  |  {} waiting  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s",
-            evaluation.state(),
-            evaluation.blockers.len(),
-            evaluation.waiting_threads(),
-        )
-    }
-
-    fn tick(
-        &self,
-        evaluation: &ScanEvaluation,
-        check: u32,
-        idle: u32,
-        required_idle: u32,
-        next_scan: u64,
-    ) {
-        if self.termios.is_some() {
-            print!(
-                "\x1b[2;1H\x1b[2K{}\x1b[H",
-                Self::status_line(evaluation, check, idle, required_idle, next_scan)
-            );
-            let _ = io::stdout().flush();
-        }
-    }
-
-    fn draw(
-        &self,
-        evaluation: &ScanEvaluation,
-        check: u32,
-        idle: u32,
-        required_idle: u32,
-        next_scan: u64,
-    ) {
-        if self.termios.is_none() {
-            return;
-        }
-        let mut rows = evaluation.rows.iter().collect::<Vec<_>>();
-        rows.sort_by(|left, right| {
-            let rank = |row: &ThreadVerdict| {
-                if row.blocker.is_some() {
-                    0
-                } else if row.waiting {
-                    1
-                } else {
-                    2
-                }
-            };
-            rank(left)
-                .cmp(&rank(right))
-                .then_with(|| right.updated.cmp(&left.updated))
-        });
-        let width = self.terminal_size.get().0;
-        let mut table = Table::new();
-        table
-            .load_style(UTF8_FULL.with_rounded_corners().with_solid_inner_borders())
-            .set_content_arrangement(ContentArrangement::DynamicFullWidth)
-            .set_width(width)
-            .set_header(HEADERS);
-        for column in [1, 2] {
-            table
-                .column_mut(column)
-                .expect("age and updated columns exist")
-                .set_cell_alignment(CellAlignment::Right);
-        }
-        if rows.is_empty() {
-            table.add_row([
-                Cell::new("IDLE").fg(Color::Green),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new(""),
-                Cell::new("No active threads"),
-            ]);
-        }
-        let now = Timestamp::now();
-        for row in rows {
-            table.add_row([
-                Cell::new(row.label).fg(row.color),
-                Cell::new(elapsed(row.created, now)),
-                Cell::new(elapsed(row.updated, now)),
-                Cell::new(clean_text(&row.project)),
-                Cell::new(short_id(&row.id)),
-                Cell::new(clean_text(&row.title)),
-            ]);
-        }
-        let mut body = table.to_string();
-        if let Some(error) = &evaluation.api_error {
-            body.push_str(if evaluation.api_stuck {
-                "\n\n\x1b[33mT3 API unavailable (no longer blocking)\x1b[0m"
-            } else {
-                "\n\n\x1b[31mT3 API errors\x1b[0m"
-            });
-            body.push_str("\n  ");
-            body.push_str(&clean_text(error));
-        }
-        let body_lines: Vec<&str> = body.lines().collect();
-        let mut top = format!(
-            "\x1b[1;36mT3 IDLE WATCHDOG\x1b[0m\n{}\n",
-            Self::status_line(evaluation, check, idle, required_idle, next_scan),
-        );
-        if let Some(action) = &self.action {
-            writeln!(top, "\x1b[2mon idle       |\x1b[0m  {action}")
-                .expect("writing to a string cannot fail");
-        }
-        top.push('\n');
-
-        // Keep the title, status and footer fixed; scroll the table and API
-        // errors through the remaining terminal rows.
-        let height = usize::from(self.terminal_size.get().1);
-        let top_height = top.lines().count();
-        let bottom_height = 3;
-        let available = height.saturating_sub(top_height + bottom_height);
-        let max_scroll = body_lines.len().saturating_sub(available);
-        let scroll = self.scroll.get().min(max_scroll);
-        let visible_end = (scroll + available).min(body_lines.len());
-        self.scroll.set(scroll);
-        self.page.set(available.max(1));
-        self.max_scroll.set(max_scroll);
-
-        let mut frame = top;
-        frame.push_str(&body_lines[scroll..visible_end].join("\n"));
-        let mut footer = String::from("\n\n\x1b[2mq / Ctrl-C to exit");
-        if max_scroll > 0 {
-            write!(
-                footer,
-                "  |  lines {}-{}/{}  |  ↑↓ PgUp/PgDn Home/End",
-                scroll + 1,
-                visible_end,
-                body_lines.len()
-            )
-            .expect("writing to a string cannot fail");
-        } else {
-            footer.push_str("  |  ↑↓ PgUp/PgDn Home/End");
-        }
-        footer.push_str("\x1b[0m\n");
-        frame.push_str(&footer);
-        self.render(&frame);
-    }
-}
-
-impl Drop for Dashboard {
-    fn drop(&mut self) {
-        if let Some(original) = &self.termios {
-            unsafe {
-                libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, original);
-            }
-        }
-        if self.termios.is_some() {
-            print!("\x1b[?7h\x1b[?25h\x1b[?1049l");
-            let _ = io::stdout().flush();
-        }
-    }
-}
-
 struct Config {
     url: String,
     base_dir: PathBuf,
@@ -615,38 +115,80 @@ struct IssuedToken {
     token: String,
     session_id: String,
     expires_at: Timestamp,
-    expires_at_display: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CachedToken {
+    base_dir: PathBuf,
+    ttl: String,
+    token: String,
+    session_id: String,
+    expires_at: Timestamp,
 }
 
 struct Auth {
     source: TokenSource,
     token: Option<String>,
     expires_at: Option<Timestamp>,
-    expires_at_display: Option<String>,
     session_id: Option<String>,
     t3: PathBuf,
     base_dir: PathBuf,
     ttl: String,
+    cache_file: PathBuf,
+    cached: bool,
 }
 
 impl Auth {
-    fn new(config: &Config) -> Result<Self> {
+    fn new(config: &Config, cache_dir: &Path) -> Result<Self> {
         let mut auth = Self {
             source: config.token_source.clone(),
             token: None,
             expires_at: None,
-            expires_at_display: None,
             session_id: None,
             t3: config.t3.clone(),
             base_dir: config.base_dir.clone(),
             ttl: config.token_ttl.clone(),
+            cache_file: cache_dir.join("token.json"),
+            cached: false,
         };
         match &auth.source {
             TokenSource::Static(_) => {}
             TokenSource::File(path) => auth.token = Some(read_token_file(path)?),
-            TokenSource::Issued => auth.issue()?,
+            TokenSource::Issued => {
+                if let Some(cached) = read_cached_token(&auth.cache_file, &auth.base_dir, &auth.ttl)
+                {
+                    auth.token = Some(cached.token);
+                    auth.session_id = Some(cached.session_id);
+                    auth.expires_at = Some(cached.expires_at);
+                    auth.cached = true;
+                } else {
+                    auth.issue()?;
+                }
+            }
         }
         Ok(auth)
+    }
+
+    fn write_cache(&self, issued: &IssuedToken) -> Result<()> {
+        let parent = self
+            .cache_file
+            .parent()
+            .context("token cache path has no parent")?;
+        fs::create_dir_all(parent)?;
+        let cached = CachedToken {
+            base_dir: self.base_dir.clone(),
+            ttl: self.ttl.clone(),
+            token: issued.token.clone(),
+            session_id: issued.session_id.clone(),
+            expires_at: issued.expires_at,
+        };
+        let mut file = NamedTempFile::new_in(parent)?;
+        serde_json::to_writer(file.as_file_mut(), &cached)?;
+        file.as_file_mut().write_all(b"\n")?;
+        file.persist(&self.cache_file)
+            .map_err(|error| error.error)?;
+        Ok(())
     }
 
     fn is_issued(&self) -> bool {
@@ -663,8 +205,16 @@ impl Auth {
 
     fn describe(&self) -> String {
         let session = self.session_id.as_deref().unwrap_or("unknown");
-        let expires = self.expires_at_display.as_deref().unwrap_or("unknown");
-        format!("issued T3 read token session={session} expires={expires}")
+        let expires = self
+            .expires_at
+            .map(|expires_at| expires_at.to_string())
+            .unwrap_or_else(|| "unknown".to_owned());
+        let verb = if self.cached {
+            "using cached"
+        } else {
+            "issued"
+        };
+        format!("{verb} T3 read token session={session} expires={expires}")
     }
 
     fn token(&self) -> Result<&str> {
@@ -678,9 +228,9 @@ impl Auth {
         if !self.is_issued() {
             return Ok(None);
         }
-        let needs_refresh = self.expires_at.map_or(true, |expires_at| {
-            expires_soon(expires_at, TOKEN_REFRESH_MARGIN)
-        });
+        let needs_refresh = self
+            .expires_at
+            .is_none_or(|expires_at| expires_soon(expires_at, TOKEN_REFRESH_MARGIN));
         if !needs_refresh {
             return Ok(None);
         }
@@ -707,7 +257,6 @@ impl Auth {
             }
             self.token = Some(token);
             self.expires_at = None;
-            self.expires_at_display = None;
             return Ok(format!("reloaded T3 bearer token from {}", path.display()));
         }
         bail!(
@@ -717,32 +266,33 @@ impl Auth {
 
     fn issue(&mut self) -> Result<()> {
         let issued = issue_token(&self.t3, &self.base_dir, &self.ttl)?;
+        self.cached = false;
+        let cache_result = self.write_cache(&issued);
         let old_session = self.session_id.take();
         self.token = Some(issued.token);
         self.expires_at = Some(issued.expires_at);
-        self.expires_at_display = Some(issued.expires_at_display);
         self.session_id = Some(issued.session_id);
         if let Some(old_session) = old_session
             && self.session_id.as_deref() != Some(old_session.as_str())
         {
             revoke_session(&self.t3, &self.base_dir, &old_session);
         }
-        Ok(())
-    }
-
-    fn revoke(&mut self) {
-        if self.is_issued()
-            && let Some(session_id) = self.session_id.take()
-        {
-            revoke_session(&self.t3, &self.base_dir, &session_id);
+        if let Err(error) = cache_result {
+            eprintln!("{NAME}: could not cache T3 read token: {error:#}");
         }
+        Ok(())
     }
 }
 
-impl Drop for Auth {
-    fn drop(&mut self) {
-        self.revoke();
-    }
+fn read_cached_token(cache_file: &Path, base_dir: &Path, ttl: &str) -> Option<CachedToken> {
+    let contents = fs::read_to_string(cache_file).ok()?;
+    let cached: CachedToken = serde_json::from_str(&contents).ok()?;
+    (cached.base_dir == base_dir
+        && cached.ttl == ttl
+        && !cached.token.is_empty()
+        && !cached.session_id.is_empty()
+        && !expires_soon(cached.expires_at, TOKEN_REFRESH_MARGIN))
+    .then_some(cached)
 }
 
 fn read_token_file(path: &Path) -> Result<String> {
@@ -801,18 +351,18 @@ fn parse_issued_token(value: &Value) -> Result<IssuedToken> {
         .filter(|session_id| !session_id.is_empty())
         .context("t3 auth session issue returned no sessionId")?
         .to_owned();
-    let expires_at_display = value
+    let expires = value
         .get("expiresAt")
         .and_then(Value::as_str)
-        .context("t3 auth session issue returned no expiresAt")?
-        .to_owned();
-    let expires_at = parse_timestamp(&expires_at_display)
-        .with_context(|| format!("parse token expiry {expires_at_display}"))?;
+        .context("t3 auth session issue returned no expiresAt")?;
+    let expires_at = expires
+        .trim()
+        .parse()
+        .with_context(|| format!("parse token expiry {expires}"))?;
     Ok(IssuedToken {
         token,
         session_id,
         expires_at,
-        expires_at_display,
     })
 }
 
@@ -857,16 +407,31 @@ fn wait_child_timeout(child: &mut Child, timeout: Duration) -> io::Result<Option
 }
 
 fn run_output_timeout(mut command: Command, timeout: Duration) -> Result<Output> {
+    // A grandchild can inherit the CLI's stdout/stderr and keep pipes open long
+    // after the CLI exits. Temporary files avoid waiting for those inherited
+    // descriptors before reading the token.
+    let mut stdout = tempfile::tempfile().context("create temporary stdout")?;
+    let mut stderr = tempfile::tempfile().context("create temporary stderr")?;
     let mut child = command
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(Stdio::from(stdout.try_clone()?))
+        .stderr(Stdio::from(stderr.try_clone()?))
         .spawn()
         .context("spawn command")?;
-    match wait_child_timeout(&mut child, timeout).context("wait for command")? {
-        Some(_) => child.wait_with_output().context("collect command output"),
-        None => bail!("command timed out after {}s", timeout.as_secs()),
-    }
+    let Some(status) = wait_child_timeout(&mut child, timeout).context("wait for command")? else {
+        bail!("command timed out after {}s", timeout.as_secs());
+    };
+    stdout.seek(SeekFrom::Start(0))?;
+    stderr.seek(SeekFrom::Start(0))?;
+    let mut stdout_bytes = Vec::new();
+    let mut stderr_bytes = Vec::new();
+    stdout.read_to_end(&mut stdout_bytes)?;
+    stderr.read_to_end(&mut stderr_bytes)?;
+    Ok(Output {
+        status,
+        stdout: stdout_bytes,
+        stderr: stderr_bytes,
+    })
 }
 
 fn run_status_timeout(mut command: Command, timeout: Duration) -> Option<ExitStatus> {
@@ -1525,6 +1090,79 @@ fn only_pull_request_watches(thread: &ThreadShell) -> bool {
         .is_some_and(|tasks| !tasks.is_empty() && tasks.iter().all(is_pull_request_watch))
 }
 
+fn dashboard_status(
+    evaluation: &ScanEvaluation,
+    check: u32,
+    idle: u32,
+    required_idle: u32,
+    next_scan: u64,
+) -> String {
+    format!(
+        "\x1b[2mcheck #{check}  |\x1b[0m  {}  |  {} blocking  |  {} waiting  |  idle {idle}/{required_idle}  |  next scan in {next_scan}s",
+        evaluation.state(),
+        evaluation.blockers.len(),
+        evaluation.waiting_threads(),
+    )
+}
+
+fn draw_dashboard(
+    dashboard: &Dashboard,
+    evaluation: &ScanEvaluation,
+    check: u32,
+    idle: u32,
+    required_idle: u32,
+    next_scan: u64,
+) {
+    let mut rows = evaluation.rows.iter().collect::<Vec<_>>();
+    rows.sort_by(|left, right| {
+        let rank = |row: &ThreadVerdict| {
+            if row.blocker.is_some() {
+                0
+            } else if row.waiting {
+                1
+            } else {
+                2
+            }
+        };
+        rank(left)
+            .cmp(&rank(right))
+            .then_with(|| right.updated.cmp(&left.updated))
+    });
+    let now = Timestamp::now();
+    let rows = rows
+        .into_iter()
+        .map(|row| DashboardRow {
+            status: row.label.to_owned(),
+            color: row.color,
+            age: elapsed(row.created, now),
+            updated: elapsed(row.updated, now),
+            scope: clean_text(&row.project),
+            id: short_id(&row.id),
+            title: clean_text(&row.title),
+        })
+        .collect();
+    let extra = evaluation.api_error.as_ref().map(|error| {
+        let mut section = if evaluation.api_stuck {
+            "\x1b[33mT3 API unavailable (no longer blocking)\x1b[0m".to_owned()
+        } else {
+            "\x1b[31mT3 API errors\x1b[0m".to_owned()
+        };
+        section.push_str("\n  ");
+        section.push_str(&clean_text(error));
+        section
+    });
+    dashboard.draw(DashboardView {
+        status: dashboard_status(evaluation, check, idle, required_idle, next_scan),
+        rows,
+        empty: (
+            "IDLE".to_owned(),
+            Color::Green,
+            "No active threads".to_owned(),
+        ),
+        extra,
+    });
+}
+
 fn wait_until_idle(
     state: &State,
     options: &Options,
@@ -1534,9 +1172,9 @@ fn wait_until_idle(
     cancellation: &Cancellation,
 ) -> Result<i32> {
     let client = http_client();
-    let dashboard = Dashboard::new(command);
+    let dashboard = Dashboard::new(command, "T3 IDLE WATCHDOG", "Scanning threads...", HEADERS);
     let report = |message: String| {
-        if dashboard.termios.is_some() {
+        if dashboard.termios_active() {
             state.record(message);
         } else {
             state.log(message);
@@ -1564,7 +1202,7 @@ fn wait_until_idle(
         } else {
             command_display(command)
         },
-        state.root.display(),
+        state.root().display(),
     ));
     dashboard.loading();
     let mut api = ApiHealth::new(Duration::from_secs(options.stuck_after));
@@ -1588,7 +1226,7 @@ fn wait_until_idle(
             Err(signal) => {
                 drop(scan);
                 drop(dashboard);
-                return Ok(signal_exit(state, signal));
+                signal_exit(state, signal);
             }
         }
     };
@@ -1618,7 +1256,8 @@ fn wait_until_idle(
             ));
         }
         let draw = |next_scan| {
-            dashboard.draw(
+            draw_dashboard(
+                &dashboard,
                 &evaluation,
                 check,
                 consecutive_idle,
@@ -1654,13 +1293,13 @@ fn wait_until_idle(
                 break 'checks Some(signal);
             }
             remaining -= 1;
-            dashboard.tick(
+            dashboard.tick(&dashboard_status(
                 &evaluation,
                 check,
                 consecutive_idle,
                 options.required_idle_checks,
                 remaining,
-            );
+            ));
         }
         let mut on_redraw = || draw(0);
         match scan(&mut on_redraw) {
@@ -1672,12 +1311,11 @@ fn wait_until_idle(
     drop(scan);
     drop(dashboard);
     if let Some(signal) = signal {
-        return Ok(signal_exit(state, signal));
+        signal_exit(state, signal);
     }
     state.log("idle confirmed");
-    auth.revoke();
     if let Some(signal) = cancellation.wait(Duration::ZERO) {
-        return Ok(signal_exit(state, signal));
+        signal_exit(state, signal);
     }
     if command.is_empty() {
         Ok(0)
@@ -1706,7 +1344,7 @@ fn check_once(
         }
     };
     if let Some(signal) = cancellation.wait(Duration::ZERO) {
-        return Ok(signal_exit(state, signal));
+        signal_exit(state, signal);
     }
     let evaluation = evaluate(Some(&snapshot), None, &config.ignored_threads, false);
     print_once(&evaluation);
@@ -1765,117 +1403,15 @@ fn print_once(evaluation: &ScanEvaluation) {
     }
 }
 
-fn http_client() -> ureq::Agent {
-    ureq::Agent::new_with_config(
-        ureq::Agent::config_builder()
-            .timeout_global(Some(Duration::from_secs(REQUEST_TIMEOUT_SECS)))
-            .build(),
-    )
-}
-
-fn signal_exit(state: &State, signal: i32) -> i32 {
-    if signal == 0 {
-        state.log("watchdog exited");
-        return 0;
-    }
-    state.log(if signal == SIGINT {
-        "watchdog interrupted"
-    } else {
-        "watchdog terminated"
-    });
-    128 + signal
-}
-
-fn terminate_child(child: &mut Child) {
-    let _ = child.kill();
-    let _ = child.wait();
-}
-
-fn command_display(command: &[OsString]) -> String {
-    command
-        .iter()
-        .map(|arg| format!("{arg:?}"))
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-fn systemctl_command() -> OsString {
-    [
-        "/run/current-system/sw/bin/systemctl",
-        "/usr/bin/systemctl",
-        "/bin/systemctl",
-    ]
-    .into_iter()
-    .find(|path| Path::new(path).is_file())
-    .map(OsString::from)
-    .unwrap_or_else(|| OsString::from("systemctl"))
-}
-
-fn resolve_command(command: &[OsString]) -> Vec<OsString> {
-    if let [shortcut] = command {
-        let action = match shortcut.to_str() {
-            Some("sleep" | "suspend") => Some("suspend"),
-            Some("poweroff") => Some("poweroff"),
-            Some("hibernate") => Some("hibernate"),
-            _ => None,
-        };
-        if let Some(action) = action {
-            return [systemctl_command(), OsString::from(action)].into();
-        }
-    }
-    command.to_vec()
-}
-
-fn run_command(state: &State, cancellation: &Cancellation, command: &[OsString]) -> i32 {
-    if let Some(signal) = cancellation.wait(Duration::ZERO) {
-        return signal_exit(state, signal);
-    }
-    state.log(format!("running command: {}", command_display(command)));
-    let Some((program, arguments)) = command.split_first() else {
-        state.log("could not run command: empty command");
-        return 127;
-    };
-    let mut child = match Command::new(program).args(arguments).spawn() {
-        Ok(child) => child,
-        Err(error) => {
-            state.log(format!("could not run command: {error}"));
-            return 127;
-        }
-    };
-
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                let code = status
-                    .code()
-                    .or_else(|| status.signal().map(|signal| 128 + signal))
-                    .unwrap_or(1);
-                state.log(format!("command exited with status {code}"));
-                return code;
-            }
-            Ok(None) => {}
-            Err(error) => {
-                terminate_child(&mut child);
-                state.log(format!("could not wait for command: {error}"));
-                return 1;
-            }
-        }
-        if let Some(signal) = cancellation.wait(Duration::from_millis(50)) {
-            terminate_child(&mut child);
-            return signal_exit(state, signal);
-        }
-    }
-}
-
 fn execute() -> Result<i32> {
     let options = Options::parse();
-    let state = State::discover()?;
+    let state = State::discover(NAME)?;
     let config = resolve_config(&options)?;
     let command = resolve_command(&options.command);
     let cancellation = Cancellation::new()?;
-    let mut auth = Auth::new(&config)?;
+    let mut auth = Auth::new(&config, state.root())?;
     if let Some(signal) = cancellation.wait(Duration::ZERO) {
-        return Ok(signal_exit(&state, signal));
+        signal_exit(&state, signal);
     }
     if options.once {
         return check_once(&state, &config, &mut auth, &cancellation);
@@ -1891,25 +1427,7 @@ fn execute() -> Result<i32> {
 }
 
 fn main() {
-    let code = match execute() {
-        Ok(code) => code,
-        Err(error) => {
-            if let Ok(state) = State::discover() {
-                state.log(format!("watchdog crashed: {error:#}"));
-            }
-            eprintln!("{NAME}: {error:#}");
-            1
-        }
-    };
-    std::process::exit(code);
-}
-
-fn summarize(items: &[String], limit: usize) -> String {
-    let mut visible: Vec<_> = items.iter().take(limit).cloned().collect();
-    if items.len() > limit {
-        visible.push(format!("... +{} more", items.len() - limit));
-    }
-    visible.join(" | ")
+    exit_with(NAME, execute());
 }
 
 fn summarize_text(value: &str, limit: usize) -> String {
@@ -1931,13 +1449,6 @@ fn elapsed(time: Option<Timestamp>, now: Timestamp) -> String {
         3600..86400 => format!("{}h {:02}m", seconds / 3600, seconds / 60 % 60),
         _ => format!("{}d {:02}h", seconds / 86400, seconds / 3600 % 24),
     }
-}
-
-fn clean_text(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| !character.is_control())
-        .collect()
 }
 
 fn short_id(value: &str) -> String {
@@ -2329,7 +1840,10 @@ mod tests {
         let issued = parse_issued_token(&value).expect("token parses");
         assert_eq!(issued.token, "secret-token");
         assert_eq!(issued.session_id, "session-id");
-        assert_eq!(issued.expires_at_display, "2026-10-21T10:13:42.675Z");
+        assert_eq!(
+            issued.expires_at,
+            "2026-10-21T10:13:42.675Z".parse::<Timestamp>().unwrap()
+        );
     }
 
     #[test]
@@ -2341,24 +1855,66 @@ mod tests {
         assert!(parse_issued_token(&value).is_err());
     }
 
+    fn cached_token(expires_at: &str) -> CachedToken {
+        CachedToken {
+            base_dir: PathBuf::from("/tmp/t3"),
+            ttl: "12h".to_owned(),
+            token: "cached-token".to_owned(),
+            session_id: "cached-session".to_owned(),
+            expires_at: expires_at.parse().expect("parse expiry"),
+        }
+    }
+
     #[test]
-    fn resolves_command_shortcuts() {
-        assert_eq!(
-            resolve_command(&[OsString::from("sleep")]),
-            [systemctl_command(), OsString::from("suspend")]
-        );
-        assert_eq!(
-            resolve_command(&[OsString::from("poweroff")]),
-            [systemctl_command(), OsString::from("poweroff")]
-        );
-        assert_eq!(
-            resolve_command(&[OsString::from("hibernate")]),
-            [systemctl_command(), OsString::from("hibernate")]
-        );
-        assert_eq!(
-            resolve_command(&[OsString::from("echo"), OsString::from("hi")]),
-            [OsString::from("echo"), OsString::from("hi")]
-        );
+    fn reuses_fresh_cached_token_without_running_the_cli() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let base_dir = directory.path().join("base");
+        let config = Config {
+            url: "http://127.0.0.1:3773".to_owned(),
+            base_dir: base_dir.clone(),
+            t3: PathBuf::from("t3-must-not-run"),
+            token_source: TokenSource::Issued,
+            token_ttl: "12h".to_owned(),
+            ignored_threads: Vec::new(),
+        };
+        let cached = CachedToken {
+            base_dir: base_dir.clone(),
+            ..cached_token("2099-01-01T00:00:00Z")
+        };
+        fs::write(
+            directory.path().join("token.json"),
+            serde_json::to_vec(&cached).expect("serialize cached token"),
+        )
+        .expect("write cached token");
+
+        let auth = Auth::new(&config, directory.path()).expect("load cached token");
+        assert_eq!(auth.token().expect("cached token"), "cached-token");
+        assert_eq!(auth.session_id.as_deref(), Some("cached-session"));
+        assert!(auth.cached);
+    }
+
+    #[test]
+    fn ignores_expired_or_foreign_cached_tokens() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let cache_file = directory.path().join("token.json");
+        for token in [
+            cached_token("2000-01-01T00:00:00Z"),
+            CachedToken {
+                base_dir: PathBuf::from("/tmp/other"),
+                ..cached_token("2099-01-01T00:00:00Z")
+            },
+            CachedToken {
+                ttl: "1h".to_owned(),
+                ..cached_token("2099-01-01T00:00:00Z")
+            },
+        ] {
+            fs::write(
+                &cache_file,
+                serde_json::to_vec(&token).expect("serialize cached token"),
+            )
+            .expect("write cached token");
+            assert!(read_cached_token(&cache_file, Path::new("/tmp/t3"), "12h").is_none());
+        }
     }
 
     #[test]
