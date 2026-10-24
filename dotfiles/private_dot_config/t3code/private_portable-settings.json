@@ -45,11 +45,14 @@
     "inAppNotificationsEnabled": true,
     "legacySidebarEnabled": false,
     "loadBalancingEnabled": false,
+    "loadBalancingWeights": {},
     "notificationMode": "notifications",
     "panelAnimationDurationMs": 0,
     "persistComposerContextStrip": true,
     "planModeEnabled": false,
     "proactivePanelsEnabled": false,
+    "providerModelPreferences": {},
+    "pullRequestLinksOpenInApp": true,
     "sendShortcut": "enter",
     "showSkillsInSlashMenu": true,
     "sidebarProjectGroupingMode": "repository",
@@ -91,18 +94,6 @@
     },
     "defaultThreadEnvMode": "local",
     "favorites": [
-      {
-        "model": "gpt-6-astra",
-        "provider": "codex"
-      },
-      {
-        "model": "gpt-6.1-sol",
-        "provider": "codex"
-      },
-      {
-        "model": "gpt-6-luna",
-        "provider": "codex"
-      },
       {
         "model": "opencode-go/deepseek-v4.1-flash",
         "provider": "opencode"
@@ -396,7 +387,7 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeAfterDays": 4,
+      "worktreeAfterDays": 3,
       "worktreeOnDelete": true,
       "worktreeOnMerge": true,
       "worktreeUnchanged": true
@@ -832,6 +823,15 @@
   ],
   "projects": [
     {
+      "workspace_root": "~/dev/browser-mcp",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "browser-mcp"
+      },
+      "settings": {}
+    },
+    {
       "workspace_root": "~/dev/dotfiles",
       "attributes": {
         "faviconPath": null,
@@ -871,6 +871,21 @@
             "id": "bc-local-backend",
             "name": "bc local backend",
             "runOnWorktreeCreate": false
+          },
+          {
+            "command": "just assets",
+            "icon": "configure",
+            "id": "assets",
+            "name": "assets",
+            "runOnWorktreeCreate": false
+          },
+          {
+            "async": false,
+            "command": "sh \"$T3CODE_PROJECT_ROOT/scripts/setup-worktree.sh\"",
+            "icon": "configure",
+            "id": "setup-worktree",
+            "name": "Setup Worktree",
+            "runOnWorktreeCreate": true
           }
         ],
         "defaultThreadEnvMode": "worktree"

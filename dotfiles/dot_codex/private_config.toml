@@ -32,15 +32,14 @@ last_updated = "2026-07-12T16:43:46Z"
 source_type = "local"
 source = "/home/mirsella/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
-[marketplaces.browser-mcp]
-source_type = "git"
-source = "https://github.com/mirsella/browser-mcp.git"
-ref = "release/latest"
-
 [marketplaces.computer-use-mcp]
 source_type = "git"
 source = "https://github.com/mirsella/computer-use-mcp.git"
 ref = "release/latest"
+
+[marketplaces.browser-mcp]
+source_type = "local"
+source = "/home/mirsella/.local/share/browser-mcp/2.0.3"
 
 [mcp_servers.context7-broker]
 command = "/home/mirsella/.local/bin/context7-account-broker"
