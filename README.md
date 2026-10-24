@@ -118,10 +118,12 @@ the provider settings in `~/.config/codexbar/config.json`; keep API keys out of
 that JSON file.
 
 NixOS installs the pinned CLI and Plasma widget through the workstation profile.
-On Arch, install their native packages before activating Home Manager:
+Home Manager installs the widget on Arch too, carrying the local all-window pace
+patch until upstream releases it. On Arch, install the CLI natively before
+activating Home Manager:
 
 ```sh
-paru -S --needed codexbar-cli plasma6-applets-codexbar
+paru -S --needed codexbar-cli
 home_profile=$(nix build ".#homeConfigurations.$(hostname).activationPackage" --no-link --print-out-paths)
 "$home_profile/activate"
 chezmoi apply ~/.config/codexbar/config.json

@@ -20,7 +20,7 @@ for b in [git, nu, nvim, delta, difft, mergiraf, git-lfs, atuin, starship, zoxid
     }
 }
 
-for package in [codexbar-cli, plasma6-applets-codexbar] {
+for package in [codexbar-cli] {
     if (do { ^pacman -Q $package } | complete | get exit_code) != 0 {
         $missing ++= [$"native package missing: ($package) \(install with paru -S ($package))"]
     }

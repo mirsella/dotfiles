@@ -1,0 +1,60 @@
+diff --git a/contents/ui/ProviderCard.qml b/contents/ui/ProviderCard.qml
+index c6c98fb..eac1c48 100644
+--- a/contents/ui/ProviderCard.qml
++++ b/contents/ui/ProviderCard.qml
+@@ -293,7 +293,8 @@ ColumnLayout {
+         model: {
+             plasmoidRoot.rev
+             return card.extrasOnly || !card.usage ? []
+-                : Catalog.costBalances(card.providerId, card.usage.providerCost)
++                : Catalog.costBalances(card.providerId, card.usage.providerCost,
++                                       card.creditsRemaining() !== null)
+         }
+ 
+         TruncatedLabel {
+diff --git a/contents/ui/code/catalog.js b/contents/ui/code/catalog.js
+index 3811746..e42f402 100644
+--- a/contents/ui/code/catalog.js
++++ b/contents/ui/code/catalog.js
+@@ -242,8 +242,10 @@ function amountText(amount, currencyCode) {
+ 
+ // Balances a card lists from usage.providerCost, as upstream's per-provider
+ // cost presentation names them: [{ label, amount, currencyCode }]. A
+-// balance of zero is listed, a missing one is not.
+-function costBalances(providerId, cost) {
++// balance of zero is listed, a missing one is not. creditsShown says the
++// card's own credits block already renders the balance (Codex), so the
++// generic row would only repeat it.
++function costBalances(providerId, cost, creditsShown) {
+     if (!cost || typeof cost !== "object")
+         return []
+     function one(label, amount) {
+@@ -253,6 +255,8 @@ function costBalances(providerId, cost) {
+     case "claude":
+         return one("Extra usage balance", cost.balance)
+     case "codex":
++        if (creditsShown)
++            return []
+         return cost.currencyCode === "Credits" ? one("Extra usage balance", cost.balance) : []
+     case "devin":
+         return cost.period === "Extra usage balance" ? one("Extra usage", cost.used) : []
+diff --git a/tests/test-catalog.js b/tests/test-catalog.js
+index e115147..301c481 100644
+--- a/tests/test-catalog.js
++++ b/tests/test-catalog.js
+@@ -271,10 +271,12 @@ assert.equal(catalog.panelWindow(Object.assign({}, monthly,
+         [{ label: "Extra usage balance", amount: 0, currencyCode: "USD" }])
+     assert.deepEqual(plain(catalog.costBalances("claude", usd({}))), [])
+     assert.deepEqual(plain(catalog.costBalances("claude", usd({ balance: null }))), [])
+-    // Codex lists its balance in credits only
+-    assert.deepEqual(plain(catalog.costBalances("codex", { used: 0, limit: 0, currencyCode: "Credits", balance: 1200 })),
++    // Codex lists its balance in credits only; when its credits block renders
++    // that balance, the generic prepaid row would repeat it.
++    assert.deepEqual(plain(catalog.costBalances("codex", { used: 0, limit: 0, currencyCode: "Credits", balance: 1200 }, false)),
+         [{ label: "Extra usage balance", amount: 1200, currencyCode: "Credits" }])
+-    assert.deepEqual(plain(catalog.costBalances("codex", usd({ balance: 5 }))), [])
++    assert.deepEqual(plain(catalog.costBalances("codex", { used: 0, limit: 0, currencyCode: "Credits", balance: 1200 }, true)), [])
++    assert.deepEqual(plain(catalog.costBalances("codex", usd({ balance: 5 }), true)), [])
+     // Devin and LiteLLM carry the amount in `used`
+     assert.deepEqual(plain(catalog.costBalances("devin", usd({ used: 7.5, period: "Extra usage balance" }))),
+         [{ label: "Extra usage", amount: 7.5, currencyCode: "USD" }])

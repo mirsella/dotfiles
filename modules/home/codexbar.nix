@@ -16,11 +16,9 @@ let
   '';
 in
 {
-  # Pacman owns both application packages on Arch.
-  home.packages = lib.optionals isNixOS [
-    pkgs.codexbar-cli
-    pkgs.codexbar-plasmoid
-  ];
+  # Pacman owns the CLI on Arch. The widget comes from Nix on every host so
+  # the local pace patch applies until upstream ships it.
+  home.packages = [ pkgs.codexbar-plasmoid ] ++ lib.optionals isNixOS [ pkgs.codexbar-cli ];
 
   home.file.".local/bin/codexbar" = {
     source = launcher;

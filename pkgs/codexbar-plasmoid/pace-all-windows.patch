@@ -1,0 +1,93 @@
+diff --git a/contents/ui/ProviderCard.qml b/contents/ui/ProviderCard.qml
+index 4a764bc..c6c98fb 100644
+--- a/contents/ui/ProviderCard.qml
++++ b/contents/ui/ProviderCard.qml
+@@ -33,6 +33,9 @@ ColumnLayout {
+         if (!usage)
+             return out
+         var slots = Catalog.cardSlots(usage, providerId)
++        // The CLI keys its pace verdicts by rate-window slot, so every window
++        // gets its own line: session, weekly and monthly alike.
++        var pace = entry && entry.pace ? entry.pace : null
+         for (var i = 0; i < slots.length; i++) {
+             var slot = slots[i]
+             var w = Catalog.usableWindow(usage[slot])
+@@ -43,8 +46,7 @@ ColumnLayout {
+                 title: Catalog.slotTitle(providerId, slot, minutes),
+                 win: w,
+                 minutes: minutes,
+-                pace: minutes === 10080 && entry.pace && entry.pace.secondary
+-                      ? entry.pace.secondary : null
++                pace: pace ? pace[slot] || null : null
+             })
+         }
+         // Kimi's transport slots are inverted. Keep legacy ordering for every
+diff --git a/contents/ui/code/catalog.js b/contents/ui/code/catalog.js
+index fc73b88..3811746 100644
+--- a/contents/ui/code/catalog.js
++++ b/contents/ui/code/catalog.js
+@@ -494,14 +494,14 @@ function windowBarFill(w, showUsed) {
+ 
+ // Menu pace line, matching CodexBarCore UsagePace / UsagePaceText. Kimi does
+ // not return the CLI's pre-computed `pace` payload, so reproduce that logic
+-// from the weekly window without rounding the values used in the projection.
++// from the window without rounding the values used in the projection.
+ function paceLine(pace, win, windowMinutes, nowMs, providerId) {
+     if (pace && pace.summary) {
+         var parts = pace.summary.split("|").map(function (p) { return p.trim() })
+         var keep = parts.filter(function (p) { return p.indexOf("Expected") !== 0 })
+         if (keep.length > 0) return "Pace: " + keep.join(" · ")
+     }
+-    if (windowMinutes !== 10080 || !windowUsageKnown(win) || !win.resetsAt)
++    if (!(windowMinutes > 0) || !windowUsageKnown(win) || !win.resetsAt)
+         return ""
+ 
+     var resetMs = Date.parse(win.resetsAt)
+@@ -515,7 +515,7 @@ function paceLine(pace, win, windowMinutes, nowMs, providerId) {
+     if (elapsed === 0 && actual > 0)
+         return ""
+     var expected = (elapsed / durationMs) * 100
+-    // CodexBarCore hides pace until enough of the weekly window has elapsed.
++    // CodexBarCore hides pace until enough of the window has elapsed.
+     if (expected < 3 && actual < 100)
+         return ""
+     var delta = actual - expected
+diff --git a/tests/test-catalog.js b/tests/test-catalog.js
+index bbe4d81..e115147 100644
+--- a/tests/test-catalog.js
++++ b/tests/test-catalog.js
+@@ -95,8 +95,34 @@ const sessionMinutes = catalog.effectiveWindowMinutes(
+     sessionExtra, "codex", "extra"
+ )
+ assert.equal(sessionMinutes, 300)
++// Every window gets a pace line, not just weekly.
+ assert.equal(
+     catalog.paceLine(null, sessionExtra, sessionMinutes, now, "codex"),
++    "Pace: 50% in reserve · Lasts until reset"
++)
++
++const monthlyWindow = {
++    usedPercent: 20,
++    windowMinutes: 43200,
++    resetsAt: "2026-09-15T12:00:00Z",
++}
++assert.equal(
++    catalog.paceLine(null, monthlyWindow, 43200, now, "opencodego"),
++    "Pace: 27% in reserve · Lasts until reset"
++)
++// opencode-go's monthly window already carries the CLI's verdict; the widget
++// drops the "Expected …" part the same way it does for weekly.
++assert.equal(
++    catalog.paceLine(
++        { summary: "11% in reserve | Expected 30% used | Lasts until reset" },
++        monthlyWindow, 43200, now, "opencodego"
++    ),
++    "Pace: 11% in reserve · Lasts until reset"
++)
++// A window without a duration cannot be projected.
++assert.equal(
++    catalog.paceLine(null, { usedPercent: 10, resetsAt: "2026-09-01T00:00:00Z" },
++        0, now, "codex"),
+     ""
+ )
+ 
