@@ -1759,20 +1759,28 @@ mod tests {
         assert!(!error.contains("secret"));
     }
 
+    fn assert_portable(policy: &Policy, section: &str, saved: Value) {
+        let selected = policy.capture(section, &saved, section).unwrap();
+        assert_eq!(selected, saved);
+        policy.validate(section, &selected).unwrap();
+
+        let mut local = object();
+        policy.merge_section(section, &mut local, &selected);
+        assert_eq!(local, saved);
+
+        policy.merge_section(section, &mut local, &object());
+        assert_eq!(local, object());
+    }
+
     #[test]
     fn pull_request_link_preference_is_portable() {
         let policy = Policy::new();
         for enabled in [true, false] {
-            let saved = json!({"pullRequestLinksOpenInApp": enabled});
-            let selected = policy.capture("client", &saved, "client").unwrap();
-            assert_eq!(selected, saved);
-            policy.validate("client", &selected).unwrap();
-
-            let mut local = json!({"pullRequestLinksOpenInApp": !enabled});
-            policy.merge_section("client", &mut local, &selected);
-            assert_eq!(local, saved);
-            policy.merge_section("client", &mut local, &object());
-            assert_eq!(local, object());
+            assert_portable(
+                &policy,
+                "client",
+                json!({"pullRequestLinksOpenInApp": enabled}),
+            );
         }
     }
 
@@ -1780,14 +1788,35 @@ mod tests {
     fn auto_resume_limited_threads_is_portable() {
         let policy = Policy::new();
         for enabled in [true, false] {
-            let saved = json!({"autoResumeLimitedThreads": enabled});
-            let selected = policy.capture("server", &saved, "server").unwrap();
-            assert_eq!(selected, saved);
-            policy.validate("server", &selected).unwrap();
+            assert_portable(
+                &policy,
+                "server",
+                json!({"autoResumeLimitedThreads": enabled}),
+            );
+        }
+    }
 
-            let mut local = json!({"autoResumeLimitedThreads": !enabled});
-            policy.merge_section("server", &mut local, &selected);
-            assert_eq!(local, saved);
+    #[test]
+    fn browser_rendering_and_worktree_retention_preferences_are_portable() {
+        let policy = Policy::new();
+        for (section, saved) in [
+            (
+                "client",
+                json!({
+                    "browserSearchEngine": "duckduckgo",
+                    "browserCustomSearchUrl": "https://search.example/?q=%s",
+                    "mathRenderingEnabled": true
+                }),
+            ),
+            (
+                "server",
+                json!({
+                    "idleCompaction": "onReturn",
+                    "storageCleanup": {"worktreeSettledAfterDays": 1}
+                }),
+            ),
+        ] {
+            assert_portable(&policy, section, saved);
         }
     }
 

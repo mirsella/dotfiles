@@ -29,6 +29,8 @@
     "browserRecordingShowKeyPresses": true,
     "browserRecordingShowMousePresses": true,
     "browserLinkTarget": true,
+    "browserSearchEngine": true,
+    "browserCustomSearchUrl": true,
     "browserAutoShowFloatingPreview": true,
     "confirmQuit": true,
     "confirmThreadArchive": true,
@@ -74,7 +76,8 @@
     "snapShotSound": true,
     "snapShotFlash": true,
     "snapShotAnimations": true,
-    "wordWrap": true
+    "wordWrap": true,
+    "mathRenderingEnabled": true
   },
   "server": {
     "providerInstances": false,
@@ -93,7 +96,7 @@
     "previousWorktreesDirectories": false,
     "favorites": "$favorites",
     "providerModelPreferences": "$modelPreferences",
-    "storageCleanup": {"schemaVersion": true, "worktreeKeepWhen": true, "worktreeAfterDays": true, "worktreeOnMerge": true, "worktreeOnDelete": true, "worktreeUnchanged": true, "browserArtifactsAfterDays": true, "logsAfterDays": true},
+    "storageCleanup": {"schemaVersion": true, "worktreeKeepWhen": true, "worktreeAfterDays": true, "worktreeSettledAfterDays": true, "worktreeOnMerge": true, "worktreeOnDelete": true, "worktreeUnchanged": true, "browserArtifactsAfterDays": true, "logsAfterDays": true},
     "defaultAutoPull": true,
     "defaultModelSelection": "$model",
     "defaultRuntimeMode": true,
@@ -119,6 +122,7 @@
     "sidebarAutoSettleAfterDays": true,
     "continueThreadsAfterServerUpdate": true,
     "autoResumeLimitedThreads": true,
+    "idleCompaction": true,
     "responseStreamingMode": true
   },
   "desktop": {
