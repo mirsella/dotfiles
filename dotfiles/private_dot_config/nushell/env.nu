@@ -1,14 +1,19 @@
 # T3's boot service can start before Plasma imports its display environment.
-# Refresh it for each new terminal or project script without restarting T3.
-if ($env.T3_BOOT_SERVICE_UNIT? | is-not-empty) and (
-  [$env.WAYLAND_DISPLAY? $env.WAYLAND_SOCKET? $env.DISPLAY?] | all {|value| $value | is-empty }
-) {
-  let session = (^systemctl --user show-environment --output=json | complete)
-  if $session.exit_code != 0 {
-    print --stderr $"Failed to read the desktop environment for T3: ($session.stderr | str trim)"
-  } else {
-    $session.stdout | from json
-    | select --optional DISPLAY WAYLAND_DISPLAY XAUTHORITY XDG_RUNTIME_DIR | compact | load-env
+# Preserve explicit displays, including an inherited Wayland socket.
+if ($env.T3_BOOT_SERVICE_UNIT? | is-not-empty) {
+  let missing = [DISPLAY WAYLAND_DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_SESSION_TYPE]
+    | where {|name|
+      (($env | get --optional $name | is-empty)
+        and ($name != 'WAYLAND_DISPLAY' or ($env.WAYLAND_SOCKET? | is-empty)))
+    }
+  if 'DISPLAY' in $missing or 'WAYLAND_DISPLAY' in $missing {
+    let session = (^systemctl --user show-environment --output=json | complete)
+    if $session.exit_code != 0 {
+      print --stderr $"Failed to read the desktop environment for T3: ($session.stderr | str trim)"
+    } else {
+      $session.stdout | from json
+      | select --optional ...$missing | compact --empty | load-env
+    }
   }
 }
 
