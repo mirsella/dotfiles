@@ -881,7 +881,7 @@
           },
           {
             "async": false,
-            "command": "sh \"$T3CODE_PROJECT_ROOT/scripts/setup-worktree.sh\"",
+            "command": "sh -c 'exec sh \"$T3CODE_PROJECT_ROOT/scripts/setup-worktree.sh\"'",
             "icon": "configure",
             "id": "setup-worktree",
             "name": "Setup Worktree",
