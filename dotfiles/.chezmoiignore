@@ -29,9 +29,9 @@ kde shortcuts.kksrc
 .config/systemd/user/**
 # Home Manager owns Dolphin's on-demand Nextcloud network shortcut.
 .local/share/remoteview/nextcloud.desktop
-# Home Manager installs the REA skill independently from OpenCode's JSONC settings.
-.config/opencode/skills/reverse-engineer-anything/
-.config/opencode/skills/reverse-engineer-anything/**
+# Home Manager installs the leanrea skill independently from OpenCode's JSONC settings.
+.config/opencode/skills/leanrea/
+.config/opencode/skills/leanrea/**
 # Home Manager installs compiled extensions and the idle watchdog.
 .config/opencode/plugins/
 .config/opencode/plugins/**

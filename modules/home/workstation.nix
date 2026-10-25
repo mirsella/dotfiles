@@ -16,14 +16,18 @@ let
     );
 in
 {
-  imports = [ ./electron-theme.nix ./desktop-mcp.nix ./adb-wireless.nix ./codexbar.nix ];
+  imports = [
+    ./electron-theme.nix
+    ./desktop-mcp.nix
+    ./adb-wireless.nix
+    ./codexbar.nix
+    ./reverse-engineering.nix
+  ];
 
   programs.git.settings.commit.gpgsign = true;
   home.packages = [
     pkgs.kache
     pkgs.idle-watchdog
-    pkgs.rea
-    pkgs.ghidra
     pkgs.context7-account-broker
     pkgs.openchamber
   ]
@@ -34,11 +38,6 @@ in
     pkgs.trunk
     pkgs.wasm-pack
   ];
-  home.file.".config/opencode/skills/reverse-engineer-anything" = {
-    source = "${pkgs.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything";
-    recursive = true;
-  };
-
   programs.opencode.enable = false;
   # Cargo uses this stable path so cargo-installed kache cannot shadow its daemon.
   home.file.".local/bin/kache" = {

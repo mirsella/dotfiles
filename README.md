@@ -622,29 +622,29 @@ The old commands have migrated to skills; `commitdiff` and `autocommit` are
 retired. Home Manager owns the shared link, and chezmoi ignores it. Codex's
 built-in skills remain managed by Codex.
 
-## REA reverse engineering
+## leanrea reverse engineering
 
-The workstation Home Manager profiles install [REA](https://rea.tools/) and
-Ghidra on Arch and NixOS. `pkgs/rea` pins the published CLI/MCP runtime and its
-dependencies. Its wrappers select Nix-provided Node 24, Ghidra 12.1.x and JDK 21,
-so OpenCode needs no shell environment setup or runtime package downloads.
-The host-aware chezmoi `opencode.jsonc` template owns the local model provider
-and disabled `rea` MCP registration; Home Manager does not generate
-`opencode.json`. Home Manager installs the matching `reverse-engineer-anything`
-skill and references.
+The workstation Home Manager profiles install
+[leanrea](https://github.com/aicodeking/leanrea) on Arch and NixOS. It is a single
+skill that drives plain local CLI tools instead of an MCP server. `pkgs/leanrea`
+pins the upstream skill and rewrites its install hints to use the Nix-provided
+commands.
 
-The MCP server is disabled by default. Restart OpenCode after a rebuild, then
-enable `rea` in its `/mcp` menu for an investigation. The CLI works independently:
+Home Manager installs the skill at `~/.config/opencode/skills/leanrea`; the shared
+`~/.agents/skills` link exposes it to Codex and Hermes. `modules/home/reverse-engineering.nix`
+also installs the Linux-side toolchain: Ghidra, jadx, apktool, radare2, binwalk,
+unblob, WABT, tshark, asar, electron-fuses, ilspycmd, cargo-audit, checksec,
+Frida, Android tools, binutils, Go, SQLite, ripgrep and archivers. The host-aware
+chezmoi `opencode.jsonc` template no longer registers an MCP server for reverse
+engineering; Home Manager does not generate `opencode.json`.
 
-```sh
-rea doctor --provider ghidra --json
-rea mcp doctor --json
-rea function /absolute/path/to/program main --provider ghidra --json
-```
+Restart agents after a rebuild so they reload their skill lists, then ask for a
+reverse-engineering task and let the `leanrea` skill route it. macOS-only tools in
+the skill keep their documented fallbacks.
 
 Apply `homeConfigurations.main` or `homeConfigurations.laptop` on Arch. On NixOS,
 use the system rebuild command above. Update this flake to change the installation;
-`rea setup` writes client configuration outside Home Manager.
+do not install this toolchain with brew, npm, dotnet tool or cargo.
 
 ## Predator Proton Pass login
 

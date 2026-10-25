@@ -63,11 +63,6 @@ http_headers_helper = "/home/mirsella/.local/bin/composio-mcp-headers"
 url = "https://mcp.pscale.dev/mcp/planetscale"
 enabled = false
 
-[mcp_servers.rea]
-command = "rea"
-args = ["mcp"]
-enabled = false
-
 
 [plugins."browser@openai-bundled"]
 enabled = false

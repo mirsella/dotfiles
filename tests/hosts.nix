@@ -255,17 +255,14 @@ assert lib.assertMsg
   (lib.all (
     home:
     let
-      reaSkill = home.home.file.".config/opencode/skills/reverse-engineer-anything";
+      leanreaSkill = home.home.file.".config/opencode/skills/leanrea";
     in
     !home.programs.opencode.enable
     && !(builtins.hasAttr "opencode/opencode.json" home.xdg.configFile)
-    && lib.elem flake.packages.x86_64-linux.rea home.home.packages
-    &&
-      reaSkill.source
-      == "${flake.packages.x86_64-linux.rea}/lib/node_modules/rea-agents/skills/reverse-engineer-anything"
-    && reaSkill.recursive
+    && leanreaSkill.source == "${flake.packages.x86_64-linux.leanrea}/share/leanrea"
+    && leanreaSkill.recursive
   ) workstationHomes)
-  "Workstations must keep OpenCode JSONC canonical and install the REA skill without generating opencode.json";
+  "Workstations must keep OpenCode JSONC canonical and install the leanrea skill without generating opencode.json";
 assert lib.assertMsg
   (
     lib.all (
