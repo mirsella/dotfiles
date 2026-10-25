@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
-  # leanrea is a prompt for tools the agent runs itself, so install the toolchain
-  # rather than an MCP server. macOS-only commands keep their documented fallbacks.
+  # leanrea is a prompt for tools the agent runs itself, so install the Linux
+  # toolchain rather than an MCP server.
   home.packages = with pkgs; [
     ghidra
     jadx

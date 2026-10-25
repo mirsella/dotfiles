@@ -631,7 +631,7 @@ pins the upstream skill and rewrites its install hints to use the Nix-provided
 commands.
 
 Home Manager installs the skill at `~/.config/opencode/skills/leanrea`; the shared
-`~/.agents/skills` link exposes it to Codex and Hermes. `modules/home/reverse-engineering.nix`
+`~/.agents/skills` link exposes it to Codex on the workstations. `modules/home/reverse-engineering.nix`
 also installs the Linux-side toolchain: Ghidra, jadx, apktool, radare2, binwalk,
 unblob, WABT, tshark, asar, electron-fuses, ilspycmd, cargo-audit, checksec,
 Frida, Android tools, binutils, Go, SQLite, ripgrep and archivers. The host-aware
@@ -639,8 +639,7 @@ chezmoi `opencode.jsonc` template no longer registers an MCP server for reverse
 engineering; Home Manager does not generate `opencode.json`.
 
 Restart agents after a rebuild so they reload their skill lists, then ask for a
-reverse-engineering task and let the `leanrea` skill route it. macOS-only tools in
-the skill keep their documented fallbacks.
+reverse-engineering task and let the `leanrea` skill route it.
 
 Apply `homeConfigurations.main` or `homeConfigurations.laptop` on Arch. On NixOS,
 use the system rebuild command above. Update this flake to change the installation;

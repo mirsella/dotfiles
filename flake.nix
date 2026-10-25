@@ -49,11 +49,12 @@
         config.allowUnfreePredicate = package: nixpkgs.lib.getName package == "sleev";
       };
       customPackages = (import ./pkgs pkgs) // { inherit (pkgs) context7-account-broker; };
-      # nix-update follows each package's own versioning: npm releases regenerate the lock, release tarballs use the stable version, and VCS packages track their branch.
-      releaseTarballs = [ "helium" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
+      # nix-update follows each package's own versioning: npm lockfiles are regenerated,
+      # stable releases use the stable version, and VCS packages track their branch.
+      stableVersionPackages = [ "electron-fuses" "helium" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
       localPackages = [ "host-tools" "sleev" "opencode-extensions" "idle-watchdog" "context7-account-broker" ];
       updateVersionFlag = name:
-        if builtins.elem name releaseTarballs then
+        if builtins.elem name stableVersionPackages then
           "--version stable"
         else if builtins.pathExists (./pkgs + "/${name}/package-lock.json") then
           "--version stable --generate-lockfile"
