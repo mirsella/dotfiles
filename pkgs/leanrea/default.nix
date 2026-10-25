@@ -21,7 +21,7 @@ stdenvNoCC.mkDerivation {
       --replace-fail 'npx -y @electron/fuses' 'electron-fuses' \
       --replace-fail 'npx -y prettier' 'prettier' \
       --replace-fail '(install: `dotnet tool install -g ilspycmd`)' '(installed by Nix)' \
-      --replace-fail 'checksec: `pwn checksec`' 'checksec: `checksec`' \
+      --replace-fail 'checksec: `pwn checksec`' 'checksec: `checksec file T`' \
       --replace-fail 'or `brew install <x>` if the user allows it' 'or ask for the dotfiles flake to add it if the user allows it' \
       --replace-fail '`brew install jadx apktool radare2 binwalk wabt wireshark ghidra` · `npm i -g @electron/asar` · `dotnet tool install -g ilspycmd` · `cargo install cargo-audit`.' 'The workstation Home Manager profiles install jadx, apktool, radare2, binwalk, wabt, tshark, Ghidra, asar, electron-fuses, ilspycmd and cargo-audit through Nix. Prefer those commands and ask for the dotfiles flake to add a missing tool instead of running brew, npm, dotnet tool or cargo install.' \
       --replace-fail 'Ghidra `analyzeHeadless $D p -import T -postScript DecompileAll.java -deleteProject` or ' ""
