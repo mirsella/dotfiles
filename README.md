@@ -209,6 +209,22 @@ Capture and apply report unknown field paths without printing their values.
 Add a field to the allowlist to capture it, or set its rule to `false` to
 explicitly ignore it. Known exclusions do not produce warnings.
 
+Capture also drops client and server values that match T3's own defaults, so
+the bundle only carries preferences that were deliberately changed. Keybindings
+stay in full: T3 suppresses every default rule for a command that appears in
+its keybindings file, so a missing binding does not mean "default". The
+defaults are read from the installed app image: `t3-settings` extracts the
+bundled server module and imports its settings schemas once per app build,
+caching the result under `~/.local/state/agent-tools/t3-settings-defaults/`.
+An upgraded app is a new cache key, and so is a changed helper. If the bundle
+layout or its exported constants change, capture keeps every allowlisted value
+and warns instead of failing. `T3_SETTINGS_NODE` selects the Node binary used
+for that import (Home Manager sets it for the launcher and the setup service).
+Applying a bundle removes managed keys that are absent, which restores T3's
+defaults on the applying machine. Bundles and sync records written before
+pruning are normalized before they are compared, so an older record does not
+look like a local edit.
+
 Preferences changed in the app sync back to the portable bundle automatically:
 the settings watcher reruns the sync when live T3 settings files change, and
 the one side that changed wins. When both sides changed since the last sync,

@@ -18,6 +18,7 @@
   util-linux,
   appimage-run,
   nix,
+  nodejs,
   isNixOS ? false,
 }:
 let
@@ -119,6 +120,8 @@ runCommand "agent-tools"
     chmod +x $out/bin/bootstrap-agent-tools
     cat > $out/bin/t3-settings <<'EOF'
     #!${lib.getExe bash}
+    # Default pruning imports T3's own settings schema bundle.
+    export T3_SETTINGS_NODE=${lib.getExe nodejs}
     exec ${lib.getExe host-tools} t3-settings "$@"
     EOF
     chmod +x $out/bin/t3-settings

@@ -553,15 +553,43 @@ fn warn_live_unknown_fields(
     Ok(())
 }
 
+// Drop values T3 supplies itself at decode time so the portable bundle only
+// records deliberate changes. `Policy::merge` removes managed keys that are
+// absent from the bundle, so applying a pruned bundle restores the default.
+fn prune_defaults(value: &mut Value, defaults: &Value) {
+    let (Some(values), Some(defaults)) = (value.as_object_mut(), defaults.as_object()) else {
+        return;
+    };
+    values.retain(|key, value| {
+        let Some(default) = defaults.get(key) else {
+            return true;
+        };
+        if value == default {
+            return false;
+        }
+        prune_defaults(value, default);
+        !value.as_object().is_some_and(Map::is_empty)
+    });
+}
+
+fn normalize_bundle_value(value: &mut Value, defaults: &crate::t3_defaults::Defaults) {
+    if let Some(client) = value.get_mut("client") {
+        prune_defaults(client, &defaults.client);
+    }
+    if let Some(server) = value.get_mut("server") {
+        prune_defaults(server, &defaults.server);
+    }
+}
+
 fn capture(policy: &Policy, home: &Path, base_dir: &Path) -> Result<Bundle> {
     let dir = base_dir.join("userdata");
-    let client = policy.capture(
+    let mut client = policy.capture(
         "client",
         &SettingsFile::read(dir.join("client-settings.json"), object())?.value,
         "client",
     )?;
     let raw_server = SettingsFile::read(dir.join("settings.json"), object())?.value;
-    let server = policy.capture("server", &raw_server, "server")?;
+    let mut server = policy.capture("server", &raw_server, "server")?;
     let desktop = policy.capture(
         "desktop",
         &SettingsFile::read(dir.join("desktop-settings.json"), object())?.value,
@@ -572,6 +600,10 @@ fn capture(policy: &Policy, home: &Path, base_dir: &Path) -> Result<Bundle> {
         &SettingsFile::read(dir.join("keybindings.json"), json!([]))?.value,
         "keybindings",
     )?;
+    if let Some(defaults) = crate::t3_defaults::load(home) {
+        prune_defaults(&mut client, &defaults.client);
+        prune_defaults(&mut server, &defaults.server);
+    }
     let providers = policy.capture_entries("provider", &raw_server, "providerInstances")?;
     for provider in providers.values() {
         validate_provider(provider, None)?;
@@ -1061,11 +1093,11 @@ fn decide(load: &StateLoad, live: Option<&Value>, bundle: &Value) -> Decision {
 }
 
 fn sync_state_path(home: &Path) -> PathBuf {
-    home.join(".local/state/agent-tools/t3-settings-sync.json")
+    crate::agent_tools::state_dir(home).join("t3-settings-sync.json")
 }
 
 fn history_dir(home: &Path) -> PathBuf {
-    home.join(".local/state/agent-tools/t3-settings-history")
+    crate::agent_tools::state_dir(home).join("t3-settings-history")
 }
 
 /// How the last reconciliation record loaded. Only a missing record means
@@ -1327,7 +1359,7 @@ fn sync(
     force_capture: bool,
 ) -> Result<()> {
     let bundle_path = input.unwrap_or_else(|| home.join(".config/t3code/portable-settings.json"));
-    let Some(bundle) = read_bundle_file(&bundle_path)? else {
+    let Some(mut bundle) = read_bundle_file(&bundle_path)? else {
         println!(
             "t3-settings sync: no portable bundle at {}; apply editable dotfiles to restore T3 preferences",
             bundle_path.display()
@@ -1335,6 +1367,18 @@ fn sync(
         return Ok(());
     };
     validate_bundle(policy, &bundle)?;
+    // Older bundles and sync records predate default pruning. Normalizing both
+    // sides before comparing keeps that representation change from looking like
+    // an edit on every machine that receives a pruned bundle.
+    let defaults = if base_dir.join("userdata").try_exists()? {
+        crate::t3_defaults::load(home)
+    } else {
+        None
+    };
+    if let Some(defaults) = &defaults {
+        prune_defaults(&mut bundle.client, &defaults.client);
+        prune_defaults(&mut bundle.server, &defaults.server);
+    }
     let bundle_val = bundle_value(&bundle)?;
     let live_bundle = if base_dir.join("userdata").try_exists()? {
         Some(capture(policy, home, base_dir)?)
@@ -1342,7 +1386,25 @@ fn sync(
         None
     };
     let live_val = live_bundle.as_ref().map(bundle_value).transpose()?;
-    let load = load_state(home);
+    let mut load = load_state(home);
+    let raw_state = match &load {
+        StateLoad::Present(state) => Some((state.bundle.clone(), state.live.clone())),
+        _ => None,
+    };
+    if let Some(defaults) = &defaults
+        && let StateLoad::Present(state) = &mut load
+    {
+        normalize_bundle_value(&mut state.bundle, defaults);
+        if let Some(live) = state.live.as_mut() {
+            normalize_bundle_value(live, defaults);
+        }
+    }
+    let state_dirty = match (&raw_state, &load) {
+        (Some((bundle, live)), StateLoad::Present(state)) => {
+            state.bundle != *bundle || state.live != *live
+        }
+        _ => false,
+    };
     let mut decision = decide(&load, live_val.as_ref(), &bundle_val);
     // The force flags resolve a conflict, not a decided direction: a flag
     // aimed at the side that did not change would silently destroy the side
@@ -1408,12 +1470,20 @@ fn sync(
                     snapshot,
                 )?;
             }
+            // Drop defaults that older bundles still spell out even when no
+            // setting changed, so every machine converges on the pruned form.
+            if write_bundle_file(&bundle_path, base_dir, &bundle)? {
+                println!("t3-settings sync: normalized the portable bundle");
+            }
             // Refresh stale records (manual capture/apply converge the sides
             // without recording state) so the next change compares correctly.
-            let stale = match &load {
-                StateLoad::Present(state) => state.bundle != bundle_val || state.live != live_val,
-                _ => true,
-            };
+            let stale = state_dirty
+                || match &load {
+                    StateLoad::Present(state) => {
+                        state.bundle != bundle_val || state.live != live_val
+                    }
+                    _ => true,
+                };
             if stale {
                 save_state(
                     home,
@@ -2280,5 +2350,70 @@ mod tests {
         let entry = last_history_entry(home.path()).context("history should load")?;
         assert_eq!(entry.direction, "capture");
         Ok(())
+    }
+
+    #[test]
+    fn capture_prunes_defaults_and_apply_restores_them() {
+        let policy = Policy::new();
+        let defaults = json!({
+            "client": {
+                "notificationMode": "off",
+                "fontSizeCode": 13,
+                "browserDefaultViewport": {"_tag": "fill"},
+                "snapShotShortcut": {"kind": "both-shift-keys", "metaKey": false}
+            },
+            "server": {"idleCompaction": "beforeCacheExpires"}
+        });
+
+        let live = json!({
+            "notificationMode": "off",
+            "fontSizeCode": 15,
+            "browserDefaultViewport": {"_tag": "fill"},
+            "snapShotShortcut": {"kind": "both-shift-keys", "metaKey": false},
+            "wordWrap": true
+        });
+        let mut client = policy.capture("client", &live, "client").unwrap();
+        prune_defaults(&mut client, &defaults["client"]);
+        assert_eq!(client, json!({"fontSizeCode": 15, "wordWrap": true}));
+
+        let mut local = json!({"notificationMode": "off", "fontSizeCode": 11, "localOnly": true});
+        policy.merge_section("client", &mut local, &client);
+        assert_eq!(
+            local,
+            json!({"fontSizeCode": 15, "localOnly": true, "wordWrap": true})
+        );
+
+        let mut server = policy
+            .capture(
+                "server",
+                &json!({"idleCompaction": "beforeCacheExpires", "defaultAutoPull": true}),
+                "server",
+            )
+            .unwrap();
+        prune_defaults(&mut server, &defaults["server"]);
+        assert_eq!(server, json!({"defaultAutoPull": true}));
+
+        // Sync records written before pruning must compare equal after both
+        // sides pass through the same filter. Keybindings stay untouched: T3
+        // suppresses every default rule for a command that appears in its file,
+        // so an absent binding does not mean "default".
+        let expected = crate::t3_defaults::Defaults {
+            client: defaults["client"].clone(),
+            server: defaults["server"].clone(),
+        };
+        let mut state = json!({
+            "client": {"notificationMode": "off", "fontSizeCode": 15},
+            "server": {"idleCompaction": "beforeCacheExpires", "defaultAutoPull": true},
+            "keybindings": [{"key": "mod+b", "command": "sidebar.toggle"}]
+        });
+        normalize_bundle_value(&mut state, &expected);
+        assert_eq!(
+            state,
+            json!({
+                "client": {"fontSizeCode": 15},
+                "server": {"defaultAutoPull": true},
+                "keybindings": [{"key": "mod+b", "command": "sidebar.toggle"}]
+            })
+        );
     }
 }

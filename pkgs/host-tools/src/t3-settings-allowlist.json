@@ -123,6 +123,7 @@
     "continueThreadsAfterServerUpdate": true,
     "autoResumeLimitedThreads": true,
     "idleCompaction": true,
+    "compactIdleThreads": true,
     "responseStreamingMode": true
   },
   "desktop": {

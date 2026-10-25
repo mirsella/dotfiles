@@ -17,6 +17,7 @@ mod predator_boot;
 mod setup;
 mod suspend;
 mod t3_activity;
+mod t3_defaults;
 mod t3_settings;
 #[cfg(test)]
 mod tests;

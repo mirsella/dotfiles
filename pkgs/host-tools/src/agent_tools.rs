@@ -34,6 +34,10 @@ fn home() -> Result<PathBuf> {
     Ok(home)
 }
 
+pub(crate) fn state_dir(home: &Path) -> PathBuf {
+    home.join(".local/state/agent-tools")
+}
+
 fn native_version(program: &Path, root: &Path) -> Result<Option<String>> {
     match fs::canonicalize(program) {
         Ok(path) if path.starts_with(root) => {
@@ -202,7 +206,7 @@ pub fn bootstrap(package: &Path) -> Result<()> {
         "T3's bootstrap release must be nightly"
     );
     let home = home()?;
-    let state = home.join(".local/state/agent-tools");
+    let state = state_dir(&home);
     fs::create_dir_all(&state)?;
     let lock = fs::File::options()
         .create(true)

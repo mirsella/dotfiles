@@ -42,7 +42,7 @@
       Service = {
         Type = "oneshot";
         ExecStart = "${lib.getExe pkgs.host-tools} agent-tools-setup";
-        Environment = "PATH=${lib.makeBinPath [ pkgs.systemd ]}:${config.home.homeDirectory}/.local/bin";
+        Environment = "PATH=${lib.makeBinPath [ pkgs.systemd ]}:${config.home.homeDirectory}/.local/bin T3_SETTINGS_NODE=${lib.getExe pkgs.nodejs}";
         TimeoutStartSec = "120s";
       };
       Install.WantedBy = [ "default.target" ];
