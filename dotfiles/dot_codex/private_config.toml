@@ -18,6 +18,9 @@ trust_level = "trusted"
 [projects."/home/mirsella/dev/dotfiles"]
 trust_level = "trusted"
 
+[projects."/home/mirsella/dev/computer-use-mcp"]
+trust_level = "trusted"
+
 [tui]
 animations = false
 screen_reader_detection_done = true
@@ -39,7 +42,7 @@ ref = "release/latest"
 
 [marketplaces.browser-mcp]
 source_type = "local"
-source = "/home/mirsella/.local/share/browser-mcp/2.0.3"
+source = "/home/mirsella/.local/share/browser-mcp/2.0.4"
 
 [mcp_servers.context7-broker]
 command = "/home/mirsella/.local/bin/context7-account-broker"

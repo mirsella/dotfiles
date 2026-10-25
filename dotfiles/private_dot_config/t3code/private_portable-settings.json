@@ -3,6 +3,7 @@
   "client": {
     "appearanceContrast": 100,
     "browserAutoShowFloatingPreview": true,
+    "browserCustomSearchUrl": "",
     "browserDefaultAppearance": "system",
     "browserDefaultViewport": {
       "_tag": "fill"
@@ -12,6 +13,7 @@
     "browserRecordingFrameRate": 30,
     "browserRecordingShowKeyPresses": true,
     "browserRecordingShowMousePresses": true,
+    "browserSearchEngine": "duckduckgo",
     "chatWidth": "comfortable",
     "composerCollapseOnScroll": true,
     "composerRichTextEnabled": true,
@@ -46,6 +48,7 @@
     "legacySidebarEnabled": false,
     "loadBalancingEnabled": false,
     "loadBalancingWeights": {},
+    "mathRenderingEnabled": false,
     "notificationMode": "notifications",
     "panelAnimationDurationMs": 0,
     "persistComposerContextStrip": true,
@@ -119,6 +122,7 @@
         "provider": "opencode"
       }
     ],
+    "idleCompaction": "beforeCacheExpires",
     "providerModelPreferences": {
       "acpRegistry_opencode": {
         "hiddenModels": [
@@ -390,6 +394,7 @@
       "worktreeAfterDays": 3,
       "worktreeOnDelete": true,
       "worktreeOnMerge": true,
+      "worktreeSettledAfterDays": 1,
       "worktreeUnchanged": true
     }
   },
@@ -828,6 +833,15 @@
         "faviconPath": null,
         "projectIcon": null,
         "title": "browser-mcp"
+      },
+      "settings": {}
+    },
+    {
+      "workspace_root": "~/dev/computer-use-mcp",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "computer-use-mcp"
       },
       "settings": {}
     },
