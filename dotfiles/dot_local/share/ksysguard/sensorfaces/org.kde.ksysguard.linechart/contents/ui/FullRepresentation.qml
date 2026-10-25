@@ -13,6 +13,8 @@ import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
 
+import org.kde.plasma.plasma5support as Plasma5Support
+
 import org.kde.ksysguard.sensors as Sensors
 import org.kde.ksysguard.faces as Faces
 import org.kde.ksysguard.formatter as Formatter
@@ -39,6 +41,84 @@ Faces.SensorFace {
             return legend.highlightedIndex
         }
         return sensorIds.indexOf(root.controller.lowPrioritySensorIds[legend.highlightedIndex])
+    }
+
+    // The CPU widget is the only one whose sensors start with "cpu/". Its
+    // package power comes from the APU's SMU sensor; the total is the battery
+    // discharge power, so it only exists while unplugged. A machine without a
+    // battery reports no values and hides the readout.
+    readonly property bool showPowerReadout: {
+        for (var i = 0; i < root.controller.highPrioritySensorIds.length; ++i) {
+            if (root.controller.highPrioritySensorIds[i].startsWith("cpu/")) {
+                return true
+            }
+        }
+        return false
+    }
+    property real packageWatts: NaN
+    property real totalWatts: NaN
+    property string powerFailure: ""
+    property bool powerRunning: false
+    property bool powerUnsupported: false
+
+    function watts(value) {
+        return value.toLocaleString(Qt.locale(), "f", 0) + " W"
+    }
+
+    TextMetrics {
+        id: wattValueMetrics
+        font: legend.font
+        text: "999 W"
+    }
+
+    Plasma5Support.DataSource {
+        id: powerExecutable
+        engine: "executable"
+        onNewData: (source, data) => {
+            disconnectSource(source)
+            root.powerRunning = false
+            try {
+                if (data["exit code"] !== 0 || data["exit status"] !== 0) {
+                    throw new Error(data["stderr"] || "Power helper failed")
+                }
+                const next = JSON.parse(data["stdout"])
+                for (const key of ["packageWatts", "totalWatts"]) {
+                    if (next[key] !== null && (!Number.isFinite(next[key]) || next[key] < 0 || next[key] > 1000)) {
+                        throw new Error("Invalid power value: " + key)
+                    }
+                }
+                if (next.packageWatts === null && next.totalWatts === null) {
+                    // No battery: this machine has no laptop power to report.
+                    // Stop polling until the widget or helper changes.
+                    root.powerUnsupported = true
+                    root.packageWatts = NaN
+                    root.totalWatts = NaN
+                    root.powerFailure = ""
+                    return
+                }
+                root.packageWatts = Number.isFinite(next.packageWatts) ? next.packageWatts : NaN
+                root.totalWatts = Number.isFinite(next.totalWatts) ? next.totalWatts : NaN
+                root.powerFailure = ""
+            } catch (error) {
+                root.packageWatts = NaN
+                root.totalWatts = NaN
+                root.powerFailure = String(error)
+                console.error(error)
+            }
+        }
+    }
+
+    Timer {
+        interval: 2000
+        running: root.showPowerReadout && !root.powerUnsupported
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            if (!root.powerRunning) {
+                root.powerRunning = true
+                powerExecutable.connectSource("$HOME/.local/bin/plasma-power-summary")
+            }
+        }
     }
 
     // Keeps a chart's value sources in sync with a sensor data model: one
@@ -219,9 +299,62 @@ Faces.SensorFace {
             Layout.fillWidth: true
             Layout.minimumHeight: implicitHeight
             visible: root.showLegend
+            horizontalSpacing: root.showPowerReadout ? Kirigami.Units.smallSpacing : Kirigami.Units.gridUnit
             readonly property bool lowPriorityLegend: root.controller.lowPrioritySensorIds.length > 0
             chart: legend.lowPriorityLegend ? legendChart : compactRepresentation
             sourceModel: root.showLegend ? (legend.lowPriorityLegend ? legendSensorsModel : compactRepresentation.sensorsModel) : null
+
+            ChartsControls.LegendDelegate {
+                id: packageLegend
+                visible: root.showPowerReadout && Number.isFinite(root.packageWatts)
+                name: "CPU"
+                value: root.watts(root.packageWatts)
+                indicator: null
+                maximumValueWidth: wattValueMetrics.width
+                ChartsControls.LegendLayout.minimumWidth: minimumWidth
+                ChartsControls.LegendLayout.preferredWidth: preferredWidth
+                ChartsControls.LegendLayout.maximumWidth: Math.max(legend.maximumDelegateWidth, preferredWidth)
+
+                HoverHandler {
+                    id: packageHover
+                }
+                QQC2.ToolTip.visible: packageHover.hovered
+                QQC2.ToolTip.text: "APU package power (CPU and integrated GPU)"
+            }
+
+            ChartsControls.LegendDelegate {
+                id: totalLegend
+                visible: root.showPowerReadout && Number.isFinite(root.totalWatts)
+                name: "Total"
+                value: root.watts(root.totalWatts)
+                indicator: null
+                maximumValueWidth: wattValueMetrics.width
+                ChartsControls.LegendLayout.minimumWidth: minimumWidth
+                ChartsControls.LegendLayout.preferredWidth: preferredWidth
+                ChartsControls.LegendLayout.maximumWidth: Math.max(legend.maximumDelegateWidth, preferredWidth)
+
+                HoverHandler {
+                    id: totalHover
+                }
+                QQC2.ToolTip.visible: totalHover.hovered
+                QQC2.ToolTip.text: "Whole-laptop draw, measured from battery voltage and current"
+            }
+
+            ChartsControls.LegendDelegate {
+                visible: root.showPowerReadout && root.powerFailure.length > 0
+                name: "Power"
+                value: "n/a"
+                color: Kirigami.Theme.negativeTextColor
+                ChartsControls.LegendLayout.minimumWidth: minimumWidth
+                ChartsControls.LegendLayout.preferredWidth: preferredWidth
+                ChartsControls.LegendLayout.maximumWidth: Math.max(legend.maximumDelegateWidth, preferredWidth)
+
+                HoverHandler {
+                    id: powerFailureHover
+                }
+                QQC2.ToolTip.visible: powerFailureHover.hovered
+                QQC2.ToolTip.text: root.powerFailure
+            }
         }
 
         // Hidden helper chart: draws nothing, but holds one value source per
@@ -271,7 +404,22 @@ Faces.SensorFace {
             // Feeds the hidden legend chart and the legend's unit lookups.
             sensors: root.controller.lowPrioritySensorIds
             updateRateLimit: root.controller.updateRateLimit
-            sensorLabels: root.controller.sensorLabels
+            // The default CPU sensor names are long enough to crowd the
+            // one-line legend and elide the values next to them. Keep labels
+            // configured for this widget, if any.
+            sensorLabels: {
+                if (!root.showPowerReadout) {
+                    return root.controller.sensorLabels
+                }
+                const labels = Object.assign({}, root.controller.sensorLabels)
+                if (!labels["cpu/all/averageFrequency"]) {
+                    labels["cpu/all/averageFrequency"] = "Avg CPU Freq"
+                }
+                if (!labels["cpu/all/averageTemperature"]) {
+                    labels["cpu/all/averageTemperature"] = "Avg Temp"
+                }
+                return labels
+            }
         }
     }
 }

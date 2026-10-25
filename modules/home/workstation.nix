@@ -65,6 +65,10 @@ in
     source = "${pkgs.host-tools}/bin/plasma-memory-summary";
     force = true;
   };
+  home.file.".local/bin/plasma-power-summary" = {
+    source = "${pkgs.host-tools}/bin/plasma-power-summary";
+    force = true;
+  };
   xdg.configFile =
     lib.genAttrs
       (map (directory: "opencode/${directory}") [
