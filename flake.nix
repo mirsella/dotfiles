@@ -115,6 +115,8 @@
           ++ [
             { name = "host-tools"; path = pkgs.host-tools; }
             { name = "camofox-browser"; path = pkgs.camofox-browser; }
+            { name = "leanrea"; path = pkgs.leanrea; }
+            { name = "electron-fuses"; path = pkgs.electron-fuses; }
           ]
         );
       };
