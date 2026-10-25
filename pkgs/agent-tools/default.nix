@@ -61,9 +61,16 @@ let
     MimeType=x-scheme-handler/t3code;
   '';
   serviceEnvironment = writeText "zz-native-agent-tools.conf" ''
+    [Unit]
+    Wants=sops-nix.service
+    After=sops-nix.service
+
     [Service]
     Environment=T3CODE_CHANNEL=nightly
     EnvironmentFile=-%t/t3code-service-environment.env
+    # The user manager imports environment.d once at startup, before sops-nix
+    # installs the runtime secrets.
+    EnvironmentFile=-%h/.config/environment.d/55-secrets.conf
     # Run after any shell-environment loader and retain its other exports.
     ExecStartPre=%h/.local/state/agent-tools/installed/bin/host-tools agent-tools-environment %t/t3code-service-environment.env
   '';
