@@ -13,7 +13,6 @@
     "inAppNotificationsEnabled": true,
     "notificationMode": "notifications",
     "persistComposerContextStrip": true,
-    "sidebarWorkingShelfEnabled": true,
     "snapShotEnabled": true,
     "snapShotPlaySound": false,
     "snapShotShortcut": {
@@ -65,6 +64,7 @@
         "provider": "opencode"
       }
     ],
+    "guestSharingEnabled": true,
     "idleCompaction": "onReturn",
     "providerModelPreferences": {
       "acpRegistry_opencode": {
