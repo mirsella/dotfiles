@@ -6,8 +6,10 @@ use serde_json::{Map, Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet, btree_map::Entry},
     fs,
+    io::{BufRead, BufReader},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
+    time::{Duration, Instant},
 };
 
 #[derive(Subcommand)]
@@ -435,15 +437,54 @@ fn native_cli_version(home: &Path, base_dir: &Path) -> Result<Option<String>> {
 
 /// Ask a CLI outside T3's runtime store for the version it reports.
 fn reported_cli_version(program: &Path) -> Option<String> {
-    let output = Command::new(program).arg("--version").output().ok()?;
-    if !output.status.success() {
-        return None;
+    reported_cli_version_within(program, Duration::from_secs(5))
+}
+
+fn reported_cli_version_within(program: &Path, timeout: Duration) -> Option<String> {
+    use std::os::unix::process::CommandExt;
+
+    let mut child = Command::new(program)
+        .arg("--version")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .process_group(0)
+        .spawn()
+        .ok()?;
+    let stdout = child.stdout.take()?;
+    let (send, receive) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut line = String::new();
+        let _ = BufReader::new(stdout).read_line(&mut line);
+        let _ = send.send(line);
+    });
+    let deadline = Instant::now() + timeout;
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => break,
+            Ok(Some(_)) => return None,
+            Ok(None) if Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            _ => {
+                kill_group(&mut child);
+                return None;
+            }
+        }
     }
-    String::from_utf8(output.stdout)
-        .ok()?
-        .trim()
-        .strip_prefix("t3 v")
-        .map(str::to_owned)
+    let line = match receive.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+        Ok(line) => line,
+        Err(_) => {
+            kill_group(&mut child);
+            return None;
+        }
+    };
+    line.trim().strip_prefix("t3 v").map(str::to_owned)
+}
+
+fn kill_group(child: &mut std::process::Child) {
+    let _ = unsafe { libc::kill(-(child.id() as i32), libc::SIGKILL) };
+    let _ = child.wait();
 }
 
 /// A CLI from another T3 build would migrate the server's database, so refuse it.
@@ -1904,6 +1945,36 @@ mod tests {
             &base_dir,
         )?;
         Ok(())
+    }
+
+    #[test]
+    fn a_hanging_cli_version_probe_gives_up() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().unwrap();
+        let script = root.path().join("t3");
+        fs::write(&script, "#!/bin/sh\nsleep 30\n").unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+        let started = Instant::now();
+        assert_eq!(
+            reported_cli_version_within(&script, Duration::from_millis(100)),
+            None
+        );
+        assert!(started.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn a_descendant_holding_stdout_does_not_stall_the_probe() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().unwrap();
+        let script = root.path().join("t3");
+        fs::write(&script, "#!/bin/sh\nsleep 2 &\necho 't3 v9.9.9'\n").unwrap();
+        fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(
+            reported_cli_version_within(&script, Duration::from_secs(1)),
+            Some("9.9.9".to_string())
+        );
     }
 
     #[test]
