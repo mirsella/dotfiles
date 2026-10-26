@@ -274,7 +274,7 @@ Image=/home/mirsella/Downloads/image.png
 [Containments][54]
 ItemGeometries-1080x1920=Applet-41:192,0,96,96,0;Applet-51:288,0,192,208,0;Applet-47:0,256,192,208,0;Applet-52:480,0,592,448,0;Applet-34:0,464,224,912,0;
 ItemGeometries-1280x720=Applet-52:0,0,944,448,0;Applet-34:944,0,336,528,0;Applet-41:1024,448,256,96,0;Applet-51:1376,448,272,240,0;Applet-47:1648,448,272,240,0;
-ItemGeometries-1504x1003=Applet-52:0,0,736,464,0;Applet-51:0,464,368,224,0;Applet-34:736,0,768,464,0;Applet-47:368,464,368,224,0;Applet-41:736,464,208,96,0;
+ItemGeometries-1504x1003=Applet-52:0,0,736,464,0;Applet-51:0,464,368,224,0;Applet-34:736,0,768,464,0;Applet-47:368,464,368,224,0;Applet-41:736,464,280,96,0;
 ItemGeometries-1536x864=Applet-52:0,0,944,448,0;Applet-34:944,0,592,528,0;Applet-41:1120,448,256,96,0;Applet-51:1264,544,272,240,0;Applet-47:1552,688,272,240,0;
 ItemGeometries-1745x982=Applet-28:1056,32,656,240,0;
 ItemGeometries-1829x1029=Applet-52:0,0,944,448,0;Applet-34:944,0,880,448,0;Applet-41:1120,448,256,96,0;Applet-51:1376,448,272,240,0;Applet-47:1552,688,272,240,0;
