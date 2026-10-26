@@ -414,8 +414,48 @@ fn cli(base_dir: &Path, args: &[&str]) -> Result<Vec<u8>> {
     Ok(result.stdout)
 }
 
+/// The version directory behind ~/.local/bin/t3, when it links into T3's runtime store.
+fn native_cli_version(home: &Path, base_dir: &Path) -> Result<Option<String>> {
+    let program = home.join(".local/bin/t3");
+    let path = match fs::canonicalize(&program) {
+        Ok(path) => path,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error).with_context(|| format!("resolve {}", program.display())),
+    };
+    let root = match fs::canonicalize(base_dir.join("runtime/versions")) {
+        Ok(root) => root,
+        Err(_) => return Ok(None),
+    };
+    Ok(path
+        .strip_prefix(&root)
+        .ok()
+        .and_then(|relative| relative.components().next())
+        .map(|version| version.as_os_str().to_string_lossy().into_owned()))
+}
+
+/// A CLI from another T3 build would migrate the server's database, so refuse it.
+fn ensure_cli_matches_server(runtime: &Value, home: &Path, base_dir: &Path) -> Result<()> {
+    let Some(server_version) = runtime["serverVersion"].as_str() else {
+        return Ok(());
+    };
+    let Some(cli_version) = native_cli_version(home, base_dir)? else {
+        return Ok(());
+    };
+    ensure!(
+        cli_version == server_version,
+        "T3 CLI/server version mismatch: {} runs {cli_version}, but the server runs {server_version}; point it at {} or update T3",
+        home.join(".local/bin/t3").display(),
+        base_dir
+            .join("runtime/versions")
+            .join(server_version)
+            .join("t3")
+            .display(),
+    );
+    Ok(())
+}
+
 impl Session {
-    fn open(base_dir: &Path, write: bool) -> Result<Self> {
+    fn open(home: &Path, base_dir: &Path, write: bool) -> Result<Self> {
         let runtime_path = base_dir.join("userdata/server-runtime.json");
         let runtime: Value = util::wait_for_file(
             &runtime_path,
@@ -438,6 +478,7 @@ impl Session {
                 && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]")),
             "T3 runtime must expose a local HTTP endpoint"
         );
+        ensure_cli_matches_server(&runtime, home, base_dir)?;
         let mut args = vec![
             "auth",
             "session",
@@ -610,7 +651,7 @@ fn capture(policy: &Policy, home: &Path, base_dir: &Path) -> Result<Bundle> {
     }
     let mut overrides =
         policy.capture_entries("projectSettings", &raw_server, "projectSettingsOverrides")?;
-    let session = Session::open(base_dir, false)?;
+    let session = Session::open(home, base_dir, false)?;
     let mut projects = Vec::new();
     for project in session.projects()? {
         if !project["deletedAt"].is_null() {
@@ -963,7 +1004,7 @@ fn apply(
     for (id, provider) in &bundle.providers {
         validate_provider(provider, server.value["providerInstances"].get(id))?;
     }
-    let session = Session::open(base_dir, !dry_run)?;
+    let session = Session::open(home, base_dir, !dry_run)?;
     let ids = restore_projects(&session, &bundle, home, dry_run)?;
     server = SettingsFile::read(dir.join("settings.json"), object())?;
     restore_server(policy, &mut server.value, &bundle, &ids)?;
@@ -1724,6 +1765,61 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn t3_cli_must_match_the_running_server_version() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let home = root.path().join("home");
+        let base_dir = home.join(".t3");
+        let binary = base_dir.join("runtime/versions/0.1.3-nightly.1/t3");
+        fs::create_dir_all(binary.parent().unwrap())?;
+        fs::write(&binary, "")?;
+        fs::create_dir_all(home.join(".local/bin"))?;
+        let link = home.join(".local/bin/t3");
+        std::os::unix::fs::symlink(&binary, &link)?;
+
+        ensure_cli_matches_server(
+            &json!({"serverVersion": "0.1.3-nightly.1"}),
+            &home,
+            &base_dir,
+        )?;
+        let error = ensure_cli_matches_server(
+            &json!({"serverVersion": "0.1.4-nightly.2"}),
+            &home,
+            &base_dir,
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("0.1.3-nightly.1"), "{error}");
+        assert!(error.contains("0.1.4-nightly.2"), "{error}");
+        assert!(error.contains(&link.display().to_string()), "{error}");
+        assert!(
+            error.contains(
+                &base_dir
+                    .join("runtime/versions/0.1.4-nightly.2/t3")
+                    .display()
+                    .to_string()
+            ),
+            "{error}"
+        );
+
+        let linked_base = home.join("linked-t3");
+        std::os::unix::fs::symlink(&base_dir, &linked_base)?;
+        ensure_cli_matches_server(
+            &json!({"serverVersion": "0.1.3-nightly.1"}),
+            &home,
+            &linked_base,
+        )?;
+
+        fs::remove_file(&link)?;
+        std::os::unix::fs::symlink("/bin/sh", &link)?;
+        ensure_cli_matches_server(
+            &json!({"serverVersion": "0.1.4-nightly.2"}),
+            &home,
+            &base_dir,
+        )?;
+        Ok(())
+    }
 
     #[test]
     fn native_credentials_only_replace_matching_local_enabled_opencode() -> Result<()> {

@@ -52,6 +52,7 @@
       Path.PathChanged = [
         "%h/.config/t3code/portable-settings.json"
         "%h/.config/opencode/service.json"
+        "%h/.local/bin/t3"
         "%h/.t3/userdata/server-runtime.json"
         "%h/.t3/userdata/client-settings.json"
         "%h/.t3/userdata/settings.json"
