@@ -24,8 +24,8 @@ pub struct Defaults {
 #[derive(Deserialize)]
 struct Extracted {
     version: String,
-    client: Value,
-    server: Value,
+    #[serde(flatten)]
+    defaults: Defaults,
 }
 
 pub fn load(home: &Path, base_dir: &Path) -> Option<Defaults> {
@@ -66,15 +66,15 @@ fn read(home: &Path, base_dir: &Path) -> Result<Option<Defaults>> {
     let extracted: Extracted =
         serde_json::from_slice(&output.stdout).context("parsing extracted defaults")?;
     ensure!(
-        extracted.client.is_object(),
+        extracted.defaults.client.is_object(),
         "client defaults are not an object"
     );
     ensure!(
-        extracted.server.is_object(),
+        extracted.defaults.server.is_object(),
         "server defaults are not an object"
     );
     let app_version = extracted.version.clone();
-    let defaults = matching(extracted, &server_version);
+    let defaults = defaults_for(extracted, &server_version);
     if defaults.is_none() {
         eprintln!(
             "t3-settings: keeping all settings; defaults come from T3 {app_version}, but the server runs {server_version}"
@@ -83,11 +83,8 @@ fn read(home: &Path, base_dir: &Path) -> Result<Option<Defaults>> {
     Ok(defaults)
 }
 
-fn matching(extracted: Extracted, server_version: &str) -> Option<Defaults> {
-    (extracted.version == server_version).then_some(Defaults {
-        client: extracted.client,
-        server: extracted.server,
-    })
+fn defaults_for(extracted: Extracted, server_version: &str) -> Option<Defaults> {
+    (extracted.version == server_version).then_some(extracted.defaults)
 }
 
 fn running_server_version(base_dir: &Path) -> Option<String> {
@@ -147,11 +144,23 @@ mod tests {
     fn only_accepts_defaults_from_the_running_version() {
         let extracted = |version: &str| Extracted {
             version: version.to_owned(),
-            client: serde_json::json!({"a": 1}),
-            server: serde_json::json!({"b": 2}),
+            defaults: Defaults {
+                client: serde_json::json!({"a": 1}),
+                server: serde_json::json!({"b": 2}),
+            },
         };
-        assert!(matching(extracted("0.1.3"), "0.1.3").is_some());
-        assert!(matching(extracted("0.1.4"), "0.1.3").is_none());
+        assert!(defaults_for(extracted("0.1.3"), "0.1.3").is_some());
+        assert!(defaults_for(extracted("0.1.4"), "0.1.3").is_none());
+    }
+
+    #[test]
+    fn parses_the_extracted_defaults() {
+        let extracted: Extracted =
+            serde_json::from_str(r#"{"version":"0.1.3","client":{"a":1},"server":{"b":2}}"#)
+                .unwrap();
+        assert_eq!(extracted.version, "0.1.3");
+        assert_eq!(extracted.defaults.client, serde_json::json!({"a": 1}));
+        assert_eq!(extracted.defaults.server, serde_json::json!({"b": 2}));
     }
 
     #[test]
