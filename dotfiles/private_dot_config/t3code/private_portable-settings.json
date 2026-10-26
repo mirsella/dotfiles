@@ -9,6 +9,7 @@
         "provider": "opencode"
       }
     ],
+    "followUpBehavior": "queue",
     "inAppNotificationsEnabled": true,
     "notificationMode": "notifications",
     "persistComposerContextStrip": true,
@@ -30,7 +31,6 @@
     "addProjectBaseDirectory": "~/dev",
     "autoResumeLimitedThreads": true,
     "branchNamePrefix": "",
-    "compactIdleThreads": true,
     "defaultAutoPull": true,
     "defaultModelSelection": {
       "instanceId": "opencode",
@@ -63,13 +63,9 @@
       {
         "model": "openai/gpt-6.1-sol",
         "provider": "opencode"
-      },
-      {
-        "model": "opencode/deepseek-v4.1-flash-free",
-        "provider": "opencode"
       }
     ],
-    "idleCompaction": "beforeCacheExpires",
+    "idleCompaction": "onReturn",
     "providerModelPreferences": {
       "acpRegistry_opencode": {
         "hiddenModels": [
