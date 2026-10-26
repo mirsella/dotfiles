@@ -13,6 +13,7 @@
     "inAppNotificationsEnabled": true,
     "notificationMode": "notifications",
     "persistComposerContextStrip": true,
+    "redesignEnabled": false,
     "snapShotEnabled": true,
     "snapShotPlaySound": false,
     "snapShotShortcut": {
