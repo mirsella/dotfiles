@@ -216,10 +216,14 @@ its keybindings file, so a missing binding does not mean "default". The
 defaults are read from the installed app image: `t3-settings` extracts the
 bundled server module and imports its settings schemas once per app build,
 caching the result under `~/.local/state/agent-tools/t3-settings-defaults/`.
-An upgraded app is a new cache key, and so is a changed helper. If the bundle
-layout or its exported constants change, capture keeps every allowlisted value
-and warns instead of failing. `T3_SETTINGS_NODE` selects the Node binary used
-for that import (Home Manager sets it for the launcher and the setup service).
+An upgraded app is a new cache key, and so is a changed helper. Pruning is
+skipped when the app image's version differs from the running server's
+`serverVersion`, so a not-yet-restarted update cannot prune a value using
+another build's defaults; capture then keeps every allowlisted value until they
+match. If the bundle layout or its exported constants change, capture keeps
+every allowlisted value and warns instead of failing. `T3_SETTINGS_NODE`
+selects the Node binary used for that import (Home Manager sets it for the
+launcher and the setup service).
 Applying a bundle removes managed keys that are absent, which restores T3's
 defaults on the applying machine. Bundles and sync records written before
 pruning are normalized before they are compared, so an older record does not
