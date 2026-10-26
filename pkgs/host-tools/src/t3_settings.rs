@@ -433,18 +433,43 @@ fn native_cli_version(home: &Path, base_dir: &Path) -> Result<Option<String>> {
         .map(|version| version.as_os_str().to_string_lossy().into_owned()))
 }
 
+/// Ask a CLI outside T3's runtime store for the version it reports.
+fn reported_cli_version(program: &Path) -> Option<String> {
+    let output = Command::new(program).arg("--version").output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    String::from_utf8(output.stdout)
+        .ok()?
+        .trim()
+        .strip_prefix("t3 v")
+        .map(str::to_owned)
+}
+
 /// A CLI from another T3 build would migrate the server's database, so refuse it.
+/// One whose version cannot be determined is reported but allowed, since it may
+/// be a wrapper.
 fn ensure_cli_matches_server(runtime: &Value, home: &Path, base_dir: &Path) -> Result<()> {
     let Some(server_version) = runtime["serverVersion"].as_str() else {
+        eprintln!("t3-settings: T3 runtime has no server version; skipping the CLI version check");
         return Ok(());
     };
-    let Some(cli_version) = native_cli_version(home, base_dir)? else {
+    let link = home.join(".local/bin/t3");
+    let Some(cli_version) =
+        native_cli_version(home, base_dir)?.or_else(|| reported_cli_version(&link))
+    else {
+        if link.exists() {
+            eprintln!(
+                "t3-settings: could not verify the T3 CLI at {} against server {server_version}; continuing",
+                link.display()
+            );
+        }
         return Ok(());
     };
     ensure!(
         cli_version == server_version,
         "T3 CLI/server version mismatch: {} runs {cli_version}, but the server runs {server_version}; point it at {} or update T3",
-        home.join(".local/bin/t3").display(),
+        link.display(),
         base_dir
             .join("runtime/versions")
             .join(server_version)
@@ -454,20 +479,57 @@ fn ensure_cli_matches_server(runtime: &Value, home: &Path, base_dir: &Path) -> R
     Ok(())
 }
 
+/// Whether the runtime record names a process that is still alive.
+///
+/// T3 does not remove the file when it stops, so an old record can describe a
+/// server that is gone.
+fn runtime_is_live(runtime: &Value) -> bool {
+    let Some(pid) = runtime["pid"].as_i64() else {
+        return true;
+    };
+    let Ok(pid) = i32::try_from(pid) else {
+        return false;
+    };
+    pid > 0
+        && (unsafe { libc::kill(pid, 0) } == 0
+            || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM))
+}
+
+fn read_server_runtime(path: &Path) -> Result<Option<Value>> {
+    match fs::read(path) {
+        Ok(bytes) => Ok(Some(
+            serde_json::from_slice(&bytes).context("Parsing T3 server runtime")?,
+        )),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error).context("Reading T3 server runtime"),
+    }
+}
+
+/// Wait for the running server to publish its endpoint and version.
+pub(crate) fn server_runtime(base_dir: &Path) -> Result<Value> {
+    let path = base_dir.join("userdata/server-runtime.json");
+    util::wait_for_file(&path, std::time::Duration::from_secs(60), || {
+        read_server_runtime(&path)
+    })
+}
+
+/// Wait for a runtime record whose server process is still alive.
+pub(crate) fn running_server_runtime(base_dir: &Path) -> Result<Value> {
+    let path = base_dir.join("userdata/server-runtime.json");
+    util::wait_for_file(&path, std::time::Duration::from_secs(60), || {
+        Ok(read_server_runtime(&path)?.filter(runtime_is_live))
+    })
+}
+
+pub(crate) fn resolve_base_dir(home: &Path, base_dir: Option<PathBuf>) -> PathBuf {
+    base_dir
+        .or_else(|| std::env::var_os("T3CODE_HOME").map(PathBuf::from))
+        .unwrap_or_else(|| home.join(".t3"))
+}
+
 impl Session {
     fn open(home: &Path, base_dir: &Path, write: bool) -> Result<Self> {
-        let runtime_path = base_dir.join("userdata/server-runtime.json");
-        let runtime: Value = util::wait_for_file(
-            &runtime_path,
-            std::time::Duration::from_secs(60),
-            || match fs::read(&runtime_path) {
-                Ok(bytes) => Ok(Some(
-                    serde_json::from_slice(&bytes).context("Parsing T3 server runtime")?,
-                )),
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
-                Err(error) => Err(error).context("Reading T3 server runtime"),
-            },
-        )?;
+        let runtime = server_runtime(base_dir)?;
         let origin = runtime["origin"]
             .as_str()
             .context("Start the T3 background server before capturing or restoring projects")?
@@ -1689,9 +1751,7 @@ fn capture_destination(output: &Path, base_dir: &Path) -> Result<PathBuf> {
 
 pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
     let home = PathBuf::from(std::env::var_os("HOME").context("HOME is not set")?);
-    let base_dir = base_dir
-        .or_else(|| std::env::var_os("T3CODE_HOME").map(PathBuf::from))
-        .unwrap_or_else(|| home.join(".t3"));
+    let base_dir = resolve_base_dir(&home, base_dir);
     let default_bundle = home.join(".config/t3code/portable-settings.json");
     let policy = Policy::new();
     match operation {
@@ -1768,6 +1828,8 @@ mod tests {
 
     #[test]
     fn t3_cli_must_match_the_running_server_version() -> Result<()> {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+
         let root = tempfile::tempdir()?;
         let home = root.path().join("home");
         let base_dir = home.join(".t3");
@@ -1776,7 +1838,7 @@ mod tests {
         fs::write(&binary, "")?;
         fs::create_dir_all(home.join(".local/bin"))?;
         let link = home.join(".local/bin/t3");
-        std::os::unix::fs::symlink(&binary, &link)?;
+        symlink(&binary, &link)?;
 
         ensure_cli_matches_server(
             &json!({"serverVersion": "0.1.3-nightly.1"}),
@@ -1804,7 +1866,7 @@ mod tests {
         );
 
         let linked_base = home.join("linked-t3");
-        std::os::unix::fs::symlink(&base_dir, &linked_base)?;
+        symlink(&base_dir, &linked_base)?;
         ensure_cli_matches_server(
             &json!({"serverVersion": "0.1.3-nightly.1"}),
             &home,
@@ -1812,13 +1874,44 @@ mod tests {
         )?;
 
         fs::remove_file(&link)?;
-        std::os::unix::fs::symlink("/bin/sh", &link)?;
+        let unmanaged = home.join("unmanaged-t3");
+        fs::write(&unmanaged, "#!/bin/sh\necho 't3 v0.1.4-nightly.2'\n")?;
+        fs::set_permissions(&unmanaged, fs::Permissions::from_mode(0o755))?;
+        symlink(&unmanaged, &link)?;
         ensure_cli_matches_server(
             &json!({"serverVersion": "0.1.4-nightly.2"}),
             &home,
             &base_dir,
         )?;
+        let error = ensure_cli_matches_server(
+            &json!({"serverVersion": "0.1.3-nightly.1"}),
+            &home,
+            &base_dir,
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("0.1.4-nightly.2"), "{error}");
+        assert!(error.contains("0.1.3-nightly.1"), "{error}");
+
+        fs::remove_file(&link)?;
+        let broken = home.join("broken-t3");
+        fs::write(&broken, "#!/bin/sh\nexit 1\n")?;
+        fs::set_permissions(&broken, fs::Permissions::from_mode(0o755))?;
+        symlink(&broken, &link)?;
+        ensure_cli_matches_server(
+            &json!({"serverVersion": "0.1.3-nightly.1"}),
+            &home,
+            &base_dir,
+        )?;
         Ok(())
+    }
+
+    #[test]
+    fn a_stale_server_record_is_not_running() {
+        assert!(runtime_is_live(&json!({})));
+        assert!(runtime_is_live(&json!({"pid": std::process::id()})));
+        assert!(!runtime_is_live(&json!({"pid": 0})));
+        assert!(!runtime_is_live(&json!({"pid": i64::MAX})));
     }
 
     #[test]

@@ -327,10 +327,72 @@ fn ensure_t3_service(home: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Point the CLI link at the binary of the server that is currently running.
+///
+/// T3 updates its server runtime on its own, while the installer-provided link
+/// keeps whatever version it selected. A stale link cannot open a scoped
+/// session against the newer server.
+fn align_t3_cli(home: &Path, base_dir: &Path) -> Result<()> {
+    if !base_dir.join("userdata").is_dir() {
+        return Ok(());
+    }
+    let runtime = crate::t3_settings::running_server_runtime(base_dir)?;
+    let Some(server_version) = runtime["serverVersion"].as_str() else {
+        return Ok(());
+    };
+    let versions = base_dir.join("runtime/versions");
+    let Ok(root) = fs::canonicalize(&versions) else {
+        return Ok(());
+    };
+    let link = home.join(".local/bin/t3");
+    let current = match fs::canonicalize(&link) {
+        Ok(current) if current.starts_with(&root) => Some(current),
+        Ok(_) => return Ok(()),
+        Err(_) => {
+            // A dangling link is still ours when its stored target names the runtime store.
+            let Ok(target) = fs::read_link(&link) else {
+                return Ok(());
+            };
+            let target = if target.is_absolute() {
+                target
+            } else {
+                link.parent().unwrap_or(Path::new("/")).join(target)
+            };
+            if !target.starts_with(&root) && !target.starts_with(&versions) {
+                return Ok(());
+            }
+            None
+        }
+    };
+    let target = versions.join(server_version).join("t3");
+    let Ok(target) = fs::canonicalize(target) else {
+        eprintln!("agent-tools: no CLI for the running T3 {server_version}");
+        return Ok(());
+    };
+    ensure!(
+        target.starts_with(&root),
+        "T3 server version {server_version} resolves outside {}",
+        versions.display()
+    );
+    if current.as_ref() == Some(&target) {
+        return Ok(());
+    }
+    let temporary = link.with_file_name(format!("t3.align.{}", std::process::id()));
+    let _ = fs::remove_file(&temporary);
+    symlink(&target, &temporary).with_context(|| format!("link {}", temporary.display()))?;
+    fs::rename(&temporary, &link).with_context(|| format!("replace {}", link.display()))?;
+    eprintln!(
+        "agent-tools: pointed {} at T3 {server_version}",
+        link.display()
+    );
+    Ok(())
+}
+
 pub fn setup() -> Result<()> {
     let home = home()?;
     ensure_t3_service(&home)?;
     crate::util::run("systemctl", &["--user", "start", "t3code.service"])?;
+    align_t3_cli(&home, &crate::t3_settings::resolve_base_dir(&home, None))?;
     let input = home.join(".config/t3code/portable-settings.json");
     if !input.is_file() {
         eprintln!("agent-tools: apply editable dotfiles to restore T3 preferences");
@@ -616,6 +678,59 @@ mod tests {
         assert_eq!(native_version(&command, &releases).unwrap(), None);
         fs::remove_file(&store).unwrap();
         assert_eq!(native_version(&command, &releases).unwrap(), None);
+    }
+
+    #[test]
+    fn t3_cli_follows_the_running_server_version() -> Result<()> {
+        let scratch = scratch();
+        let home = scratch.path().join("home");
+        let base_dir = home.join(".t3");
+        let versions = base_dir.join("runtime/versions");
+        for version in ["0.1.0", "0.1.1"] {
+            let binary = versions.join(version).join("t3");
+            fs::create_dir_all(binary.parent().unwrap())?;
+            fs::write(&binary, "")?;
+        }
+        let link = home.join(".local/bin/t3");
+        fs::create_dir_all(link.parent().unwrap())?;
+        symlink(versions.join("0.1.0/t3"), &link)?;
+        fs::create_dir_all(base_dir.join("userdata"))?;
+        fs::write(
+            base_dir.join("userdata/server-runtime.json"),
+            r#"{"serverVersion":"0.1.1"}"#,
+        )?;
+
+        align_t3_cli(&home, &base_dir)?;
+        assert_eq!(
+            fs::read_link(&link)?,
+            fs::canonicalize(versions.join("0.1.1/t3"))?
+        );
+
+        // The link dangles when its version directory disappears.
+        fs::remove_file(versions.join("0.1.1/t3"))?;
+        let newer = versions.join("0.1.2/t3");
+        fs::create_dir_all(newer.parent().unwrap())?;
+        fs::write(&newer, "")?;
+        fs::write(
+            base_dir.join("userdata/server-runtime.json"),
+            r#"{"serverVersion":"0.1.2"}"#,
+        )?;
+        align_t3_cli(&home, &base_dir)?;
+        assert_eq!(fs::read_link(&link)?, fs::canonicalize(&newer)?);
+
+        fs::write(
+            base_dir.join("userdata/server-runtime.json"),
+            r#"{"serverVersion":".."}"#,
+        )?;
+        fs::write(base_dir.join("runtime/t3"), "")?;
+        let error = align_t3_cli(&home, &base_dir).unwrap_err().to_string();
+        assert!(error.contains("outside"), "{error}");
+
+        fs::remove_file(&link)?;
+        symlink("/bin/sh", &link)?;
+        align_t3_cli(&home, &base_dir)?;
+        assert_eq!(fs::read_link(&link)?, PathBuf::from("/bin/sh"));
+        Ok(())
     }
 
     #[test]
