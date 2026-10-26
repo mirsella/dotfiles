@@ -8,30 +8,43 @@ use std::{
     time::SystemTime,
 };
 
-/// Settings T3 itself considers default for the installed app version.
+/// Settings T3 itself considers default for the running app version.
 ///
 /// Capture omits values equal to these so the portable bundle only carries
-/// deliberate changes. Extraction failure is not fatal: capture then keeps
-/// every allowlisted value, which is noisier but always correct.
+/// deliberate changes. Defaults only apply when the desktop app matches the
+/// running server; otherwise an update that has not restarted yet could prune
+/// values the server still needs. Extraction failure is not fatal: capture then
+/// keeps every allowlisted value, which is noisier but always correct.
 #[derive(Deserialize)]
 pub struct Defaults {
     pub client: Value,
     pub server: Value,
 }
 
-pub fn load(home: &Path) -> Option<Defaults> {
-    read(home).unwrap_or_else(|error| {
+#[derive(Deserialize)]
+struct Extracted {
+    version: String,
+    client: Value,
+    server: Value,
+}
+
+pub fn load(home: &Path, base_dir: &Path) -> Option<Defaults> {
+    read(home, base_dir).unwrap_or_else(|error| {
         eprintln!("t3-settings: keeping all settings; cannot read T3 defaults: {error:#}");
         None
     })
 }
 
-fn read(home: &Path) -> Result<Option<Defaults>> {
+fn read(home: &Path, base_dir: &Path) -> Result<Option<Defaults>> {
     let Some(image) = app_image(home)? else {
         return Ok(None);
     };
+    let Some(server_version) = running_server_version(base_dir) else {
+        eprintln!("t3-settings: keeping all settings; cannot read the running T3 version");
+        return Ok(None);
+    };
     // The helper keys its cache on the image and on its own contents, so an app
-    // update or a helper change recomputes defaults without version pins here.
+    // update or a helper change recomputes defaults.
     let cache = crate::agent_tools::state_dir(home).join("t3-settings-defaults");
     fs::create_dir_all(&cache)?;
     let script = cache.join("defaults.mjs");
@@ -50,17 +63,37 @@ fn read(home: &Path) -> Result<Option<Defaults>> {
         "{}",
         String::from_utf8_lossy(&output.stderr).trim()
     );
-    let defaults: Defaults =
+    let extracted: Extracted =
         serde_json::from_slice(&output.stdout).context("parsing extracted defaults")?;
     ensure!(
-        defaults.client.is_object(),
+        extracted.client.is_object(),
         "client defaults are not an object"
     );
     ensure!(
-        defaults.server.is_object(),
+        extracted.server.is_object(),
         "server defaults are not an object"
     );
-    Ok(Some(defaults))
+    let app_version = extracted.version.clone();
+    let defaults = matching(extracted, &server_version);
+    if defaults.is_none() {
+        eprintln!(
+            "t3-settings: keeping all settings; defaults come from T3 {app_version}, but the server runs {server_version}"
+        );
+    }
+    Ok(defaults)
+}
+
+fn matching(extracted: Extracted, server_version: &str) -> Option<Defaults> {
+    (extracted.version == server_version).then_some(Defaults {
+        client: extracted.client,
+        server: extracted.server,
+    })
+}
+
+fn running_server_version(base_dir: &Path) -> Option<String> {
+    let runtime = fs::read(base_dir.join("userdata/server-runtime.json")).ok()?;
+    let runtime: Value = serde_json::from_slice(&runtime).ok()?;
+    Some(runtime.get("serverVersion")?.as_str()?.to_owned())
 }
 
 fn app_image(home: &Path) -> Result<Option<PathBuf>> {
@@ -87,3 +120,47 @@ fn app_image(home: &Path) -> Result<Option<PathBuf>> {
 }
 
 const SCRIPT: &str = include_str!("t3-defaults.mjs");
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base_dir(runtime: Option<&str>) -> tempfile::TempDir {
+        let base = tempfile::tempdir().unwrap();
+        if let Some(runtime) = runtime {
+            fs::create_dir_all(base.path().join("userdata")).unwrap();
+            fs::write(base.path().join("userdata/server-runtime.json"), runtime).unwrap();
+        }
+        base
+    }
+
+    #[test]
+    fn reads_the_running_server_version() {
+        let base = base_dir(Some(r#"{"serverVersion":"0.1.3-nightly.1"}"#));
+        assert_eq!(
+            running_server_version(base.path()).as_deref(),
+            Some("0.1.3-nightly.1")
+        );
+    }
+
+    #[test]
+    fn only_accepts_defaults_from_the_running_version() {
+        let extracted = |version: &str| Extracted {
+            version: version.to_owned(),
+            client: serde_json::json!({"a": 1}),
+            server: serde_json::json!({"b": 2}),
+        };
+        assert!(matching(extracted("0.1.3"), "0.1.3").is_some());
+        assert!(matching(extracted("0.1.4"), "0.1.3").is_none());
+    }
+
+    #[test]
+    fn ignores_a_runtime_without_a_version() {
+        assert_eq!(running_server_version(base_dir(None).path()), None);
+        assert_eq!(running_server_version(base_dir(Some("{}")).path()), None);
+        assert_eq!(
+            running_server_version(base_dir(Some(r#"{"serverVersion":1}"#)).path()),
+            None
+        );
+    }
+}

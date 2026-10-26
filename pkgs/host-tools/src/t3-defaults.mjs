@@ -4,7 +4,8 @@
 // copy of that bundle from the Electron app's asar, once per app build.
 //
 // Usage: node t3-defaults.mjs <appimage> <cache-dir>
-// Prints {"client": {...}, "server": {...}}.
+// Prints {"version": "...", "client": {...}, "server": {...}}. The caller only
+// uses the defaults when the version matches the running server.
 // Exits nonzero when the bundle layout or the constant names changed; callers
 // must treat that as "no defaults available" and keep capturing everything.
 import { spawnSync } from 'node:child_process';
@@ -37,8 +38,8 @@ function readDefaults(appImage, cacheDir) {
   const tmp = fs.mkdtempSync(path.join(cacheDir, 'extract-'));
   try {
     const tree = path.join(tmp, 'tree');
-    extractAsar(unpackImage(appImage, tmp), tree);
-    const json = JSON.stringify(importDefaults(path.join(tree, 'dist')));
+    const version = extractAsar(unpackImage(appImage, tmp), tree);
+    const json = JSON.stringify({ version, ...importDefaults(path.join(tree, 'dist')) });
     const staging = `${cacheFile}.tmp`;
     fs.writeFileSync(staging, json);
     fs.renameSync(staging, cacheFile);
@@ -100,6 +101,18 @@ function extractAsar(asarPath, tree) {
   if (fs.existsSync(unpacked)) {
     fs.cpSync(unpacked, tree, { recursive: true, force: true });
   }
+  return packageVersion(raw, header, dataStart);
+}
+
+function packageVersion(raw, header, dataStart) {
+  const entry = header.files?.['package.json'];
+  if (!entry) throw new Error('app.asar has no package.json');
+  const start = dataStart + Number(entry.offset);
+  const pkg = JSON.parse(raw.subarray(start, start + Number(entry.size)).toString('utf8'));
+  if (typeof pkg.version !== 'string' || !pkg.version) {
+    throw new Error('app.asar package.json has no version');
+  }
+  return pkg.version;
 }
 
 function find(node, parts) {

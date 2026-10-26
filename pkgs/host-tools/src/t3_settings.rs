@@ -744,7 +744,7 @@ fn capture(policy: &Policy, home: &Path, base_dir: &Path) -> Result<Bundle> {
         &SettingsFile::read(dir.join("keybindings.json"), json!([]))?.value,
         "keybindings",
     )?;
-    if let Some(defaults) = crate::t3_defaults::load(home) {
+    if let Some(defaults) = crate::t3_defaults::load(home, base_dir) {
         prune_defaults(&mut client, &defaults.client);
         prune_defaults(&mut server, &defaults.server);
     }
@@ -1515,7 +1515,7 @@ fn sync(
     // sides before comparing keeps that representation change from looking like
     // an edit on every machine that receives a pruned bundle.
     let defaults = if base_dir.join("userdata").try_exists()? {
-        crate::t3_defaults::load(home)
+        crate::t3_defaults::load(home, base_dir)
     } else {
         None
     };
