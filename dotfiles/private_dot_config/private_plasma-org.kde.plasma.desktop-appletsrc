@@ -243,10 +243,6 @@ placeDisplayName=Fontainebleau, France, FR
 placeInfo=Fontainebleau, France, FR|3018074
 provider=bbcukmet
 
-[Containments][3][Applets][8][Applets][57]
-immutability=1
-plugin=org.kde.plasma.diskquota
-
 [Containments][3][Applets][8][Applets][58]
 immutability=1
 plugin=org.kde.plasma.dwellclicker
@@ -256,7 +252,7 @@ DialogHeight=975
 DialogWidth=1504
 
 [Containments][3][Applets][8][General]
-extraItems=org.kde.plasma.brightness,org.kde.plasma.cameraindicator,org.kde.plasma.mediacontroller,org.kde.plasma.keyboardindicator,org.kde.kscreen,org.kde.plasma.vault,org.kde.plasma.printmanager,org.kde.plasma.clipboard,org.kde.plasma.notifications,org.kde.plasma.devicenotifier,org.kde.plasma.keyboardlayout,org.kde.plasma.battery,org.kde.plasma.diskquota,org.kde.plasma.manage-inputmethod,org.kde.plasma.dwellclicker,org.kde.kupapplet,org.kde.plasma.bluetooth,org.kde.plasma.networkmanagement,org.kde.plasma.volume,org.kde.plasma.weather,org.kde.kdeconnect
+extraItems=org.kde.plasma.brightness,org.kde.plasma.cameraindicator,org.kde.plasma.mediacontroller,org.kde.plasma.keyboardindicator,org.kde.kscreen,org.kde.plasma.vault,org.kde.plasma.printmanager,org.kde.plasma.clipboard,org.kde.plasma.notifications,org.kde.plasma.devicenotifier,org.kde.plasma.keyboardlayout,org.kde.plasma.battery,org.kde.plasma.manage-inputmethod,org.kde.plasma.dwellclicker,org.kde.kupapplet,org.kde.plasma.bluetooth,org.kde.plasma.networkmanagement,org.kde.plasma.volume,org.kde.plasma.weather,org.kde.kdeconnect
 hiddenItems=org.kde.plasma.weather,org.kde.kdeconnect
 knownItems=org.kde.plasma.bluetooth,org.kde.plasma.battery,org.kde.plasma.brightness,org.kde.plasma.cameraindicator,org.kde.plasma.clipboard,org.kde.plasma.devicenotifier,org.kde.plasma.manage-inputmethod,org.kde.plasma.mediacontroller,org.kde.plasma.notifications,org.kde.plasma.keyboardindicator,org.kde.kscreen,org.kde.plasma.keyboardlayout,org.kde.plasma.networkmanagement,org.kde.plasma.volume,org.kde.plasma.vault,org.kde.plasma.printmanager,org.kde.kdeconnect,org.kde.plasma.weather,org.kde.plasma.dwellclicker,org.kde.kupapplet
 
