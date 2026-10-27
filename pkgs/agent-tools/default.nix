@@ -22,9 +22,9 @@
   isNixOS ? false,
 }:
 let
-  t3Version = "0.0.46-nightly.20261013.3053";
-  t3Revision = "6524a8d43795dc543f7cfb572388cdea3662ad48";
-  opencodeVersion = "2.0.28";
+  t3Version = "0.1.3-nightly.20261027.3754";
+  t3Revision = "d2c440312e5f39d59827ed466838a623516454d6";
+  opencodeVersion = "2.1.4";
   opencodeInstaller = fetchurl {
     url = "https://raw.githubusercontent.com/anomalyco/opencode/1f4d07a4a519185955ae8ab2ea3607805509e386/install";
     hash = "sha256-vHDdMX/RLvCTUM2xZn5V4Z+eez0ol9Oht1CxZa5XnYc=";
@@ -35,12 +35,12 @@ let
   };
   t3Installer = fetchurl {
     url = "https://raw.githubusercontent.com/pingdotgg/t3code/${t3Revision}/scripts/install.sh";
-    hash = "sha256-3Hs93QKuJwDuzj08WMCUWScxGVCRPeFIyN2FcPHRxtU=";
+    hash = "sha256-uQjscIE65dSQj2iQDzNDcCsH88oIQg+Dp/cDKUtiYtg=";
   };
   # Only a seed: activation never replaces an existing, self-updated AppImage.
   desktopImage = fetchurl {
     url = "https://github.com/pingdotgg/t3code/releases/download/v${t3Version}/T3-Code-${t3Version}-x86_64.AppImage";
-    hash = "sha512-Mg8631AKjhK0pK0Ph4ecwn9qyzD8WtrMt+022EPiKGsXCwt6xYbAckiiE+PIMvpqt1eVbG3UPvn1qtX287I9XQ==";
+    hash = "sha512-049nZPDiC/T/eiKnS9PQmhLzlL6g6+LBRNbP3sb5OwEpgXKq1zF8CU1MKKtsqRXeE1WMBCSh1JT2g3t8Laq0GA==";
   };
   desktopIcon = fetchurl {
     url = "https://raw.githubusercontent.com/pingdotgg/t3code/${t3Revision}/assets/nightly/nightly-universal-1024.png";
@@ -106,7 +106,7 @@ in
 runCommand "agent-tools"
   {
     meta = {
-      description = "Bootstrap writable OpenCode, Codex and nightly T3 installs";
+      description = "Bootstrap writable OpenCode, Codex and T3 installs";
       mainProgram = "bootstrap-agent-tools";
       platforms = [ "x86_64-linux" ];
     };

@@ -7,11 +7,11 @@
 }:
 buildNpmPackage rec {
   pname = "openchamber";
-  version = "2.3.3";
+  version = "2.5.2";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/@openchamber/web/-/web-${version}.tgz";
-    hash = "sha256-zZcDdzdHTLgSub3kxzpSXk6SkBoYO2ngbLxo8BXHKKo=";
+    hash = "sha256-5AOelqPRsJkNiMhbkYNpQ7wCO/al8pNa12RgAfEWq+4=";
   };
   sourceRoot = "package";
   patches = [ ./simple-git-4.patch ];
@@ -29,7 +29,7 @@ buildNpmPackage rec {
     cp ${./package-lock.json} package-lock.json
   '';
 
-  npmDepsHash = "sha256-t1bvbnY0BY/dZtZAm/HHZjFU9DyIQsMWLh9TBkm6D7c=";
+  npmDepsHash = "sha256-goPSRv1buKC81PGrRDRXa0Jiba3I+RfBzYV98C72DLk=";
 
   npmFlags = [
     "--legacy-peer-deps"

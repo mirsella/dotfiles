@@ -16,9 +16,17 @@ let
       src = fetchFromGitHub {
         owner = "ggml-org";
         repo = "llama.cpp";
-        rev = "d81235049384534c167caea52b85a694f6103d14";
-        hash = "sha256-l6l6JIlIVTaVC6xh5M4fRHFtXsweQuugtkNTWHcZZF4=";
+        rev = "fae9ac561f7c20b320d89103be67372381485653";
+        hash = "sha256-1s0FBV4PXKkeCd4lfjHrc+A27+h1UW5UQyXbSBXEPD8=";
       };
+      # nixpkgs' test initialization patch is already in this newer source.
+      patches = lib.filter (
+        patch: !(lib.hasInfix "07ccce23cf7fe3c84e13d810accff672b1d966bf" patch)
+      ) previous.patches;
+      # nixpkgs disables the network-dependent test-download-model fixture, but
+      # CTest still runs it for test-llama-context-model unless that dependent is
+      # disabled too.
+      disabledTests = lib.unique (previous.disabledTests ++ [ "test-llama-context-model" ]);
 
       # OpenCode uses the API; omit UI assets and their npm build entirely.
       nativeBuildInputs = lib.subtractLists [

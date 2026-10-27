@@ -10,11 +10,11 @@
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "codexbar-cli";
-  version = "0.77.0";
+  version = "0.82.0";
 
   src = fetchurl {
     url = "https://github.com/steipete/CodexBar/releases/download/v${finalAttrs.version}/CodexBarCLI-v${finalAttrs.version}-linux-x86_64.tar.gz";
-    hash = "sha256-qcMLi1bsL8hSa2O6Ry8xmJYFx+AcLGWslbSr8gt+VNQ=";
+    hash = "sha256-3hsIPg3c4rkusuLUUCbz+I2InZdIdugf3p332D4ZNj4=";
   };
   sourceRoot = ".";
   nativeBuildInputs = [ autoPatchelfHook makeWrapper ];

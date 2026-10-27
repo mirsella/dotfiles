@@ -34,6 +34,7 @@ try {
   fs.mkdirSync(process.env.HOME);
   process.env.XDG_CONFIG_HOME = path.join(temporary, 'config');
   process.env.GIT_CONFIG_NOSYSTEM = '1';
+  process.env.GIT_CONFIG_PARAMETERS = "'core.hooksPath=/dev/null'";
   process.env.GIT_CONFIG_GLOBAL = path.join(temporary, 'gitconfig');
   fs.writeFileSync(process.env.GIT_CONFIG_GLOBAL, '[user]\nname = Test\nemail = test@example.invalid\n');
   fs.mkdirSync(path.join(process.env.XDG_CONFIG_HOME, 'git'), { recursive: true });

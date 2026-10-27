@@ -1,14 +1,14 @@
 { lib, rustPlatform, fetchFromGitHub, pkg-config }:
 rustPlatform.buildRustPackage rec {
   pname = "kache";
-  version = "1.0.0";
+  version = "1.2.2";
   src = fetchFromGitHub {
     owner = "kunobi-ninja";
     repo = "kache";
     tag = "v${version}";
-    hash = "sha256-Kbww7mmdUAASh1sbjdoqoosSA76EALJata+Aa8SJUnE=";
+    hash = "sha256-thzKe50UE6CKYYfKNrVyNdgQdAqr0bLRYOZzvWwlxW8=";
   };
-  cargoHash = "sha256-/qpQMj48/wp+Ui8OWpdCdqptv1ON/xLLdslVmumZhIY=";
+  cargoHash = "sha256-wgBi4CqPgab15O6y0n0re2aZ5QV02LbIlktQVlD8rVQ=";
   nativeBuildInputs = [ pkg-config ];
   doCheck = false;
   meta = {

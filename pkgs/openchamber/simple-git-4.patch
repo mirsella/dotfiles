@@ -1,12 +1,13 @@
 --- a/server/lib/git/service.js
 +++ b/server/lib/git/service.js
-@@ -1,4 +1,4 @@
+@@ -1,5 +1,5 @@
+ import { z } from 'zod';
 -import simpleGit from 'simple-git';
 +import { simpleGit } from 'simple-git';
  import { createSerialRefresh } from './serial-refresh.js';
  import { stripAppImageLauncherEnv } from '../inherited-env.js';
  import fs from 'fs';
-@@ -385,10 +385,10 @@
+@@ -386,10 +386,10 @@
  
  // Names simple-git refuses in a command's environment unless the matching
  // unsafe option is on (EDITOR, PAGER, GIT_SSH_COMMAND, GIT_ASKPASS, ...; see
@@ -16,11 +17,11 @@
 +// stays enabled for every command.
  const SIMPLE_GIT_REFUSED_ENV_NAMES = new Set([
 -  'editor', 'git_askpass', 'git_config', 'git_config_global', 'git_config_system', 'git_config_count',
-+  'editor', 'visual', 'git_askpass', 'git_config', 'git_config_global', 'git_config_system', 'git_config_count',
++  'editor', 'visual', 'git_askpass', 'git_config_parameters', 'git_config', 'git_config_global', 'git_config_system', 'git_config_count',
    'git_editor', 'git_exec_path', 'git_external_diff', 'git_pager', 'git_proxy_command', 'git_template_dir',
    'git_sequence_editor', 'git_ssh', 'git_ssh_command', 'pager', 'prefix', 'ssh_askpass',
  ]);
-@@ -414,7 +414,12 @@
+@@ -415,7 +415,12 @@
  const buildGitEnv = async (directory) => {
    // Git runs the user's hooks, so they must not see what the AppImage launcher
    // added to LD_LIBRARY_PATH and friends (#4177).
@@ -34,7 +35,7 @@
    // Hooks and credential helpers run with the project's tools on PATH.
    const variables = await directoryEnvironmentForGit(directory);
    const env = variables ? overlayEnvironment(inherited, variables) : inherited;
-@@ -436,27 +441,6 @@
+@@ -437,27 +442,6 @@
      env.GIT_TERMINAL_PROMPT = '0';
    }
    return env;
@@ -62,7 +63,7 @@
  };
  
  // Transport configuration is owned by repository bindings and the credential
-@@ -495,7 +479,12 @@
+@@ -496,7 +480,12 @@
      binary,
      unsafe,
      ...(timeout ? { timeout } : {}),

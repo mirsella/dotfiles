@@ -7,7 +7,7 @@ buildNpmPackage {
     hash = "sha256-gWCyL8a+pNQrOcOdsZ6xeTM5Hw7vjSyMtQ2dHG6HMx8=";
   };
   nodejs = nodejs_22;
-  npmDepsHash = "sha256-owKundm02Moc6KbAN5XuVyAaoaevIry5EW1pkBug/mY=";
+  npmDepsHash = "sha256-ssz0R2hrx4JvidVupQLsBSEiZ7EFGhaNFSDYW2R2aNE=";
   npmFlags = [ "--omit=dev" "--legacy-peer-deps" "--ignore-scripts" ];
   npmInstallFlags = [ "--omit=dev" ];
   npmRebuildFlags = [ "--ignore-scripts" ];

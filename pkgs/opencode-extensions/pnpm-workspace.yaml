@@ -1,12 +1,15 @@
 minimumReleaseAgeExclude:
-  - '@opencode/ai@2.0.31'
-  - '@opencode/client@2.0.31'
-  - '@opencode/plugin@2.0.31'
-  - '@opencode/protocol@2.0.31'
-  - '@opencode/schema@2.0.31'
-  - '@opencode/util@2.0.31'
+  - '@opencode/ai@2.1.4'
+  - '@opencode/client@2.1.4'
+  - '@opencode/plugin@2.1.4'
+  - '@opencode/protocol@2.1.4'
+  - '@opencode/schema@2.1.4'
+  - '@opencode/util@2.1.4'
 
 # Pin transitive dependencies with security fixes.
 overrides:
-  '@babel/core': ^7.29.6
-  seroval: ^1.6.2
+  '@babel/core': ^7.29.7
+  seroval: ^1.7.2
+  # node-gyp still allows undici 6.x; @effect/platform-node needs 8.x.
+  undici@6: 6.29.1
+  undici@8: 8.12.3

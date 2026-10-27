@@ -36,12 +36,16 @@
   libxtst,
   libxcb,
 }:
+let
+  version = "158.0-beta.40";
+  versionParts = lib.splitString "-" version;
+in
 stdenv.mkDerivation {
   pname = "camoufox";
-  version = "152.0.4-beta.28";
+  version = version;
   src = fetchurl {
-    url = "https://github.com/daijro/camoufox/releases/download/v152.0.4-beta.28/camoufox-152.0.4-beta.28-lin.x86_64.zip";
-    hash = "sha256-kk8xCczW1HzWoDhNZ6NF+t+XXUi2MZ+Nu9WVTFiJgr0=";
+    url = "https://github.com/daijro/camoufox/releases/download/v${version}/camoufox-${version}-lin.x86_64.zip";
+    hash = "sha256-Lq1JjUdlOUrd0yeNamY5YvP5mxiamdP5Zt5WZWzvyCM=";
   };
   nativeBuildInputs = [ unzip autoPatchelfHook patchelfUnstable ];
   # Firefox's relrhack loader reads relocations at fixed offsets. Preserve the
@@ -57,7 +61,9 @@ stdenv.mkDerivation {
   unpackPhase = ''
     runHook preUnpack
     mkdir source
-    unzip -q "$src" -d source
+    # The release archive contains font names that unzip reports as local/central
+    # filename mismatches. It still extracts them successfully but exits 1.
+    unzip -q "$src" -d source || [ $? -eq 1 ]
     runHook postUnpack
   '';
   dontBuild = true;
@@ -66,7 +72,7 @@ stdenv.mkDerivation {
     mkdir -p "$out/lib/camoufox" "$out/bin"
     cp -a source/. "$out/lib/camoufox/"
     chmod +x "$out/lib/camoufox/camoufox-bin"
-    printf '%s\n' '{"version":"152.0.4","release":"beta.28"}' > "$out/lib/camoufox/version.json"
+    printf '%s\n' '{"version":"${lib.head versionParts}","release":"${lib.last versionParts}"}' > "$out/lib/camoufox/version.json"
     ln -s "$out/lib/camoufox/camoufox-bin" "$out/bin/camoufox"
     runHook postInstall
   '';

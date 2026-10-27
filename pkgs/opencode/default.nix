@@ -7,10 +7,10 @@
 }:
 stdenvNoCC.mkDerivation rec {
   pname = "opencode";
-  version = "2.0.28";
+  version = "2.1.4";
   src = fetchurl {
     url = "https://registry.npmjs.org/@opencode/cli-linux-x64-baseline/-/cli-linux-x64-baseline-${version}.tgz";
-    hash = "sha256-QyXzTqiOCR+w34GDwhIMDRPvt0PCt/kLfK6usUfqmGI=";
+    hash = "sha256-v8tcGTEGPpg1F5708e416zWY0j7HfDHw1b7ttFQZ/SU=";
   };
   sourceRoot = "package";
   nativeBuildInputs = [ autoPatchelfHook ];

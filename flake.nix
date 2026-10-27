@@ -7,6 +7,10 @@
       flake = false;
     };
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
     neovim-nightly-overlay.url = "github:nix-community/neovim-nightly-overlay";
     home-manager = {
@@ -39,6 +43,25 @@
     let
       overlays = [
         inputs.neovim-nightly-overlay.overlays.default
+        inputs.rust-overlay.overlays.default
+        # nixos-unstable still packages websockify with a test that newer
+        # jwcrypto rejects. Carry upstream's fix until the channel catches up.
+        (final: prev: {
+          python3 = prev.python3.override {
+            packageOverrides = _: pyPrev: {
+              websockify = pyPrev.websockify.overridePythonAttrs (old: {
+                patches = (old.patches or []) ++ [
+                  (prev.fetchpatch {
+                    name = "replace-test-symmetric-key.patch";
+                    url = "https://github.com/novnc/websockify/commit/f1e281d2c446380a0a8af7575a92b23ad65c6d4d.patch";
+                    hash = "sha256-l+j+baTDSEXhOajUKxaT21ET1iEnpiBHwysYnTt3ghk=";
+                  })
+                ];
+              });
+            };
+          };
+          python3Packages = final.python3.pkgs;
+        })
         (final: _: (import ./pkgs final) // {
           context7-account-broker = final.callPackage "${inputs.context7-account-broker}/nix/package.nix" { };
         })
@@ -52,9 +75,24 @@
       # nix-update follows each package's own versioning: npm lockfiles are regenerated,
       # stable releases use the stable version, and VCS packages track their branch.
       stableVersionPackages = [ "electron-fuses" "helium" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
-      localPackages = [ "host-tools" "sleev" "opencode-extensions" "idle-watchdog" "context7-account-broker" ];
+      # These build from this checkout or pin their own sources; nix-update
+      # cannot derive a release version for them. llama-vulkan is a symlinkJoin
+      # around an override, so nix-update cannot see its llama.cpp source.
+      localPackages = [
+        "agent-tools"
+        "context7-account-broker"
+        "host-tools"
+        "idle-watchdog"
+        "llama-vulkan"
+        "opencode-extensions"
+        "predator-pm-study"
+        "sleev"
+      ];
+      # Their committed locks carry security overrides and postPatch pins that
+      # nix-update's pre-patch --generate-lockfile would discard.
+      preservedLockPackages = [ "camofox-browser" "openchamber" ];
       updateVersionFlag = name:
-        if builtins.elem name stableVersionPackages then
+        if builtins.elem name stableVersionPackages || builtins.elem name preservedLockPackages then
           "--version stable"
         else if builtins.pathExists (./pkgs + "/${name}/package-lock.json") then
           "--version stable --generate-lockfile"
