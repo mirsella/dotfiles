@@ -50,21 +50,24 @@ fn native_version(program: &Path, root: &Path) -> Result<Option<String>> {
     }
 }
 
+/// Keep any existing standalone installation, regardless of its version.
+///
+/// The native tools update themselves (OpenCode and Codex directly, T3 through
+/// T3 Code). Home Manager must only seed a missing or dangling installation;
+/// otherwise a switch could replace a newer self-updated version with the
+/// pinned seed.
 fn ensure_native(
     program: &Path,
     root: &Path,
-    expected: &str,
-    accepts: impl Fn(&str) -> bool,
+    name: &str,
     install: impl FnOnce() -> Result<()>,
 ) -> Result<String> {
-    if let Some(version) = native_version(program, root)?.filter(|version| accepts(version)) {
+    if let Some(version) = native_version(program, root)? {
         return Ok(version);
     }
     install()?;
-    let version = native_version(program, root)?
-        .with_context(|| format!("{expected} installer did not select a standalone binary"))?;
-    ensure!(accepts(&version), "expected {expected}, got {version}");
-    Ok(version)
+    native_version(program, root)?
+        .with_context(|| format!("{name} installer did not select a standalone binary"))
 }
 
 fn install(
@@ -220,13 +223,7 @@ pub fn bootstrap(package: &Path) -> Result<()> {
 
     let opencode_root = home.join(".opencode/bin");
     let opencode = opencode_root.join("opencode");
-    let is_v2 = |version: &str| {
-        version
-            .split_whitespace()
-            .last()
-            .is_some_and(|version| version.trim_start_matches('v').starts_with("2."))
-    };
-    let opencode_version = ensure_native(&opencode, &opencode_root, "OpenCode v2", is_v2, || {
+    let opencode_version = ensure_native(&opencode, &opencode_root, "OpenCode", || {
         eprintln!("agent-tools: installing official standalone OpenCode v2");
         install(
             &config,
@@ -242,53 +239,41 @@ pub fn bootstrap(package: &Path) -> Result<()> {
     let codex = bin.join("codex");
     let codex_home = home.join(".codex");
     let codex_releases = codex_home.join("packages/standalone/releases");
-    let codex_version = ensure_native(
-        &codex,
-        &codex_releases,
-        "Codex",
-        |_| true,
-        || {
-            eprintln!("agent-tools: installing official standalone Codex (latest stable)");
-            install(
-                &config,
-                &home,
-                &config.codex_installer,
-                &[
-                    ("CODEX_RELEASE", "latest"),
-                    ("CODEX_NON_INTERACTIVE", "true"),
-                    ("CODEX_HOME", crate::util::path(&codex_home)?),
-                    ("CODEX_INSTALL_DIR", crate::util::path(&bin)?),
-                ],
-                &[],
-            )
-        },
-    )?;
+    let codex_version = ensure_native(&codex, &codex_releases, "Codex", || {
+        eprintln!("agent-tools: installing official standalone Codex (latest stable)");
+        install(
+            &config,
+            &home,
+            &config.codex_installer,
+            &[
+                ("CODEX_RELEASE", "latest"),
+                ("CODEX_NON_INTERACTIVE", "true"),
+                ("CODEX_HOME", crate::util::path(&codex_home)?),
+                ("CODEX_INSTALL_DIR", crate::util::path(&bin)?),
+            ],
+            &[],
+        )
+    })?;
     eprintln!("agent-tools: {codex_version}");
 
     let t3 = bin.join("t3");
     let t3_home = home.join(".t3");
     let t3_releases = t3_home.join("runtime/versions");
-    let t3_version = ensure_native(
-        &t3,
-        &t3_releases,
-        "nightly T3",
-        |version| version.contains("-nightly."),
-        || {
-            eprintln!("agent-tools: installing standalone T3 CLI (nightly)");
-            install(
-                &config,
-                &home,
-                &config.t3_installer,
-                &[
-                    ("T3CODE_CHANNEL", "nightly"),
-                    ("T3CODE_VERSION", &config.t3_version),
-                    ("T3CODE_HOME", crate::util::path(&t3_home)?),
-                    ("T3CODE_INSTALL_BIN_DIR", crate::util::path(&bin)?),
-                ],
-                &[],
-            )
-        },
-    )?;
+    let t3_version = ensure_native(&t3, &t3_releases, "T3", || {
+        eprintln!("agent-tools: installing standalone T3 CLI (nightly)");
+        install(
+            &config,
+            &home,
+            &config.t3_installer,
+            &[
+                ("T3CODE_CHANNEL", "nightly"),
+                ("T3CODE_VERSION", &config.t3_version),
+                ("T3CODE_HOME", crate::util::path(&t3_home)?),
+                ("T3CODE_INSTALL_BIN_DIR", crate::util::path(&bin)?),
+            ],
+            &[],
+        )
+    })?;
     eprintln!("agent-tools: {t3_version}");
 
     seed_desktop(
@@ -480,7 +465,7 @@ mod tests {
     }
 
     #[test]
-    fn standalone_setup_preserves_updates_and_validates_installer_output() -> Result<()> {
+    fn activation_preserves_any_existing_standalone_version() -> Result<()> {
         let root = scratch();
         let program = root.path().join("agent");
         let install_version = |version| -> Result<()> {
@@ -488,35 +473,27 @@ mod tests {
             fs::set_permissions(&program, fs::Permissions::from_mode(0o755))?;
             Ok(())
         };
-        let accepts = |version: &str| version.starts_with("2.");
+        fn keep() -> Result<()> {
+            anyhow::bail!("an existing binary must be kept")
+        }
         assert_eq!(
-            ensure_native(&program, root.path(), "v2 agent", accepts, || {
+            ensure_native(&program, root.path(), "agent", || {
                 install_version("2.0.29")
             })?,
             "2.0.29"
         );
-        assert_eq!(
-            ensure_native(
-                &program,
-                root.path(),
-                "v2 agent",
-                accepts,
-                || anyhow::bail!("updated binary must be kept")
-            )?,
-            "2.0.29"
-        );
-        install_version("1.0.0")?;
-        assert!(
-            ensure_native(&program, root.path(), "v2 agent", accepts, || {
-                install_version("1.1.0")
-            })
-            .unwrap_err()
-            .to_string()
-            .contains("expected v2 agent")
-        );
+        // Self-updated tools may change major versions or channels. Activation
+        // must preserve those binaries instead of restoring the Nix seed.
+        for version in ["1.0.0", "2.0.29", "3.0.0-nightly.1"] {
+            install_version(version)?;
+            assert_eq!(
+                ensure_native(&program, root.path(), "agent", keep)?,
+                version
+            );
+        }
         fs::remove_file(&program)?;
         assert!(
-            ensure_native(&program, root.path(), "v2 agent", accepts, || Ok(()))
+            ensure_native(&program, root.path(), "agent", || Ok(()))
                 .unwrap_err()
                 .to_string()
                 .contains("did not select a standalone binary")

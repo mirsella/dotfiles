@@ -9,7 +9,7 @@
   options.programs.agent-tools.package = lib.mkOption {
     type = lib.types.package;
     default = pkgs.agent-tools.override { inherit isNixOS; };
-    description = "Bootstrap and launchers for writable OpenCode, Codex and nightly T3 installs.";
+    description = "Bootstrap and launchers for writable OpenCode, Codex and T3 installs.";
   };
 
   config = {
@@ -17,7 +17,8 @@
       source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/opencode/skills";
       force = true;
     };
-    # These launchers/bootstrap are immutable; application releases stay writable.
+    # These launchers/bootstrap are immutable; native application releases stay
+    # writable and existing self-updated installs are never replaced.
     home.packages = [ config.programs.agent-tools.package ];
     home.file.".local/bin/t3-settings" = {
       source = "${config.programs.agent-tools.package}/bin/t3-settings";
