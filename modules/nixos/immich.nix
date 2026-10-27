@@ -1,6 +1,6 @@
 { config, pkgs, ... }:
 let
-  version = "v3.2.4";
+  version = "v3.3.5";
   mediaPath = "/srv/data/fast/Photos";
   passwordMount = "${config.sops.secrets.immich_db_password.path}:/run/secrets/db_password:ro";
   configFile = (pkgs.formats.json { }).generate "immich.json" {
@@ -63,13 +63,13 @@ in
         ++ [ "--shm-size=128m" ];
     };
     immich_redis = {
-      image = "docker.io/valkey/valkey:9@sha256:70739f85ad2ee01a726a965584a0f94895f01b0c60b3cc8b0aeef11eaa6888cf";
+      image = "docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d";
       networks = [ "podman" ];
       podman.sdnotify = "healthy";
       extraOptions = healthcheckOptions "redis-cli ping | grep -q PONG";
     };
     immich_server = {
-      image = "ghcr.io/immich-app/immich-server:${version}@sha256:d317916b28090c33eb36b308464ea391f8b7df1d850fcfea227a39ec879718c2";
+      image = "ghcr.io/immich-app/immich-server:${version}@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6";
       dependsOn = [ "immich_postgres" "immich_redis" ];
       ports = [ "127.0.0.1:2283:2283" ];
       environment = {
@@ -91,7 +91,7 @@ in
       extraOptions = healthcheckOptions "immich-healthcheck";
     };
     immich_ml = {
-      image = "ghcr.io/immich-app/immich-machine-learning:${version}@sha256:e16c2f166a8174901959fdf85e2e4c7bd1ebc4b37e0b6655de97c41408a260c4";
+      image = "ghcr.io/immich-app/immich-machine-learning:${version}@sha256:5b28c9352c8374b8a1ed96fbdd8d6755fea6e43510ec43fdf6538aa02ea40f56";
       volumes = [ "immich-model-cache:/cache" ];
       networks = [ "podman" ];
       podman.sdnotify = "healthy";
