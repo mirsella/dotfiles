@@ -4,6 +4,10 @@
 {{- else if eq .chezmoi.hostname "laptop" -}}
   {{- $llamaModel = "qwen3.6-35b-a3b-abliterated-v4" -}}
 {{- end -}}
+{{- $allowedProviders := list "openai" "opencode" "opencode-go" -}}
+{{- if $llamaModel -}}
+  {{- $allowedProviders = append $allowedProviders "llama.cpp" -}}
+{{- end -}}
 {
   "$schema": "https://opencode.ai/v2/config.json",
   "plugins": [
@@ -73,6 +77,10 @@
       "effect": "allow"
     }
   ],
+  "policies": [
+    { "action": "provider.use", "resource": "*", "effect": "deny" }{{ range $allowedProviders }},
+    { "action": "provider.use", "resource": "{{ . }}", "effect": "allow" }{{ end }}
+  ],
   "websearch": {
     "provider": "random"
   },
@@ -108,294 +116,6 @@
             "tools": true,
             "input": [
               "text"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        }
-      }
-    },
-    "google": {
-      "models": {
-        "gemini-2.5-flash": {
-          "name": "Gemini 2.5 Flash (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-2.5-pro": {
-          "name": "Gemini 2.5 Pro (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3-flash-preview": {
-          "name": "Gemini 3 Flash Preview (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3.5-flash": {
-          "name": "Gemini 3.5 Flash (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3.5-flash-lite": {
-          "name": "Gemini 3.5 Flash-Lite (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
-          "variants": [
-            {
-              "id": "minimal",
-              "settings": {
-                "thinkingLevel": "minimal"
-              }
-            },
-            {
-              "id": "low",
-              "settings": {
-                "thinkingLevel": "low"
-              }
-            },
-            {
-              "id": "medium",
-              "settings": {
-                "thinkingLevel": "medium"
-              }
-            },
-            {
-              "id": "high",
-              "settings": {
-                "thinkingLevel": "high"
-              }
-            }
-          ],
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3.6-flash": {
-          "name": "Gemini 3.6 Flash (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
-          "variants": [
-            {
-              "id": "medium",
-              "settings": {
-                "thinkingLevel": "medium"
-              }
-            },
-            {
-              "id": "high",
-              "settings": {
-                "thinkingLevel": "high"
-              }
-            }
-          ],
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3.7-flash": {
-          "name": "Gemini 3.7 Flash (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
-          "variants": [
-            {
-              "id": "minimal",
-              "settings": {
-                "thinkingLevel": "minimal"
-              }
-            },
-            {
-              "id": "low",
-              "settings": {
-                "thinkingLevel": "low"
-              }
-            },
-            {
-              "id": "medium",
-              "settings": {
-                "thinkingLevel": "medium"
-              }
-            },
-            {
-              "id": "high",
-              "settings": {
-                "thinkingLevel": "high"
-              }
-            }
-          ],
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3.8-flash": {
-          "name": "Gemini 3.8 Flash (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65536
-          },
-          "variants": [
-            {
-              "id": "low",
-              "settings": {
-                "thinkingLevel": "low"
-              }
-            },
-            {
-              "id": "medium",
-              "settings": {
-                "thinkingLevel": "medium"
-              }
-            },
-            {
-              "id": "high",
-              "settings": {
-                "thinkingLevel": "high"
-              }
-            }
-          ],
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3-pro-preview": {
-          "name": "Gemini 3 Pro Preview (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65535
-          },
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3.1-pro": {
-          "name": "Gemini 3.1 Pro (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65535
-          },
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          }
-        },
-        "gemini-3.1-pro-preview-customtools": {
-          "name": "Gemini 3.1 Pro Preview Custom Tools (Gemini CLI)",
-          "limit": {
-            "context": 1048576,
-            "output": 65535
-          },
-          "capabilities": {
-            "tools": true,
-            "input": [
-              "text",
-              "image",
-              "pdf"
             ],
             "output": [
               "text"
@@ -473,15 +193,6 @@
             "baseURL": "http://127.0.0.1:17321"
           }
         }
-      }
-    },
-    "deepinfra": {
-      "headers": {
-        "sleev-harness": "opencode",
-        "sleev-base-url": "https://api.deepinfra.com/v1"
-      },
-      "settings": {
-        "baseURL": "http://127.0.0.1:17321"
       }
     }
   }
