@@ -32,15 +32,16 @@ Faces.SensorFace {
     readonly property var emphasizedSensorIds: root.controller.highPrioritySensorIds.filter(function(id) {
         return root.controller.lowPrioritySensorIds.indexOf(id) !== -1
     })
-    // Maps the highlighted legend row to the index of the line it points at:
-    // the plain row index when the legend lists the chart's own lines, or
-    // the sensor's index in the given list when the legend lists low
-    // priority sensors instead.
+    // Map the hovered sensor into each chart's own list. An empty overlay
+    // or a sensor absent from that chart must not receive a highlight index.
     function highlightedLineIndex(sensorIds) {
-        if (!legend.lowPriorityLegend || legend.highlightedIndex < 0) {
-            return legend.highlightedIndex
+        if (legend.highlightedIndex < 0) {
+            return -1
         }
-        return sensorIds.indexOf(root.controller.lowPrioritySensorIds[legend.highlightedIndex])
+        const legendSensorIds = legend.lowPriorityLegend
+            ? root.controller.lowPrioritySensorIds
+            : root.controller.highPrioritySensorIds
+        return sensorIds.indexOf(legendSensorIds[legend.highlightedIndex])
     }
 
     // The CPU widget is the only one whose sensors start with "cpu/". Its
