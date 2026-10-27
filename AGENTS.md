@@ -57,7 +57,8 @@ The flake discovers these directories and sets hostnames automatically.
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
 - OpenCode, Codex and T3 use writable standalone installs bootstrapped by
-  `programs.agent-tools`; T3 can update the native agent binaries. On Arch,
+  `programs.agent-tools`; activation only seeds missing installs and never
+  replaces or downgrades them, and T3 can update the native agent binaries. On Arch,
   pacman/AUR own other application binaries; the HM profiles install config
   and services, and kache from the flake so the daemon and cargo wrapper always
   match. On NixOS, rebuild the system target, never activate a standalone

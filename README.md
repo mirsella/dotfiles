@@ -138,10 +138,11 @@ uses each machine's own local login.
 ### OpenCode, Codex and T3 Code
 
 All three hosts import `modules/home/agent-tools.nix`. Home Manager runs the
-Nix-built `bootstrap-agent-tools` helper during activation. It installs the
-official standalone OpenCode v2 CLI, Codex CLI (latest stable), T3 CLI (nightly),
-and a separate nightly T3 desktop AppImage. To apply just this bootstrap without
-switching the rest of a host's configuration:
+Nix-built `bootstrap-agent-tools` helper during activation. It seeds missing
+official standalone installs: OpenCode v2 CLI, Codex CLI (latest stable), T3 CLI
+(nightly), and a separate nightly T3 desktop AppImage. Existing installs are
+left untouched. To apply just this bootstrap without switching the rest of a
+host's configuration:
 
 ```sh
 mkdir -p ~/.local/state/agent-tools
@@ -171,10 +172,13 @@ Cargo work, use the crate's ignored `pkgs/<crate>/target/` directory.
 OpenCode lives at `~/.opencode/bin/opencode`, linked from `~/.local/bin`.
 Codex lives under `~/.codex/packages/standalone`, and T3's CLI releases under
 `~/.t3/runtime/versions`. The desktop AppImage is a writable file at
-`~/.local/share/t3code/app/T3-Code-nightly.AppImage`. Activation keeps existing
-native installs; `opencode upgrade`, `codex update`, `t3 update`, and the desktop's updater own
-subsequent releases. The initial CLI and desktop share a pinned nightly version;
-updating that seed only affects fresh installs.
+`~/.local/share/t3code/app/T3-Code-nightly.AppImage`. A Home Manager or NixOS
+switch never replaces or downgrades an existing native install, even when its
+version, channel, or major release differs from the pinned seed; it only seeds
+a missing or dangling install. `opencode upgrade`, `codex update`, `t3 update`,
+T3 Code, and the desktop's updater own subsequent releases. The initial CLI and
+desktop share a pinned nightly version; updating that seed only affects fresh
+installs.
 
 Nix supplies the `t3code`/`t3code-nightly` launchers and desktop menu entry. On
 NixOS the launcher uses `appimage-run`; Arch runs the AppImage directly. A service
@@ -529,9 +533,10 @@ These tests use generated units and disposable files; they do not activate a sys
 
 ## OpenCode extensions
 
-The bootstrap seeds OpenCode 2.0.28 and preserves existing v2 installs so T3 can
-update them. Its service runs `~/.local/bin/opencode` on Arch and NixOS.
-OpenChamber 2.3.1 stays managed by Arch packages or this flake on NixOS; remove
+The bootstrap seeds OpenCode 2.1.4 and preserves every existing standalone
+install, including newer major versions, so T3 and the CLI updaters own them.
+Its service runs `~/.local/bin/opencode` on Arch and NixOS.
+OpenChamber 2.5.2 stays managed by Arch packages or this flake on NixOS; remove
 the old manual `IgnorePkg = openchamber` pin when upgrading it.
 The native service records its runtime URL, PID and generated password in
 `~/.local/state/opencode/service.json` and uses the fixed Basic username
