@@ -19,7 +19,6 @@ let
 in
 assert lib.assertMsg (
   server.boot.lanzaboote.enable
-  && server.boot.initrd.systemd.enable
   && builtins.attrValues server.boot.initrd.secrets
     == [ "/var/lib/predator-boot/recovery-ssh/host-key.cred" ]
   && server.boot.initrd.network.ssh.enable

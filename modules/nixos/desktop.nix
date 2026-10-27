@@ -4,7 +4,6 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.initrd.systemd.enable = true;
 
   # LUKS2 containers unlock through the TPM once each host is enrolled.
   boot.initrd.luks.devices = {

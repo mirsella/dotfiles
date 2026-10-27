@@ -2,15 +2,6 @@
 {
   imports = [ ./nextcloud-preferences.nix ];
 
-  sops.secrets.nextcloud-adminpass = {
-    sopsFile = ../../secrets/nextcloud.yaml;
-    owner = "nextcloud";
-    restartUnits = [
-      "nextcloud-setup.service"
-      "phpfpm-nextcloud.service"
-    ];
-  };
-
   sops.secrets.nextcloud-resend = {
     sopsFile = ../../secrets/nextcloud.yaml;
     key = "resend_api_key";
@@ -39,11 +30,7 @@
       "pm.max_spare_servers" = 2;
       "pm.max_requests" = 500;
     };
-    config = {
-      dbtype = "pgsql";
-      adminuser = "admin";
-      adminpassFile = config.sops.secrets.nextcloud-adminpass.path;
-    };
+    config.dbtype = "pgsql";
     settings = {
       # Chunk size for chunked WebDAV uploads. The 10 MiB default throttles
       # rclone to ~50 MB/s in the chunk-merge path; 1 GiB removes that

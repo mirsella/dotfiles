@@ -143,10 +143,7 @@ in
     # Keep this arm console-only; never place a plaintext private key on the ESP.
     boot.initrd.network.ssh.enable = lib.mkForce false;
     boot.initrd.network.ssh.hostKeys = lib.mkForce [ ];
-    boot.initrd.systemd.extraBin = {
-      predator-pm-study = "${tools}/bin/predator-pm-study";
-      systemd-reply-password = "${pkgs.systemd}/lib/systemd/systemd-reply-password";
-    };
+    boot.initrd.systemd.extraBin.predator-pm-study = "${tools}/bin/predator-pm-study";
     environment.etc.crypttab.text = lib.mkForce ''
       fast-crypt ${disks.ssds.fast}-part1 - discard,nofail,headless=true,x-systemd.device-timeout=30s
       tank1-crypt ${disks.hdds.tank1}-part1 - nofail,headless=true,x-systemd.device-timeout=30s

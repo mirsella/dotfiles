@@ -16,7 +16,6 @@ in
       enable = true;
       pkiBundle = "/var/lib/sbctl";
     };
-    initrd.systemd.enable = true;
     initrd.luks.devices.crypt-root = {
       device = lib.mkForce physical.luks.root;
       allowDiscards = true;
