@@ -216,18 +216,26 @@ its keybindings file, so a missing binding does not mean "default". The
 defaults are read from the installed app image: `t3-settings` extracts the
 bundled server module and imports its settings schemas once per app build,
 caching the result under `~/.local/state/agent-tools/t3-settings-defaults/`.
-An upgraded app is a new cache key, and so is a changed helper. Pruning is
-skipped when the app image's version differs from the running server's
-`serverVersion`, so a not-yet-restarted update cannot prune a value using
-another build's defaults; capture then keeps every allowlisted value until they
-match. If the bundle layout or its exported constants change, capture keeps
+An upgraded app is a new cache key, and so is a changed helper. Capture and
+sync stop when the app image's version differs from the running server's
+`serverVersion`, so a not-yet-restarted update cannot prune or publish values
+using another build's defaults; `capture --if-configured` (used by the chezmoi
+hook) skips with a warning. `--allow-version-mismatch` continues without
+pruning and keeps every allowlisted value until the versions match. If the
+bundle layout or its exported constants change, capture keeps
 every allowlisted value and warns instead of failing. `T3_SETTINGS_NODE`
 selects the Node binary used for that import (Home Manager sets it for the
 launcher and the setup service).
-Applying a bundle removes managed keys that are absent, which restores T3's
-defaults on the applying machine. Bundles and sync records written before
-pruning are normalized before they are compared, so an older record does not
-look like a local edit.
+Applying a bundle changes only managed keys that are present, so a key absent
+from the bundle keeps its live value; across T3 versions an absent key cannot
+be distinguished from a pruned default or a deliberate removal. Use
+`t3-settings apply --remove-absent` to reset missing managed keys to T3's
+defaults. Sync stops with a warning while the app image and the running server
+differ, because pruning is unavailable and comparing unpruned live settings
+with a pruned bundle would look like a local edit; `--allow-version-mismatch`
+continues without pruning. Bundles and sync records written before pruning are
+normalized before they are compared, so an older record does not look like a
+local edit.
 
 Preferences changed in the app sync back to the portable bundle automatically:
 the settings watcher reruns the sync when live T3 settings files change, and
@@ -289,8 +297,8 @@ t3-settings apply
 Apply merges allowed fields and preserves local credentials and unlisted
 settings outside lists. List settings, including keybindings, favorites,
 model options and project scripts, are replaced in full; unknown fields
-inside their items are not preserved. It clears saved preferences that were
-reset to defaults. Project
+inside their items are not preserved. Managed preferences that the bundle omits
+are left unchanged; `--remove-absent` resets them to T3 defaults. Project
 paths under the source user's home become `~/...`; registration uses T3's
 project API and maps overrides to the destination IDs. Project settings use
 T3's canonical overrides; derived legacy views stay local. Missing checkouts
