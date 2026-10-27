@@ -1,3 +1,4 @@
+use crate::t3_defaults::{Defaults, DefaultsStatus};
 use crate::util;
 use anyhow::{Context, Result, bail, ensure};
 use clap::Subcommand;
@@ -21,6 +22,9 @@ pub enum Operation {
         /// Skip capture if this machine has no T3 userdata (for the chezmoi hook).
         #[arg(long)]
         if_configured: bool,
+        /// Capture even while the desktop app and server versions differ.
+        #[arg(long)]
+        allow_version_mismatch: bool,
     },
     /// Merge a portable bundle into T3, preserving credentials and device-local state.
     Apply {
@@ -28,6 +32,9 @@ pub enum Operation {
         input: Option<PathBuf>,
         #[arg(long)]
         dry_run: bool,
+        /// Delete managed live keys missing from the bundle, resetting them to T3 defaults.
+        #[arg(long)]
+        remove_absent: bool,
     },
     /// Reconcile live T3 settings with the portable bundle in either direction.
     ///
@@ -47,6 +54,9 @@ pub enum Operation {
         /// Overwrite the bundle with live settings to resolve a conflict (live wins).
         #[arg(long, conflicts_with = "force_apply")]
         force_capture: bool,
+        /// Sync even while the desktop app and server versions differ (no default pruning).
+        #[arg(long)]
+        allow_version_mismatch: bool,
     },
 }
 
@@ -199,9 +209,20 @@ impl Policy {
         Ok(())
     }
 
-    // Remove absent managed values too: T3 omits many preferences when reset to defaults.
-    // Unknown object fields survive; lists are replaced as complete values.
-    fn merge(&self, current: &mut Value, saved: Option<&Value>, rule: &Value) -> bool {
+    // Deletion is opt-in: an absent managed key normally means the bundle has no
+    // opinion, so a value pruned under another T3 build stays. Unknown object
+    // fields survive; lists are replaced as complete values.
+    fn merge(
+        &self,
+        current: &mut Value,
+        saved: Option<&Value>,
+        rule: &Value,
+        remove_absent: bool,
+        left_absent: &mut bool,
+    ) -> bool {
+        if saved.is_none() && !remove_absent {
+            return true;
+        }
         let rule = self.rule(rule);
         if rule.is_object() && !current.is_object() && saved.is_some_and(Value::is_object) {
             *current = object();
@@ -217,8 +238,12 @@ impl Policy {
                     if rule == &Value::Bool(false) {
                         continue;
                     }
+                    if !saved.contains_key(&key) && !remove_absent {
+                        *left_absent = true;
+                        continue;
+                    }
                     let value = current.entry(key.clone()).or_insert(Value::Null);
-                    if !self.merge(value, saved.get(&key), rule) {
+                    if !self.merge(value, saved.get(&key), rule, remove_absent, left_absent) {
                         current.remove(&key);
                     }
                 }
@@ -233,6 +258,16 @@ impl Policy {
     }
 
     fn merge_section(&self, name: &str, current: &mut Value, saved: &Value) {
+        self.merge_section_with(name, current, saved, false);
+    }
+
+    fn merge_section_with(
+        &self,
+        name: &str,
+        current: &mut Value,
+        saved: &Value,
+        remove_absent: bool,
+    ) -> bool {
         // A null provider config clears managed options, keeping local credentials.
         let local_config = if name == "provider" && saved.get("config").is_some_and(Value::is_null)
         {
@@ -240,12 +275,26 @@ impl Policy {
         } else {
             None
         };
-        self.merge(current, Some(saved), &self.0[name]);
+        let mut left_absent = false;
+        self.merge(
+            current,
+            Some(saved),
+            &self.0[name],
+            remove_absent,
+            &mut left_absent,
+        );
         if let Some(mut config) = local_config {
-            if self.merge(&mut config, None, &self.0["provider"]["config"]) {
+            if self.merge(
+                &mut config,
+                None,
+                &self.0["provider"]["config"],
+                true,
+                &mut left_absent,
+            ) {
                 current["config"] = config;
             }
         }
+        left_absent
     }
 }
 
@@ -725,7 +774,12 @@ fn normalize_bundle_value(value: &mut Value, defaults: &crate::t3_defaults::Defa
     }
 }
 
-fn capture(policy: &Policy, home: &Path, base_dir: &Path) -> Result<Bundle> {
+fn capture(
+    policy: &Policy,
+    home: &Path,
+    base_dir: &Path,
+    defaults: Option<&Defaults>,
+) -> Result<Bundle> {
     let dir = base_dir.join("userdata");
     let mut client = policy.capture(
         "client",
@@ -744,7 +798,7 @@ fn capture(policy: &Policy, home: &Path, base_dir: &Path) -> Result<Bundle> {
         &SettingsFile::read(dir.join("keybindings.json"), json!([]))?.value,
         "keybindings",
     )?;
-    if let Some(defaults) = crate::t3_defaults::load(home, base_dir) {
+    if let Some(defaults) = defaults {
         prune_defaults(&mut client, &defaults.client);
         prune_defaults(&mut server, &defaults.server);
     }
@@ -933,32 +987,36 @@ fn restore_server(
     server: &mut Value,
     bundle: &Bundle,
     projects: &[(String, &PortableProject)],
-) -> Result<()> {
+    remove_absent: bool,
+) -> Result<bool> {
     ensure!(
         server.is_object(),
         "Local server settings must be an object"
     );
-    policy.merge_section("server", server, &bundle.server);
+    let mut left_absent =
+        policy.merge_section_with("server", server, &bundle.server, remove_absent);
     if !bundle.providers.is_empty() {
         let local = settings_map(server, "providerInstances")?;
         for (id, saved) in &bundle.providers {
             validate_provider(saved, local.get(id))?;
-            policy.merge_section(
+            left_absent |= policy.merge_section_with(
                 "provider",
                 local.entry(id.clone()).or_insert_with(object),
                 saved,
+                remove_absent,
             );
         }
     }
     for (id, project) in projects {
         let overrides = settings_map(server, "projectSettingsOverrides")?;
-        policy.merge_section(
+        left_absent |= policy.merge_section_with(
             "projectSettings",
             overrides.entry(id.clone()).or_insert_with(object),
             &project.settings,
+            remove_absent,
         );
     }
-    Ok(())
+    Ok(left_absent)
 }
 
 fn configure_native_opencode(server: &mut Value, home: &Path) -> Result<()> {
@@ -1085,6 +1143,7 @@ fn apply(
     base_dir: &Path,
     dry_run: bool,
     record: bool,
+    remove_absent: bool,
 ) -> Result<()> {
     validate_bundle(policy, &bundle)?;
     transform_paths(&mut bundle, home, false);
@@ -1100,8 +1159,14 @@ fn apply(
         &desktop.value,
         &keybindings.value,
     )?;
-    policy.merge_section("client", &mut client.value, &bundle.client);
-    policy.merge_section("desktop", &mut desktop.value, &bundle.desktop);
+    let mut left_absent =
+        policy.merge_section_with("client", &mut client.value, &bundle.client, remove_absent);
+    left_absent |= policy.merge_section_with(
+        "desktop",
+        &mut desktop.value,
+        &bundle.desktop,
+        remove_absent,
+    );
     keybindings.value = bundle.keybindings.clone();
     // Check driver conflicts before project mutations, then recheck the latest settings.
     for (id, provider) in &bundle.providers {
@@ -1110,8 +1175,13 @@ fn apply(
     let session = Session::open(home, base_dir, !dry_run)?;
     let ids = restore_projects(&session, &bundle, home, dry_run)?;
     server = SettingsFile::read(dir.join("settings.json"), object())?;
-    restore_server(policy, &mut server.value, &bundle, &ids)?;
+    left_absent |= restore_server(policy, &mut server.value, &bundle, &ids, remove_absent)?;
     configure_native_opencode(&mut server.value, home)?;
+    if left_absent {
+        eprintln!(
+            "t3-settings: kept live managed settings the bundle does not mention; use t3-settings apply --remove-absent to reset them to T3 defaults"
+        );
+    }
     if dry_run {
         println!(
             "Validated portable settings and {} existing projects; no settings or projects changed",
@@ -1458,15 +1528,16 @@ fn sync_apply_and_snapshot(
     live_val: Option<Value>,
     home: &Path,
     base_dir: &Path,
+    defaults: Option<&Defaults>,
     forced: bool,
     direction: &str,
 ) -> Result<()> {
     let before = live_val.clone().unwrap_or_else(|| json!({}));
-    apply(policy, bundle, home, base_dir, false, false)?;
+    apply(policy, bundle, home, base_dir, false, false, false)?;
     // The common operation only needs the post-apply snapshot and the diff
     // against it; a failed re-read falls back to the intended bundle values
     // with unknown live content.
-    let live = match capture(policy, home, base_dir) {
+    let live = match capture(policy, home, base_dir, defaults) {
         Ok(fresh) => Some(bundle_value(&fresh)?),
         Err(error) => {
             eprintln!("warning: applied the bundle but could not re-read live settings: {error:#}");
@@ -1501,6 +1572,7 @@ fn sync(
     dry_run: bool,
     force_apply: bool,
     force_capture: bool,
+    allow_version_mismatch: bool,
 ) -> Result<()> {
     let bundle_path = input.unwrap_or_else(|| home.join(".config/t3code/portable-settings.json"));
     let Some(mut bundle) = read_bundle_file(&bundle_path)? else {
@@ -1515,7 +1587,21 @@ fn sync(
     // sides before comparing keeps that representation change from looking like
     // an edit on every machine that receives a pruned bundle.
     let defaults = if base_dir.join("userdata").try_exists()? {
-        crate::t3_defaults::load(home, base_dir)
+        match crate::t3_defaults::load(home, base_dir) {
+            DefaultsStatus::Ready(defaults) => defaults,
+            DefaultsStatus::VersionMismatch { app, server } => {
+                if !allow_version_mismatch {
+                    eprintln!(
+                        "t3-settings sync: T3 app {app} and server {server} versions differ; restart T3 and run sync again. Leaving settings and sync state unchanged"
+                    );
+                    return Ok(());
+                }
+                eprintln!(
+                    "t3-settings sync: T3 app {app} and server {server} versions differ; continuing without default pruning because --allow-version-mismatch was given"
+                );
+                None
+            }
+        }
     } else {
         None
     };
@@ -1525,7 +1611,7 @@ fn sync(
     }
     let bundle_val = bundle_value(&bundle)?;
     let live_bundle = if base_dir.join("userdata").try_exists()? {
-        Some(capture(policy, home, base_dir)?)
+        Some(capture(policy, home, base_dir, defaults.as_ref())?)
     } else {
         None
     };
@@ -1662,6 +1748,7 @@ fn sync(
                 None,
                 home,
                 base_dir,
+                defaults.as_ref(),
                 force_apply,
                 "apply",
             )
@@ -1725,6 +1812,7 @@ fn sync(
                 Some(live_v),
                 home,
                 base_dir,
+                defaults.as_ref(),
                 force_apply,
                 direction,
             )
@@ -1799,6 +1887,7 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
         Operation::Capture {
             output,
             if_configured,
+            allow_version_mismatch,
         } => {
             if if_configured && !base_dir.join("userdata").try_exists()? {
                 eprintln!(
@@ -1809,7 +1898,27 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
             }
             let output = output.unwrap_or(default_bundle);
             let output = capture_destination(&output, &base_dir)?;
-            let bundle = capture(&policy, &home, &base_dir)?;
+            let defaults = match crate::t3_defaults::load(&home, &base_dir) {
+                DefaultsStatus::Ready(defaults) => defaults,
+                DefaultsStatus::VersionMismatch { app, server } => {
+                    if allow_version_mismatch {
+                        eprintln!(
+                            "t3-settings: T3 app {app} and server {server} versions differ; capturing without default pruning"
+                        );
+                        None
+                    } else if if_configured {
+                        eprintln!(
+                            "t3-settings: skipping capture; T3 app {app} and server {server} versions differ. Restart T3 and run again"
+                        );
+                        return Ok(());
+                    } else {
+                        bail!(
+                            "T3 app {app} and server {server} versions differ; restart T3 and run again, or pass --allow-version-mismatch"
+                        );
+                    }
+                }
+            };
+            let bundle = capture(&policy, &home, &base_dir, defaults.as_ref())?;
             validate_bundle(&policy, &bundle)?;
             let new_val = bundle_value(&bundle)?;
             let before: Value = read_bundle_file(&output)
@@ -1835,19 +1944,32 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
                 println!("Portable bundle already matches live settings; nothing to do");
             }
         }
-        Operation::Apply { input, dry_run } => {
+        Operation::Apply {
+            input,
+            dry_run,
+            remove_absent,
+        } => {
             let input = input.unwrap_or(default_bundle);
             let bundle = serde_json::from_slice(
                 &fs::read(&input).with_context(|| format!("Reading {}", input.display()))?,
             )
             .context("Parsing portable T3 bundle")?;
-            apply(&policy, bundle, &home, &base_dir, dry_run, true)?;
+            apply(
+                &policy,
+                bundle,
+                &home,
+                &base_dir,
+                dry_run,
+                true,
+                remove_absent,
+            )?;
         }
         Operation::Sync {
             input,
             dry_run,
             force_apply,
             force_capture,
+            allow_version_mismatch,
         } => {
             sync(
                 &policy,
@@ -1857,6 +1979,7 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
                 dry_run,
                 force_apply,
                 force_capture,
+                allow_version_mismatch,
             )?;
         }
     }
@@ -2098,7 +2221,7 @@ mod tests {
         policy.merge_section(section, &mut local, &selected);
         assert_eq!(local, saved);
 
-        policy.merge_section(section, &mut local, &object());
+        policy.merge_section_with(section, &mut local, &object(), true);
         assert_eq!(local, object());
     }
 
@@ -2180,14 +2303,14 @@ mod tests {
     }
 
     #[test]
-    fn restore_preserves_local_secrets_and_unknown_fields_and_clears_defaults() {
+    fn restore_preserves_local_secrets_unknown_fields_and_absent_settings() {
         let policy = Policy::new();
         let mut local = json!({"driver":"opencode", "enabled":true, "config":{"serverPassword":"keep", "futureCredential":"keep", "serverUrl":"http://old", "binaryPath":"old"}, "environment":[{"name":"KEY", "value":"keep"}]});
         let saved = json!({"driver":"opencode", "enabled":false, "config":{"serverUrl":"http://localhost:14096"}});
         policy.merge_section("provider", &mut local, &saved);
         assert_eq!(
             local["config"],
-            json!({"serverPassword":"keep", "futureCredential":"keep", "serverUrl":"http://localhost:14096"})
+            json!({"serverPassword":"keep", "futureCredential":"keep", "serverUrl":"http://localhost:14096", "binaryPath":"old"})
         );
         assert_eq!(local["environment"][0]["value"], "keep");
         policy.merge_section(
@@ -2200,11 +2323,13 @@ mod tests {
             json!({"serverPassword":"keep", "futureCredential":"keep"})
         );
         let mut client = json!({"fontSizeCode":20, "onboardingCompletedAt":"keep", "browserDefaultViewport":{"_tag":"fixed", "width":1200, "height":800, "future":true}});
-        policy.merge_section(
-            "client",
-            &mut client,
-            &json!({"browserDefaultViewport":{"_tag":"fill"}}),
+        let viewport = json!({"browserDefaultViewport":{"_tag":"fill"}});
+        policy.merge_section("client", &mut client, &viewport);
+        assert_eq!(
+            client,
+            json!({"fontSizeCode":20, "onboardingCompletedAt":"keep", "browserDefaultViewport":{"_tag":"fill", "width":1200, "height":800, "future":true}})
         );
+        policy.merge_section_with("client", &mut client, &viewport, true);
         assert_eq!(
             client,
             json!({"onboardingCompletedAt":"keep", "browserDefaultViewport":{"_tag":"fill", "future":true}})
@@ -2227,7 +2352,16 @@ mod tests {
                 policy.merge_section(name, &mut local, &saved);
                 assert_eq!(local, saved, "{name}.{key}");
                 policy.merge_section(name, &mut local, &object());
-                assert!(local.get(key).is_none(), "An absent override must inherit");
+                assert_eq!(
+                    local.get(key),
+                    Some(&Value::Null),
+                    "An absent override stays without --remove-absent"
+                );
+                policy.merge_section_with(name, &mut local, &object(), true);
+                assert!(
+                    local.get(key).is_none(),
+                    "An absent override must inherit with --remove-absent"
+                );
             }
         }
     }
@@ -2242,6 +2376,7 @@ mod tests {
             &mut local,
             &bundle,
             &[("new-id".into(), &bundle.projects[0])],
+            false,
         )
         .unwrap();
         assert_eq!(
@@ -2613,7 +2748,7 @@ mod tests {
     }
 
     #[test]
-    fn capture_prunes_defaults_and_apply_restores_them() {
+    fn capture_prunes_defaults_and_remove_absent_restores_them() {
         let policy = Policy::new();
         let defaults = json!({
             "client": {
@@ -2640,6 +2775,18 @@ mod tests {
         policy.merge_section("client", &mut local, &client);
         assert_eq!(
             local,
+            json!({
+                "notificationMode": "off",
+                "fontSizeCode": 15,
+                "localOnly": true,
+                "wordWrap": true
+            })
+        );
+
+        let mut reset = json!({"notificationMode": "off", "fontSizeCode": 11, "localOnly": true});
+        assert!(!policy.merge_section_with("client", &mut reset, &client, true));
+        assert_eq!(
+            reset,
             json!({"fontSizeCode": 15, "localOnly": true, "wordWrap": true})
         );
 

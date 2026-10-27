@@ -21,6 +21,17 @@ pub struct Defaults {
     pub server: Value,
 }
 
+/// Defaults for the running app, or the reason they cannot be used.
+///
+/// `Ready(None)` covers an absent app, an extraction failure, and a runtime
+/// without a version. Capture then keeps every allowlisted value. A version
+/// mismatch is separate so sync can wait for the T3 restart instead of
+/// publishing an unpruned capture.
+pub enum DefaultsStatus {
+    Ready(Option<Defaults>),
+    VersionMismatch { app: String, server: String },
+}
+
 #[derive(Deserialize)]
 struct Extracted {
     version: String,
@@ -28,20 +39,20 @@ struct Extracted {
     defaults: Defaults,
 }
 
-pub fn load(home: &Path, base_dir: &Path) -> Option<Defaults> {
+pub fn load(home: &Path, base_dir: &Path) -> DefaultsStatus {
     read(home, base_dir).unwrap_or_else(|error| {
         eprintln!("t3-settings: keeping all settings; cannot read T3 defaults: {error:#}");
-        None
+        DefaultsStatus::Ready(None)
     })
 }
 
-fn read(home: &Path, base_dir: &Path) -> Result<Option<Defaults>> {
+fn read(home: &Path, base_dir: &Path) -> Result<DefaultsStatus> {
     let Some(image) = app_image(home)? else {
-        return Ok(None);
+        return Ok(DefaultsStatus::Ready(None));
     };
     let Some(server_version) = running_server_version(base_dir) else {
         eprintln!("t3-settings: keeping all settings; cannot read the running T3 version");
-        return Ok(None);
+        return Ok(DefaultsStatus::Ready(None));
     };
     // The helper keys its cache on the image and on its own contents, so an app
     // update or a helper change recomputes defaults.
@@ -73,18 +84,18 @@ fn read(home: &Path, base_dir: &Path) -> Result<Option<Defaults>> {
         extracted.defaults.server.is_object(),
         "server defaults are not an object"
     );
-    let app_version = extracted.version.clone();
-    let defaults = defaults_for(extracted, &server_version);
-    if defaults.is_none() {
-        eprintln!(
-            "t3-settings: keeping all settings; defaults come from T3 {app_version}, but the server runs {server_version}"
-        );
-    }
-    Ok(defaults)
+    Ok(status_for(extracted, &server_version))
 }
 
-fn defaults_for(extracted: Extracted, server_version: &str) -> Option<Defaults> {
-    (extracted.version == server_version).then_some(extracted.defaults)
+fn status_for(extracted: Extracted, server_version: &str) -> DefaultsStatus {
+    if extracted.version == server_version {
+        DefaultsStatus::Ready(Some(extracted.defaults))
+    } else {
+        DefaultsStatus::VersionMismatch {
+            app: extracted.version,
+            server: server_version.to_owned(),
+        }
+    }
 }
 
 fn running_server_version(base_dir: &Path) -> Option<String> {
@@ -141,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn only_accepts_defaults_from_the_running_version() {
+    fn reports_defaults_from_another_version() {
         let extracted = |version: &str| Extracted {
             version: version.to_owned(),
             defaults: Defaults {
@@ -149,8 +160,14 @@ mod tests {
                 server: serde_json::json!({"b": 2}),
             },
         };
-        assert!(defaults_for(extracted("0.1.3"), "0.1.3").is_some());
-        assert!(defaults_for(extracted("0.1.4"), "0.1.3").is_none());
+        assert!(matches!(
+            status_for(extracted("0.1.3"), "0.1.3"),
+            DefaultsStatus::Ready(Some(_))
+        ));
+        assert!(matches!(
+            status_for(extracted("0.1.4"), "0.1.3"),
+            DefaultsStatus::VersionMismatch { .. }
+        ));
     }
 
     #[test]

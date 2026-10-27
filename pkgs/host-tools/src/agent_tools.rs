@@ -405,6 +405,7 @@ pub fn setup() -> Result<()> {
             dry_run: false,
             force_apply: false,
             force_capture: false,
+            allow_version_mismatch: false,
         },
     )
 }
