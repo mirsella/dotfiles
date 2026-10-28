@@ -120,6 +120,10 @@ enum Commands {
         #[arg(long)]
         test: bool,
     },
+    HardwareAlerts {
+        #[arg(long)]
+        test: bool,
+    },
     BeszelSetup {
         password_file: PathBuf,
         resend_key_file: PathBuf,
@@ -211,6 +215,7 @@ fn run() -> Result<()> {
             t3_state,
         } => suspend::run(activity_only, t3_state.as_deref()),
         Commands::StorageAlerts { test } => monitoring::alerts(test),
+        Commands::HardwareAlerts { test } => monitoring::hardware_alerts(test),
         Commands::BeszelSetup {
             password_file,
             resend_key_file,

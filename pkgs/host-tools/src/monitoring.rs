@@ -13,6 +13,8 @@ use std::{
     path::Path,
     process::{Command, Stdio},
     sync::LazyLock,
+    thread,
+    time::{Duration, Instant},
 };
 
 pub fn storage_event(message: &str) -> bool {
@@ -236,6 +238,192 @@ pub fn alerts(test: bool) -> Result<()> {
     Ok(())
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum HardwareWarning {
+    ClockWatchdog,
+    MachineCheck,
+    GpuReset,
+}
+
+impl HardwareWarning {
+    fn classify(message: &str) -> Option<Self> {
+        let lower = message.to_ascii_lowercase();
+        if message.contains("clocksource: Watchdog") && message.contains("read timed out") {
+            Some(Self::ClockWatchdog)
+        } else if (lower.contains("machine check") || lower.contains("mce: [hardware error]"))
+            && !lower.contains("decoding enabled")
+            // Corrected and merely logged checks are routine; only an actionable
+            // hardware error is worth a notification that stays on screen.
+            && !(lower.contains("corrected") && !lower.contains("uncorrected"))
+            && !lower.contains("events logged")
+        {
+            Some(Self::MachineCheck)
+        } else if lower.contains("gpu reset")
+            || (lower.contains("amdgpu") && lower.contains("ring") && lower.contains("timeout"))
+        {
+            Some(Self::GpuReset)
+        } else {
+            None
+        }
+    }
+
+    fn summary(self) -> &'static str {
+        match self {
+            Self::ClockWatchdog => "CPU timing watchdog timed out",
+            Self::MachineCheck => "Machine check (hardware error)",
+            Self::GpuReset => "GPU reset or timeout",
+        }
+    }
+}
+
+/// One persistent notification per warning class and window, even when a storm
+/// logs a slightly different line for every affected CPU.
+const ALERT_COOLDOWN: Duration = Duration::from_secs(600);
+
+fn notify_send(urgency: &str, expire: &str, summary: &str, body: &str) -> Result<()> {
+    // notify-send blocks while the desktop bus activates the notification daemon,
+    // which must never stall the control loops that raise an alert.
+    util::run(
+        "timeout",
+        &[
+            "--signal=TERM",
+            "5",
+            "notify-send",
+            "--app-name=Hardware",
+            &format!("--urgency={urgency}"),
+            &format!("--expire-time={expire}"),
+            summary,
+            body,
+        ],
+    )
+}
+
+pub fn notify(summary: &str, body: &str) {
+    // Transient event toast; failures must not disturb the maintainer loops.
+    if let Err(error) = notify_send("normal", "10000", summary, body) {
+        eprintln!("Could not show notification: {error:#}");
+    }
+}
+
+fn persistent_notification(summary: &str, body: &str) -> Result<()> {
+    // Critical notifications stay until dismissed, unlike expiring normal ones.
+    let mut attempt = 1;
+    loop {
+        match notify_send("critical", "0", summary, body) {
+            Ok(()) => return Ok(()),
+            Err(error) if attempt == 10 => {
+                return Err(error).context("show persistent notification");
+            }
+            Err(_) => {
+                attempt += 1;
+                thread::sleep(Duration::from_secs(2));
+            }
+        }
+    }
+}
+
+fn clean_shutdown(previous_boot: &str) -> Result<bool> {
+    let output = Command::new("journalctl")
+        .args([
+            &format!("--boot={previous_boot}"),
+            "--output=cat",
+            "--no-pager",
+            "--grep=System is (powering down|rebooting|halting)",
+        ])
+        .output()
+        .context("inspect previous boot journal")?;
+    match output.status.code() {
+        Some(0) => Ok(!output.stdout.is_empty()),
+        // journalctl also exits 1 for an unknown boot, but only complains on
+        // stderr then; an empty stderr means the boot was searched and had no
+        // shutdown marker.
+        Some(1) if output.stderr.is_empty() => Ok(false),
+        _ => Err(anyhow!(
+            "previous boot journal search exited {}: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim()
+        )),
+    }
+}
+
+fn previous_boot_notice() -> Result<()> {
+    let boot_id = util::read("/proc/sys/kernel/random/boot_id")?
+        .trim()
+        .to_owned();
+    let state = Path::new(&env::var("STATE_DIRECTORY")?).join("notified-boot");
+    if fs::read_to_string(&state).is_ok_and(|text| text.trim() == boot_id) {
+        return Ok(());
+    }
+    // Claim the boot before notifying: a delivery failure must not repeat the
+    // alert on every service restart.
+    util::atomic_write(&state, format!("{boot_id}\n").as_bytes())?;
+    match clean_shutdown("-1") {
+        Ok(true) => println!("Previous boot ended with a clean shutdown"),
+        Ok(false) => {
+            if let Err(error) = persistent_notification(
+                "Previous shutdown was not clean",
+                "The last session ended without a shutdown sequence: a reset, power loss or freeze is likely.\n\nInspect with: journalctl -b -1 -k",
+            ) {
+                eprintln!("Could not report the previous shutdown: {error:#}");
+            }
+        }
+        Err(error) => println!("Could not inspect the previous boot: {error:#}"),
+    }
+    Ok(())
+}
+
+pub fn hardware_alerts(test: bool) -> Result<()> {
+    if test {
+        // Report a delivery failure instead of silently passing the check.
+        notify_send(
+            "critical",
+            "0",
+            "Hardware alert test",
+            "Persistent desktop notifications work; this one stays until dismissed.",
+        )?;
+        println!("Test notification sent.");
+        return Ok(());
+    }
+    previous_boot_notice()?;
+    let mut child = Command::new("journalctl")
+        .args([
+            "--quiet",
+            "--no-pager",
+            "--follow",
+            // Journalctl replays its last lines on start; only new events matter.
+            "--lines=0",
+            "--output=cat",
+            "_TRANSPORT=kernel",
+        ])
+        .stdout(Stdio::piped())
+        .spawn()
+        .context("start kernel journal follower")?;
+    let result = (|| {
+        let stdout = child.stdout.take().context("journal stdout missing")?;
+        let mut last = [None::<Instant>; 3];
+        for line in BufReader::new(stdout).lines() {
+            let line = line?;
+            let Some(warning) = HardwareWarning::classify(&line) else {
+                continue;
+            };
+            let summary = warning.summary();
+            println!("{summary}: {line}");
+            let slot = &mut last[warning as usize];
+            if slot.is_some_and(|sent| sent.elapsed() < ALERT_COOLDOWN) {
+                continue;
+            }
+            *slot = Some(Instant::now());
+            if let Err(error) = persistent_notification(summary, line.trim()) {
+                eprintln!("Could not show the {summary} alert: {error:#}");
+            }
+        }
+        Err(anyhow!("kernel journal follower closed"))
+    })();
+    let _ = child.kill();
+    let _ = child.wait();
+    result
+}
+
 pub fn mail(key_file: &Path, recipient: &str, subject: &str, text: &str) -> Result<()> {
     let key = util::read(key_file)?.trim().to_owned();
     ensure!(!key.is_empty(), "empty Resend key");
@@ -257,4 +445,35 @@ pub fn mail(key_file: &Path, recipient: &str, subject: &str, text: &str) -> Resu
         Ok(())
     })();
     result.map_err(|e| anyhow!("{}", format!("{e:#}").replace(&key, "[redacted]")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classifies_kernel_hardware_warnings() {
+        assert_eq!(
+            HardwareWarning::classify("clocksource: Watchdog remote CPU 15 read timed out"),
+            Some(HardwareWarning::ClockWatchdog)
+        );
+        assert_eq!(
+            HardwareWarning::classify(
+                "mce: [Hardware Error]: Uncorrected, software restartable error."
+            ),
+            Some(HardwareWarning::MachineCheck)
+        );
+        for benign in [
+            "MCE: In-kernel MCE decoding enabled.",
+            "mce: [Hardware Error]: Corrected error, no action required.",
+            "mce: [Hardware Error]: Machine check events logged",
+        ] {
+            assert_eq!(HardwareWarning::classify(benign), None);
+        }
+        assert_eq!(
+            HardwareWarning::classify("amdgpu 0000:c1:00.0: [gfxhub] ring gfx timeout"),
+            Some(HardwareWarning::GpuReset)
+        );
+        assert_eq!(HardwareWarning::classify("wlp1s0: Limiting TX power"), None);
+    }
 }

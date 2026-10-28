@@ -37,6 +37,29 @@
     Install.WantedBy = [ "default.target" ];
   };
 
+  systemd.user.services.hardware-alerts = lib.mkIf (!isNixOS) {
+    Unit = {
+      Description = "Show persistent desktop alerts for kernel hardware warnings";
+      # A broken follower must surface as a failed unit, not restart forever.
+      StartLimitIntervalSec = 300;
+      StartLimitBurst = 5;
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${lib.getExe pkgs.host-tools} hardware-alerts";
+      Environment = [
+        "PATH=/usr/bin:/bin"
+        "STATE_DIRECTORY=%S/hardware-alerts"
+        "DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus"
+      ];
+      Restart = "always";
+      RestartSec = 5;
+      StateDirectory = "hardware-alerts";
+      StateDirectoryMode = "0700";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
   systemd.user.services.lu-acton-2-a2dp-watch = {
     Unit = {
       Description = "Keep LU ACTON 2 on A2DP output";
