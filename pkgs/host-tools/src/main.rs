@@ -14,6 +14,7 @@ mod migration_backups;
 mod monitoring;
 mod opencode;
 mod predator_boot;
+mod scratch;
 mod setup;
 mod suspend;
 mod t3_activity;
@@ -140,6 +141,13 @@ enum Commands {
     Backup {
         config: PathBuf,
     },
+    /// Remove task scratch directories untouched for more than N days.
+    ScratchPrune {
+        #[arg(long, default_value_t = scratch::DEFAULT_MAX_AGE_DAYS)]
+        max_age_days: u64,
+        #[arg(long)]
+        dry_run: bool,
+    },
     NextcloudSetup {
         config: PathBuf,
     },
@@ -246,6 +254,10 @@ fn run() -> Result<()> {
             &std::env::var("SMARTD_FULLMESSAGE")?,
         ),
         Commands::Backup { config } => backup::run(&config),
+        Commands::ScratchPrune {
+            max_age_days,
+            dry_run,
+        } => scratch::run(max_age_days, dry_run),
         Commands::NextcloudSetup { config } => setup::nextcloud(&config),
         Commands::RequireMount {
             dataset,
