@@ -252,7 +252,7 @@ enum HardwareWarning {
 impl HardwareWarning {
     fn classify(message: &str) -> Option<Self> {
         let lower = message.to_ascii_lowercase();
-        if message.contains("clocksource: Watchdog") && message.contains("read timed out") {
+        if lower.contains("clocksource: watchdog") && lower.contains("read timed out") {
             Some(Self::ClockWatchdog)
         } else if (lower.contains("machine check") || lower.contains("mce: [hardware error]"))
             && !lower.contains("decoding enabled")
@@ -425,24 +425,25 @@ fn previous_boot_notice() -> Result<()> {
     Ok(())
 }
 
-pub fn hardware_alerts(test: bool) -> Result<()> {
-    if test {
-        // Report a delivery failure instead of silently passing the check.
-        notify_send(
-            "Hardware alert test",
-            "Persistent desktop notifications work; this one stays until dismissed.",
-            true,
-        )?;
-        println!("Test notification sent.");
-        if telegram_configured() {
-            telegram(&format!(
-                "Hardware alert test from {}. Telegram delivery works.",
-                hostname()?
-            ))?;
-            println!("Telegram test delivered.");
-        }
-        return Ok(());
+pub fn hardware_alert_test() -> Result<()> {
+    // Report a delivery failure instead of silently passing the check.
+    notify_send(
+        "Hardware alert test",
+        "Persistent desktop notifications work; this one stays until dismissed.",
+        true,
+    )?;
+    println!("Test notification sent.");
+    if telegram_configured() {
+        telegram(&format!(
+            "Hardware alert test from {}. Telegram delivery works.",
+            hostname()?
+        ))?;
+        println!("Telegram test delivered.");
     }
+    Ok(())
+}
+
+pub fn hardware_alerts() -> Result<()> {
     previous_boot_notice()?;
     let mut child = Command::new("journalctl")
         .args([

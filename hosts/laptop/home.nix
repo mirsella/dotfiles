@@ -55,7 +55,6 @@
       EnvironmentFile = "-%h/.config/telegram.env";
       Environment = [
         "PATH=/usr/bin:/bin"
-        "STATE_DIRECTORY=%S/hardware-alerts"
         "DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus"
       ];
       Restart = "always";

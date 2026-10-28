@@ -215,7 +215,13 @@ fn run() -> Result<()> {
             t3_state,
         } => suspend::run(activity_only, t3_state.as_deref()),
         Commands::StorageAlerts { test } => monitoring::alerts(test),
-        Commands::HardwareAlerts { test } => monitoring::hardware_alerts(test),
+        Commands::HardwareAlerts { test } => {
+            if test {
+                monitoring::hardware_alert_test()
+            } else {
+                monitoring::hardware_alerts()
+            }
+        }
         Commands::BeszelSetup {
             password_file,
             resend_key_file,
