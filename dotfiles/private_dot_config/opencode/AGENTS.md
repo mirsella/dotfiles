@@ -8,3 +8,4 @@
 - Make invariant violations obvious. Do not silently fall back from an impossible state; justify and log any necessary fallback.
 - Never rotate credentials or secrets solely because an agent read or displayed them; sessions are private.
 - When you need to wait for something wait on it directly instead of sleeping. for example on the pid instead of sleep and rechecking in between.
+- If you have nothing else to do and a background process running, block on it instead of returning. dont stop if you have background stuff running.
