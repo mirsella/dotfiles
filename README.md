@@ -556,7 +556,9 @@ Composio CLI login; neither needs a separate OAuth login.
 
 Chezmoi owns native `opencode.jsonc` and global `cli.json`. The server config
 uses `plugins`, native MCP/permission/provider shapes, and Sleev provider
-headers beside `settings.baseURL`. Sleev's v2 setup omits `compaction.prune`;
+headers beside `settings.baseURL` for `openai` and `opencode-go`. The `opencode`
+provider connects directly because its free tier rejects gateway traffic.
+Sleev's v2 setup omits `compaction.prune`;
 automatic compaction keeps its normal default. Terminal plugins use absolute
 file URLs because native CLI plugin paths resolve from the working directory.
 Runtime TUI preference changes write to `cli.json`; save them in its chezmoi
