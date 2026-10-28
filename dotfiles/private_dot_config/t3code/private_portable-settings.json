@@ -792,6 +792,17 @@
       "settings": {}
     },
     {
+      "workspace_root": "~/dev/discord-bot",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "discord-bot"
+      },
+      "settings": {
+        "defaultThreadEnvMode": "worktree"
+      }
+    },
+    {
       "workspace_root": "~/dev/dotfiles",
       "attributes": {
         "faviconPath": null,

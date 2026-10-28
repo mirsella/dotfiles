@@ -16,6 +16,6 @@ committing, or discarding it. If it blocks, leave main alone.
 
 git push main after.
 
-if the user mention "settle" its in t3 code to settle your own thread when done with this.
+if the user mention "settle" its in t3 code to settle your own thread when done with this. only settle if fully merged/landed.
 
 Briefly report landed or queued, branch/commits, and checks.
