@@ -31,7 +31,8 @@
     home.activation.agentToolsSetup = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
       if ${pkgs.systemd}/bin/systemctl --user show-environment >/dev/null 2>&1; then
         run ${pkgs.systemd}/bin/systemctl --user start --no-block \
-          agent-tools-setup.service agent-tools-setup.path agent-tools-backups.timer
+          agent-tools-setup.service agent-tools-setup.path agent-tools-backups.timer \
+          scratch-prune.timer
       fi
     '';
     systemd.user.services.agent-tools-setup = {
@@ -74,6 +75,21 @@
       Unit.Description = "Apply migration backup retention weekly";
       Timer = {
         OnCalendar = "weekly";
+        Persistent = true;
+      };
+      Install.WantedBy = [ "timers.target" ];
+    };
+    systemd.user.services.scratch-prune = {
+      Unit.Description = "Remove stale task scratch directories";
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${lib.getExe pkgs.host-tools} scratch-prune";
+      };
+    };
+    systemd.user.timers.scratch-prune = {
+      Unit.Description = "Prune task scratch directories daily";
+      Timer = {
+        OnCalendar = "daily";
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];
