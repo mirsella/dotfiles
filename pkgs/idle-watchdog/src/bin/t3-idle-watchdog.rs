@@ -1042,40 +1042,45 @@ fn classify_thread(
             format!("background({})", task.kind),
         ));
     }
-    let active_activity = matches!(
-        thread.activity_run_status.as_deref(),
-        Some("preparing" | "starting" | "running")
-    );
+    let activity_status = thread.activity_run_status.as_deref();
+    let status = activity_status.unwrap_or(&thread.status);
+    let running = matches!(status, "preparing" | "starting" | "running");
     let waiting_on_thread = thread.blocked_on_thread_wait == Some(true);
     let waiting_on_request = thread
         .pending_runtime_request
         .as_ref()
-        .is_some_and(|request| request.blocking != Some(false));
-    if thread.status == "queued" && (!active_activity || waiting_on_thread || waiting_on_request) {
-        return Some(queued());
-    }
-    if waiting_on_thread || waiting_on_request {
+        .is_some_and(|request| request.blocking == Some(true) || status == "waiting");
+    // T3 marks provider-blocking requests explicitly; asynchronous message-based
+    // questions do not stop a running agent. Missing flags do not prove a pause.
+    // A genuine request wait also holds up queued follow-ups.
+    if waiting_on_request {
         return Some(waiting());
     }
-    if let Some(status) = thread.activity_run_status.as_deref() {
-        return Some(match status {
-            "preparing" | "starting" | "running" => {
-                blocked("RUNNING", Color::Yellow, status.to_owned())
-            }
-            "waiting" if only_pull_request_watches(thread) => waiting(),
-            "waiting" => blocked("WAITING?", Color::Red, "waiting".to_owned()),
-            other => blocked("UNKNOWN", Color::Red, format!("activity:{other}")),
-        });
+    if thread.status == "queued" && (!running || waiting_on_thread) {
+        return Some(queued());
     }
-    match thread.status.as_str() {
-        "preparing" | "starting" | "running" => {
-            Some(blocked("RUNNING", Color::Yellow, thread.status.clone()))
-        }
-        "queued" => Some(queued()),
+    if waiting_on_thread {
+        return Some(waiting());
+    }
+    if running {
+        return Some(blocked("RUNNING", Color::Yellow, status.to_owned()));
+    }
+    match status {
         "waiting" if only_pull_request_watches(thread) => Some(waiting()),
         "waiting" => Some(blocked("WAITING?", Color::Red, "waiting".to_owned())),
-        "idle" | "completed" | "interrupted" | "failed" | "cancelled" | "rolled_back" => None,
-        other => Some(blocked("UNKNOWN", Color::Red, format!("status:{other}"))),
+        "idle" | "completed" | "interrupted" | "failed" | "cancelled" | "rolled_back"
+            if activity_status.is_none() =>
+        {
+            None
+        }
+        other => {
+            let source = if activity_status.is_some() {
+                "activity"
+            } else {
+                "status"
+            };
+            Some(blocked("UNKNOWN", Color::Red, format!("{source}:{other}")))
+        }
     }
 }
 
@@ -1566,6 +1571,79 @@ mod tests {
         assert_eq!(verdict.label, "WAITING");
         assert!(verdict.waiting);
         assert!(verdict.blocker.is_none());
+    }
+
+    #[test]
+    fn queued_follow_up_does_not_override_a_blocking_runtime_request() {
+        for activity in [None, Some("running"), Some("waiting")] {
+            let mut thread = thread("queued-question-thread", "queued");
+            thread.activity_run_status = activity.map(str::to_owned);
+            thread.pending_runtime_request = Some(PendingRuntimeRequest {
+                blocking: Some(true),
+            });
+            let mut snapshot = ShellSnapshot {
+                schema_version: Some(2),
+                threads: vec![thread],
+                archived_threads: Vec::new(),
+                projects: Vec::new(),
+            };
+            let evaluation = evaluate(Some(&snapshot), None, &[], false);
+            assert_eq!(evaluation.state(), "IDLE");
+            assert_eq!(evaluation.waiting_threads(), 1);
+            assert_eq!(evaluation.rows[0].label, "WAITING");
+
+            snapshot.threads[0].pending_runtime_request = None;
+            assert!(
+                !evaluate(Some(&snapshot), None, &[], false)
+                    .blockers
+                    .is_empty()
+            );
+        }
+    }
+
+    #[test]
+    fn non_blocking_runtime_request_does_not_hide_queued_work() {
+        for activity in [None, Some("preparing"), Some("starting"), Some("running")] {
+            for blocking in [None, Some(false)] {
+                let mut thread = thread("queued-async-question-thread", "queued");
+                thread.activity_run_status = activity.map(str::to_owned);
+                thread.pending_runtime_request = Some(PendingRuntimeRequest { blocking });
+                let verdict = classify(&thread).expect("queued thread has a verdict");
+                assert!(verdict.blocker.is_some());
+                assert!(!verdict.waiting);
+            }
+        }
+    }
+
+    #[test]
+    fn runtime_request_without_a_blocking_flag_requires_a_stopped_agent() {
+        for activity in [None, Some("waiting")] {
+            let mut thread = thread("waiting-thread", "waiting");
+            thread.activity_run_status = activity.map(str::to_owned);
+            thread.pending_runtime_request = Some(PendingRuntimeRequest { blocking: None });
+            let verdict = classify(&thread).expect("waiting thread has a verdict");
+            assert_eq!(verdict.label, "WAITING");
+            assert!(verdict.blocker.is_none());
+        }
+        let mut thread = thread("running-thread", "running");
+        thread.pending_runtime_request = Some(PendingRuntimeRequest { blocking: None });
+        assert!(classify(&thread).unwrap().blocker.is_some());
+    }
+
+    #[test]
+    fn background_work_still_blocks_during_a_runtime_request() {
+        let mut thread = thread("background-question-thread", "queued");
+        thread.activity_run_status = Some("running".to_owned());
+        thread.pending_runtime_request = Some(PendingRuntimeRequest {
+            blocking: Some(true),
+        });
+        thread.pending_background_tasks = Some(vec![PendingBackgroundTask {
+            task_id: "task-1".to_owned(),
+            kind: "command".to_owned(),
+        }]);
+        let verdict = classify(&thread).expect("background thread has a verdict");
+        assert_eq!(verdict.label, "BACKGROUND");
+        assert!(verdict.blocker.is_some());
     }
 
     #[test]

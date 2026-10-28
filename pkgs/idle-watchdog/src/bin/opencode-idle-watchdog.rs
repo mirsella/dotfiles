@@ -719,70 +719,88 @@ fn subagent_background(part: &Value) -> bool {
 }
 
 fn waiting_sessions<'a>(
-    status: &'a serde_json::Map<String, Value>,
-    questions: &'a [Value],
-    permissions: &'a [Value],
-    assistants: &'a serde_json::Map<String, Value>,
+    state: &'a WorkspaceState,
     excluded_sessions: &'a HashSet<String>,
 ) -> HashSet<&'a str> {
+    let requested_tools: HashSet<_> = state
+        .questions
+        .iter()
+        .map(|request| (request, request.pointer("/metadata/tool")))
+        .chain(
+            state
+                .permissions
+                .iter()
+                .map(|request| (request, request.get("source"))),
+        )
+        .filter_map(|(request, source)| {
+            let source = source?;
+            Some((
+                request.get("sessionID")?.as_str()?,
+                source.get("messageID")?.as_str()?,
+                source.get("id")?.as_str()?,
+            ))
+        })
+        .collect();
     let mut waiting = excluded_sessions
         .iter()
         .map(String::as_str)
         .collect::<HashSet<_>>();
-    waiting.extend(
-        [questions, permissions]
-            .into_iter()
-            .flatten()
-            .filter_map(|request| request.get("sessionID").and_then(Value::as_str)),
-    );
-    waiting.extend(
-        assistants
-            .iter()
-            .filter(|(_, message)| {
-                message
-                    .get("content")
-                    .and_then(Value::as_array)
-                    .is_some_and(|parts| {
-                        parts.iter().any(|part| {
-                            active_part(part)
-                                && part.get("type").and_then(Value::as_str) == Some("tool")
-                                && part.get("name").and_then(Value::as_str) == Some("question")
-                        })
-                    })
-            })
-            .map(|(session, _)| session.as_str()),
-    );
     loop {
-        let parents: Vec<_> = status
-            .iter()
-            .filter_map(|(parent, state)| {
-                if waiting.contains(parent.as_str()) || status_kind(state) != "busy" {
-                    return None;
+        let previous_count = waiting.len();
+        for (session, status) in &state.status {
+            if waiting.contains(session.as_str()) || status_kind(status) != "busy" {
+                continue;
+            }
+            let Some(message) = state.assistants.get(session) else {
+                continue;
+            };
+            let Some(parts) = message.get("content").and_then(Value::as_array) else {
+                continue;
+            };
+            // An open request is not a session-wide pause: reasoning and
+            // unrelated parallel tools must still keep the machine awake.
+            if parts.iter().any(|part| {
+                part.get("type").and_then(Value::as_str) == Some("reasoning")
+                    && !part
+                        .pointer("/time/completed")
+                        .is_some_and(|completed| !completed.is_null())
+            }) {
+                continue;
+            }
+            let mut running = parts.iter().filter(|part| active_part(part)).peekable();
+            if running.peek().is_none() {
+                continue;
+            }
+            let message_id = message.get("id").and_then(Value::as_str);
+            if running.all(|part| {
+                if part.get("type").and_then(Value::as_str) != Some("tool")
+                    || part.pointer("/state/status").and_then(Value::as_str) != Some("running")
+                {
+                    return false;
                 }
-                let parts = assistants.get(parent)?.get("content")?.as_array()?;
-                let mut running = parts.iter().filter(|part| active_part(part)).peekable();
-                running.peek()?;
-                running
-                    .all(|part| {
-                        part.get("type").and_then(Value::as_str) == Some("tool")
-                            && part.get("name").and_then(Value::as_str) == Some("subagent")
-                            && !subagent_background(part)
-                            && part.pointer("/state/metadata").is_some_and(|metadata| {
-                                metadata
-                                    .get("sessionID")
-                                    .and_then(Value::as_str)
-                                    .is_some_and(|child| waiting.contains(child))
-                            })
-                    })
-                    .then_some(parent.as_str())
-            })
-            .collect();
-        if parents.is_empty() {
-            break;
+                if part.get("name").and_then(Value::as_str) == Some("question")
+                    || message_id
+                        .zip(part.get("id").and_then(Value::as_str))
+                        .is_some_and(|(message, tool)| {
+                            requested_tools.contains(&(session.as_str(), message, tool))
+                        })
+                {
+                    return true;
+                }
+                part.get("name").and_then(Value::as_str) == Some("subagent")
+                    && !subagent_background(part)
+                    && part
+                        .pointer("/state/metadata/sessionID")
+                        .and_then(Value::as_str)
+                        .is_some_and(|child| waiting.contains(child))
+            }) {
+                waiting.insert(session.as_str());
+            }
         }
-        waiting.extend(parents);
+        if waiting.len() == previous_count {
+            return waiting;
+        }
     }
-    waiting
 }
 
 struct SessionVerdict {
@@ -816,8 +834,8 @@ fn classify_snapshot<'a>(
         } else if stuck.contains(session) {
             ("STUCK", Color::DarkGrey, None)
         } else if waiting.contains(session.as_str()) {
-            // A pending native form or permission proves the wait even when
-            // the message detail fetch failed, so these never block.
+            // Every active part is proven to be waiting; requests alone are
+            // insufficient, including when message details could not be read.
             ("WAITING", Color::Blue, None)
         } else if unresolved.contains(session.as_str()) {
             // The detail fetch failed and nothing proves idleness, so fail
@@ -1166,13 +1184,7 @@ fn evaluate(
         .snapshots
         .iter()
         .map(|snapshot| match &snapshot.state {
-            Ok(state) => waiting_sessions(
-                &state.status,
-                &state.questions,
-                &state.permissions,
-                &state.assistants,
-                &excluded_sessions,
-            ),
+            Ok(state) => waiting_sessions(state, &excluded_sessions),
             Err(_) => HashSet::new(),
         })
         .collect();
@@ -2344,13 +2356,7 @@ mod tests {
         excluded: &HashSet<String>,
         stuck: &HashSet<String>,
     ) -> Vec<String> {
-        let waiting = waiting_sessions(
-            &state.status,
-            &state.questions,
-            &state.permissions,
-            &state.assistants,
-            excluded,
-        );
+        let waiting = waiting_sessions(state, excluded);
         classify_snapshot(state, excluded, stuck, &waiting)
             .filter_map(|verdict| verdict.blocker)
             .collect()
@@ -2384,8 +2390,10 @@ mod tests {
     fn classifies_user_waits_and_foreground_task_chains() {
         let fixture: Value = serde_json::from_str(r#"{
           "status":{"background":{"type":"busy"},"busy":{"type":"busy"},"idle":{"type":"idle"},"leaf":{"type":"busy"},"malformed":"oops","malformed_task":{"type":"busy"},"middle":{"type":"busy"},"mixed":{"type":"busy"},"other":{"type":"busy"},"partial":{"type":"busy"},"permission":{"type":"busy"},"root":{"type":"busy"}},
-          "questions":[{"sessionID":"leaf"}],"permissions":[{"sessionID":"permission"}],
+          "questions":[{"sessionID":"leaf"}],"permissions":[{"sessionID":"permission","source":{"type":"tool","messageID":"msg-permission","id":"tool-permission"}}],
           "assistants":{
+            "leaf":{"content":[{"type":"tool","name":"question","state":{"status":"running"}}]},
+            "permission":{"id":"msg-permission","content":[{"type":"tool","id":"tool-permission","name":"shell","state":{"status":"running"}}]},
             "background":{
               "info":{"role":"assistant"},
               "content":[{"type":"tool","name":"subagent","sessionID":"background","state":{"status":"running","metadata":{"sessionID":"leaf","background":true}}}]
@@ -2432,6 +2440,76 @@ mod tests {
     }
 
     #[test]
+    fn active_question_tool_is_a_non_blocking_wait() {
+        let empty = HashSet::new();
+        for status in ["running", "streaming", "completed", "error"] {
+            for parallel in [false, true] {
+                let mut parts = vec![json!({
+                    "type": "tool", "name": "question", "state": {"status": status}
+                })];
+                if parallel {
+                    parts.push(json!({
+                        "type": "tool", "name": "shell", "state": {"status": "running"}
+                    }));
+                }
+                let state = workspace_state(&json!({
+                    "status": {"question": {"type": "busy"}},
+                    "assistants": {"question": {"content": parts}}
+                }));
+                assert_eq!(
+                    blockers_of(&state, &empty, &empty).is_empty(),
+                    status == "running" && !parallel,
+                    "status={status}, parallel={parallel}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn native_requests_only_pause_their_own_tools() {
+        let empty = HashSet::new();
+        for request_type in ["questions", "permissions"] {
+            let source = json!({"messageID": "msg-1", "id": "tool-1", "type": "tool"});
+            let mut fixture = json!({
+                "status": {"session": {"type": "busy"}},
+                "assistants": {"session": {"id": "msg-1", "content": [{
+                    "type": "tool", "id": "tool-1", "name": "shell", "state": {"status": "running"}
+                }]}},
+            });
+            fixture[request_type] = json!([{"sessionID": "session"}]);
+            if request_type == "questions" {
+                fixture[request_type][0]["metadata"] = json!({"tool": source});
+            } else {
+                fixture[request_type][0]["source"] = source;
+            }
+            let mut state = workspace_state(&fixture);
+            assert!(blockers_of(&state, &empty, &empty).is_empty());
+
+            // A form/permission for one tool cannot hide unrelated parallel work.
+            state.assistants["session"]["content"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!({
+                    "type": "tool", "id": "tool-2", "name": "shell", "state": {"status": "running"}
+                }));
+            assert_eq!(blockers_of(&state, &empty, &empty), ["session:busy"]);
+            state.assistants["session"]["content"][1] = json!({
+                "type": "reasoning", "time": {"created": 1}
+            });
+            assert_eq!(blockers_of(&state, &empty, &empty), ["session:busy"]);
+            state.assistants["session"]["content"][1]["time"]["completed"] = json!(2);
+            assert!(blockers_of(&state, &empty, &empty).is_empty());
+
+            // An old request does not pause a new message or a different tool.
+            state.assistants["session"]["id"] = json!("msg-2");
+            assert_eq!(blockers_of(&state, &empty, &empty), ["session:busy"]);
+            state.assistants["session"]["id"] = json!("msg-1");
+            state.assistants["session"]["content"][0]["id"] = json!("tool-2");
+            assert_eq!(blockers_of(&state, &empty, &empty), ["session:busy"]);
+        }
+    }
+
+    #[test]
     fn subagent_background_uses_v2_input_and_legacy_metadata() {
         let input = |value: Value| {
             json!({
@@ -2455,6 +2533,7 @@ mod tests {
                 "status": {"parent": {"type": "busy"}, "leaf": {"type": "busy"}},
                 "questions": [{"sessionID": "leaf"}],
                 "assistants": {
+                    "leaf": {"content": [{"type": "tool", "name": "question", "state": {"status": "running"}}]},
                     "parent": {
                         "content": [{
                             "type": "tool",
@@ -2553,7 +2632,7 @@ mod tests {
     }
 
     #[test]
-    fn proven_wait_without_detail_stays_idle() {
+    fn pending_request_without_detail_does_not_prove_a_wait() {
         let fixture = serde_json::json!({
             "status": {"wedged": {"type": "busy"}},
             "questions": [{"sessionID": "wedged"}],
@@ -2564,7 +2643,7 @@ mod tests {
             updated: Some(1),
             reason: "timeout".to_owned(),
         }];
-        // A proven wait is never tracked as stuck, so no event can claim it blocks.
+        // The request does not prove that other work has stopped.
         let scan = ApiScan {
             snapshots: vec![ApiSnapshot {
                 pid: 7,
@@ -2585,11 +2664,11 @@ mod tests {
             &mut seen_active,
             &report,
         );
-        assert!(evaluation.blockers.is_empty());
+        assert!(!evaluation.blockers.is_empty());
         assert_eq!(evaluation.workspaces[0].sessions.len(), 1);
-        assert_eq!(evaluation.workspaces[0].sessions[0].label, "WAITING");
-        assert!(evaluation.workspaces[0].sessions[0].blocker.is_none());
-        assert!(tracker.is_empty());
+        assert_eq!(evaluation.workspaces[0].sessions[0].label, "RUNNING");
+        assert!(evaluation.workspaces[0].sessions[0].blocker.is_some());
+        assert!(tracker.contains_key("wedged"));
     }
 
     #[test]
