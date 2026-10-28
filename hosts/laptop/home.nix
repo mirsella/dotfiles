@@ -44,10 +44,15 @@
       # A broken follower must surface as a failed unit, not restart forever.
       StartLimitIntervalSec = 300;
       StartLimitBurst = 5;
+      # Notifications are exported by plasmashell once the session is up.
+      After = [ "plasma-plasmashell.service" ];
     };
     Service = {
       Type = "simple";
       ExecStart = "${lib.getExe pkgs.host-tools} hardware-alerts";
+      # Optional: mirrors alerts to Telegram when the env file with the bot
+      # credentials exists; local desktop alerts work without it.
+      EnvironmentFile = "-%h/.config/telegram.env";
       Environment = [
         "PATH=/usr/bin:/bin"
         "STATE_DIRECTORY=%S/hardware-alerts"

@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{
     borrow::Cow,
+    collections::HashMap,
     env,
     fmt::Write as _,
     fs,
@@ -238,11 +239,14 @@ pub fn alerts(test: bool) -> Result<()> {
     Ok(())
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum HardwareWarning {
     ClockWatchdog,
     MachineCheck,
     GpuReset,
+    Thermal,
+    Pcie,
+    Nvme,
 }
 
 impl HardwareWarning {
@@ -262,6 +266,19 @@ impl HardwareWarning {
             || (lower.contains("amdgpu") && lower.contains("ring") && lower.contains("timeout"))
         {
             Some(Self::GpuReset)
+        } else if lower.contains("critical temperature reached")
+            || (lower.contains("thermal") && lower.contains("critical"))
+        {
+            Some(Self::Thermal)
+        } else if lower.contains("aer:") && lower.contains("uncorrected") {
+            Some(Self::Pcie)
+        } else if lower.contains("nvme")
+            && (lower.contains("timeout")
+                || lower.contains("controller is down")
+                || lower.contains("reset controller")
+                || lower.contains("removing after probe failure"))
+        {
+            Some(Self::Nvme)
         } else {
             None
         }
@@ -272,6 +289,9 @@ impl HardwareWarning {
             Self::ClockWatchdog => "CPU timing watchdog timed out",
             Self::MachineCheck => "Machine check (hardware error)",
             Self::GpuReset => "GPU reset or timeout",
+            Self::Thermal => "Thermal trip",
+            Self::Pcie => "Uncorrected PCIe error",
+            Self::Nvme => "NVMe controller error",
         }
     }
 }
@@ -280,7 +300,14 @@ impl HardwareWarning {
 /// logs a slightly different line for every affected CPU.
 const ALERT_COOLDOWN: Duration = Duration::from_secs(600);
 
-fn notify_send(urgency: &str, expire: &str, summary: &str, body: &str) -> Result<()> {
+/// A sticky notification stays until dismissed and carries critical urgency;
+/// a transient one expires on its own.
+fn notify_send(summary: &str, body: &str, sticky: bool) -> Result<()> {
+    let (urgency, expire) = if sticky {
+        ("critical", "0")
+    } else {
+        ("normal", "10000")
+    };
     // notify-send blocks while the desktop bus activates the notification daemon,
     // which must never stall the control loops that raise an alert.
     util::run(
@@ -300,16 +327,15 @@ fn notify_send(urgency: &str, expire: &str, summary: &str, body: &str) -> Result
 
 pub fn notify(summary: &str, body: &str) {
     // Transient event toast; failures must not disturb the maintainer loops.
-    if let Err(error) = notify_send("normal", "10000", summary, body) {
+    if let Err(error) = notify_send(summary, body, false) {
         eprintln!("Could not show notification: {error:#}");
     }
 }
 
 fn persistent_notification(summary: &str, body: &str) -> Result<()> {
-    // Critical notifications stay until dismissed, unlike expiring normal ones.
     let mut attempt = 1;
     loop {
-        match notify_send("critical", "0", summary, body) {
+        match notify_send(summary, body, true) {
             Ok(()) => return Ok(()),
             Err(error) if attempt == 10 => {
                 return Err(error).context("show persistent notification");
@@ -322,27 +348,47 @@ fn persistent_notification(summary: &str, body: &str) -> Result<()> {
     }
 }
 
+fn clean_from_search(code: Option<i32>, stdout: &[u8], stderr: &[u8]) -> Result<bool> {
+    match code {
+        Some(0) => Ok(!stdout.is_empty()),
+        // journalctl exits 1 both for "no match" and for an unknown boot, and only
+        // the latter complains on stderr.
+        Some(1) if stderr.is_empty() => Ok(false),
+        _ => Err(anyhow!(
+            "previous boot journal search exited {}: {}",
+            code.map_or_else(|| "on a signal".to_owned(), |code| code.to_string()),
+            String::from_utf8_lossy(stderr).trim()
+        )),
+    }
+}
+
 fn clean_shutdown(previous_boot: &str) -> Result<bool> {
     let output = Command::new("journalctl")
         .args([
             &format!("--boot={previous_boot}"),
             "--output=cat",
             "--no-pager",
-            "--grep=System is (powering down|rebooting|halting)",
+            // logind and systemd-shutdown announce whichever action was started.
+            "--grep=System is (powering down|rebooting|halting|shutting down|performing factory reset)",
         ])
         .output()
         .context("inspect previous boot journal")?;
-    match output.status.code() {
-        Some(0) => Ok(!output.stdout.is_empty()),
-        // journalctl also exits 1 for an unknown boot, but only complains on
-        // stderr then; an empty stderr means the boot was searched and had no
-        // shutdown marker.
-        Some(1) if output.stderr.is_empty() => Ok(false),
-        _ => Err(anyhow!(
-            "previous boot journal search exited {}: {}",
-            output.status,
-            String::from_utf8_lossy(&output.stderr).trim()
-        )),
+    clean_from_search(output.status.code(), &output.stdout, &output.stderr)
+}
+
+/// The unit loads ~/.config/telegram.env when present; without it delivery is
+/// skipped rather than failing the alert.
+fn telegram_configured() -> bool {
+    env::var("TgToken").is_ok() && env::var("TgId").is_ok()
+}
+
+fn mirror_to_telegram(text: String) {
+    if !telegram_configured() {
+        return;
+    }
+    let result = hostname().and_then(|host| telegram(&bounded_message(format!("{host}: {text}"))));
+    if let Err(error) = result {
+        eprintln!("Could not mirror the alert to Telegram: {error:#}");
     }
 }
 
@@ -354,18 +400,25 @@ fn previous_boot_notice() -> Result<()> {
     if fs::read_to_string(&state).is_ok_and(|text| text.trim() == boot_id) {
         return Ok(());
     }
-    // Claim the boot before notifying: a delivery failure must not repeat the
-    // alert on every service restart.
-    util::atomic_write(&state, format!("{boot_id}\n").as_bytes())?;
+    // Inspect before claiming the boot: an unusable journal must be retried on
+    // the next service start, while a delivered verdict must never repeat.
+    let claim = || util::atomic_write(&state, format!("{boot_id}\n").as_bytes());
     match clean_shutdown("-1") {
-        Ok(true) => println!("Previous boot ended with a clean shutdown"),
+        Ok(true) => {
+            claim()?;
+            println!("Previous boot ended with a clean shutdown");
+        }
         Ok(false) => {
+            claim()?;
             if let Err(error) = persistent_notification(
                 "Previous shutdown was not clean",
                 "The last session ended without a shutdown sequence: a reset, power loss or freeze is likely.\n\nInspect with: journalctl -b -1 -k",
             ) {
                 eprintln!("Could not report the previous shutdown: {error:#}");
             }
+            mirror_to_telegram(
+                "previous shutdown was not clean (reset, power loss or freeze)".to_owned(),
+            );
         }
         Err(error) => println!("Could not inspect the previous boot: {error:#}"),
     }
@@ -376,12 +429,18 @@ pub fn hardware_alerts(test: bool) -> Result<()> {
     if test {
         // Report a delivery failure instead of silently passing the check.
         notify_send(
-            "critical",
-            "0",
             "Hardware alert test",
             "Persistent desktop notifications work; this one stays until dismissed.",
+            true,
         )?;
         println!("Test notification sent.");
+        if telegram_configured() {
+            telegram(&format!(
+                "Hardware alert test from {}. Telegram delivery works.",
+                hostname()?
+            ))?;
+            println!("Telegram test delivered.");
+        }
         return Ok(());
     }
     previous_boot_notice()?;
@@ -400,22 +459,29 @@ pub fn hardware_alerts(test: bool) -> Result<()> {
         .context("start kernel journal follower")?;
     let result = (|| {
         let stdout = child.stdout.take().context("journal stdout missing")?;
-        let mut last = [None::<Instant>; 3];
-        for line in BufReader::new(stdout).lines() {
-            let line = line?;
+        let mut last: HashMap<HardwareWarning, Instant> = HashMap::new();
+        // Kernel messages are raw bytes; a non-UTF-8 line must not end the follower.
+        for chunk in BufReader::new(stdout).split(b'\n') {
+            let bytes = chunk?;
+            let line = String::from_utf8_lossy(&bytes);
             let Some(warning) = HardwareWarning::classify(&line) else {
                 continue;
             };
             let summary = warning.summary();
             println!("{summary}: {line}");
-            let slot = &mut last[warning as usize];
-            if slot.is_some_and(|sent| sent.elapsed() < ALERT_COOLDOWN) {
+            if last
+                .get(&warning)
+                .is_some_and(|sent| sent.elapsed() < ALERT_COOLDOWN)
+            {
                 continue;
             }
-            *slot = Some(Instant::now());
+            last.insert(warning, Instant::now());
             if let Err(error) = persistent_notification(summary, line.trim()) {
+                // An undelivered alert must not consume the class's window.
+                last.remove(&warning);
                 eprintln!("Could not show the {summary} alert: {error:#}");
             }
+            mirror_to_telegram(format!("{summary}\n{}", line.trim()));
         }
         Err(anyhow!("kernel journal follower closed"))
     })();
@@ -474,6 +540,38 @@ mod tests {
             HardwareWarning::classify("amdgpu 0000:c1:00.0: [gfxhub] ring gfx timeout"),
             Some(HardwareWarning::GpuReset)
         );
-        assert_eq!(HardwareWarning::classify("wlp1s0: Limiting TX power"), None);
+        assert_eq!(
+            HardwareWarning::classify("thermal thermal_zone0: critical temperature reached"),
+            Some(HardwareWarning::Thermal)
+        );
+        assert_eq!(
+            HardwareWarning::classify(
+                "pcieport 0000:00:01.1: AER: Uncorrected (Non-Fatal) error received"
+            ),
+            Some(HardwareWarning::Pcie)
+        );
+        assert_eq!(
+            HardwareWarning::classify("nvme nvme0: I/O 12 QID 1 timeout, reset controller"),
+            Some(HardwareWarning::Nvme)
+        );
+        for benign in [
+            "wlp1s0: Limiting TX power",
+            "pcieport 0000:00:01.1: AER: Corrected error received",
+            "nvme nvme0: pci function 0000:01:00.0",
+            "thermal thermal_zone0: polling every 5s",
+        ] {
+            assert_eq!(HardwareWarning::classify(benign), None);
+        }
+    }
+
+    #[test]
+    fn maps_journal_searches_to_shutdown_state() {
+        assert!(clean_from_search(Some(0), b"System is powering down.\n", b"").unwrap());
+        assert!(!clean_from_search(Some(0), b"", b"").unwrap());
+        // A searched boot with no marker is the crash case.
+        assert!(!clean_from_search(Some(1), b"", b"").unwrap());
+        // Exit 1 with a complaint means the boot could not be inspected.
+        assert!(clean_from_search(Some(1), b"", b"No journal boot entry found.").is_err());
+        assert!(clean_from_search(None, b"", b"").is_err());
     }
 }
