@@ -89,7 +89,7 @@
     systemd.user.timers.scratch-prune = {
       Unit.Description = "Prune task scratch directories daily";
       Timer = {
-        OnCalendar = "daily";
+        OnCalendar = "12:00";
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];
