@@ -28,7 +28,8 @@
       Type = "simple";
       ExecStartPre = "/usr/bin/sudo -n /usr/bin/modprobe ryzen_smu";
       ExecStart = "${lib.getExe pkgs.host-tools} ryzenadj --watch";
-      Environment = "PATH=/usr/bin:/bin";
+      Environment =
+        [ "PATH=/usr/bin:/bin" "DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus" ];
       Restart = "on-failure";
       RestartSec = 5;
       StateDirectory = "ryzenadj-laptop";

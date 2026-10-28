@@ -1,7 +1,8 @@
-use crate::util;
+use crate::{monitoring, util};
 use anyhow::{Context, Result, ensure};
 use std::{
     env, fs,
+    ops::Range,
     path::{Path, PathBuf},
     process::Command,
     thread,
@@ -15,12 +16,24 @@ const LIMITS: [(&str, f64); 5] = [
     ("THM LIMIT CORE", 100.0),
     ("STT LIMIT APU", 90.0),
 ];
-const SUSPECT_TIME: Duration = Duration::from_secs(20);
-const RETRY_TIME: Duration = Duration::from_secs(15);
+const SUSPECT_TIME: Duration = Duration::from_secs(5);
+const RETRY_TIME: Duration = Duration::from_secs(5);
+const MAX_REAPPLIES: u32 = 3;
 const VERIFY_TIME: Duration = Duration::from_secs(180);
 const HEALTHY_TIME: Duration = Duration::from_secs(5);
 const CYCLE_COOLDOWN: Duration = Duration::from_secs(600);
 const RESTORE_RETRY: Duration = Duration::from_secs(5);
+// One cheap telemetry tick, and one retry, every five seconds.
+const SAMPLE_INTERVAL: Duration = Duration::from_secs(5);
+const TABLE_REFRESH: Duration = Duration::from_secs(30);
+// A capped chip reports low power and low clocks while the CPU stays busy.
+const CAP_BUSY: f64 = 60.0;
+const CAP_WATTS: f64 = 17.0;
+const CAP_MHZ: f64 = 1800.0;
+const CAP_CORE_C: Range<f64> = 10.0..85.0;
+const CAP_SKIN_C: Range<f64> = 10.0..50.0;
+const RECOVERED_WATTS: f64 = 20.0;
+const RECOVERED_MHZ: f64 = 2400.0;
 
 fn privileged_command(program: &str) -> Command {
     if unsafe { libc::geteuid() } == 0 {
@@ -118,21 +131,31 @@ struct Sample {
 }
 
 impl Sample {
+    fn parse(table: &str, signals: Signals) -> Result<Self> {
+        Ok(Self {
+            watts: value(table, "PPT VALUE FAST")?,
+            mhz: signals.mhz,
+            busy: signals.busy,
+            core_c: value(table, "THM VALUE CORE")?,
+            skin_c: value(table, "STT VALUE APU")?,
+        })
+    }
+
     fn underpowered(self) -> bool {
-        self.busy >= 60.0 && self.watts <= 17.0 && self.mhz <= 1800.0
+        self.busy >= CAP_BUSY && self.watts <= CAP_WATTS && self.mhz <= CAP_MHZ
     }
 
     fn suspect(self) -> bool {
         // Memory pressure can coexist with a CPU cap. CPU busy time excludes I/O wait.
         self.underpowered()
-            && (10.0..85.0).contains(&self.core_c)
-            && (10.0..50.0).contains(&self.skin_c)
+            && CAP_CORE_C.contains(&self.core_c)
+            && CAP_SKIN_C.contains(&self.skin_c)
     }
 
     fn recovered(self) -> bool {
         // Power above the observed cap is evidence even after the workload eases.
         // High idle clocks alone do not establish that the cap has lifted.
-        self.watts >= 20.0 || (self.busy >= 60.0 && self.mhz >= 2400.0)
+        self.watts >= RECOVERED_WATTS || (self.busy >= CAP_BUSY && self.mhz >= RECOVERED_MHZ)
     }
 
     fn sustained_recovery(self, now: Duration, since: &mut Option<Duration>) -> bool {
@@ -141,6 +164,23 @@ impl Sample {
             return false;
         }
         now - *since.get_or_insert(now) >= HEALTHY_TIME
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Signals {
+    busy: f64,
+    mhz: f64,
+    core_c: Option<f64>,
+}
+
+impl Signals {
+    /// Cheap telemetry gate: a privileged RyzenAdj read is only worth a fork when
+    /// a stuck cap is plausible and the core is cool enough for one to hide.
+    fn warrants_table(self) -> bool {
+        self.busy >= CAP_BUSY
+            && self.mhz <= CAP_MHZ
+            && self.core_c.is_none_or(|core_c| core_c < CAP_CORE_C.end)
     }
 }
 
@@ -161,10 +201,11 @@ enum EpisodeEvent {
 }
 
 impl Episode {
-    // Track observed episodes independently of recovery attempts and their cooldown.
+    // Track fixable caps independently of recovery attempts and their cooldown.
+    // An underpowered sample with a hot core is thermal throttling, not a stuck cap.
     fn observe(&mut self, now: Duration, sample: Sample) -> Option<EpisodeEvent> {
         match self {
-            Self::Clear if sample.underpowered() => {
+            Self::Clear if sample.suspect() => {
                 *self = Self::Underpowered {
                     since: now,
                     healthy_since: None,
@@ -184,6 +225,25 @@ impl Episode {
             }
             Self::Clear => None,
         }
+    }
+}
+
+fn announce(event: EpisodeEvent, sample: Sample) {
+    match event {
+        EpisodeEvent::Started => monitoring::notify(
+            "Low power: laptop is capped",
+            &format!(
+                "{:.0} W at {:.0} MHz while busy; the power limit looks stuck.",
+                sample.watts, sample.mhz
+            ),
+        ),
+        EpisodeEvent::Recovered(duration) => monitoring::notify(
+            "Full power restored",
+            &format!(
+                "The power cap cleared after {:.0} s.",
+                duration.as_secs_f64()
+            ),
+        ),
     }
 }
 
@@ -210,6 +270,7 @@ fn cpu_ticks(stat: &str) -> Result<(u64, u64)> {
 
 struct Monitor {
     clocks: Vec<PathBuf>,
+    core: Option<PathBuf>,
     previous: Option<(u64, u64)>,
 }
 
@@ -223,13 +284,34 @@ impl Monitor {
             }
         }
         ensure!(!clocks.is_empty(), "no CPU frequency policies found");
+        let mut core = None;
+        for entry in fs::read_dir("/sys/class/hwmon")? {
+            let directory = entry?.path();
+            if fs::read_to_string(directory.join("name")).is_ok_and(|name| name.trim() == "k10temp")
+            {
+                let sensor = directory.join("temp1_input");
+                if util::read(&sensor).is_err() {
+                    eprintln!(
+                        "Core temperature sensor {} is unreadable; gating on load and clocks only",
+                        sensor.display()
+                    );
+                }
+                core = Some(sensor);
+                break;
+            }
+        }
         Ok(Self {
             clocks,
+            core,
             previous: None,
         })
     }
 
-    fn sample(&mut self, table: &str) -> Result<Option<Sample>> {
+    fn reset(&mut self) {
+        self.previous = None;
+    }
+
+    fn telemetry(&mut self) -> Result<Option<Signals>> {
         let current = cpu_ticks(&util::read("/proc/stat")?)?;
         let Some(previous) = self.previous.replace(current) else {
             return Ok(None);
@@ -249,13 +331,20 @@ impl Monitor {
             ensure!(value > 0, "zero CPU frequency at {}", clock.display());
             khz += value;
         }
-        Ok(Some(Sample {
-            watts: value(table, "PPT VALUE FAST")?,
-            mhz: khz as f64 / self.clocks.len() as f64 / 1000.0,
+        // A missing or momentarily unreadable sensor only costs the gate its
+        // temperature hint; RyzenAdj itself still reports core and skin.
+        let core_c = self
+            .core
+            .as_ref()
+            .and_then(|path| util::read(path).ok())
+            .and_then(|text| text.trim().parse::<f64>().ok())
+            .map(|millidegrees| millidegrees / 1000.0);
+        let signals = Signals {
             busy: 100.0 * (total - idle) as f64 / total as f64,
-            core_c: value(table, "THM VALUE CORE")?,
-            skin_c: value(table, "STT VALUE APU")?,
-        }))
+            mhz: khz as f64 / self.clocks.len() as f64 / 1000.0,
+            core_c,
+        };
+        Ok(Some(signals))
     }
 }
 
@@ -273,7 +362,12 @@ enum Recovery {
     #[default]
     Watching,
     Suspect(Duration),
-    Retried(Duration),
+    /// Reapplying limits every RETRY_TIME while the cap and its recovery are observed.
+    Retrying {
+        applied: Duration,
+        reapplies: u32,
+        healthy_since: Option<Duration>,
+    },
     Verifying {
         since: Duration,
         healthy_since: Option<Duration>,
@@ -315,23 +409,55 @@ impl Recovery {
                 }
                 None
             }
-            _ if !sample.suspect() || !cycle_allowed => {
-                *self = Self::Watching;
-                None
-            }
             Self::Watching => {
-                *self = Self::Suspect(now);
+                if sample.suspect() {
+                    *self = Self::Suspect(now);
+                }
                 None
             }
-            Self::Suspect(since) if now - *since >= SUSPECT_TIME => {
-                *self = Self::Retried(now);
-                Some(Action::Reapply)
+            Self::Suspect(since) => {
+                if !sample.suspect() {
+                    *self = Self::Watching;
+                } else if now - *since >= SUSPECT_TIME {
+                    *self = Self::Retrying {
+                        applied: now,
+                        reapplies: 1,
+                        healthy_since: None,
+                    };
+                    return Some(Action::Reapply);
+                }
+                None
             }
-            Self::Retried(since) if now - *since >= RETRY_TIME => {
-                *self = Self::Watching;
-                Some(Action::Cycle)
+            Self::Retrying {
+                applied,
+                reapplies,
+                healthy_since,
+            } => {
+                if sample.suspect() {
+                    *healthy_since = None;
+                    if now - *applied < RETRY_TIME {
+                        return None;
+                    }
+                    if *reapplies >= MAX_REAPPLIES {
+                        // The limited budget is spent: cycle once the cooldown
+                        // allows, otherwise wait instead of hammering the SMU.
+                        return cycle_allowed.then_some(Action::Cycle);
+                    }
+                    *reapplies += 1;
+                    *applied = now;
+                    return Some(Action::Reapply);
+                }
+                if sample.sustained_recovery(now, healthy_since) {
+                    *self = Self::Watching;
+                    return Some(Action::Verified);
+                }
+                if !sample.recovered() {
+                    // Neither a fixable cap nor evidence of recovery (idle or
+                    // hot): stop spending privileged reads until fresh suspicion.
+                    *self = Self::Watching;
+                }
+                None
             }
-            Self::Suspect(_) | Self::Retried(_) => None,
         }
     }
 
@@ -360,9 +486,7 @@ impl Recovery {
                 }
             }
             Action::Verified => {
-                println!(
-                    "Power or clocks improved for {HEALTHY_TIME:?} during post-cycle observation"
-                )
+                println!("Power or clocks improved for {HEALTHY_TIME:?} after recovery actions")
             }
             Action::StillCapped | Action::Unconfirmed => eprintln!(
                 "Post-cycle observation {action:?} after {VERIFY_TIME:?}; monitoring continues, with further attempts subject to the {CYCLE_COOLDOWN:?} cooldown"
@@ -480,37 +604,54 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
     let mut episode = Episode::default();
     let mut entered = false;
     let mut last_status = None::<Instant>;
+    let mut last_table = None::<Instant>;
     let start = Instant::now();
     loop {
+        let tick = Instant::now();
         if ac_profile("performance")? {
-            let table = output(&["-i"])?;
-            if !entered || !limits_match(&table)? {
-                apply()?;
-                println!("Applied AC performance policy and limits on entry or readback drift");
-                entered = true;
-                // Never diagnose a failed recovery using samples from before a settings change.
-                monitor.previous = None;
-                recovery.settings_applied();
-            } else if let Some(sample) = monitor.sample(&table)? {
-                let now = Instant::now();
-                if let Some(event) = episode.observe(start.elapsed(), sample) {
-                    println!("Low-power episode {event:?}: {sample:?}; recovery={recovery:?}");
-                    last_status = None;
-                }
-                if sample.underpowered()
-                    && last_status.is_none_or(|last| now - last >= Duration::from_secs(60))
-                {
-                    println!(
-                        "Low-power performance status: {sample:?}; recovery={recovery:?}; cooldown_remaining={:?}",
-                        cooldown.ready_at.saturating_duration_since(now)
-                    );
-                    last_status = Some(now);
-                }
-                if let Some(action) =
-                    recovery.observe(start.elapsed(), sample, now >= cooldown.ready_at)
-                {
-                    println!("RyzenAdj recovery {action:?}: {sample:?}");
-                    recovery.execute(action, &mut cooldown, start);
+            let signals = monitor.telemetry()?;
+            // An open episode alone must not pin the privileged cadence: idle and
+            // hot samples need no reads, and a new cap re-enters Suspect on its own.
+            let following = !matches!(recovery, Recovery::Watching);
+            // RyzenAdj needs root, so read the power table only on entry, while
+            // diagnosing, on a slow refresh, or when a stuck cap looks plausible.
+            if !entered
+                || following
+                || last_table.is_none_or(|read| read.elapsed() >= TABLE_REFRESH)
+                || signals.is_some_and(Signals::warrants_table)
+            {
+                let table = output(&["-i"])?;
+                last_table = Some(Instant::now());
+                if !entered || !limits_match(&table)? {
+                    apply()?;
+                    println!("Applied AC performance policy and limits on entry or readback drift");
+                    entered = true;
+                    // Never diagnose a failed recovery using samples from before a settings change.
+                    monitor.reset();
+                    recovery.settings_applied();
+                } else if let Some(signals) = signals {
+                    let sample = Sample::parse(&table, signals)?;
+                    let now = Instant::now();
+                    if let Some(event) = episode.observe(start.elapsed(), sample) {
+                        println!("Low-power episode {event:?}: {sample:?}; recovery={recovery:?}");
+                        announce(event, sample);
+                        last_status = None;
+                    }
+                    if sample.underpowered()
+                        && last_status.is_none_or(|last| now - last >= Duration::from_secs(60))
+                    {
+                        println!(
+                            "Low-power performance status: {sample:?}; recovery={recovery:?}; cooldown_remaining={:?}",
+                            cooldown.ready_at.saturating_duration_since(now)
+                        );
+                        last_status = Some(now);
+                    }
+                    if let Some(action) =
+                        recovery.observe(start.elapsed(), sample, now >= cooldown.ready_at)
+                    {
+                        println!("RyzenAdj recovery {action:?}: {sample:?}");
+                        recovery.execute(action, &mut cooldown, start);
+                    }
                 }
             }
         } else {
@@ -519,11 +660,12 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
             }
             episode = Episode::default();
             entered = false;
-            monitor.previous = None;
+            last_table = None;
+            monitor.reset();
             recovery = Recovery::default();
             last_status = None;
         }
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(SAMPLE_INTERVAL.saturating_sub(tick.elapsed()));
     }
 }
 
@@ -550,6 +692,36 @@ mod tests {
             core_c: 69.0,
             skin_c: 46.0,
         }
+    }
+
+    #[test]
+    fn only_reads_the_power_table_for_plausible_caps() {
+        let capped = Signals {
+            busy: 80.0,
+            mhz: 1400.0,
+            core_c: Some(69.0),
+        };
+        assert!(capped.warrants_table());
+        let unknown_temperature = Signals {
+            core_c: None,
+            ..capped
+        };
+        assert!(unknown_temperature.warrants_table());
+        let idle = Signals {
+            busy: 20.0,
+            ..capped
+        };
+        assert!(!idle.warrants_table());
+        let already_fast = Signals {
+            mhz: 3200.0,
+            ..capped
+        };
+        assert!(!already_fast.warrants_table());
+        let hot = Signals {
+            core_c: Some(97.0),
+            ..capped
+        };
+        assert!(!hot.warrants_table());
     }
 
     #[test]
@@ -613,19 +785,33 @@ mod tests {
         Duration::from_secs(seconds)
     }
 
+    /// Moment of a recovery reapply, counted from the first capped sample.
+    fn reapply(attempt: u32) -> Duration {
+        at(SUSPECT_TIME.as_secs() + u64::from(attempt) * RETRY_TIME.as_secs())
+    }
+
+    fn cycle_at() -> Duration {
+        reapply(MAX_REAPPLIES)
+    }
+
+    fn verification_end() -> Duration {
+        cycle_at().saturating_add(VERIFY_TIME)
+    }
+
     fn cycled() -> Recovery {
         let mut recovery = Recovery::default();
         assert_eq!(recovery.observe(at(0), capped(), true), None);
+        for attempt in 0..MAX_REAPPLIES {
+            assert_eq!(
+                recovery.observe(reapply(attempt), capped(), true),
+                Some(Action::Reapply)
+            );
+        }
         assert_eq!(
-            recovery.observe(at(20), capped(), true),
-            Some(Action::Reapply)
-        );
-        assert_eq!(recovery.observe(at(34), capped(), true), None);
-        assert_eq!(
-            recovery.observe(at(35), capped(), true),
+            recovery.observe(cycle_at(), capped(), true),
             Some(Action::Cycle)
         );
-        recovery.cycle_completed(at(35));
+        recovery.cycle_completed(cycle_at());
         recovery
     }
 
@@ -658,14 +844,19 @@ mod tests {
     fn retries_before_cycling_and_requires_sustained_recovery_under_load() {
         let mut recovery = cycled();
         // The cooldown must not prevent verification of the cycle already performed.
-        assert_eq!(recovery.observe(at(36), recovered(), false), None);
-        assert_eq!(recovery.observe(at(40), recovered(), false), None);
+        let healthy = cycle_at() + at(1);
+        assert_eq!(recovery.observe(healthy, recovered(), false), None);
         assert_eq!(
-            recovery.observe(at(41), recovered(), false),
+            recovery.observe(healthy + HEALTHY_TIME, recovered(), false),
             Some(Action::Verified)
         );
-        assert_eq!(recovery.observe(at(42), capped(), false), None);
-        assert_eq!(recovery.observe(at(100), capped(), false), None);
+        // A new cap during the cooldown keeps reapplying limits instead of cycling.
+        let relapsed = healthy + HEALTHY_TIME + at(1);
+        assert_eq!(recovery.observe(relapsed, capped(), false), None);
+        assert_eq!(
+            recovery.observe(relapsed + SUSPECT_TIME, capped(), false),
+            Some(Action::Reapply)
+        );
     }
 
     #[test]
@@ -718,30 +909,64 @@ mod tests {
             skin_c: 45.131,
         };
         let mut recovery = Recovery::default();
-        for second in 0..=35 {
-            let expected = match second {
-                20 => Some(Action::Reapply),
-                35 => Some(Action::Cycle),
-                _ => None,
+        for second in 0..=cycle_at().as_secs() {
+            let expected = if (0..MAX_REAPPLIES).any(|attempt| second == reapply(attempt).as_secs())
+            {
+                Some(Action::Reapply)
+            } else if second == cycle_at().as_secs() {
+                Some(Action::Cycle)
+            } else {
+                None
             };
             assert_eq!(recovery.observe(at(second), observed, true), expected);
         }
     }
 
     #[test]
+    fn idle_samples_release_the_retry_window_instead_of_pinning_it() {
+        let mut recovery = Recovery::default();
+        assert_eq!(recovery.observe(at(0), capped(), true), None);
+        assert_eq!(
+            recovery.observe(reapply(0), capped(), true),
+            Some(Action::Reapply)
+        );
+        let idle = Sample {
+            busy: 10.0,
+            mhz: 400.0,
+            watts: 15.0,
+            ..capped()
+        };
+        assert_eq!(recovery.observe(reapply(0) + RETRY_TIME, idle, true), None);
+        // Fresh suspicion is required before another write.
+        assert_eq!(
+            recovery.observe(reapply(0) + RETRY_TIME * 2, capped(), true),
+            None
+        );
+        assert_eq!(
+            recovery.observe(reapply(0) + RETRY_TIME * 3, capped(), true),
+            Some(Action::Reapply)
+        );
+    }
+
+    #[test]
     fn transient_caps_and_successful_reapplication_do_not_cycle_profiles() {
         let mut recovery = Recovery::default();
         assert_eq!(recovery.observe(at(0), capped(), true), None);
-        assert_eq!(recovery.observe(at(19), recovered(), true), None);
-        assert_eq!(recovery.observe(at(20), capped(), true), None);
-        assert_eq!(recovery.observe(at(39), capped(), true), None);
+        // A cap shorter than the detection window never triggers a write.
+        assert_eq!(recovery.observe(at(2), recovered(), true), None);
+        assert_eq!(recovery.observe(at(6), capped(), true), None);
+        let first = at(6) + SUSPECT_TIME;
         assert_eq!(
-            recovery.observe(at(40), capped(), true),
+            recovery.observe(first, capped(), true),
             Some(Action::Reapply)
         );
-        assert_eq!(recovery.observe(at(41), recovered(), true), None);
-        assert_eq!(recovery.observe(at(60), recovered(), true), None);
-        assert_eq!(recovery.observe(at(61), capped(), true), None);
+        // Recovery during the retry window ends the episode without a profile cycle.
+        let healthy = first + at(1);
+        assert_eq!(recovery.observe(healthy, recovered(), true), None);
+        assert_eq!(
+            recovery.observe(healthy + HEALTHY_TIME, recovered(), true),
+            Some(Action::Verified)
+        );
     }
 
     #[test]
@@ -764,18 +989,29 @@ mod tests {
             ),
         ] {
             let mut recovery = cycled();
-            assert_eq!(recovery.observe(at(55), sample, false), None);
-            assert_eq!(recovery.observe(at(214), sample, false), None);
-            assert_eq!(recovery.observe(at(215), sample, false), Some(expected));
-            assert_eq!(recovery.observe(at(500), capped(), false), None);
-            assert_eq!(recovery.observe(at(634), capped(), false), None);
-            assert_eq!(recovery.observe(at(635), capped(), true), None);
+            assert_eq!(recovery.observe(cycle_at() + at(1), sample, false), None);
             assert_eq!(
-                recovery.observe(at(655), capped(), true),
-                Some(Action::Reapply)
+                recovery.observe(verification_end(), sample, false),
+                Some(expected)
             );
+            // The persisted cooldown blocks profile cycles but not limit reapplies.
+            let relapsed = verification_end() + at(1);
+            assert_eq!(recovery.observe(relapsed, capped(), false), None);
+            for attempt in 0..MAX_REAPPLIES {
+                assert_eq!(
+                    recovery.observe(
+                        relapsed + SUSPECT_TIME + RETRY_TIME * attempt,
+                        capped(),
+                        false
+                    ),
+                    Some(Action::Reapply)
+                );
+            }
+            // Once the budget is spent and cycling is on cooldown, stop writing.
+            let exhausted = relapsed + SUSPECT_TIME + RETRY_TIME * MAX_REAPPLIES;
+            assert_eq!(recovery.observe(exhausted, capped(), false), None);
             assert_eq!(
-                recovery.observe(at(670), capped(), true),
+                recovery.observe(exhausted + RETRY_TIME, capped(), true),
                 Some(Action::Cycle)
             );
         }
@@ -784,22 +1020,28 @@ mod tests {
     #[test]
     fn delayed_recovery_counts_even_after_cpu_load_drops() {
         let mut recovery = cycled();
-        assert_eq!(recovery.observe(at(55), capped(), false), None);
-        assert_eq!(recovery.observe(at(150), capped(), false), None);
+        let start = cycle_at() + at(5);
+        assert_eq!(recovery.observe(start, capped(), false), None);
+        assert_eq!(recovery.observe(start + at(95), capped(), false), None);
         let partial_load = Sample {
             busy: 35.0,
             ..recovered()
         };
-        assert_eq!(recovery.observe(at(160), partial_load, false), None);
-        assert_eq!(recovery.observe(at(164), partial_load, false), None);
+        let partial_at = start + at(105);
+        assert_eq!(recovery.observe(partial_at, partial_load, false), None);
         assert_eq!(
-            recovery.observe(at(165), partial_load, false),
+            recovery.observe(partial_at + at(4), partial_load, false),
+            None
+        );
+        assert_eq!(
+            recovery.observe(partial_at + HEALTHY_TIME, partial_load, false),
             Some(Action::Verified)
         );
         // A new episode is still eligible once the persisted cooldown permits it.
-        assert_eq!(recovery.observe(at(635), capped(), true), None);
+        let relapsed = partial_at + HEALTHY_TIME + at(1);
+        assert_eq!(recovery.observe(relapsed, capped(), true), None);
         assert_eq!(
-            recovery.observe(at(655), capped(), true),
+            recovery.observe(relapsed + SUSPECT_TIME, capped(), true),
             Some(Action::Reapply)
         );
     }
@@ -821,9 +1063,9 @@ mod tests {
         );
         assert!(Sample { busy: 60.0, ..idle }.recovered());
         let mut recovery = cycled();
-        assert_eq!(recovery.observe(at(36), idle, false), None);
+        assert_eq!(recovery.observe(cycle_at() + at(1), idle, false), None);
         assert_eq!(
-            recovery.observe(at(215), idle, false),
+            recovery.observe(verification_end(), idle, false),
             Some(Action::Unconfirmed)
         );
     }
@@ -831,11 +1073,34 @@ mod tests {
     #[test]
     fn verification_window_starts_when_commands_finish() {
         let mut recovery = cycled();
-        recovery.cycle_completed(at(50));
-        assert_eq!(recovery.observe(at(215), capped(), false), None);
+        let finished = cycle_at() + at(30);
+        recovery.cycle_completed(finished);
         assert_eq!(
-            recovery.observe(at(230), capped(), false),
+            recovery.observe(finished + VERIFY_TIME - at(1), capped(), false),
+            None
+        );
+        assert_eq!(
+            recovery.observe(finished + VERIFY_TIME, capped(), false),
             Some(Action::StillCapped)
+        );
+    }
+
+    #[test]
+    fn episodes_only_start_for_fixable_caps() {
+        let mut episode = Episode::default();
+        let hot = Sample {
+            core_c: 100.0,
+            ..capped()
+        };
+        assert_eq!(episode.observe(at(0), hot), None);
+        let idle = Sample {
+            busy: 10.0,
+            ..capped()
+        };
+        assert_eq!(episode.observe(at(5), idle), None);
+        assert_eq!(
+            episode.observe(at(10), capped()),
+            Some(EpisodeEvent::Started)
         );
     }
 
@@ -881,12 +1146,14 @@ mod tests {
     #[test]
     fn recovery_verification_resets_on_a_relapse() {
         let mut recovery = cycled();
-        assert_eq!(recovery.observe(at(36), recovered(), false), None);
-        assert_eq!(recovery.observe(at(40), capped(), false), None);
-        assert_eq!(recovery.observe(at(41), recovered(), false), None);
-        assert_eq!(recovery.observe(at(45), recovered(), false), None);
+        let healthy = cycle_at() + at(1);
+        assert_eq!(recovery.observe(healthy, recovered(), false), None);
+        assert_eq!(recovery.observe(healthy + at(2), capped(), false), None);
+        let again = healthy + at(3);
+        assert_eq!(recovery.observe(again, recovered(), false), None);
+        assert_eq!(recovery.observe(again + at(4), recovered(), false), None);
         assert_eq!(
-            recovery.observe(at(46), recovered(), false),
+            recovery.observe(again + HEALTHY_TIME, recovered(), false),
             Some(Action::Verified)
         );
     }
@@ -896,19 +1163,21 @@ mod tests {
         let mut episode = Episode::default();
         let mut recovery = cycled();
         assert_eq!(
-            episode.observe(at(35), capped()),
+            episode.observe(cycle_at(), capped()),
             Some(EpisodeEvent::Started)
         );
-        assert_eq!(episode.observe(at(40), recovered()), None);
-        assert_eq!(recovery.observe(at(40), recovered(), false), None);
+        let healthy = cycle_at() + at(1);
+        assert_eq!(episode.observe(healthy, recovered()), None);
+        assert_eq!(recovery.observe(healthy, recovered(), false), None);
         recovery.settings_applied();
+        let reset = healthy + HEALTHY_TIME;
         assert_eq!(
-            episode.observe(at(45), recovered()),
-            Some(EpisodeEvent::Recovered(at(10)))
+            episode.observe(reset, recovered()),
+            Some(EpisodeEvent::Recovered(at(6)))
         );
-        assert_eq!(recovery.observe(at(45), recovered(), false), None);
+        assert_eq!(recovery.observe(reset, recovered(), false), None);
         assert_eq!(
-            recovery.observe(at(50), recovered(), false),
+            recovery.observe(reset + HEALTHY_TIME, recovered(), false),
             Some(Action::Verified)
         );
     }
@@ -920,33 +1189,58 @@ mod tests {
         recovery.settings_applied();
         assert_eq!(recovery.observe(at(20), capped(), true), None);
         assert_eq!(
-            recovery.observe(at(40), capped(), true),
+            recovery.observe(at(20) + SUSPECT_TIME, capped(), true),
             Some(Action::Reapply)
         );
         recovery.settings_applied();
-        assert_eq!(recovery.observe(at(55), capped(), true), None);
+        assert_eq!(recovery.observe(at(40), capped(), true), None);
 
         let mut recovery = cycled();
-        recovery.observe(at(36), recovered(), false);
+        let healthy = cycle_at() + at(1);
+        recovery.observe(healthy, recovered(), false);
         recovery.settings_applied();
-        assert_eq!(recovery.observe(at(41), recovered(), false), None);
+        assert_eq!(recovery.observe(healthy + at(1), recovered(), false), None);
         assert_eq!(
-            recovery.observe(at(46), recovered(), false),
+            recovery.observe(healthy + at(1) + HEALTHY_TIME, recovered(), false),
             Some(Action::Verified)
         );
 
         let mut recovery = cycled();
-        recovery.observe(at(36), recovered(), false);
+        recovery.observe(healthy, recovered(), false);
         recovery.settings_applied();
         assert_eq!(
-            recovery.observe(at(215), capped(), false),
+            recovery.observe(verification_end(), capped(), false),
             Some(Action::StillCapped)
         );
         recovery.settings_applied();
         assert_eq!(recovery.observe(at(1000), capped(), true), None);
         assert_eq!(
-            recovery.observe(at(1020), capped(), true),
+            recovery.observe(at(1000) + SUSPECT_TIME, capped(), true),
             Some(Action::Reapply)
+        );
+    }
+
+    #[test]
+    fn reapplies_every_five_seconds_until_the_cap_lifts() {
+        assert_eq!(SAMPLE_INTERVAL, Duration::from_secs(5));
+        assert_eq!(SUSPECT_TIME, Duration::from_secs(5));
+        assert_eq!(RETRY_TIME, Duration::from_secs(5));
+        let mut recovery = Recovery::default();
+        let mut actions = Vec::new();
+        for tick in 0..=4 {
+            let elapsed = at(tick * SAMPLE_INTERVAL.as_secs());
+            if let Some(action) = recovery.observe(elapsed, capped(), true) {
+                actions.push((elapsed.as_secs(), action));
+            }
+        }
+        assert_eq!(
+            actions,
+            vec![
+                (reapply(0).as_secs(), Action::Reapply),
+                (reapply(1).as_secs(), Action::Reapply),
+                (reapply(2).as_secs(), Action::Reapply),
+                (cycle_at().as_secs(), Action::Cycle),
+            ]
         );
     }
 
