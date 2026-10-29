@@ -154,6 +154,8 @@ impl Sample {
     }
 
     fn underpowered(self) -> bool {
+        // Low power and low clocks alone describe an idle machine; the busy
+        // gate is what separates an idle CPU from a capped one.
         self.busy >= CAP_BUSY && self.watts <= CAP_WATTS && self.mhz <= CAP_MHZ
     }
 
@@ -905,6 +907,37 @@ mod tests {
             },
         ] {
             assert!(!sample.suspect());
+            let mut recovery = Recovery::default();
+            assert_eq!(recovery.observe(at(0), sample, true), None);
+            assert_eq!(recovery.observe(at(60), sample, true), None);
+        }
+    }
+
+    #[test]
+    fn an_idle_machine_is_never_suspicious() {
+        let idle = Sample {
+            watts: 6.0,
+            mhz: 400.0,
+            busy: 2.0,
+            core_c: 48.0,
+            skin_c: 35.0,
+        };
+        // One active core is still idle overall on sixteen threads.
+        let one_core = Sample {
+            busy: 100.0 / 16.0,
+            ..idle
+        };
+        for sample in [idle, one_core] {
+            assert!(!sample.suspect());
+            let signals = Signals {
+                busy: sample.busy,
+                mhz: sample.mhz,
+                core_c: Some(sample.core_c),
+            };
+            assert!(!signals.warrants_table());
+            let mut episode = Episode::default();
+            assert_eq!(episode.observe(at(0), sample), None);
+            assert_eq!(episode.observe(at(60), sample), None);
             let mut recovery = Recovery::default();
             assert_eq!(recovery.observe(at(0), sample, true), None);
             assert_eq!(recovery.observe(at(60), sample, true), None);

@@ -842,10 +842,14 @@ performance mode, readback drift and recovery retries, including after a profile
 cycle. Limits are only written on AC power, so the last applied values stay in
 place on battery until another platform profile reprograms them.
 
-It checks once per second. If CPU use stays at or above 60% while package power
-is at most 17 W and mean CPU frequency is at most 1.8 GHz for 20 seconds, it
-reapplies RyzenAdj. If the same condition persists for another 15 seconds, it
-cycles balanced to performance through `powerprofilesctl`, then reapplies the limits.
+It samples every five seconds. A sample is suspicious only when the CPU is busy
+(at least 60%, excluding I/O wait) while package power is at most 17 W and mean
+CPU frequency is at most 1.8 GHz; an idle machine fails the busy check, so low
+clocks and low power alone never start recovery. A core at or above 85 °C is
+treated as thermal throttling rather than a stuck cap. Two consecutive suspicious
+samples reapply RyzenAdj, and three reapply attempts five seconds apart are
+followed by one balanced-to-performance cycle when the condition persists and the
+ten-minute cooldown allows it.
 
 Recovery requires a core temperature below 85°C and an APU skin reading below
 50°C. CPU use excludes I/O wait; memory pressure does not veto recovery when the
