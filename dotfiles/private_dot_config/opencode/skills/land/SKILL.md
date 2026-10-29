@@ -11,11 +11,12 @@ Repeat if main gains new commits.
 
 Keep checks proportional and reuse valid results already obtained.
 
-Main may hold another session's work; merge around it if Git permits, never stashing,
-committing, or discarding it. If it blocks, leave main alone.
+Main may hold another session's work; merge around it if Git permits, never stashing, committing, or discarding it. If it blocks, leave main alone.
 
-git push main after.
+If the user mention "settle" its in t3 code to settle your own thread when done with this.
+Only settle if fully merged/landed, and there isn't any uncommitted changes. otherwise the worktree is not gonna get cleaned up.
+Ask the user if he wants to include the uncommitted changes or delete them.
 
-if the user mention "settle" its in t3 code to settle your own thread when done with this. only settle if fully merged/landed.
+Git push main after.
 
 Briefly report landed or queued, branch/commits, and checks.

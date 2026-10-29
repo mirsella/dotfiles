@@ -3,6 +3,7 @@
   "client": {
     "browserRecordingShowKeyPresses": true,
     "browserRecordingShowMousePresses": true,
+    "composerCollapseOnScroll": true,
     "favorites": [
       {
         "model": "opencode-go/step-5-preview-free",
@@ -15,6 +16,7 @@
     "notificationMode": "notifications",
     "persistComposerContextStrip": true,
     "redesignEnabled": true,
+    "sidebarThreadPreviewCount": 6,
     "snapShotEnabled": true,
     "snapShotPlaySound": false,
     "snapShotShortcut": {
@@ -336,16 +338,13 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeAfterDays": 3,
-      "worktreeOnMerge": true,
-      "worktreeSettledAfterDays": 1,
+      "worktreeSettledAfterDays": 4,
       "worktreeUnchanged": true
     }
   },
   "desktop": {
     "localEnvironmentEnabled": false,
     "serverExposureMode": "network-accessible",
-    "updateChannel": "latest",
     "updateChannelConfiguredByUser": true
   },
   "providers": {
@@ -370,6 +369,22 @@
     }
   },
   "keybindings": [
+    {
+      "command": "workspace.focusNext",
+      "key": "f6"
+    },
+    {
+      "command": "workspace.focusPrevious",
+      "key": "shift+f6"
+    },
+    {
+      "command": "workspace.focusNext",
+      "key": "mod+f6"
+    },
+    {
+      "command": "workspace.focusPrevious",
+      "key": "mod+shift+f6"
+    },
     {
       "command": "threadPanel.toggle",
       "key": "mod+shift+b",
