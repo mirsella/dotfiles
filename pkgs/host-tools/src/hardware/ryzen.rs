@@ -9,10 +9,19 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+// Package power windows in watts:
+// - FAST (fPPT): burst ceiling for a few seconds.
+// - SLOW (sPPT): sustained ceiling over tens of seconds; governs builds.
+// - APU: total package ceiling shared by CPU and iGPU, not a third tier.
+// Sustained draw is the minimum of SLOW, APU, STAPM, the core temperature
+// limit and the VRM current limits, so raising SLOW alone does nothing when
+// APU is lower. This platform accepts at most 53 W fast and 43 W slow/APU;
+// a larger request reads back clamped (45 W becomes 43.001) and would look
+// like readback drift on every refresh.
 const LIMITS: [(&str, f64); 5] = [
     ("PPT LIMIT FAST", 53.0),
-    ("PPT LIMIT SLOW", 35.0),
-    ("PPT LIMIT APU", 41.0),
+    ("PPT LIMIT SLOW", 43.0),
+    ("PPT LIMIT APU", 43.0),
     ("THM LIMIT CORE", 100.0),
     ("STT LIMIT APU", 90.0),
 ];
@@ -70,8 +79,8 @@ fn apply_with(mut run: impl FnMut(&[&str]) -> Result<String>) -> Result<String> 
     run(&["--max-performance"]).context("set RyzenAdj maximum-performance policy")?;
     run(&[
         "--fast-limit=53000",
-        "--slow-limit=35000",
-        "--apu-slow-limit=41000",
+        "--slow-limit=43000",
+        "--apu-slow-limit=43000",
         "--skin-temp-limit=45000",
         "--tctl-temp=100",
         "--apu-skin-temp=90",
@@ -675,8 +684,8 @@ mod tests {
 
     const TABLE: &str = "| STAPM LIMIT | 53.000 | stapm-limit |\n\
         | PPT LIMIT FAST | 53.000 | fast-limit |\n\
-        | PPT LIMIT SLOW | 35.000 | slow-limit |\n\
-        | PPT LIMIT APU | 41.000 | apu-slow-limit |\n\
+        | PPT LIMIT SLOW | 43.000 | slow-limit |\n\
+        | PPT LIMIT APU | 43.000 | apu-slow-limit |\n\
         | THM LIMIT CORE | 100.000 | tctl-temp |\n\
         | STT LIMIT APU | 90.000 | apu-skin-temp |\n\
         | PPT VALUE FAST | 13.500 | |\n\
@@ -739,7 +748,7 @@ mod tests {
             commands,
             [
                 "--max-performance",
-                "--fast-limit=53000 --slow-limit=35000 --apu-slow-limit=41000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=90 -i",
+                "--fast-limit=53000 --slow-limit=43000 --apu-slow-limit=43000 --skin-temp-limit=45000 --tctl-temp=100 --apu-skin-temp=90 -i",
             ]
         );
         assert_eq!(table, TABLE);
@@ -819,7 +828,7 @@ mod tests {
     fn parses_limits_and_telemetry_without_accepting_invalid_values() {
         assert!(limits_match(TABLE).unwrap());
         assert_eq!(value(TABLE, "PPT VALUE FAST").unwrap(), 13.5);
-        assert!(!limits_match(&TABLE.replace("35.000", "15.000")).unwrap());
+        assert!(!limits_match(&TABLE.replace("43.000", "15.000")).unwrap());
         assert!(limits_match(&TABLE.replace("STT LIMIT APU", "unknown")).is_err());
         for invalid in ["nan", "inf", "-1"] {
             assert!(value(&TABLE.replace("13.500", invalid), "PPT VALUE FAST").is_err());
