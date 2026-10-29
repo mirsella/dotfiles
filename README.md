@@ -839,7 +839,8 @@ and their tests; upstream application internals are managed by their packages.
 mode. Each application selects `ryzenadj --max-performance` first, then writes the
 custom power and temperature limits. This applies on startup, entry into AC
 performance mode, readback drift and recovery retries, including after a profile
-cycle.
+cycle. Limits are only written on AC power, so the last applied values stay in
+place on battery until another platform profile reprograms them.
 
 It checks once per second. If CPU use stays at or above 60% while package power
 is at most 17 W and mean CPU frequency is at most 1.8 GHz for 20 seconds, it

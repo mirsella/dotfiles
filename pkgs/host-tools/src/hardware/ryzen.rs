@@ -15,9 +15,9 @@ use std::{
 // - APU: total package ceiling shared by CPU and iGPU, not a third tier.
 // Sustained draw is the minimum of SLOW, APU, STAPM, the core temperature
 // limit and the VRM current limits, so raising SLOW alone does nothing when
-// APU is lower. This platform accepts at most 53 W fast and 43 W slow/APU;
-// a larger request reads back clamped (45 W becomes 43.001) and would look
-// like readback drift on every refresh.
+// APU is lower. This platform holds 53 W fast and 43 W slow/APU; larger
+// requests are clamped by the SMU (45 W reads back 43.001), so the limits
+// stay at the value the readback reports.
 const LIMITS: [(&str, f64); 5] = [
     ("PPT LIMIT FAST", 53.0),
     ("PPT LIMIT SLOW", 43.0),
@@ -25,6 +25,9 @@ const LIMITS: [(&str, f64); 5] = [
     ("THM LIMIT CORE", 100.0),
     ("STT LIMIT APU", 90.0),
 ];
+// RyzenAdj rounds readings to millwatts, so a clamped value must not look
+// like drift and trigger a privileged reapply on every table refresh.
+const LIMIT_TOLERANCE: f64 = 0.5;
 const SUSPECT_TIME: Duration = Duration::from_secs(5);
 const RETRY_TIME: Duration = Duration::from_secs(5);
 const MAX_REAPPLIES: u32 = 3;
@@ -115,7 +118,7 @@ fn limits_match(table: &str) -> Result<bool> {
     // Parse every monitored value even when an earlier one differs.
     let mut matched = true;
     for (label, expected) in LIMITS {
-        matched &= value(table, label)? == expected;
+        matched &= (value(table, label)? - expected).abs() <= LIMIT_TOLERANCE;
     }
     Ok(matched)
 }
@@ -828,7 +831,8 @@ mod tests {
     fn parses_limits_and_telemetry_without_accepting_invalid_values() {
         assert!(limits_match(TABLE).unwrap());
         assert_eq!(value(TABLE, "PPT VALUE FAST").unwrap(), 13.5);
-        assert!(!limits_match(&TABLE.replace("43.000", "15.000")).unwrap());
+        assert!(!limits_match(&TABLE.replacen("43.000", "15.000", 1)).unwrap());
+        assert!(limits_match(&TABLE.replacen("43.000", "43.001", 1)).unwrap());
         assert!(limits_match(&TABLE.replace("STT LIMIT APU", "unknown")).is_err());
         for invalid in ["nan", "inf", "-1"] {
             assert!(value(&TABLE.replace("13.500", invalid), "PPT VALUE FAST").is_err());
