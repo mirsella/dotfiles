@@ -622,6 +622,10 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
     let start = Instant::now();
     loop {
         let tick = Instant::now();
+        // Stamp the sample from the tick, not after the work below: announcing an
+        // episode can block for seconds, and a later stamp would shorten the gap
+        // to the next sample and delay the first reapply past two samples.
+        let sample_time = tick.duration_since(start);
         if ac_profile("performance")? {
             let signals = monitor.telemetry()?;
             // An open episode alone must not pin the privileged cadence: idle and
@@ -645,23 +649,22 @@ pub fn ryzenadj(watch: bool) -> Result<()> {
                     recovery.settings_applied();
                 } else if let Some(signals) = signals {
                     let sample = Sample::parse(&table, signals)?;
-                    let now = Instant::now();
-                    if let Some(event) = episode.observe(start.elapsed(), sample) {
+                    if let Some(event) = episode.observe(sample_time, sample) {
                         println!("Low-power episode {event:?}: {sample:?}; recovery={recovery:?}");
                         announce(event, sample);
                         last_status = None;
                     }
                     if sample.underpowered()
-                        && last_status.is_none_or(|last| now - last >= Duration::from_secs(60))
+                        && last_status.is_none_or(|last| tick - last >= Duration::from_secs(60))
                     {
                         println!(
                             "Low-power performance status: {sample:?}; recovery={recovery:?}; cooldown_remaining={:?}",
-                            cooldown.ready_at.saturating_duration_since(now)
+                            cooldown.ready_at.saturating_duration_since(tick)
                         );
-                        last_status = Some(now);
+                        last_status = Some(tick);
                     }
                     if let Some(action) =
-                        recovery.observe(start.elapsed(), sample, now >= cooldown.ready_at)
+                        recovery.observe(sample_time, sample, tick >= cooldown.ready_at)
                     {
                         println!("RyzenAdj recovery {action:?}: {sample:?}");
                         recovery.execute(action, &mut cooldown, start);
