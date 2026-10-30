@@ -98,7 +98,7 @@ immutability=1
 plugin=com.github.psimaker.codexbar
 
 [Containments][3][Applets][56][Configuration]
-popupHeight=527
+popupHeight=522
 popupWidth=342
 
 [Containments][3][Applets][56][Configuration][ConfigDialog]
@@ -372,6 +372,7 @@ CurrentPreset=org.kde.plasma.systemmonitor
 
 [Containments][54][Applets][47][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
+showTitle=true
 title=Hard Disk Activity
 
 [Containments][54][Applets][47][Configuration][SensorColors]
@@ -390,6 +391,7 @@ CurrentPreset=org.kde.plasma.systemmonitor
 
 [Containments][54][Applets][51][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
+showTitle=true
 title=Network Speed
 
 [Containments][54][Applets][51][Configuration][SensorColors]

@@ -19,5 +19,5 @@
 ## Files and directories
 
 - Use `~/dev` for permanent projects. Keep tool-managed worktrees in their configured locations.
-- `/tmp` is RAM-backed. Keep temporary files, builds and downloads on disk. Use each tool's standard or configured output and cache directories when they are disk-backed.
-- Keep temp files in `.scratch/` at the checkout root. If the session already started in a scratch directory of its own, use it; otherwise, outside any checkout, use `~/dev/scratch/`. Point `TMPDIR` at the directory you use.
+- `/tmp` is RAM-backed. Keep builds, large downloads and large generated files on disk. Small tool-managed temporary files may use their normal temporary directory.
+- Keep task scratch files in `.scratch/` at the checkout root, or the session's existing scratch directory; outside a checkout, use `~/dev/scratch/`. Do not set `TMPDIR` to a checkout/worktree scratch directory. Preserve tool-managed temporary environments, and never remove a temporary root while processes still use it.

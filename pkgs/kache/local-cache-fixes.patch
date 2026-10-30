@@ -1,0 +1,2381 @@
+crates/kache-store/src/store.rs --- 1/5 --- Rust
+1011 1011     pub disk_bytes_reclaimed: u64,
+1012 1012 }
+.... 1013 
+.... 1014 /// What a removal read at `meta.json` before taking the write lock. Under the
+.... 1015 /// lock the removal goes ahead only while the file still reads the same, so a
+.... 1016 /// republication in between rolls it back (#670).
+.... 1017 enum MetaAtRemoval {
+.... 1018     /// The bytes read, parseable or not.
+.... 1019     Content(String),
+.... 1020     /// Settled missing while the entry's row was present.
+.... 1021     Absent,
+.... 1022 }
+1013 1023 
+1014 1024 /// One pass of `remove_entry_guarded_with_hooks`: either a settled outcome,
+1015 1025 /// or the instruction to run again because a republication replaced the
+
+crates/kache-store/src/store.rs --- 2/5 --- Rust
+5992 6002         }
+5993 6003     }
+.... 6004 
+.... 6005     /// Each blob reference `cache_key`'s `entry_blobs` mapping records, one
+.... 6006     /// hash per reference, as `meta.files` would list them. Empty for an
+.... 6007     /// entry never mapped (a legacy entry not yet backfilled).
+.... 6008     fn mapped_blob_references(&self, cache_key: &str) -> Result<Vec<String>> {
+.... 6009         let mut stmt = self
+.... 6010             .db
+.... 6011             .prepare_cached("SELECT hash, refs FROM entry_blobs WHERE cache_key = ?1")?;
+.... 6012         let rows = stmt
+.... 6013             .query_map(params![cache_key], |row| {
+.... 6014                 Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+.... 6015             })?
+.... 6016             .collect::<rusqlite::Result<Vec<_>>>()?;
+.... 6017         Ok(rows
+.... 6018             .into_iter()
+.... 6019             .flat_map(|(hash, refs)| std::iter::repeat_n(hash, refs.max(0) as usize))
+.... 6020             .collect())
+.... 6021     }
+5994 6022 
+5995 6023     fn remove_entry_attempt(
+5996 6024         &self,
+
+crates/kache-store/src/store.rs --- 3/5 --- Rust
+6002         let entry_dir = self.entry  6030         let entry_dir = self.entry
+.... _dir(cache_key);                    .... _dir(cache_key);
+6003         let meta_path = entry_dir.  6031         let meta_path = entry_dir.
+.... join("meta.json");                  .... join("meta.json");
+6004                                     6032 
+6005         // Load the blob hashes th  6033         // Load the blob hashes th
+.... is entry references. If `meta.json  .... is entry references. If `meta.json
+.... ` exists but                        .... ` can't be
+6006         // can't be read or parsed  6034         // parsed (a crash can lea
+.... , we CANNOT know which blobs to de  .... ve it zero-filled) or is settled m
+.... crement —                           .... issing, the
+6007         // deleting the entry row   6035         // index's `entry_blobs` m
+.... anyway permanently orphans those r  .... apping still names every reference
+.... efcounts (the                       ....  the entry
+6008         // blobs keep their DB row  6036         // holds, and the removal 
+....  and evade size-based eviction for  .... releases those. Without a mapping 
+.... ever). Refuse                       .... we CANNOT know
+6009         // the removal so a corrup  6037         // which blobs to decremen
+.... t entry never silently leaks (#276  .... t — deleting the entry row anyway 
+.... ); callers                          .... permanently
+....                                     6038         // orphans those refcounts
+....                                     ....  (the blobs keep their DB row and 
+....                                     .... evade
+....                                     6039         // size-based eviction for
+....                                     .... ever). Refuse the removal so a cor
+....                                     .... rupt entry
+....                                     6040         // never silently leaks (#
+....                                     .... 276); callers (GC / purge / `docto
+....                                     .... r
+6010         // (GC / purge / `doctor -  6041         // --repair`) log and move
+.... -repair`) log and move on, and the  ....  on, and the entry stays accounted
+....  entry stays                        .... -for until
+6011         // accounted-for until a f  6042         // a fresh `put` (INSERT O
+.... resh `put` (INSERT OR REPLACE) ove  .... R REPLACE) overwrites it.
+.... rwrites it.                         .... 
+6012         let meta_content: String;   6043         let meta_content: MetaAtRe
+....                                     .... moval;
+6013         let hashes: Vec<String> =   6044         let hashes: Vec<String> = 
+.... match fs::read_to_string(&meta_pat  .... match fs::read_to_string(&meta_pat
+.... h) {                                .... h) {
+6014             Ok(content) => {        6045             Ok(content) => {
+6015                 let meta: EntryMet  6046                 let hashes = match
+.... a = serde_json::from_str(&content)  ....  serde_json::from_str::<EntryMeta>
+.... .with_context(|| {                  .... (&content) {
+6016                     format!(        .... 
+6017                         "entry {ca  .... 
+.... che_key}: meta.json unparseable —   .... 
+.... refusing removal so blob \          .... 
+6018                          refcounts  .... 
+....  are not leaked (#276)"             .... 
+6019                     )               .... 
+6020                 })?;                .... 
+6021                 meta_content = con  .... 
+.... tent;                               .... 
+6022                 meta.files.iter().  6047                     Ok(meta) => me
+.... map(|f| f.hash.clone()).collect()   .... ta.files.iter().map(|f| f.hash.clo
+....                                     .... ne()).collect(),
+....                                     6048                     Err(parse_erro
+....                                     .... r) => {
+....                                     6049                         let mapped
+....                                     ....  = self.mapped_blob_references(cac
+....                                     .... he_key)?;
+....                                     6050                         if mapped.
+....                                     .... is_empty() {
+....                                     6051                             return
+....                                     ....  Err(parse_error).with_context(|| 
+....                                     .... {
+....                                     6052                                 fo
+....                                     .... rmat!(
+....                                     6053                                   
+....                                     ....   "entry {cache_key}: meta.json un
+....                                     .... parseable — refusing \
+....                                     6054                                   
+....                                     ....    removal so blob refcounts are n
+....                                     .... ot leaked (#276)"
+....                                     6055                                 )
+....                                     6056                             });
+....                                     6057                         }
+....                                     6058                         tracing::w
+....                                     .... arn!(
+....                                     6059                             "entry
+....                                     ....  {cache_key}: meta.json unparseabl
+....                                     .... e ({parse_error}); \
+....                                     6060                              relea
+....                                     .... sing the {} blob references its in
+....                                     .... dex mapping names",
+....                                     6061                             mapped
+....                                     .... .len()
+....                                     6062                         );
+....                                     6063                         mapped
+....                                     6064                     }
+....                                     6065                 };
+....                                     6066                 meta_content = Met
+....                                     .... aAtRemoval::Content(content);
+....                                     6067                 hashes
+6023             }                       6068             }
+6024             Err(e)                  6069             Err(e)
+6025                 if e.kind() == std  6070                 if e.kind() == std
+.... ::io::ErrorKind::NotFound           .... ::io::ErrorKind::NotFound
+
+crates/kache-store/src/store.rs --- 4/5 --- Rust
+6087                     // cannot spin  6132                     // cannot spin
+....  on its own.                        ....  on its own.
+6088                     return Ok(Remo  6133                     return Ok(Remo
+.... valAttempt::Republished);           .... valAttempt::Republished);
+6089                 }                   6134                 }
+6090                 // Settled: a row   6135                 // Settled: a row 
+.... with no meta.json. Its blob list i  .... with no meta.json. Its mapping nam
+.... s unknown                           .... es its
+....                                     6136                 // references; wit
+....                                     .... hout one its blob list is unknown 
+....                                     .... and
+6091                 // and deleting th  6137                 // deleting the ro
+.... e row would leak the refcounts — r  .... w would leak the refcounts — refus
+.... efuse, so                           .... e, so a
+6092                 // a corrupt entry  6138                 // corrupt entry n
+....  never silently leaks (#276).       .... ever silently leaks (#276).
+....                                     6139                 let mapped = self.
+....                                     .... mapped_blob_references(cache_key)?
+....                                     .... ;
+....                                     6140                 if mapped.is_empty
+....                                     .... () {
+6093                 anyhow::bail!(      6141                     anyhow::bail!(
+6094                     "entry {cache_  6142                         "entry {ca
+.... key}: meta.json missing but DB row  .... che_key}: meta.json missing but DB
+....  present — refusing \               ....  row present — refusing \
+6095                      removal so bl  6143                          removal s
+.... ob refcounts are not leaked (#276)  .... o blob refcounts are not leaked (#
+.... "                                   .... 276)"
+6096                 );                  6144                     );
+....                                     6145                 }
+....                                     6146                 tracing::warn!(
+....                                     6147                     "entry {cache_
+....                                     .... key}: meta.json missing; releasing
+....                                     ....  the {} blob references \
+....                                     6148                      its index map
+....                                     .... ping names",
+....                                     6149                     mapped.len()
+....                                     6150                 );
+....                                     6151                 meta_content = Met
+....                                     .... aAtRemoval::Absent;
+....                                     6152                 mapped
+6097             }                       6153             }
+6098             Err(e) => {             6154             Err(e) => {
+6099                 return Err(e).with  6155                 return Err(e).with
+.... _context(|| {                       .... _context(|| {
+
+crates/kache-store/src/store.rs --- 5/5 --- Rust
+6204         // meta.json that vanished  6260         // meta.json that vanished
+....  or went corrupt in the window tak  ....  or went corrupt in the window tak
+.... es the                              .... es the
+6205         // same rollback; the NEXT  6261         // same rollback; the NEXT
+....  removal attempt reports it proper  ....  removal attempt reports it proper
+.... ly                                  .... ly
+6206         // through the #276 guards  6262         // through the #276 guards
+....  above.                             ....  above.
+6207         let still_ours = matches!(  6263         let still_ours = match (fs
+.... fs::read_to_string(&meta_path), Ok  .... ::read_to_string(&meta_path), &met
+.... (now) if now == meta_content);      .... a_content) {
+....                                     6264             (Ok(now), MetaAtRemova
+....                                     .... l::Content(read)) => now == *read,
+....                                     6265             (Err(e), MetaAtRemoval
+....                                     .... ::Absent) => e.kind() == std::io::
+....                                     .... ErrorKind::NotFound,
+....                                     6266             _ => false,
+....                                     6267         };
+6208         if !still_ours {            6268         if !still_ours {
+6209             return Ok(RemovalAttem  6269             return Ok(RemovalAttem
+.... pt::Done(None));                    .... pt::Done(None));
+6210         }                           6270         }
+
+crates/kache-store/src/store/tests.rs --- 1/6 --- Rust
+ 3416  3416 fn evict_counts_an_entry_it_fails_to_remove() {
+ 3417  3417     let dir = tempfile::tempdir().unwrap();
+ 3418  3418     let (store, _config) = store_with_one_evictable_entry(dir.path(), "broken");
+ ....  3419     // Unparseable meta with no blob mapping: its references are unknown.
+ ....  3420     store
+ ....  3421         .db
+ ....  3422         .execute("DELETE FROM entry_blobs WHERE cache_key = 'broken'", [])
+ ....  3423         .unwrap();
+ 3419  3424     std::fs::write(store.entry_dir("broken").join("meta.json"), b"{not json").unwrap();
+ 3420  3425 
+ 3421  3426     let stats = store.evict().unwrap();
+
+crates/kache-store/src/store/tests.rs --- 2/6 --- Rust
+ 5620     assert_eq!(store.entry_count(   5625     assert_eq!(store.entry_count(
+ .... ).unwrap(), 0);                     .... ).unwrap(), 0);
+ 5621 }                                   5626 }
+ 5622                                     5627 
+ 5623 /// #276: removing an entry whose   5628 /// Put `key` with one blob and r
+ ....  meta.json is unparseable must NO   .... eturn the store's blob refcount s
+ .... T delete                            .... um.
+ 5624 /// the entry row or silently dro   5629 fn put_one_blob_entry(store: &Sto
+ .... p blob refcounts — that orphans t   .... re, dir: &Path, key: &str) {
+ .... he blobs                            .... 
+ 5625 /// forever (they keep a DB row a   5630     let output = dir.join(format!
+ .... nd evade size-based eviction). It   .... ("{key}.rlib"));
+ ....  must                               .... 
+ 5626 /// refuse, leaving the entry and   5631     std::fs::write(&output, key.a
+ ....  its refcounts intact.              .... s_bytes()).unwrap();
+ ....                                     5632     store
+ ....                                     5633         .put(
+ ....                                     5634             key,
+ ....                                     5635             "c1",
+ ....                                     5636             &["lib".into()],
+ ....                                     5637             &[],
+ ....                                     5638             "",
+ ....                                     5639             "dev",
+ ....                                     5640             &[(output, "lib.rlib"
+ ....                                     .... .into())],
+ ....                                     5641             "",
+ ....                                     5642             "",
+ ....                                     5643         )
+ ....                                     5644         .unwrap();
+ ....                                     5645 }
+ ....                                     5646 
+ ....                                     5647 fn blob_refcount_sum(store: &Stor
+ ....                                     .... e) -> i64 {
+ ....                                     5648     store
+ ....                                     5649         .db
+ ....                                     5650         .query_row("SELECT COALES
+ ....                                     .... CE(SUM(refcount), 0) FROM blobs",
+ ....                                     ....  [], |r| {
+ ....                                     5651             r.get(0)
+ ....                                     5652         })
+ ....                                     5653         .unwrap()
+ ....                                     5654 }
+ ....                                     5655 
+ ....                                     5656 /// A crash can leave a meta.json
+ ....                                     ....  zero-filled while the index stil
+ ....                                     .... l maps
+ ....                                     5657 /// the entry's blobs. The mappin
+ ....                                     .... g names every reference the entry
+ ....                                     ....  holds,
+ ....                                     5658 /// so removal releases them from
+ ....                                     ....  it instead of refusing forever: 
+ ....                                     .... such an
+ ....                                     5659 /// entry used to be logged as ev
+ ....                                     .... icted on every durability flush a
+ ....                                     .... nd kept
+ ....                                     5660 /// by every sweep.
+ 5627 #[test]                             5661 #[test]
+ 5628 fn remove_entry_refuses_on_corrup   5662 fn remove_entry_releases_a_corrup
+ .... t_meta_no_refcount_leak() {         .... t_meta_entry_through_its_blob_map
+ ....                                     .... ping() {
+ 5629     let dir = tempfile::tempdir()   5663     let dir = tempfile::tempdir()
+ .... .unwrap();                          .... .unwrap();
+ 5630     let config = test_config(dir.   5664     let config = test_config(dir.
+ .... path());                            .... path());
+ 5631     let store = Store::open(&conf   5665     let store = Store::open(&conf
+ .... ig).unwrap();                       .... ig).unwrap();
+ 5632                                     .... 
+ 5633     let output = dir.path().join(   .... 
+ .... "lib.rlib");                        .... 
+ 5634     std::fs::write(&output, b"con   .... 
+ .... tent").unwrap();                    .... 
+ 5635     store                           .... 
+ 5636         .put(                       5666     put_one_blob_entry(&store, di
+ ....                                     .... r.path(), "corrupt1");
+ 5637             "corrupt1",             .... 
+ 5638             "c1",                   .... 
+ 5639             &["lib".into()],        .... 
+ 5640             &[],                    .... 
+ 5641             "",                     .... 
+ 5642             "dev",                  .... 
+ 5643             &[(output, "lib.rlib"   .... 
+ .... .into())],                          .... 
+ 5644             "",                     .... 
+ 5645             "",                     .... 
+ 5646         )                           .... 
+ 5647         .unwrap();                  .... 
+ 5648                                     .... 
+ 5649     let refcount_sum = |s: &Store   5667     let meta = store.get("corrupt
+ .... | -> i64 {                          .... 1").unwrap().unwrap();
+ 5650         s.db.query_row("SELECT CO   .... 
+ .... ALESCE(SUM(refcount), 0) FROM blo   .... 
+ .... bs", [], |r| {                      .... 
+ 5651             r.get(0)                .... 
+ 5652         })                          .... 
+ 5653         .unwrap()                   .... 
+ 5654     };                              .... 
+ 5655     let row_present = |s: &Store|   5668     let blob = store.blob_path(&m
+ ....  -> i64 {                           .... eta.files[0].hash);
+ 5656         s.db.query_row(             .... 
+ 5657             "SELECT COUNT(*) FROM   .... 
+ ....  entries WHERE cache_key = 'corru   .... 
+ .... pt1'",                              .... 
+ 5658             [],                     .... 
+ 5659             |r| r.get(0),           .... 
+ 5660         )                           .... 
+ 5661         .unwrap()                   .... 
+ 5662     };                              .... 
+ 5663     assert_eq!(refcount_sum(&stor   5669     assert_eq!(blob_refcount_sum(
+ .... e), 1, "one blob at refcount 1 af   .... &store), 1);
+ .... ter put");                          .... 
+ 5664     assert_eq!(row_present(&store   5670 
+ .... ), 1);                              .... 
+ 5665                                     .... 
+ 5666     // Corrupt the entry's meta.j   .... 
+ .... son so its blob list can't be loa   .... 
+ .... ded.                                .... 
+ 5667     let meta_path = store.entry_d   5671     let meta_path = store.entry_d
+ .... ir("corrupt1").join("meta.json");   .... ir("corrupt1").join("meta.json");
+ 5668     std::fs::write(&meta_path, b"   5672     std::fs::write(&meta_path, ve
+ .... { not valid json").unwrap();        .... c![0u8; 64]).unwrap();
+ 5669                                     5673 
+ ....                                     5674     store.remove_entry("corrupt1"
+ ....                                     .... ).unwrap();
+ 5670     assert!(                        5675     assert!(!store.contains("corr
+ ....                                     .... upt1"));
+ 5671         store.remove_entry("corru   .... 
+ .... pt1").is_err(),                     .... 
+ 5672         "remove_entry must error    .... 
+ .... on unparseable meta.json rather t   .... 
+ .... han leak"                           .... 
+ 5673     );                              .... 
+ 5674     assert_eq!(                     5676     assert_eq!(
+ 5675         row_present(&store),        5677         blob_refcount_sum(&store)
+ ....                                     .... ,
+ 5676         1,                          5678         0,
+ 5677         "corrupt entry row must s   5679         "the mapped reference is 
+ .... urvive a refused removal"           .... released"
+ 5678     );                              5680     );
+ ....                                     5681     assert!(!blob.exists(), "the 
+ ....                                     .... last reference took the blob with
+ ....                                     ....  it");
+ ....                                     5682     assert!(!store.entry_dir("cor
+ ....                                     .... rupt1").exists());
+ 5679     assert_eq!(                     5683     assert_eq!(store.blob_index_d
+ ....                                     .... rift().unwrap().total(), 0);
+ 5680         refcount_sum(&store),       .... 
+ 5681         1,                          .... 
+ 5682         "blob refcounts must be u   .... 
+ .... nchanged — no orphan"               .... 
+ 5683     );                              .... 
+ 5684 }                                   5684 }
+ ....                                     5685 
+ ....                                     5686 /// #276: without a blob mapping 
+ ....                                     .... an unparseable meta.json leaves t
+ ....                                     .... he
+ ....                                     5687 /// entry's references unknown, s
+ ....                                     .... o removal still refuses rather th
+ ....                                     .... an leak
+ ....                                     5688 /// them.
+ ....                                     5689 #[test]
+ ....                                     5690 fn remove_entry_refuses_on_corrup
+ ....                                     .... t_meta_without_a_blob_mapping() {
+ ....                                     5691     let dir = tempfile::tempdir()
+ ....                                     .... .unwrap();
+ ....                                     5692     let config = test_config(dir.
+ ....                                     .... path());
+ ....                                     5693     let store = Store::open(&conf
+ ....                                     .... ig).unwrap();
+ ....                                     5694     put_one_blob_entry(&store, di
+ ....                                     .... r.path(), "corrupt1");
+ ....                                     5695     store
+ ....                                     5696         .db
+ ....                                     5697         .execute("DELETE FROM ent
+ ....                                     .... ry_blobs WHERE cache_key = 'corru
+ ....                                     .... pt1'", [])
+ ....                                     5698         .unwrap();
+ ....                                     5699     let meta_path = store.entry_d
+ ....                                     .... ir("corrupt1").join("meta.json");
+ ....                                     5700     std::fs::write(&meta_path, b"
+ ....                                     .... { not valid json").unwrap();
+ ....                                     5701 
+ ....                                     5702     let err = store.remove_entry(
+ ....                                     .... "corrupt1").unwrap_err();
+ ....                                     5703     assert!(
+ ....                                     5704         format!("{err:#}").contai
+ ....                                     .... ns("meta.json unparseable"),
+ ....                                     5705         "wrong refusal shape: {er
+ ....                                     .... r:#}"
+ ....                                     5706     );
+ ....                                     5707     assert!(
+ ....                                     5708         store.contains("corrupt1"
+ ....                                     .... ),
+ ....                                     5709         "the row survives a refus
+ ....                                     .... ed removal"
+ ....                                     5710     );
+ ....                                     5711     assert_eq!(blob_refcount_sum(
+ ....                                     .... &store), 1, "no reference was dro
+ ....                                     .... pped");
+ ....                                     5712 }
+ ....                                     5713 
+ ....                                     5714 /// A settled-missing meta.json i
+ ....                                     .... s released through the mapping th
+ ....                                     .... e same way.
+ ....                                     5715 #[test]
+ ....                                     5716 fn remove_entry_releases_a_missin
+ ....                                     .... g_meta_entry_through_its_blob_map
+ ....                                     .... ping() {
+ ....                                     5717     let dir = tempfile::tempdir()
+ ....                                     .... .unwrap();
+ ....                                     5718     let config = test_config(dir.
+ ....                                     .... path());
+ ....                                     5719     let store = Store::open(&conf
+ ....                                     .... ig).unwrap();
+ ....                                     5720     put_one_blob_entry(&store, di
+ ....                                     .... r.path(), "m1");
+ ....                                     5721     std::fs::remove_file(store.en
+ ....                                     .... try_dir("m1").join("meta.json")).
+ ....                                     .... unwrap();
+ ....                                     5722 
+ ....                                     5723     store.remove_entry("m1").unwr
+ ....                                     .... ap();
+ ....                                     5724     assert!(!store.contains("m1")
+ ....                                     .... );
+ ....                                     5725     assert_eq!(blob_refcount_sum(
+ ....                                     .... &store), 0);
+ ....                                     5726     assert_eq!(store.blob_index_d
+ ....                                     .... rift().unwrap().total(), 0);
+ ....                                     5727 }
+ 5685                                     5728 
+ 5686 /// #276: a missing meta.json whi   5729 /// #276: a missing meta.json whi
+ .... le the DB row persists is the sam   .... le the DB row persists and no map
+ .... e hazard.                           .... ping
+ ....                                     5730 /// names its blobs is the same h
+ ....                                     .... azard.
+ 5687 #[test]                             5731 #[test]
+ 5688 fn remove_entry_refuses_when_meta   5732 fn remove_entry_refuses_when_meta
+ .... _missing_but_row_present() {        .... _missing_but_row_present() {
+ 5689     let dir = tempfile::tempdir()   5733     let dir = tempfile::tempdir()
+ .... .unwrap();                          .... .unwrap();
+
+crates/kache-store/src/store/tests.rs --- 3/6 --- Rust
+ 5704  5748             "",
+ 5705  5749         )
+ 5706  5750         .unwrap();
+ ....  5751     store
+ ....  5752         .db
+ ....  5753         .execute("DELETE FROM entry_blobs WHERE cache_key = 'm1'", [])
+ ....  5754         .unwrap();
+ 5707  5755     std::fs::remove_file(store.entry_dir("m1").join("meta.json")).unwrap();
+ 5708  5756     let err = store.remove_entry("m1").unwrap_err();
+ 5709  5757     // The message identifies WHICH state was diagnosed: the settled
+
+crates/kache-store/src/store/tests.rs --- 4/6 --- Rust
+ 5768     put(&store, "one", b"generati   5816     put(&store, "one", b"generati
+ .... on one");                           .... on one");
+ 5769     assert_eq!(refcount_sum(&stor   5817     assert_eq!(refcount_sum(&stor
+ .... e), 1);                             .... e), 1);
+ 5770                                     5818 
+ 5771     // Strand the row: meta.json    5819     // Strand the row: meta.json 
+ .... gone, DB row present. Removal       .... gone, DB row present. Lookup's
+ 5772     // refuses (#276), and lookup   5820     // discarded-error path then 
+ .... 's discarded-error path then driv   .... drives a miss, a recompile, and t
+ .... es                                  .... his
+ 5773     // a miss, a recompile, and t   5821     // re-put over the surviving 
+ .... his re-put over the surviving row   .... row.
+ .... .                                   .... 
+ 5774     std::fs::remove_file(store.en   5822     std::fs::remove_file(store.en
+ .... try_dir("strand1").join("meta.jso   .... try_dir("strand1").join("meta.jso
+ .... n")).unwrap();                      .... n")).unwrap();
+ 5775     assert!(store.remove_entry("s   .... 
+ .... trand1").is_err());                 .... 
+ 5776     put(&store, "two", b"generati   5823     put(&store, "two", b"generati
+ .... on two");                           .... on two");
+ 5777                                     5824 
+ 5778     assert_eq!(                     5825     assert_eq!(
+
+crates/kache-store/src/store/tests.rs --- 5/6 --- Rust
+11740 }                                  11787 }
+11741                                    11788 
+11742 #[test]                            11789 #[test]
+11743 fn evict_duplicate_entries_skips_  11790 fn evict_duplicate_entries_releas
+..... victim_with_corrupt_meta() {       ..... es_victim_with_corrupt_meta_throu
+.....                                    ..... gh_its_mapping() {
+11744     // Covers evict_duplicate_ent  11791     // A corrupt victim's blob ma
+..... ries remove_entry_guarded error b  ..... pping still names its references,
+..... ranch.                             .....  so the
+.....                                    11792     // duplicate pass removes it 
+.....                                    ..... rather than skipping it forever.
+11745     let tmp = tempfile::tempdir()  11793     let tmp = tempfile::tempdir()
+..... .unwrap();                         ..... .unwrap();
+11746     let mut config = test_config(  11794     let mut config = test_config(
+..... tmp.path());                       ..... tmp.path());
+11747     config.max_size = 1;           11795     config.max_size = 1;
+
+crates/kache-store/src/store/tests.rs --- 6/6 --- Rust
+11815                                    11863 
+11816     let stats = store.evict_dupli  11864     let stats = store.evict_dupli
+..... cate_entries().unwrap();           ..... cate_entries().unwrap();
+11817                                    11865 
+11818     assert_eq!(stats.entries_evic  11866     assert_eq!(stats.entries_evic
+..... ted, 0, "corrupt victim is skippe  ..... ted, 1, "{stats:?}");
+..... d");                               ..... 
+11819     assert!(store.contains("dup_c  11867     assert!(!store.contains("dup_
+..... orrupt_old"));                     ..... corrupt_old"));
+11820     assert!(store.contains("dup_c  11868     assert!(store.contains("dup_c
+..... orrupt_new"));                     ..... orrupt_new"));
+.....                                    11869     assert_eq!(store.blob_index_d
+.....                                    ..... rift().unwrap().total(), 0);
+11821 }                                  11870 }
+11822                                    11871 
+11823 #[test]                            11872 #[test]
+
+docs/commands/reference.mdx --- Text
+311                                      311 
+312 Below the window's rows, a section   312 Below the window's rows, a section 
+... starting with `Since` shows totals   ... starting with `Since` shows totals 
+... since kache began counting: compile  ... since kache began counting: compile
+...  time avoided and the number of hit  ...  time avoided and the number of hit
+... s, bytes restored by reflink or har  ... s, bytes restored by reflink or har
+... dlink against bytes copied, and sto  ... dlink against bytes copied, and sto
+... re bytes GC removed, split into aut  ... re bytes GC removed, split into aut
+... omatic runs (the daemon and the aut  ... omatic runs (the daemon and the aut
+... o-GC worker) and `kache gc` runs yo  ... o-GC worker) and `kache gc` runs yo
+... u started. The event log rotates by  ... u started. The event log rotates by
+...  size, so each rotation adds the ev  ...  size, so each rotation adds the ev
+... ents it drops to `savings.json` in   ... ents it drops to `savings.json` in 
+... the cache dir, and each GC run that  ... the cache dir, and each GC run that
+...  frees bytes adds them there too. T  ...  frees bytes adds them there too. T
+... he totals are that file plus the ev  ... he totals are that file plus the ev
+... ents the log still holds, and volum  ... ents the log still holds, and volum
+... e shards add their own GC totals. T  ... e shards add their own GC totals. T
+... he section is left out until someth  ... he section is left out until someth
+... ing is counted. A crash between a r  ... ing is counted. A crash between a r
+... otation and its update of `savings.  ... otation and its update of `savings.
+... json` loses those events from the t  ... json` loses those events from the t
+... otals; nothing is ever counted twic  ... otals; nothing is ever counted twic
+... e. A corrupt `savings.json` is move  ... e. A corrupt `savings.json` is move
+... d to `savings.json.corrupt` and cou  ... d to `savings.json.corrupt` and cou
+... nting starts over; one written by a  ... nting starts over; one written by a
+...  newer kache is left alone. `kache   ...  newer kache is left alone. `kache 
+... stats --json` carries the same figu  ... stats --json` carries the same figu
+... res in a `lifetime` object (`since`  ... res in a `lifetime` object (`since`
+... , `hits`, `hit_compile_time_ms`, `z  ... , `hits`, `hit_compile_time_ms`, `z
+... ero_copy_bytes`, `copied_bytes`, `p  ... ero_copy_bytes`, `copied_bytes`, `p
+... runed_automatic_bytes`, `pruned_req  ... runed_automatic_bytes`, `pruned_req
+... uested_bytes`).                      ... uested_bytes`).
+313                                      313 
+314 `--since` accepts `s`, `m`, `h`, an  314 `--since` accepts `s`, `m`, `h`, an
+... d `d` units (`90s`, `15m`, `2h`, `7  ... d `d` units (`90s`, `15m`, `2h`, `7
+... d`). A bare number is hours. The de  ... d`). A bare number is hours. The de
+... fault is `24h`. The counters and th  ... fault is `24h`. The counters and th
+... e `last ...` label both describe th  ... e `last ...` label both describe th
+... e requested window. A value that do  ... e requested window. A value that do
+... es not parse, or 0, is an argument   ... es not parse, or 0, is an argument 
+... error.                               ... error. A window reaches past the ev
+...                                      ... ent log's size rotation: each rotat
+...                                      ... ion also keeps the lines it drops a
+...                                      ... s a compressed segment in `events.j
+...                                      ... sonl.archive/` next to the log. Eac
+...                                      ... h rotation prunes the archive to 8 
+...                                      ... days and 512 MiB.
+315                                      315 
+316 `--last-build` shows the detailed r  316 `--last-build` shows the detailed r
+... eport for the latest recorded activ  ... eport for the latest recorded activ
+... ity session. Add `--root` to choose  ... ity session. Add `--root` to choose
+...  a build tree; without it, the late  ...  a build tree; without it, the late
+... st event across all roots chooses t  ... st event across all roots chooses t
+... he session. It cannot be combined w  ... he session. It cannot be combined w
+... ith `--since`. With `--json`, the s  ... ith `--since`. With `--json`, the s
+... tats envelope contains a `report` o  ... tats envelope contains a `report` o
+... bject using the build report schema  ... bject using the build report schema
+...  below.                              ...  below.
+317                                      317 
+
+docs/getting-started/configuration.mdx --- Text
+90 | `KACHE_SEED_NEW_TARGETS` | `cache.  90 | `KACHE_SEED_NEW_TARGETS` | `cache.
+.. seed_new_targets` | `true` | Copy an  .. seed_new_targets` | `true` | Copy an
+.. other checkout's registry build unit  .. other checkout's registry build unit
+.. s into a target directory Cargo has   .. s into a target directory Cargo has 
+.. not built yet. See [New checkouts](#  .. not built yet. See [New checkouts](#
+.. new-checkouts). |                     .. new-checkouts). |
+91 | `KACHE_MIN_STORE_COMPILE_MS` | `ca  91 | `KACHE_MIN_STORE_COMPILE_MS` | `ca
+.. che.min_store_compile_ms` | `0` | Do  .. che.min_store_compile_ms` | `0` | Do
+..  not store results whose compile too  ..  not store results whose compile too
+.. k less than this many milliseconds;   .. k less than this many milliseconds; 
+.. `0` stores all eligible results. Ign  .. `0` stores all eligible results. Ign
+.. ored for a result that publishes to   .. ored for a result that publishes to 
+.. a writable remote, because the uploa  .. a writable remote, because the uploa
+.. d reads the local entry |             .. d reads the local entry |
+92 | `KACHE_COMPRESSION_LEVEL` | `cache  92 | `KACHE_COMPRESSION_LEVEL` | `cache
+.. .compression_level` | `3` | Zstd lev  .. .compression_level` | `3` | Zstd lev
+.. el, clamped to 1 through 22 |         .. el, clamped to 1 through 22 |
+93 | none | `cache.event_log_max_size`   93 | none | `cache.event_log_max_size` 
+.. | `64MiB` | Rotate the event log aft  .. | `64MiB` | Rotate the event log aft
+.. er this size. Rotation keeps the bui  .. er this size. Rotation keeps the bui
+.. ld in progress, up to half this size  .. ld in progress, up to half this size
+..  |                                    .. , and moves the dropped lines to `ev
+..                                       .. ents.jsonl.archive/`, pruned at each
+..                                       ..  rotation to 8 days and 512 MiB |
+94 | none | `cache.event_log_keep_lines  94 | none | `cache.event_log_keep_lines
+.. ` | `1000` | Minimum lines retained   .. ` | `1000` | Minimum lines retained 
+.. when the event log rotates |          .. when the event log rotates |
+95 | `KACHE_DISABLED` | none | `false`   95 | `KACHE_DISABLED` | none | `false` 
+.. | Pass all compiler work through whe  .. | Pass all compiler work through whe
+.. n set to `1` or `true` |              .. n set to `1` or `true` |
+96 | `KACHE_LOCAL_ONLY` | `cache.local_  96 | `KACHE_LOCAL_ONLY` | `cache.local_
+.. only` | `false` | Ignore all remote   .. only` | `false` | Ignore all remote 
+.. and planner configuration while keep  .. and planner configuration while keep
+.. ing local caching |                   .. ing local caching |
+
+src/build_script.rs --- 1/2 --- Rust
+1991 fn modified_since(path: &Path, exc  1991 fn modified_since(path: &Path, exc
+.... luded: &[PathBuf], since: std::tim  .... luded: &[PathBuf], since: std::tim
+.... e::SystemTime) -> Result<bool> {    .... e::SystemTime) -> Result<bool> {
+1992     let metadata = match std::fs::  1992     let metadata = match std::fs::
+.... symlink_metadata(path) {            .... symlink_metadata(path) {
+1993         Ok(metadata) => metadata,   1993         Ok(metadata) => metadata,
+1994         Err(error) if error.kind()  1994         Err(error)
+....  == std::io::ErrorKind::NotFound =  .... 
+.... > return Ok(false),                 .... 
+....                                     1995             if matches!(
+....                                     1996                 error.kind(),
+....                                     1997                 std::io::ErrorKind
+....                                     .... ::NotFound | std::io::ErrorKind::N
+....                                     .... otADirectory
+....                                     1998             ) =>
+....                                     1999         {
+....                                     2000             return Ok(false);
+....                                     2001         }
+1995         Err(error) => return Err(e  2002         Err(error) => return Err(e
+.... rror.into()),                       .... rror.into()),
+1996     };                              2003     };
+1997     if metadata.modified()? >= sin  2004     if metadata.modified()? >= sin
+.... ce {                                .... ce {
+
+src/build_script.rs --- 2/2 --- Rust
+3081     }                               3088     }
+3082                                     3089 
+3083     #[test]                         3090     #[test]
+3084     fn modified_since_distinguishe  3091     fn declared_inputs_through_a_f
+.... s_absent_from_unreadable() {        .... ile_are_missing() {
+3085         let dir = tempfile::tempdi  3092         let dir = tempfile::tempdi
+.... r().unwrap();                       .... r().unwrap();
+3086         let file = dir.path().join  3093         let file = dir.path().join
+.... ("f");                              .... ("f");
+3087         std::fs::write(&file, "x")  3094         std::fs::write(&file, "x")
+.... .unwrap();                          .... .unwrap();
+3088         let later = std::time::Sys  3095         let later = std::time::Sys
+.... temTime::now() + std::time::Durati  .... temTime::now() + std::time::Durati
+.... on::from_secs(60);                  .... on::from_secs(60);
+3089         assert!(!modified_since(&d  3096         assert!(!modified_since(&d
+.... ir.path().join("absent"), &[], lat  .... ir.path().join("absent"), &[], lat
+.... er).unwrap());                      .... er).unwrap());
+3090         // Windows reports a path   3097         // Unix reports ENOTDIR; W
+.... through a file as not found; Unix   .... indows can report NotFound. Neithe
+.... as ENOTDIR.                         .... r path exists.
+3091         #[cfg(unix)]                .... 
+3092         assert!(                    3098         assert!(!modified_since(&f
+....                                     .... ile.join("child"), &[], later).unw
+....                                     .... rap());
+3093             modified_since(&file.j  .... 
+.... oin("child"), &[], later).is_err()  .... 
+.... ,                                   .... 
+3094             "a path through a file  .... 
+....  is an error, not an absence"       .... 
+3095         );                          .... 
+3096         let hasher = crate::cache_  3099         let hasher = crate::cache_
+.... key::FileHasher::new();             .... key::FileHasher::new();
+3097         let mut budget = 10;        3100         let mut budget = 10;
+3098         #[cfg(unix)]                .... 
+3099         assert!(                    3101         assert_eq!(
+3100             input_state(&file.join  3102             input_state(&file.join
+.... ("child"), &[], &hasher, &mut budg  .... ("child"), &[], &hasher, &mut budg
+.... et, 0).is_err(),                    .... et, 0).unwrap(),
+3101             "an unreadable declare  3103             "missing"
+.... d input is an error, not a missing  .... 
+....  one"                               .... 
+3102         );                          3104         );
+3103         assert_eq!(                 3105         assert_eq!(
+3104             input_state(&dir.path(  3106             input_state(&dir.path(
+.... ).join("absent"), &[], &hasher, &m  .... ).join("absent"), &[], &hasher, &m
+.... ut budget, 0).unwrap(),             .... ut budget, 0).unwrap(),
+
+src/build_script/inputs.rs --- 1/2 --- Rust
+193     *budget -= 1;                    193     *budget -= 1;
+194     let metadata = match std::fs::s  194     let metadata = match std::fs::s
+... ymlink_metadata(path) {              ... ymlink_metadata(path) {
+195         Ok(metadata) => metadata,    195         Ok(metadata) => metadata,
+196         Err(error) if error.kind()   196         // A path through a file (.
+... == std::io::ErrorKind::NotFound =>   ... git in a worktree, for example) doe
+... {                                    ... s not
+197             return Ok("missing".to_  197         // exist. Match the same ab
+... string());                           ... sence semantics as Cargo and NotFou
+...                                      ... nd.
+198         }                            ... 
+199         // Cargo counts any path it  ... 
+...  cannot stat as missing. A componen  ... 
+... t that                               ... 
+200         // is a file (`.git` in a w  ... 
+... orktree) means there is nothing the  ... 
+... re; a                                ... 
+201         // directory on the way the  ... 
+...  user may not search hides what is.  ... 
+202         Err(error)                   198         Err(error)
+203             if walk.unreachable_ent  199             if matches!(
+... ries && error.kind() == std::io::Er  ... 
+... rorKind::NotADirectory =>            ... 
+...                                      200                 error.kind(),
+...                                      201                 std::io::ErrorKind:
+...                                      ... :NotFound | std::io::ErrorKind::Not
+...                                      ... ADirectory
+...                                      202             ) =>
+204         {                            203         {
+205             return Ok("missing".to_  204             return Ok("missing".to_
+... string());                           ... string());
+206         }                            205         }
+...                                      206         // Only tolerant rustc walk
+...                                      ... s accept unreadable inputs. The run
+...                                      ...  cache
+...                                      207         // must still refuse real p
+...                                      ... ermission/I/O failures.
+207         Err(error)                   208         Err(error)
+208             if walk.unreachable_ent  209             if walk.unreachable_ent
+... ries && error.kind() == std::io::Er  ... ries && error.kind() == std::io::Er
+... rorKind::PermissionDenied =>         ... rorKind::PermissionDenied =>
+209         {                            210         {
+
+src/build_script/inputs.rs --- 2/2 --- Rust
+855                 );                   856                 );
+856             }                        857             }
+857         }                            858         }
+858         assert!(                     859         assert_eq!(
+859             state(&root.join("file/  860             state(&root.join("file/
+... child"), &run_cache).is_err(),       ... child"), &run_cache).unwrap(),
+860             "the run cache refuses   861             "missing"
+... a path through a file"               ... 
+861         );                           862         );
+862         let _searchable = Mode::set  863         let _searchable = Mode::set
+... (&root.join("locked"), 0o100);       ... (&root.join("locked"), 0o100);
+863         assert!(                     864         assert!(
+
+src/cache_key.rs --- 1/2 --- Rust
+8824 /// Get rustc version string, cach  8824 /// Get rustc version string, cach
+.... ed to a file keyed by binary mtime  .... ed to a file keyed by binary mtime
+.... .                                   .... .
+8825 ///                                 8825 ///
+8826 /// Every wrapper invocation needs  8826 /// Every wrapper invocation needs
+....  this, but the output only changes  ....  this, but the output only changes
+....  when rustc                         ....  when rustc
+8827 /// itself is updated.  A file cac  8827 /// itself is updated.  A file cac
+.... he avoids spawning `rustc --versio  .... he avoids spawning `rustc -vV`
+.... n --verbose`                        .... 
+8828 /// 300+ times per parallel build   8828 /// 300+ times per parallel build 
+.... — the first invocation writes the   .... — the first invocation writes the 
+.... file and the                        .... file and the
+8829 /// rest read it back in <1 ms.     8829 /// rest read it back in <1 ms.
+8830 /// `rustc -vV` of `rustc`, as the  8830 /// `rustc -vV` of `rustc`, as the
+....  cache key reads it (cached per bi  ....  cache key reads it (cached per bi
+.... nary), or                           .... nary), or
+
+src/cache_key.rs --- 2/2 --- Rust
+8836 fn get_rustc_version(rustc: &Path)  8836 fn get_rustc_version(rustc: &Path)
+....  -> Result<String> {                ....  -> Result<String> {
+8837     let _trace = crate::phase_trac  8837     let _trace = crate::phase_trac
+.... e::phase("compiler_identity");      .... e::phase("compiler_identity");
+8838     if let Some(cached) = read_too  8838     if let Some(cached) = read_too
+.... l_version_cache(rustc, "rustc-ver"  .... l_version_cache(rustc, "rustc-ver"
+.... ) {                                 .... )
+....                                     8839         && valid_rustc_version(&ca
+....                                     .... ched)
+....                                     8840     {
+8839         return Ok(cached);          8841         return Ok(cached);
+8840     }                               8842     }
+8841                                     8843 
+....                                     8844     // Clippy's long-form flags re
+....                                     .... port only its own version. Its -vV
+....                                     ....  reports
+....                                     8845     // the underlying compiler, in
+....                                     .... cluding the host needed to key cod
+....                                     .... egen backends.
+8842     let output = std::process::Com  8846     let output = std::process::Com
+.... mand::new(rustc)                    .... mand::new(rustc)
+8843         .arg("--version")           8847         .arg("-vV")
+8844         .arg("--verbose")           .... 
+8845         .output()                   8848         .output()
+8846         .context("running rustc --  8849         .context("running rustc -v
+.... version --verbose")?;               .... V")?;
+....                                     8850     anyhow::ensure!(
+....                                     8851         output.status.success(),
+....                                     8852         "rustc -vV failed ({}): {}
+....                                     .... ",
+....                                     8853         output.status,
+....                                     8854         String::from_utf8_lossy(&o
+....                                     .... utput.stderr).trim()
+....                                     8855     );
+8847                                     8856 
+8848     let version = String::from_utf  8857     let version = String::from_utf
+.... 8_lossy(&output.stdout).trim().to_  .... 8_lossy(&output.stdout).trim().to_
+.... string();                           .... string();
+....                                     8858     anyhow::ensure!(
+....                                     8859         valid_rustc_version(&versi
+....                                     .... on),
+....                                     8860         "rustc -vV did not report 
+....                                     .... a compiler version and host"
+....                                     8861     );
+8849     write_tool_version_cache(rustc  8862     write_tool_version_cache(rustc
+.... , "rustc-ver", &version);           .... , "rustc-ver", &version);
+8850     Ok(version)                     8863     Ok(version)
+8851 }                                   8864 }
+....                                     8865 
+....                                     8866 fn valid_rustc_version(version: &s
+....                                     .... tr) -> bool {
+....                                     8867     version.starts_with("rustc ") 
+....                                     .... && rustc_host_triple(version).is_s
+....                                     .... ome()
+....                                     8868 }
+8852                                     8869 
+8853 /// `clippy-driver --version` (`cl  8870 /// `clippy-driver --version` (`cl
+.... ippy 0.1.98 (hash date)`), file-ca  .... ippy 0.1.98 (hash date)`), file-ca
+.... ched like                           .... ched like
+8854 /// the rustc version. `-vV` only   8871 /// the rustc version. `-vV` only 
+.... reports the underlying rustc.       .... reports the underlying rustc.
+
+src/cache_key/tests.rs --- 1/5 --- Rust
+ 5784  5784 /// (a sandboxed build with no writable home).
+ 5785  5785 #[test]
+ 5786  5786 fn tool_version_cache_write_is_read_back() {
+ ....  5787     let _lock = key_test_lock();
+ 5787  5788     let cache_dir = crate::config::default_cache_dir();
+ 5788  5789     if std::fs::create_dir_all(&cache_dir).is_err() || tempfile::tempfile_in(&cache_dir).is_err() {
+ 5789  5790         eprintln!("skipping: {} is not writable", cache_dir.display());
+
+src/cache_key/tests.rs --- 2/5 --- Rust
+ 5894  5895     assert!(with_args.contains("CLIPPY_ARGS=-Dclippy::all"));
+ 5895  5896 }
+ ....  5897 
+ ....  5898 #[test]
+ ....  5899 fn compiler_version_requires_rustc_identity_and_a_nonempty_host() {
+ ....  5900     for invalid in [
+ ....  5901         "",
+ ....  5902         "clippy 0.1.101",
+ ....  5903         "rustc 1.101.0",
+ ....  5904         "rustc 1.101.0\nhost: ",
+ ....  5905         "clippy 0.1.101\nhost: test",
+ ....  5906     ] {
+ ....  5907         assert!(!valid_rustc_version(invalid), "accepted {invalid:?}");
+ ....  5908     }
+ ....  5909     assert!(valid_rustc_version(
+ ....  5910         "rustc 1.101.0\nhost: x86_64-unknown-linux-gnu"
+ ....  5911     ));
+ ....  5912 }
+ ....  5913 
+ ....  5914 #[cfg(unix)]
+ ....  5915 #[test]
+ ....  5916 fn compiler_version_refreshes_clippy_only_memos_with_short_verbose_probe() {
+ ....  5917     let _lock = key_test_lock();
+ ....  5918     let dir = tempfile::tempdir().unwrap();
+ ....  5919     let driver = dir.path().join("clippy-driver");
+ ....  5920     kache_fs::testutil::write_executable(
+ ....  5921         &driver,
+ ....  5922         "#!/bin/sh\ncase \"$*\" in\n-vV) printf 'rustc 1.101.0 (test)\\nhost: x86_64-unknown-linux-gnu\\n';;\n--version*) echo 'clippy 0.1.101 (test)';;\n*) exit 2;;\nesac\n",
+ ....  5923     );
+ ....  5924     write_tool_version_cache(&driver, "rustc-ver", "clippy 0.1.101 (test)");
+ ....  5925     let version = get_rustc_version(&driver).unwrap();
+ ....  5926     assert_eq!(
+ ....  5927         version,
+ ....  5928         "rustc 1.101.0 (test)\nhost: x86_64-unknown-linux-gnu"
+ ....  5929     );
+ ....  5930     assert_eq!(
+ ....  5931         read_tool_version_cache(&driver, "rustc-ver"),
+ ....  5932         Some(version.clone())
+ ....  5933     );
+ ....  5934     assert_eq!(get_rustc_version(&driver).unwrap(), version);
+ ....  5935     assert_eq!(
+ ....  5936         get_clippy_version(&driver).unwrap(),
+ ....  5937         "clippy 0.1.101 (test)"
+ ....  5938     );
+ ....  5939 }
+ ....  5940 
+ ....  5941 #[cfg(unix)]
+ ....  5942 #[test]
+ ....  5943 fn compiler_version_does_not_memoize_failed_or_incomplete_probes() {
+ ....  5944     let _lock = key_test_lock();
+ ....  5945     let dir = tempfile::tempdir().unwrap();
+ ....  5946     for (name, body) in [
+ ....  5947         ("failed", "printf 'rustc 1.101.0\\nhost: test\\n'; exit 7"),
+ ....  5948         ("empty", "exit 0"),
+ ....  5949         ("clippy", "echo 'clippy 0.1.101 (test)'"),
+ ....  5950     ] {
+ ....  5951         let driver = dir.path().join(name);
+ ....  5952         kache_fs::testutil::write_executable(&driver, format!("#!/bin/sh\n{body}\n"));
+ ....  5953         assert!(get_rustc_version(&driver).is_err(), "accepted {name}");
+ ....  5954         assert_eq!(read_tool_version_cache(&driver, "rustc-ver"), None);
+ ....  5955     }
+ ....  5956 }
+ 5896  5957 
+ 5897  5958 #[test]
+ 5898  5959 fn tool_version_cache_path_is_a_named_file_in_the_cache_dir() {
+
+src/cache_key/tests.rs --- 3/5 --- Rust
+ 5988     let install = |commit: &str,    6049     let install = |commit: &str, 
+ .... mtime: i64| {                       .... mtime: i64| {
+ 5989         kache_fs::testutil::write   6050         kache_fs::testutil::write
+ .... _executable(                        .... _executable(
+ 5990             &toolchain_rustc,       6051             &toolchain_rustc,
+ 5991             format!("#!/bin/sh\ne   6052             format!("#!/bin/sh\np
+ .... cho 'rustc 1.101.0-nightly ({comm   .... rintf 'rustc 1.101.0-nightly ({co
+ .... it})'\n"),                          .... mmit})\\nhost: test\\n'\n"),
+ 5992         );                          6053         );
+ 5993         filetime::set_file_mtime(   6054         filetime::set_file_mtime(
+ 5994             &toolchain_rustc,       6055             &toolchain_rustc,
+
+src/cache_key/tests.rs --- 4/5 --- Rust
+ 6005     install("c1070d693", 1_790_00   6066     install("c1070d693", 1_790_00
+ .... 0_000);                             .... 0_000);
+ 6006     assert_eq!(                     6067     assert_eq!(
+ 6007         get_rustc_version(&shim).   6068         get_rustc_version(&shim).
+ .... unwrap(),                           .... unwrap(),
+ 6008         "rustc 1.101.0-nightly (c   6069         "rustc 1.101.0-nightly (c
+ .... 1070d693)"                          .... 1070d693)\nhost: test"
+ 6009     );                              6070     );
+ 6010     install("21b707e3f", 1_790_20   6071     install("21b707e3f", 1_790_20
+ .... 0_000);                             .... 0_000);
+ 6011     assert_eq!(                     6072     assert_eq!(
+ 6012         get_rustc_version(&shim).   6073         get_rustc_version(&shim).
+ .... unwrap(),                           .... unwrap(),
+ 6013         "rustc 1.101.0-nightly (2   6074         "rustc 1.101.0-nightly (2
+ .... 1b707e3f)"                          .... 1b707e3f)\nhost: test"
+ 6014     );                              6075     );
+ 6015 }                                   6076 }
+ 6016                                     6077 
+
+src/cache_key/tests.rs --- 5/5 --- Rust
+14913     std::fs::create_dir_all(&dir)  14974     std::fs::create_dir_all(&dir)
+..... .unwrap();                         ..... .unwrap();
+14914     let wrapper = dir.join("rustc  14975     let wrapper = dir.join("rustc
+..... ");                                ..... ");
+14915     let script = format!(          14976     let script = format!(
+14916         "#!/bin/sh\n\              14977         "#!/bin/sh\n\
+14917 if [ \"$1\" = \"--version\" ] &&   14978 if [ \"$1\" = \"-vV\" ]; then\n\
+..... [ \"$2\" = \"--verbose\" ]; then\  ..... 
+..... n\                                 ..... 
+14918 cat <<'KACHE_RUSTC_VERSION'\n\     14979 cat <<'KACHE_RUSTC_VERSION'\n\
+14919 {version}\n\                       14980 {version}\n\
+.....                                    14981 host: x86_64-unknown-linux-gnu\n\
+14920 KACHE_RUSTC_VERSION\n\             14982 KACHE_RUSTC_VERSION\n\
+14921 exit 0\n\                          14983 exit 0\n\
+14922 fi\n\                              14984 fi\n\
+14923 exec {} \"$@\"\n",                 14985 exec {} \"$@\"\n",
+14924         shell_single_quote(&real_  14986         shell_single_quote(&real_
+..... rustc)                             ..... rustc)
+14925     );                             14987     );
+14926     kache_fs::testutil::write_exe  14988     kache_fs::testutil::write_exe
+..... cutable(&wrapper, script);         ..... cutable(&wrapper, script);
+
+src/cli.rs --- Rust
+273     let inventory = crate::store_vi  273     let inventory = crate::store_vi
+... ew::read(config, include_entries, s  ... ew::read(config, include_entries, s
+... ort_by).unwrap_or_default();         ... ort_by).unwrap_or_default();
+274                                      274 
+275     let since = window.cutoff(chron  275     let since = window.cutoff(chron
+... o::Utc::now());                      ... o::Utc::now());
+276     let event_list = events::read_e  276     let es = events::event_stats_si
+... vents_since(&config.event_log_path(  ... nce(&config.event_log_path(), since
+... ), since).unwrap_or_default();       ... ).unwrap_or_default();
+277     let es = events::compute_stats(  ... 
+... &event_list);                        ... 
+278                                      277 
+279     let recent_summaries = if inclu  278     let recent_summaries = if inclu
+... de_summaries {                       ... de_summaries {
+280         let mut summaries =          279         let mut summaries =
+
+src/cli/tests.rs --- 1/2 --- Rust
+ 4587  4587     let dir = tempfile::tempdir().unwrap();
+ 4588  4588     let config = save_manifest_config(dir.path().join("cache"), None);
+ 4589  4589     put_entry(&config, "badpurgekey", "bad", dir.path());
+ ....  4590     // Without its blob mapping the corrupt entry's references are unknown,
+ ....  4591     // so its removal is refused.
+ ....  4592     crate::store::open_index_db(&config.index_db_path())
+ ....  4593         .unwrap()
+ ....  4594         .execute(
+ ....  4595             "DELETE FROM entry_blobs WHERE cache_key = 'badpurgekey'",
+ ....  4596             [],
+ ....  4597         )
+ ....  4598         .unwrap();
+ 4590  4599     std::fs::write(
+ 4591  4600         config.store_dir().join("badpurgekey").join("meta.json"),
+ 4592  4601         b"{ not valid json",
+
+src/cli/tests.rs --- 2/2 --- Rust
+10336 10345     );
+10337 10346 }
+      10347 
+      10348 #[test]
+      10349 fn direct_stats_include_rotated_events() {
+      10350     let dir = tempfile::tempdir().unwrap();
+      10351     let config = save_manifest_config(dir.path().join("cache"), None);
+      10352     let log = config.event_log_path();
+      10353     let mut hit =
+      10354         crate::events::BuildEvent::new_for_test("archived", crate::events::EventResult::LocalHit);
+      10355     hit.ts = chrono::Utc::now() - chrono::Duration::minutes(10);
+      10356     for _ in 0..12 {
+      10357         crate::events::log_event(&log, &hit).unwrap();
+      10358     }
+      10359     let max_size = std::fs::metadata(&log).unwrap().len() / 2;
+      10360     crate::events::rotate_events_if_needed(&log, max_size, 1, &config.cache_dir).unwrap();
+      10361     assert!(crate::events::read_events(&log).unwrap().len() < 12);
+      10362     let miss = crate::events::BuildEvent::new_for_test("live", crate::events::EventResult::Miss);
+      10363     crate::events::log_event(&log, &miss).unwrap();
+      10364 
+      10365     let snap = snapshot_from_direct_reads(&config, false, "size", SinceWindow::DEFAULT, false);
+      10366     assert_eq!(snap.event_stats.local_hits, 12);
+      10367     assert_eq!(snap.event_stats.misses, 1);
+      10368 }
+
+src/daemon.rs --- Rust
+3649         };                          3649         };
+3650                                     3650 
+3651         let since = req.window().c  3651         let since = req.window().c
+.... utoff(chrono::Utc::now());          .... utoff(chrono::Utc::now());
+3652         let event_list =            3652         let es =
+3653             events::read_events_si  3653             events::event_stats_si
+.... nce(&self.config.event_log_path(),  .... nce(&self.config.event_log_path(),
+....  since).unwrap_or_default();        ....  since).unwrap_or_default();
+3654         let es = events::compute_s  .... 
+.... tats(&event_list);                  .... 
+3655         let recent_summaries = if   3654         let recent_summaries = if 
+.... req.include_summaries {             .... req.include_summaries {
+3656             let mut summaries =     3655             let mut summaries =
+3657                 events::read_summa  3656                 events::read_summa
+.... ries(&self.config.summary_log_path  .... ries(&self.config.summary_log_path
+.... ()).unwrap_or_default();            .... ()).unwrap_or_default();
+
+src/daemon/tests.rs --- Rust
+14935 14935     .unwrap();
+14936 14936 }
+      14937 
+      14938 #[test]
+      14939 fn daemon_stats_include_rotated_events() {
+      14940     let dir = tempfile::tempdir().unwrap();
+      14941     let config = test_config(dir.path());
+      14942     let log = config.event_log_path();
+      14943     let mut hit = events::BuildEvent::new_for_test("archived", events::EventResult::LocalHit);
+      14944     hit.ts = chrono::Utc::now() - chrono::Duration::minutes(10);
+      14945     for _ in 0..12 {
+      14946         events::log_event(&log, &hit).unwrap();
+      14947     }
+      14948     let max_size = std::fs::metadata(&log).unwrap().len() / 2;
+      14949     events::rotate_events_if_needed(&log, max_size, 1, &config.cache_dir).unwrap();
+      14950     assert!(events::read_events(&log).unwrap().len() < 12);
+      14951     let miss = events::BuildEvent::new_for_test("live", events::EventResult::Miss);
+      14952     events::log_event(&log, &miss).unwrap();
+      14953     let daemon = Daemon::new(config);
+      14954     let request = StatsRequest {
+      14955         include_entries: false,
+      14956         include_summaries: false,
+      14957         sort_by: None,
+      14958         event_hours: Some(24),
+      14959         event_secs: None,
+      14960         client_epoch: 0,
+      14961         client_version: None,
+      14962     };
+      14963     let snapshot = daemon.handle_stats(&request).stats.unwrap();
+      14964     assert_eq!(snapshot.events.local_hits, 12);
+      14965     assert_eq!(snapshot.events.misses, 1);
+      14966 }
+
+src/events.rs --- 1/6 --- Rust
+ 836     Ok((events, extra))              836     Ok((events, extra))
+ 837 }                                    837 }
+ 838                                      838 
+ 839 /// Read events since a given time   839 /// Read events since a given time
+ ... stamp.                               ... stamp: the archived segments a rot
+ ...                                      ... ation
+ ...                                      840 /// moved out of the log that reac
+ ...                                      ... h `since` ([`archive_dropped_event
+ ...                                      ... s`]),
+ ...                                      841 /// then the log itself.
+ ...                                      842 ///
+ ...                                      843 /// The archive is read first. A r
+ ...                                      ... otation drops lines from the log b
+ ...                                      ... efore it
+ ...                                      844 /// archives them, so a rotation b
+ ...                                      ... etween the two reads can only leav
+ ...                                      ... e its
+ ...                                      845 /// lines out of this answer, neve
+ ...                                      ... r count them twice.
+ 840 pub fn read_events_since(event_log   846 pub fn read_events_since(event_log
+ ... _path: &Path, since: DateTime<Utc>   ... _path: &Path, since: DateTime<Utc>
+ ... ) -> Result<Vec<BuildEvent>> {       ... ) -> Result<Vec<BuildEvent>> {
+ ...                                      847     let mut events = Vec::new();
+ ...                                      848     for segment in archive_segment
+ ...                                      ... s_since(event_log_path, since) {
+ ...                                      849         let before = events.len();
+ ...                                      850         let loaded = read_segment(
+ ...                                      ... &segment.path).and_then(|records| 
+ ...                                      ... {
+ ...                                      851             for event in records {
+ ...                                      852                 let event = event?
+ ...                                      ... ;
+ ...                                      853                 if event.ts >= sin
+ ...                                      ... ce {
+ ...                                      854                     events.push(ev
+ ...                                      ... ent);
+ ...                                      855                 }
+ ...                                      856             }
+ ...                                      857             Ok(())
+ ...                                      858         });
+ ...                                      859         if let Err(error) = loaded
+ ...                                      ...  {
+ ...                                      860             events.truncate(before
+ ...                                      ... );
+ ...                                      861             tracing::debug!(
+ ...                                      862                 "skipping unreadab
+ ...                                      ... le event archive {}: {error:#}",
+ ...                                      863                 segment.path.displ
+ ...                                      ... ay()
+ ...                                      864             );
+ ...                                      865         }
+ ...                                      866     }
+ 841     let all = read_events(event_lo   867     let all = read_events(event_lo
+ ... g_path)?;                            ... g_path)?;
+ 842     Ok(all.into_iter().filter(|e|    868     events.extend(all.into_iter().
+ ... e.ts >= since).collect())            ... filter(|e| e.ts >= since));
+ ...                                      869     Ok(events)
+ 843 }                                    870 }
+ ...                                      871 
+ ...                                      872 /// [`compute_stats`] of [`read_ev
+ ...                                      ... ents_since`], without reading agai
+ ...                                      ... n the
+ ...                                      873 /// archived segments that lie who
+ ...                                      ... lly inside the window each time: t
+ ...                                      ... heir
+ ...                                      874 /// stats are kept for recent wind
+ ...                                      ... ows (`kache monitor` asks every tw
+ ...                                      ... o
+ ...                                      875 /// seconds, and a busy day archiv
+ ...                                      ... es hundreds of MiB). Segments neve
+ ...                                      ... r change
+ ...                                      876 /// once written, so a total over 
+ ...                                      ... the same segments is the same tota
+ ...                                      ... l; a new
+ ...                                      877 /// segment is added to it, and wh
+ ...                                      ... en one leaves the window the total
+ ...                                      ...  is made
+ ...                                      878 /// again. The segment the window 
+ ...                                      ... starts in, and the log, are read e
+ ...                                      ... ach time.
+ ...                                      879 pub fn event_stats_since(event_log
+ ...                                      ... _path: &Path, since: DateTime<Utc>
+ ...                                      ... ) -> Result<EventStats> {
+ ...                                      880     static MEMO: std::sync::Mutex<
+ ...                                      ... InsideStatsMemo> = std::sync::Mute
+ ...                                      ... x::new(Vec::new());
+ ...                                      881     // A segment's times are whole
+ ...                                      ...  seconds: one whose oldest event i
+ ...                                      ... s in the
+ ...                                      882     // window's first second may s
+ ...                                      ... till hold an event before `since`.
+ ...                                      883     let (inside, edge): (Vec<_>, V
+ ...                                      ... ec<_>) = archive_segments_since(ev
+ ...                                      ... ent_log_path, since)
+ ...                                      884         .into_iter()
+ ...                                      885         .partition(|segment| segme
+ ...                                      ... nt.oldest > since.timestamp());
+ ...                                      886     let mut stats = memoized_insid
+ ...                                      ... e_stats(&MEMO, event_archive_dir(e
+ ...                                      ... vent_log_path), &inside);
+ ...                                      887 
+ ...                                      888     for segment in edge {
+ ...                                      889         match segment_stats_onto(s
+ ...                                      ... tats.clone(), &segment.path, Some(
+ ...                                      ... since)) {
+ ...                                      890             Ok(updated) => stats =
+ ...                                      ...  updated,
+ ...                                      891             Err(error) => tracing:
+ ...                                      ... :debug!(
+ ...                                      892                 "skipping unreadab
+ ...                                      ... le event archive {}: {error:#}",
+ ...                                      893                 segment.path.displ
+ ...                                      ... ay()
+ ...                                      894             ),
+ ...                                      895         }
+ ...                                      896     }
+ ...                                      897     let live: Vec<_> = read_events
+ ...                                      ... (event_log_path)?
+ ...                                      898         .into_iter()
+ ...                                      899         .filter(|e| e.ts >= since)
+ ...                                      900         .collect();
+ ...                                      901     Ok(compute_stats_onto(stats, &
+ ...                                      ... live))
+ ...                                      902 }
+ ...                                      903 
+ ...                                      904 /// Recent archive/window totals. 
+ ...                                      ... Keeping several windows prevents a
+ ...                                      ...  monitor
+ ...                                      905 /// and a wider stats request from
+ ...                                      ...  repeatedly evicting each other's 
+ ...                                      ... totals.
+ ...                                      906 type InsideStatsMemo = Vec<(PathBu
+ ...                                      ... f, Vec<String>, EventStats)>;
+ ...                                      907 const EVENT_STATS_MEMO_WINDOWS: us
+ ...                                      ... ize = 4;
+ ...                                      908 
+ ...                                      909 /// Do file I/O outside the shared
+ ...                                      ...  memo lock. Concurrent stats reque
+ ...                                      ... sts may
+ ...                                      910 /// decode the same new segment, b
+ ...                                      ... ut cannot block each other's cache
+ ...                                      ... d reads.
+ ...                                      911 fn memoized_inside_stats(
+ ...                                      912     memo: &std::sync::Mutex<Inside
+ ...                                      ... StatsMemo>,
+ ...                                      913     dir: PathBuf,
+ ...                                      914     inside: &[ArchiveSegment],
+ ...                                      915 ) -> EventStats {
+ ...                                      916     let mut snapshot = memo.lock()
+ ...                                      ... .unwrap_or_else(|p| p.into_inner()
+ ...                                      ... ).clone();
+ ...                                      917     let stats = inside_segments_st
+ ...                                      ... ats(&mut snapshot, dir, inside);
+ ...                                      918     let (dir, names, total) = snap
+ ...                                      ... shot.pop().expect("inside stats re
+ ...                                      ... cords its window");
+ ...                                      919     remember_stats(
+ ...                                      920         &mut memo.lock().unwrap_or
+ ...                                      ... _else(|p| p.into_inner()),
+ ...                                      921         dir,
+ ...                                      922         names,
+ ...                                      923         total,
+ ...                                      924     );
+ ...                                      925     stats
+ ...                                      926 }
+ ...                                      927 
+ ...                                      928 /// Reuse the largest cached subse
+ ...                                      ... t, then read only the missing segm
+ ...                                      ... ents.
+ ...                                      929 /// Failed reads never enter the c
+ ...                                      ... ached name set, so the next call r
+ ...                                      ... etries them.
+ ...                                      930 fn inside_segments_stats(
+ ...                                      931     memo: &mut InsideStatsMemo,
+ ...                                      932     dir: PathBuf,
+ ...                                      933     inside: &[ArchiveSegment],
+ ...                                      934 ) -> EventStats {
+ ...                                      935     let wanted: std::collections::
+ ...                                      ... HashSet<&str> =
+ ...                                      936         inside.iter().map(|segment
+ ...                                      ... | segment.name.as_str()).collect()
+ ...                                      ... ;
+ ...                                      937     let (mut names, mut stats) = m
+ ...                                      ... emo
+ ...                                      938         .iter()
+ ...                                      939         .filter(|(memo_dir, names,
+ ...                                      ...  _)| {
+ ...                                      940             memo_dir == &dir && na
+ ...                                      ... mes.iter().all(|name| wanted.conta
+ ...                                      ... ins(name.as_str()))
+ ...                                      941         })
+ ...                                      942         .max_by_key(|(_, names, _)
+ ...                                      ... | names.len())
+ ...                                      943         .map(|(_, names, stats)| (
+ ...                                      ... names.clone(), stats.clone()))
+ ...                                      944         .unwrap_or_default();
+ ...                                      945     for segment in inside {
+ ...                                      946         if names.contains(&segment
+ ...                                      ... .name) {
+ ...                                      947             continue;
+ ...                                      948         }
+ ...                                      949         match segment_stats_onto(s
+ ...                                      ... tats.clone(), &segment.path, None)
+ ...                                      ...  {
+ ...                                      950             Ok(updated) => {
+ ...                                      951                 stats = updated;
+ ...                                      952                 names.push(segment
+ ...                                      ... .name.clone());
+ ...                                      953             }
+ ...                                      954             Err(error) => tracing:
+ ...                                      ... :debug!(
+ ...                                      955                 "skipping unreadab
+ ...                                      ... le event archive {}: {error:#}",
+ ...                                      956                 segment.path.displ
+ ...                                      ... ay()
+ ...                                      957             ),
+ ...                                      958         }
+ ...                                      959     }
+ ...                                      960     names.sort();
+ ...                                      961     remember_stats(memo, dir, name
+ ...                                      ... s, stats.clone());
+ ...                                      962     stats
+ ...                                      963 }
+ ...                                      964 
+ ...                                      965 fn remember_stats(memo: &mut Insid
+ ...                                      ... eStatsMemo, dir: PathBuf, names: V
+ ...                                      ... ec<String>, stats: EventStats) {
+ ...                                      966     memo.retain(|(memo_dir, memo_n
+ ...                                      ... ames, _)| memo_dir != &dir || memo
+ ...                                      ... _names != &names);
+ ...                                      967     memo.push((dir, names, stats))
+ ...                                      ... ;
+ ...                                      968     if memo.len() > EVENT_STATS_ME
+ ...                                      ... MO_WINDOWS {
+ ...                                      969         memo.remove(0);
+ ...                                      970     }
+ ...                                      971 }
+ ...                                      972 
+ ...                                      973 fn segment_stats_onto(
+ ...                                      974     mut stats: EventStats,
+ ...                                      975     path: &Path,
+ ...                                      976     since: Option<DateTime<Utc>>,
+ ...                                      977 ) -> Result<EventStats> {
+ ...                                      978     for event in read_segment(path
+ ...                                      ... )? {
+ ...                                      979         let event = event?;
+ ...                                      980         if since.is_none_or(|since
+ ...                                      ... | event.ts >= since) {
+ ...                                      981             stats = compute_stats_
+ ...                                      ... onto(stats, std::slice::from_ref(&
+ ...                                      ... event));
+ ...                                      982         }
+ ...                                      983     }
+ ...                                      984     Ok(stats)
+ ...                                      985 }
+ ...                                      986 
+ ...                                      987 /// How long archived events are k
+ ...                                      ... ept: past the 24 h every windowed 
+ ...                                      ... command
+ ...                                      988 /// uses by default, and a week fo
+ ...                                      ... r `--since 7d`.
+ ...                                      989 const EVENT_ARCHIVE_MAX_AGE_SECS: 
+ ...                                      ... i64 = 8 * 24 * 3600;
+ ...                                      990 
+ ...                                      991 /// The most the archive holds, co
+ ...                                      ... mpressed. Build events compress ab
+ ...                                      ... out
+ ...                                      992 /// tenfold, so a busy machine's w
+ ...                                      ... eek fits; past this the oldest seg
+ ...                                      ... ments go.
+ ...                                      993 const EVENT_ARCHIVE_MAX_BYTES: u64
+ ...                                      ...  = 512 << 20;
+ ...                                      994 
+ ...                                      995 /// The directory beside the event
+ ...                                      ...  log that holds the events rotatio
+ ...                                      ... ns moved
+ ...                                      996 /// out of it: `events.jsonl` keep
+ ...                                      ... s them in `events.jsonl.archive/`.
+ ...                                      997 pub fn event_archive_dir(event_log
+ ...                                      ... _path: &Path) -> PathBuf {
+ ...                                      998     let mut name = event_log_path
+ ...                                      999         .file_name()
+ ...                                     1000         .map(|name| name.to_os_str
+ ...                                     .... ing())
+ ...                                     1001         .unwrap_or_default();
+ ...                                     1002     name.push(".archive");
+ ...                                     1003     event_log_path.with_file_name(
+ ...                                     .... name)
+ ...                                     1004 }
+ ...                                     1005 
+ ...                                     1006 /// One archived segment: `<newest
+ ...                                     .... >-<oldest>-<pid>-<nanos>.jsonl.zst
+ ...                                     .... `, the
+ ...                                     1007 /// unix seconds of its newest and
+ ...                                     ....  oldest events first.
+ ...                                     1008 #[derive(Debug, PartialEq, Eq, Par
+ ...                                     .... tialOrd, Ord)]
+ ...                                     1009 struct ArchiveSegment {
+ ...                                     1010     newest: i64,
+ ...                                     1011     oldest: i64,
+ ...                                     1012     name: String,
+ ...                                     1013     path: PathBuf,
+ ...                                     1014 }
+ ...                                     1015 
+ ...                                     1016 /// The newest and oldest event ti
+ ...                                     .... mes a segment's name records.
+ ...                                     1017 fn archive_segment_span(name: &str
+ ...                                     .... ) -> Option<(i64, i64)> {
+ ...                                     1018     let mut fields = name.strip_su
+ ...                                     .... ffix(".jsonl.zst")?.split('-');
+ ...                                     1019     let newest = fields.next()?.pa
+ ...                                     .... rse().ok()?;
+ ...                                     1020     let oldest = fields.next()?.pa
+ ...                                     .... rse().ok()?;
+ ...                                     1021     Some((newest, oldest))
+ ...                                     1022 }
+ ...                                     1023 
+ ...                                     1024 /// The archive's segments, oldest
+ ...                                     ....  first.
+ ...                                     1025 fn archive_segments(event_log_path
+ ...                                     .... : &Path) -> Vec<ArchiveSegment> {
+ ...                                     1026     let Ok(entries) = fs::read_dir
+ ...                                     .... (event_archive_dir(event_log_path)
+ ...                                     .... ) else {
+ ...                                     1027         return Vec::new();
+ ...                                     1028     };
+ ...                                     1029     let mut segments: Vec<ArchiveS
+ ...                                     .... egment> = entries
+ ...                                     1030         .filter_map(|entry| {
+ ...                                     1031             let entry = entry.ok()
+ ...                                     .... ?;
+ ...                                     1032             let name = entry.file_
+ ...                                     .... name().into_string().ok()?;
+ ...                                     1033             let (newest, oldest) =
+ ...                                     ....  archive_segment_span(&name)?;
+ ...                                     1034             Some(ArchiveSegment {
+ ...                                     1035                 newest,
+ ...                                     1036                 oldest,
+ ...                                     1037                 path: entry.path()
+ ...                                     .... ,
+ ...                                     1038                 name,
+ ...                                     1039             })
+ ...                                     1040         })
+ ...                                     1041         .collect();
+ ...                                     1042     segments.sort();
+ ...                                     1043     segments
+ ...                                     1044 }
+ ...                                     1045 
+ ...                                     1046 /// The segments with an event at 
+ ...                                     .... or after `since`, oldest first. Th
+ ...                                     .... e others
+ ...                                     1047 /// are never opened.
+ ...                                     1048 fn archive_segments_since(event_lo
+ ...                                     .... g_path: &Path, since: DateTime<Utc
+ ...                                     .... >) -> Vec<ArchiveSegment> {
+ ...                                     1049     let mut segments = archive_seg
+ ...                                     .... ments(event_log_path);
+ ...                                     1050     segments.retain(|segment| segm
+ ...                                     .... ent.newest >= since.timestamp());
+ ...                                     1051     segments
+ ...                                     1052 }
+ ...                                     1053 
+ ...                                     1054 /// Decode one JSON record at a ti
+ ...                                     .... me. I/O and frame errors remain vi
+ ...                                     .... sible so
+ ...                                     1055 /// callers can discard a partial 
+ ...                                     .... segment and retry instead of cachi
+ ...                                     .... ng zero.
+ ...                                     1056 fn read_segment(path: &Path) -> Re
+ ...                                     .... sult<impl Iterator<Item = Result<B
+ ...                                     .... uildEvent>>> {
+ ...                                     1057     use std::io::BufRead;
+ ...                                     1058 
+ ...                                     1059     let file = std::fs::File::open
+ ...                                     .... (path).context("opening event arch
+ ...                                     .... ive")?;
+ ...                                     1060     let decoder =
+ ...                                     1061         zstd::stream::read::Decode
+ ...                                     .... r::new(file).context("opening even
+ ...                                     .... t archive decoder")?;
+ ...                                     1062     Ok(std::io::BufReader::new(dec
+ ...                                     .... oder)
+ ...                                     1063         .split(b'\n')
+ ...                                     1064         .filter_map(|line| match l
+ ...                                     .... ine {
+ ...                                     1065             Ok(line) => serde_json
+ ...                                     .... ::from_slice::<BuildEvent>(&line).
+ ...                                     .... ok().map(Ok),
+ ...                                     1066             Err(error) => Some(Err
+ ...                                     .... (error.into())),
+ ...                                     1067         }))
+ ...                                     1068 }
+ ...                                     1069 
+ ...                                     1070 /// Keep the event lines a rotatio
+ ...                                     .... n dropped (kache `stats --since` u
+ ...                                     .... sed to see
+ ...                                     1071 /// only what was left in the log:
+ ...                                     ....  at 64 MiB, a busy machine's last 
+ ...                                     .... few hours
+ ...                                     1072 /// of a 24 h window). One zstd se
+ ...                                     .... gment per rotation, written whole 
+ ...                                     .... and
+ ...                                     1073 /// renamed into place so readers 
+ ...                                     .... never see half of one; then segmen
+ ...                                     .... ts older
+ ...                                     1074 /// than [`EVENT_ARCHIVE_MAX_AGE_S
+ ...                                     .... ECS`] go, and the oldest beyond
+ ...                                     1075 /// [`EVENT_ARCHIVE_MAX_BYTES`].
+ ...                                     1076 fn archive_dropped_events(
+ ...                                     1077     event_log_path: &Path,
+ ...                                     1078     dropped: &[&str],
+ ...                                     1079     now: DateTime<Utc>,
+ ...                                     1080 ) -> Result<()> {
+ ...                                     1081     #[derive(Deserialize)]
+ ...                                     1082     struct TsOnly {
+ ...                                     1083         ts: DateTime<Utc>,
+ ...                                     1084     }
+ ...                                     1085     let times: Vec<i64> = dropped
+ ...                                     1086         .iter()
+ ...                                     1087         .filter_map(|line| serde_j
+ ...                                     .... son::from_str::<TsOnly>(line.trim_
+ ...                                     .... end()).ok())
+ ...                                     1088         .map(|event| event.ts.time
+ ...                                     .... stamp())
+ ...                                     1089         .collect();
+ ...                                     1090     let (Some(newest), Some(oldest
+ ...                                     .... )) = (times.iter().max(), times.it
+ ...                                     .... er().min()) else {
+ ...                                     1091         return Ok(());
+ ...                                     1092     };
+ ...                                     1093     let dir = event_archive_dir(ev
+ ...                                     .... ent_log_path);
+ ...                                     1094     fs::create_dir_all(&dir).with_
+ ...                                     .... context(|| format!("creating {}", 
+ ...                                     .... dir.display()))?;
+ ...                                     1095     let compressed =
+ ...                                     1096         zstd::encode_all(dropped.c
+ ...                                     .... oncat().as_bytes(), 3).context("co
+ ...                                     .... mpressing rotated events")?;
+ ...                                     1097     let name = format!(
+ ...                                     1098         "{newest:011}-{oldest:011}
+ ...                                     .... -{}-{}.jsonl.zst",
+ ...                                     1099         std::process::id(),
+ ...                                     1100         now.timestamp_nanos_opt().
+ ...                                     .... unwrap_or_default()
+ ...                                     1101     );
+ ...                                     1102     crate::atomic::atomic_replace(
+ ...                                     .... &dir.join(name), &compressed)
+ ...                                     1103         .context("writing an event
+ ...                                     ....  archive segment")?;
+ ...                                     1104     prune_event_archive(
+ ...                                     1105         event_log_path,
+ ...                                     1106         now,
+ ...                                     1107         EVENT_ARCHIVE_MAX_AGE_SECS
+ ...                                     .... ,
+ ...                                     1108         EVENT_ARCHIVE_MAX_BYTES,
+ ...                                     1109     );
+ ...                                     1110     Ok(())
+ ...                                     1111 }
+ ...                                     1112 
+ ...                                     1113 /// Remove expired segments, then 
+ ...                                     .... the oldest ones until the archive 
+ ...                                     .... fits its
+ ...                                     1114 /// byte budget. A single oversize
+ ...                                     .... d or expired segment is not an exc
+ ...                                     .... eption.
+ ...                                     1115 fn prune_event_archive(
+ ...                                     1116     event_log_path: &Path,
+ ...                                     1117     now: DateTime<Utc>,
+ ...                                     1118     max_age_secs: i64,
+ ...                                     1119     max_bytes: u64,
+ ...                                     1120 ) {
+ ...                                     1121     let segments: Vec<(ArchiveSegm
+ ...                                     .... ent, u64)> = archive_segments(even
+ ...                                     .... t_log_path)
+ ...                                     1122         .into_iter()
+ ...                                     1123         .filter_map(|segment| {
+ ...                                     1124             let len = fs::metadata
+ ...                                     .... (&segment.path).ok()?.len();
+ ...                                     1125             Some((segment, len))
+ ...                                     1126         })
+ ...                                     1127         .collect();
+ ...                                     1128     let cutoff = now.timestamp().s
+ ...                                     .... aturating_sub(max_age_secs);
+ ...                                     1129     let mut total: u64 = segments.
+ ...                                     .... iter().map(|(_, len)| len).sum();
+ ...                                     1130     for (segment, len) in &segment
+ ...                                     .... s {
+ ...                                     1131         if (segment.newest < cutof
+ ...                                     .... f || total > max_bytes) && fs::rem
+ ...                                     .... ove_file(&segment.path).is_ok()
+ ...                                     1132         {
+ ...                                     1133             total -= len;
+ ...                                     1134         }
+ ...                                     1135     }
+ ...                                     1136 }
+ 844                                     1137 
+ 845 #[cfg(windows)]                     1138 #[cfg(windows)]
+ 846 fn get_file_identity(file: &std::f  1139 fn get_file_identity(file: &std::f
+ ... s::File) -> Option<(u32, u32, u32)  .... s::File) -> Option<(u32, u32, u32)
+ ... > {                                 .... > {
+
+src/events.rs --- 2/6 --- Rust
+1313 1606         max_size,
+1314 1607         keep_lines,
+1315 1608         "event log",
+1316 1609         |dropped| {
+.... 1610             if let Err(e) = archive_dropped_events(event_log_path, dropped, Utc::now()) {
+.... 1611                 tracing::warn!("archiving rotated events: {e:#}");
+.... 1612             }
+.... 1613             crate::savings::fold_dropped_lines(cache_dir, dropped)
+.... 1614         },
+1317 1615     )
+1318 1616 }
+1319 1617 
+
+src/events.rs --- 3/6 --- Rust
+1493 1791     let lock = open_log_lock(event_log_path).context("opening event log lock")?;
+1494 1792     lock.lock().context("locking event log for clearing")?;
+1495 1793     let res = fs::write(event_log_path, "");
+.... 1794     let archive = event_archive_dir(event_log_path);
+.... 1795     let archive_res = match fs::remove_dir_all(&archive) {
+.... 1796         Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
+.... 1797         _ => Ok(()),
+.... 1798     };
+1496 1799     let _ = lock.unlock();
+1497 1800     res.context("clearing event log")?;
+.... 1801     archive_res.with_context(|| format!("clearing {}", archive.display()))
+1498 1802 }
+1499 1803 
+1500 1804 /// Get event statistics.
+.... 1805 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+1501 1806 pub struct EventStats {
+1502 1807     pub local_hits: usize,
+1503 1808     pub prefetch_hits: usize,
+
+src/events.rs --- 4/6 --- Rust
+1570     pub store_failures: usize,      1875     pub store_failures: usize,
+1571 }                                   1876 }
+1572                                     1877 
+1573 pub fn compute_stats(events: &[Bui  1878 pub fn compute_stats(events: &[Bui
+.... ldEvent]) -> EventStats {           .... ldEvent]) -> EventStats {
+....                                     1879     compute_stats_onto(EventStats:
+....                                     .... :default(), events)
+....                                     1880 }
+....                                     1881 
+....                                     1882 /// [`compute_stats`], adding `eve
+....                                     .... nts` to `stats`.
+1574     let mut stats = EventStats {    1883 pub fn compute_stats_onto(mut stat
+....                                     .... s: EventStats, events: &[BuildEven
+....                                     .... t]) -> EventStats {
+1575         local_hits: 0,              .... 
+1576         prefetch_hits: 0,           .... 
+1577         remote_hits: 0,             .... 
+1578         dups: 0,                    .... 
+1579         misses: 0,                  .... 
+1580         errors: 0,                  .... 
+1581         total_size: 0,              .... 
+1582         total_elapsed_ms: 0,        .... 
+1583         hit_elapsed_ms: 0,          .... 
+1584         miss_elapsed_ms: 0,         .... 
+1585         hit_compile_time_ms: 0,     .... 
+1586         miss_compile_time_ms: 0,    .... 
+1587         total_key_ms: 0,            .... 
+1588         total_lookup_ms: 0,         .... 
+1589         total_restore_ms: 0,        .... 
+1590         total_store_ms: 0,          .... 
+1591         total_startup_ms: 0,        .... 
+1592         total_dep_info_ms: 0,       .... 
+1593         total_dep_info_runs: 0,     .... 
+1594         total_prediction_mismatche  .... 
+.... s: 0,                               .... 
+1595         total_flight_wait_ms: 0,    .... 
+1596         total_permit_wait_ms: 0,    .... 
+1597         total_unattributed_ms: 0,   .... 
+1598         store_output_blobs: 0,      .... 
+1599         store_duplicate_blobs: 0,   .... 
+1600         store_new_blobs: 0,         .... 
+1601         reflinked_bytes: 0,         .... 
+1602         hardlinked_bytes: 0,        .... 
+1603         copied_bytes: 0,            .... 
+1604         store_reflinked_bytes: 0,   .... 
+1605         store_hardlinked_bytes: 0,  .... 
+1606         store_copied_bytes: 0,      .... 
+1607         store_copy_cross_device_by  .... 
+.... tes: 0,                             .... 
+1608         store_copy_permission_byte  .... 
+.... s: 0,                               .... 
+1609         store_copy_ineligible_byte  .... 
+.... s: 0,                               .... 
+1610         store_copy_other_bytes: 0,  .... 
+1611         restore_copy_cross_device_  .... 
+.... bytes: 0,                           .... 
+1612         restore_copy_permission_by  .... 
+.... tes: 0,                             .... 
+1613         restore_copy_exclusive_byt  .... 
+.... es: 0,                              .... 
+1614         restore_copy_other_bytes:   .... 
+.... 0,                                  .... 
+1615         store_failures: 0,          .... 
+1616     };                              .... 
+1617                                     .... 
+1618     for event in events {           1884     for event in events {
+1619         match event.result {        1885         match event.result {
+
+src/events.rs --- 5/6 --- Rust
+1695     }                               1961     }
+1696                                     1962 
+1697     stats                           1963     stats
+1698 }                                   1964 }
+1699                                     1965 
+1700 #[cfg(test)]                        1966 #[cfg(test)]
+1701 impl BuildEvent {                   1967 impl BuildEvent {
+
+src/events.rs --- 6/6 --- Rust
+2537 2803         assert_eq!(events[0].crate_name, "new");
+2538 2804     }
+.... 2805 
+.... 2806     /// A rotation moves its dropped lines to the archive, so a window that
+.... 2807     /// reaches past the live log still sees them, once each, while the live
+.... 2808     /// log keeps only its tail.
+.... 2809     #[test]
+.... 2810     fn read_events_since_reaches_past_rotations() {
+.... 2811         let dir = tempfile::tempdir().unwrap();
+.... 2812         let log_path = dir.path().join("events.jsonl");
+.... 2813         let start = Utc::now() - chrono::Duration::hours(10);
+.... 2814         for i in 0..40 {
+.... 2815             let mut event = test_event(&format!("c{i}"), EventResult::Miss, 1, 1, 1, "k");
+.... 2816             event.ts = start + chrono::Duration::minutes(i * 15);
+.... 2817             log_event(&log_path, &event).unwrap();
+.... 2818             rotate_events_if_needed(&log_path, 2048, 3, dir.path()).unwrap();
+.... 2819         }
+.... 2820         let live = read_events(&log_path).unwrap();
+.... 2821         assert!(
+.... 2822             live.len() < 40,
+.... 2823             "the log rotated: {} lines left",
+.... 2824             live.len()
+.... 2825         );
+.... 2826 
+.... 2827         let all = read_events_since(&log_path, start).unwrap();
+.... 2828         let names: Vec<_> = all.iter().map(|e| e.crate_name.clone()).collect();
+.... 2829         let expected: Vec<_> = (0..40).map(|i| format!("c{i}")).collect();
+.... 2830         assert_eq!(names, expected, "every event once, oldest first");
+.... 2831 
+.... 2832         // A window that starts later leaves the older events out, archived
+.... 2833         // or not.
+.... 2834         let recent =
+.... 2835             read_events_since(&log_path, start + chrono::Duration::minutes(15 * 30)).unwrap();
+.... 2836         assert_eq!(recent.len(), 10);
+.... 2837         assert_eq!(recent[0].crate_name, "c30");
+.... 2838 
+.... 2839         clear_events(&log_path).unwrap();
+.... 2840         assert!(read_events_since(&log_path, start).unwrap().is_empty());
+.... 2841         assert!(!event_archive_dir(&log_path).exists());
+.... 2842     }
+.... 2843 
+.... 2844     /// Segments whose newest event is older than the window are never
+.... 2845     /// opened, and one that cannot be decoded is skipped, not an error.
+.... 2846     #[test]
+.... 2847     fn archived_segments_outside_the_window_are_not_read() {
+.... 2848         let dir = tempfile::tempdir().unwrap();
+.... 2849         let log_path = dir.path().join("events.jsonl");
+.... 2850         let archive = event_archive_dir(&log_path);
+.... 2851         assert_eq!(archive, dir.path().join("events.jsonl.archive"));
+.... 2852         std::fs::create_dir_all(&archive).unwrap();
+.... 2853         let now = Utc::now();
+.... 2854         let old = (now - chrono::Duration::hours(30)).timestamp();
+.... 2855         std::fs::write(
+.... 2856             archive.join(format!("{old:011}-{old:011}-1-1.jsonl.zst")),
+.... 2857             b"garbage",
+.... 2858         )
+.... 2859         .unwrap();
+.... 2860         let recent = now.timestamp();
+.... 2861         std::fs::write(
+.... 2862             archive.join(format!("{recent:011}-{recent:011}-1-2.jsonl.zst")),
+.... 2863             b"garbage",
+.... 2864         )
+.... 2865         .unwrap();
+.... 2866 
+.... 2867         let mut event = test_event("kept", EventResult::Miss, 1, 1, 1, "k");
+.... 2868         event.ts = now - chrono::Duration::hours(2);
+.... 2869         let line = serde_json::to_string(&event).unwrap() + "\n";
+.... 2870         archive_dropped_events(&log_path, &[line.as_str()], now).unwrap();
+.... 2871 
+.... 2872         let events = read_events_since(&log_path, now - chrono::Duration::hours(24)).unwrap();
+.... 2873         assert_eq!(events.len(), 1);
+.... 2874         assert_eq!(events[0].crate_name, "kept");
+.... 2875         let names: Vec<_> = archive_segments_since(&log_path, now - chrono::Duration::hours(24))
+.... 2876             .into_iter()
+.... 2877             .map(|s| s.newest)
+.... 2878             .collect();
+.... 2879         assert_eq!(names.len(), 2, "the old segment is not listed: {names:?}");
+.... 2880         assert!(names.iter().all(|&newest| newest > old));
+.... 2881         assert!(
+.... 2882             read_events_since(&log_path, now - chrono::Duration::hours(1))
+.... 2883                 .unwrap()
+.... 2884                 .is_empty()
+.... 2885         );
+.... 2886     }
+.... 2887 
+.... 2888     #[test]
+.... 2889     fn archive_segment_names_carry_their_span() {
+.... 2890         assert_eq!(
+.... 2891             archive_segment_span("00000000042-00000000040-7-9.jsonl.zst"),
+.... 2892             Some((42, 40))
+.... 2893         );
+.... 2894         assert_eq!(
+.... 2895             archive_segment_span("00000000042-00000000040-7-9.jsonl"),
+.... 2896             None
+.... 2897         );
+.... 2898         assert_eq!(archive_segment_span("x-00000000040-7-9.jsonl.zst"), None);
+.... 2899         assert_eq!(archive_segment_span("00000000042-y-7-9.jsonl.zst"), None);
+.... 2900     }
+.... 2901 
+.... 2902     /// Lines with no event time leave nothing to archive.
+.... 2903     #[test]
+.... 2904     fn archiving_lines_without_events_writes_nothing() {
+.... 2905         let dir = tempfile::tempdir().unwrap();
+.... 2906         let log_path = dir.path().join("events.jsonl");
+.... 2907         archive_dropped_events(&log_path, &["not json\n"], Utc::now()).unwrap();
+.... 2908         assert!(!event_archive_dir(&log_path).exists());
+.... 2909     }
+.... 2910 
+.... 2911     /// A segment's name records its newest and oldest events.
+.... 2912     #[test]
+.... 2913     fn archived_segment_is_named_by_its_events() {
+.... 2914         let dir = tempfile::tempdir().unwrap();
+.... 2915         let log_path = dir.path().join("events.jsonl");
+.... 2916         let now = Utc::now();
+.... 2917         let lines: Vec<String> = [5, 1, 3]
+.... 2918             .iter()
+.... 2919             .map(|h| {
+.... 2920                 let mut event = test_event("c", EventResult::Miss, 1, 1, 1, "k");
+.... 2921                 event.ts = now - chrono::Duration::hours(*h);
+.... 2922                 serde_json::to_string(&event).unwrap() + "\n"
+.... 2923             })
+.... 2924             .collect();
+.... 2925         let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
+.... 2926         archive_dropped_events(&log_path, &refs, now).unwrap();
+.... 2927         let segments = archive_segments(&log_path);
+.... 2928         assert_eq!(segments.len(), 1);
+.... 2929         assert_eq!(
+.... 2930             segments[0].newest,
+.... 2931             (now - chrono::Duration::hours(1)).timestamp()
+.... 2932         );
+.... 2933         assert_eq!(
+.... 2934             segments[0].oldest,
+.... 2935             (now - chrono::Duration::hours(5)).timestamp()
+.... 2936         );
+.... 2937     }
+.... 2938 
+.... 2939     /// Pruning drops expired segments, then enough old segments to fit.
+.... 2940     #[test]
+.... 2941     fn event_archive_prunes_by_age_then_size() {
+.... 2942         let dir = tempfile::tempdir().unwrap();
+.... 2943         let log_path = dir.path().join("events.jsonl");
+.... 2944         let archive = event_archive_dir(&log_path);
+.... 2945         std::fs::create_dir_all(&archive).unwrap();
+.... 2946         let now = Utc::now();
+.... 2947         let t = now.timestamp();
+.... 2948         let write = |newest: i64, len: usize| {
+.... 2949             let name = format!("{newest:011}-{newest:011}-1-{len}.jsonl.zst");
+.... 2950             std::fs::write(archive.join(&name), vec![0u8; len]).unwrap();
+.... 2951             name
+.... 2952         };
+.... 2953         let ancient = write(t - 100, 10);
+.... 2954         let older = write(t - 50, 11);
+.... 2955         let old = write(t - 40, 12);
+.... 2956         let new = write(t - 1, 13);
+.... 2957         let present = |name: &str| archive.join(name).exists();
+.... 2958 
+.... 2959         prune_event_archive(&log_path, now, 60, 1 << 20);
+.... 2960         assert!(!present(&ancient), "older than the age");
+.... 2961         assert!(present(&older) && present(&old) && present(&new));
+.... 2962 
+.... 2963         prune_event_archive(&log_path, now, 60, 25);
+.... 2964         assert!(!present(&older), "the oldest goes first");
+.... 2965         assert!(present(&old) && present(&new), "25 bytes left fit");
+.... 2966 
+.... 2967         prune_event_archive(&log_path, now, 0, 0);
+.... 2968         assert!(!present(&old));
+.... 2969         assert!(!present(&new), "a zero byte budget keeps no segments");
+.... 2970     }
+.... 2971 
+.... 2972     /// Past the size, the oldest segments go one by one until the rest fit.
+.... 2973     #[test]
+.... 2974     fn event_archive_prunes_the_oldest_until_the_rest_fit() {
+.... 2975         let dir = tempfile::tempdir().unwrap();
+.... 2976         let log_path = dir.path().join("events.jsonl");
+.... 2977         let archive = event_archive_dir(&log_path);
+.... 2978         std::fs::create_dir_all(&archive).unwrap();
+.... 2979         let now = Utc::now();
+.... 2980         let t = now.timestamp();
+.... 2981         let paths: Vec<_> = [(4, 10), (3, 11), (2, 12), (1, 13)]
+.... 2982             .iter()
+.... 2983             .map(|&(age, len): &(i64, usize)| {
+.... 2984                 let newest = t - age;
+.... 2985                 let path = archive.join(format!("{newest:011}-{newest:011}-1-{len}.jsonl.zst"));
+.... 2986                 std::fs::write(&path, vec![0u8; len]).unwrap();
+.... 2987                 path
+.... 2988             })
+.... 2989             .collect();
+.... 2990         prune_event_archive(&log_path, now, 3600, 25);
+.... 2991         let kept: Vec<bool> = paths.iter().map(|path| path.exists()).collect();
+.... 2992         assert_eq!(kept, [false, false, true, true]);
+.... 2993     }
+.... 2994 
+.... 2995     /// The archive keeps eight days of segments, a week for `--since 7d`
+.... 2996     /// and a day to spare, and drops what is older.
+.... 2997     #[test]
+.... 2998     fn event_archive_keeps_eight_days() {
+.... 2999         let dir = tempfile::tempdir().unwrap();
+.... 3000         let log_path = dir.path().join("events.jsonl");
+.... 3001         let archive = event_archive_dir(&log_path);
+.... 3002         std::fs::create_dir_all(&archive).unwrap();
+.... 3003         let now = Utc::now();
+.... 3004         let write = |age: chrono::Duration| {
+.... 3005             let newest = (now - age).timestamp();
+.... 3006             let name = format!("{newest:011}-{newest:011}-1-1.jsonl.zst");
+.... 3007             std::fs::write(archive.join(&name), b"x").unwrap();
+.... 3008             archive.join(name)
+.... 3009         };
+.... 3010         let nine_days = write(chrono::Duration::days(9));
+.... 3011         let week = write(chrono::Duration::days(7));
+.... 3012         let eight_days = write(chrono::Duration::days(8));
+.... 3013         let hour = write(chrono::Duration::hours(1));
+.... 3014         prune_event_archive(
+.... 3015             &log_path,
+.... 3016             now,
+.... 3017             EVENT_ARCHIVE_MAX_AGE_SECS,
+.... 3018             EVENT_ARCHIVE_MAX_BYTES,
+.... 3019         );
+.... 3020         assert!(!nine_days.exists());
+.... 3021         assert!(eight_days.exists() && week.exists() && hour.exists());
+.... 3022     }
+.... 3023 
+.... 3024     /// The windowed stats count every event in the window once, archived or
+.... 3025     /// not, whatever segments an earlier call kept: the same as
+.... 3026     /// compute_stats over read_events_since.
+.... 3027     #[test]
+.... 3028     fn event_stats_since_matches_the_events_across_calls() {
+.... 3029         let _lock = crate::test_support::process_state_test_lock();
+.... 3030         let dir = tempfile::tempdir().unwrap();
+.... 3031         let log_path = dir.path().join("events.jsonl");
+.... 3032         let start = Utc::now() - chrono::Duration::hours(20);
+.... 3033         let log = |from: i64, to: i64| {
+.... 3034             for i in from..to {
+.... 3035                 let mut event =
+.... 3036                     test_event(&format!("c{i}"), EventResult::Miss, 1, 2, i as u64, "k");
+.... 3037                 event.ts = start + chrono::Duration::minutes(i * 10);
+.... 3038                 log_event(&log_path, &event).unwrap();
+.... 3039                 rotate_events_if_needed(&log_path, 2048, 2, dir.path()).unwrap();
+.... 3040             }
+.... 3041         };
+.... 3042         let check = |since: DateTime<Utc>| {
+.... 3043             let stats = event_stats_since(&log_path, since).unwrap();
+.... 3044             let expected = compute_stats(&read_events_since(&log_path, since).unwrap());
+.... 3045             assert_eq!(stats, expected, "since {since}");
+.... 3046             stats
+.... 3047         };
+.... 3048         log(0, 60);
+.... 3049         assert!(archive_segments(&log_path).len() > 3);
+.... 3050         assert_eq!(check(start).misses, 60);
+.... 3051         // New segments since the last call are added to what it kept.
+.... 3052         log(60, 90);
+.... 3053         assert_eq!(check(start).misses, 90);
+.... 3054         // A window that drops segments makes the total again.
+.... 3055         let later = start + chrono::Duration::minutes(10 * 45);
+.... 3056         assert_eq!(check(later).misses, 45);
+.... 3057         assert_eq!(check(start).misses, 90);
+.... 3058         // Another log's archive is not this one's.
+.... 3059         let other = tempfile::tempdir().unwrap();
+.... 3060         let other_log = other.path().join("events.jsonl");
+.... 3061         assert_eq!(event_stats_since(&other_log, start).unwrap().misses, 0);
+.... 3062         assert_eq!(check(start).misses, 90);
+.... 3063     }
+.... 3064 
+.... 3065     /// A segment the window starts in counts only its events inside the
+.... 3066     /// window, also when its oldest event is in the window's first second.
+.... 3067     #[test]
+.... 3068     fn event_stats_since_counts_only_the_window_of_a_segment_it_starts_in() {
+.... 3069         let _lock = crate::test_support::process_state_test_lock();
+.... 3070         let dir = tempfile::tempdir().unwrap();
+.... 3071         let log_path = dir.path().join("events.jsonl");
+.... 3072         let now = Utc::now();
+.... 3073         let since =
+.... 3074             DateTime::from_timestamp((now - chrono::Duration::hours(2)).timestamp(), 500_000_000)
+.... 3075                 .unwrap();
+.... 3076         let line = |result: EventResult, ts: DateTime<Utc>| {
+.... 3077             let mut event = test_event("c", result, 1, 1, 1, "k");
+.... 3078             event.ts = ts;
+.... 3079             serde_json::to_string(&event).unwrap() + "\n"
+.... 3080         };
+.... 3081         // Hits before the window, misses inside it.
+.... 3082         for before in [
+.... 3083             since - chrono::Duration::hours(1),
+.... 3084             since - chrono::Duration::milliseconds(200),
+.... 3085         ] {
+.... 3086             let lines = [
+.... 3087                 line(EventResult::LocalHit, before),
+.... 3088                 line(EventResult::Miss, since + chrono::Duration::minutes(30)),
+.... 3089             ];
+.... 3090             let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
+.... 3091             archive_dropped_events(&log_path, &refs, now).unwrap();
+.... 3092         }
+.... 3093         assert_eq!(archive_segments(&log_path).len(), 2);
+.... 3094         let stats = event_stats_since(&log_path, since).unwrap();
+.... 3095         assert_eq!((stats.misses, stats.local_hits), (2, 0));
+.... 3096     }
+.... 3097 
+.... 3098     /// A segment wholly inside the window is read once: later calls over the
+.... 3099     /// same archive take its stats from the memo, and read only new segments.
+.... 3100     #[test]
+.... 3101     fn inside_segments_are_read_once_per_archive() {
+.... 3102         let dir = tempfile::tempdir().unwrap();
+.... 3103         let log_path = dir.path().join("events.jsonl");
+.... 3104         let archive = event_archive_dir(&log_path);
+.... 3105         let now = Utc::now();
+.... 3106         let archive_misses = |count: i64| {
+.... 3107             let lines: Vec<String> = (0..count)
+.... 3108                 .map(|i| {
+.... 3109                     let mut event = test_event("c", EventResult::Miss, 1, 1, 1, "k");
+.... 3110                     event.ts = now - chrono::Duration::minutes(10 * count + i);
+.... 3111                     serde_json::to_string(&event).unwrap() + "\n"
+.... 3112                 })
+.... 3113                 .collect();
+.... 3114             let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
+.... 3115             archive_dropped_events(&log_path, &refs, now).unwrap();
+.... 3116         };
+.... 3117         let mut memo = Vec::new();
+.... 3118         archive_misses(1);
+.... 3119         let first = archive_segments(&log_path);
+.... 3120         assert_eq!(
+.... 3121             inside_segments_stats(&mut memo, archive.clone(), &first).misses,
+.... 3122             1
+.... 3123         );
+.... 3124 
+.... 3125         // The first segment is not read again: its stats come from the memo.
+.... 3126         std::fs::write(&first[0].path, b"garbage").unwrap();
+.... 3127         archive_misses(2);
+.... 3128         let both = archive_segments(&log_path);
+.... 3129         assert_eq!(both.len(), 2);
+.... 3130         assert_eq!(
+.... 3131             inside_segments_stats(&mut memo, archive.clone(), &both).misses,
+.... 3132             3
+.... 3133         );
+.... 3134 
+.... 3135         // Another archive's memo is not used.
+.... 3136         let mut other_memo = memo.clone();
+.... 3137         let other = dir.path().join("other.archive");
+.... 3138         assert_eq!(
+.... 3139             inside_segments_stats(&mut other_memo, other, &both).misses,
+.... 3140             2
+.... 3141         );
+.... 3142 
+.... 3143         // A window that drops a segment makes the total again.
+.... 3144         let newer: Vec<_> = both
+.... 3145             .into_iter()
+.... 3146             .filter(|s| s.name != first[0].name)
+.... 3147             .collect();
+.... 3148         assert_eq!(inside_segments_stats(&mut memo, archive, &newer).misses, 2);
+.... 3149     }
+.... 3150 
+.... 3151     #[test]
+.... 3152     fn alternating_stats_windows_reuse_their_own_complete_totals() {
+.... 3153         let dir = tempfile::tempdir().unwrap();
+.... 3154         let log = dir.path().join("events.jsonl");
+.... 3155         let now = Utc::now();
+.... 3156         for age in [2, 1] {
+.... 3157             let mut event = test_event("archived", EventResult::Miss, 1, 2, 3, "k");
+.... 3158             event.ts = now - chrono::Duration::hours(age);
+.... 3159             let line = serde_json::to_string(&event).unwrap() + "\n";
+.... 3160             archive_dropped_events(&log, &[&line], now).unwrap();
+.... 3161         }
+.... 3162         let segments = archive_segments(&log);
+.... 3163         assert_eq!(segments.len(), 2);
+.... 3164         let archive = event_archive_dir(&log);
+.... 3165         let mut memo = Vec::new();
+.... 3166         assert_eq!(
+.... 3167             inside_segments_stats(&mut memo, archive.clone(), &segments[1..]).misses,
+.... 3168             1
+.... 3169         );
+.... 3170         assert_eq!(
+.... 3171             inside_segments_stats(&mut memo, archive.clone(), &segments).misses,
+.... 3172             2
+.... 3173         );
+.... 3174         // Reading either segment again would lose its events. Both cached
+.... 3175         // windows must survive alternating monitor and wider stats requests.
+.... 3176         for segment in &segments {
+.... 3177             fs::write(&segment.path, b"not a zstd frame").unwrap();
+.... 3178         }
+.... 3179         for _ in 0..3 {
+.... 3180             assert_eq!(
+.... 3181                 inside_segments_stats(&mut memo, archive.clone(), &segments[1..]).misses,
+.... 3182                 1
+.... 3183             );
+.... 3184             assert_eq!(
+.... 3185                 inside_segments_stats(&mut memo, archive.clone(), &segments).misses,
+.... 3186                 2
+.... 3187             );
+.... 3188         }
+.... 3189     }
+.... 3190 
+.... 3191     #[test]
+.... 3192     fn a_shared_stats_memo_reuses_a_completed_window() {
+.... 3193         let dir = tempfile::tempdir().unwrap();
+.... 3194         let log = dir.path().join("events.jsonl");
+.... 3195         let now = Utc::now();
+.... 3196         let mut event = test_event("memo", EventResult::Miss, 1, 2, 3, "k");
+.... 3197         event.ts = now - chrono::Duration::hours(1);
+.... 3198         let line = serde_json::to_string(&event).unwrap() + "\n";
+.... 3199         archive_dropped_events(&log, &[&line], now).unwrap();
+.... 3200         let segments = archive_segments(&log);
+.... 3201         let memo = std::sync::Mutex::new(Vec::new());
+.... 3202         assert_eq!(
+.... 3203             memoized_inside_stats(&memo, event_archive_dir(&log), &segments).misses,
+.... 3204             1
+.... 3205         );
+.... 3206         fs::write(&segments[0].path, b"not a frame").unwrap();
+.... 3207         assert_eq!(
+.... 3208             memoized_inside_stats(&memo, event_archive_dir(&log), &segments).misses,
+.... 3209             1
+.... 3210         );
+.... 3211     }
+.... 3212 
+.... 3213     #[test]
+.... 3214     fn a_broken_edge_segment_cannot_add_its_decoded_prefix_to_stats() {
+.... 3215         let dir = tempfile::tempdir().unwrap();
+.... 3216         let log = dir.path().join("events.jsonl");
+.... 3217         let now = Utc::now();
+.... 3218         let since = now - chrono::Duration::hours(1);
+.... 3219         let mut event = test_event("edge", EventResult::Miss, 1, 2, 3, "k");
+.... 3220         event.ts = since + chrono::Duration::minutes(10);
+.... 3221         event.crate_name = "long_edge_".repeat(2048);
+.... 3222         let line = serde_json::to_string(&event).unwrap() + "\n";
+.... 3223         let mut frame = zstd::encode_all(line.repeat(4).as_bytes(), 3).unwrap();
+.... 3224         let mut tail = zstd::encode_all(line.as_bytes(), 3).unwrap();
+.... 3225         tail.truncate(tail.len() - 1);
+.... 3226         frame.extend(tail);
+.... 3227         let archive = event_archive_dir(&log);
+.... 3228         fs::create_dir_all(&archive).unwrap();
+.... 3229         let path = archive.join(format!(
+.... 3230             "{:011}-{:011}-1-1.jsonl.zst",
+.... 3231             event.ts.timestamp(),
+.... 3232             since.timestamp()
+.... 3233         ));
+.... 3234         fs::write(&path, frame).unwrap();
+.... 3235         // Prove that the decoder delivered records before its frame error.
+.... 3236         let decoded = read_segment(&path).unwrap().take(8).collect::<Vec<_>>();
+.... 3237         assert!(decoded.iter().any(Result::is_ok));
+.... 3238         assert!(decoded.iter().any(Result::is_err));
+.... 3239         let live = test_event("live", EventResult::LocalHit, 1, 2, 3, "k");
+.... 3240         log_event(&log, &live).unwrap();
+.... 3241         let stats = event_stats_since(&log, since).unwrap();
+.... 3242         assert_eq!(stats.local_hits, 1);
+.... 3243         assert_eq!(stats.misses, 0);
+.... 3244         let segments = archive_segments_since(&log, event.ts);
+.... 3245         assert_eq!(segments.len(), 1, "the exact newest timestamp is included");
+.... 3246         assert!(archive_segments_since(&log, event.ts + chrono::Duration::seconds(1)).is_empty());
+.... 3247     }
+.... 3248 
+.... 3249     #[test]
+.... 3250     fn a_failed_segment_is_retried_instead_of_becoming_a_cached_zero() {
+.... 3251         let dir = tempfile::tempdir().unwrap();
+.... 3252         let log = dir.path().join("events.jsonl");
+.... 3253         let now = Utc::now();
+.... 3254         let mut event = test_event("retry", EventResult::Miss, 1, 2, 3, "k");
+.... 3255         event.ts = now - chrono::Duration::hours(1);
+.... 3256         let line = serde_json::to_string(&event).unwrap() + "\n";
+.... 3257         archive_dropped_events(&log, &[&line], now).unwrap();
+.... 3258         let segments = archive_segments(&log);
+.... 3259         let path = &segments[0].path;
+.... 3260         let complete = fs::read(path).unwrap();
+.... 3261         fs::write(path, b"temporarily unreadable frame").unwrap();
+.... 3262         let mut memo = Vec::new();
+.... 3263         let archive = event_archive_dir(&log);
+.... 3264         assert_eq!(
+.... 3265             inside_segments_stats(&mut memo, archive.clone(), &segments).misses,
+.... 3266             0
+.... 3267         );
+.... 3268         fs::write(path, complete).unwrap();
+.... 3269         assert_eq!(
+.... 3270             inside_segments_stats(&mut memo, archive, &segments).misses,
+.... 3271             1
+.... 3272         );
+.... 3273     }
+.... 3274 
+.... 3275     #[test]
+.... 3276     fn streaming_a_broken_segment_discards_its_already_decoded_records() {
+.... 3277         let dir = tempfile::tempdir().unwrap();
+.... 3278         let log = dir.path().join("events.jsonl");
+.... 3279         let now = Utc::now();
+.... 3280         let mut archived = test_event("large_record", EventResult::Miss, 1, 2, 3, "k");
+.... 3281         archived.crate_name = "large_record_".repeat(2048);
+.... 3282         archived.ts = now - chrono::Duration::hours(1);
+.... 3283         let line = serde_json::to_string(&archived).unwrap() + "\n";
+.... 3284         let mut frame = zstd::encode_all(line.repeat(4).as_bytes(), 3).unwrap();
+.... 3285         let mut broken = zstd::encode_all(line.as_bytes(), 3).unwrap();
+.... 3286         broken.truncate(broken.len() - 1);
+.... 3287         frame.extend(broken);
+.... 3288         let archive = event_archive_dir(&log);
+.... 3289         fs::create_dir_all(&archive).unwrap();
+.... 3290         let second = archived.ts.timestamp();
+.... 3291         fs::write(
+.... 3292             archive.join(format!("{second:011}-{second:011}-1-1.jsonl.zst")),
+.... 3293             frame,
+.... 3294         )
+.... 3295         .unwrap();
+.... 3296         let mut live = test_event("live", EventResult::LocalHit, 1, 2, 3, "k");
+.... 3297         live.ts = now;
+.... 3298         log_event(&log, &live).unwrap();
+.... 3299         let segment = archive_segments(&log);
+.... 3300         let decoded = read_segment(&segment[0].path)
+.... 3301             .unwrap()
+.... 3302             .take(8)
+.... 3303             .collect::<Vec<_>>();
+.... 3304         assert!(decoded.iter().any(Result::is_ok));
+.... 3305         assert!(decoded.iter().any(Result::is_err));
+.... 3306         let events = read_events_since(&log, now - chrono::Duration::days(1)).unwrap();
+.... 3307         assert_eq!(events.len(), 1);
+.... 3308         assert_eq!(events[0].crate_name, "live");
+.... 3309     }
+.... 3310 
+.... 3311     #[test]
+.... 3312     fn the_stats_memo_stays_bounded_across_many_archives() {
+.... 3313         let dir = tempfile::tempdir().unwrap();
+.... 3314         let now = Utc::now();
+.... 3315         let mut memo = Vec::new();
+.... 3316         for i in 0..12 {
+.... 3317             let log = dir.path().join(format!("events-{i}.jsonl"));
+.... 3318             let mut event = test_event("bounded", EventResult::Miss, 1, 2, 3, "k");
+.... 3319             event.ts = now - chrono::Duration::hours(1);
+.... 3320             let line = serde_json::to_string(&event).unwrap() + "\n";
+.... 3321             archive_dropped_events(&log, &[&line], now).unwrap();
+.... 3322             assert_eq!(
+.... 3323                 inside_segments_stats(&mut memo, event_archive_dir(&log), &archive_segments(&log))
+.... 3324                     .misses,
+.... 3325                 1
+.... 3326             );
+.... 3327             assert!(memo.len() <= 4);
+.... 3328         }
+.... 3329         assert_eq!(memo.len(), 4);
+.... 3330     }
+.... 3331 
+.... 3332     #[test]
+.... 3333     fn a_single_archive_segment_still_obeys_the_retention_limits() {
+.... 3334         let dir = tempfile::tempdir().unwrap();
+.... 3335         let log = dir.path().join("events.jsonl");
+.... 3336         let archive = event_archive_dir(&log);
+.... 3337         fs::create_dir_all(&archive).unwrap();
+.... 3338         let now = Utc::now();
+.... 3339         let old = now.timestamp() - 11;
+.... 3340         let path = archive.join(format!("{old:011}-{old:011}-1-1.jsonl.zst"));
+.... 3341         fs::write(&path, b"1234").unwrap();
+.... 3342         prune_event_archive(&log, now, 10, 100);
+.... 3343         assert!(!path.exists());
+.... 3344         let current = now.timestamp();
+.... 3345         let path = archive.join(format!("{current:011}-{current:011}-1-1.jsonl.zst"));
+.... 3346         fs::write(&path, b"1234").unwrap();
+.... 3347         prune_event_archive(&log, now, 10, 3);
+.... 3348         assert!(!path.exists());
+.... 3349         assert_eq!(EVENT_ARCHIVE_MAX_BYTES, 536_870_912);
+.... 3350     }
+2539 3351 
+2540 3352     #[test]
+2541 3353     fn test_compute_stats() {
+
+src/report.rs --- 1/2 --- Rust
+1232 1232     {
+1233 1233         suggestions.insert(
+.... 1234             0,
+.... 1235             rotation_cut_notice(config.event_log_max_size, filter.last_build),
+.... 1236         );
+1234 1237     }
+1235 1238 
+
+src/report.rs --- 2/2 --- Rust
+2384 2387 
+2385 2388 /// The report covers a build whose early events the event log rotated
+2386 2389 /// away (kunobi-ninja/kache#1209).
+2387 2390 fn rotation_cut_notice(max_size: u64, last_build: bool) -> String {
+.... 2391     if !last_build {
+.... 2392         return format!(
+.... 2393             "this build outgrew the event log ({}); counts include retained archives, but \
+.... 2394              expired or unreadable events may be missing",
+.... 2395             bytesize::ByteSize(max_size)
+.... 2396         );
+.... 2397     }
+2388 2398     format!(
+2389 2399         "this build outgrew the event log ({}), so its earliest events were rotated away and \
+2390 2400          the counts above are incomplete; raise [cache] event_log_max_size",
+
+src/report/tests.rs --- Rust
+4670 4670     }
+4671 4671 }
+     4672 
+     4673 #[test]
+     4674 fn a_windowed_report_counts_archived_events_without_claiming_they_are_lost() {
+     4675     let dir = tempfile::tempdir().unwrap();
+     4676     let mut config = write_test_events(dir.path());
+     4677     let log = config.event_log_path();
+     4678     events::clear_events(&log).unwrap();
+     4679     let mut hit = test_event(
+     4680         "archived",
+     4681         EventResult::LocalHit,
+     4682         40,
+     4683         250,
+     4684         10,
+     4685         "archive-key",
+     4686     );
+     4687     hit.session_id = "rotated-build".to_string();
+     4688     for _ in 0..40 {
+     4689         events::log_event(&log, &hit).unwrap();
+     4690     }
+     4691     config.event_log_max_size = std::fs::metadata(&log).unwrap().len() / 2;
+     4692     events::rotate_events_if_needed(&log, config.event_log_max_size, 5, &config.cache_dir).unwrap();
+     4693     assert!(events::read_events(&log).unwrap().len() < 40);
+     4694 
+     4695     let report = generate_report(&config, SinceWindow::DEFAULT, 10).unwrap();
+     4696     assert_eq!(report.summary.local_hits, 40);
+     4697     assert_eq!(report.all_events.len(), 40);
+     4698     assert!(
+     4699         report
+     4700             .suggestions
+     4701             .iter()
+     4702             .any(|notice| notice.contains("counts include retained archives"))
+     4703     );
+     4704     assert!(
+     4705         !report
+     4706             .suggestions
+     4707             .iter()
+     4708             .any(|notice| notice.contains("counts above are incomplete"))
+     4709     );
+     4710     assert!(
+     4711         rotation_cut_notice(config.event_log_max_size, true)
+     4712             .contains("counts above are incomplete")
+     4713     );
+     4714 }
+
+src/store_view/tests.rs --- Rust
+320     assert!(                         320     assert!(
+321         lines                        321         lines
+322             .iter()                  322             .iter()
+323             .any(|line| line.contai  323             .any(|line| line.contai
+... ns(&shard_config.cache_dir.display(  ... ns(&crate::term::home_path(&shard_c
+... ).to_string()))                      ... onfig.cache_dir)))
+324     );                               324     );
+325     let daemon = crate::daemon::Dae  325     let daemon = crate::daemon::Dae
+... mon::new(config.clone());            ... mon::new(config.clone());
+326     let req: crate::daemon::StatsRe  326     let req: crate::daemon::StatsRe
+... quest = serde_json::from_value(serd  ... quest = serde_json::from_value(serd
+... e_json::json!({                      ... e_json::json!({
+
+tests/cli_commands_test.rs --- 1/2 --- Rust
+4121         .stdout(predicates::str::c  4121         .stdout(predicates::str::c
+.... ontains("No cached entries"));      .... ontains("No cached entries"));
+4122 }                                   4122 }
+4123                                     4123 
+4124 /// An entry whose meta.json no lo  4124 /// An unreadable meta.json can be
+.... nger parses cannot be removed thro  ....  removed through the surviving ind
+.... ugh the                             .... exed blob
+4125 /// normal path (#276), and used t  4125 /// mapping. Doctor must drop it w
+.... o make the index rebuild refuse th  .... ithout requiring a whole-store ind
+.... e whole                             .... ex rebuild.
+4126 /// store. `doctor --repair` now d  .... 
+.... rops it as part of the rebuild.     .... 
+4127 #[test]                             4126 #[test]
+4128 fn doctor_repair_drops_entries_wit  4127 fn doctor_repair_drops_entries_wit
+.... h_unparseable_metadata() {          .... h_unparseable_metadata() {
+4129     let e = env();                  4128     let e = env();
+
+tests/cli_commands_test.rs --- 2/2 --- Rust
+4152         .assert()                   4151         .assert()
+4153         .success()                  4152         .success()
+4154         .stdout(predicates::str::c  4153         .stdout(predicates::str::c
+.... ontains(format!(                    .... ontains(format!(
+4155             "Repairing: removed {}  4154             "Repairing: removing {
+....  {} that failed verification.",     .... } corrupted entries...",
+4156             metas.len(),            4155             metas.len()
+4157             if metas.len() == 1 {   .... 
+.... "entry" } else { "entries" }        .... 
+4158         )));                        4156         )));
+4159     e.cmd()                         4157     e.cmd()
+4160         .arg("list")                4158         .arg("list")
+
