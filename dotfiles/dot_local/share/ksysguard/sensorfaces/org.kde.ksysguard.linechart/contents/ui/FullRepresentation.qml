@@ -58,9 +58,9 @@ Faces.SensorFace {
         return false
     }
 
-    // Disk usage charts use a single filesystem sensor. Draw 24h, 12h, 1h
-    // and 1min histories together and replace the regular legend with a
-    // compact timeframe key plus the current used fraction.
+    // Disk usage charts use a single filesystem sensor. Draw 7d, 24h and 1h
+    // histories together and replace the regular legend with a compact
+    // timeframe key plus the current used fraction.
     readonly property string diskUsageSensorId: {
         for (var i = 0; i < root.controller.highPrioritySensorIds.length; ++i) {
             var id = root.controller.highPrioritySensorIds[i]
@@ -87,23 +87,17 @@ Faces.SensorFace {
     property bool powerRunning: false
     property bool powerUnsupported: false
     property var diskSamples: []
-    property var diskRecentSamples: []
     readonly property int diskSampleInterval: 60000
-    readonly property int diskRecentInterval: 5000
-    readonly property int diskRecentCapacity: 13
     readonly property color diskColor24: {
         const configured = root.controller.sensorColors[root.diskUsageSensorId]
         return configured !== undefined && configured !== null ? configured : "#3daee9"
     }
-    readonly property color diskColor12: "#2ecc71"
+    readonly property color diskColor7d: "#2ecc71"
     readonly property color diskColor1: "#f67400"
-    readonly property color diskColor1m: "#da4453"
 
     onShowDiskTimeframesChanged: {
         if (showDiskTimeframes) {
             restoreDiskSamples()
-            restoreRecentSamples()
-            sampleRecent()
             if (!sampleDisk()) {
                 saveDiskHistory()
             }
@@ -136,7 +130,7 @@ Faces.SensorFace {
             return
         }
         try {
-            root.diskSamples = parseSamples(diskHistorySettings.samplesJson, 86400000).slice(-1440)
+            root.diskSamples = parseSamples(diskHistorySettings.samplesJson, 604800000).slice(-10080)
             diskCanvas.requestPaint()
         } catch (error) {
             console.warn("Ignoring invalid disk history:", error)
@@ -145,24 +139,8 @@ Faces.SensorFace {
         }
     }
 
-    function restoreRecentSamples() {
-        if (diskHistorySettings.recentJson.length === 0) {
-            return
-        }
-        try {
-            root.diskRecentSamples = parseSamples(diskHistorySettings.recentJson, 60000)
-                .slice(-root.diskRecentCapacity)
-            diskCanvas.requestPaint()
-        } catch (error) {
-            console.warn("Ignoring invalid recent disk history:", error)
-            diskHistorySettings.recentJson = ""
-            diskHistorySettings.sync()
-        }
-    }
-
     function saveDiskHistory() {
         diskHistorySettings.samplesJson = JSON.stringify(root.diskSamples.map(sample => [sample.time, sample.value]))
-        diskHistorySettings.recentJson = JSON.stringify(root.diskRecentSamples.map(sample => [sample.time, sample.value]))
         diskHistorySettings.sync()
     }
 
@@ -188,38 +166,19 @@ Faces.SensorFace {
             return false
         }
         const now = Date.now()
-        const samples = root.diskSamples.filter(sample => now - sample.time <= 86400000)
+        const samples = root.diskSamples.filter(sample => now - sample.time <= 604800000)
         if (samples.length > 0 && now - samples[samples.length - 1].time < root.diskSampleInterval) {
             root.diskSamples = samples
             return false
         }
         samples.push({time: now, value: value})
-        if (samples.length > 1440) {
-            samples.splice(0, samples.length - 1440)
+        if (samples.length > 10080) {
+            samples.splice(0, samples.length - 10080)
         }
         root.diskSamples = samples
         saveDiskHistory()
         diskCanvas.requestPaint()
         return true
-    }
-
-    function sampleRecent() {
-        const value = currentDiskPercent()
-        if (!Number.isFinite(value)) {
-            return
-        }
-        const now = Date.now()
-        const samples = root.diskRecentSamples.filter(sample => now - sample.time <= 60000)
-        if (samples.length > 0 && now - samples[samples.length - 1].time < root.diskRecentInterval) {
-            root.diskRecentSamples = samples
-            return
-        }
-        samples.push({time: now, value: value})
-        if (samples.length > root.diskRecentCapacity) {
-            samples.splice(0, samples.length - root.diskRecentCapacity)
-        }
-        root.diskRecentSamples = samples
-        diskCanvas.requestPaint()
     }
 
     function watts(value) {
@@ -233,7 +192,6 @@ Faces.SensorFace {
         // this state file stays out of the managed configuration tree.
         location: Qt.resolvedUrl("../../../../../../state/ksysguard-disk-history.conf")
         property string samplesJson: ""
-        property string recentJson: ""
     }
 
     Component.onDestruction: {
@@ -247,18 +205,10 @@ Faces.SensorFace {
         repeat: true
         running: root.showDiskTimeframes
         onTriggered: {
-            root.sampleRecent()
             if (!root.sampleDisk()) {
                 root.saveDiskHistory()
             }
         }
-    }
-
-    Timer {
-        interval: root.diskRecentInterval
-        repeat: true
-        running: root.showDiskTimeframes
-        onTriggered: root.sampleRecent()
     }
 
     TextMetrics {
@@ -274,7 +224,6 @@ Faces.SensorFace {
         updateRateLimit: root.controller.updateRateLimit
         onValueChanged: {
             root.sampleDisk()
-            root.sampleRecent()
         }
     }
 
@@ -285,7 +234,6 @@ Faces.SensorFace {
         updateRateLimit: root.controller.updateRateLimit
         onValueChanged: {
             root.sampleDisk()
-            root.sampleRecent()
         }
     }
 
@@ -296,7 +244,6 @@ Faces.SensorFace {
         updateRateLimit: root.controller.updateRateLimit
         onValueChanged: {
             root.sampleDisk()
-            root.sampleRecent()
         }
     }
 
@@ -626,10 +573,9 @@ Faces.SensorFace {
                             flushSegment()
                         }
 
+                        paintSeries(root.diskSamples, 604800000, root.diskColor7d, root.diskSampleInterval)
                         paintSeries(root.diskSamples, 86400000, root.diskColor24, root.diskSampleInterval)
-                        paintSeries(root.diskSamples, 43200000, root.diskColor12, root.diskSampleInterval)
                         paintSeries(root.diskSamples, 3600000, root.diskColor1, root.diskSampleInterval)
-                        paintSeries(root.diskRecentSamples, 60000, root.diskColor1m, root.diskRecentInterval)
                     }
                 }
 
@@ -728,10 +674,9 @@ Faces.SensorFace {
 
                 Repeater {
                     model: [
-                        { label: "1min", color: root.diskColor1m },
                         { label: "1h", color: root.diskColor1 },
-                        { label: "12h", color: root.diskColor12 },
-                        { label: "24h", color: root.diskColor24 }
+                        { label: "24h", color: root.diskColor24 },
+                        { label: "7d", color: root.diskColor7d }
                     ]
 
                     delegate: RowLayout {
