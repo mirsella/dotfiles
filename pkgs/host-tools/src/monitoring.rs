@@ -332,6 +332,23 @@ pub fn notify(summary: &str, body: &str) {
     }
 }
 
+pub fn storage_alert(summary: &str, body: &str, critical: bool) -> Result<()> {
+    let urgency = if critical { "critical" } else { "normal" };
+    util::run(
+        "timeout",
+        &[
+            "--signal=TERM",
+            "5",
+            "notify-send",
+            "--app-name=Storage",
+            &format!("--urgency={urgency}"),
+            "--expire-time=0",
+            summary,
+            body,
+        ],
+    )
+}
+
 fn persistent_notification(summary: &str, body: &str) -> Result<()> {
     let mut attempt = 1;
     loop {

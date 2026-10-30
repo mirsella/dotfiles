@@ -180,6 +180,13 @@ enum Commands {
         #[arg(default_value = "/")]
         path: PathBuf,
     },
+    /// Notify once when disk or Btrfs allocation space crosses a warning threshold.
+    DiskAlerts {
+        #[arg(default_value = "/")]
+        path: PathBuf,
+        #[arg(long)]
+        test: bool,
+    },
     Wol {
         #[arg(long, default_value = "98:29:a6:3a:a7:50")]
         mac: String,
@@ -287,6 +294,7 @@ fn run() -> Result<()> {
             reclaim,
             path,
         } => maintenance::btrfs(&path, notify, reclaim),
+        Commands::DiskAlerts { path, test } => maintenance::disk_alerts(&path, test),
         Commands::Wol { mac, destination } => hardware::wol(&mac, &destination),
         Commands::Netconsole {
             bind,

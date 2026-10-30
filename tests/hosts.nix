@@ -322,6 +322,22 @@ assert lib.assertMsg (lib.all
   )
   (builtins.attrValues desktops)
 ) "The desktops must be TPM2-unlocked XFS with LUKS-backed hibernation";
+assert lib.assertMsg (
+  lib.all (
+    name:
+    let
+      home = flake.homeConfigurations.${name}.config;
+      service = home.systemd.user.services.disk-alerts;
+      timer = home.systemd.user.timers.disk-alerts;
+    in
+    lib.hasInfix "/bin/host-tools disk-alerts /" (builtins.head service.Service.ExecStart)
+    && lib.toList service.Service.StateDirectory == [ "disk-alerts" ]
+    && timer.Timer.OnUnitInactiveSec == "5min"
+    && timer.Install.WantedBy == [ "timers.target" ]
+    && !(desktops.${name}.home-manager.users.mirsella.systemd.user.services ? disk-alerts)
+  ) [ "main" "laptop" ]
+  && !(server.home-manager.users.mirsella.systemd.user.services ? disk-alerts)
+) "Arch workstations must monitor disk and Btrfs allocation pressure without running it on XFS hosts";
 {
   nixos = builtins.mapAttrs (_: c: c.system.build.toplevel.drvPath) desktops;
   arch = builtins.mapAttrs (_: home: home.activationPackage.drvPath) flake.homeConfigurations;

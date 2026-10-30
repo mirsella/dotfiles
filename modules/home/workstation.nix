@@ -85,6 +85,7 @@ in
         text = ''
           [cache]
           local_max_size = "150GiB"
+          cache_executables = false
         '';
       };
     }
@@ -160,6 +161,29 @@ in
     Icon=folder-cloud
     URL=webdavs://mirsella@mirsella.mooo.com/nextcloud/remote.php/dav/files/mirsella/
   '';
+
+  systemd.user.services.disk-alerts = lib.mkIf (!isNixOS) {
+    Unit.Description = "Warn about low disk and Btrfs allocation space";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.host-tools}/bin/host-tools disk-alerts /";
+      StateDirectory = "disk-alerts";
+      Environment = [
+        "PATH=/usr/bin:/bin"
+        "DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus"
+      ];
+    };
+  };
+
+  systemd.user.timers.disk-alerts = lib.mkIf (!isNixOS) {
+    Unit.Description = "Check disk and Btrfs allocation space";
+    Timer = {
+      OnBootSec = "2min";
+      OnUnitInactiveSec = "5min";
+      AccuracySec = "30s";
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
 
   # The daemon loads the key on startup; wait for sops-nix to install it.
   systemd.user.services.atuin-daemon = lib.mkIf config.programs.atuin.daemon.enable {
