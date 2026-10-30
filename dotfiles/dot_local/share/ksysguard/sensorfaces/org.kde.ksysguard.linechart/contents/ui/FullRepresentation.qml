@@ -124,7 +124,7 @@ Faces.SensorFace {
             const time = Number(entry[0])
             const value = Number(entry[1])
             if (Number.isFinite(time) && time <= now && time >= now - windowMs
-                    && Number.isFinite(value) && value >= 0 && value <= 100) {
+                    && Number.isFinite(value) && value > 0 && value <= 100) {
                 samples.push({time: time, value: value})
             }
         }
@@ -168,13 +168,16 @@ Faces.SensorFace {
 
     function currentDiskPercent() {
         const percent = diskPercentSensor.value
-        if (Number.isFinite(percent) && percent >= 0 && percent <= 100) {
+        if (Number.isFinite(percent) && percent > 0 && percent <= 100) {
             return percent
         }
         const used = diskUsedSensor.value
         const total = diskTotalSensor.value
         if (Number.isFinite(used) && Number.isFinite(total) && total > 0) {
-            return used * 100 / total
+            const calculated = used * 100 / total
+            if (calculated > 0 && calculated <= 100) {
+                return calculated
+            }
         }
         return NaN
     }
@@ -572,6 +575,7 @@ Faces.SensorFace {
                             ctx.fillText(percent + "%", left - 4, y)
                         }
 
+                        // Paint from longest to shortest so live data stays on top.
                         const paintSeries = function(samples, windowMs, color, sampleInterval) {
                             const now = Date.now()
                             const visibleSamples = samples.filter(sample => sample.time >= now - windowMs
@@ -603,7 +607,7 @@ Faces.SensorFace {
                                         }
                                     }
                                     ctx.strokeStyle = strokeColor
-                                    ctx.lineWidth = 2
+                                    ctx.lineWidth = 1.75
                                     ctx.lineJoin = "round"
                                     ctx.lineCap = "round"
                                     ctx.stroke()
