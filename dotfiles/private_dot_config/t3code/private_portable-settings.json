@@ -338,17 +338,8 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeSettledAfterDays": 4
-    },
-    "textGenerationModelSelection": {
-      "instanceId": "opencode",
-      "model": "opencode-go/deepseek-v4.1-flash",
-      "options": [
-        {
-          "id": "variant",
-          "value": "high"
-        }
-      ]
+      "worktreeSettledAfterDays": 4,
+      "worktreeUnchanged": true
     }
   },
   "desktop": {
