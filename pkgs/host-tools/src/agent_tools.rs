@@ -13,6 +13,8 @@ use std::{
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Config {
+    claude_installer: PathBuf,
+    claude_version: String,
     codex_installer: PathBuf,
     opencode_installer: PathBuf,
     opencode_version: String,
@@ -52,10 +54,10 @@ fn native_version(program: &Path, root: &Path) -> Result<Option<String>> {
 
 /// Keep any existing standalone installation, regardless of its version.
 ///
-/// The native tools update themselves (OpenCode and Codex directly, T3 through
-/// T3 Code). Home Manager must only seed a missing or dangling installation;
-/// otherwise a switch could replace a newer self-updated version with the
-/// pinned seed.
+/// The native tools update themselves (OpenCode, Codex and Claude Code
+/// directly, T3 through T3 Code). Home Manager must only seed a missing or
+/// dangling installation; otherwise a switch could replace a newer
+/// self-updated version with the pinned seed.
 fn ensure_native(
     program: &Path,
     root: &Path,
@@ -255,6 +257,20 @@ pub fn bootstrap(package: &Path) -> Result<()> {
         )
     })?;
     eprintln!("agent-tools: {codex_version}");
+
+    let claude = bin.join("claude");
+    let claude_root = home.join(".local/share/claude/versions");
+    let claude_version = ensure_native(&claude, &claude_root, "Claude Code", || {
+        eprintln!("agent-tools: installing official standalone Claude Code");
+        install(
+            &config,
+            &home,
+            &config.claude_installer,
+            &[],
+            &[&config.claude_version],
+        )
+    })?;
+    eprintln!("agent-tools: Claude Code {claude_version}");
 
     let t3 = bin.join("t3");
     let t3_home = home.join(".t3");

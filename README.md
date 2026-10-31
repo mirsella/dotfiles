@@ -135,14 +135,14 @@ and chezmoi apply. Home Manager reloads the secret automatically. The key needs
 no browser login there. Refresh the Plasma widget after changing its credentials. Codex still
 uses each machine's own local login.
 
-### OpenCode, Codex and T3 Code
+### OpenCode, Codex, Claude Code and T3 Code
 
 All three hosts import `modules/home/agent-tools.nix`. Home Manager runs the
 Nix-built `bootstrap-agent-tools` helper during activation. It seeds missing
-official standalone installs: OpenCode v2 CLI, Codex CLI (latest stable), T3 CLI
-(nightly), and a separate nightly T3 desktop AppImage. Existing installs are
-left untouched. To apply just this bootstrap without switching the rest of a
-host's configuration:
+official standalone installs: OpenCode v2 CLI, Codex CLI (latest stable), Claude
+Code CLI (pinned seed), T3 CLI (nightly), and a separate nightly T3 desktop
+AppImage. Existing installs are left untouched. To apply just this bootstrap
+without switching the rest of a host's configuration:
 
 ```sh
 mkdir -p ~/.local/state/agent-tools
@@ -171,14 +171,17 @@ Cargo work, use the crate's ignored `pkgs/<crate>/target/` directory.
 
 OpenCode lives at `~/.opencode/bin/opencode`, linked from `~/.local/bin`.
 Codex lives under `~/.codex/packages/standalone`, and T3's CLI releases under
-`~/.t3/runtime/versions`. The desktop AppImage is a writable file at
+`~/.t3/runtime/versions`. Claude Code uses Anthropic's native layout:
+`~/.local/bin/claude` links into `~/.local/share/claude/versions`. The desktop
+AppImage is a writable file at
 `~/.local/share/t3code/app/T3-Code-nightly.AppImage`. A Home Manager or NixOS
 switch never replaces or downgrades an existing native install, even when its
 version, channel, or major release differs from the pinned seed; it only seeds
-a missing or dangling install. `opencode upgrade`, `codex update`, `t3 update`,
-T3 Code, and the desktop's updater own subsequent releases. The initial CLI and
-desktop share a pinned nightly version; updating that seed only affects fresh
-installs.
+a missing or dangling install. `opencode upgrade`, `codex update`,
+`claude update`, T3 Code, and the desktop's updater own subsequent releases.
+Claude Code also auto-updates in the background, and T3's Claude provider runs
+`claude update` itself. The initial CLI and desktop share a pinned nightly
+version; updating that seed only affects fresh installs.
 
 Nix supplies the `t3code`/`t3code-nightly` launchers and desktop menu entry. On
 NixOS the launcher uses `appimage-run`; Arch runs the AppImage directly. A service

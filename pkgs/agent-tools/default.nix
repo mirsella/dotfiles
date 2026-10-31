@@ -33,6 +33,13 @@ let
     url = "https://raw.githubusercontent.com/openai/codex/092d3acd6bec3e3a14bdc7e7a2810ab628ab759d/scripts/install/install.sh";
     hash = "sha256-FQ489nVoLv6qwRWqN0et0/J4h4ltBM5tC1ZHjYtCi/Y=";
   };
+  # Anthropic publishes no versioned installer URL; this hash pins the current
+  # launcher script, and the bootstrap passes claudeVersion to select the seed.
+  claudeInstaller = fetchurl {
+    url = "https://claude.ai/install.sh";
+    hash = "sha256-OmjTQGz2dOF77RczpNzzeAXi5H2HQXcAAH1+GqdmqUQ=";
+  };
+  claudeVersion = "2.1.316";
   t3Installer = fetchurl {
     url = "https://raw.githubusercontent.com/pingdotgg/t3code/${t3Revision}/scripts/install.sh";
     hash = "sha256-uQjscIE65dSQj2iQDzNDcCsH88oIQg+Dp/cDKUtiYtg=";
@@ -78,6 +85,8 @@ let
   configFile = writeText "agent-tools.json" (
     builtins.toJSON {
       inherit
+        claudeInstaller
+        claudeVersion
         codexInstaller
         opencodeInstaller
         opencodeVersion
@@ -106,7 +115,7 @@ in
 runCommand "agent-tools"
   {
     meta = {
-      description = "Bootstrap writable OpenCode, Codex and T3 installs";
+      description = "Bootstrap writable OpenCode, Codex, Claude Code and T3 installs";
       mainProgram = "bootstrap-agent-tools";
       platforms = [ "x86_64-linux" ];
     };

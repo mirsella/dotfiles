@@ -9,7 +9,7 @@
   options.programs.agent-tools.package = lib.mkOption {
     type = lib.types.package;
     default = pkgs.agent-tools.override { inherit isNixOS; };
-    description = "Bootstrap and launchers for writable OpenCode, Codex and T3 installs.";
+    description = "Bootstrap and launchers for writable OpenCode, Codex, Claude Code and T3 installs.";
   };
 
   config = {
