@@ -12,7 +12,7 @@ Careful of correctly handling backtick when running bash commands, use single qu
 The commit title should contains what was done. the description, if any, should also contains the motivation. (for example, fixing a bug)
 Add detailed body if changes are substantial.
 Dont go on fixing other things. your only job this turn is to commit the current code.
-Run formatters for touched code like cargo fmt and include formatting changes in the same commit if related, or in a new commit just for the fmt changes.
+Rust files changed through OpenCode's write and edit tools are already formatted. Run formatters such as cargo fmt only for code changed another way, and include formatting changes in the same commit if related, or in a new commit just for the fmt changes.
 If we have worked on a fork or dependencies, this means also committing and pushing them, updating the lockfile, and committing the lockfile changes.
 
 $ARGUMENTS

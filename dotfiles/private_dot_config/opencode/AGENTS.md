@@ -13,6 +13,7 @@
 ## Tools and services
 
 - Prefer pnpm or bun over npm.
+- OpenCode runs `rustfmt` on Rust files after its write and edit tools. Do not run `rustfmt` or `cargo fmt` yourself unless Rust files changed another way, such as scripts, codegen or merges.
 - Access Nextcloud with the configured `rclone` remote `nextcloud:` (`lsf`, `lsjson`, `cat`, `copyto`), not a filesystem mount. Download files into a task directory under `~/dev` to edit, then upload only the intended paths; `copyto` can overwrite files. Keep credentials in the existing rclone config, and do not use `sync`, `move`, `delete` or `purge` without authorization. See `~/dev/dotfiles/AGENTS.md` for examples and timeout flags.
 - Use the external browser MCP for third-party dashboards and authenticated account workflows. Use T3 preview tools for local development previews.
 
