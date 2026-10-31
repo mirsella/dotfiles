@@ -335,6 +335,7 @@
     },
     "removeAgentCreditsOnMerge": true,
     "sidebarAutoSettleAfterDays": null,
+    "sidebarAutoSettleOnMerge": false,
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
@@ -359,7 +360,7 @@
   "providers": {
     "claudeAgent": {
       "driver": "claudeAgent",
-      "enabled": false
+      "enabled": true
     },
     "codex": {
       "config": {
