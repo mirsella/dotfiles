@@ -84,9 +84,12 @@ kde shortcuts.kksrc
 .local/share/proton-pass-cli/
 .local/share/proton-pass-cli/**
 
-# Home Manager shares the editable OpenCode skills with Codex and Hermes.
+# Home Manager links the editable OpenCode skills into Codex, Hermes and Claude Code.
 .agents/skills
 .agents/skills/**
+.claude/CLAUDE.md
+.claude/skills/
+.claude/skills/**
 # Codex installs its built-in skills itself.
 .codex/skills/.system/
 .codex/skills/.system/**

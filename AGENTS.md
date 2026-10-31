@@ -49,8 +49,12 @@ The flake discovers these directories and sets hostnames automatically.
   it would migrate the newer database; an unreadable version only warns.
 - OpenCode's skill files are the canonical prompts, owned by chezmoi. Edit them
   in `~/.config/opencode/skills` and use `chezmoi re-add` to save edits. Home Manager
-  links `~/.agents/skills` to that directory for Codex and Hermes. The shared link
-  is ignored by chezmoi; do not track copies or turn skills into templates.
+  links `~/.agents/skills` to that directory for Codex and Hermes, and links each
+  skill into `~/.claude/skills` plus the global instructions to
+  `~/.claude/CLAUDE.md` for Claude Code, which never reads `~/.agents`. Claude's
+  skill links are enumerated when the flake is evaluated, so a new skill reaches
+  Claude only after it is added to Git and Home Manager rebuilds. The shared links
+  are ignored by chezmoi; do not track copies or turn skills into templates.
 - Retire one-time migrations after every affected host has completed them. Keep
   deployment evidence in Git history rather than permanent acceptance reports.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include

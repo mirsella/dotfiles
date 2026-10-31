@@ -5,6 +5,10 @@
   pkgs,
   ...
 }:
+let
+  skillsDir = ../../dotfiles/private_dot_config/opencode/skills;
+  skillDirs = lib.filterAttrs (_: type: type == "directory") (builtins.readDir skillsDir);
+in
 {
   options.programs.agent-tools.package = lib.mkOption {
     type = lib.types.package;
@@ -13,17 +17,28 @@
   };
 
   config = {
-    home.file.".agents/skills" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/opencode/skills";
-      force = true;
-    };
+    # Claude Code reads user memory and personal skills from ~/.claude, never
+    # from ~/.agents. Link the same chezmoi-owned sources into place so every
+    # agent reads one copy.
+    home.file =
+      {
+        ".agents/skills" = {
+          source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/opencode/skills";
+          force = true;
+        };
+        ".claude/CLAUDE.md".source =
+          config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/opencode/AGENTS.md";
+        ".local/bin/t3-settings" = {
+          source = "${config.programs.agent-tools.package}/bin/t3-settings";
+          force = true;
+        };
+      }
+      // lib.mapAttrs' (name: _: lib.nameValuePair ".claude/skills/${name}" {
+        source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/opencode/skills/${name}";
+      }) skillDirs;
     # These launchers/bootstrap are immutable; native application releases stay
     # writable and existing self-updated installs are never replaced.
     home.packages = [ config.programs.agent-tools.package ];
-    home.file.".local/bin/t3-settings" = {
-      source = "${config.programs.agent-tools.package}/bin/t3-settings";
-      force = true;
-    };
     home.sessionPath = lib.mkBefore [ "${config.home.homeDirectory}/.local/bin" ];
     home.activation.agentTools = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       run ${lib.getExe config.programs.agent-tools.package}

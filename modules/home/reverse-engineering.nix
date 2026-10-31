@@ -37,4 +37,9 @@
     source = "${pkgs.leanrea}/share/leanrea";
     recursive = true;
   };
+  # Claude Code loads personal skills only from ~/.claude.
+  home.file.".claude/skills/leanrea" = {
+    source = "${pkgs.leanrea}/share/leanrea";
+    recursive = true;
+  };
 }
