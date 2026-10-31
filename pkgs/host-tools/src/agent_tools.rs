@@ -41,15 +41,24 @@ pub(crate) fn state_dir(home: &Path) -> PathBuf {
 }
 
 fn native_version(program: &Path, root: &Path) -> Result<Option<String>> {
-    match fs::canonicalize(program) {
-        Ok(path) if path.starts_with(root) => {
-            let output = crate::util::command_output(Command::new(path).arg("--version"))?;
-            Ok(Some(String::from_utf8(output)?.trim().to_owned()))
+    let resolve = |path: &Path| -> Result<Option<PathBuf>> {
+        match fs::canonicalize(path) {
+            Ok(path) => Ok(Some(path)),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(error).with_context(|| format!("resolve {}", path.display())),
         }
-        Ok(_) => Ok(None),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
-        Err(error) => Err(error).with_context(|| format!("resolve {}", program.display())),
+    };
+    let Some(path) = resolve(program)? else {
+        return Ok(None);
+    };
+    let Some(root) = resolve(root)? else {
+        return Ok(None);
+    };
+    if !path.starts_with(root) {
+        return Ok(None);
     }
+    let output = crate::util::command_output(Command::new(path).arg("--version"))?;
+    Ok(Some(String::from_utf8(output)?.trim().to_owned()))
 }
 
 /// Keep any existing standalone installation, regardless of its version.
@@ -660,10 +669,14 @@ mod tests {
         let binary = releases.join("newer-version");
         fs::write(&binary, "#!/bin/sh\nprintf 'native version\\n'\n").unwrap();
         fs::set_permissions(&binary, fs::Permissions::from_mode(0o755)).unwrap();
+        let aliased_releases = scratch.path().join("aliased-releases");
+        symlink(&releases, &aliased_releases).unwrap();
         let command = scratch.path().join("codex");
         link(&binary, &command).unwrap();
         assert_eq!(
-            native_version(&command, &releases).unwrap().as_deref(),
+            native_version(&command, &aliased_releases)
+                .unwrap()
+                .as_deref(),
             Some("native version")
         );
         let store = scratch.path().join("nix-store-binary");
