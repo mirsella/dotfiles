@@ -56,6 +56,8 @@ The flake discovers these directories and sets hostnames automatically.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
+
+- OpenCode providers are enabled by hand: `claude-agent`, `openai`, `opencode`, `opencode-go` and `llama.cpp` (host-gated) are the ones in use, listed in the `policies` allow list. Configure any provider through sleev.ai.
 - OpenCode, Codex, Claude Code and T3 use writable standalone installs
   bootstrapped by `programs.agent-tools`; activation only seeds missing installs
   and never replaces or downgrades them, and T3 can update the native agent

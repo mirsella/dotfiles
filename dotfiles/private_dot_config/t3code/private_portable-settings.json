@@ -328,7 +328,14 @@
           "openrouter/moonshotai/kimi-k3",
           "openrouter/~moonshotai/kimi-latest",
           "openrouter/poolside/laguna-s-2.1",
-          "openrouter/poolside/laguna-s-2.1:free"
+          "openrouter/poolside/laguna-s-2.1:free",
+          "opencode/claude-fable-5-1",
+          "opencode/claude-haiku-4-5",
+          "opencode/claude-haiku-5-5",
+          "opencode/claude-opus-5-5",
+          "opencode/claude-sonnet-5",
+          "opencode/claude-sonnet-5-5",
+          "opencode-go/claude-haiku-5-5"
         ],
         "modelOrder": []
       }

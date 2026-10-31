@@ -4,7 +4,7 @@
 {{- else if eq .chezmoi.hostname "laptop" -}}
   {{- $llamaModel = "qwen3.6-35b-a3b-abliterated-v4" -}}
 {{- end -}}
-{{- $allowedProviders := list "openai" "opencode" "opencode-go" -}}
+{{- $allowedProviders := list "claude-agent" "openai" "opencode" "opencode-go" -}}
 {{- if $llamaModel -}}
   {{- $allowedProviders = append $allowedProviders "llama.cpp" -}}
 {{- end -}}
