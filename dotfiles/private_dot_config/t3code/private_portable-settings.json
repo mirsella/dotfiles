@@ -37,7 +37,7 @@
     "defaultAutoPull": true,
     "defaultModelSelection": {
       "instanceId": "opencode",
-      "model": "openai/gpt-6.1-sol",
+      "model": "claude-agent/opus",
       "options": [
         {
           "id": "variant",
@@ -65,6 +65,10 @@
       },
       {
         "model": "openai/gpt-6.1-sol",
+        "provider": "opencode"
+      },
+      {
+        "model": "claude-agent/opus",
         "provider": "opencode"
       }
     ],
@@ -366,6 +370,9 @@
   },
   "providers": {
     "claudeAgent": {
+      "config": {
+        "binaryPath": "~/.local/bin/claude"
+      },
       "driver": "claudeAgent",
       "enabled": true
     },
