@@ -1,9 +1,9 @@
 {
   "version": 1,
   "client": {
+    "boringSidebarMultilineRows": true,
     "browserRecordingShowKeyPresses": true,
     "browserRecordingShowMousePresses": true,
-    "composerCollapseOnScroll": true,
     "favorites": [
       {
         "model": "opencode-go/step-5-preview-free",
@@ -15,8 +15,6 @@
     "mathRenderingEnabled": true,
     "notificationMode": "notifications",
     "persistComposerContextStrip": true,
-    "redesignEnabled": true,
-    "sidebarThreadPreviewCount": 6,
     "snapShotEnabled": true,
     "snapShotPlaySound": false,
     "snapShotShortcut": {
@@ -26,6 +24,10 @@
       "metaKey": true,
       "modKey": false,
       "shiftKey": true
+    },
+    "threadDetailsItems": {
+      "context": true,
+      "usage": true
     },
     "timestampFormat": "24-hour",
     "wordWrap": false
@@ -46,6 +48,10 @@
       ]
     },
     "defaultThreadEnvMode": "local",
+    "fallbackModelSelection": {
+      "instanceId": "opencode",
+      "model": "opencode-go/deepseek-v4.1-flash"
+    },
     "favorites": [
       {
         "model": "opencode-go/deepseek-v4.1-flash",
@@ -74,6 +80,7 @@
     ],
     "guestSharingEnabled": true,
     "idleCompaction": "onReturn",
+    "linkedEnvironmentsEnabled": true,
     "providerModelPreferences": {
       "acpRegistry_opencode": {
         "hiddenModels": [
@@ -347,6 +354,44 @@
     "removeAgentCreditsOnMerge": true,
     "sidebarAutoSettleAfterDays": null,
     "sidebarAutoSettleOnMerge": false,
+    "simlockDeviceHostsEnabled": true,
+    "snoozePresets": [
+      {
+        "day": "today",
+        "kind": "at",
+        "time": "18:00"
+      },
+      {
+        "kind": "after",
+        "minutes": 30
+      },
+      {
+        "kind": "after",
+        "minutes": 60
+      },
+      {
+        "kind": "after",
+        "minutes": 180
+      },
+      {
+        "day": "tomorrow",
+        "kind": "at",
+        "time": "09:00"
+      },
+      {
+        "kind": "after",
+        "minutes": 120
+      },
+      {
+        "kind": "after",
+        "minutes": 1440
+      },
+      {
+        "day": "monday",
+        "kind": "at",
+        "time": "09:00"
+      }
+    ],
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
@@ -371,7 +416,8 @@
   "providers": {
     "claudeAgent": {
       "config": {
-        "binaryPath": "~/.local/bin/claude"
+        "binaryPath": "~/.local/bin/claude",
+        "idleCompaction": "beforeCacheExpires"
       },
       "driver": "claudeAgent",
       "enabled": true

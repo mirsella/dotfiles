@@ -2274,6 +2274,58 @@ mod tests {
     }
 
     #[test]
+    fn new_t3_preferences_are_portable() {
+        let policy = Policy::new();
+        for (section, saved) in [
+            (
+                "client",
+                json!({
+                    "boringSidebarEnabled": true,
+                    "boringSidebarMultilineRows": true,
+                    "effortDisplay": "label",
+                    "threadDetailsItems": {"usage": true, "context": false},
+                    "threadDetailsUsageEnabled": true
+                }),
+            ),
+            (
+                "server",
+                json!({
+                    "fallbackModelSelection": {"instanceId": "opencode", "model": "opencode-go/deepseek-v4.1-flash"},
+                    "linkedEnvironmentsEnabled": true,
+                    "simlockDeviceHostsEnabled": true,
+                    "snoozePresets": [
+                        {"kind": "after", "minutes": 60},
+                        {"kind": "at", "day": "today", "time": "18:00"}
+                    ]
+                }),
+            ),
+        ] {
+            assert_portable(&policy, section, saved);
+        }
+    }
+
+    #[test]
+    fn provider_idle_compaction_is_portable() {
+        let policy = Policy::new();
+        let source =
+            json!({"driver":"claudeAgent", "config":{"idleCompaction":"beforeCacheExpires"}});
+        let mut excluded = ExcludedFields::default();
+        let selected = policy
+            .select(
+                &source,
+                &policy.0["provider"],
+                "providers.claudeAgent",
+                &mut excluded,
+            )
+            .unwrap();
+        assert_eq!(selected, source);
+        assert!(excluded.unknown.is_empty());
+        let mut local = object();
+        policy.merge_section("provider", &mut local, &selected);
+        assert_eq!(local, source);
+    }
+
+    #[test]
     fn unknown_fields_report_nested_paths_without_ignored_subtrees_or_values() {
         let policy = Policy::new();
         let source = json!({

@@ -4,6 +4,7 @@
     "favorites": [{"provider": true, "model": true}],
     "modelPreferences": {"*": {"hiddenModels": [true], "modelOrder": [true]}},
     "script": {"id": true, "name": true, "command": true, "icon": true, "runOnWorktreeCreate": true, "runOnSettle": true, "async": true, "previewUrl": true, "autoOpenPreview": true},
+    "snoozePreset": {"kind": true, "minutes": true, "day": true, "time": true},
     "writingStyle": {"mode": true, "useTemplates": true, "customInstructions": true}
   },
   "client": {
@@ -18,6 +19,7 @@
     "inAppNotificationsEnabled": true,
     "diffColorScheme": true,
     "chatWidth": true,
+    "effortDisplay": true,
     "loadBalancingEnabled": true,
     "loadBalancingWeights": {"*": true},
     "appearanceContrast": true,
@@ -62,6 +64,10 @@
     "proactivePanelsEnabled": true,
     "pullRequestLinksOpenInApp": true,
     "showSkillsInSlashMenu": true,
+    "boringSidebarEnabled": true,
+    "boringSidebarMultilineRows": true,
+    "threadDetailsItems": {"*": true},
+    "threadDetailsUsageEnabled": true,
     "legacySidebarEnabled": true,
     "redesignEnabled": true,
     "sidebarWorkingShelfEnabled": true,
@@ -100,14 +106,17 @@
     "storageCleanup": {"schemaVersion": true, "worktreeKeepWhen": true, "worktreeAfterDays": true, "worktreeSettledAfterDays": true, "worktreeOnMerge": true, "worktreeOnDelete": true, "worktreeUnchanged": true, "browserArtifactsAfterDays": true, "logsAfterDays": true},
     "defaultAutoPull": true,
     "defaultModelSelection": "$model",
+    "fallbackModelSelection": "$model",
     "defaultRuntimeMode": true,
     "defaultThreadEnvMode": true,
     "worktreeSubmodules": true,
     "defaultProjectScripts": ["$script"],
     "enableAgentBrowserAccess": true,
     "enableAgentDeviceAccess": true,
+    "simlockDeviceHostsEnabled": true,
     "enableProviderUpdateChecks": true,
     "guestSharingEnabled": true,
+    "linkedEnvironmentsEnabled": true,
     "newWorktreesStartFromOrigin": true,
     "addProjectBaseDirectory": true,
     "textGenerationModelSelection": "$model",
@@ -124,6 +133,7 @@
     "sidebarAutoSettleAfterDays": true,
     "continueThreadsAfterServerUpdate": true,
     "autoResumeLimitedThreads": true,
+    "snoozePresets": ["$snoozePreset"],
     "idleCompaction": true,
     "compactIdleThreads": true,
     "responseStreamingMode": true
@@ -148,7 +158,7 @@
     "driver": true,
     "displayName": true,
     "enabled": true,
-    "config": {"enabled": true, "setupMode": true, "binaryPath": true, "serverUrl": true, "serverPassword": false, "launchArgs": false, "homePath": true, "shadowHomePath": true, "autoCompactWindow": true}
+    "config": {"enabled": true, "setupMode": true, "binaryPath": true, "serverUrl": true, "serverPassword": false, "launchArgs": false, "homePath": true, "shadowHomePath": true, "autoCompactWindow": true, "idleCompaction": true}
   },
   "keybindings": [{"key": true, "command": true, "when": true}],
   "project": {
