@@ -60,6 +60,8 @@ The flake discovers these directories and sets hostnames automatically.
 - Chezmoi auto-commits and auto-pushes source edits. Its Git operation can include
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
+
+- OpenCode providers are enabled by hand: `claude-agent`, `openai`, `opencode`, `opencode-go` and `llama.cpp` (host-gated) are the ones in use, listed in the `policies` allow list. Configure any provider through sleev.ai.
 - OpenCode, Codex, Claude Code and T3 use writable standalone installs
   bootstrapped by `programs.agent-tools`; activation only seeds missing installs
   and never replaces or downgrades them, and T3 can update the native agent
@@ -75,7 +77,7 @@ The flake discovers these directories and sets hostnames automatically.
   build as `mirsella` and activate as root: `nix build` the
   `nixosConfigurations.predator.config.system.build.toplevel` output with
   `--print-out-paths --no-link`, then `sudo nix-env -p
-  /nix/var/nix/profiles/system --set` that path and run its
+/nix/var/nix/profiles/system --set` that path and run its
   `bin/switch-to-configuration switch`. A `systemd-run` user unit has no `nix`
   on PATH, so run the build over ssh. Poll a long build's exit status instead
   of restarting it. Its Hermes workspace `AGENTS.md` is re-seeded from
@@ -119,6 +121,7 @@ The flake discovers these directories and sets hostnames automatically.
   nonfatal to boot, allow degraded RAIDZ1 imports, and gate writers on their mounts.
 
 Manual files outside the repo:
+
 - Laptop uses Plasma lid defaults; Predator ignores lid-close via
   `hosts/predator/default.nix` (screen off instead of sleep).
 - Arch boxes: root-owned Nix daemon GC/cache settings, Timeshift retention,
@@ -173,11 +176,11 @@ The `dolphin-nextcloud` sync-client plugin is not needed for WebDAV browsing.
 
 ## LAN machine map (`~/.ssh/config` aliases)
 
-| alias    | address                               | purpose                                                        |
-|----------|---------------------------------------|----------------------------------------------------------------|
-| rpi      | 192.168.1.166                         | Raspberry Pi 4, Debian — hosts my PC power-control project     |
-| laptop   | 192.168.1.61                          | Framework 13, Arch Linux — work laptop                         |
-| main     | `mirsella.mooo.com:2222` (LAN `.131`) | main tower, Arch Linux — powerful desktop                      |
+| alias    | address                               | purpose                                                         |
+| -------- | ------------------------------------- | --------------------------------------------------------------- |
+| rpi      | 192.168.1.166                         | Raspberry Pi 4, Debian — hosts my PC power-control project      |
+| laptop   | 192.168.1.61                          | Framework 13, Arch Linux — work laptop                          |
+| main     | `mirsella.mooo.com:2222` (LAN `.131`) | main tower, Arch Linux — powerful desktop                       |
 | predator | 192.168.1.19                          | NixOS — next home server (drive, Nextcloud, …), this repo's box |
 
 ## SSH public keys (user identity)
@@ -186,9 +189,9 @@ The `dolphin-nextcloud` sync-client plugin is not needed for WebDAV browsing.
 file, a service account or a Git host. Main, laptop and predator are also
 registered on the GitHub account; rpi is not.
 
-| device | public key | SHA256 fingerprint |
-|---|---|---|
-| main | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe` | `SHA256:Mcc/nTQqdEAlOiPFRj6yHYf4exhB/iM5CwoxcckKpPg` |
-| laptop | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF` | `SHA256:Y8Xmd8d+/SfbsiyozITkC13MVP5MKrwlllz1cw58z4E` |
+| device   | public key                                                                         | SHA256 fingerprint                                   |
+| -------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| main     | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMXuc6N//8+RfjUhuRZ+COgynjfwFqAeoKAWMUz6s+Pe` | `SHA256:Mcc/nTQqdEAlOiPFRj6yHYf4exhB/iM5CwoxcckKpPg` |
+| laptop   | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGkl0CiN6/cLz1OOzBvHaPAMKTnYI0sOlKFDRW25uReF` | `SHA256:Y8Xmd8d+/SfbsiyozITkC13MVP5MKrwlllz1cw58z4E` |
 | predator | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHALDtwhSj8AF8NdRRjcWcDkD/EeDnRcWYjRSbXSznTo` | `SHA256:/6MNKC1SnVco8IlGO6Xe3FDh0BWlE6U7y+fPrAUK82c` |
-| rpi | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJRadFVhpJRbD98sHFgcVAaMDL48x27On4XAe//Yx6Vm` | `SHA256:4vEJhi7Q5OOw8M4jArYQLG/0x4EID933Ohxsc0Jf6vQ` |
+| rpi      | `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJRadFVhpJRbD98sHFgcVAaMDL48x27On4XAe//Yx6Vm` | `SHA256:4vEJhi7Q5OOw8M4jArYQLG/0x4EID933Ohxsc0Jf6vQ` |
