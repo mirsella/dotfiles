@@ -1,0 +1,46 @@
+readonly_check_status=1
+297539 execve("/nix/var/nix/profiles/default/bin/hwclock", ["hwclock", "--show", "--utc"], 0x7ffc761b98d8 /* 32 vars */) = -1 ENOENT (No such file or directory)
+297539 execve("/run/current-system/sw/bin/hwclock", ["hwclock", "--show", "--utc"], 0x7ffc761b98d8 /* 32 vars */) = 0
+297539 newfstatat(AT_FDCWD, "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/etc/ld.so.cache", 0x7fff8c199700, 0) = -1 ENOENT (No such file or directory)
+297539 access("/etc/ld-nix.so.preload", R_OK) = -1 ENOENT (No such file or directory)
+297539 openat(AT_FDCWD, "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/lib/glibc-hwcaps/x86-64-v3/libm.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+297539 newfstatat(AT_FDCWD, "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/lib/glibc-hwcaps/x86-64-v3/", 0x7fff8c199aa0, 0) = -1 ENOENT (No such file or directory)
+297539 openat(AT_FDCWD, "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/lib/glibc-hwcaps/x86-64-v2/libm.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+297539 newfstatat(AT_FDCWD, "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/lib/glibc-hwcaps/x86-64-v2/", 0x7fff8c199aa0, 0) = -1 ENOENT (No such file or directory)
+297539 openat(AT_FDCWD, "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/lib/libm.so.6", O_RDONLY|O_CLOEXEC) = 3
+297539 openat(AT_FDCWD, "/nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/lib/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+297539 openat(AT_FDCWD, "/run/current-system/sw/lib/locale/locale-archive", O_RDONLY|O_CLOEXEC) = 3
+297539 openat(AT_FDCWD, "/dev/rtc", O_RDONLY) = 3
+297539 access("/etc/adjtime", R_OK)     = 0
+297539 openat(AT_FDCWD, "/etc/adjtime", O_RDONLY) = 4
+297539 openat(AT_FDCWD, "/etc/zoneinfo/Europe/Paris", O_RDONLY|O_CLOEXEC) = 4
+297539 +++ exited with 0 +++
+297538 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=297539, si_uid=0, si_status=0, si_utime=0, si_stime=0} ---
+297538 +++ exited with 0 +++
+297349 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=297538, si_uid=0, si_status=0, si_utime=0, si_stime=0} ---
+297349 openat(AT_FDCWD, "/sys/module/pm_stage/parameters/last_action", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0444, stx_size=4096, ...}) = 0
+297349 openat(AT_FDCWD, "/sys/module/pm_stage/parameters/last_value", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0444, stx_size=4096, ...}) = 0
+297349 openat(AT_FDCWD, "/sys/module/pm_stage/parameters/last_start", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0444, stx_size=4096, ...}) = 0
+297349 openat(AT_FDCWD, "/sys/module/pm_stage/parameters/markers", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0444, stx_size=4096, ...}) = 0
+297349 openat(AT_FDCWD, "/proc/uptime", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0444, stx_size=0, ...}) = 0
+297349 openat(AT_FDCWD, "/proc/driver/rtc", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0444, stx_size=0, ...}) = 0
+297349 openat(AT_FDCWD, "/sys/kernel/debug/wakeup_sources", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0444, stx_size=0, ...}) = 0
+297349 openat(AT_FDCWD, "/proc/interrupts", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0444, stx_size=0, ...}) = 0
+297349 openat(AT_FDCWD, "/proc/acpi/wakeup", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0644, stx_size=0, ...}) = 0
+297349 openat(AT_FDCWD, "/sys/firmware/acpi/interrupts/ff_rt_clk", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0644, stx_size=4096, ...}) = 0
+297349 openat(AT_FDCWD, "/sys/firmware/acpi/interrupts/ff_pwr_btn", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0644, stx_size=4096, ...}) = 0
+297349 openat(AT_FDCWD, "/sys/firmware/acpi/interrupts/ff_slp_btn", O_RDONLY|O_CLOEXEC) = 3
+297349 statx(3, "", AT_STATX_SYNC_AS_STAT|AT_EMPTY_PATH, STATX_ALL, {stx_mask=STATX_BASIC_STATS|STATX_MNT_ID, stx_attributes=0, stx_mode=S_IFREG|0644, stx_size=4096, ...}) = 0
+297349 openat(AT_FDCWD, "/sys/firmware/acpi/interrupts/gpe_14", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+297349 +++ exited with 1 +++

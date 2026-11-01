@@ -1,0 +1,47 @@
+[package]
+name = "predator-pm-study"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "predator-pm-study"
+path = "main.rs"
+
+[[bin]]
+name = "predator-pm-control"
+path = "control.rs"
+
+[[bin]]
+name = "predator-pm-diagnostic"
+path = "diagnostic.rs"
+
+[[bin]]
+name = "predator-pm-instrumented"
+path = "instrumented.rs"
+
+[[bin]]
+name = "predator-pm-s2idle"
+path = "s2idle.rs"
+
+[[bin]]
+name = "predator-pm-wake-validation"
+path = "wake_validation.rs"
+
+[[bin]]
+name = "predator-pm-wake-path"
+path = "wake_path.rs"
+
+[[bin]]
+name = "predator-pm-boundary-trial"
+path = "boundary_trial.rs"
+
+[[bin]]
+name = "predator-pm-boundary-s3"
+path = "boundary_s3.rs"
+
+[[bin]]
+name = "predator-pm-recorder-off"
+path = "recorder_off.rs"
+
+[dependencies]
+serde_json = "=1.0.151"

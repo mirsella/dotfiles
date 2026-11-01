@@ -1,0 +1,1 @@
+The unprivileged nix copy refused the unsigned local build. Imported the same locally built NAR through existing sudo authority; local and remote NAR hashes match. No trust policy or credentials changed.

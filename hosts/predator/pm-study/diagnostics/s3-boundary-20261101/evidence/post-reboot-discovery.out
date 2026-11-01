@@ -1,0 +1,104 @@
+2026-11-01T11:59:46,421239015+01:00
+new_boot=bf51c3ac-164e-4bfa-b56c-7b71df526b7f
+btime=1793530757
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+Filesystem     1B-blocks   Used Available Use% Mounted on
+efivarfs          163752 156254      2378  99% /sys/firmware/efi/efivars
+  File: /sys/firmware/efi/efivars
+    ID: 1900000000 Namelen: 255     Type: efivarfs
+Block size: 1          Fundamental block size: 1
+Blocks: Total: 163752     Free: 7498       Available: 2378
+Inodes: Total: 0          Free: 0
+JOB UNIT                           TYPE  STATE
+373 nextcloud-cron.timer           start waiting
+444 podman-immich_server.service   start waiting
+445 podman-immich_postgres.service start running
+426 podman-immich_redis.service    start running
+366 zfs-scrub.timer                start waiting
+440 nextcloud-update-db.service    start waiting
+357 timers.target                  start waiting
+436 phpfpm-nextcloud.service       start waiting
+397 podman-immich_ml.service       start running
+433 beszel-setup.service           start running
+439 nextcloud-setup.service        start running
+435 phpfpm.target                  start waiting
+420 smartd.service                 start running
+246 multi-user.target              start waiting
+
+14 jobs listed.
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+Id=systemd-suspend.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+
+Id=predator-pm-clock-handoff.service
+ActiveState=active
+MainPID=0
+Result=success
+ExecMainStatus=0
+
+Id=predator-pm-preserve-rtc.service
+ActiveState=active
+MainPID=0
+Result=success
+ExecMainStatus=0
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+0
+0
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+/sys/power/mem_sleep=s2idle [deep]
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/class/rtc/rtc0/wakealarm=               Local time: Sun 2026-11-01 11:59:46 CET
+           Universal time: Sun 2026-11-01 10:59:46 UTC
+                 RTC time: Sun 2026-11-01 10:59:46
+                Time zone: Europe/Paris (CET, +0100)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+100 (connected)
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+2026-11-01T11:59:38.445138+01:00 predator systemd[1]: Starting Network Time Synchronization...
+2026-11-01T11:59:38.606038+01:00 predator systemd[1]: Started Network Time Synchronization.
+2026-11-01T11:59:44.946174+01:00 predator systemd[1]: Starting Restore NTP after initrd networkd hands the LAN to NetworkManager...
+2026-11-01T11:59:45.087020+01:00 predator predator-pm-study[2149]: NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+2026-11-01T11:59:45.675223+01:00 predator predator-pm-study[2149]: Removed inactive initrd networkd's stale online-state cache after verified NetworkManager handoff
+2026-11-01T11:59:45.741684+01:00 predator systemd[1]: Stopping Network Time Synchronization...
+2026-11-01T11:59:45.860552+01:00 predator systemd[1]: systemd-timesyncd.service: Deactivated successfully.
+2026-11-01T11:59:45.861315+01:00 predator systemd[1]: Stopped Network Time Synchronization.
+2026-11-01T11:59:45.884467+01:00 predator systemd[1]: Starting Network Time Synchronization...
+2026-11-01T11:59:45.995547+01:00 predator systemd[1]: Started Network Time Synchronization.
+2026-11-01T11:59:46.024677+01:00 predator predator-pm-study[2149]: NTP: Stopping Network Time Synchronization...
+2026-11-01T11:59:46.024677+01:00 predator predator-pm-study[2149]: NTP: systemd-timesyncd.service: Deactivated successfully.
+2026-11-01T11:59:46.024677+01:00 predator predator-pm-study[2149]: NTP: Stopped Network Time Synchronization.
+2026-11-01T11:59:46.024677+01:00 predator predator-pm-study[2149]: NTP: Starting Network Time Synchronization...
+2026-11-01T11:59:46.024677+01:00 predator predator-pm-study[2149]: NTP: Started Network Time Synchronization.
+2026-11-01T11:59:46.073967+01:00 predator systemd-timesyncd[2588]: Contacted time server 82.64.55.92:123 (0.nixos.pool.ntp.org).
+2026-11-01T11:59:46.074168+01:00 predator systemd-timesyncd[2588]: Initial clock synchronization to Sun 2026-11-01 11:59:45.899509 CET.
+2026-11-01T11:59:46.140197+01:00 predator predator-pm-study[2149]: NTP: Contacted time server 82.64.55.92:123 (0.nixos.pool.ntp.org).
+2026-11-01T11:59:46.140197+01:00 predator predator-pm-study[2149]: NTP: Initial clock synchronization to Sun 2026-11-01 11:59:45.899509 CET.
+2026-11-01T11:59:46.514721+01:00 predator systemd[1]: Finished Restore NTP after initrd networkd hands the LAN to NetworkManager.
+2026-11-01T11:58:50,479325600+01:00
+authorization=owner selected Reboot once
+old_boot=f9b45aa6-b820-4ab5-b18c-9324d8d53087
+expected_system=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+expected_entry=nixos-generation-167-o7mzz3pnl4dj6n4ajwtxp6rhpuc6k4pbdzfggpkl3govxscp665q.efi
+requested_epoch=1793530730
+old_success=2
+old_fail=0
+EFI_write_attempts=0
+S3_attempts=0
+Filesystem     1B-blocks   Used Available Use% Mounted on
+efivarfs          163752 156254      2378  99% /sys/firmware/efi/efivars

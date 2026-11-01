@@ -1,0 +1,538 @@
+# recv 2026-10-30T17:44:18+0100
+[ 2219.780877] CAPTURE CHECK boot=614a8318-dc72-4308-ae89-d4680fafac4e active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793378658
+# recv 2026-10-30T17:44:18+0100
+[ 2219.780923] 
+# recv 2026-10-30T17:44:19+0100
+[ 2220.255657] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T17:44:19+0100
+[ 2220.255661] PREFLIGHT boot=614a8318-dc72-4308-ae89-d4680fafac4e uptime=2220.28 17090.18 awake_since_verified_return=2219s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+# recv 2026-10-30T17:44:19+0100
+[ 2220.255687] 
+# recv 2026-10-30T17:44:20+0100
+[ 2221.745919] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T17:44:20+0100
+[ 2221.745930] WARMED /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
+# recv 2026-10-30T17:44:20+0100
+[ 2221.745982] 
+# recv 2026-10-30T17:44:20+0100
+[ 2222.067469] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T17:44:20+0100
+[ 2222.067480] WARMED /dev/disk/by-id/wwn-0x500003961228993f-part1
+# recv 2026-10-30T17:44:20+0100
+[ 2222.067563] 
+# recv 2026-10-30T17:44:20+0100
+[ 2222.085626] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T17:44:20+0100
+[ 2222.085636] WARMED /dev/disk/by-id/wwn-0x50014ee26a2aa7c6-part1
+# recv 2026-10-30T17:44:20+0100
+[ 2222.085711] 
+# recv 2026-10-30T17:44:21+0100
+[ 2222.643290] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T17:44:21+0100
+[ 2222.643302] PREFLIGHT boot=614a8318-dc72-4308-ae89-d4680fafac4e uptime=2222.67 17106.23 awake_since_verified_return=2222s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+# recv 2026-10-30T17:44:21+0100
+[ 2222.645306] 
+# recv 2026-10-30T17:44:21+0100
+[ 2222.864495] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T17:44:21+0100
+[ 2222.864509] BEGIN trial=r-serial-q37-20261030 boot=614a8318-dc72-4308-ae89-d4680fafac4e due_epoch=1793378658 wake_epoch=1793379618 profile=Q ordinal=1 pm_async=0 pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced
+# recv 2026-10-30T17:44:21+0100
+[ 2222.867301] 
+# recv 2026-10-30T17:44:21+0100
+[ 2222.876848] systemd-journald[458]: Received client request to sync journal (with offlining).
+# recv 2026-10-30T17:44:21+0100
+[ 2222.935349] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T17:44:21+0100
+[ 2222.935366] SUSPEND REQUEST logged_in_users=allow command=busctl ["call", "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "SuspendWithFlags", "t", "1"]
+# recv 2026-10-30T17:44:21+0100
+[ 2222.937657] 
+# recv 2026-10-30T17:44:21+0100
+[ 2223.093895] PM: suspend entry (deep)
+# recv 2026-10-30T17:44:21+0100
+[ 2223.118163] Filesystems sync: 0.021 seconds
+# recv 2026-10-30T17:44:21+0100
+[ 2223.135004] Freezing user space processes
+# recv 2026-10-30T17:44:21+0100
+[ 2223.136957] Freezing user space processes completed (elapsed 0.001 seconds)
+# recv 2026-10-30T17:44:21+0100
+[ 2223.137003] OOM killer disabled.
+# recv 2026-10-30T17:44:21+0100
+[ 2223.137021] Freezing remaining freezable tasks
+# recv 2026-10-30T17:44:21+0100
+[ 2223.137951] Freezing remaining freezable tasks completed (elapsed 0.000 seconds)
+# recv 2026-10-30T17:44:21+0100
+[ 2223.162003] GFP mask restricted
+# recv 2026-10-30T17:44:21+0100
+[ 2223.162655] rfkill rfkill1: PM: calling rfkill_suspend [rfkill] @ 19080, parent: phy0
+# recv 2026-10-30T17:44:21+0100
+[ 2223.162706] rfkill rfkill1: PM: rfkill_suspend [rfkill] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.162746] ieee80211 phy0: PM: calling wiphy_suspend [cfg80211] @ 19080, parent: 0000:02:00.0
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223328] ieee80211 phy0: PM: wiphy_suspend [cfg80211] returned 0 after 60288 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223594] input input18: PM: calling input_dev_suspend @ 19080, parent: card1
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223629] input input18: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223659] input input17: PM: calling input_dev_suspend @ 19080, parent: card1
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223687] input input17: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223715] sound pcmC1D0c: PM: calling do_pcm_suspend [snd_pcm] @ 19080, parent: card1
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223769] sound pcmC1D0c: PM: do_pcm_suspend [snd_pcm] returned 0 after 1 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223851] sound pcmC1D0p: PM: calling do_pcm_suspend [snd_pcm] @ 19080, parent: card1
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223900] sound pcmC1D0p: PM: do_pcm_suspend [snd_pcm] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223961] intel_rapl_msr intel_rapl_msr.0: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:21+0100
+[ 2223.223999] intel_rapl_msr intel_rapl_msr.0: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.224037] ses 3:0:0:1: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: target3:0:0
+# recv 2026-10-30T17:44:21+0100
+[ 2223.224252] ses 3:0:0:1: PM: scsi_bus_suspend [scsi_mod] returned 0 after 137 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.224351] sd 3:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: target3:0:0
+# recv 2026-10-30T17:44:21+0100
+[ 2223.234227] sd 3:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 9801 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.234337] scsi target3:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: host3
+# recv 2026-10-30T17:44:21+0100
+[ 2223.234407] scsi target3:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:21+0100
+[ 2223.234476] snd_hda_intel 0000:00:1f.3: PM: calling pci_pm_suspend @ 19080, parent: pci0000:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.260864] snd_hda_intel 0000:00:1f.3: PM: pci_pm_suspend returned 0 after 26347 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.260939] input input16: PM: calling input_dev_suspend @ 19080, parent: LNXVIDEO:01
+# recv 2026-10-30T17:44:22+0100
+[ 2223.260977] input input16: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261009] input input15: PM: calling input_dev_suspend @ 19080, parent: LNXVIDEO:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261041] input input15: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261076] backlight intel_backlight: PM: calling backlight_suspend @ 19080, parent: card1-eDP-1
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261113] backlight intel_backlight: PM: backlight_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261155] input input14: PM: calling input_dev_suspend @ 19080, parent: card0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261185] input input14: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261214] input input13: PM: calling input_dev_suspend @ 19080, parent: card0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261244] input input13: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261274] input input12: PM: calling input_dev_suspend @ 19080, parent: card0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261303] input input12: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261333] input input11: PM: calling input_dev_suspend @ 19080, parent: card0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261361] input input11: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261392] sound pcmC0D9p: PM: calling do_pcm_suspend [snd_pcm] @ 19080, parent: card0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261453] sound pcmC0D9p: PM: do_pcm_suspend [snd_pcm] returned 0 after 1 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261506] sound pcmC0D8p: PM: calling do_pcm_suspend [snd_pcm] @ 19080, parent: card0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261559] sound pcmC0D8p: PM: do_pcm_suspend [snd_pcm] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261610] sound pcmC0D7p: PM: calling do_pcm_suspend [snd_pcm] @ 19080, parent: card0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261662] sound pcmC0D7p: PM: do_pcm_suspend [snd_pcm] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261713] sound pcmC0D3p: PM: calling do_pcm_suspend [snd_pcm] @ 19080, parent: card0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261765] sound pcmC0D3p: PM: do_pcm_suspend [snd_pcm] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261887] rfkill rfkill0: PM: calling rfkill_suspend [rfkill] @ 19080, parent: hci0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.261965] rfkill rfkill0: PM: rfkill_suspend [rfkill] returned 0 after 1 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.262031] input input9: PM: calling input_dev_suspend @ 19080, parent: 0018:06CB:7DB7.0001
+# recv 2026-10-30T17:44:22+0100
+[ 2223.262067] input input9: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.262097] input input8: PM: calling input_dev_suspend @ 19080, parent: 0018:06CB:7DB7.0001
+# recv 2026-10-30T17:44:22+0100
+[ 2223.262130] input input8: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.262174] sd 5:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: target5:0:0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.268155] sd 5:0:0:0: [sdd] Synchronizing SCSI cache
+# recv 2026-10-30T17:44:22+0100
+[ 2223.269713] sd 5:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 7457 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.269743] scsi target5:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: host5
+# recv 2026-10-30T17:44:22+0100
+[ 2223.269795] scsi target5:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.269832] scsi host5: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: 2-2.4:1.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.269874] scsi host5: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.269911] platform coretemp.0: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.269955] platform coretemp.0: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.269967] sd 4:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: target4:0:0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.280124] sd 4:0:0:0: [sdc] Synchronizing SCSI cache
+# recv 2026-10-30T17:44:22+0100
+[ 2223.280665] sd 4:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 10676 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.281157] scsi target4:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: host4
+# recv 2026-10-30T17:44:22+0100
+[ 2223.281699] scsi target4:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.282195] scsi host4: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: 2-2.2:1.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.282693] scsi host4: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.283180] scsi host3: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: 2-2.3:1.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.283672] scsi host3: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.284172] i2c_hid_acpi i2c-SYNA7DB5:01: PM: calling acpi_subsys_suspend @ 19080, parent: i2c-2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.287049] i2c_hid_acpi i2c-SYNA7DB5:01: PM: acpi_subsys_suspend returned 0 after 2411 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.287528] iTCO_wdt iTCO_wdt: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:1f.4
+# recv 2026-10-30T17:44:22+0100
+[ 2223.288038] iTCO_wdt iTCO_wdt: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.288521] i2c_designware i2c_designware.1: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:15.1
+# recv 2026-10-30T17:44:22+0100
+[ 2223.289014] i2c_designware i2c_designware.1: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.289583] idma64 idma64.1: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:15.1
+# recv 2026-10-30T17:44:22+0100
+[ 2223.290128] idma64 idma64.1: PM: platform_pm_suspend returned 0 after 2 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.290641] i2c_designware i2c_designware.0: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:15.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.291156] i2c_designware i2c_designware.0: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.291684] idma64 idma64.0: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:15.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.292221] idma64 idma64.0: PM: platform_pm_suspend returned 0 after 2 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.292742] alarmtimer alarmtimer.0.auto: PM: calling platform_pm_suspend @ 19080, parent: rtc0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.293270] alarmtimer alarmtimer.0.auto: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.293776] rtc rtc0: PM: calling rtc_suspend @ 19080, parent: PNP0B00:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.294313] rtc rtc0: PM: rtc_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.294848] input input4: PM: calling input_dev_suspend @ 19080, parent: 10251229:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.295352] input input4: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.295881] input input3: PM: calling input_dev_suspend @ 19080, parent: PNP0C0C:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.296383] input input3: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.296912] input input2: PM: calling input_dev_suspend @ 19080, parent: PNP0C0E:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.297448] input input2: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.297982] input input1: PM: calling input_dev_suspend @ 19080, parent: PNP0C0D:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.298561] input input1: PM: input_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.299157] usb 2-2.4: PM: calling usb_dev_suspend @ 19080, parent: 2-2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.310919] usb 2-2.4: PM: usb_dev_suspend returned 0 after 11208 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.311587] usb 2-2.3: PM: calling usb_dev_suspend @ 19080, parent: 2-2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.322939] usb 2-2.3: PM: usb_dev_suspend returned 0 after 10698 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.323699] usb 2-2.2: PM: calling usb_dev_suspend @ 19080, parent: 2-2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.335298] usb 2-2.2: PM: usb_dev_suspend returned 0 after 10864 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.336380] usb 1-9: PM: calling usb_dev_suspend @ 19080, parent: usb1
+# recv 2026-10-30T17:44:22+0100
+[ 2223.337390] usb 1-9: PM: usb_dev_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.338409] usb 2-2.1: PM: calling usb_dev_suspend @ 19080, parent: 2-2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.426924] usb 2-2.1: PM: usb_dev_suspend returned 0 after 87492 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.428353] usb 1-2.1: PM: calling usb_dev_suspend @ 19080, parent: 1-2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.580098] usb 1-2.1: PM: usb_dev_suspend returned 0 after 150449 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.581439] usb 1-7: PM: calling usb_dev_suspend @ 19080, parent: usb1
+# recv 2026-10-30T17:44:22+0100
+[ 2223.582721] usb 1-7: PM: usb_dev_suspend returned 0 after 1 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.584003] usb 2-2: PM: calling usb_dev_suspend @ 19080, parent: usb2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.605305] usb 2-2: PM: usb_dev_suspend returned 0 after 20037 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.606613] sd 2:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: target2:0:0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.614974] sd 2:0:0:0: [sdb] Synchronizing SCSI cache
+# recv 2026-10-30T17:44:22+0100
+[ 2223.616348] sd 2:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 8397 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.617697] scsi target2:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: host2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.619021] scsi target2:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.620359] sd 0:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: target0:0:0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.631231] sd 0:0:0:0: [sda] Synchronizing SCSI cache
+# recv 2026-10-30T17:44:22+0100
+[ 2223.634699] sd 0:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 13007 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.636133] scsi target0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: host0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.637468] scsi target0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.638822] usb 1-2: PM: calling usb_dev_suspend @ 19080, parent: usb1
+# recv 2026-10-30T17:44:22+0100
+[ 2223.640267] usb 1-2: PM: usb_dev_suspend returned 0 after 140 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.641604] scsi host2: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: ata3
+# recv 2026-10-30T17:44:22+0100
+[ 2223.642951] scsi host2: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.644164] scsi host1: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: ata2
+# recv 2026-10-30T17:44:22+0100
+[ 2223.645377] scsi host1: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.646627] scsi host0: PM: calling scsi_bus_suspend [scsi_mod] @ 19080, parent: ata1
+# recv 2026-10-30T17:44:22+0100
+[ 2223.647835] scsi host0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.649057]  ata3: PM: calling ata_port_pm_suspend [libata] @ 19080, parent: 0000:00:17.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.650536] ata3.00: Entering standby power mode
+# recv 2026-10-30T17:44:22+0100
+[ 2223.654486]  ata3: PM: ata_port_pm_suspend [libata] returned 0 after 4193 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.655800]  ata2: PM: calling ata_port_pm_suspend [libata] @ 19080, parent: 0000:00:17.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.657239]  ata2: PM: ata_port_pm_suspend [libata] returned 0 after 193 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.658519]  ata1: PM: calling ata_port_pm_suspend [libata] @ 19080, parent: 0000:00:17.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.660136] ata1.00: Entering standby power mode
+# recv 2026-10-30T17:44:22+0100
+[ 2223.694262]  ata1: PM: ata_port_pm_suspend [libata] returned 0 after 34501 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.695789] leds input0::scrolllock: PM: calling led_suspend [led_class] @ 19080, parent: input0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.697178] leds input0::scrolllock: PM: led_suspend [led_class] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.698460] leds input0::capslock: PM: calling led_suspend [led_class] @ 19080, parent: input0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.699737] leds input0::capslock: PM: led_suspend [led_class] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.701012] leds input0::numlock: PM: calling led_suspend [led_class] @ 19080, parent: input0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.702310] leds input0::numlock: PM: led_suspend [led_class] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.703611] Generic FE-GE Realtek PHY r8169-0-301:00: PM: calling mdio_bus_phy_suspend [libphy] @ 19080, parent: r8169-0-301
+# recv 2026-10-30T17:44:22+0100
+[ 2223.704942] Generic FE-GE Realtek PHY r8169-0-301:00: PM: mdio_bus_phy_suspend [libphy] returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.706286] usb usb2: PM: calling usb_dev_suspend @ 19080, parent: 0000:00:14.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.707684] usb usb2: PM: usb_dev_suspend returned 0 after 86 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.709054] input input0: PM: calling input_dev_suspend @ 19080, parent: serio0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.710385] input input0: PM: input_dev_suspend returned 0 after 1 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.711724] usb usb1: PM: calling usb_dev_suspend @ 19080, parent: 0000:00:14.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.723705] usb usb1: PM: usb_dev_suspend returned 0 after 10674 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.725053] rtsx_pci_sdmmc rtsx_pci_sdmmc.0: PM: calling platform_pm_suspend @ 19080, parent: 0000:03:00.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.726382] rtsx_pci_sdmmc rtsx_pci_sdmmc.0: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.727702] atkbd serio0: PM: calling serio_suspend [serio] @ 19080, parent: i8042
+# recv 2026-10-30T17:44:22+0100
+[ 2223.730527] atkbd serio0: PM: serio_suspend [serio] returned 0 after 1492 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.731927] i8042 i8042: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.734011] i8042 i8042: PM: platform_pm_suspend returned 0 after 757 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.735380] port serial8250:0.3: PM: calling pm_runtime_force_suspend @ 19080, parent: serial8250:0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.736642] port serial8250:0.3: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.737865] port serial8250:0.2: PM: calling pm_runtime_force_suspend @ 19080, parent: serial8250:0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.739071] port serial8250:0.2: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.740287] port serial8250:0.1: PM: calling pm_runtime_force_suspend @ 19080, parent: serial8250:0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.741495] port serial8250:0.1: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.742708] port serial8250:0.0: PM: calling pm_runtime_force_suspend @ 19080, parent: serial8250:0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.743963] port serial8250:0.0: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.745226] serial8250 serial8250: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.746485] serial8250 serial8250: PM: platform_pm_suspend returned 0 after 1 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.747743] platform pcspkr: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.748985] platform pcspkr: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.750248] snd_hda_intel 0000:01:00.1: PM: calling pci_pm_suspend @ 19080, parent: 0000:00:01.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.774352] snd_hda_intel 0000:01:00.1: calling  nv_msi_ht_cap_quirk_leaf+0x0/0x30 @ 19080
+# recv 2026-10-30T17:44:22+0100
+[ 2223.775786] snd_hda_intel 0000:01:00.1: nv_msi_ht_cap_quirk_leaf+0x0/0x30 took 11 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.780860] snd_hda_intel 0000:01:00.1: PM: pci_pm_suspend returned 0 after 29357 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.782343] system 00:06: PM: calling pnp_bus_suspend @ 19080, parent: pnp0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.783704] system 00:06: PM: pnp_bus_suspend returned 0 after 1 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.785070] system 00:05: PM: calling pnp_bus_suspend @ 19080, parent: pnp0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.786419] system 00:05: PM: pnp_bus_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.787785] i8042 kbd 00:04: PM: calling pnp_bus_suspend @ 19080, parent: pnp0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.789043] i8042 kbd 00:04: PM: pnp_bus_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.790282] system 00:03: PM: calling pnp_bus_suspend @ 19080, parent: pnp0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.791515] system 00:03: PM: pnp_bus_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.792772] system 00:02: PM: calling pnp_bus_suspend @ 19080, parent: pnp0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.794110] system 00:02: PM: pnp_bus_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.795399] system 00:01: PM: calling pnp_bus_suspend @ 19080, parent: pnp0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.796643] system 00:01: PM: pnp_bus_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.797860] system 00:00: PM: calling pnp_bus_suspend @ 19080, parent: pnp0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.799088] system 00:00: PM: pnp_bus_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.800306] platform efivars.0: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.801520] platform efivars.0: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.802805] platform rtc-efi.0: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.804050] platform rtc-efi.0: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.805278] platform 10251229:00: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.806491] platform 10251229:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.807699] acpi-fan PNP0C0B:04: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.808933] acpi-fan PNP0C0B:04: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.810176] acpi-fan PNP0C0B:03: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.811443] acpi-fan PNP0C0B:03: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.812674] acpi-fan PNP0C0B:02: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.813903] acpi-fan PNP0C0B:02: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.815142] acpi-fan PNP0C0B:01: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.816365] acpi-fan PNP0C0B:01: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.817598] acpi-fan PNP0C0B:00: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.818812] acpi-fan PNP0C0B:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.820077] platform MSFT0101:00: PM: calling platform_pm_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.821327] platform MSFT0101:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.822531] acpi-button PNP0C0C:00: PM: calling acpi_subsys_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.823749] acpi-button PNP0C0C:00: PM: acpi_subsys_suspend returned 0 after 1 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.824958] intel_pmc_core INT33A1:00: PM: calling acpi_subsys_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.826170] intel_pmc_core INT33A1:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.827388] processor_aggregator ACPI000C:00: PM: calling acpi_subsys_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.828612] processor_aggregator ACPI000C:00: PM: acpi_subsys_suspend returned 0 after 1 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.829859] acpi-wmi PNP0C14:02: PM: calling acpi_subsys_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.831057] acpi-wmi PNP0C14:02: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.832245] acpi-button PNP0C0E:00: PM: calling acpi_subsys_suspend @ 19080, parent: platform
+# recv 2026-10-30T17:44:22+0100
+[ 2223.833449] acpi-button PNP0C0E:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.834703] acpi-wmi PNP0C14:01: PM: calling acpi_subsys_suspend @ 19080, parent: pci0000:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.835967] acpi-wmi PNP0C14:01: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.837231] acpi-wmi PNP0C14:00: PM: calling acpi_subsys_suspend @ 19080, parent: pci0000:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.838500] acpi-wmi PNP0C14:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.839636] sunrisepoint-pinctrl INT345D:00: PM: calling acpi_subsys_suspend @ 19080, parent: pci0000:00
+# recv 2026-10-30T17:44:22+0100
+[ 2223.840727] sunrisepoint-pinctrl INT345D:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.841820] acpi-button PNP0C0D:00: PM: calling acpi_subsys_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.842914] acpi-button PNP0C0D:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.844020] ac ACPI0003:00: PM: calling acpi_subsys_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.845127] ac ACPI0003:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.846239] platform PNP0C0A:00: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.847351] platform PNP0C0A:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.848443] platform PNP0C09:00: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.849531] platform PNP0C09:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.850614] intel_oc_wdt INT3F0D:00: PM: calling acpi_subsys_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.851736] intel_oc_wdt INT3F0D:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.852837] rtc_cmos PNP0B00:00: PM: calling acpi_subsys_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.854047] rtc_cmos PNP0B00:00: PM: acpi_subsys_suspend returned 0 after 114 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.855149] platform PNP0C04:00: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.856243] platform PNP0C04:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.857340] platform PNP0103:00: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.858433] platform PNP0103:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.859522] platform INT0800:00: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.860626] platform INT0800:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.861740] r8169 0000:03:00.1: PM: calling pci_pm_suspend @ 19080, parent: 0000:00:1c.3

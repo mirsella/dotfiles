@@ -1,0 +1,9 @@
+date=2026-11-01T12:40:49,499586483+01:00
+boot=bf51c3ac-164e-4bfa-b56c-7b71df526b7f
+cmdline=init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+taint=12289
+Filesystem     1B-blocks   Used Available Use% Mounted on
+efivarfs          163752 156410      2222  99% /sys/firmware/efi/efivars
+2026-11-01 12:40:49.519145+01:00
+LocalRTC=no
+NTPSynchronized=yes

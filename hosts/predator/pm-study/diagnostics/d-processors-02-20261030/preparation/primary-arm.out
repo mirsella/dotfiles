@@ -1,0 +1,40 @@
+2026-10-30T21:44:01+01:00
+DIAG READY id=d-processors-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=processors ordinal=7 due=1793393612 planned_age=12420 real_s3=false
+# /run/systemd/transient/predator-pm-diagnostic-d-processors-02-20261030.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-processors-02-20261030-plan.conf c1c3df017584d99b7e06940014a4afcdb56ea44a3cec6bdf45fcd608f5653c32
+
+[Timer]
+OnCalendar=@1793393612
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-diagnostic-d-processors-02-20261030.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-processors-02-20261030-plan.conf c1c3df017584d99b7e06940014a4afcdb56ea44a3cec6bdf45fcd608f5653c32
+
+[Service]
+Type=exec
+TimeoutStartSec=30s
+RuntimeMaxSec=3min
+TimeoutStopSec=30s
+ExecStopPost=
+ExecStopPost="/nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic" "restore" "/var/lib/predator-pm-diagnostic/d-processors-02-20261030-plan.conf" "c1c3df017584d99b7e06940014a4afcdb56ea44a3cec6bdf45fcd608f5653c32"
+Environment="PATH=/run/current-system/sw/bin"
+ExecStart=
+ExecStart="/nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic" "run" "/var/lib/predator-pm-diagnostic/d-processors-02-20261030-plan.conf" "c1c3df017584d99b7e06940014a4afcdb56ea44a3cec6bdf45fcd608f5653c32"
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 21:53:32 CET
+ActiveState=inactive
+Type=exec
+RuntimeMaxUSec=3min
+MainPID=0
+6
+0
+[none] core processors platform devices freezer
+1

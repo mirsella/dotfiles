@@ -1,0 +1,15 @@
+2026-10-31T22:05:27+01:00
+WAKE READY id=wake-20261031 nonce=wake-20261031-1793481300
+NEXT                            LEFT LAST                              PASSED UNIT                 ACTIVATES
+Sat 2026-10-31 22:07:03 CET 1min 26s Sat 2026-10-31 22:02:03 CET 3min 33s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+ActiveState=inactive
+Type=exec
+TimeoutStopUSec=3min
+RuntimeMaxUSec=40min
+ExecStopPost={ path=/nix/store/y5x8nw8lvhjjmxp9m1aiy4hkgsfsrr7g-predator-pm-study-0.1.0/bin/predator-pm-wake-validation ; argv[]=/nix/store/y5x8nw8lvhjjmxp9m1aiy4hkgsfsrr7g-predator-pm-study-0.1.0/bin/predator-pm-wake-validation restore /var/lib/predator-pm-wake-validation/wake-20261031-plan.conf 767cd2aff3f22cc1b8691ae63e3435d83279f7952b763870a53e0b680214b942 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+NEXT                        LEFT LAST PASSED UNIT                                 ACTIVATES
+Sat 2026-10-31 22:15:00 CET 9min -         - predator-pm-wake-wake-20261031.timer predator-pm-wake-wake-20261031.service
+
+1 timers listed.

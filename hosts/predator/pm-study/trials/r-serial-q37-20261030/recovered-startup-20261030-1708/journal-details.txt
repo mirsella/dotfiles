@@ -1,0 +1,209 @@
+2026-10-30T17:08:57+01:00
+2026-10-30T13:38:15.306809+01:00 predator systemd[1]: Started Nix Daemon.
+2026-10-30T13:38:15.352041+01:00 predator nix-daemon[1734]: accepted connection from pid 1520, user mirsella
+2026-10-30T13:38:15.550957+01:00 predator nix-daemon[1734]: accepted connection from pid 1759, user mirsella
+2026-10-30T13:38:19.663747+01:00 predator nix-daemon[1734]: accepted connection from pid 2123, user mirsella
+2026-10-30T13:38:19.859416+01:00 predator nix-daemon[1734]: accepted connection from pid 2191, user mirsella
+2026-10-30T14:53:25.365846+01:00 predator systemd[1]: Stopping Nix Daemon...
+2026-10-30T14:53:25.458510+01:00 predator systemd[1]: nix-daemon.service: Deactivated successfully.
+2026-10-30T14:53:25.458834+01:00 predator systemd[1]: Stopped Nix Daemon.
+2026-10-30T14:53:25.459530+01:00 predator systemd[1]: nix-daemon.service: Consumed 90ms CPU time over 1h 15min 10.151s wall clock time, 11M memory peak, 4.2M read from disk, 56K written to disk.
+2026-10-30T14:53:32.799947+01:00 predator systemd[1]: systemd-poweroff.service: Deactivated successfully.
+2026-10-30T14:53:32.800007+01:00 predator systemd[1]: Finished System Power Off.
+2026-10-30T13:37:54.266360+01:00 predator kernel: x86/cpu: SGX disabled or unsupported by BIOS.
+2026-10-30T13:37:54.267526+01:00 predator kernel: MDS CPU bug present and SMT on, data leak possible. See https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/mds.html for more details.
+2026-10-30T13:37:54.267570+01:00 predator kernel: MMIO Stale Data CPU bug present and SMT on, data leak possible. See https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/processor_mmio_stale_data.html for more details.
+2026-10-30T13:37:54.267604+01:00 predator kernel: VMSCAPE: SMT on, STIBP is required for full protection. See https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/vmscape.html for more details.
+2026-10-30T13:37:54.297246+01:00 predator kernel: ACPI Warning: Time parameter 255 us > 100 us violating ACPI spec, please fix the firmware. (20250807/exsystem-142)
+2026-10-30T13:37:54.316251+01:00 predator kernel: ENERGY_PERF_BIAS: Set to 'normal', was 'performance'
+2026-10-30T13:37:54.316726+01:00 predator kernel: integrity: Problem loading X.509 certificate -65
+2026-10-30T13:37:54.316789+01:00 predator kernel: integrity: Problem loading X.509 certificate -65
+2026-10-30T13:37:54.318404+01:00 predator kernel: device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+2026-10-30T13:37:54.546699+01:00 predator kernel: i8042: PNP: PS/2 appears to have AUX port disabled, if this is incorrect please boot with i8042.nopnp
+2026-10-30T13:37:54.628885+01:00 predator kernel: usb: port power management may be unreliable
+2026-10-30T13:37:54.660848+01:00 predator kernel: r8169 0000:03:00.1: can't disable ASPM; OS doesn't have ASPM control
+2026-10-30T13:37:55.003932+01:00 predator kernel: ata3.00: Model 'CT240BX500SSD1', rev ' M6CR013', applying quirks: nolpm
+2026-10-30T13:37:55.008469+01:00 predator kernel: ata3.00: LPM support broken, forcing max_power
+2026-10-30T13:38:01.964708+01:00 predator systemd[1]: Configuration file /etc/systemd/system.control/predator-pm-next.timer.d/90-suspend-study-hold-20261012.conf is marked world-inaccessible. This has no effect as configuration data is accessible via APIs without restrictions. Proceeding anyway.
+2026-10-30T13:38:01.964741+01:00 predator systemd[1]: Configuration file /etc/systemd/system.control/predator-pm-next.service.d/90-suspend-study-hold-20261012.conf is marked world-inaccessible. This has no effect as configuration data is accessible via APIs without restrictions. Proceeding anyway.
+2026-10-30T13:38:01.966829+01:00 predator kernel: spl: loading out-of-tree module taints kernel.
+2026-10-30T13:38:02.216431+01:00 predator kernel: zfs: module license 'CDDL' taints kernel.
+2026-10-30T13:38:02.216586+01:00 predator kernel: Disabling lock debugging due to kernel taint
+2026-10-30T13:38:02.216748+01:00 predator kernel: zfs: module license taints kernel.
+2026-10-30T13:38:03.500045+01:00 predator kernel: wmi_bus wmi_bus-PNP0C14:00: [Firmware Bug]: WMBF method block execution control method not found
+2026-10-30T13:38:03.527608+01:00 predator kernel: resource: resource sanity check: requesting [mem 0x00000000fdffe800-0x00000000fe0007ff], which spans more than pnp 00:00 [mem 0xfdb00000-0xfdffffff]
+2026-10-30T13:38:03.527804+01:00 predator kernel: caller get_primary_reg_base+0x4c/0xa0 [intel_pmc_core] mapping multiple BARs
+2026-10-30T13:38:03.917959+01:00 predator kernel: sd 4:0:0:0: [sdc] Optimal transfer size 33553920 bytes not a multiple of preferred minimum block size (4096 bytes)
+2026-10-30T13:38:04.725974+01:00 predator kernel: sd 3:0:0:0: [sde] No Caching mode page found
+2026-10-30T13:38:04.731908+01:00 predator kernel: sd 3:0:0:0: [sde] Assuming drive cache: write through
+2026-10-30T13:38:05.046507+01:00 predator kernel: Bluetooth: hci0: HCI Enhanced Setup Synchronous Connection command is advertised, but not supported.
+2026-10-30T13:38:05.066115+01:00 predator kernel: scsi 3:0:0:1: Wrong diagnostic page; asked for 1 got 8
+2026-10-30T13:38:05.066563+01:00 predator kernel: scsi 3:0:0:1: Failed to get diagnostic page 0x1
+2026-10-30T13:38:05.066991+01:00 predator kernel: scsi 3:0:0:1: Failed to bind enclosure -19
+2026-10-30T13:38:09.002196+01:00 predator kernel: device-mapper: table: 254:2: adding target device (start sect 0 len 1465112576) caused an alignment inconsistency
+2026-10-30T13:38:09.002234+01:00 predator kernel: device-mapper: table: 254:2: adding target device (start sect 0 len 1465112576) caused an alignment inconsistency
+2026-10-30T13:38:20.942769+01:00 predator unknown: CAPTURE CHECK boot=3c1873e4-b866-41e1-b411-702168ef90cf active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793363900
+2026-10-30T13:38:20.942827+01:00 predator unknown: 
+2026-10-30T13:38:21.008882+01:00 predator unknown: NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+2026-10-30T13:38:21.008960+01:00 predator unknown: 
+2026-10-30T13:41:05.522365+01:00 predator unknown: CAPTURE CHECK boot=3c1873e4-b866-41e1-b411-702168ef90cf active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793364065
+2026-10-30T13:41:05.522457+01:00 predator unknown: 
+2026-10-30T13:41:05.982137+01:00 predator unknown: PREFLIGHT boot=3c1873e4-b866-41e1-b411-702168ef90cf uptime=192.47 1342.53 awake_since_verified_return=192s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2026-10-30T13:41:05.982158+01:00 predator unknown: 
+2026-10-30T13:41:06.044101+01:00 predator unknown: TRIAL READY id=r-serial-q35r1-20261030 profile=Q pm_async=0 due=1793365973 wake=1793366933 manifest=3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e
+2026-10-30T13:41:06.044123+01:00 predator unknown: 
+2026-10-30T13:41:07.792234+01:00 predator unknown: CAPTURE CHECK boot=3c1873e4-b866-41e1-b411-702168ef90cf active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793364067
+2026-10-30T13:41:07.792296+01:00 predator unknown: 
+2026-10-30T13:41:08.038209+01:00 predator unknown: PREFLIGHT boot=3c1873e4-b866-41e1-b411-702168ef90cf uptime=194.52 1357.92 awake_since_verified_return=194s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2026-10-30T13:41:08.038277+01:00 predator unknown: 
+2026-10-30T13:41:08.212220+01:00 predator unknown: TRIAL READY id=r-serial-q35r1-20261030 profile=Q pm_async=0 due=1793365973 wake=1793366933 manifest=3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e
+2026-10-30T13:41:08.212291+01:00 predator unknown: 
+2026-10-30T13:41:12.197263+01:00 predator unknown: CAPTURE CHECK boot=3c1873e4-b866-41e1-b411-702168ef90cf active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793364072
+2026-10-30T13:41:12.197324+01:00 predator unknown: 
+2026-10-30T13:41:12.468288+01:00 predator unknown: PREFLIGHT boot=3c1873e4-b866-41e1-b411-702168ef90cf uptime=198.95 1391.13 awake_since_verified_return=198s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2026-10-30T13:41:12.468437+01:00 predator unknown: 
+2026-10-30T13:41:12.614173+01:00 predator unknown: TRIAL READY id=r-serial-q35r1-20261030 profile=Q pm_async=0 due=1793365973 wake=1793366933 manifest=3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e
+2026-10-30T13:41:12.614212+01:00 predator unknown: 
+2026-10-30T13:42:18.091119+01:00 predator unknown: CAPTURE CHECK boot=3c1873e4-b866-41e1-b411-702168ef90cf active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793364138
+2026-10-30T13:42:18.091147+01:00 predator unknown: 
+2026-10-30T13:42:18.307166+01:00 predator unknown: PREFLIGHT boot=3c1873e4-b866-41e1-b411-702168ef90cf uptime=264.79 1901.89 awake_since_verified_return=264s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2026-10-30T13:42:18.307204+01:00 predator unknown: 
+2026-10-30T13:42:18.451352+01:00 predator unknown: TRIAL READY id=r-serial-q35r1-20261030 profile=Q pm_async=0 due=1793365973 wake=1793366933 manifest=3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e
+2026-10-30T13:42:18.451422+01:00 predator unknown: 
+2026-10-30T14:12:53.784129+01:00 predator unknown: CAPTURE CHECK boot=3c1873e4-b866-41e1-b411-702168ef90cf active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793365973
+2026-10-30T14:12:53.784162+01:00 predator unknown: 
+2026-10-30T14:12:54.202101+01:00 predator unknown: PREFLIGHT boot=3c1873e4-b866-41e1-b411-702168ef90cf uptime=2100.69 16176.83 awake_since_verified_return=2100s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2026-10-30T14:12:54.202121+01:00 predator unknown: 
+2026-10-30T14:12:55.713839+01:00 predator unknown: WARMED /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
+2026-10-30T14:12:55.713900+01:00 predator unknown: 
+2026-10-30T14:12:56.031143+01:00 predator unknown: WARMED /dev/disk/by-id/wwn-0x500003961228993f-part1
+2026-10-30T14:12:56.031206+01:00 predator unknown: 
+2026-10-30T14:12:56.051159+01:00 predator unknown: WARMED /dev/disk/by-id/wwn-0x50014ee26a2aa7c6-part1
+2026-10-30T14:12:56.051217+01:00 predator unknown: 
+2026-10-30T14:12:57.217149+01:00 predator unknown: PREFLIGHT boot=3c1873e4-b866-41e1-b411-702168ef90cf uptime=2103.70 16198.09 awake_since_verified_return=2103s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2026-10-30T14:12:57.217169+01:00 predator unknown: 
+2026-10-30T14:12:57.311595+01:00 predator unknown: TRIAL CLEANUP id=r-serial-q35r1-20261030 pm_async=1 timesyncd=started
+2026-10-30T14:12:57.311619+01:00 predator unknown: 
+2026-10-30T14:53:32.087323+01:00 predator systemd-cryptsetup[34905]: EBUSY retry 23/25 for fast-crypt.
+2026-10-30T14:53:32.087324+01:00 predator systemd-cryptsetup[34908]: EBUSY retry 23/25 for tank3-crypt.
+2026-10-30T14:53:32.095303+01:00 predator systemd-cryptsetup[34907]: EBUSY retry 23/25 for tank2-crypt.
+2026-10-30T14:53:32.181993+01:00 predator systemd-cryptsetup[34906]: EBUSY retry 23/25 for tank1-crypt.
+2026-10-30T14:53:32.287917+01:00 predator systemd-cryptsetup[34908]: EBUSY retry 24/25 for tank3-crypt.
+2026-10-30T14:53:32.287918+01:00 predator systemd-cryptsetup[34905]: EBUSY retry 24/25 for fast-crypt.
+2026-10-30T14:53:32.295897+01:00 predator systemd-cryptsetup[34907]: EBUSY retry 24/25 for tank2-crypt.
+2026-10-30T14:53:32.382608+01:00 predator systemd-cryptsetup[34906]: EBUSY retry 24/25 for tank1-crypt.
+2026-10-30T14:53:32.488521+01:00 predator systemd-cryptsetup[34905]: EBUSY retry 25/25 for fast-crypt.
+2026-10-30T14:53:32.488523+01:00 predator systemd-cryptsetup[34908]: EBUSY retry 25/25 for tank3-crypt.
+2026-10-30T14:53:32.496492+01:00 predator systemd-cryptsetup[34907]: EBUSY retry 25/25 for tank2-crypt.
+2026-10-30T14:53:32.583204+01:00 predator systemd-cryptsetup[34906]: EBUSY retry 25/25 for tank1-crypt.
+2026-10-30T14:53:32.689130+01:00 predator systemd-cryptsetup[34908]: device-mapper: remove ioctl on tank3-crypt  failed: Device or resource busy
+2026-10-30T14:53:32.689150+01:00 predator systemd-cryptsetup[34905]: device-mapper: remove ioctl on fast-crypt  failed: Device or resource busy
+2026-10-30T14:53:32.689175+01:00 predator systemd-cryptsetup[34908]: Udev cookie 0xd4d9750 (semid 6) decremented to 1
+2026-10-30T14:53:32.689191+01:00 predator systemd-cryptsetup[34905]: Udev cookie 0xd4d06af (semid 5) decremented to 1
+2026-10-30T14:53:32.689202+01:00 predator systemd-cryptsetup[34908]: Udev cookie 0xd4d9750 (semid 6) decremented to 0
+2026-10-30T14:53:32.689217+01:00 predator systemd-cryptsetup[34908]: Udev cookie 0xd4d9750 (semid 6) waiting for zero
+2026-10-30T14:53:32.689218+01:00 predator systemd-cryptsetup[34905]: Udev cookie 0xd4d06af (semid 5) decremented to 0
+2026-10-30T14:53:32.689231+01:00 predator systemd-cryptsetup[34905]: Udev cookie 0xd4d06af (semid 5) waiting for zero
+2026-10-30T14:53:32.689239+01:00 predator systemd-cryptsetup[34908]: Udev cookie 0xd4d9750 (semid 6) destroyed
+2026-10-30T14:53:32.689252+01:00 predator systemd-cryptsetup[34905]: Udev cookie 0xd4d06af (semid 5) destroyed
+2026-10-30T14:53:32.689269+01:00 predator systemd-cryptsetup[34908]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T14:53:32.689282+01:00 predator systemd-cryptsetup[34905]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T14:53:32.689312+01:00 predator systemd-cryptsetup[34908]: dm status tank3-crypt  [ opencount noflush ]   [16384]
+2026-10-30T14:53:32.689326+01:00 predator systemd-cryptsetup[34905]: dm status fast-crypt  [ opencount noflush ]   [16384]
+2026-10-30T14:53:32.689356+01:00 predator systemd-cryptsetup[34908]: Device tank3-crypt is still in use.
+2026-10-30T14:53:32.689368+01:00 predator systemd-cryptsetup[34905]: Device fast-crypt is still in use.
+2026-10-30T14:53:32.689374+01:00 predator systemd-cryptsetup[34908]: Failed to deactivate 'tank3-crypt': Device or resource busy
+2026-10-30T14:53:32.689387+01:00 predator systemd-cryptsetup[34905]: Failed to deactivate 'fast-crypt': Device or resource busy
+2026-10-30T14:53:32.689388+01:00 predator systemd-cryptsetup[34908]: Releasing crypt device /dev/sde1 context.
+2026-10-30T14:53:32.689400+01:00 predator systemd-cryptsetup[34908]: Releasing device-mapper backend.
+2026-10-30T14:53:32.689401+01:00 predator systemd-cryptsetup[34905]: Releasing crypt device /dev/sdb1 context.
+2026-10-30T14:53:32.689413+01:00 predator systemd-cryptsetup[34905]: Releasing device-mapper backend.
+2026-10-30T14:53:32.689486+01:00 predator systemd-cryptsetup[34908]: Closing read only fd for /dev/sde1.
+2026-10-30T14:53:32.689510+01:00 predator systemd-cryptsetup[34905]: Closing read only fd for /dev/sdb1.
+2026-10-30T14:53:32.692834+01:00 predator systemd[1]: systemd-cryptsetup@fast\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-30T14:53:32.693522+01:00 predator systemd[1]: systemd-cryptsetup@fast\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-30T14:53:32.694384+01:00 predator systemd[1]: Stopped Cryptography Setup for fast-crypt.
+2026-10-30T14:53:32.695573+01:00 predator systemd[1]: systemd-cryptsetup@tank3\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-30T14:53:32.695757+01:00 predator systemd[1]: systemd-cryptsetup@tank3\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-30T14:53:32.695987+01:00 predator systemd[1]: Stopped Cryptography Setup for tank3-crypt.
+2026-10-30T14:53:32.696613+01:00 predator systemd-cryptsetup[34907]: device-mapper: remove ioctl on tank2-crypt  failed: Device or resource busy
+2026-10-30T14:53:32.696631+01:00 predator systemd-cryptsetup[34907]: Udev cookie 0xd4d80dc (semid 7) decremented to 1
+2026-10-30T14:53:32.696642+01:00 predator systemd-cryptsetup[34907]: Udev cookie 0xd4d80dc (semid 7) decremented to 0
+2026-10-30T14:53:32.696649+01:00 predator systemd-cryptsetup[34907]: Udev cookie 0xd4d80dc (semid 7) waiting for zero
+2026-10-30T14:53:32.696661+01:00 predator systemd-cryptsetup[34907]: Udev cookie 0xd4d80dc (semid 7) destroyed
+2026-10-30T14:53:32.696675+01:00 predator systemd-cryptsetup[34907]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T14:53:32.696692+01:00 predator systemd-cryptsetup[34907]: dm status tank2-crypt  [ opencount noflush ]   [16384]
+2026-10-30T14:53:32.696712+01:00 predator systemd-cryptsetup[34907]: Device tank2-crypt is still in use.
+2026-10-30T14:53:32.696720+01:00 predator systemd-cryptsetup[34907]: Failed to deactivate 'tank2-crypt': Device or resource busy
+2026-10-30T14:53:32.696725+01:00 predator systemd-cryptsetup[34907]: Releasing crypt device /dev/sdd1 context.
+2026-10-30T14:53:32.696731+01:00 predator systemd-cryptsetup[34907]: Releasing device-mapper backend.
+2026-10-30T14:53:32.696775+01:00 predator systemd-cryptsetup[34907]: Closing read only fd for /dev/sdd1.
+2026-10-30T14:53:32.698108+01:00 predator systemd[1]: systemd-cryptsetup@tank2\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-30T14:53:32.698313+01:00 predator systemd[1]: systemd-cryptsetup@tank2\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-30T14:53:32.698581+01:00 predator systemd[1]: Stopped Cryptography Setup for tank2-crypt.
+2026-10-30T14:53:32.783531+01:00 predator systemd-cryptsetup[34906]: device-mapper: remove ioctl on tank1-crypt  failed: Device or resource busy
+2026-10-30T14:53:32.783587+01:00 predator systemd-cryptsetup[34906]: Udev cookie 0xd4dc690 (semid 8) decremented to 1
+2026-10-30T14:53:32.783623+01:00 predator systemd-cryptsetup[34906]: Udev cookie 0xd4dc690 (semid 8) decremented to 0
+2026-10-30T14:53:32.783645+01:00 predator systemd-cryptsetup[34906]: Udev cookie 0xd4dc690 (semid 8) waiting for zero
+2026-10-30T14:53:32.783681+01:00 predator systemd-cryptsetup[34906]: Udev cookie 0xd4dc690 (semid 8) destroyed
+2026-10-30T14:53:32.783723+01:00 predator systemd-cryptsetup[34906]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T14:53:32.783785+01:00 predator systemd-cryptsetup[34906]: dm status tank1-crypt  [ opencount noflush ]   [16384]
+2026-10-30T14:53:32.783852+01:00 predator systemd-cryptsetup[34906]: Device tank1-crypt is still in use.
+2026-10-30T14:53:32.783875+01:00 predator systemd-cryptsetup[34906]: Failed to deactivate 'tank1-crypt': Device or resource busy
+2026-10-30T14:53:32.783898+01:00 predator systemd-cryptsetup[34906]: Releasing crypt device /dev/sdc1 context.
+2026-10-30T14:53:32.783919+01:00 predator systemd-cryptsetup[34906]: Releasing device-mapper backend.
+2026-10-30T14:53:32.784102+01:00 predator systemd-cryptsetup[34906]: Closing read only fd for /dev/sdc1.
+2026-10-30T14:53:32.788153+01:00 predator systemd[1]: systemd-cryptsetup@tank1\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-30T14:53:32.788756+01:00 predator systemd[1]: systemd-cryptsetup@tank1\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-30T14:53:32.789558+01:00 predator systemd[1]: Stopped Cryptography Setup for tank1-crypt.
+2026-10-30T14:53:32.794665+01:00 predator systemd[1]: Removed slice Slice /system/systemd-cryptsetup.
+2026-10-30T14:53:32.795992+01:00 predator systemd[1]: system-systemd\x2dcryptsetup.slice: Consumed 1.471s CPU time over 1h 15min 38.009s wall clock time, 11.1M memory peak, 3.3M read from disk.
+2026-10-30T14:53:32.796162+01:00 predator systemd[1]: Reached target System Shutdown.
+2026-10-30T14:53:32.797437+01:00 predator systemd[1]: Reached target Unmount All Filesystems.
+2026-10-30T14:53:32.798647+01:00 predator systemd[1]: Reached target Late Shutdown Services.
+2026-10-30T14:53:32.799947+01:00 predator systemd[1]: systemd-poweroff.service: Deactivated successfully.
+2026-10-30T14:53:32.800007+01:00 predator systemd[1]: Finished System Power Off.
+2026-10-30T14:53:32.801350+01:00 predator systemd[1]: Reached target System Power Off.
+2026-10-30T14:53:32.802570+01:00 predator systemd[1]: Shutting down.
+2026-10-30T14:53:32.915615+01:00 predator systemd-shutdown[1]: Syncing filesystems and block devices.
+2026-10-30T14:53:33.028650+01:00 predator systemd-shutdown[1]: Sending SIGTERM to remaining processes...
+2026-10-30T14:53:33.028835+01:00 predator systemd-journald[456]: Received SIGTERM from PID 1 (systemd-shutdow).
+2026-10-30T14:53:33.029048+01:00 predator systemd-journald[456]: Journal stopped
+Oct 30 17:07:26 predator systemd[1]: Platform Persistent Storage Archival skipped, unmet condition check ConditionDirectoryNotEmpty=/sys/fs/pstore
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+No jobs running.
+immich_redis Up About a minute (healthy)
+immich_ml Up About a minute (healthy)
+immich_postgres Up About a minute (healthy)
+immich_server Up 39 seconds (healthy)
+TimersMonotonic={ OnUnitActiveUSec=5min ; next_elapse=0 }
+TimersMonotonic={ OnBootUSec=5min ; next_elapse=5min }
+NextElapseUSecMonotonic=5min
+LastTriggerUSecMonotonic=0
+AccuracyUSec=1min
+RandomizedDelayUSec=0
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+3889118e0b42971fe6fc3c4f88619c2b9a7fb405575d6c73dda421287dc741b3  hosts/predator/pm-study/README.md
+bc0b61b978c01ebfb42dd1ca283264b4de01920c8356a7c52be24a7b6aab7f71  hosts/predator/pm-study/trials/r-serial-q35r1-20261030/README.md
+dc626ff76f258e1dd36f5f0bef4285ee0951482b135dccccf0333ca8bb779d86  pkgs/predator-pm-study/trial.rs

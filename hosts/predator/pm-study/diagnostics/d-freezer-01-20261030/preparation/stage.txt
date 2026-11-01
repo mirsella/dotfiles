@@ -1,0 +1,3 @@
+2026-10-30T18:51:56+01:00
+/home/mirsella/dev/dotfiles/.scratch/pm-phase-diagnostics-20261030/runtime-root
+DIAG READY id=d-freezer-01-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 due=1793383412 planned_age=2220 real_s3=false

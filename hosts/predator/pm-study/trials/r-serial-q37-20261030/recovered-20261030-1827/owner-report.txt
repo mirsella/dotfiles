@@ -1,0 +1,6 @@
+Initial owner report: rebooted it. think about whats the best next tests to find this problem and whats causing these hangs.
+Physical-state clarification: Stayed around 15 W.
+The choice explicitly described failure to reach the usual approximately 3 W sleep state. This confirms Q37 as an owner-reported approximately15W hang/non-entry, separate from the earlier30W shutdown/startup outage. Exact observation time and dated graph remain unavailable.
+Next-branch authorization: yes you can do that if its better. i just want each reboot i have to manually do have the most value possible, because im far away from it.
+This approves separately labeled pm_test phase-isolation diagnostics beginning freezer/devices, reviewed one at a time, reusing a healthy boot rather than repeated gratuitous resets. The existing real-S3 900-second requirement is not redefined: these diagnostics deliberately do not enter physical S3 or create S3 completion/primer records.
+Recovery boot f8eb6e44-85ae-4e56-bc00-587876699945; btime1793381192,2026-10-30T18:26:32+01:00. Exact owner reboot mechanism/off duration unknown. No agent reset performed.

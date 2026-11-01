@@ -1,0 +1,24 @@
+2026-10-30T17:12:24+01:00
+305.88 2188.14
+TimersMonotonic={ OnUnitActiveUSec=5min ; next_elapse=10min 1.449356s }
+TimersMonotonic={ OnBootUSec=5min ; next_elapse=5min }
+NextElapseUSecMonotonic=10min 1.449356s
+LastTriggerUSec=Fri 2026-10-30 17:12:20 CET
+LastTriggerUSecMonotonic=5min 1.444911s
+AccuracyUSec=1min
+RandomizedDelayUSec=0
+ActiveState=inactive
+SubState=dead
+InactiveExitTimestampMonotonic=301449356
+Result=success
+ExecMainStartTimestamp=Fri 2026-10-30 17:12:20 CET
+ExecMainStartTimestampMonotonic=301880680
+ExecMainExitTimestamp=Fri 2026-10-30 17:12:22 CET
+2026-10-30T17:12:20.158540+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T17:12:20.605110+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T17:12:22.321580+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+2026-10-30T17:12:22.322928+01:00 predator systemd[1]: nextcloud-cron.service: Consumed 1.048s CPU time over 2.163s wall clock time, 52.9M memory peak, 3.6M read from disk, 216K written to disk.
+NEXT                            LEFT LAST                        PASSED UNIT                 ACTIVATES
+Fri 2026-10-30 17:17:20 CET 4min 55s Fri 2026-10-30 17:12:20 CET 4s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.

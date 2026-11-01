@@ -1,0 +1,6 @@
+[ 2220.255661] PREFLIGHT boot=614a8318-dc72-4308-ae89-d4680fafac4e uptime=2220.28 17090.18 awake_since_verified_return=2219s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[ 2222.643302] PREFLIGHT boot=614a8318-dc72-4308-ae89-d4680fafac4e uptime=2222.67 17106.23 awake_since_verified_return=2222s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[ 2222.864509] BEGIN trial=r-serial-q37-20261030 boot=614a8318-dc72-4308-ae89-d4680fafac4e due_epoch=1793378658 wake_epoch=1793379618 profile=Q ordinal=1 pm_async=0 pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced
+[ 2222.935366] SUSPEND REQUEST logged_in_users=allow command=busctl ["call", "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "SuspendWithFlags", "t", "1"]
+[ 2223.093895] PM: suspend entry (deep)
+BEGIN=1 REQUEST=1 DEEP_ENTRY=1 LOW_LEVEL_RESUME=0 EXIT=0 MEASURED_DURATION=0

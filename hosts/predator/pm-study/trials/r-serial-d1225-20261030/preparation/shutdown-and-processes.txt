@@ -1,0 +1,463 @@
+2026-10-29T20:08:24+01:00
+IDX BOOT ID                          FIRST ENTRY                  LAST ENTRY
+-19 3a4f575dfc544a64af0614f9a8fa63d0 Thu 2026-10-15 14:18:09 CEST Thu 2026-10-15 16:20:54 CEST
+-18 de9d9e058614417fb09074857b150977 Thu 2026-10-15 16:21:12 CEST Thu 2026-10-15 23:39:39 CEST
+-17 efe15d4db69c4d198b2b8aba76fb495f Thu 2026-10-15 23:39:56 CEST Fri 2026-10-16 00:44:40 CEST
+-16 74360ddda1a94ee393e62b533d11165d Fri 2026-10-16 00:44:59 CEST Fri 2026-10-16 08:45:04 CEST
+-15 214d0240382549468492c30bf530eba0 Fri 2026-10-16 10:51:43 CEST Fri 2026-10-16 14:00:03 CEST
+-14 abcb8a0a354d4de3a6ef4bfd9c1a8ea1 Fri 2026-10-16 14:13:14 CEST Fri 2026-10-16 17:58:44 CEST
+-13 59e8d37c649747e1a444dd46b4b13aa9 Fri 2026-10-16 17:59:01 CEST Fri 2026-10-16 22:16:47 CEST
+-12 ef0daaba80a74dc0815fdb43bd7e5af1 Fri 2026-10-16 22:17:05 CEST Sat 2026-10-17 18:00:05 CEST
+-11 b0f7e947a7bf4410aece191277fd0a9d Sat 2026-10-17 18:18:57 CEST Sun 2026-10-18 09:46:38 CEST
+-10 4f67b02afd49416e87318cb9c410719f Sun 2026-10-18 09:46:56 CEST Sun 2026-10-18 12:50:58 CEST
+ -9 7254fdfad1054caca29ddb8ce540811d Sun 2026-10-18 12:51:16 CEST Sun 2026-10-18 12:57:17 CEST
+ -8 97c84d692b6a497fa992d0dc7a4fb5a9 Sun 2026-10-18 12:57:34 CEST Sun 2026-10-18 18:42:17 CEST
+ -7 5026ab3085d04f9b9e35ce176899500f Sun 2026-10-18 18:42:35 CEST Sun 2026-10-18 20:27:57 CEST
+ -6 5271820b0d2c4232a00eebd0bf5c34d2 Sun 2026-10-18 20:28:14 CEST Sun 2026-10-18 22:27:08 CEST
+ -5 e5c893be7bb24d97aa2d97103d7e0a23 Sun 2026-10-18 22:27:25 CEST Tue 2026-10-20 11:58:26 CEST
+ -4 3e3c970d025f4b788e00f911e202e948 Tue 2026-10-20 12:19:13 CEST Tue 2026-10-20 20:24:15 CEST
+ -3 9c19e8c7a404454c813eced03d90a71c Tue 2026-10-27 18:06:45 CET  Wed 2026-10-28 19:36:39 CET
+ -2 b223cb35a02b4417a3db569ad986cd4b Wed 2026-10-28 20:56:02 CET  Thu 2026-10-29 09:21:06 CET
+ -1 4e5cb3ba062b4ad0bd187e24492f97e6 Thu 2026-10-29 12:05:11 CET  Thu 2026-10-29 20:02:35 CET
+  0 13bec0ddb61143aaa9b730a8de33195e Thu 2026-10-29 20:05:41 CET  Thu 2026-10-29 20:08:24 CET
+2026-10-29T20:02:26.456989+01:00 predator systemd-logind[1539]: New session '16' of user 'mirsella' with class 'user' and type 'tty'.
+2026-10-29T20:02:26.814221+01:00 predator systemd-logind[1539]: poweroff requested from client PID 194542 ('systemctl') (unit session-16.scope)...
+2026-10-29T20:02:26.814879+01:00 predator systemd-logind[1539]: System is powering down.
+2026-10-29T20:02:26.826999+01:00 predator systemd-logind[1539]: The system will power off now!
+2026-10-29T20:02:27.194977+01:00 predator systemd-logind[1539]: Session 16 logged out. Waiting for processes to exit.
+2026-10-29T20:02:27.233012+01:00 predator systemd-logind[1539]: Removed session 16.
+2026-10-29T20:02:29.373826+01:00 predator systemd-logind[1539]: Removed session 1.
+2026-10-29T20:02:29.438723+01:00 predator systemd[1]: Stopping User Login Management...
+2026-10-29T20:02:29.477904+01:00 predator systemd[1]: systemd-logind.service: Deactivated successfully.
+2026-10-29T20:02:29.478679+01:00 predator systemd[1]: Stopped User Login Management.
+2026-10-29T20:02:29.480402+01:00 predator systemd[1]: systemd-logind.service: Consumed 2min 28.795s CPU time over 7h 56min 54.729s wall clock time, 4.6M memory peak, 936K read from disk.
+2026-10-29T20:02:35.248928+01:00 predator systemd[1]: systemd-poweroff.service: Deactivated successfully.
+2026-10-29T20:02:35.249029+01:00 predator systemd[1]: Finished System Power Off.
+USER         PID COMMAND
+root           1 systemd
+root           2 kthreadd
+root           3 pool_workqueue_release
+root           4 kworker/R-rcu_gp
+root           5 kworker/R-sync_wq
+root           6 kworker/R-kvfree_rcu_reclaim
+root           7 kworker/R-slub_flushwq
+root           8 kworker/R-netns
+root           9 kworker/0:0-events
+root          10 kworker/0:0H-events_highpri
+root          11 kworker/0:1-events
+root          12 kworker/u32:0-kcryptd-254:0-1
+root          13 kworker/R-mm_percpu_wq
+root          14 kworker/u32:1-kcryptd-254:0-1
+root          15 ksoftirqd/0
+root          16 rcu_preempt
+root          17 rcu_exp_par_gp_kthread_worker/0
+root          18 rcu_exp_gp_kthread_worker
+root          19 migration/0
+root          20 idle_inject/0
+root          21 cpuhp/0
+root          22 cpuhp/1
+root          23 idle_inject/1
+root          24 migration/1
+root          25 ksoftirqd/1
+root          26 kworker/1:0-events
+root          27 kworker/1:0H-events_highpri
+root          28 cpuhp/2
+root          29 idle_inject/2
+root          30 migration/2
+root          31 ksoftirqd/2
+root          32 kworker/2:0-cgroup_bpf_destroy
+root          33 kworker/2:0H-events_highpri
+root          34 cpuhp/3
+root          35 idle_inject/3
+root          36 migration/3
+root          37 ksoftirqd/3
+root          38 kworker/3:0-mm_percpu_wq
+root          39 kworker/3:0H-events_highpri
+root          40 cpuhp/4
+root          41 idle_inject/4
+root          42 migration/4
+root          43 ksoftirqd/4
+root          44 kworker/4:0-cgroup_release
+root          45 kworker/4:0H-events_highpri
+root          46 cpuhp/5
+root          47 idle_inject/5
+root          48 migration/5
+root          49 ksoftirqd/5
+root          50 kworker/5:0-mm_percpu_wq
+root          51 kworker/5:0H-events_highpri
+root          52 cpuhp/6
+root          53 idle_inject/6
+root          54 migration/6
+root          55 ksoftirqd/6
+root          56 kworker/6:0-cgroup_free
+root          57 kworker/6:0H-events_highpri
+root          58 cpuhp/7
+root          59 idle_inject/7
+root          60 migration/7
+root          61 ksoftirqd/7
+root          62 kworker/7:0-events
+root          63 kworker/7:0H-events_highpri
+root          64 kdevtmpfs
+root          65 kworker/R-inet_frag_wq
+root          66 rcu_tasks_kthread
+root          67 rcu_tasks_rude_kthread
+root          68 rcu_tasks_trace_kthread
+root          69 kauditd
+root          70 khungtaskd
+root          71 oom_reaper
+root          72 kworker/u32:2-kcryptd-254:0-1
+root          73 kworker/R-writeback
+root          74 kcompactd0
+root          75 ksmd
+root          76 khugepaged
+root          77 kworker/R-kblockd
+root          78 kworker/R-blkcg_punt_bio
+root          79 kworker/R-kintegrityd
+root          80 kworker/4:1-cgroup_free
+root          81 irq/9-acpi
+root          82 kworker/5:1-mm_percpu_wq
+root          83 kworker/6:1-events
+root          84 kworker/2:1-cgroup_release
+root          85 kworker/R-tpm_dev_wq
+root          86 kworker/R-devfreq_wq
+root          87 kworker/R-quota_events_unbound
+root          88 kworker/1:1-events_freezable
+root          89 kworker/4:1H-kblockd
+root          90 kswapd0
+root          91 kworker/R-kthrotld
+root          92 hwrng
+root          93 kworker/R-mld
+root          94 kworker/R-ipv6_addrconf
+root          95 kworker/1:1H-kblockd
+root          96 kworker/R-kstrp
+root          97 kworker/u33:0-hci0
+root          99 kworker/0:1H-kblockd
+root         100 kworker/3:1H-kblockd
+root         101 kworker/5:1H-kblockd
+root         102 kworker/1:2-events
+root         105 kworker/2:1H-kblockd
+root         116 kworker/7:1-events
+root         118 kworker/6:1H-kblockd
+root         123 kworker/7:1H-kblockd
+root         134 kworker/3:1-cgroup_offline
+root         136 kworker/u32:3-kcryptd-254:0-1
+root         137 kworker/0:2-events
+root         138 kworker/6:2-events
+root         141 kworker/2:2-events
+root         144 kworker/2:3-events
+root         157 kworker/7:2-events
+root         158 kworker/5:2-cgroup_offline
+root         167 kworker/4:2-mm_percpu_wq
+root         204 kworker/4:3-events
+root         205 kworker/6:3-pm
+root         210 kworker/3:2-cgroup_free
+root         211 kworker/7:3-events
+root         214 kworker/R-ata_sff
+root         217 scsi_eh_0
+root         218 kworker/R-scsi_tmf_0
+root         219 scsi_eh_1
+root         220 kworker/R-scsi_tmf_1
+root         221 scsi_eh_2
+root         222 kworker/R-scsi_tmf_2
+root         223 kworker/u32:4-kcryptd-254:0-1
+root         224 kworker/u32:5-kcryptd-254:0-1
+root         225 kworker/u32:6-kcryptd-254:0-1
+root         226 kworker/u32:7-kcryptd-254:0-1
+root         232 kworker/1:3-events
+root         238 kworker/5:3
+root         240 kworker/R-kdmflush/254:0
+root         241 kworker/R-kcryptd_io-254:0-1
+root         242 kworker/R-kcryptd-254:0-1
+root         243 dmcrypt_write/254:0
+root         253 jbd2/dm-0-8
+root         254 kworker/R-ext4-rsv-conversion
+root         293 kworker/7:4
+root         439 psimon
+root         458 systemd-journal
+root         473 kworker/R-tls-strp
+root         474 spl_system_task
+root         475 spl_delay_taskq
+root         476 spl_dynamic_tas
+root         477 spl_kmem_cache
+root         504 systemd-udevd
+root         511 psimon
+root         575 kworker/R-acpi_thermal_pm
+root         578 zvol_tq-0
+root         579 zvol_tq-1
+root         582 mount.envfs
+root         587 arc_prune
+root         588 arc_evict
+root         589 arc_evict
+root         590 arc_evict
+root         591 arc_flush
+root         592 arc_evict
+root         593 arc_reap
+root         594 irq/134-mei_me
+root         595 watchdogd
+root         596 dbu_evict
+root         597 dbuf_evict
+root         599 kworker/6:4-events
+root         600 kworker/6:5-events
+root         602 z_vdev_file
+root         604 irq/135-SYNA7DB5:01
+root         605 kworker/R-cfg80211
+root         607 l2arc_feed
+root         609 scsi_eh_3
+root         610 kworker/R-scsi_tmf_3
+root         611 usb-storage
+root         617 kworker/R-uas
+root         620 kworker/1:4
+root         622 scsi_eh_4
+root         623 kworker/R-scsi_tmf_4
+root         627 scsi_eh_5
+root         628 kworker/R-scsi_tmf_5
+root         633 kworker/u32:8-kcryptd-254:0-1
+root         634 kworker/u32:9-events_unbound
+root         638 kworker/R-ttm
+systemd+     641 systemd-oomd
+root         646 card1-crtc0
+root         647 card1-crtc1
+root         648 card1-crtc2
+root         650 kworker/u32:10-kcryptd-254:0-1
+root         652 kworker/u32:11-flush-254:0
+root         704 kworker/u33:1-hci0
+root         705 kworker/0:3-events
+root         748 kworker/R-kdmflush/254:1
+root         749 kworker/R-kcryptd_io-254:1-2
+root         750 kworker/R-kcryptd-254:1-2
+root         751 dmcrypt_write/254:1
+root         762 kworker/u33:2-hci0
+root         811 kworker/R-ath10k_wq
+root         812 kworker/R-ath10k_aux_wq
+root         813 kworker/R-ath10k_tx_complete_wq
+root         988 z_null_iss
+root         989 z_null_int
+root         990 z_rd_iss
+root         991 z_rd_int_0
+root         992 z_rd_int_1
+root         993 z_wr_iss
+root         994 z_wr_int_0
+root         995 z_wr_int_1
+root         996 z_fr_iss_0
+root         997 z_fr_iss_1
+root         998 z_fr_int
+root         999 z_cl_iss
+root        1000 z_cl_int
+root        1001 z_flush_iss
+root        1002 z_flush_int
+root        1003 z_trim_iss
+root        1004 z_trim_int
+root        1005 z_zvol
+root        1006 z_metaslab
+root        1007 z_prefetch
+root        1008 z_upgrade
+root        1016 dp_sync_taskq
+root        1017 dp_sync_taskq
+root        1018 dp_zil_clean_ta
+root        1019 dp_zil_clean_ta
+root        1020 dp_zil_clean_ta
+root        1021 dp_zil_clean_ta
+root        1022 dp_zil_clean_ta
+root        1023 dp_zil_clean_ta
+root        1024 dp_zil_clean_ta
+root        1025 dp_zil_clean_ta
+root        1026 z_zrele
+root        1027 z_unlinked_drai
+root        1055 z_rd_iss
+root        1056 txg_quiesce
+root        1057 txg_sync
+root        1058 mmp
+root        1060 z_wr_iss
+root        1061 z_wr_iss
+root        1062 z_wr_int_0
+root        1064 z_wr_iss
+root        1065 z_wr_int_1
+root        1066 z_wr_iss
+root        1068 raidz_expand
+root        1069 z_indirect_cond
+root        1070 z_livelist_dest
+root        1071 z_livelist_cond
+root        1072 z_checkpoint_di
+root        1075 z_metaslab
+root        1076 z_metaslab
+root        1094 kworker/R-kdmflush/254:2
+root        1095 kworker/R-kcryptd_io-254:2-3
+root        1096 kworker/R-kcryptd-254:2-3
+root        1097 dmcrypt_write/254:2
+root        1110 kworker/R-kdmflush/254:3
+root        1111 kworker/R-kcryptd_io-254:3-4
+root        1112 kworker/R-kcryptd-254:3-4
+root        1113 dmcrypt_write/254:3
+root        1115 kworker/R-kdmflush/254:4
+root        1116 kworker/R-kcryptd_io-254:4-5
+root        1118 kworker/R-kcryptd-254:4-5
+root        1119 dmcrypt_write/254:4
+root        1311 z_null_iss
+root        1312 z_null_int
+root        1313 z_rd_iss
+root        1314 z_rd_int_0
+root        1315 z_rd_int_1
+root        1316 z_wr_iss
+root        1317 z_wr_int_0
+root        1318 z_wr_int_1
+root        1319 z_fr_iss_0
+root        1320 z_fr_iss_1
+root        1321 z_fr_int
+root        1322 z_cl_iss
+root        1323 z_cl_int
+root        1324 z_flush_iss
+root        1325 z_flush_int
+root        1326 z_trim_iss
+root        1327 z_trim_int
+root        1328 z_zvol
+root        1329 z_metaslab
+root        1330 z_prefetch
+root        1331 z_upgrade
+root        1340 z_rd_int_0
+root        1341 dp_sync_taskq
+root        1343 dp_sync_taskq
+root        1344 dp_zil_clean_ta
+root        1345 dp_zil_clean_ta
+root        1346 dp_zil_clean_ta
+root        1347 dp_zil_clean_ta
+root        1348 dp_zil_clean_ta
+root        1349 dp_zil_clean_ta
+root        1350 dp_zil_clean_ta
+root        1351 dp_zil_clean_ta
+root        1353 z_zrele
+root        1355 z_unlinked_drai
+root        1391 z_rd_int_1
+root        1392 z_rd_int_1
+root        1406 txg_quiesce
+root        1407 txg_sync
+root        1408 mmp
+root        1409 z_wr_iss
+root        1411 z_wr_iss
+root        1412 z_wr_int_1
+root        1413 z_wr_int_0
+root        1416 z_wr_iss
+root        1417 raidz_expand
+root        1418 z_indirect_cond
+root        1419 z_livelist_dest
+root        1420 z_livelist_cond
+root        1421 z_checkpoint_di
+root        1422 z_wr_iss
+root        1424 z_metaslab
+root        1425 z_metaslab
+root        1426 z_metaslab
+root        1436 spl_system_task
+message+    1489 dbus-broker-lau
+message+    1492 dbus-broker
+root        1494 acpid
+root        1537 systemd-logind
+camofox     1570 node
+hermes-+    1574 .host-tools-wra
+root        1608 kworker/0:4-events
+root        1609 NetworkManager
+wpa_sup+    1669 wpa_supplicant
+mirsella    1712 systemd
+mirsella    1718 (sd-pam)
+root        1737 nix-daemon
+root        1798 .fail2ban-serve
+mirsella    1807 atuin
+mirsella    1810 lspmux
+root        1816 sshd
+mirsella    1817 opencode
+mirsella    1819 .gnome-keyring-
+mirsella    1821 node-MainThread
+mirsella    1852 dbus-broker-lau
+nextclo+    1856 redis-server
+mirsella    1886 dbus-broker
+postgres    1907 .postgres-wrapp
+nginx       1960 nginx
+nginx       1966 nginx
+nginx       1967 nginx
+nginx       1968 nginx
+nginx       1969 nginx
+nginx       1970 nginx
+nginx       1971 nginx
+nginx       1972 nginx
+nginx       1973 nginx
+postgres    1974 .postgres-wrapp
+postgres    1975 .postgres-wrapp
+postgres    1977 .postgres-wrapp
+postgres    1978 .postgres-wrapp
+postgres    1979 .postgres-wrapp
+root        2009 z_metaslab
+camofox     2102 sh
+camofox     2107 .websockify-wra
+mirsella    2118 node-MainThread
+root        2125 z_wr_iss
+root        2126 z_wr_int_0
+root        2215 agetty
+mirsella    2253 t3-resource-mon
+beszel-+    2304 beszel-agent
+caddy       2306 caddy
+mirsella    2319 sleeve-gateway.
+root        2324 smartd
+root        2325 zed
+mirsella    2414 hermes
+mirsella    2435 hermes
+nscd        2586 nsncd
+root        2626 kworker/0:5-events
+beszel-+    2658 beszel-hub
+systemd+    2705 systemd-timesyn
+root        2907 aardvark-dns
+mirsella    2919 cloudflared
+root        2940 conmon
+root        2946 tini
+root        2974 conmon
+nm-iodi+    2978 postgres
+root        3006 conmon
+root        3011 tini
+nm-iodi+    3031 valkey-server
+root        3061 python
+nm-iodi+    3135 postgres
+nm-iodi+    3144 postgres
+nm-iodi+    3145 postgres
+nm-iodi+    3146 postgres
+nm-iodi+    3147 postgres
+nm-iodi+    3148 postgres
+nm-iodi+    3149 postgres
+root        3181 python
+root        3216 kworker/3:3
+root        3223 .php-fpm-wrappe
+nextclo+    3231 .php-fpm-wrappe
+root        3261 python
+root        3725 conmon
+root        3727 tini
+root        3738 immich
+root        3808 immich-api
+nm-iodi+    3831 postgres
+nm-iodi+    3832 postgres
+nm-iodi+    3833 postgres
+nm-iodi+    3841 postgres
+nm-iodi+    3843 postgres
+nm-iodi+    3844 postgres
+root        3861 z_wr_iss
+root        3862 z_wr_int_1
+root        3863 z_wr_int_0
+root        3924 sshd-session
+sshd        3925 sshd-auth
+root        4366 systemd-timedat
+root        4674 .podman-wrapped
+root        4696 sshd-session
+camofox     4703 sleep
+mirsella    4705 sshd-session
+mirsella    4706 nu
+root        4708 sudo
+root        4711 bash
+root        4717 ps
+  UNIT                              LOAD   ACTIVE   SUB    DESCRIPTION
+  predator-pm-capture.service       loaded inactive dead   Restore Predator suspend diagnostic capture
+  predator-pm-clock-handoff.service loaded active   exited Restore NTP after initrd networkd hands the LAN to NetworkManager
+  predator-pm-next.service          loaded inactive dead   Run and retain the planned long-awake S3 comparison
+  predator-pm-preserve-rtc.service  loaded active   exited Preserve suspend phase RTC evidence before clock synchronization
+  predator-pm-next.timer            loaded inactive dead   TPM-on EC-off comparison on October 12 at 09:52:52
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.

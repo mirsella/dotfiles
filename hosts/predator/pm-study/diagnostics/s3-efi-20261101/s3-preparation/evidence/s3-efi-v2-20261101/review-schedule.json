@@ -1,0 +1,10 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:b1149009-6b28-4c5e-ae12-47335ef3ad69:schedule-task:predator-efi-s3-review-20261101-1430",
+  "enabled": true,
+  "readOnly": true,
+  "deleteExactTaskAtStart": true,
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "nextRunAt": "2026-11-01T13:30:00.000Z",
+  "reviewEpoch": 1793539800,
+  "verifiedAtEpoch": 1793538321
+}

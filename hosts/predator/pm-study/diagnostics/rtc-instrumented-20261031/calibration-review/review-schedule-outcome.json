@@ -1,0 +1,14 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-rtc-core-review-20261031-0941",
+  "deletedAtStart": true,
+  "dateGuardPassedAt": "2026-10-31T09:41:17+01:00",
+  "classification": "RTC_CORE_CALIBRATION_INDEPENDENTLY_VERIFIED",
+  "newDiagnosticCycles": 1,
+  "totalDiagnosticCycles": 10,
+  "realS3Attempts": 0,
+  "completionSha256": "2333c0af7c6fa351a53ad5202189df7b469963590245485cb386ae7f6b6227ed",
+  "postRestoreBtime": 1793381198,
+  "historicalBtime": 1793381192,
+  "markers": 56,
+  "frozenPiResultSha256": "7b8133a31499ab43e558821befe114b17a89f81443cf630f1bdcabb30e172826"
+}

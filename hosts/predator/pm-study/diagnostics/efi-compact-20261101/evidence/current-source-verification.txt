@@ -1,0 +1,5 @@
+pkgs/predator-pm-study/boundary-compact.c: OK
+pkgs/predator-pm-study/boundary-compact.nix: OK
+.scratch/pm-efi-compact-20261101/verify.rs: OK
+.scratch/pm-efi-compact-20261101/operate.rs: OK
+.scratch/pm-efi-compact-20261101/runtime-root-v2/lib/modules/6.18.58/extra/pm_boundary_compact.ko.xz: OK

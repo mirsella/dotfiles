@@ -1,0 +1,6 @@
+Owner instruction after the Q35r1 aborted-attempt review, October 30, 2026:
+"automatically do that, always schedule the next test"
+
+This authorizes the recommended fresh first serial Q37 and automatic selection/scheduling of subsequent scientifically justified tests, rather than stopping at recommendations after each review. It includes healthy controlled shutdown and one planned WoL startup when a fresh first-cycle boot is needed. Existing observation/evidence/age/ordinal/baseline and owner-only hung-machine recovery rules remain in force. Preserve exact test IDs, ages and startup provenance; one real trial pending at a time. A blocked/unhealthy/hung machine is not an authorization to force recovery or blindly repeat tests.
+
+Current selection: Q at exactly 2220 seconds after a fresh controlled boot, serial pm_async=0, ordinal1, corrected runtime 5gqrh1r71xnl127sj8dv83nnlk1nf6vs; unchanged frozen system/kernel/modules. This explicitly changes age from35 to37 minutes to avoid the observed five-minute Nextcloud cron phase. Check the actual timer forecast and retain all maintenance guards.

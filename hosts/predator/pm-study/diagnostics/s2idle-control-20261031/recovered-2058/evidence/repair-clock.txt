@@ -1,0 +1,26 @@
+2026-10-31T21:07:28+01:00
+ActiveState=failed
+Result=exit-code
+ExecMainStatus=1
+ActiveState=active
+Result=success
+ExecMainStatus=0
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+       Server: 178.33.111.48 (0.nixos.pool.ntp.org)
+Poll interval: 1min 4s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 2D8A373E
+    Precision: 1us (-24)
+Root distance: 48.835ms (max: 5s)
+       Offset: +2.322ms
+        Delay: 8.844ms
+       Jitter: 0
+ Packet count: 1
+    Frequency: +23.201ppm
+2026-10-31 21:07:30.532212+01:00
+0
+0

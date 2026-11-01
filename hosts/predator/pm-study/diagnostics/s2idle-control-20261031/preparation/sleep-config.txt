@@ -1,0 +1,33 @@
+2026-10-31T11:46:04+01:00
+# /etc/systemd/sleep.conf -> /nix/store/s92zvg3p116x5jdyvb149b2kxrzngncq-etc-systemd-sleep.conf
+[Sleep]
+AllowHibernation=false
+AllowSuspend=true
+
+# /etc/systemd/system/systemd-suspend.service -> /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/example/systemd/system/systemd-suspend.service
+#  SPDX-License-Identifier: LGPL-2.1-or-later
+#
+#  This file is part of systemd.
+#
+#  systemd is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
+#  (at your option) any later version.
+
+[Unit]
+Description=System Suspend
+Documentation=man:systemd-suspend.service(8)
+DefaultDependencies=no
+Requires=sleep.target
+After=sleep.target
+
+[Service]
+Type=oneshot
+ExecStart=/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-sleep suspend
+freeze mem
+s2idle [deep]
+enabled
+1e7247c6e7e90a22fa41d022afb9e45001bf1328e69ec1440641f1c919518ee4  /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study
+8fd79959fa979cabf2dfac97c4a60dbdab505cca5cf3e3902772faebd3071d9e  /nix/store/3jcksrsfmyw8vk1cwp0x5ynb3h1q1pdp-predator-pm-stage-20261009/lib/modules/6.18.58/extra/pm_stage.ko.xz
+b752bc4051bce5ed70ae71de0360ac566b078e8609dc0a6e8edd8e0b5f807f55  /var/lib/predator-pm-study/ae29f675-9167-4975-a884-01885468bc38-boot-rtc.txt
+/sys/bus/acpi/drivers/tpm_crb

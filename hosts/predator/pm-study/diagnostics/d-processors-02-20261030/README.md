@@ -1,0 +1,9 @@
+# Second processors checkpoint
+
+**DIAGNOSTIC_RETURN_VERIFIED.** Completed21:53:50, epoch1793393630, completed SHA256`285096264bb1f1646b8b72621de08efa4dec65d86bd8bf637d0c7fe923de932a`. Independent review validated6113 expected-boot kernel records and seven cumulative diagnostic cycles. The current capture again shows CPUs7..1 offline and CPUs1..7 restored. Request, cleanup, reader teardown, readiness2960ms and full health passed; counters7/0, ordinary modes/markers, no jobs/failed units and ordinary S3 anchor unchanged.
+
+Pi probe21:55:32.989424, snapshot21:57:32.581154, review marker21:58:32.556051. Full frozen capture2,642,785bytes, SHA256`6547e44d197675733374b755a48d622a2eb90a92c034a3bb1bba7718fe946d13`. Evidence: `review-20261030-2158/`. The first pending core timer was subsequently cancelled before execution for the documented core timekeeping verifier correction; this processors result remains unchanged.
+
+Armed21:53:32 CET October30, epoch1793393612, processors/ordinal7 on boot`f8eb6e44-85ae-4e56-bc00-587876699945`, btime1793381192, planned age12420seconds. Same frozen system/kernel/modules and gqgwph5fdwycdl019dl2gwg6x32mvhan diagnostic runtime. Completed predecessor d-processors-01-20261030 SHA256`d22405a275feeba7036ca02058f909e7eb41296ffa2bbf710f77f4115ff370c4`.
+
+Manifest SHA256`c1c3df017584d99b7e06940014a4afcdb56ea44a3cec6bdf45fcd608f5653c32`; strict pm-test-2/serial0/trace0/recorderoff/deep/delay5/TPMinitialized/rawECnot-run/inhibitors/window18–23. Full pinned health/history/actual cron check passed. Typeexec/runtime180/start-stop30/safe restore, nonpersistent accuracy1s/random0; only this phase armed. Pi read-only probe21:55:32, snapshot21:57:32, bounded review21:58:32. No reboot/WoL. Require one current cycle, cumulative counters7/0, genuine completion and all strict cleanup/health proofs before core ordinal8. The checkpoint avoids actual firmware S3.

@@ -1,0 +1,6 @@
+2026-10-30T20:34:23+01:00
+    PID    PPID COMMAND
+follower_pid=103123
+Starting predator-pm-diagnostic-d-devices-01-20261030-review.service - /usr/bin/printf DIAG REVIEW READY d-devices-01-20261030\n...
+DIAG REVIEW READY d-devices-01-20261030
+follower_reaped=103123

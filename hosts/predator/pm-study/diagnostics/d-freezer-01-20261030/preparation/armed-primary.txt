@@ -1,0 +1,38 @@
+2026-10-30T18:53:42+01:00
+DIAG READY id=d-freezer-01-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 due=1793383412 planned_age=2220 real_s3=false
+# /run/systemd/transient/predator-pm-diagnostic-d-freezer-01-20261030.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-freezer-01-20261030-plan.conf 9f2e4cbe873f8f5c5a8ead91f707deafcda8d7d260228cec54c7a43e6590c874
+
+[Timer]
+OnCalendar=@1793383412
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-diagnostic-d-freezer-01-20261030.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-freezer-01-20261030-plan.conf 9f2e4cbe873f8f5c5a8ead91f707deafcda8d7d260228cec54c7a43e6590c874
+
+[Service]
+Type=oneshot
+TimeoutStartSec=3min
+ExecStopPost=
+ExecStopPost="/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic" "restore" "/var/lib/predator-pm-diagnostic/d-freezer-01-20261030-plan.conf" "9f2e4cbe873f8f5c5a8ead91f707deafcda8d7d260228cec54c7a43e6590c874"
+Environment="PATH=/run/current-system/sw/bin"
+ExecStart=
+ExecStart="/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic" "run" "/var/lib/predator-pm-diagnostic/d-freezer-01-20261030-plan.conf" "9f2e4cbe873f8f5c5a8ead91f707deafcda8d7d260228cec54c7a43e6590c874"
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 19:03:32 CET
+ActiveState=inactive
+MainPID=0
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/power/pm_async=1
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0

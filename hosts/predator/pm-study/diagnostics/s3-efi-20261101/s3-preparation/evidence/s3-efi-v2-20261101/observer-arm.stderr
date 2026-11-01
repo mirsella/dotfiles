@@ -1,0 +1,4 @@
+Running timer as unit: predator-pm-boundary-s3-efi-v2-20261101-probe.timer
+Will run service as unit: predator-pm-boundary-s3-efi-v2-20261101-probe.service
+Running timer as unit: predator-pm-boundary-s3-efi-v2-20261101-snapshot.timer
+Will run service as unit: predator-pm-boundary-s3-efi-v2-20261101-snapshot.service

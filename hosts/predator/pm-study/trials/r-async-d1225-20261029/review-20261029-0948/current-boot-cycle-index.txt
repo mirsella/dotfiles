@@ -1,0 +1,3 @@
+[44704.334011] BEGIN trial=r-async-d1225-20261029 boot=b223cb35-a02b-4417-a3db-569ad986cd4b due_epoch=1793262062 wake_epoch=1793263022 profile=D ordinal=1 pm_async=1 pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced
+[44704.418006] SUSPEND REQUEST logged_in_users=allow command=busctl ["call", "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "SuspendWithFlags", "t", "1"]
+[44704.582941] PM: suspend entry (deep)

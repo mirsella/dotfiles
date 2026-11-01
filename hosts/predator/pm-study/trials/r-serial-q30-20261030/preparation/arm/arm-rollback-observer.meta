@@ -1,0 +1,10 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+if test "$(systemctl show 'predator-pm-r-serial-q30-20261030-wake'.timer -p LoadState --value)" != not-found; then systemctl stop 'predator-pm-r-serial-q30-20261030-wake'.timer; fi
+if test "$(systemctl show 'predator-pm-r-serial-q30-20261030-retry'.timer -p LoadState --value)" != not-found; then systemctl stop 'predator-pm-r-serial-q30-20261030-retry'.timer; fi
+if test "$(systemctl show 'predator-pm-r-serial-q30-20261030-probe'.timer -p LoadState --value)" != not-found; then systemctl stop 'predator-pm-r-serial-q30-20261030-probe'.timer; fi
+if test "$(systemctl show 'predator-pm-r-serial-q30-20261030-snapshot'.timer -p LoadState --value)" != not-found; then systemctl stop 'predator-pm-r-serial-q30-20261030-snapshot'.timer; fi
+
+stderr:

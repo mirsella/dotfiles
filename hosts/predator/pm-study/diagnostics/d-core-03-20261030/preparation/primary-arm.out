@@ -1,0 +1,40 @@
+2026-10-30T22:24:48+01:00
+DIAG READY id=d-core-03-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=core ordinal=9 due=1793396012 planned_age=14820 real_s3=false
+# /run/systemd/transient/predator-pm-diagnostic-d-core-03-20261030.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf 7168689addc30e52c30e2128ec1e037dc5a06c635ba66f805523650a761ddc9a
+
+[Timer]
+OnCalendar=@1793396012
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-diagnostic-d-core-03-20261030.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf 7168689addc30e52c30e2128ec1e037dc5a06c635ba66f805523650a761ddc9a
+
+[Service]
+Type=exec
+TimeoutStartSec=30s
+RuntimeMaxSec=3min
+TimeoutStopSec=30s
+ExecStopPost=
+ExecStopPost="/nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic" "restore" "/var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf" "7168689addc30e52c30e2128ec1e037dc5a06c635ba66f805523650a761ddc9a"
+Environment="PATH=/run/current-system/sw/bin"
+ExecStart=
+ExecStart="/nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic" "run" "/var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf" "7168689addc30e52c30e2128ec1e037dc5a06c635ba66f805523650a761ddc9a"
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 22:33:32 CET
+ActiveState=inactive
+Type=exec
+RuntimeMaxUSec=3min
+MainPID=0
+8
+0
+[none] core processors platform devices freezer
+1

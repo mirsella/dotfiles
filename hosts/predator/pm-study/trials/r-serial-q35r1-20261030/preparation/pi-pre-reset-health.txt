@@ -1,0 +1,15 @@
+2026-10-30T13:33:52+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+active
+yes
+ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8  /home/mirsella/wol_predator.py
+NEXT LEFT LAST                         PASSED            UNIT                                                   ACTIVATES
+-    -    Thu 2026-10-29 09:21:02 CET  1 day 4h ago      predator-pm-r-async-d1225-20261029-notice-start.timer  predator-pm-r-async-d1225-20261029-notice-start.service
+-    -    Sat 2026-10-17 18:00:00 CEST 1 week 5 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer   predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 2 days ago predator-pm-r-async-h8-20261020-notice-start.timer     predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 4 days ago predator-pm-r-async-q30-20261018-notice-start.timer    predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Fri 2026-10-30 08:30:40 CET  5h 3min ago       predator-pm-r-serial-d1225-20261030-notice-start.timer predator-pm-r-serial-d1225-20261030-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 1 week 5 days ago predator-pm-r-serial-m15-20261017-notice-start.timer   predator-pm-r-serial-m15-20261017-notice-start.service
+-    -    Fri 2026-10-30 12:35:04 CET  58min ago         predator-pm-r-serial-q35-20261030-notice-start.timer   predator-pm-r-serial-q35-20261030-notice-start.service
+
+7 timers listed.

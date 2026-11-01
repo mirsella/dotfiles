@@ -1,0 +1,13 @@
+Date: October30 2026; preparation began14:51:33 Europe/Paris.
+Owner authorized: automatically do that, always schedule the next test.
+Selected test: r-serial-q37-20261030, Q/ordinal1/serial0, due verified new btime+2220, wake+960. Explicit35->37minute change, maintenance guard unchanged.
+Old boot3c1873e4-b866-41e1-b411-702168ef90cf healthy at14:52:30 except known Q35r1 refusal unit. Counters0/0, markers0, no active maintenance, fixed baseline/runtime and all five authenticated disk audits passed.
+One healthy graceful poweroff accepted1793368405=14:53:25. Root-only startup acknowledgement guard created after acknowledgement.
+One planned WoL scheduled1793368584=14:56:24; actual14:56:24.646608; service success14:56:24.661654. Bounded journal follower expired124 after250s and was reaped. Spent guard removed after inactive service.
+Postboot WAN SSH failed255, No route to host, at14:58:34 before script execution. Pi LAN keyscan failed1 at14:58:59. No new boot ID/btime or manifest/deadlines established.
+Last live Pi write14:53:34.742530279, last captured callback r8169 shutdown. Only a logging boundary; physical state/startup cause unknown. No suspend was attempted in Q37 preparation.
+Full frozen Pi startup capture2181931bytes SHA25678dc2e2b53368e389aebdc48a9960782bd65962b47c8ee7c9cb9db31bf49b385, created14:59:48. Receiver/NTP active.
+Owner notice acknowledged88801 epoch1793368929, requesting physical check/local recovery as needed. No extra remote wake/reset/security experiment.
+Single dated self-deleting guarded preparation task15:10, nextRunAt2026-10-30T14:10:00Z, exactID in preparation-schedule.json. No real suspend timer armed. If new boot healthy/eligible, arm Q37 and review with automatic continuation; if unreachable stop for owner recovery.
+No runtime/source/baseline edit, commit/push/delegate, unfinished background command or reconstructed missing STATE/PLAN. Preserve all old evidence/unrelated edits.
+Remote docs/evidence synchronization pending due unreachability. Exact preimages in trialREADME and pre-reset-health.txt; preserve local README preimages before future guarded synchronization.

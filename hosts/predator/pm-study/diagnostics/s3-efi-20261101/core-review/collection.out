@@ -1,0 +1,717 @@
+2026-11-01T13:49:09,359706922+01:00
+39d7579b-b86d-4d30-b910-131943e550c8
+btime 1793535079
+ActiveState=failed
+MainPID=0
+Result=exit-code
+ExecMainStatus=1
+
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+No jobs running.
+1
+0
+1
+0
+[none] core processors platform devices freezer
+s2idle [deep]
+root 600 806105 /var/lib/predator-pm-efi-s3/core-efi-20261101-before-kernel.jsonl
+root 600 11010 /var/lib/predator-pm-efi-s3/core-efi-20261101-before.txt
+root 600 921 /var/lib/predator-pm-efi-s3/core-efi-20261101-clock-handoff.txt
+root 600 124 /var/lib/predator-pm-efi-s3/core-efi-20261101-cursor.txt
+root 600 78 /var/lib/predator-pm-efi-s3/core-efi-20261101-mutating.txt
+root 600 745274 /var/lib/predator-pm-efi-s3/core-efi-20261101-observed.jsonl
+root 600 104 /var/lib/predator-pm-efi-s3/core-efi-20261101-outcome.txt
+root 600 842 /var/lib/predator-pm-efi-s3/core-efi-20261101-plan.conf
+root 600 11024 /var/lib/predator-pm-efi-s3/core-efi-20261101-raw-return.txt
+root 600 47 /var/lib/predator-pm-efi-s3/core-efi-20261101-request-call.txt
+root 600 841 /var/lib/predator-pm-efi-s3/core-efi-20261101-requested.txt
+root 600 5 /var/lib/predator-pm-efi-s3/core-efi-20261101-request-ok.txt
+root 600 11017 /var/lib/predator-pm-efi-s3/core-efi-20261101-restored.txt
+root 600 382 /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-before.txt
+root 600 154 /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-readback.txt
+root 600 377 /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-status.txt
+ac4e30c40f80ac58cdf9b4dbd978c004763569e13a6c71b296924cf2d0d55dde  /var/lib/predator-pm-efi-s3/core-efi-20261101-before-kernel.jsonl
+77051c911edf463555841bbb275bd15b273a20ccc76951f88b264bd10bacad95  /var/lib/predator-pm-efi-s3/core-efi-20261101-before.txt
+0a5ed317bdffd2a850ee8ec348ecc24fb82a1029ed3d998d5328b92c3c5ec8f2  /var/lib/predator-pm-efi-s3/core-efi-20261101-clock-handoff.txt
+a381461bc3fd7ad997beee33198b6e7e7f7312643541018a08262373b0bc9e1a  /var/lib/predator-pm-efi-s3/core-efi-20261101-cursor.txt
+60f0734b50e821f8d61473f0c55233482329e3a04331171673a72c92694264f8  /var/lib/predator-pm-efi-s3/core-efi-20261101-mutating.txt
+73e15c93f69bffc2c5bbfb257faebb098556e45ef9ed9a481b263c4ed7c9de61  /var/lib/predator-pm-efi-s3/core-efi-20261101-observed.jsonl
+ed6c49b6b4c269651901180e12f4c4a7dff6ca29a1e1d235af6b641f09ac2b4e  /var/lib/predator-pm-efi-s3/core-efi-20261101-outcome.txt
+95344780cda5a343d3bbe5c757456aff0408d5ae027587d5da0d4215f7f3e5e3  /var/lib/predator-pm-efi-s3/core-efi-20261101-plan.conf
+4e04b945b2e5bed0b61ef755ea8346a04b52b48c9043c0d08060b07235e6a0c4  /var/lib/predator-pm-efi-s3/core-efi-20261101-raw-return.txt
+4174eadbcfbb3df313fba8938f8c24785c70d05687b33188f3ac6f612f4ded9c  /var/lib/predator-pm-efi-s3/core-efi-20261101-request-call.txt
+59a092d528e93fd48536f712cc67886628d63f8202e1354cab1e756fbfee2d44  /var/lib/predator-pm-efi-s3/core-efi-20261101-requested.txt
+a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74  /var/lib/predator-pm-efi-s3/core-efi-20261101-request-ok.txt
+33c76ad264bf7b7f766935fb0e1122cb56c9618977aba88645baba6cdc84864e  /var/lib/predator-pm-efi-s3/core-efi-20261101-restored.txt
+39915993d29c5933c985b3bff7d952a44f4a9d113ad884eed67a96cd3965f27a  /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-before.txt
+27710f1f377a715009da5559cd4830a0290628a4f7d29e40d26bb12b235536de  /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-readback.txt
+8ec9a59873daefb342530ce89044b651a2b3e280d817e260d7d0c7b49af7a48e  /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-status.txt
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-before.txt
+epoch=1793537109
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+rtc_epoch=1793537109
+alarm=
+clock=Timex { modes: 0, offset: 463124, freq: 277801, maxerror: 9500, esterror: 0, status: 8193, constant: 7, precision: 1, tolerance: 32768000, time: [1793537109, 739715504], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+uptime=2031.16 15635.88
+2026-11-01 12:45:09.735578+00:00
+rtc_time	: 12:45:10
+rtc_date	: 2026-11-01
+alrm_time	: 12:10:16
+alrm_date	: 2026-11-02
+alarm_IRQ	: no
+alrm_pending	: no
+update IRQ enabled	: no
+periodic IRQ enabled	: no
+periodic IRQ frequency	: 1024
+max user IRQ frequency	: 64
+24hr		: yes
+periodic_IRQ	: no
+update_IRQ	: no
+HPET_emulated	: no
+BCD		: yes
+DST_enable	: no
+periodic_freq	: 1024
+batt_status	: okay
+/sys/kernel/debug/wakeup_sources:
+name		active_count	event_count	wakeup_count	expire_count	active_since	total_time	max_time	last_change	prevent_suspend_time
+0000:03:00.1	0		0		0		0		0		0		0		0		0
+SYNA7DB5:01 	0		0		0		0		0		0		0		0		0
+INT3F0D:00  	0		0		0		0		0		0		0		0		0
+INT33A1:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:02  	0		0		0		0		0		0		0		0		0
+PNP0C0A:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:01  	0		0		0		0		0		0		0		0		0
+alarmtimer.0.auto	0		0		0		0		0		0		0		0		0
+PNP0B00:00  	5		9		0		0		0		0		0		2031423		0
+PNP0B00:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:00  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+INT345D:00  	0		0		0		0		0		0		0		0		0
+ACPI000C:00 	0		0		0		0		0		0		0		0		0
+ACAD        	1		1		0		0		0		3		3		9924		0
+ACPI0003:00 	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+mmc0        	0		0		0		0		0		0		0		0		0
+0000:00:14.0	0		0		0		0		0		0		0		0		0
+LNXPWRBN:00 	0		0		0		0		0		0		0		0		0
+PNP0A08:00  	0		0		0		0		0		0		0		0		0
+device:41   	0		0		0		0		0		0		0		0		0
+device:3f   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:00 	0		0		0		0		0		0		0		0		0
+device:19   	0		0		0		0		0		0		0		0		0
+device:39   	0		0		0		0		0		0		0		0		0
+device:18   	0		0		0		0		0		0		0		0		0
+device:17   	0		0		0		0		0		0		0		0		0
+0000:00:1c.3	0		0		0		0		0		0		0		0		0
+device:40   	0		0		0		0		0		0		0		0		0
+0000:00:1c.0	0		0		0		0		0		0		0		0		0
+device:3e   	0		0		0		0		0		0		0		0		0
+device:6a   	0		0		0		0		0		0		0		0		0
+device:81   	0		0		0		0		0		0		0		0		0
+device:7e   	0		0		0		0		0		0		0		0		0
+device:7d   	0		0		0		0		0		0		0		0		0
+device:1b   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:01 	0		0		0		0		0		0		0		0		0
+device:00   	0		0		0		0		0		0		0		0		0
+deleted     	0		0		0		0		0		0		0		0		0
+/proc/interrupts:
+CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+   0:         37          0          0          0          0          0          0          0 IR-IO-APIC    2-edge      timer
+   1:          0          0          0          0          0          6          0          0 IR-IO-APIC    1-edge      i8042
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:          0         36          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+  14:          0          1          0          0          0          0          0          0 IR-IO-APIC   14-fasteoi   INT345D:00
+  16:          0          0          0          6          0          0          0          0 IR-IO-APIC   16-fasteoi   idma64.0, i2c_designware.0, i801_smbus
+  17:          0          0          0          0          0       1198          0          0 IR-IO-APIC   17-fasteoi   idma64.1, i2c_designware.1, snd_hda_intel:card0
+ 120:          0          0          1          0          0          0          0          0 IR-PCI-MSI-0000:00:01.0    0-edge      PCIe bwctrl
+ 121:          0          0          0          1          0          0          0          0 IR-PCI-MSI-0000:00:1c.0    0-edge      PCIe bwctrl
+ 122:          0          0          0          0          1          0          0          0 IR-PCI-MSI-0000:00:1c.3    0-edge      PCIe bwctrl
+ 123:          0          0          0          0          0          0          4          0 IR-PCI-MSI-0000:03:00.0    0-edge      rtsx_pci
+ 124:          0          0          0          0          0          0          0       5255 IR-PCI-MSI-0000:00:14.0    0-edge      xhci_hcd
+ 132:      57318          0          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.1    0-edge      enp3s0f1
+ 133:          0          0          0          0          0          0          0      96182 IR-PCI-MSI-0000:00:17.0    0-edge      ahci[0000:00:17.0]
+ 134:          0          0          0          0         45          0          0          0 IR-PCI-MSI-0000:00:16.0    0-edge      mei_me
+ 135:          0          1          0          0          0          0          0          0 intel-gpio   27  SYNA7DB5:01
+ 136:          0          0          0          0          0          0         84          0 IR-PCI-MSI-0000:00:02.0    0-edge      i915
+ 137:          0          0          0          0          0          0          0        311 IR-PCI-MSI-0000:00:1f.3    0-edge      snd_hda_intel:card1
+ 138:      11143          0          0          0          0          0          0          0 IR-PCI-MSI-0000:02:00.0    0-edge      ath10k_pci
+ NMI:          5          4          4          4          4          4          4          3   Non-maskable interrupts
+ LOC:     320559     256641     258630     245261     251682     247901     252209     244290   Local timer interrupts
+ SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+ PMI:          5          4          4          4          4          4          4          3   Performance monitoring interrupts
+ IWI:         16          1          0          0          2          0         12          0   IRQ work interrupts
+ RTR:          0          0          0          0          0          0          0          0   APIC ICR read retries
+ RES:       3196       2627       2609       2402       2372       2515       2117       2220   Rescheduling interrupts
+ CAL:      56157      45031      47126      42221      46417      40568      44731      46324   Function call interrupts
+ TLB:      19712      18235      18882      18676      18058      18732      18638      18445   TLB shootdowns
+ TRM:        570        570        570        570        570        570        570        570   Thermal event interrupts
+ THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+ DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+ MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+ MCP:          7          8          8          8          8          8          8          8   Machine check polls
+ ERR:          0
+ MIS:          0
+ PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+ NPI:          0          0          0          0          0          0          0          0   Nested posted-interrupt event
+ PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+/proc/acpi/wakeup:
+Device	S-state	  Status   Sysfs node
+GLAN	  S4	*disabled
+XHC	  S3	*enabled   pci:0000:00:14.0
+XDCI	  S4	*disabled
+HDAS	  S4	*disabled  pci:0000:00:1f.3
+RP01	  S4	*disabled
+PXSX	  S4	*disabled
+RP02	  S4	*disabled
+PXSX	  S4	*disabled
+RP03	  S4	*enabled   pci:0000:00:1c.0
+PXSX	  S4	*disabled  pci:0000:02:00.0
+RP04	  S4	*enabled   pci:0000:00:1c.3
+PXSX	  S4	*disabled  pci:0000:03:00.0
+		*disabled  platform:rtsx_pci_sdmmc.0
+RP05	  S4	*disabled
+PXSX	  S4	*disabled
+RP06	  S4	*disabled
+PXSX	  S4	*disabled
+RP07	  S4	*disabled
+PXSX	  S4	*disabled
+RP08	  S4	*disabled
+PXSX	  S4	*disabled
+RP09	  S4	*disabled
+PXSX	  S4	*disabled
+RP10	  S4	*disabled
+PXSX	  S4	*disabled
+RP11	  S4	*disabled
+PXSX	  S4	*disabled
+RP12	  S4	*disabled
+PXSX	  S4	*disabled
+RP13	  S4	*disabled
+PXSX	  S4	*disabled
+RP14	  S4	*disabled
+PXSX	  S4	*disabled
+RP15	  S4	*disabled
+PXSX	  S4	*disabled
+RP16	  S4	*disabled
+PXSX	  S4	*disabled
+RP17	  S4	*disabled
+PXSX	  S4	*disabled
+RP18	  S4	*disabled
+PXSX	  S4	*disabled
+RP19	  S4	*disabled
+PXSX	  S4	*disabled
+RP20	  S4	*disabled
+PXSX	  S4	*disabled
+RP21	  S4	*disabled
+PXSX	  S4	*disabled
+RP22	  S4	*disabled
+PXSX	  S4	*disabled
+RP23	  S4	*disabled
+PXSX	  S4	*disabled
+RP24	  S4	*disabled
+PXSX	  S4	*disabled
+PWRB	  S4	*enabled   platform:PNP0C0C:00
+/sys/power/pm_async:
+1
+/sys/power/pm_test:
+[none] core processors platform devices freezer
+acpi_ff_rt_clk=4         disabled     unmasked
+acpi_ff_pwr_btn=0  EN     enabled      unmasked
+acpi_ff_slp_btn=0         invalid      unmasked
+acpi_gpe14=27  EN     enabled      unmasked
+acpi_gpe66=5  EN     enabled      unmasked
+acpi_gpe69=0         disabled     unmasked
+acpi_gpe6D=0  EN     enabled      unmasked
+acpi_sci=36
+acpi_sci_not=0
+acpi_gpe_all=32
+acpi_error=0
+pci_0000:00:1c.3=868013a107041000f1000406100081000000000000000000000303003030000040a440a4f1ff01000000000000000000000000004000000000000000ff04020010804201018000000000100013487204420c113000b21c0000004001000000000000000037000000000000000e00000003000100000000000000000000000000059001009802e0fe00000000000000000da00000251008120000000000000000010003c80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011000074218000008009e09000000000003e300000000000600100000000000500100000000004cb30f410804000004
+pci_0000:03:00.0=ec10875206041000010000ff10008000005040a4000000000000000000000000000000000000000000000000251008120000ffff4000000000000000ff0200000150c3f700000000000000000000000005708100b802e0fe00000000000000000000000000000000000000000000000010b00200c08c90051f201900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+pci_0000:03:00.1=ec1068810704100012000002100080000130000000000000044040a400000000040040a4000000000000000025100812000000004000000000000000ff0100000150c3ff080000000000000000000000057080000000000000000000000000000000000000000000000000000000000010b00202c08c90051f501900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0038004000000040800000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+wake_irq_read_error=/sys/power/pm_wakeup_irq: No data available (os error 61)
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-clock-handoff.txt
+NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+LAN readiness snapshot:
+GENERAL.STATE:100 (connected)
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.GATEWAY:192.168.1.1
+IP4.DNS[1]:192.168.1.1
+LAN monitor cleanup: stop=Ok(()) reap=Ok(ExitStatus(unix_wait_status(9))) joined=true
+No stale networkd online-state cache remains
+NTP: Stopping Network Time Synchronization...
+NTP: systemd-timesyncd.service: Deactivated successfully.
+NTP: Stopped Network Time Synchronization.
+NTP: systemd-timesyncd.service: Consumed 96ms CPU time over 33min 33.415s wall clock time, 2.8M memory peak, 456B incoming IP traffic, 532B outgoing IP traffic.
+NTP: Starting Network Time Synchronization...
+NTP: Started Network Time Synchronization.
+NTP: Contacted time server 38.242.218.253:123 (0.nixos.pool.ntp.org).
+NTP: Initial clock synchronization to Sun 2026-11-01 13:45:24.622949 CET.FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-cursor.txt
+s=54417c9662f74242b2dd43af698fff66;i=18e9f33;b=39d7579bb86d4d30b910131943e550c8;m=7909bbc0;t=65f366649f4f7;x=4ddf2b2aa2157f2FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-mutating.txt
+owns stage module, serial async and core test only; RTC only when intent savedFILE /var/lib/predator-pm-efi-s3/core-efi-20261101-outcome.txt
+operation=Ok(())
+evidence=Ok(())
+cleanup=Ok(())
+reader=Ok(ExitStatus(unix_wait_status(9)))
+join_ok=true
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-raw-return.txt
+epoch=1793537120
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+rtc_epoch=1793537121
+alarm=
+clock=Timex { modes: 0, offset: 457723, freq: 277801, maxerror: 12500, esterror: 0, status: 8193, constant: 7, precision: 1, tolerance: 32768000, time: [1793537120, 932682789], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+uptime=2042.35 15682.45
+2026-11-01 12:45:21.355365+00:00
+rtc_time	: 12:45:22
+rtc_date	: 2026-11-01
+alrm_time	: 12:10:16
+alrm_date	: 2026-11-02
+alarm_IRQ	: no
+alrm_pending	: no
+update IRQ enabled	: no
+periodic IRQ enabled	: no
+periodic IRQ frequency	: 1024
+max user IRQ frequency	: 64
+24hr		: yes
+periodic_IRQ	: no
+update_IRQ	: no
+HPET_emulated	: no
+BCD		: yes
+DST_enable	: no
+periodic_freq	: 1024
+batt_status	: okay
+/sys/kernel/debug/wakeup_sources:
+name		active_count	event_count	wakeup_count	expire_count	active_since	total_time	max_time	last_change	prevent_suspend_time
+0000:03:00.1	0		0		0		0		0		0		0		0		0
+SYNA7DB5:01 	0		0		0		0		0		0		0		0		0
+INT3F0D:00  	0		0		0		0		0		0		0		0		0
+INT33A1:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:02  	0		0		0		0		0		0		0		0		0
+PNP0C0A:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:01  	0		0		0		0		0		0		0		0		0
+alarmtimer.0.auto	0		0		0		0		0		0		0		0		0
+PNP0B00:00  	6		11		0		0		0		0		0		2038344		0
+PNP0B00:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:00  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	2		2		0		0		0		0		0		2033775		0
+PNP0C0C:00  	1		1		0		0		0		0		0		2033775		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+INT345D:00  	0		0		0		0		0		0		0		0		0
+ACPI000C:00 	0		0		0		0		0		0		0		0		0
+ACAD        	1		1		0		0		0		3		3		9924		0
+ACPI0003:00 	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+mmc0        	0		0		0		0		0		0		0		0		0
+0000:00:14.0	0		0		0		0		0		0		0		0		0
+LNXPWRBN:00 	0		0		0		0		0		0		0		0		0
+PNP0A08:00  	0		0		0		0		0		0		0		0		0
+device:41   	0		0		0		0		0		0		0		0		0
+device:3f   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:00 	0		0		0		0		0		0		0		0		0
+device:19   	0		0		0		0		0		0		0		0		0
+device:39   	0		0		0		0		0		0		0		0		0
+device:18   	0		0		0		0		0		0		0		0		0
+device:17   	0		0		0		0		0		0		0		0		0
+0000:00:1c.3	0		0		0		0		0		0		0		0		0
+device:40   	0		0		0		0		0		0		0		0		0
+0000:00:1c.0	0		0		0		0		0		0		0		0		0
+device:3e   	0		0		0		0		0		0		0		0		0
+device:6a   	0		0		0		0		0		0		0		0		0
+device:81   	0		0		0		0		0		0		0		0		0
+device:7e   	0		0		0		0		0		0		0		0		0
+device:7d   	0		0		0		0		0		0		0		0		0
+device:1b   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:01 	0		0		0		0		0		0		0		0		0
+device:00   	0		0		0		0		0		0		0		0		0
+deleted     	0		0		0		0		0		0		0		0		0
+/proc/interrupts:
+CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+   0:         37          0          0          0          0          0          0          0 IR-IO-APIC    2-edge      timer
+   1:         10          0          0          0          0          7          0          0 IR-IO-APIC    1-edge      i8042
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:          2         37          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+  14:          0          1          0          0          0          0          0          0 IR-IO-APIC   14-fasteoi   INT345D:00
+  16:          0          0          0          6          0          0          0          0 IR-IO-APIC   16-fasteoi   idma64.0, i2c_designware.0, i801_smbus
+  17:         29          0          0          0          0       1206          0          0 IR-IO-APIC   17-fasteoi   idma64.1, i2c_designware.1, snd_hda_intel:card0
+ 120:          1          0          1          0          0          0          0          0 IR-PCI-MSI-0000:00:01.0    0-edge      PCIe bwctrl
+ 121:          0          0          0          1          0          0          0          0 IR-PCI-MSI-0000:00:1c.0    0-edge      PCIe bwctrl
+ 122:          0          0          0          0          1          0          0          0 IR-PCI-MSI-0000:00:1c.3    0-edge      PCIe bwctrl
+ 123:          2          0          0          0          0          0          4          0 IR-PCI-MSI-0000:03:00.0    0-edge      rtsx_pci
+ 124:         97          0          0          0          0          0          0       5304 IR-PCI-MSI-0000:00:14.0    0-edge      xhci_hcd
+ 132:      57823          2          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.1    0-edge      enp3s0f1
+ 133:        462          0          0          0          0          0          0      96828 IR-PCI-MSI-0000:00:17.0    0-edge      ahci[0000:00:17.0]
+ 134:          0          0          0          0          0          0          0         34 IR-PCI-MSI-0000:00:16.0    0-edge      mei_me
+ 135:          0          1          0          0          0          0          0          0 intel-gpio   27  SYNA7DB5:01
+ 136:         29          0          0          0          0          0         88          0 IR-PCI-MSI-0000:00:02.0    0-edge      i915
+ 137:        122          0          0          0          0          0          0        311 IR-PCI-MSI-0000:00:1f.3    0-edge      snd_hda_intel:card1
+ 138:      11458          0          0          0          0          0          0          0 IR-PCI-MSI-0000:02:00.0    0-edge      ath10k_pci
+ NMI:          5          4          4          4          4          4          4          3   Non-maskable interrupts
+ LOC:     322668     258247     260120     246529     253271     249252     254104     245630   Local timer interrupts
+ SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+ PMI:          5          4          4          4          4          4          4          3   Performance monitoring interrupts
+ IWI:         29          1          0          0          2          0         12          0   IRQ work interrupts
+ RTR:          0          0          0          0          0          0          0          0   APIC ICR read retries
+ RES:       3220       2665       2657       2415       2400       2592       2136       2239   Rescheduling interrupts
+ CAL:      56462      45462      47630      42667      46820      40973      45249      46733   Function call interrupts
+ TLB:      19765      18353      19112      18834      18186      18871      18927      18554   TLB shootdowns
+ TRM:        570        570        570        570        570        570        570        570   Thermal event interrupts
+ THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+ DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+ MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+ MCP:          9         10         10         10         10         10         10         10   Machine check polls
+ ERR:          0
+ MIS:          0
+ PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+ NPI:          0          0          0          0          0          0          0          0   Nested posted-interrupt event
+ PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+/proc/acpi/wakeup:
+Device	S-state	  Status   Sysfs node
+GLAN	  S4	*disabled
+XHC	  S3	*enabled   pci:0000:00:14.0
+XDCI	  S4	*disabled
+HDAS	  S4	*disabled  pci:0000:00:1f.3
+RP01	  S4	*disabled
+PXSX	  S4	*disabled
+RP02	  S4	*disabled
+PXSX	  S4	*disabled
+RP03	  S4	*enabled   pci:0000:00:1c.0
+PXSX	  S4	*disabled  pci:0000:02:00.0
+RP04	  S4	*enabled   pci:0000:00:1c.3
+PXSX	  S4	*disabled  pci:0000:03:00.0
+		*disabled  platform:rtsx_pci_sdmmc.0
+RP05	  S4	*disabled
+PXSX	  S4	*disabled
+RP06	  S4	*disabled
+PXSX	  S4	*disabled
+RP07	  S4	*disabled
+PXSX	  S4	*disabled
+RP08	  S4	*disabled
+PXSX	  S4	*disabled
+RP09	  S4	*disabled
+PXSX	  S4	*disabled
+RP10	  S4	*disabled
+PXSX	  S4	*disabled
+RP11	  S4	*disabled
+PXSX	  S4	*disabled
+RP12	  S4	*disabled
+PXSX	  S4	*disabled
+RP13	  S4	*disabled
+PXSX	  S4	*disabled
+RP14	  S4	*disabled
+PXSX	  S4	*disabled
+RP15	  S4	*disabled
+PXSX	  S4	*disabled
+RP16	  S4	*disabled
+PXSX	  S4	*disabled
+RP17	  S4	*disabled
+PXSX	  S4	*disabled
+RP18	  S4	*disabled
+PXSX	  S4	*disabled
+RP19	  S4	*disabled
+PXSX	  S4	*disabled
+RP20	  S4	*disabled
+PXSX	  S4	*disabled
+RP21	  S4	*disabled
+PXSX	  S4	*disabled
+RP22	  S4	*disabled
+PXSX	  S4	*disabled
+RP23	  S4	*disabled
+PXSX	  S4	*disabled
+RP24	  S4	*disabled
+PXSX	  S4	*disabled
+PWRB	  S4	*enabled   platform:PNP0C0C:00
+/sys/power/pm_async:
+0
+/sys/power/pm_test:
+none [core] processors platform devices freezer
+acpi_ff_rt_clk=5         disabled     unmasked
+acpi_ff_pwr_btn=0  EN     enabled      unmasked
+acpi_ff_slp_btn=0         invalid      unmasked
+acpi_gpe14=27  EN     enabled      unmasked
+acpi_gpe66=7  EN     enabled      unmasked
+acpi_gpe69=0         disabled     unmasked
+acpi_gpe6D=0         disabled     unmasked
+acpi_sci=39
+acpi_sci_not=0
+acpi_gpe_all=34
+acpi_error=0
+pci_0000:00:1c.3=868013a107041000f1000406100081000000000000000000000303003030002040a440a4f1ff01000000000000000000000000004000000000000000ff04020010804201018000000000100013487204420c113000b21c0000004001000000000000000037000000000000000e00000003000100000000000000000000000000059001009802e0fe00000000000000000da00000251008120000000000000000010003c80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011000074218000008009e09000000000003e300000000000600100000000000500100000000004cb30f410804000004
+pci_0000:03:00.0=ec10875206041000010000ff10008000005040a4000000000000000000000000000000000000000000000000251008120000ffff4000000000000000ff0200000150c3f700000000000000000000000005708100b802e0fe00000000000000000000000000000000000000000000000010b00200c08c90051f201900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+pci_0000:03:00.1=ec1068810704100012000002100080000130000000000000044040a400000000040040a4000000000000000025100812000000004000000000000000ff0100000150c3ff080000000000000000000000057080000000000000000000000000000000000000000000000000000000000010b00202c08c90051f501900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0038004000000040800000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+wake_irq_read_error=/sys/power/pm_wakeup_irq: No data available (os error 61)
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-request-call.txt
+logind SuspendWithFlags(1), inhibitors enforcedFILE /var/lib/predator-pm-efi-s3/core-efi-20261101-requested.txt
+schema=efi-s3-20261101-1
+id=core-efi-20261101
+nonce=core1101a
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+btime=1793535078
+mode=core
+due=1793537100
+rtc=0
+review=1793538000
+runtime=/nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0/bin/predator-pm-boundary-trial
+runtime_sha=12b551f868bb0e0eae8c012bc9e41a0fbbc6e4dc975bf651e3a538e1651ed886
+source_sha=4884bb9d16b073785e441a17f807a6ce130f53e6b43a0a0cbdb9e41cd0a19f7f
+module=/nix/store/ymy989dq8bxys9j2jkanpc3d80qmvliy-predator-pm-boundary-stage-20261101/lib/modules/6.18.58/extra/pm_boundary_stage.ko.xz
+module_sha=90535c76374d5e2c29ba03780949b8917084c01fb6a610c0427a32e3471627c0
+success_before=0
+core_completion_sha=none
+retention_sha=176cbbc62c46cd68c977a07d6c3f775d770ff0983176190646c17f9c18d37b63
+owner_ready=owner-confirmed-ready-20261101
+pm_async=0
+pm_trace=0
+pm_test=coreFILE /var/lib/predator-pm-efi-s3/core-efi-20261101-request-ok.txt
+true
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-restored.txt
+epoch=1793537125
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+rtc_epoch=1793537125
+alarm=
+clock=Timex { modes: 0, offset: 0, freq: 277801, maxerror: 500, esterror: 0, status: 8192, constant: 7, precision: 1, tolerance: 32768000, time: [1793537125, 504797666], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+uptime=2046.49 15708.97
+2026-11-01 12:45:25.504296+00:00
+rtc_time	: 12:45:26
+rtc_date	: 2026-11-01
+alrm_time	: 12:10:16
+alrm_date	: 2026-11-02
+alarm_IRQ	: no
+alrm_pending	: no
+update IRQ enabled	: no
+periodic IRQ enabled	: no
+periodic IRQ frequency	: 1024
+max user IRQ frequency	: 64
+24hr		: yes
+periodic_IRQ	: no
+update_IRQ	: no
+HPET_emulated	: no
+BCD		: yes
+DST_enable	: no
+periodic_freq	: 1024
+batt_status	: okay
+/sys/kernel/debug/wakeup_sources:
+name		active_count	event_count	wakeup_count	expire_count	active_since	total_time	max_time	last_change	prevent_suspend_time
+0000:03:00.1	0		0		0		0		0		0		0		0		0
+SYNA7DB5:01 	0		0		0		0		0		0		0		0		0
+INT3F0D:00  	0		0		0		0		0		0		0		0		0
+INT33A1:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:02  	0		0		0		0		0		0		0		0		0
+PNP0C0A:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:01  	0		0		0		0		0		0		0		0		0
+alarmtimer.0.auto	0		0		0		0		0		0		0		0		0
+PNP0B00:00  	8		14		0		0		0		0		0		2042335		0
+PNP0B00:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:00  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	2		2		0		0		0		0		0		2033775		0
+PNP0C0C:00  	1		1		0		0		0		0		0		2033775		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+INT345D:00  	0		0		0		0		0		0		0		0		0
+ACPI000C:00 	0		0		0		0		0		0		0		0		0
+ACAD        	1		1		0		0		0		3		3		9924		0
+ACPI0003:00 	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+mmc0        	0		0		0		0		0		0		0		0		0
+0000:00:14.0	0		0		0		0		0		0		0		0		0
+LNXPWRBN:00 	0		0		0		0		0		0		0		0		0
+PNP0A08:00  	0		0		0		0		0		0		0		0		0
+device:41   	0		0		0		0		0		0		0		0		0
+device:3f   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:00 	0		0		0		0		0		0		0		0		0
+device:19   	0		0		0		0		0		0		0		0		0
+device:39   	0		0		0		0		0		0		0		0		0
+device:18   	0		0		0		0		0		0		0		0		0
+device:17   	0		0		0		0		0		0		0		0		0
+0000:00:1c.3	0		0		0		0		0		0		0		0		0
+device:40   	0		0		0		0		0		0		0		0		0
+0000:00:1c.0	0		0		0		0		0		0		0		0		0
+device:3e   	0		0		0		0		0		0		0		0		0
+device:6a   	0		0		0		0		0		0		0		0		0
+device:81   	0		0		0		0		0		0		0		0		0
+device:7e   	0		0		0		0		0		0		0		0		0
+device:7d   	0		0		0		0		0		0		0		0		0
+device:1b   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:01 	0		0		0		0		0		0		0		0		0
+device:00   	0		0		0		0		0		0		0		0		0
+deleted     	0		0		0		0		0		0		0		0		0
+/proc/interrupts:
+CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+   0:         37          0          0          0          0          0          0          0 IR-IO-APIC    2-edge      timer
+   1:         10          0          0          0          0          7          0          0 IR-IO-APIC    1-edge      i8042
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:          3         37          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+  14:          0          1          0          0          0          0          0          0 IR-IO-APIC   14-fasteoi   INT345D:00
+  16:          0          0          0          6          0          0          0          0 IR-IO-APIC   16-fasteoi   idma64.0, i2c_designware.0, i801_smbus
+  17:         29          0          0          0          0       1206          0          0 IR-IO-APIC   17-fasteoi   idma64.1, i2c_designware.1, snd_hda_intel:card0
+ 120:          1          0          1          0          0          0          0          0 IR-PCI-MSI-0000:00:01.0    0-edge      PCIe bwctrl
+ 121:          0          0          0          1          0          0          0          0 IR-PCI-MSI-0000:00:1c.0    0-edge      PCIe bwctrl
+ 122:          0          0          0          0          1          0          0          0 IR-PCI-MSI-0000:00:1c.3    0-edge      PCIe bwctrl
+ 123:          2          0          0          0          0          0          4          0 IR-PCI-MSI-0000:03:00.0    0-edge      rtsx_pci
+ 124:        146          0          0          0          0          0          0       5304 IR-PCI-MSI-0000:00:14.0    0-edge      xhci_hcd
+ 132:      57823         67          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.1    0-edge      enp3s0f1
+ 133:        537          0          0          0          0          0          0      96828 IR-PCI-MSI-0000:00:17.0    0-edge      ahci[0000:00:17.0]
+ 134:          0          0          0          0          0          0          0         34 IR-PCI-MSI-0000:00:16.0    0-edge      mei_me
+ 135:          0          1          0          0          0          0          0          0 intel-gpio   27  SYNA7DB5:01
+ 136:         29          0          0          0          0          0         88          0 IR-PCI-MSI-0000:00:02.0    0-edge      i915
+ 137:        122          0          0          0          0          0          0        311 IR-PCI-MSI-0000:00:1f.3    0-edge      snd_hda_intel:card1
+ 138:      11551          0          0          0          0          0          0          0 IR-PCI-MSI-0000:02:00.0    0-edge      ath10k_pci
+ NMI:          5          4          4          4          4          4          4          3   Non-maskable interrupts
+ LOC:     323859     259301     261505     247420     253975     250093     255000     246422   Local timer interrupts
+ SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+ PMI:          5          4          4          4          4          4          4          3   Performance monitoring interrupts
+ IWI:         29          1          1          0          2          0         12          0   IRQ work interrupts
+ RTR:          0          0          0          0          0          0          0          0   APIC ICR read retries
+ RES:       3221       2666       2657       2416       2405       2592       2137       2240   Rescheduling interrupts
+ CAL:      56666      45684      47676      42850      47001      41144      45417      46886   Function call interrupts
+ TLB:      19784      18367      19130      18851      18205      18884      18941      18563   TLB shootdowns
+ TRM:        570        570        570        570        570        570        570        570   Thermal event interrupts
+ THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+ DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+ MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+ MCP:          9         10         10         10         10         10         10         10   Machine check polls
+ ERR:          0
+ MIS:          0
+ PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+ NPI:          0          0          0          0          0          0          0          0   Nested posted-interrupt event
+ PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+/proc/acpi/wakeup:
+Device	S-state	  Status   Sysfs node
+GLAN	  S4	*disabled
+XHC	  S3	*enabled   pci:0000:00:14.0
+XDCI	  S4	*disabled
+HDAS	  S4	*disabled  pci:0000:00:1f.3
+RP01	  S4	*disabled
+PXSX	  S4	*disabled
+RP02	  S4	*disabled
+PXSX	  S4	*disabled
+RP03	  S4	*enabled   pci:0000:00:1c.0
+PXSX	  S4	*disabled  pci:0000:02:00.0
+RP04	  S4	*enabled   pci:0000:00:1c.3
+PXSX	  S4	*disabled  pci:0000:03:00.0
+		*disabled  platform:rtsx_pci_sdmmc.0
+RP05	  S4	*disabled
+PXSX	  S4	*disabled
+RP06	  S4	*disabled
+PXSX	  S4	*disabled
+RP07	  S4	*disabled
+PXSX	  S4	*disabled
+RP08	  S4	*disabled
+PXSX	  S4	*disabled
+RP09	  S4	*disabled
+PXSX	  S4	*disabled
+RP10	  S4	*disabled
+PXSX	  S4	*disabled
+RP11	  S4	*disabled
+PXSX	  S4	*disabled
+RP12	  S4	*disabled
+PXSX	  S4	*disabled
+RP13	  S4	*disabled
+PXSX	  S4	*disabled
+RP14	  S4	*disabled
+PXSX	  S4	*disabled
+RP15	  S4	*disabled
+PXSX	  S4	*disabled
+RP16	  S4	*disabled
+PXSX	  S4	*disabled
+RP17	  S4	*disabled
+PXSX	  S4	*disabled
+RP18	  S4	*disabled
+PXSX	  S4	*disabled
+RP19	  S4	*disabled
+PXSX	  S4	*disabled
+RP20	  S4	*disabled
+PXSX	  S4	*disabled
+RP21	  S4	*disabled
+PXSX	  S4	*disabled
+RP22	  S4	*disabled
+PXSX	  S4	*disabled
+RP23	  S4	*disabled
+PXSX	  S4	*disabled
+RP24	  S4	*disabled
+PXSX	  S4	*disabled
+PWRB	  S4	*enabled   platform:PNP0C0C:00
+/sys/power/pm_async:
+1
+/sys/power/pm_test:
+[none] core processors platform devices freezer
+acpi_ff_rt_clk=6         disabled     unmasked
+acpi_ff_pwr_btn=0  EN     enabled      unmasked
+acpi_ff_slp_btn=0         invalid      unmasked
+acpi_gpe14=27  EN     enabled      unmasked
+acpi_gpe66=7  EN     enabled      unmasked
+acpi_gpe69=0         disabled     unmasked
+acpi_gpe6D=0         disabled     unmasked
+acpi_sci=40
+acpi_sci_not=0
+acpi_gpe_all=34
+acpi_error=0
+pci_0000:00:1c.3=868013a107041000f1000406100081000000000000000000000303003030002040a440a4f1ff01000000000000000000000000004000000000000000ff04020010804201018000000000100013487204420c113000b21c0000004001000000000000000037000000000000000e00000003000100000000000000000000000000059001009802e0fe00000000000000000da00000251008120000000000000000010003c80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011000074218000008009e09000000000003e300000000000600100000000000500100000000004cb30f410804000004
+pci_0000:03:00.0=ec10875206041000010000ff10008000005040a4000000000000000000000000000000000000000000000000251008120000ffff4000000000000000ff0200000150c3f700000000000000000000000005708100b802e0fe00000000000000000000000000000000000000000000000010b00200c08c90051f201900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+pci_0000:03:00.1=ec1068810704100012000002100080000130000000000000044040a400000000040040a4000000000000000025100812000000004000000000000000ff0100000150c3ff080000000000000000000000057080000000000000000000000000000000000000000000000000000000000010b00202c08c90051f501900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0038004000000040800000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+wake_irq_read_error=/sys/power/pm_wakeup_irq: No data available (os error 61)
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-before.txt
+schema=efi-boundary-stage-1
+mode=core
+nonce=core1101a
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+armed=0
+limit=2
+attempted=0
+completed=0
+last_phase=0
+error=0
+results=-115,-115,-115
+efi=0,0,0
+fast_clock_deltas_ns=0,0,0
+capacity_query=0
+before_total=163752
+before_free=7342
+before_max=7282
+after_total=163752
+after_free=7342
+after_max=7282
+reserve=5120
+margin=1024
+per_write_budget=256FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-readback.txt
+attributes=7 bytes=64
+hex=504d5333424e4432020040000b000000020000000700000039d7579bb86d4d30b910131943e550c8636f72653131303161000000000000000000000099bb732bFILE /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-status.txt
+schema=efi-boundary-stage-1
+mode=core
+nonce=core1101a
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+armed=0
+limit=2
+attempted=2
+completed=2
+last_phase=11
+error=0
+results=0,0,-115
+efi=0,0,0
+fast_clock_deltas_ns=0,0,0
+capacity_query=0
+before_total=163752
+before_free=7342
+before_max=7282
+after_total=163752
+after_free=7034
+after_max=6974
+reserve=5120
+margin=1024
+per_write_budget=2562026-11-01T13:45:00.462938+01:00 predator systemd[1]: Starting [systemd-run] /nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0/bin/predator-pm-boundary-trial run /var/lib/predator-pm-efi-s3/core-efi-20261101-plan.conf 95344780cda5a343d3bbe5c757456aff0408d5ae027587d5da0d4215f7f3e5e3...
+2026-11-01T13:45:00.495486+01:00 predator systemd[1]: Started [systemd-run] /nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0/bin/predator-pm-boundary-trial run /var/lib/predator-pm-efi-s3/core-efi-20261101-plan.conf 95344780cda5a343d3bbe5c757456aff0408d5ae027587d5da0d4215f7f3e5e3.
+2026-11-01T13:45:10.316756+01:00 predator predator-pm-boundary-trial[17558]: BOUNDARY BEGIN id=core-efi-20261101 nonce=core1101a mode=core success_before=0 RTC=0 boot=39d7579b-b86d-4d30-b910-131943e550c8
+2026-11-01T13:45:26.012809+01:00 predator predator-pm-boundary-trial[17558]: Error: "boot/history identity changed"
+2026-11-01T13:45:26.013961+01:00 predator systemd[1]: predator-pm-boundary-core-efi-20261101.service: Main process exited, code=exited, status=1/FAILURE
+2026-11-01T13:45:26.065525+01:00 predator predator-pm-boundary-trial[18177]: Error: "boot/history identity changed"
+2026-11-01T13:45:26.066298+01:00 predator systemd[1]: predator-pm-boundary-core-efi-20261101.service: Control process exited, code=exited, status=1/FAILURE
+2026-11-01T13:45:26.066690+01:00 predator systemd[1]: predator-pm-boundary-core-efi-20261101.service: Failed with result 'exit-code'.
+2026-11-01T13:45:26.067945+01:00 predator systemd[1]: predator-pm-boundary-core-efi-20261101.service: Consumed 2.876s CPU time over 20.516s wall clock time, 14.2M memory peak, 9M read from disk, 3.1M written to disk.

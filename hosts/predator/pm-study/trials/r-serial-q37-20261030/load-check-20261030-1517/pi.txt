@@ -1,0 +1,22 @@
+2026-10-30T15:17:18+01:00
+active
+192.168.1.19 dev wlan0 FAILED 
+PING 192.168.1.19 (192.168.1.19) 56(84) bytes of data.
+
+--- 192.168.1.19 ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1014ms
+
+PING_EXIT=1
+192.168.1.19 dev wlan0 INCOMPLETE 
+/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log 2181931 2026-10-30 14:53:34.742530279 +0100
+78dc2e2b53368e389aebdc48a9960782bd65962b47c8ee7c9cb9db31bf49b385  /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log
+# recv 2026-10-30T14:53:34+0100
+[ 4541.320048] rtc_cmos PNP0B00:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.321082] platform PNP0C04:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.321831] platform PNP0103:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.322588] platform INT0800:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.323329] r8169 0000:03:00.1: shutdown

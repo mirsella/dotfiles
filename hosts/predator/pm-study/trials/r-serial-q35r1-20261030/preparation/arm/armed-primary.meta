@@ -1,0 +1,13 @@
+host=192.168.1.19
+status=exit status: 0
+script:
+set -eu
+test "$(date +%s)" -lt 1793365913
+'/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study' check-trial '/var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf' '3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e'
+systemd-run --unit='predator-pm-r-serial-q35r1-20261030' --on-calendar=@1793365973 --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot --property=TimeoutStartSec=25min --property=Environment=PATH=/run/current-system/sw/bin '--property=ExecStopPost=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study restore-trial /var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf 3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e' '/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study' attempt-trial '/var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf' '3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e'
+test "$(systemctl show 'predator-pm-r-serial-q35r1-20261030'.timer -p SubState --value)" = waiting
+systemctl cat 'predator-pm-r-serial-q35r1-20261030'.timer 'predator-pm-r-serial-q35r1-20261030'.service
+
+stderr:
+Running timer as unit: predator-pm-r-serial-q35r1-20261030.timer
+Will run service as unit: predator-pm-r-serial-q35r1-20261030.service

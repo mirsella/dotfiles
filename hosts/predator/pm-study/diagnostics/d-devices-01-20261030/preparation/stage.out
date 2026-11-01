@@ -1,0 +1,6 @@
+2026-10-30T20:08:10+01:00
+NEXT                            LEFT LAST                              PASSED UNIT                 ACTIVATES
+Fri 2026-10-30 20:11:39 CET 3min 28s Fri 2026-10-30 20:06:39 CET 1min 31s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+DIAG READY id=d-devices-01-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=devices ordinal=2 due=1793387912 planned_age=6720 real_s3=false

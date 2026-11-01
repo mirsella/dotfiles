@@ -1,0 +1,16 @@
+/boot/EFI/Linux/nixos-generation-167-o7mzz3pnl4dj6n4ajwtxp6rhpuc6k4pbdzfggpkl3govxscp665q.efi: OK
+2026-11-01T13:10:53,607621141+01:00
+authorization=owner requested suspend-hang tests and confirmed Ready now; announced recorder retention reboot
+old_boot=bf51c3ac-164e-4bfa-b56c-7b71df526b7f
+expected_system=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+expected_entry=nixos-generation-167-o7mzz3pnl4dj6n4ajwtxp6rhpuc6k4pbdzfggpkl3govxscp665q.efi
+requested_epoch=1793535053
+old_success=0
+old_fail=0
+new_EFI_writes=0
+S3_attempts=0
+retention_variable=PMS3-20261101-a-47d95147-3665-4bda-8ddf-d48f0e339023
+expected_record_crc=5c258a74
+Filesystem     1B-blocks   Used Available Use% Mounted on
+efivarfs          163752 156410      2222  99% /sys/firmware/efi/efivars
+issuing exactly one ordinary systemctl reboot

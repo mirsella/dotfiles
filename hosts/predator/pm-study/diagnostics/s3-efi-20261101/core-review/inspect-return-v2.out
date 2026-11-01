@@ -1,0 +1,1392 @@
+2026-11-01T13:47:37,053801785+01:00
+39d7579b-b86d-4d30-b910-131943e550c8
+2178.05 16726.14
+btime 1793535079
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+
+ActiveState=failed
+MainPID=0
+Result=exit-code
+ExecMainStatus=1
+No jobs running.
+1
+0
+1
+0
+[none] core processors platform devices freezer
+s2idle [deep]
+boundary stage module absent
+LocalRTC=no
+NTPSynchronized=yes
+2026-11-01 13:47:37.314589+01:00
+1793537258
+1793537258
+root 600 806105 /var/lib/predator-pm-efi-s3/core-efi-20261101-before-kernel.jsonl
+root 600 11010 /var/lib/predator-pm-efi-s3/core-efi-20261101-before.txt
+root 600 921 /var/lib/predator-pm-efi-s3/core-efi-20261101-clock-handoff.txt
+root 600 124 /var/lib/predator-pm-efi-s3/core-efi-20261101-cursor.txt
+root 600 78 /var/lib/predator-pm-efi-s3/core-efi-20261101-mutating.txt
+root 600 745274 /var/lib/predator-pm-efi-s3/core-efi-20261101-observed.jsonl
+root 600 104 /var/lib/predator-pm-efi-s3/core-efi-20261101-outcome.txt
+root 600 842 /var/lib/predator-pm-efi-s3/core-efi-20261101-plan.conf
+root 600 11024 /var/lib/predator-pm-efi-s3/core-efi-20261101-raw-return.txt
+root 600 47 /var/lib/predator-pm-efi-s3/core-efi-20261101-request-call.txt
+root 600 841 /var/lib/predator-pm-efi-s3/core-efi-20261101-requested.txt
+root 600 5 /var/lib/predator-pm-efi-s3/core-efi-20261101-request-ok.txt
+root 600 11017 /var/lib/predator-pm-efi-s3/core-efi-20261101-restored.txt
+root 600 382 /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-before.txt
+root 600 154 /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-readback.txt
+root 600 377 /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-status.txt
+ac4e30c40f80ac58cdf9b4dbd978c004763569e13a6c71b296924cf2d0d55dde  /var/lib/predator-pm-efi-s3/core-efi-20261101-before-kernel.jsonl
+77051c911edf463555841bbb275bd15b273a20ccc76951f88b264bd10bacad95  /var/lib/predator-pm-efi-s3/core-efi-20261101-before.txt
+0a5ed317bdffd2a850ee8ec348ecc24fb82a1029ed3d998d5328b92c3c5ec8f2  /var/lib/predator-pm-efi-s3/core-efi-20261101-clock-handoff.txt
+a381461bc3fd7ad997beee33198b6e7e7f7312643541018a08262373b0bc9e1a  /var/lib/predator-pm-efi-s3/core-efi-20261101-cursor.txt
+60f0734b50e821f8d61473f0c55233482329e3a04331171673a72c92694264f8  /var/lib/predator-pm-efi-s3/core-efi-20261101-mutating.txt
+73e15c93f69bffc2c5bbfb257faebb098556e45ef9ed9a481b263c4ed7c9de61  /var/lib/predator-pm-efi-s3/core-efi-20261101-observed.jsonl
+ed6c49b6b4c269651901180e12f4c4a7dff6ca29a1e1d235af6b641f09ac2b4e  /var/lib/predator-pm-efi-s3/core-efi-20261101-outcome.txt
+95344780cda5a343d3bbe5c757456aff0408d5ae027587d5da0d4215f7f3e5e3  /var/lib/predator-pm-efi-s3/core-efi-20261101-plan.conf
+4e04b945b2e5bed0b61ef755ea8346a04b52b48c9043c0d08060b07235e6a0c4  /var/lib/predator-pm-efi-s3/core-efi-20261101-raw-return.txt
+4174eadbcfbb3df313fba8938f8c24785c70d05687b33188f3ac6f612f4ded9c  /var/lib/predator-pm-efi-s3/core-efi-20261101-request-call.txt
+59a092d528e93fd48536f712cc67886628d63f8202e1354cab1e756fbfee2d44  /var/lib/predator-pm-efi-s3/core-efi-20261101-requested.txt
+a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74  /var/lib/predator-pm-efi-s3/core-efi-20261101-request-ok.txt
+33c76ad264bf7b7f766935fb0e1122cb56c9618977aba88645baba6cdc84864e  /var/lib/predator-pm-efi-s3/core-efi-20261101-restored.txt
+39915993d29c5933c985b3bff7d952a44f4a9d113ad884eed67a96cd3965f27a  /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-before.txt
+27710f1f377a715009da5559cd4830a0290628a4f7d29e40d26bb12b235536de  /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-readback.txt
+8ec9a59873daefb342530ce89044b651a2b3e280d817e260d7d0c7b49af7a48e  /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-status.txt
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-outcome.txt
+operation=Ok(())
+evidence=Ok(())
+cleanup=Ok(())
+reader=Ok(ExitStatus(unix_wait_status(9)))
+join_ok=true
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-raw-return.txt
+epoch=1793537120
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+rtc_epoch=1793537121
+alarm=
+clock=Timex { modes: 0, offset: 457723, freq: 277801, maxerror: 12500, esterror: 0, status: 8193, constant: 7, precision: 1, tolerance: 32768000, time: [1793537120, 932682789], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+uptime=2042.35 15682.45
+2026-11-01 12:45:21.355365+00:00
+rtc_time	: 12:45:22
+rtc_date	: 2026-11-01
+alrm_time	: 12:10:16
+alrm_date	: 2026-11-02
+alarm_IRQ	: no
+alrm_pending	: no
+update IRQ enabled	: no
+periodic IRQ enabled	: no
+periodic IRQ frequency	: 1024
+max user IRQ frequency	: 64
+24hr		: yes
+periodic_IRQ	: no
+update_IRQ	: no
+HPET_emulated	: no
+BCD		: yes
+DST_enable	: no
+periodic_freq	: 1024
+batt_status	: okay
+/sys/kernel/debug/wakeup_sources:
+name		active_count	event_count	wakeup_count	expire_count	active_since	total_time	max_time	last_change	prevent_suspend_time
+0000:03:00.1	0		0		0		0		0		0		0		0		0
+SYNA7DB5:01 	0		0		0		0		0		0		0		0		0
+INT3F0D:00  	0		0		0		0		0		0		0		0		0
+INT33A1:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:02  	0		0		0		0		0		0		0		0		0
+PNP0C0A:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:01  	0		0		0		0		0		0		0		0		0
+alarmtimer.0.auto	0		0		0		0		0		0		0		0		0
+PNP0B00:00  	6		11		0		0		0		0		0		2038344		0
+PNP0B00:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:00  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	2		2		0		0		0		0		0		2033775		0
+PNP0C0C:00  	1		1		0		0		0		0		0		2033775		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+INT345D:00  	0		0		0		0		0		0		0		0		0
+ACPI000C:00 	0		0		0		0		0		0		0		0		0
+ACAD        	1		1		0		0		0		3		3		9924		0
+ACPI0003:00 	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+mmc0        	0		0		0		0		0		0		0		0		0
+0000:00:14.0	0		0		0		0		0		0		0		0		0
+LNXPWRBN:00 	0		0		0		0		0		0		0		0		0
+PNP0A08:00  	0		0		0		0		0		0		0		0		0
+device:41   	0		0		0		0		0		0		0		0		0
+device:3f   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:00 	0		0		0		0		0		0		0		0		0
+device:19   	0		0		0		0		0		0		0		0		0
+device:39   	0		0		0		0		0		0		0		0		0
+device:18   	0		0		0		0		0		0		0		0		0
+device:17   	0		0		0		0		0		0		0		0		0
+0000:00:1c.3	0		0		0		0		0		0		0		0		0
+device:40   	0		0		0		0		0		0		0		0		0
+0000:00:1c.0	0		0		0		0		0		0		0		0		0
+device:3e   	0		0		0		0		0		0		0		0		0
+device:6a   	0		0		0		0		0		0		0		0		0
+device:81   	0		0		0		0		0		0		0		0		0
+device:7e   	0		0		0		0		0		0		0		0		0
+device:7d   	0		0		0		0		0		0		0		0		0
+device:1b   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:01 	0		0		0		0		0		0		0		0		0
+device:00   	0		0		0		0		0		0		0		0		0
+deleted     	0		0		0		0		0		0		0		0		0
+/proc/interrupts:
+CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+   0:         37          0          0          0          0          0          0          0 IR-IO-APIC    2-edge      timer
+   1:         10          0          0          0          0          7          0          0 IR-IO-APIC    1-edge      i8042
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:          2         37          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+  14:          0          1          0          0          0          0          0          0 IR-IO-APIC   14-fasteoi   INT345D:00
+  16:          0          0          0          6          0          0          0          0 IR-IO-APIC   16-fasteoi   idma64.0, i2c_designware.0, i801_smbus
+  17:         29          0          0          0          0       1206          0          0 IR-IO-APIC   17-fasteoi   idma64.1, i2c_designware.1, snd_hda_intel:card0
+ 120:          1          0          1          0          0          0          0          0 IR-PCI-MSI-0000:00:01.0    0-edge      PCIe bwctrl
+ 121:          0          0          0          1          0          0          0          0 IR-PCI-MSI-0000:00:1c.0    0-edge      PCIe bwctrl
+ 122:          0          0          0          0          1          0          0          0 IR-PCI-MSI-0000:00:1c.3    0-edge      PCIe bwctrl
+ 123:          2          0          0          0          0          0          4          0 IR-PCI-MSI-0000:03:00.0    0-edge      rtsx_pci
+ 124:         97          0          0          0          0          0          0       5304 IR-PCI-MSI-0000:00:14.0    0-edge      xhci_hcd
+ 132:      57823          2          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.1    0-edge      enp3s0f1
+ 133:        462          0          0          0          0          0          0      96828 IR-PCI-MSI-0000:00:17.0    0-edge      ahci[0000:00:17.0]
+ 134:          0          0          0          0          0          0          0         34 IR-PCI-MSI-0000:00:16.0    0-edge      mei_me
+ 135:          0          1          0          0          0          0          0          0 intel-gpio   27  SYNA7DB5:01
+ 136:         29          0          0          0          0          0         88          0 IR-PCI-MSI-0000:00:02.0    0-edge      i915
+ 137:        122          0          0          0          0          0          0        311 IR-PCI-MSI-0000:00:1f.3    0-edge      snd_hda_intel:card1
+ 138:      11458          0          0          0          0          0          0          0 IR-PCI-MSI-0000:02:00.0    0-edge      ath10k_pci
+ NMI:          5          4          4          4          4          4          4          3   Non-maskable interrupts
+ LOC:     322668     258247     260120     246529     253271     249252     254104     245630   Local timer interrupts
+ SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+ PMI:          5          4          4          4          4          4          4          3   Performance monitoring interrupts
+ IWI:         29          1          0          0          2          0         12          0   IRQ work interrupts
+ RTR:          0          0          0          0          0          0          0          0   APIC ICR read retries
+ RES:       3220       2665       2657       2415       2400       2592       2136       2239   Rescheduling interrupts
+ CAL:      56462      45462      47630      42667      46820      40973      45249      46733   Function call interrupts
+ TLB:      19765      18353      19112      18834      18186      18871      18927      18554   TLB shootdowns
+ TRM:        570        570        570        570        570        570        570        570   Thermal event interrupts
+ THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+ DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+ MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+ MCP:          9         10         10         10         10         10         10         10   Machine check polls
+ ERR:          0
+ MIS:          0
+ PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+ NPI:          0          0          0          0          0          0          0          0   Nested posted-interrupt event
+ PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+/proc/acpi/wakeup:
+Device	S-state	  Status   Sysfs node
+GLAN	  S4	*disabled
+XHC	  S3	*enabled   pci:0000:00:14.0
+XDCI	  S4	*disabled
+HDAS	  S4	*disabled  pci:0000:00:1f.3
+RP01	  S4	*disabled
+PXSX	  S4	*disabled
+RP02	  S4	*disabled
+PXSX	  S4	*disabled
+RP03	  S4	*enabled   pci:0000:00:1c.0
+PXSX	  S4	*disabled  pci:0000:02:00.0
+RP04	  S4	*enabled   pci:0000:00:1c.3
+PXSX	  S4	*disabled  pci:0000:03:00.0
+		*disabled  platform:rtsx_pci_sdmmc.0
+RP05	  S4	*disabled
+PXSX	  S4	*disabled
+RP06	  S4	*disabled
+PXSX	  S4	*disabled
+RP07	  S4	*disabled
+PXSX	  S4	*disabled
+RP08	  S4	*disabled
+PXSX	  S4	*disabled
+RP09	  S4	*disabled
+PXSX	  S4	*disabled
+RP10	  S4	*disabled
+PXSX	  S4	*disabled
+RP11	  S4	*disabled
+PXSX	  S4	*disabled
+RP12	  S4	*disabled
+PXSX	  S4	*disabled
+RP13	  S4	*disabled
+PXSX	  S4	*disabled
+RP14	  S4	*disabled
+PXSX	  S4	*disabled
+RP15	  S4	*disabled
+PXSX	  S4	*disabled
+RP16	  S4	*disabled
+PXSX	  S4	*disabled
+RP17	  S4	*disabled
+PXSX	  S4	*disabled
+RP18	  S4	*disabled
+PXSX	  S4	*disabled
+RP19	  S4	*disabled
+PXSX	  S4	*disabled
+RP20	  S4	*disabled
+PXSX	  S4	*disabled
+RP21	  S4	*disabled
+PXSX	  S4	*disabled
+RP22	  S4	*disabled
+PXSX	  S4	*disabled
+RP23	  S4	*disabled
+PXSX	  S4	*disabled
+RP24	  S4	*disabled
+PXSX	  S4	*disabled
+PWRB	  S4	*enabled   platform:PNP0C0C:00
+/sys/power/pm_async:
+0
+/sys/power/pm_test:
+none [core] processors platform devices freezer
+acpi_ff_rt_clk=5         disabled     unmasked
+acpi_ff_pwr_btn=0  EN     enabled      unmasked
+acpi_ff_slp_btn=0         invalid      unmasked
+acpi_gpe14=27  EN     enabled      unmasked
+acpi_gpe66=7  EN     enabled      unmasked
+acpi_gpe69=0         disabled     unmasked
+acpi_gpe6D=0         disabled     unmasked
+acpi_sci=39
+acpi_sci_not=0
+acpi_gpe_all=34
+acpi_error=0
+pci_0000:00:1c.3=868013a107041000f1000406100081000000000000000000000303003030002040a440a4f1ff01000000000000000000000000004000000000000000ff04020010804201018000000000100013487204420c113000b21c0000004001000000000000000037000000000000000e00000003000100000000000000000000000000059001009802e0fe00000000000000000da00000251008120000000000000000010003c80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011000074218000008009e09000000000003e300000000000600100000000000500100000000004cb30f410804000004
+pci_0000:03:00.0=ec10875206041000010000ff10008000005040a4000000000000000000000000000000000000000000000000251008120000ffff4000000000000000ff0200000150c3f700000000000000000000000005708100b802e0fe00000000000000000000000000000000000000000000000010b00200c08c90051f201900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+pci_0000:03:00.1=ec1068810704100012000002100080000130000000000000044040a400000000040040a4000000000000000025100812000000004000000000000000ff0100000150c3ff080000000000000000000000057080000000000000000000000000000000000000000000000000000000000010b00202c08c90051f501900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0038004000000040800000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+wake_irq_read_error=/sys/power/pm_wakeup_irq: No data available (os error 61)
+FILE /var/lib/predator-pm-efi-s3/core-efi-20261101-restored.txt
+epoch=1793537125
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+rtc_epoch=1793537125
+alarm=
+clock=Timex { modes: 0, offset: 0, freq: 277801, maxerror: 500, esterror: 0, status: 8192, constant: 7, precision: 1, tolerance: 32768000, time: [1793537125, 504797666], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+uptime=2046.49 15708.97
+2026-11-01 12:45:25.504296+00:00
+rtc_time	: 12:45:26
+rtc_date	: 2026-11-01
+alrm_time	: 12:10:16
+alrm_date	: 2026-11-02
+alarm_IRQ	: no
+alrm_pending	: no
+update IRQ enabled	: no
+periodic IRQ enabled	: no
+periodic IRQ frequency	: 1024
+max user IRQ frequency	: 64
+24hr		: yes
+periodic_IRQ	: no
+update_IRQ	: no
+HPET_emulated	: no
+BCD		: yes
+DST_enable	: no
+periodic_freq	: 1024
+batt_status	: okay
+/sys/kernel/debug/wakeup_sources:
+name		active_count	event_count	wakeup_count	expire_count	active_since	total_time	max_time	last_change	prevent_suspend_time
+0000:03:00.1	0		0		0		0		0		0		0		0		0
+SYNA7DB5:01 	0		0		0		0		0		0		0		0		0
+INT3F0D:00  	0		0		0		0		0		0		0		0		0
+INT33A1:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:02  	0		0		0		0		0		0		0		0		0
+PNP0C0A:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:01  	0		0		0		0		0		0		0		0		0
+alarmtimer.0.auto	0		0		0		0		0		0		0		0		0
+PNP0B00:00  	8		14		0		0		0		0		0		2042335		0
+PNP0B00:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:00  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	2		2		0		0		0		0		0		2033775		0
+PNP0C0C:00  	1		1		0		0		0		0		0		2033775		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+INT345D:00  	0		0		0		0		0		0		0		0		0
+ACPI000C:00 	0		0		0		0		0		0		0		0		0
+ACAD        	1		1		0		0		0		3		3		9924		0
+ACPI0003:00 	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+mmc0        	0		0		0		0		0		0		0		0		0
+0000:00:14.0	0		0		0		0		0		0		0		0		0
+LNXPWRBN:00 	0		0		0		0		0		0		0		0		0
+PNP0A08:00  	0		0		0		0		0		0		0		0		0
+device:41   	0		0		0		0		0		0		0		0		0
+device:3f   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:00 	0		0		0		0		0		0		0		0		0
+device:19   	0		0		0		0		0		0		0		0		0
+device:39   	0		0		0		0		0		0		0		0		0
+device:18   	0		0		0		0		0		0		0		0		0
+device:17   	0		0		0		0		0		0		0		0		0
+0000:00:1c.3	0		0		0		0		0		0		0		0		0
+device:40   	0		0		0		0		0		0		0		0		0
+0000:00:1c.0	0		0		0		0		0		0		0		0		0
+device:3e   	0		0		0		0		0		0		0		0		0
+device:6a   	0		0		0		0		0		0		0		0		0
+device:81   	0		0		0		0		0		0		0		0		0
+device:7e   	0		0		0		0		0		0		0		0		0
+device:7d   	0		0		0		0		0		0		0		0		0
+device:1b   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:01 	0		0		0		0		0		0		0		0		0
+device:00   	0		0		0		0		0		0		0		0		0
+deleted     	0		0		0		0		0		0		0		0		0
+/proc/interrupts:
+CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+   0:         37          0          0          0          0          0          0          0 IR-IO-APIC    2-edge      timer
+   1:         10          0          0          0          0          7          0          0 IR-IO-APIC    1-edge      i8042
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:          3         37          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+  14:          0          1          0          0          0          0          0          0 IR-IO-APIC   14-fasteoi   INT345D:00
+  16:          0          0          0          6          0          0          0          0 IR-IO-APIC   16-fasteoi   idma64.0, i2c_designware.0, i801_smbus
+  17:         29          0          0          0          0       1206          0          0 IR-IO-APIC   17-fasteoi   idma64.1, i2c_designware.1, snd_hda_intel:card0
+ 120:          1          0          1          0          0          0          0          0 IR-PCI-MSI-0000:00:01.0    0-edge      PCIe bwctrl
+ 121:          0          0          0          1          0          0          0          0 IR-PCI-MSI-0000:00:1c.0    0-edge      PCIe bwctrl
+ 122:          0          0          0          0          1          0          0          0 IR-PCI-MSI-0000:00:1c.3    0-edge      PCIe bwctrl
+ 123:          2          0          0          0          0          0          4          0 IR-PCI-MSI-0000:03:00.0    0-edge      rtsx_pci
+ 124:        146          0          0          0          0          0          0       5304 IR-PCI-MSI-0000:00:14.0    0-edge      xhci_hcd
+ 132:      57823         67          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.1    0-edge      enp3s0f1
+ 133:        537          0          0          0          0          0          0      96828 IR-PCI-MSI-0000:00:17.0    0-edge      ahci[0000:00:17.0]
+ 134:          0          0          0          0          0          0          0         34 IR-PCI-MSI-0000:00:16.0    0-edge      mei_me
+ 135:          0          1          0          0          0          0          0          0 intel-gpio   27  SYNA7DB5:01
+ 136:         29          0          0          0          0          0         88          0 IR-PCI-MSI-0000:00:02.0    0-edge      i915
+ 137:        122          0          0          0          0          0          0        311 IR-PCI-MSI-0000:00:1f.3    0-edge      snd_hda_intel:card1
+ 138:      11551          0          0          0          0          0          0          0 IR-PCI-MSI-0000:02:00.0    0-edge      ath10k_pci
+ NMI:          5          4          4          4          4          4          4          3   Non-maskable interrupts
+ LOC:     323859     259301     261505     247420     253975     250093     255000     246422   Local timer interrupts
+ SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+ PMI:          5          4          4          4          4          4          4          3   Performance monitoring interrupts
+ IWI:         29          1          1          0          2          0         12          0   IRQ work interrupts
+ RTR:          0          0          0          0          0          0          0          0   APIC ICR read retries
+ RES:       3221       2666       2657       2416       2405       2592       2137       2240   Rescheduling interrupts
+ CAL:      56666      45684      47676      42850      47001      41144      45417      46886   Function call interrupts
+ TLB:      19784      18367      19130      18851      18205      18884      18941      18563   TLB shootdowns
+ TRM:        570        570        570        570        570        570        570        570   Thermal event interrupts
+ THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+ DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+ MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+ MCP:          9         10         10         10         10         10         10         10   Machine check polls
+ ERR:          0
+ MIS:          0
+ PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+ NPI:          0          0          0          0          0          0          0          0   Nested posted-interrupt event
+ PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+/proc/acpi/wakeup:
+Device	S-state	  Status   Sysfs node
+GLAN	  S4	*disabled
+XHC	  S3	*enabled   pci:0000:00:14.0
+XDCI	  S4	*disabled
+HDAS	  S4	*disabled  pci:0000:00:1f.3
+RP01	  S4	*disabled
+PXSX	  S4	*disabled
+RP02	  S4	*disabled
+PXSX	  S4	*disabled
+RP03	  S4	*enabled   pci:0000:00:1c.0
+PXSX	  S4	*disabled  pci:0000:02:00.0
+RP04	  S4	*enabled   pci:0000:00:1c.3
+PXSX	  S4	*disabled  pci:0000:03:00.0
+		*disabled  platform:rtsx_pci_sdmmc.0
+RP05	  S4	*disabled
+PXSX	  S4	*disabled
+RP06	  S4	*disabled
+PXSX	  S4	*disabled
+RP07	  S4	*disabled
+PXSX	  S4	*disabled
+RP08	  S4	*disabled
+PXSX	  S4	*disabled
+RP09	  S4	*disabled
+PXSX	  S4	*disabled
+RP10	  S4	*disabled
+PXSX	  S4	*disabled
+RP11	  S4	*disabled
+PXSX	  S4	*disabled
+RP12	  S4	*disabled
+PXSX	  S4	*disabled
+RP13	  S4	*disabled
+PXSX	  S4	*disabled
+RP14	  S4	*disabled
+PXSX	  S4	*disabled
+RP15	  S4	*disabled
+PXSX	  S4	*disabled
+RP16	  S4	*disabled
+PXSX	  S4	*disabled
+RP17	  S4	*disabled
+PXSX	  S4	*disabled
+RP18	  S4	*disabled
+PXSX	  S4	*disabled
+RP19	  S4	*disabled
+PXSX	  S4	*disabled
+RP20	  S4	*disabled
+PXSX	  S4	*disabled
+RP21	  S4	*disabled
+PXSX	  S4	*disabled
+RP22	  S4	*disabled
+PXSX	  S4	*disabled
+RP23	  S4	*disabled
+PXSX	  S4	*disabled
+RP24	  S4	*disabled
+PXSX	  S4	*disabled
+PWRB	  S4	*enabled   platform:PNP0C0C:00
+/sys/power/pm_async:
+1
+/sys/power/pm_test:
+[none] core processors platform devices freezer
+acpi_ff_rt_clk=6         disabled     unmasked
+acpi_ff_pwr_btn=0  EN     enabled      unmasked
+acpi_ff_slp_btn=0         invalid      unmasked
+acpi_gpe14=27  EN     enabled      unmasked
+acpi_gpe66=7  EN     enabled      unmasked
+acpi_gpe69=0         disabled     unmasked
+acpi_gpe6D=0         disabled     unmasked
+acpi_sci=40
+acpi_sci_not=0
+acpi_gpe_all=34
+acpi_error=0
+pci_0000:00:1c.3=868013a107041000f1000406100081000000000000000000000303003030002040a440a4f1ff01000000000000000000000000004000000000000000ff04020010804201018000000000100013487204420c113000b21c0000004001000000000000000037000000000000000e00000003000100000000000000000000000000059001009802e0fe00000000000000000da00000251008120000000000000000010003c80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011000074218000008009e09000000000003e300000000000600100000000000500100000000004cb30f410804000004
+pci_0000:03:00.0=ec10875206041000010000ff10008000005040a4000000000000000000000000000000000000000000000000251008120000ffff4000000000000000ff0200000150c3f700000000000000000000000005708100b802e0fe00000000000000000000000000000000000000000000000010b00200c08c90051f201900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+pci_0000:03:00.1=ec1068810704100012000002100080000130000000000000044040a400000000040040a4000000000000000025100812000000004000000000000000ff0100000150c3ff080000000000000000000000057080000000000000000000000000000000000000000000000000000000000010b00202c08c90051f501900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0038004000000040800000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+wake_irq_read_error=/sys/power/pm_wakeup_irq: No data available (os error 61)
+absent after successful listing: /var/lib/predator-pm-efi-s3/core-efi-20261101-completed.json
+2026-11-01T13:45:10.091529+01:00 predator kernel: pm_boundary_stage: ready mode=core nonce=core1101a limit=2 free=7342 armed=0
+2026-11-01T13:45:10.317539+01:00 predator pm-boundary: 
+2026-11-01T13:45:10.317622+01:00 predator unknown: BOUNDARY BEGIN id=core-efi-20261101 nonce=core1101a mode=core success_before=0 RTC=0 boot=39d7579b-b86d-4d30-b910-131943e550c8
+2026-11-01T13:45:10.317666+01:00 predator unknown: 
+2026-11-01T13:45:10.345931+01:00 predator systemd-journald[456]: Received client request to sync journal (with offlining).
+2026-11-01T13:45:10.492030+01:00 predator kernel: PM: suspend entry (deep)
+2026-11-01T13:45:10.512547+01:00 predator kernel: Filesystems sync: 0.021 seconds
+2026-11-01T13:45:20.289610+01:00 predator kernel: Freezing user space processes
+2026-11-01T13:45:20.289770+01:00 predator kernel: Freezing user space processes completed (elapsed 0.001 seconds)
+2026-11-01T13:45:20.289837+01:00 predator kernel: OOM killer disabled.
+2026-11-01T13:45:20.289883+01:00 predator kernel: Freezing remaining freezable tasks
+2026-11-01T13:45:20.289927+01:00 predator kernel: Freezing remaining freezable tasks completed (elapsed 0.000 seconds)
+2026-11-01T13:45:20.289957+01:00 predator kernel: GFP mask restricted
+2026-11-01T13:45:20.289997+01:00 predator kernel: rfkill rfkill1: PM: calling rfkill_suspend [rfkill] @ 17829, parent: phy0
+2026-11-01T13:45:20.290580+01:00 predator kernel: rfkill rfkill1: PM: rfkill_suspend [rfkill] returned 0 after 0 usecs
+2026-11-01T13:45:20.291040+01:00 predator kernel: ieee80211 phy0: PM: calling wiphy_suspend [cfg80211] @ 17829, parent: 0000:02:00.0
+2026-11-01T13:45:20.291939+01:00 predator kernel: ieee80211 phy0: PM: wiphy_suspend [cfg80211] returned 0 after 60805 usecs
+2026-11-01T13:45:20.292303+01:00 predator kernel: input input18: PM: calling input_dev_suspend @ 17829, parent: card1
+2026-11-01T13:45:20.295140+01:00 predator kernel: input input18: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.295822+01:00 predator kernel: input input17: PM: calling input_dev_suspend @ 17829, parent: card1
+2026-11-01T13:45:20.296584+01:00 predator kernel: input input17: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.297602+01:00 predator kernel: sound pcmC1D0c: PM: calling do_pcm_suspend [snd_pcm] @ 17829, parent: card1
+2026-11-01T13:45:20.297972+01:00 predator kernel: sound pcmC1D0c: PM: do_pcm_suspend [snd_pcm] returned 0 after 1 usecs
+2026-11-01T13:45:20.298335+01:00 predator kernel: sound pcmC1D0p: PM: calling do_pcm_suspend [snd_pcm] @ 17829, parent: card1
+2026-11-01T13:45:20.298805+01:00 predator kernel: sound pcmC1D0p: PM: do_pcm_suspend [snd_pcm] returned 0 after 0 usecs
+2026-11-01T13:45:20.299278+01:00 predator kernel: ses 3:0:0:1: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: target3:0:0
+2026-11-01T13:45:20.300103+01:00 predator kernel: ses 3:0:0:1: PM: scsi_bus_suspend [scsi_mod] returned 0 after 158 usecs
+2026-11-01T13:45:20.300861+01:00 predator kernel: intel_rapl_msr intel_rapl_msr.0: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.301502+01:00 predator kernel: intel_rapl_msr intel_rapl_msr.0: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.302224+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.302919+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: pci_pm_suspend returned 0 after 25932 usecs
+2026-11-01T13:45:20.303598+01:00 predator kernel: input input16: PM: calling input_dev_suspend @ 17829, parent: LNXVIDEO:01
+2026-11-01T13:45:20.304423+01:00 predator kernel: input input16: PM: input_dev_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.304986+01:00 predator kernel: sd 3:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: target3:0:0
+2026-11-01T13:45:20.305485+01:00 predator kernel: sd 3:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 9855 usecs
+2026-11-01T13:45:20.306237+01:00 predator kernel: scsi target3:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: host3
+2026-11-01T13:45:20.307586+01:00 predator kernel: scsi target3:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.308275+01:00 predator kernel: input input15: PM: calling input_dev_suspend @ 17829, parent: LNXVIDEO:00
+2026-11-01T13:45:20.308868+01:00 predator kernel: input input15: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.311986+01:00 predator kernel: backlight intel_backlight: PM: calling backlight_suspend @ 17829, parent: card1-eDP-1
+2026-11-01T13:45:20.314647+01:00 predator kernel: backlight intel_backlight: PM: backlight_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.316132+01:00 predator kernel: input input14: PM: calling input_dev_suspend @ 17829, parent: card0
+2026-11-01T13:45:20.317377+01:00 predator kernel: input input14: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.318788+01:00 predator kernel: input input13: PM: calling input_dev_suspend @ 17829, parent: card0
+2026-11-01T13:45:20.325286+01:00 predator kernel: input input13: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.334038+01:00 predator kernel: input input12: PM: calling input_dev_suspend @ 17829, parent: card0
+2026-11-01T13:45:20.337242+01:00 predator kernel: input input12: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.338489+01:00 predator kernel: input input11: PM: calling input_dev_suspend @ 17829, parent: card0
+2026-11-01T13:45:20.343211+01:00 predator kernel: input input11: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.347472+01:00 predator kernel: sound pcmC0D9p: PM: calling do_pcm_suspend [snd_pcm] @ 17829, parent: card0
+2026-11-01T13:45:20.348438+01:00 predator kernel: sound pcmC0D9p: PM: do_pcm_suspend [snd_pcm] returned 0 after 1 usecs
+2026-11-01T13:45:20.349035+01:00 predator kernel: sound pcmC0D8p: PM: calling do_pcm_suspend [snd_pcm] @ 17829, parent: card0
+2026-11-01T13:45:20.349538+01:00 predator kernel: sound pcmC0D8p: PM: do_pcm_suspend [snd_pcm] returned 0 after 0 usecs
+2026-11-01T13:45:20.350113+01:00 predator kernel: sound pcmC0D7p: PM: calling do_pcm_suspend [snd_pcm] @ 17829, parent: card0
+2026-11-01T13:45:20.350603+01:00 predator kernel: sound pcmC0D7p: PM: do_pcm_suspend [snd_pcm] returned 0 after 0 usecs
+2026-11-01T13:45:20.351053+01:00 predator kernel: sound pcmC0D3p: PM: calling do_pcm_suspend [snd_pcm] @ 17829, parent: card0
+2026-11-01T13:45:20.351625+01:00 predator kernel: sound pcmC0D3p: PM: do_pcm_suspend [snd_pcm] returned 0 after 0 usecs
+2026-11-01T13:45:20.352283+01:00 predator kernel: rfkill rfkill0: PM: calling rfkill_suspend [rfkill] @ 17829, parent: hci0
+2026-11-01T13:45:20.353041+01:00 predator kernel: rfkill rfkill0: PM: rfkill_suspend [rfkill] returned 0 after 1 usecs
+2026-11-01T13:45:20.353562+01:00 predator kernel: input input9: PM: calling input_dev_suspend @ 17829, parent: 0018:06CB:7DB7.0001
+2026-11-01T13:45:20.354300+01:00 predator kernel: input input9: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.354925+01:00 predator kernel: input input8: PM: calling input_dev_suspend @ 17829, parent: 0018:06CB:7DB7.0001
+2026-11-01T13:45:20.355446+01:00 predator kernel: input input8: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.356113+01:00 predator kernel: sd 4:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: target4:0:0
+2026-11-01T13:45:20.356753+01:00 predator kernel: sd 4:0:0:0: [sdd] Synchronizing SCSI cache
+2026-11-01T13:45:20.357557+01:00 predator kernel: sd 4:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 6588 usecs
+2026-11-01T13:45:20.358021+01:00 predator kernel: scsi target4:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: host4
+2026-11-01T13:45:20.358732+01:00 predator kernel: scsi target4:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.359467+01:00 predator kernel: sd 5:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: target5:0:0
+2026-11-01T13:45:20.360070+01:00 predator kernel: sd 5:0:0:0: [sdc] Synchronizing SCSI cache
+2026-11-01T13:45:20.360632+01:00 predator kernel: sd 5:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 9913 usecs
+2026-11-01T13:45:20.361163+01:00 predator kernel: scsi target5:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: host5
+2026-11-01T13:45:20.361746+01:00 predator kernel: scsi target5:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.362195+01:00 predator kernel: scsi host5: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: 2-2.4:1.0
+2026-11-01T13:45:20.362707+01:00 predator kernel: scsi host5: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.363214+01:00 predator kernel: platform coretemp.0: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.363682+01:00 predator kernel: platform coretemp.0: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.364103+01:00 predator kernel: scsi host4: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: 2-2.2:1.0
+2026-11-01T13:45:20.364774+01:00 predator kernel: scsi host4: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.365409+01:00 predator kernel: scsi host3: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: 2-2.3:1.0
+2026-11-01T13:45:20.366125+01:00 predator kernel: scsi host3: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.366782+01:00 predator kernel: iTCO_wdt iTCO_wdt: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:1f.4
+2026-11-01T13:45:20.367405+01:00 predator kernel: iTCO_wdt iTCO_wdt: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.367986+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: calling acpi_subsys_suspend @ 17829, parent: i2c-1
+2026-11-01T13:45:20.368613+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: acpi_subsys_suspend returned 0 after 1690 usecs
+2026-11-01T13:45:20.369254+01:00 predator kernel: i2c_designware i2c_designware.1: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:15.1
+2026-11-01T13:45:20.369867+01:00 predator kernel: i2c_designware i2c_designware.1: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.370411+01:00 predator kernel: idma64 idma64.1: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:15.1
+2026-11-01T13:45:20.370988+01:00 predator kernel: idma64 idma64.1: PM: platform_pm_suspend returned 0 after 6 usecs
+2026-11-01T13:45:20.371539+01:00 predator kernel: i2c_designware i2c_designware.0: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:15.0
+2026-11-01T13:45:20.371982+01:00 predator kernel: i2c_designware i2c_designware.0: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.372391+01:00 predator kernel: idma64 idma64.0: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:15.0
+2026-11-01T13:45:20.372714+01:00 predator kernel: idma64 idma64.0: PM: platform_pm_suspend returned 0 after 4 usecs
+2026-11-01T13:45:20.373259+01:00 predator kernel: alarmtimer alarmtimer.0.auto: PM: calling platform_pm_suspend @ 17829, parent: rtc0
+2026-11-01T13:45:20.373934+01:00 predator kernel: alarmtimer alarmtimer.0.auto: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.374369+01:00 predator kernel: rtc rtc0: PM: calling rtc_suspend @ 17829, parent: PNP0B00:00
+2026-11-01T13:45:20.374653+01:00 predator kernel: rtc rtc0: PM: rtc_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.375011+01:00 predator kernel: input input4: PM: calling input_dev_suspend @ 17829, parent: PNP0C0C:00
+2026-11-01T13:45:20.375432+01:00 predator kernel: input input4: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.375858+01:00 predator kernel: input input3: PM: calling input_dev_suspend @ 17829, parent: 10251229:00
+2026-11-01T13:45:20.376297+01:00 predator kernel: input input3: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.376691+01:00 predator kernel: input input2: PM: calling input_dev_suspend @ 17829, parent: PNP0C0E:00
+2026-11-01T13:45:20.377119+01:00 predator kernel: input input2: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.377448+01:00 predator kernel: input input1: PM: calling input_dev_suspend @ 17829, parent: PNP0C0D:00
+2026-11-01T13:45:20.377885+01:00 predator kernel: input input1: PM: input_dev_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.378307+01:00 predator kernel: usb 2-2.4: PM: calling usb_dev_suspend @ 17829, parent: 2-2
+2026-11-01T13:45:20.378750+01:00 predator kernel: usb 2-2.4: PM: usb_dev_suspend returned 0 after 10683 usecs
+2026-11-01T13:45:20.379102+01:00 predator kernel: usb 2-2.3: PM: calling usb_dev_suspend @ 17829, parent: 2-2
+2026-11-01T13:45:20.379430+01:00 predator kernel: usb 2-2.3: PM: usb_dev_suspend returned 0 after 11222 usecs
+2026-11-01T13:45:20.379752+01:00 predator kernel: usb 2-2.2: PM: calling usb_dev_suspend @ 17829, parent: 2-2
+2026-11-01T13:45:20.380084+01:00 predator kernel: usb 2-2.2: PM: usb_dev_suspend returned 0 after 11716 usecs
+2026-11-01T13:45:20.380515+01:00 predator kernel: usb 1-9: PM: calling usb_dev_suspend @ 17829, parent: usb1
+2026-11-01T13:45:20.380854+01:00 predator kernel: usb 1-9: PM: usb_dev_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.381156+01:00 predator kernel: usb 2-2.1: PM: calling usb_dev_suspend @ 17829, parent: 2-2
+2026-11-01T13:45:20.381476+01:00 predator kernel: usb 2-2.1: PM: usb_dev_suspend returned 0 after 88567 usecs
+2026-11-01T13:45:20.381789+01:00 predator kernel: usb 1-2.1: PM: calling usb_dev_suspend @ 17829, parent: 1-2
+2026-11-01T13:45:20.382139+01:00 predator kernel: usb 1-2.1: PM: usb_dev_suspend returned 0 after 151358 usecs
+2026-11-01T13:45:20.382454+01:00 predator kernel: usb 1-7: PM: calling usb_dev_suspend @ 17829, parent: usb1
+2026-11-01T13:45:20.382749+01:00 predator kernel: usb 1-7: PM: usb_dev_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.383051+01:00 predator kernel: usb 2-2: PM: calling usb_dev_suspend @ 17829, parent: usb2
+2026-11-01T13:45:20.383368+01:00 predator kernel: usb 2-2: PM: usb_dev_suspend returned 0 after 20025 usecs
+2026-11-01T13:45:20.383667+01:00 predator kernel: sd 2:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: target2:0:0
+2026-11-01T13:45:20.383985+01:00 predator kernel: sd 2:0:0:0: [sdb] Synchronizing SCSI cache
+2026-11-01T13:45:20.384278+01:00 predator kernel: sd 2:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 7458 usecs
+2026-11-01T13:45:20.384571+01:00 predator kernel: scsi target2:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: host2
+2026-11-01T13:45:20.384862+01:00 predator kernel: scsi target2:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.385129+01:00 predator kernel: sd 0:0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: target0:0:0
+2026-11-01T13:45:20.385418+01:00 predator kernel: sd 0:0:0:0: [sda] Synchronizing SCSI cache
+2026-11-01T13:45:20.385701+01:00 predator kernel: sd 0:0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 7661 usecs
+2026-11-01T13:45:20.386030+01:00 predator kernel: scsi target0:0:0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: host0
+2026-11-01T13:45:20.386409+01:00 predator kernel: scsi target0:0:0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.386709+01:00 predator kernel: usb 1-2: PM: calling usb_dev_suspend @ 17829, parent: usb1
+2026-11-01T13:45:20.387154+01:00 predator kernel: usb 1-2: PM: usb_dev_suspend returned 0 after 116 usecs
+2026-11-01T13:45:20.387563+01:00 predator kernel: scsi host2: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: ata3
+2026-11-01T13:45:20.387970+01:00 predator kernel: scsi host2: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.388288+01:00 predator kernel: scsi host1: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: ata2
+2026-11-01T13:45:20.388612+01:00 predator kernel: scsi host1: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.388942+01:00 predator kernel: scsi host0: PM: calling scsi_bus_suspend [scsi_mod] @ 17829, parent: ata1
+2026-11-01T13:45:20.389272+01:00 predator kernel: scsi host0: PM: scsi_bus_suspend [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.389548+01:00 predator kernel:  ata3: PM: calling ata_port_pm_suspend [libata] @ 17829, parent: 0000:00:17.0
+2026-11-01T13:45:20.389573+01:00 predator kernel: ata3.00: Entering standby power mode
+2026-11-01T13:45:20.389592+01:00 predator kernel:  ata3: PM: ata_port_pm_suspend [libata] returned 0 after 6452 usecs
+2026-11-01T13:45:20.389615+01:00 predator kernel:  ata2: PM: calling ata_port_pm_suspend [libata] @ 17829, parent: 0000:00:17.0
+2026-11-01T13:45:20.389637+01:00 predator kernel:  ata2: PM: ata_port_pm_suspend [libata] returned 0 after 226 usecs
+2026-11-01T13:45:20.389658+01:00 predator kernel:  ata1: PM: calling ata_port_pm_suspend [libata] @ 17829, parent: 0000:00:17.0
+2026-11-01T13:45:20.389683+01:00 predator kernel: ata1.00: Entering standby power mode
+2026-11-01T13:45:20.389709+01:00 predator kernel:  ata1: PM: ata_port_pm_suspend [libata] returned 0 after 55799 usecs
+2026-11-01T13:45:20.389728+01:00 predator kernel: leds input0::scrolllock: PM: calling led_suspend [led_class] @ 17829, parent: input0
+2026-11-01T13:45:20.390039+01:00 predator kernel: leds input0::scrolllock: PM: led_suspend [led_class] returned 0 after 0 usecs
+2026-11-01T13:45:20.390318+01:00 predator kernel: leds input0::capslock: PM: calling led_suspend [led_class] @ 17829, parent: input0
+2026-11-01T13:45:20.390598+01:00 predator kernel: leds input0::capslock: PM: led_suspend [led_class] returned 0 after 0 usecs
+2026-11-01T13:45:20.390883+01:00 predator kernel: Generic FE-GE Realtek PHY r8169-0-301:00: PM: calling mdio_bus_phy_suspend [libphy] @ 17829, parent: r8169-0-301
+2026-11-01T13:45:20.391259+01:00 predator kernel: Generic FE-GE Realtek PHY r8169-0-301:00: PM: mdio_bus_phy_suspend [libphy] returned 0 after 0 usecs
+2026-11-01T13:45:20.391560+01:00 predator kernel: leds input0::numlock: PM: calling led_suspend [led_class] @ 17829, parent: input0
+2026-11-01T13:45:20.392027+01:00 predator kernel: leds input0::numlock: PM: led_suspend [led_class] returned 0 after 0 usecs
+2026-11-01T13:45:20.392317+01:00 predator kernel: input input0: PM: calling input_dev_suspend @ 17829, parent: serio0
+2026-11-01T13:45:20.392784+01:00 predator kernel: input input0: PM: input_dev_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.393375+01:00 predator kernel: usb usb2: PM: calling usb_dev_suspend @ 17829, parent: 0000:00:14.0
+2026-11-01T13:45:20.393947+01:00 predator kernel: usb usb2: PM: usb_dev_suspend returned 0 after 69 usecs
+2026-11-01T13:45:20.394382+01:00 predator kernel: usb usb1: PM: calling usb_dev_suspend @ 17829, parent: 0000:00:14.0
+2026-11-01T13:45:20.394729+01:00 predator kernel: usb usb1: PM: usb_dev_suspend returned 0 after 10223 usecs
+2026-11-01T13:45:20.395320+01:00 predator kernel: rtsx_pci_sdmmc rtsx_pci_sdmmc.0: PM: calling platform_pm_suspend @ 17829, parent: 0000:03:00.0
+2026-11-01T13:45:20.395725+01:00 predator kernel: rtsx_pci_sdmmc rtsx_pci_sdmmc.0: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.396102+01:00 predator kernel: atkbd serio0: PM: calling serio_suspend [serio] @ 17829, parent: i8042
+2026-11-01T13:45:20.396464+01:00 predator kernel: atkbd serio0: PM: serio_suspend [serio] returned 0 after 1691 usecs
+2026-11-01T13:45:20.396848+01:00 predator kernel: i8042 i8042: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.397218+01:00 predator kernel: i8042 i8042: PM: platform_pm_suspend returned 0 after 760 usecs
+2026-11-01T13:45:20.397556+01:00 predator kernel: port serial8250:0.3: PM: calling pm_runtime_force_suspend @ 17829, parent: serial8250:0
+2026-11-01T13:45:20.397934+01:00 predator kernel: port serial8250:0.3: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.398255+01:00 predator kernel: port serial8250:0.2: PM: calling pm_runtime_force_suspend @ 17829, parent: serial8250:0
+2026-11-01T13:45:20.398525+01:00 predator kernel: port serial8250:0.2: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.398794+01:00 predator kernel: port serial8250:0.1: PM: calling pm_runtime_force_suspend @ 17829, parent: serial8250:0
+2026-11-01T13:45:20.399060+01:00 predator kernel: port serial8250:0.1: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.399318+01:00 predator kernel: port serial8250:0.0: PM: calling pm_runtime_force_suspend @ 17829, parent: serial8250:0
+2026-11-01T13:45:20.399588+01:00 predator kernel: port serial8250:0.0: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.399860+01:00 predator kernel: serial8250 serial8250: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.400213+01:00 predator kernel: serial8250 serial8250: PM: platform_pm_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.400546+01:00 predator kernel: platform pcspkr: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.400830+01:00 predator kernel: platform pcspkr: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.401184+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: calling pci_pm_suspend @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.401479+01:00 predator kernel: snd_hda_intel 0000:01:00.1: calling  nv_msi_ht_cap_quirk_leaf+0x0/0x30 @ 17829
+2026-11-01T13:45:20.401777+01:00 predator kernel: snd_hda_intel 0000:01:00.1: nv_msi_ht_cap_quirk_leaf+0x0/0x30 took 5 usecs
+2026-11-01T13:45:20.402186+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: pci_pm_suspend returned 0 after 31221 usecs
+2026-11-01T13:45:20.402573+01:00 predator kernel: system 00:06: PM: calling pnp_bus_suspend @ 17829, parent: pnp0
+2026-11-01T13:45:20.402853+01:00 predator kernel: system 00:06: PM: pnp_bus_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.403081+01:00 predator kernel: system 00:05: PM: calling pnp_bus_suspend @ 17829, parent: pnp0
+2026-11-01T13:45:20.403323+01:00 predator kernel: system 00:05: PM: pnp_bus_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.403554+01:00 predator kernel: i8042 kbd 00:04: PM: calling pnp_bus_suspend @ 17829, parent: pnp0
+2026-11-01T13:45:20.403891+01:00 predator kernel: i8042 kbd 00:04: PM: pnp_bus_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.404240+01:00 predator kernel: system 00:03: PM: calling pnp_bus_suspend @ 17829, parent: pnp0
+2026-11-01T13:45:20.404536+01:00 predator kernel: system 00:03: PM: pnp_bus_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.404908+01:00 predator kernel: system 00:02: PM: calling pnp_bus_suspend @ 17829, parent: pnp0
+2026-11-01T13:45:20.405275+01:00 predator kernel: system 00:02: PM: pnp_bus_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.405639+01:00 predator kernel: system 00:01: PM: calling pnp_bus_suspend @ 17829, parent: pnp0
+2026-11-01T13:45:20.406008+01:00 predator kernel: system 00:01: PM: pnp_bus_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.406343+01:00 predator kernel: system 00:00: PM: calling pnp_bus_suspend @ 17829, parent: pnp0
+2026-11-01T13:45:20.406698+01:00 predator kernel: system 00:00: PM: pnp_bus_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.407063+01:00 predator kernel: platform efivars.0: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.407442+01:00 predator kernel: platform efivars.0: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.407839+01:00 predator kernel: platform rtc-efi.0: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.408205+01:00 predator kernel: platform rtc-efi.0: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.408916+01:00 predator kernel: platform 10251229:00: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.409567+01:00 predator kernel: platform 10251229:00: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.410271+01:00 predator kernel: acpi-fan PNP0C0B:04: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.410913+01:00 predator kernel: acpi-fan PNP0C0B:04: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.411495+01:00 predator kernel: acpi-fan PNP0C0B:03: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.412087+01:00 predator kernel: acpi-fan PNP0C0B:03: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.412674+01:00 predator kernel: acpi-fan PNP0C0B:02: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.413300+01:00 predator kernel: acpi-fan PNP0C0B:02: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.414029+01:00 predator kernel: acpi-fan PNP0C0B:01: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.414699+01:00 predator kernel: acpi-fan PNP0C0B:01: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.415372+01:00 predator kernel: acpi-fan PNP0C0B:00: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.416050+01:00 predator kernel: acpi-fan PNP0C0B:00: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.416667+01:00 predator kernel: platform MSFT0101:00: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.417307+01:00 predator kernel: platform MSFT0101:00: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.417754+01:00 predator kernel: acpi-button PNP0C0C:00: PM: calling acpi_subsys_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.420470+01:00 predator kernel: acpi-button PNP0C0C:00: PM: acpi_subsys_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.421077+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: calling acpi_subsys_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.421596+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: acpi_subsys_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.422069+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: calling acpi_subsys_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.422548+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.423011+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: calling acpi_subsys_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.423506+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: acpi_subsys_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.423993+01:00 predator kernel: acpi-button PNP0C0E:00: PM: calling acpi_subsys_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.424466+01:00 predator kernel: acpi-button PNP0C0E:00: PM: acpi_subsys_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.424942+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: calling acpi_subsys_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.425438+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: acpi_subsys_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.426037+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: calling acpi_subsys_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.426511+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.427250+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: calling acpi_subsys_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.427654+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.428045+01:00 predator kernel: acpi-button PNP0C0D:00: PM: calling acpi_subsys_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.428440+01:00 predator kernel: acpi-button PNP0C0D:00: PM: acpi_subsys_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.428839+01:00 predator kernel: ac ACPI0003:00: PM: calling acpi_subsys_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.429257+01:00 predator kernel: ac ACPI0003:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.429665+01:00 predator kernel: platform PNP0C0A:00: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.430084+01:00 predator kernel: platform PNP0C0A:00: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.430481+01:00 predator kernel: platform PNP0C09:00: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.430930+01:00 predator kernel: platform PNP0C09:00: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.431305+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: calling acpi_subsys_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.431722+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: acpi_subsys_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.432120+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: calling acpi_subsys_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.432524+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: acpi_subsys_suspend returned 0 after 116 usecs
+2026-11-01T13:45:20.432961+01:00 predator kernel: platform PNP0C04:00: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.433365+01:00 predator kernel: platform PNP0C04:00: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.433833+01:00 predator kernel: platform PNP0103:00: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.434251+01:00 predator kernel: platform PNP0103:00: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.434639+01:00 predator kernel: platform INT0800:00: PM: calling platform_pm_suspend @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.435058+01:00 predator kernel: platform INT0800:00: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.435452+01:00 predator kernel: r8169 0000:03:00.1: PM: calling pci_pm_suspend @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.435944+01:00 predator kernel: r8169 0000:03:00.1 enp3s0f1: Link is Down
+2026-11-01T13:45:20.436488+01:00 predator kernel: r8169 0000:03:00.1: PM: pci_pm_suspend returned 0 after 6432 usecs
+2026-11-01T13:45:20.438069+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: calling pci_pm_suspend @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.438578+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: pci_pm_suspend returned 0 after 10 usecs
+2026-11-01T13:45:20.439026+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: calling pci_pm_suspend @ 17829, parent: 0000:00:1c.0
+2026-11-01T13:45:20.439355+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: pci_pm_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.440000+01:00 predator kernel: pci 0000:01:00.0: PM: calling pci_pm_suspend @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.440636+01:00 predator kernel: pci 0000:01:00.0: PM: pci_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.441257+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.441964+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: pci_pm_suspend returned 0 after 87 usecs
+2026-11-01T13:45:20.442355+01:00 predator kernel: pci 0000:00:1f.2: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.442683+01:00 predator kernel: pci 0000:00:1f.2: PM: pci_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.443213+01:00 predator kernel: pci 0000:00:1f.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.443505+01:00 predator kernel: pci 0000:00:1f.0: PM: pci_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.443936+01:00 predator kernel: pcieport 0000:00:1c.3: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.444459+01:00 predator kernel: pcieport 0000:00:1c.3: PM: pci_pm_suspend returned 0 after 10 usecs
+2026-11-01T13:45:20.444947+01:00 predator kernel: pcieport 0000:00:1c.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.445407+01:00 predator kernel: pcieport 0000:00:1c.0: PM: pci_pm_suspend returned 0 after 11 usecs
+2026-11-01T13:45:20.446473+01:00 predator kernel: ahci 0000:00:17.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.447124+01:00 predator kernel: ahci 0000:00:17.0: PM: pci_pm_suspend returned 0 after 3 usecs
+2026-11-01T13:45:20.447467+01:00 predator kernel: mei_me 0000:00:16.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.447981+01:00 predator kernel: mei_me 0000:00:16.0: PM: pci_pm_suspend returned 0 after 855 usecs
+2026-11-01T13:45:20.448401+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.448965+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: pci_pm_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.449556+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.450848+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: pci_pm_suspend returned 0 after 1 usecs
+2026-11-01T13:45:20.451451+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.452046+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: pci_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.452629+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.453270+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: pci_pm_suspend returned 0 after 225 usecs
+2026-11-01T13:45:20.453782+01:00 predator kernel: i915 0000:00:02.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.454286+01:00 predator kernel: i915 0000:00:02.0: PM: pci_pm_suspend returned 0 after 277352 usecs
+2026-11-01T13:45:20.455226+01:00 predator kernel: pcieport 0000:00:01.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.455840+01:00 predator kernel: pcieport 0000:00:01.0: PM: pci_pm_suspend returned 0 after 10 usecs
+2026-11-01T13:45:20.456156+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: calling pci_pm_suspend @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.456452+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: pci_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.456722+01:00 predator kernel: platform acpi-cpufreq: PM: calling platform_pm_suspend @ 17829, parent: platform
+2026-11-01T13:45:20.457024+01:00 predator kernel: platform acpi-cpufreq: PM: platform_pm_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.457481+01:00 predator kernel: thermal LNXTHERM:01: PM: calling acpi_thermal_suspend [thermal] @ 17829, parent: LNXSYBUS:01
+2026-11-01T13:45:20.457997+01:00 predator kernel: thermal LNXTHERM:01: PM: acpi_thermal_suspend [thermal] returned 0 after 2 usecs
+2026-11-01T13:45:20.458445+01:00 predator kernel: thermal LNXTHERM:00: PM: calling acpi_thermal_suspend [thermal] @ 17829, parent: LNXSYBUS:01
+2026-11-01T13:45:20.458913+01:00 predator kernel: thermal LNXTHERM:00: PM: acpi_thermal_suspend [thermal] returned 0 after 0 usecs
+2026-11-01T13:45:20.459342+01:00 predator kernel: tpm_crb MSFT0101:00: PM: calling tpm_pm_suspend @ 17829, parent: LNXSYBUS:00
+2026-11-01T13:45:20.459749+01:00 predator kernel: tpm_crb MSFT0101:00: PM: tpm_pm_suspend returned 0 after 317129 usecs
+2026-11-01T13:45:20.460236+01:00 predator kernel: ec PNP0C09:00: PM: calling acpi_ec_suspend @ 17829, parent: device:17
+2026-11-01T13:45:20.460552+01:00 predator kernel: ec PNP0C09:00: PM: acpi_ec_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.460862+01:00 predator kernel: regulator regulator.0: PM: calling regulator_suspend @ 17829, parent: reg-dummy
+2026-11-01T13:45:20.461136+01:00 predator kernel: regulator regulator.0: PM: regulator_suspend returned 0 after 0 usecs
+2026-11-01T13:45:20.461384+01:00 predator kernel: PM: suspend of devices complete after 1392.664 msecs
+2026-11-01T13:45:20.461406+01:00 predator kernel: PM: start suspend of devices complete after 1417.597 msecs
+2026-11-01T13:45:20.461430+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.461709+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: pci_pm_suspend_late returned 0 after 1 usecs
+2026-11-01T13:45:20.462008+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: calling acpi_subsys_suspend_late @ 17829, parent: i2c-1
+2026-11-01T13:45:20.462298+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.462579+01:00 predator kernel: i2c_designware i2c_designware.1: PM: calling i2c_dw_suspend @ 17829, parent: 0000:00:15.1
+2026-11-01T13:45:20.462929+01:00 predator kernel: i2c_designware i2c_designware.1: PM: i2c_dw_suspend returned 0 after 11 usecs
+2026-11-01T13:45:20.463201+01:00 predator kernel: i2c_designware i2c_designware.0: PM: calling i2c_dw_suspend @ 17829, parent: 0000:00:15.0
+2026-11-01T13:45:20.463481+01:00 predator kernel: i2c_designware i2c_designware.0: PM: i2c_dw_suspend returned 0 after 8 usecs
+2026-11-01T13:45:20.463741+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: calling pci_pm_suspend_late @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.464118+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.464427+01:00 predator kernel: acpi-button PNP0C0C:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: platform
+2026-11-01T13:45:20.464678+01:00 predator kernel: acpi-button PNP0C0C:00: PM: acpi_subsys_suspend_late returned 0 after 24 usecs
+2026-11-01T13:45:20.464972+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: platform
+2026-11-01T13:45:20.465234+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: acpi_subsys_suspend_late returned 0 after 6 usecs
+2026-11-01T13:45:20.465485+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: platform
+2026-11-01T13:45:20.465737+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.466002+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: calling acpi_subsys_suspend_late @ 17829, parent: platform
+2026-11-01T13:45:20.466244+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.466488+01:00 predator kernel: acpi-button PNP0C0E:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: platform
+2026-11-01T13:45:20.466735+01:00 predator kernel: acpi-button PNP0C0E:00: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.466998+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: calling acpi_subsys_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.467238+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.467476+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.467716+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.467971+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.468244+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.468592+01:00 predator kernel: acpi-button PNP0C0D:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.468983+01:00 predator kernel: acpi-button PNP0C0D:00: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.469250+01:00 predator kernel: ac ACPI0003:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.469513+01:00 predator kernel: ac ACPI0003:00: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.469801+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.470161+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.470423+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: calling acpi_subsys_suspend_late @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.470683+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: acpi_subsys_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.470977+01:00 predator kernel: r8169 0000:03:00.1: PM: calling pci_pm_suspend_late @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.471274+01:00 predator kernel: r8169 0000:03:00.1: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.471559+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: calling pci_pm_suspend_late @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.471860+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.472131+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: calling pci_pm_suspend_late @ 17829, parent: 0000:00:1c.0
+2026-11-01T13:45:20.472411+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.472689+01:00 predator kernel: pci 0000:01:00.0: PM: calling pci_pm_suspend_late @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.473117+01:00 predator kernel: pci 0000:01:00.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.473629+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.473998+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.474286+01:00 predator kernel: pci 0000:00:1f.2: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.474588+01:00 predator kernel: pci 0000:00:1f.2: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.474904+01:00 predator kernel: pci 0000:00:1f.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.475184+01:00 predator kernel: pci 0000:00:1f.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.475446+01:00 predator kernel: pcieport 0000:00:1c.3: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.475786+01:00 predator kernel: pcieport 0000:00:1c.3: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.476223+01:00 predator kernel: pcieport 0000:00:1c.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.476534+01:00 predator kernel: pcieport 0000:00:1c.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.476855+01:00 predator kernel: ahci 0000:00:17.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.477136+01:00 predator kernel: ahci 0000:00:17.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.477412+01:00 predator kernel: mei_me 0000:00:16.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.477678+01:00 predator kernel: mei_me 0000:00:16.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.478048+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.478358+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: pci_pm_suspend_late returned 0 after 95 usecs
+2026-11-01T13:45:20.478629+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.478925+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: pci_pm_suspend_late returned 0 after 94 usecs
+2026-11-01T13:45:20.479191+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.479457+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.479726+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.480018+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.480390+01:00 predator kernel: i915 0000:00:02.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.480881+01:00 predator kernel: i915 0000:00:02.0: PM: pci_pm_suspend_late returned 0 after 13143 usecs
+2026-11-01T13:45:20.481383+01:00 predator kernel: pcieport 0000:00:01.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.481922+01:00 predator kernel: pcieport 0000:00:01.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.482381+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: calling pci_pm_suspend_late @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.482796+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+2026-11-01T13:45:20.483206+01:00 predator kernel: PM: late suspend of devices complete after 15.501 msecs
+2026-11-01T13:45:20.483251+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.483659+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: pci_pm_suspend_noirq returned 0 after 12330 usecs
+2026-11-01T13:45:20.484107+01:00 predator kernel: iTCO_wdt iTCO_wdt: PM: calling iTCO_wdt_suspend_noirq [iTCO_wdt] @ 17829, parent: 0000:00:1f.4
+2026-11-01T13:45:20.484506+01:00 predator kernel: iTCO_wdt iTCO_wdt: PM: iTCO_wdt_suspend_noirq [iTCO_wdt] returned 0 after 0 usecs
+2026-11-01T13:45:20.484900+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: i2c-1
+2026-11-01T13:45:20.485304+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.485740+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: calling pci_pm_suspend_noirq @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.486204+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: pci_pm_suspend_noirq returned 0 after 24118 usecs
+2026-11-01T13:45:20.486642+01:00 predator kernel: acpi-button PNP0C0C:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.487045+01:00 predator kernel: acpi-button PNP0C0C:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.487419+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.487810+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.488171+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.488537+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.488914+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.489290+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.489782+01:00 predator kernel: acpi-button PNP0C0E:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.490237+01:00 predator kernel: acpi-button PNP0C0E:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.490693+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.491121+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.491518+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.491915+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.492324+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.492646+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: acpi_subsys_suspend_noirq returned 0 after 4005 usecs
+2026-11-01T13:45:20.493128+01:00 predator kernel: acpi-button PNP0C0D:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.493411+01:00 predator kernel: acpi-button PNP0C0D:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.493672+01:00 predator kernel: ac ACPI0003:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.493958+01:00 predator kernel: ac ACPI0003:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.494334+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.494743+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.495357+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: calling acpi_subsys_suspend_noirq @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.495809+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: acpi_subsys_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.496119+01:00 predator kernel: r8169 0000:03:00.1: PM: calling pci_pm_suspend_noirq @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.496420+01:00 predator kernel: r8169 0000:03:00.1: PM: pci_pm_suspend_noirq returned 0 after 12202 usecs
+2026-11-01T13:45:20.496715+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.497082+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: pci_pm_suspend_noirq returned 0 after 12235 usecs
+2026-11-01T13:45:20.497367+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: 0000:00:1c.0
+2026-11-01T13:45:20.497793+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: pci_pm_suspend_noirq returned 0 after 13371 usecs
+2026-11-01T13:45:20.498098+01:00 predator kernel: pci 0000:01:00.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.498385+01:00 predator kernel: pci 0000:01:00.0: PM: pci_pm_suspend_noirq returned 0 after 39 usecs
+2026-11-01T13:45:20.498703+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.499155+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: pci_pm_suspend_noirq returned 0 after 72 usecs
+2026-11-01T13:45:20.499540+01:00 predator kernel: pci 0000:00:1f.2: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.499992+01:00 predator kernel: pci 0000:00:1f.2: PM: pci_pm_suspend_noirq returned 0 after 41 usecs
+2026-11-01T13:45:20.500288+01:00 predator kernel: pci 0000:00:1f.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.500561+01:00 predator kernel: pci 0000:00:1f.0: PM: pci_pm_suspend_noirq returned 0 after 45 usecs
+2026-11-01T13:45:20.500843+01:00 predator kernel: pcieport 0000:00:1c.3: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.501143+01:00 predator kernel: pcieport 0000:00:1c.3: PM: pci_pm_suspend_noirq returned 0 after 11479 usecs
+2026-11-01T13:45:20.501434+01:00 predator kernel: pcieport 0000:00:1c.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.501729+01:00 predator kernel: pcieport 0000:00:1c.0: PM: pci_pm_suspend_noirq returned 0 after 12217 usecs
+2026-11-01T13:45:20.502046+01:00 predator kernel: ahci 0000:00:17.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.502327+01:00 predator kernel: ahci 0000:00:17.0: PM: pci_pm_suspend_noirq returned 0 after 12158 usecs
+2026-11-01T13:45:20.502597+01:00 predator kernel: mei_me 0000:00:16.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.502891+01:00 predator kernel: mei_me 0000:00:16.0: PM: pci_pm_suspend_noirq returned 0 after 12160 usecs
+2026-11-01T13:45:20.503259+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.503719+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: pci_pm_suspend_noirq returned 0 after 12379 usecs
+2026-11-01T13:45:20.504029+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.504299+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: pci_pm_suspend_noirq returned 0 after 11969 usecs
+2026-11-01T13:45:20.504567+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.504866+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: pci_pm_suspend_noirq returned 0 after 11736 usecs
+2026-11-01T13:45:20.505132+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.505416+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: pci_pm_suspend_noirq returned 0 after 13136 usecs
+2026-11-01T13:45:20.505685+01:00 predator kernel: i915 0000:00:02.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.505980+01:00 predator kernel: i915 0000:00:02.0: PM: pci_pm_suspend_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.506246+01:00 predator kernel: pcieport 0000:00:01.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.506538+01:00 predator kernel: pcieport 0000:00:01.0: PM: pci_pm_suspend_noirq returned 0 after 173724 usecs
+2026-11-01T13:45:20.506849+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: calling pci_pm_suspend_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.507119+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: pci_pm_suspend_noirq returned 0 after 17 usecs
+2026-11-01T13:45:20.507384+01:00 predator kernel: ec PNP0C09:00: PM: calling acpi_ec_suspend_noirq @ 17829, parent: device:17
+2026-11-01T13:45:20.507680+01:00 predator kernel: ACPI: EC: interrupt blocked
+2026-11-01T13:45:20.507705+01:00 predator kernel: ec PNP0C09:00: PM: acpi_ec_suspend_noirq returned 0 after 8 usecs
+2026-11-01T13:45:20.508043+01:00 predator kernel: PM: noirq suspend of devices complete after 351.745 msecs
+2026-11-01T13:45:20.508093+01:00 predator kernel: ACPI: PM: Preparing to enter system sleep state S3
+2026-11-01T13:45:20.508303+01:00 predator kernel: ACPI: EC: event blocked
+2026-11-01T13:45:20.508375+01:00 predator kernel: ACPI: EC: EC stopped
+2026-11-01T13:45:20.508428+01:00 predator kernel: ACPI: PM: Saving platform NVS memory
+2026-11-01T13:45:20.508462+01:00 predator kernel: Disabling non-boot CPUs ...
+2026-11-01T13:45:20.508512+01:00 predator kernel: smpboot: CPU 7 is now offline
+2026-11-01T13:45:20.508556+01:00 predator kernel: smpboot: CPU 6 is now offline
+2026-11-01T13:45:20.508603+01:00 predator kernel: smpboot: CPU 5 is now offline
+2026-11-01T13:45:20.508653+01:00 predator kernel: smpboot: CPU 4 is now offline
+2026-11-01T13:45:20.508697+01:00 predator kernel: smpboot: CPU 3 is now offline
+2026-11-01T13:45:20.508742+01:00 predator kernel: smpboot: CPU 2 is now offline
+2026-11-01T13:45:20.508823+01:00 predator kernel: smpboot: CPU 1 is now offline
+2026-11-01T13:45:20.508857+01:00 predator kernel: Checking wakeup interrupts
+2026-11-01T13:45:20.508898+01:00 predator kernel: Calling kvm_suspend+0x0/0x30 [kvm]
+2026-11-01T13:45:20.508935+01:00 predator kernel: Calling intel_epb_save+0x0/0x30
+2026-11-01T13:45:20.508975+01:00 predator kernel: Calling mce_syscore_suspend+0x0/0x20
+2026-11-01T13:45:20.509010+01:00 predator kernel: Calling timekeeping_syscore_suspend+0x0/0x10
+2026-11-01T13:45:20.509052+01:00 predator kernel: Calling irq_gc_suspend+0x0/0x80
+2026-11-01T13:45:20.509104+01:00 predator kernel: Calling ioapic_suspend+0x0/0x10
+2026-11-01T13:45:20.509147+01:00 predator kernel: Calling i8259A_suspend+0x0/0x30
+2026-11-01T13:45:20.509195+01:00 predator kernel: Calling fw_suspend+0x0/0x20
+2026-11-01T13:45:20.509237+01:00 predator kernel: Calling acpi_save_bm_rld+0x0/0x30
+2026-11-01T13:45:20.509272+01:00 predator kernel: Calling lapic_suspend+0x0/0x170
+2026-11-01T13:45:20.509309+01:00 predator kernel: pm_boundary_stage: begin nonce=core1101a phase=10 sequence=1 context=7
+2026-11-01T13:45:20.509347+01:00 predator kernel: pm_boundary_stage: end nonce=core1101a phase=10 sequence=1 error=0 efi=0 fast_clock_delta_ns=0
+2026-11-01T13:45:20.509382+01:00 predator kernel: PM: suspend debug: Waiting for 5 second(s).
+2026-11-01T13:45:20.509413+01:00 predator kernel: pm_boundary_stage: begin nonce=core1101a phase=11 sequence=2 context=7
+2026-11-01T13:45:20.509453+01:00 predator kernel: pm_boundary_stage: end nonce=core1101a phase=11 sequence=2 error=0 efi=0 fast_clock_delta_ns=0
+2026-11-01T13:45:20.509486+01:00 predator kernel: Calling init_counter_refs+0x0/0x40
+2026-11-01T13:45:20.509519+01:00 predator kernel: Calling lapic_resume+0x0/0x2e0
+2026-11-01T13:45:20.509557+01:00 predator kernel: Calling acpi_restore_bm_rld+0x0/0x70
+2026-11-01T13:45:20.509592+01:00 predator kernel: Calling irqrouter_resume+0x0/0x90
+2026-11-01T13:45:20.509628+01:00 predator kernel: Calling i8259A_resume+0x0/0x40
+2026-11-01T13:45:20.509659+01:00 predator kernel: Calling ioapic_resume+0x0/0xf0
+2026-11-01T13:45:20.509695+01:00 predator kernel: Calling irq_gc_resume+0x0/0x70
+2026-11-01T13:45:20.509729+01:00 predator kernel: Calling irq_pm_syscore_resume+0x0/0x20
+2026-11-01T13:45:20.509788+01:00 predator kernel: Calling timekeeping_syscore_resume+0x0/0x10
+2026-11-01T13:45:20.509823+01:00 predator kernel: Timekeeping suspended for 4.661 seconds
+2026-11-01T13:45:20.509859+01:00 predator kernel: Calling mce_syscore_resume+0x0/0x50
+2026-11-01T13:45:20.509896+01:00 predator kernel: Calling intel_epb_restore+0x0/0x70
+2026-11-01T13:45:20.509931+01:00 predator kernel: Calling microcode_bsp_syscore_resume+0x0/0x20
+2026-11-01T13:45:20.509962+01:00 predator kernel: Calling kvm_resume+0x0/0x40 [kvm]
+2026-11-01T13:45:20.509995+01:00 predator kernel: Enabling non-boot CPUs ...
+2026-11-01T13:45:20.510027+01:00 predator kernel: smpboot: Booting Node 0 Processor 1 APIC 0x2
+2026-11-01T13:45:20.510058+01:00 predator kernel: CPU1 is up
+2026-11-01T13:45:20.510089+01:00 predator kernel: smpboot: Booting Node 0 Processor 2 APIC 0x4
+2026-11-01T13:45:20.510121+01:00 predator kernel: CPU2 is up
+2026-11-01T13:45:20.510153+01:00 predator kernel: smpboot: Booting Node 0 Processor 3 APIC 0x6
+2026-11-01T13:45:20.510184+01:00 predator kernel: CPU3 is up
+2026-11-01T13:45:20.510215+01:00 predator kernel: smpboot: Booting Node 0 Processor 4 APIC 0x1
+2026-11-01T13:45:20.510253+01:00 predator kernel: CPU4 is up
+2026-11-01T13:45:20.510281+01:00 predator kernel: smpboot: Booting Node 0 Processor 5 APIC 0x3
+2026-11-01T13:45:20.510318+01:00 predator kernel: CPU5 is up
+2026-11-01T13:45:20.510355+01:00 predator kernel: smpboot: Booting Node 0 Processor 6 APIC 0x5
+2026-11-01T13:45:20.510398+01:00 predator kernel: CPU6 is up
+2026-11-01T13:45:20.510444+01:00 predator kernel: smpboot: Booting Node 0 Processor 7 APIC 0x7
+2026-11-01T13:45:20.510489+01:00 predator kernel: CPU7 is up
+2026-11-01T13:45:20.510534+01:00 predator kernel: ACPI: EC: EC started
+2026-11-01T13:45:20.510587+01:00 predator kernel: ACPI: PM: Waking up from system sleep state S3
+2026-11-01T13:45:20.510637+01:00 predator kernel: ACPI: button: The lid device is not compliant to SW_LID.
+2026-11-01T13:45:20.510684+01:00 predator kernel: ec PNP0C09:00: PM: calling acpi_ec_resume_noirq @ 17829, parent: device:17
+2026-11-01T13:45:20.511165+01:00 predator kernel: ACPI: EC: interrupt unblocked
+2026-11-01T13:45:20.511192+01:00 predator kernel: ec PNP0C09:00: PM: acpi_ec_resume_noirq returned 0 after 3 usecs
+2026-11-01T13:45:20.511483+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.511860+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: pci_pm_resume_noirq returned 0 after 9 usecs
+2026-11-01T13:45:20.512300+01:00 predator kernel: pcieport 0000:00:01.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.512824+01:00 predator kernel: pcieport 0000:00:01.0: PM: pci_pm_resume_noirq returned 0 after 1297896 usecs
+2026-11-01T13:45:20.513356+01:00 predator kernel: i915 0000:00:02.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.513879+01:00 predator kernel: i915 0000:00:02.0: PM: pci_pm_resume_noirq returned 0 after 12166 usecs
+2026-11-01T13:45:20.514370+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.514863+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: pci_pm_resume_noirq returned 0 after 923 usecs
+2026-11-01T13:45:20.515338+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.515851+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: pci_pm_resume_noirq returned 0 after 11687 usecs
+2026-11-01T13:45:20.516325+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.516826+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: pci_pm_resume_noirq returned 0 after 281 usecs
+2026-11-01T13:45:20.517306+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.517817+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: pci_pm_resume_noirq returned 0 after 242 usecs
+2026-11-01T13:45:20.518308+01:00 predator kernel: mei_me 0000:00:16.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.518610+01:00 predator kernel: mei_me 0000:00:16.0: PM: pci_pm_resume_noirq returned 0 after 11323 usecs
+2026-11-01T13:45:20.518971+01:00 predator kernel: ahci 0000:00:17.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.519260+01:00 predator kernel: ahci 0000:00:17.0: PM: pci_pm_resume_noirq returned 0 after 12202 usecs
+2026-11-01T13:45:20.519537+01:00 predator kernel: pcieport 0000:00:1c.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.519856+01:00 predator kernel: pcieport 0000:00:1c.0: PM: pci_pm_resume_noirq returned 0 after 12289 usecs
+2026-11-01T13:45:20.520142+01:00 predator kernel: pcieport 0000:00:1c.3: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.520443+01:00 predator kernel: pcieport 0000:00:1c.3: PM: pci_pm_resume_noirq returned 0 after 12311 usecs
+2026-11-01T13:45:20.520733+01:00 predator kernel: pci 0000:00:1f.0: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.521003+01:00 predator kernel: pci 0000:00:1f.0: PM: pci_pm_resume_noirq returned 0 after 54 usecs
+2026-11-01T13:45:20.521272+01:00 predator kernel: pci 0000:00:1f.2: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.521527+01:00 predator kernel: pci 0000:00:1f.2: PM: pci_pm_resume_noirq returned 0 after 45 usecs
+2026-11-01T13:45:20.521790+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.522062+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: pci_pm_resume_noirq returned 0 after 74 usecs
+2026-11-01T13:45:20.522389+01:00 predator kernel: pci 0000:01:00.0: PM: calling pci_pm_resume_noirq @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.522787+01:00 predator kernel: pci 0000:01:00.0: calling  nv_msi_ht_cap_quirk_leaf+0x0/0x30 @ 17829
+2026-11-01T13:45:20.523072+01:00 predator kernel: pci 0000:01:00.0: nv_msi_ht_cap_quirk_leaf+0x0/0x30 took 5 usecs
+2026-11-01T13:45:20.523349+01:00 predator kernel: pci 0000:01:00.0: calling  quirk_nvidia_hda+0x0/0x80 @ 17829
+2026-11-01T13:45:20.523623+01:00 predator kernel: pci 0000:01:00.0: Enabling HDA controller
+2026-11-01T13:45:20.523980+01:00 predator kernel: pci 0000:01:00.0: quirk_nvidia_hda+0x0/0x80 took 12 usecs
+2026-11-01T13:45:20.524258+01:00 predator kernel: pci 0000:01:00.0: PM: pci_pm_resume_noirq returned 0 after 209 usecs
+2026-11-01T13:45:20.524528+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: calling pci_pm_resume_noirq @ 17829, parent: 0000:00:1c.0
+2026-11-01T13:45:20.524825+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: pci_pm_resume_noirq returned 0 after 12668 usecs
+2026-11-01T13:45:20.525097+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: calling pci_pm_resume_noirq @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.525376+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: pci_pm_resume_noirq returned 0 after 12297 usecs
+2026-11-01T13:45:20.525654+01:00 predator kernel: r8169 0000:03:00.1: PM: calling pci_pm_resume_noirq @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.525961+01:00 predator kernel: r8169 0000:03:00.1: PM: pci_pm_resume_noirq returned 0 after 12270 usecs
+2026-11-01T13:45:20.526235+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.526505+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.526766+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.527034+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.527296+01:00 predator kernel: ac ACPI0003:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.527557+01:00 predator kernel: ac ACPI0003:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.527821+01:00 predator kernel: acpi-button PNP0C0D:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.528071+01:00 predator kernel: acpi-button PNP0C0D:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.528324+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.528569+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: acpi_subsys_resume_noirq returned 0 after 3984 usecs
+2026-11-01T13:45:20.528826+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.529066+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.529305+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: calling acpi_subsys_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.529538+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.529810+01:00 predator kernel: acpi-button PNP0C0E:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.530058+01:00 predator kernel: acpi-button PNP0C0E:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.530298+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: calling acpi_subsys_resume_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.530547+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.530787+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.531043+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.531377+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.531765+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.532122+01:00 predator kernel: acpi-button PNP0C0C:00: PM: calling acpi_subsys_resume_noirq @ 17829, parent: platform
+2026-11-01T13:45:20.532476+01:00 predator kernel: acpi-button PNP0C0C:00: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.532835+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: calling pci_pm_resume_noirq @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.533240+01:00 predator kernel: snd_hda_intel 0000:01:00.1: calling  nv_msi_ht_cap_quirk_leaf+0x0/0x30 @ 17829
+2026-11-01T13:45:20.533636+01:00 predator kernel: snd_hda_intel 0000:01:00.1: nv_msi_ht_cap_quirk_leaf+0x0/0x30 took 5 usecs
+2026-11-01T13:45:20.534055+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: pci_pm_resume_noirq returned 0 after 126 usecs
+2026-11-01T13:45:20.534450+01:00 predator kernel: i8042 i8042: PM: calling i8042_pm_resume_noirq [i8042] @ 17829, parent: platform
+2026-11-01T13:45:20.534797+01:00 predator kernel: i8042 i8042: PM: i8042_pm_resume_noirq [i8042] returned 0 after 6 usecs
+2026-11-01T13:45:20.535130+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: calling acpi_subsys_resume_noirq @ 17829, parent: i2c-1
+2026-11-01T13:45:20.535563+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: acpi_subsys_resume_noirq returned 0 after 0 usecs
+2026-11-01T13:45:20.535995+01:00 predator kernel: iTCO_wdt iTCO_wdt: PM: calling iTCO_wdt_resume_noirq [iTCO_wdt] @ 17829, parent: 0000:00:1f.4
+2026-11-01T13:45:20.536367+01:00 predator kernel: iTCO_wdt iTCO_wdt: PM: iTCO_wdt_resume_noirq [iTCO_wdt] returned 0 after 0 usecs
+2026-11-01T13:45:20.536751+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: calling pci_pm_resume_noirq @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.537179+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: pci_pm_resume_noirq returned 0 after 10900 usecs
+2026-11-01T13:45:20.537581+01:00 predator kernel: PM: noirq resume of devices complete after 1426.306 msecs
+2026-11-01T13:45:20.537619+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.538018+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.538407+01:00 predator kernel: pcieport 0000:00:01.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.538862+01:00 predator kernel: pcieport 0000:00:01.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.539292+01:00 predator kernel: i915 0000:00:02.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.539777+01:00 predator kernel: i915 0000:00:02.0: PM: pci_pm_resume_early returned 0 after 890 usecs
+2026-11-01T13:45:20.540185+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.540675+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.541108+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.541515+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.541925+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.542374+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: pci_pm_resume_early returned 0 after 3 usecs
+2026-11-01T13:45:20.542770+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.543176+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: pci_pm_resume_early returned 0 after 5 usecs
+2026-11-01T13:45:20.543599+01:00 predator kernel: mei_me 0000:00:16.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.544088+01:00 predator kernel: mei_me 0000:00:16.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.544483+01:00 predator kernel: ahci 0000:00:17.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.544925+01:00 predator kernel: ahci 0000:00:17.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.545336+01:00 predator kernel: pcieport 0000:00:1c.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.545790+01:00 predator kernel: pcieport 0000:00:1c.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.546244+01:00 predator kernel: pcieport 0000:00:1c.3: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.546686+01:00 predator kernel: pcieport 0000:00:1c.3: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.547122+01:00 predator kernel: pci 0000:00:1f.0: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.547521+01:00 predator kernel: pci 0000:00:1f.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.547939+01:00 predator kernel: pci 0000:00:1f.2: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.548428+01:00 predator kernel: pci 0000:00:1f.2: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.548941+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.549379+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.549772+01:00 predator kernel: pci 0000:01:00.0: PM: calling pci_pm_resume_early @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.550231+01:00 predator kernel: pci 0000:01:00.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.550714+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: calling pci_pm_resume_early @ 17829, parent: 0000:00:1c.0
+2026-11-01T13:45:20.551164+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.551626+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: calling pci_pm_resume_early @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.552053+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.552482+01:00 predator kernel: r8169 0000:03:00.1: PM: calling pci_pm_resume_early @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.552973+01:00 predator kernel: r8169 0000:03:00.1: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.553398+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: calling acpi_subsys_resume_early @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.553749+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.554090+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: calling acpi_subsys_resume_early @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.554423+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.554748+01:00 predator kernel: ac ACPI0003:00: PM: calling acpi_subsys_resume_early @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.555104+01:00 predator kernel: ac ACPI0003:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.555426+01:00 predator kernel: acpi-button PNP0C0D:00: PM: calling acpi_subsys_resume_early @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.555765+01:00 predator kernel: acpi-button PNP0C0D:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.556172+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: calling acpi_subsys_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.556532+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.556850+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: calling acpi_subsys_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.557105+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.557347+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: calling acpi_subsys_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.557626+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.557894+01:00 predator kernel: acpi-button PNP0C0E:00: PM: calling acpi_subsys_resume_early @ 17829, parent: platform
+2026-11-01T13:45:20.558175+01:00 predator kernel: acpi-button PNP0C0E:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.558550+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: calling acpi_subsys_resume_early @ 17829, parent: platform
+2026-11-01T13:45:20.558860+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.559157+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: calling acpi_subsys_resume_early @ 17829, parent: platform
+2026-11-01T13:45:20.559405+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.559696+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: calling acpi_subsys_resume_early @ 17829, parent: platform
+2026-11-01T13:45:20.559982+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: acpi_subsys_resume_early returned 0 after 2 usecs
+2026-11-01T13:45:20.560376+01:00 predator kernel: acpi-button PNP0C0C:00: PM: calling acpi_subsys_resume_early @ 17829, parent: platform
+2026-11-01T13:45:20.560830+01:00 predator kernel: acpi-button PNP0C0C:00: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.561232+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: calling pci_pm_resume_early @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.561506+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.561751+01:00 predator kernel: i2c_designware i2c_designware.0: PM: calling i2c_dw_resume @ 17829, parent: 0000:00:15.0
+2026-11-01T13:45:20.562091+01:00 predator kernel: i2c_designware i2c_designware.0: PM: i2c_dw_resume returned 0 after 12 usecs
+2026-11-01T13:45:20.562412+01:00 predator kernel: i2c_designware i2c_designware.1: PM: calling i2c_dw_resume @ 17829, parent: 0000:00:15.1
+2026-11-01T13:45:20.562781+01:00 predator kernel: i2c_designware i2c_designware.1: PM: i2c_dw_resume returned 0 after 9 usecs
+2026-11-01T13:45:20.563129+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: calling acpi_subsys_resume_early @ 17829, parent: i2c-1
+2026-11-01T13:45:20.563442+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: acpi_subsys_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.563818+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: calling pci_pm_resume_early @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.564122+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: pci_pm_resume_early returned 0 after 0 usecs
+2026-11-01T13:45:20.564461+01:00 predator kernel: PM: early resume of devices complete after 2.792 msecs
+2026-11-01T13:45:20.564546+01:00 predator kernel: regulator regulator.0: PM: calling regulator_resume @ 17829, parent: reg-dummy
+2026-11-01T13:45:20.564858+01:00 predator kernel: regulator regulator.0: PM: regulator_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.565078+01:00 predator kernel: ec PNP0C09:00: PM: calling acpi_ec_resume @ 17829, parent: device:17
+2026-11-01T13:45:20.565303+01:00 predator kernel: ACPI: EC: event unblocked
+2026-11-01T13:45:20.565324+01:00 predator kernel: ec PNP0C09:00: PM: acpi_ec_resume returned 0 after 15 usecs
+2026-11-01T13:45:20.565541+01:00 predator kernel: battery PNP0C0A:00: PM: calling acpi_battery_resume [battery] @ 17829, parent: device:17
+2026-11-01T13:45:20.565782+01:00 predator kernel: battery PNP0C0A:00: PM: acpi_battery_resume [battery] returned 0 after 114 usecs
+2026-11-01T13:45:20.566089+01:00 predator kernel: tpm_crb MSFT0101:00: PM: calling tpm_pm_resume @ 17829, parent: LNXSYBUS:00
+2026-11-01T13:45:20.566402+01:00 predator kernel: tpm_crb MSFT0101:00: PM: tpm_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.566677+01:00 predator kernel: thermal LNXTHERM:00: PM: calling acpi_thermal_resume [thermal] @ 17829, parent: LNXSYBUS:01
+2026-11-01T13:45:20.566991+01:00 predator kernel: thermal LNXTHERM:00: PM: acpi_thermal_resume [thermal] returned 0 after 10 usecs
+2026-11-01T13:45:20.567268+01:00 predator kernel: thermal LNXTHERM:01: PM: calling acpi_thermal_resume [thermal] @ 17829, parent: LNXSYBUS:01
+2026-11-01T13:45:20.567534+01:00 predator kernel: thermal LNXTHERM:01: PM: acpi_thermal_resume [thermal] returned 0 after 0 usecs
+2026-11-01T13:45:20.567828+01:00 predator kernel: platform acpi-cpufreq: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.568091+01:00 predator kernel: platform acpi-cpufreq: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.568342+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.568624+01:00 predator kernel: skl_uncore 0000:00:00.0: PM: pci_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.568919+01:00 predator kernel: pcieport 0000:00:01.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.569230+01:00 predator kernel: pcieport 0000:00:01.0: PM: pci_pm_resume returned 0 after 29 usecs
+2026-11-01T13:45:20.569540+01:00 predator kernel: i915 0000:00:02.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.569833+01:00 predator kernel: i915 0000:00:02.0: PM: pci_pm_resume returned 0 after 442359 usecs
+2026-11-01T13:45:20.570124+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.570447+01:00 predator kernel: xhci_hcd 0000:00:14.0: PM: pci_pm_resume returned 0 after 438 usecs
+2026-11-01T13:45:20.570842+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.571193+01:00 predator kernel: intel_pch_thermal 0000:00:14.2: PM: pci_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.571502+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.571839+01:00 predator kernel: intel-lpss 0000:00:15.0: PM: pci_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.572172+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.572457+01:00 predator kernel: intel-lpss 0000:00:15.1: PM: pci_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.572829+01:00 predator kernel: mei_me 0000:00:16.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.573129+01:00 predator kernel: mei_me 0000:00:16.0: PM: pci_pm_resume returned 0 after 14083 usecs
+2026-11-01T13:45:20.573409+01:00 predator kernel: ahci 0000:00:17.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.573689+01:00 predator kernel: probe of 0000:00:16.0-b638ab7e-94e2-4ea2-a552-d1c54b627f04 returned -517 after 0 usecs
+2026-11-01T13:45:20.573715+01:00 predator kernel: probe of 0000:00:16.0-fbf6fcf1-96cf-4e2e-a6a6-1bab8cbe36b1 returned -517 after 0 usecs
+2026-11-01T13:45:20.573738+01:00 predator kernel: ahci 0000:00:17.0: PM: pci_pm_resume returned 0 after 10168 usecs
+2026-11-01T13:45:20.574042+01:00 predator kernel: pcieport 0000:00:1c.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.574358+01:00 predator kernel: pcieport 0000:00:1c.0: PM: pci_pm_resume returned 0 after 56 usecs
+2026-11-01T13:45:20.574667+01:00 predator kernel: pcieport 0000:00:1c.3: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.574992+01:00 predator kernel: pcieport 0000:00:1c.3: PM: pci_pm_resume returned 0 after 48 usecs
+2026-11-01T13:45:20.575300+01:00 predator kernel: pci 0000:00:1f.0: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.575584+01:00 predator kernel: pci 0000:00:1f.0: PM: pci_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.575906+01:00 predator kernel: pci 0000:00:1f.2: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.576189+01:00 predator kernel: pci 0000:00:1f.2: PM: pci_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.576476+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.576764+01:00 predator kernel: i801_smbus 0000:00:1f.4: PM: pci_pm_resume returned 0 after 10 usecs
+2026-11-01T13:45:20.577038+01:00 predator kernel: pci 0000:01:00.0: PM: calling pci_pm_resume @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.577321+01:00 predator kernel: pci 0000:01:00.0: PM: pci_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.577714+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: calling pci_pm_resume @ 17829, parent: 0000:00:1c.0
+2026-11-01T13:45:20.578182+01:00 predator kernel: ath10k_pci 0000:02:00.0: PM: pci_pm_resume returned 0 after 102 usecs
+2026-11-01T13:45:20.578493+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: calling pci_pm_resume @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.578805+01:00 predator kernel: rtsx_pci 0000:03:00.0: PM: pci_pm_resume returned 0 after 10266 usecs
+2026-11-01T13:45:20.579095+01:00 predator kernel: r8169 0000:03:00.1: PM: calling pci_pm_resume @ 17829, parent: 0000:00:1c.3
+2026-11-01T13:45:20.579384+01:00 predator kernel: r8169 0000:03:00.1: PM: pci_pm_resume returned 0 after 108645 usecs
+2026-11-01T13:45:20.579676+01:00 predator kernel: r8169 0000:03:00.1 enp3s0f1: Link is Down
+2026-11-01T13:45:20.579992+01:00 predator kernel: platform INT0800:00: PM: calling platform_pm_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.580267+01:00 predator kernel: platform INT0800:00: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.580538+01:00 predator kernel: platform PNP0103:00: PM: calling platform_pm_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.580819+01:00 predator kernel: platform PNP0103:00: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.581087+01:00 predator kernel: platform PNP0C04:00: PM: calling platform_pm_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.581347+01:00 predator kernel: platform PNP0C04:00: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.581601+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: calling acpi_subsys_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.581897+01:00 predator kernel: rtc_cmos PNP0B00:00: PM: acpi_subsys_resume returned 0 after 5 usecs
+2026-11-01T13:45:20.582180+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: calling acpi_subsys_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.582555+01:00 predator kernel: intel_oc_wdt INT3F0D:00: PM: acpi_subsys_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.582856+01:00 predator kernel: platform PNP0C09:00: PM: calling platform_pm_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.583114+01:00 predator kernel: platform PNP0C09:00: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.583376+01:00 predator kernel: platform PNP0C0A:00: PM: calling platform_pm_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.583642+01:00 predator kernel: platform PNP0C0A:00: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.583912+01:00 predator kernel: ac ACPI0003:00: PM: calling acpi_subsys_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.584182+01:00 predator kernel: ac ACPI0003:00: PM: acpi_subsys_resume returned 0 after 118 usecs
+2026-11-01T13:45:20.584453+01:00 predator kernel: acpi-button PNP0C0D:00: PM: calling acpi_subsys_resume @ 17829, parent: 0000:00:1f.0
+2026-11-01T13:45:20.585186+01:00 predator kernel: acpi-button PNP0C0D:00: PM: acpi_subsys_resume returned 0 after 102 usecs
+2026-11-01T13:45:20.585464+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: calling acpi_subsys_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.585732+01:00 predator kernel: sunrisepoint-pinctrl INT345D:00: PM: acpi_subsys_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.586018+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: calling acpi_subsys_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.586269+01:00 predator kernel: acpi-wmi PNP0C14:00: PM: acpi_subsys_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.586518+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: calling acpi_subsys_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.586783+01:00 predator kernel: acpi-wmi PNP0C14:01: PM: acpi_subsys_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.587033+01:00 predator kernel: acpi-button PNP0C0E:00: PM: calling acpi_subsys_resume @ 17829, parent: platform
+2026-11-01T13:45:20.587286+01:00 predator kernel: acpi-button PNP0C0E:00: PM: acpi_subsys_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.587532+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: calling acpi_subsys_resume @ 17829, parent: platform
+2026-11-01T13:45:20.587797+01:00 predator kernel: acpi-wmi PNP0C14:02: PM: acpi_subsys_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.588055+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: calling acpi_subsys_resume @ 17829, parent: platform
+2026-11-01T13:45:20.588314+01:00 predator kernel: processor_aggregator ACPI000C:00: PM: acpi_subsys_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.588567+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: calling acpi_subsys_resume @ 17829, parent: platform
+2026-11-01T13:45:20.588858+01:00 predator kernel: intel_pmc_core INT33A1:00: PM: acpi_subsys_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.589120+01:00 predator kernel: acpi-button PNP0C0C:00: PM: calling acpi_subsys_resume @ 17829, parent: platform
+2026-11-01T13:45:20.589365+01:00 predator kernel: acpi-button PNP0C0C:00: PM: acpi_subsys_resume returned 0 after 37 usecs
+2026-11-01T13:45:20.589612+01:00 predator kernel: platform MSFT0101:00: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.589899+01:00 predator kernel: platform MSFT0101:00: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.590144+01:00 predator kernel: acpi-fan PNP0C0B:00: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.590401+01:00 predator kernel: acpi-fan PNP0C0B:00: PM: platform_pm_resume returned 0 after 2 usecs
+2026-11-01T13:45:20.590651+01:00 predator kernel: acpi-fan PNP0C0B:01: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.590932+01:00 predator kernel: acpi-fan PNP0C0B:01: PM: platform_pm_resume returned 0 after 2 usecs
+2026-11-01T13:45:20.591171+01:00 predator kernel: acpi-fan PNP0C0B:02: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.591410+01:00 predator kernel: acpi-fan PNP0C0B:02: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.591653+01:00 predator kernel: acpi-fan PNP0C0B:03: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.591928+01:00 predator kernel: acpi-fan PNP0C0B:03: PM: platform_pm_resume returned 0 after 2 usecs
+2026-11-01T13:45:20.592170+01:00 predator kernel: acpi-fan PNP0C0B:04: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.592415+01:00 predator kernel: acpi-fan PNP0C0B:04: PM: platform_pm_resume returned 0 after 6 usecs
+2026-11-01T13:45:20.592659+01:00 predator kernel: platform 10251229:00: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.593050+01:00 predator kernel: platform 10251229:00: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.593332+01:00 predator kernel: platform rtc-efi.0: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.593581+01:00 predator kernel: platform rtc-efi.0: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.593835+01:00 predator kernel: platform efivars.0: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.594152+01:00 predator kernel: platform efivars.0: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.594409+01:00 predator kernel: system 00:00: PM: calling pnp_bus_resume @ 17829, parent: pnp0
+2026-11-01T13:45:20.594692+01:00 predator kernel: system 00:00: PM: pnp_bus_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.594954+01:00 predator kernel: system 00:01: PM: calling pnp_bus_resume @ 17829, parent: pnp0
+2026-11-01T13:45:20.595208+01:00 predator kernel: system 00:01: PM: pnp_bus_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.595449+01:00 predator kernel: system 00:02: PM: calling pnp_bus_resume @ 17829, parent: pnp0
+2026-11-01T13:45:20.595698+01:00 predator kernel: system 00:02: PM: pnp_bus_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.595942+01:00 predator kernel: system 00:03: PM: calling pnp_bus_resume @ 17829, parent: pnp0
+2026-11-01T13:45:20.596184+01:00 predator kernel: system 00:03: PM: pnp_bus_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.596432+01:00 predator kernel: i8042 kbd 00:04: PM: calling pnp_bus_resume @ 17829, parent: pnp0
+2026-11-01T13:45:20.596685+01:00 predator kernel: i8042 kbd 00:04: PM: pnp_bus_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.596958+01:00 predator kernel: system 00:05: PM: calling pnp_bus_resume @ 17829, parent: pnp0
+2026-11-01T13:45:20.597206+01:00 predator kernel: system 00:05: PM: pnp_bus_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.597451+01:00 predator kernel: system 00:06: PM: calling pnp_bus_resume @ 17829, parent: pnp0
+2026-11-01T13:45:20.597692+01:00 predator kernel: system 00:06: PM: pnp_bus_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.597961+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: calling pci_pm_resume @ 17829, parent: 0000:00:01.0
+2026-11-01T13:45:20.598336+01:00 predator kernel: snd_hda_intel 0000:01:00.1: PM: pci_pm_resume returned 0 after 3493 usecs
+2026-11-01T13:45:20.598659+01:00 predator kernel: platform pcspkr: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.598959+01:00 predator kernel: platform pcspkr: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.599284+01:00 predator kernel: serial8250 serial8250: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.599537+01:00 predator kernel: serial8250 serial8250: PM: platform_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.599817+01:00 predator kernel: port serial8250:0.0: PM: calling pm_runtime_force_resume @ 17829, parent: serial8250:0
+2026-11-01T13:45:20.600135+01:00 predator kernel: port serial8250:0.0: PM: pm_runtime_force_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.600428+01:00 predator kernel: port serial8250:0.1: PM: calling pm_runtime_force_resume @ 17829, parent: serial8250:0
+2026-11-01T13:45:20.601121+01:00 predator kernel: port serial8250:0.1: PM: pm_runtime_force_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.601399+01:00 predator kernel: port serial8250:0.2: PM: calling pm_runtime_force_resume @ 17829, parent: serial8250:0
+2026-11-01T13:45:20.601662+01:00 predator kernel: port serial8250:0.2: PM: pm_runtime_force_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.601964+01:00 predator kernel: port serial8250:0.3: PM: calling pm_runtime_force_resume @ 17829, parent: serial8250:0
+2026-11-01T13:45:20.602227+01:00 predator kernel: port serial8250:0.3: PM: pm_runtime_force_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.602483+01:00 predator kernel: i8042 i8042: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.602729+01:00 predator kernel: i8042 i8042: PM: platform_pm_resume returned 0 after 509 usecs
+2026-11-01T13:45:20.603016+01:00 predator kernel: atkbd serio0: PM: calling serio_resume [serio] @ 17829, parent: i8042
+2026-11-01T13:45:20.603285+01:00 predator kernel: atkbd serio0: PM: serio_resume [serio] returned 0 after 11 usecs
+2026-11-01T13:45:20.603578+01:00 predator kernel: rtsx_pci_sdmmc rtsx_pci_sdmmc.0: PM: calling platform_pm_resume @ 17829, parent: 0000:03:00.0
+2026-11-01T13:45:20.603904+01:00 predator kernel: rtsx_pci_sdmmc rtsx_pci_sdmmc.0: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.604174+01:00 predator kernel: usb usb1: PM: calling usb_dev_resume @ 17829, parent: 0000:00:14.0
+2026-11-01T13:45:20.604488+01:00 predator kernel: usb usb1: PM: usb_dev_resume returned 0 after 53905 usecs
+2026-11-01T13:45:20.604863+01:00 predator kernel: usb usb2: PM: calling usb_dev_resume @ 17829, parent: 0000:00:14.0
+2026-11-01T13:45:20.605167+01:00 predator kernel: usb usb2: PM: usb_dev_resume returned 0 after 21395 usecs
+2026-11-01T13:45:20.605474+01:00 predator kernel: input input0: PM: calling input_dev_resume @ 17829, parent: serio0
+2026-11-01T13:45:20.605880+01:00 predator kernel: input input0: PM: input_dev_resume returned 0 after 3 usecs
+2026-11-01T13:45:20.606271+01:00 predator kernel: leds input0::numlock: PM: calling led_resume [led_class] @ 17829, parent: input0
+2026-11-01T13:45:20.606634+01:00 predator kernel: leds input0::numlock: PM: led_resume [led_class] returned 0 after 0 usecs
+2026-11-01T13:45:20.607006+01:00 predator kernel: Generic FE-GE Realtek PHY r8169-0-301:00: PM: calling mdio_bus_phy_resume [libphy] @ 17829, parent: r8169-0-301
+2026-11-01T13:45:20.607364+01:00 predator kernel: Generic FE-GE Realtek PHY r8169-0-301:00: PM: mdio_bus_phy_resume [libphy] returned 0 after 0 usecs
+2026-11-01T13:45:20.607710+01:00 predator kernel: leds input0::capslock: PM: calling led_resume [led_class] @ 17829, parent: input0
+2026-11-01T13:45:20.608026+01:00 predator kernel: leds input0::capslock: PM: led_resume [led_class] returned 0 after 0 usecs
+2026-11-01T13:45:20.608318+01:00 predator kernel: leds input0::scrolllock: PM: calling led_resume [led_class] @ 17829, parent: input0
+2026-11-01T13:45:20.608598+01:00 predator kernel: leds input0::scrolllock: PM: led_resume [led_class] returned 0 after 0 usecs
+2026-11-01T13:45:20.608896+01:00 predator kernel:  ata1: PM: calling ata_port_pm_resume [libata] @ 17829, parent: 0000:00:17.0
+2026-11-01T13:45:20.608928+01:00 predator kernel:  ata1: PM: ata_port_pm_resume [libata] returned 0 after 5 usecs
+2026-11-01T13:45:20.608952+01:00 predator kernel:  ata2: PM: calling ata_port_pm_resume [libata] @ 17829, parent: 0000:00:17.0
+2026-11-01T13:45:20.608978+01:00 predator kernel:  ata2: PM: ata_port_pm_resume [libata] returned 0 after 4 usecs
+2026-11-01T13:45:20.609000+01:00 predator kernel:  ata3: PM: calling ata_port_pm_resume [libata] @ 17829, parent: 0000:00:17.0
+2026-11-01T13:45:20.609029+01:00 predator kernel:  ata3: PM: ata_port_pm_resume [libata] returned 0 after 3 usecs
+2026-11-01T13:45:20.609054+01:00 predator kernel: scsi host0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: ata1
+2026-11-01T13:45:20.609324+01:00 predator kernel: scsi host0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.609582+01:00 predator kernel: scsi host1: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: ata2
+2026-11-01T13:45:20.609863+01:00 predator kernel: scsi host1: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.610123+01:00 predator kernel: scsi host2: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: ata3
+2026-11-01T13:45:20.610379+01:00 predator kernel: scsi host2: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.610631+01:00 predator kernel: usb 1-2: PM: calling usb_dev_resume @ 17829, parent: usb1
+2026-11-01T13:45:20.610987+01:00 predator kernel: usb 1-2: PM: usb_dev_resume returned 0 after 12683 usecs
+2026-11-01T13:45:20.611310+01:00 predator kernel: scsi target0:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: host0
+2026-11-01T13:45:20.611592+01:00 predator kernel: scsi target0:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 1 usecs
+2026-11-01T13:45:20.611889+01:00 predator kernel: sd 0:0:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: target0:0:0
+2026-11-01T13:45:20.612185+01:00 predator kernel: sd 0:0:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 2 usecs
+2026-11-01T13:45:20.612474+01:00 predator kernel: scsi target2:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: host2
+2026-11-01T13:45:20.612749+01:00 predator kernel: scsi target2:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.613040+01:00 predator kernel: sd 2:0:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: target2:0:0
+2026-11-01T13:45:20.613332+01:00 predator kernel: sd 2:0:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.613621+01:00 predator kernel: usb 2-2: PM: calling usb_dev_resume @ 17829, parent: usb2
+2026-11-01T13:45:20.613961+01:00 predator kernel: usb 2-2: PM: usb_dev_resume returned 0 after 79688 usecs
+2026-11-01T13:45:20.614280+01:00 predator kernel: usb 1-7: PM: calling usb_dev_resume @ 17829, parent: usb1
+2026-11-01T13:45:20.614586+01:00 predator kernel: usb 1-7: PM: usb_dev_resume returned 0 after 92998 usecs
+2026-11-01T13:45:20.614911+01:00 predator kernel: usb 1-2.1: PM: calling usb_dev_resume @ 17829, parent: 1-2
+2026-11-01T13:45:20.615269+01:00 predator kernel: usb 1-2.1: PM: usb_dev_resume returned 0 after 12441 usecs
+2026-11-01T13:45:20.615701+01:00 predator kernel: usb 2-2.1: PM: calling usb_dev_resume @ 17829, parent: 2-2
+2026-11-01T13:45:20.616059+01:00 predator kernel: ata1: SATA link up 6.0 Gbps (SStatus 133 SControl 300)
+2026-11-01T13:45:20.616085+01:00 predator kernel: usb 2-2.1: PM: usb_dev_resume returned 0 after 74650 usecs
+2026-11-01T13:45:20.616430+01:00 predator kernel: ata3: SATA link up 6.0 Gbps (SStatus 133 SControl 300)
+2026-11-01T13:45:20.616458+01:00 predator kernel: usb 1-9: PM: calling usb_dev_resume @ 17829, parent: usb1
+2026-11-01T13:45:20.616800+01:00 predator kernel: sd 0:0:0:0: [sda] Starting disk
+2026-11-01T13:45:20.617118+01:00 predator kernel: ata1.00: configured for UDMA/133
+2026-11-01T13:45:20.617143+01:00 predator kernel: sd 2:0:0:0: [sdb] Starting disk
+2026-11-01T13:45:20.617445+01:00 predator kernel: ahci 0000:00:17.0: port does not support device sleep
+2026-11-01T13:45:20.617738+01:00 predator kernel: ata3.00: configured for UDMA/133
+2026-11-01T13:45:20.617775+01:00 predator kernel: ahci 0000:00:17.0: port does not support device sleep
+2026-11-01T13:45:20.617991+01:00 predator kernel: usb 1-9: PM: usb_dev_resume returned 0 after 92496 usecs
+2026-11-01T13:45:20.618298+01:00 predator kernel: usb 2-2.2: PM: calling usb_dev_resume @ 17829, parent: 2-2
+2026-11-01T13:45:20.618540+01:00 predator kernel: usb 2-2.2: PM: usb_dev_resume returned 0 after 54399 usecs
+2026-11-01T13:45:20.618805+01:00 predator kernel: usb 2-2.3: PM: calling usb_dev_resume @ 17829, parent: 2-2
+2026-11-01T13:45:20.619050+01:00 predator kernel: usb 2-2.3: PM: usb_dev_resume returned 0 after 53811 usecs
+2026-11-01T13:45:20.619271+01:00 predator kernel: usb 2-2.4: PM: calling usb_dev_resume @ 17829, parent: 2-2
+2026-11-01T13:45:20.619490+01:00 predator kernel: usb 2-2.4: PM: usb_dev_resume returned 0 after 54436 usecs
+2026-11-01T13:45:20.619711+01:00 predator kernel: input input1: PM: calling input_dev_resume @ 17829, parent: PNP0C0D:00
+2026-11-01T13:45:20.619979+01:00 predator kernel: input input1: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.620198+01:00 predator kernel: input input2: PM: calling input_dev_resume @ 17829, parent: PNP0C0E:00
+2026-11-01T13:45:20.620411+01:00 predator kernel: input input2: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.620610+01:00 predator kernel: input input3: PM: calling input_dev_resume @ 17829, parent: 10251229:00
+2026-11-01T13:45:20.620848+01:00 predator kernel: input input3: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.621092+01:00 predator kernel: input input4: PM: calling input_dev_resume @ 17829, parent: PNP0C0C:00
+2026-11-01T13:45:20.621319+01:00 predator kernel: input input4: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.621518+01:00 predator kernel: rtc rtc0: PM: calling rtc_resume @ 17829, parent: PNP0B00:00
+2026-11-01T13:45:20.621685+01:00 predator kernel: rtc rtc0: PM: rtc_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.621902+01:00 predator kernel: alarmtimer alarmtimer.0.auto: PM: calling platform_pm_resume @ 17829, parent: rtc0
+2026-11-01T13:45:20.622106+01:00 predator kernel: alarmtimer alarmtimer.0.auto: PM: platform_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.622305+01:00 predator kernel: idma64 idma64.0: PM: calling platform_pm_resume @ 17829, parent: 0000:00:15.0
+2026-11-01T13:45:20.622487+01:00 predator kernel: idma64 idma64.0: PM: platform_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.622664+01:00 predator kernel: i2c_designware i2c_designware.0: PM: calling platform_pm_resume @ 17829, parent: 0000:00:15.0
+2026-11-01T13:45:20.622905+01:00 predator kernel: i2c_designware i2c_designware.0: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.623085+01:00 predator kernel: idma64 idma64.1: PM: calling platform_pm_resume @ 17829, parent: 0000:00:15.1
+2026-11-01T13:45:20.623261+01:00 predator kernel: idma64 idma64.1: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.623436+01:00 predator kernel: i2c_designware i2c_designware.1: PM: calling platform_pm_resume @ 17829, parent: 0000:00:15.1
+2026-11-01T13:45:20.623616+01:00 predator kernel: i2c_designware i2c_designware.1: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.623823+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: calling acpi_subsys_resume @ 17829, parent: i2c-1
+2026-11-01T13:45:20.624046+01:00 predator kernel: i2c_hid_acpi i2c-SYNA7DB5:01: PM: acpi_subsys_resume returned 0 after 63492 usecs
+2026-11-01T13:45:20.624236+01:00 predator kernel: iTCO_wdt iTCO_wdt: PM: calling platform_pm_resume @ 17829, parent: 0000:00:1f.4
+2026-11-01T13:45:20.624411+01:00 predator kernel: iTCO_wdt iTCO_wdt: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.624589+01:00 predator kernel: scsi host3: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: 2-2.3:1.0
+2026-11-01T13:45:20.624837+01:00 predator kernel: scsi host3: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.625054+01:00 predator kernel: scsi host4: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: 2-2.2:1.0
+2026-11-01T13:45:20.625257+01:00 predator kernel: scsi host4: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.625453+01:00 predator kernel: platform coretemp.0: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.625619+01:00 predator kernel: platform coretemp.0: PM: platform_pm_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.625864+01:00 predator kernel: scsi host5: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: 2-2.4:1.0
+2026-11-01T13:45:20.626075+01:00 predator kernel: scsi host5: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.626276+01:00 predator kernel: scsi target5:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: host5
+2026-11-01T13:45:20.626520+01:00 predator kernel: scsi target5:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.626724+01:00 predator kernel: sd 5:0:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: target5:0:0
+2026-11-01T13:45:20.627004+01:00 predator kernel: sd 5:0:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 3 usecs
+2026-11-01T13:45:20.627265+01:00 predator kernel: scsi target4:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: host4
+2026-11-01T13:45:20.627476+01:00 predator kernel: scsi target4:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.627705+01:00 predator kernel: sd 4:0:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: target4:0:0
+2026-11-01T13:45:20.627985+01:00 predator kernel: sd 4:0:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 1 usecs
+2026-11-01T13:45:20.628204+01:00 predator kernel: input input8: PM: calling input_dev_resume @ 17829, parent: 0018:06CB:7DB7.0001
+2026-11-01T13:45:20.628487+01:00 predator kernel: input input8: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.628727+01:00 predator kernel: input input9: PM: calling input_dev_resume @ 17829, parent: 0018:06CB:7DB7.0001
+2026-11-01T13:45:20.629028+01:00 predator kernel: input input9: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.629274+01:00 predator kernel: rfkill rfkill0: PM: calling rfkill_resume [rfkill] @ 17829, parent: hci0
+2026-11-01T13:45:20.629533+01:00 predator kernel: rfkill rfkill0: PM: rfkill_resume [rfkill] returned 0 after 3 usecs
+2026-11-01T13:45:20.629744+01:00 predator kernel: input input11: PM: calling input_dev_resume @ 17829, parent: card0
+2026-11-01T13:45:20.630039+01:00 predator kernel: input input11: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.630262+01:00 predator kernel: input input12: PM: calling input_dev_resume @ 17829, parent: card0
+2026-11-01T13:45:20.630470+01:00 predator kernel: input input12: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.630680+01:00 predator kernel: input input13: PM: calling input_dev_resume @ 17829, parent: card0
+2026-11-01T13:45:20.630946+01:00 predator kernel: input input13: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.631159+01:00 predator kernel: input input14: PM: calling input_dev_resume @ 17829, parent: card0
+2026-11-01T13:45:20.631407+01:00 predator kernel: input input14: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.631618+01:00 predator kernel: backlight intel_backlight: PM: calling backlight_resume @ 17829, parent: card1-eDP-1
+2026-11-01T13:45:20.631867+01:00 predator kernel: backlight intel_backlight: PM: backlight_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.632058+01:00 predator kernel: input input15: PM: calling input_dev_resume @ 17829, parent: LNXVIDEO:00
+2026-11-01T13:45:20.632286+01:00 predator kernel: input input15: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.632507+01:00 predator kernel: scsi target3:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: host3
+2026-11-01T13:45:20.632723+01:00 predator kernel: scsi target3:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T13:45:20.633023+01:00 predator kernel: sd 3:0:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: target3:0:0
+2026-11-01T13:45:20.633246+01:00 predator kernel: sd 3:0:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 1 usecs
+2026-11-01T13:45:20.633465+01:00 predator kernel: input input16: PM: calling input_dev_resume @ 17829, parent: LNXVIDEO:01
+2026-11-01T13:45:20.633682+01:00 predator kernel: input input16: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.633957+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: calling pci_pm_resume @ 17829, parent: pci0000:00
+2026-11-01T13:45:20.634150+01:00 predator kernel: snd_hda_intel 0000:00:1f.3: PM: pci_pm_resume returned 0 after 12346 usecs
+2026-11-01T13:45:20.634338+01:00 predator kernel: intel_rapl_msr intel_rapl_msr.0: PM: calling platform_pm_resume @ 17829, parent: platform
+2026-11-01T13:45:20.634512+01:00 predator kernel: intel_rapl_msr intel_rapl_msr.0: PM: platform_pm_resume returned 0 after 1 usecs
+2026-11-01T13:45:20.634682+01:00 predator kernel: ses 3:0:0:1: PM: calling scsi_bus_resume [scsi_mod] @ 17829, parent: target3:0:0
+2026-11-01T13:45:20.634969+01:00 predator kernel: ses 3:0:0:1: PM: scsi_bus_resume [scsi_mod] returned 0 after 1 usecs
+2026-11-01T13:45:20.635192+01:00 predator kernel: input input17: PM: calling input_dev_resume @ 17829, parent: card1
+2026-11-01T13:45:20.635402+01:00 predator kernel: input input17: PM: input_dev_resume returned 0 after 2 usecs
+2026-11-01T13:45:20.635609+01:00 predator kernel: input input18: PM: calling input_dev_resume @ 17829, parent: card1
+2026-11-01T13:45:20.635861+01:00 predator kernel: input input18: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T13:45:20.636065+01:00 predator kernel: ieee80211 phy0: PM: calling wiphy_resume [cfg80211] @ 17829, parent: 0000:02:00.0
+2026-11-01T13:45:20.636246+01:00 predator kernel: ieee80211 phy0: PM: wiphy_resume [cfg80211] returned 0 after 238203 usecs
+2026-11-01T13:45:20.636418+01:00 predator kernel: rfkill rfkill1: PM: calling rfkill_resume [rfkill] @ 17829, parent: phy0
+2026-11-01T13:45:20.636620+01:00 predator kernel: rfkill rfkill1: PM: rfkill_resume [rfkill] returned 0 after 2 usecs
+2026-11-01T13:45:20.636895+01:00 predator kernel: PM: resume of devices complete after 1843.413 msecs
+2026-11-01T13:45:20.636911+01:00 predator kernel: GFP mask restored
+2026-11-01T13:45:20.636923+01:00 predator kernel: OOM killer enabled.
+2026-11-01T13:45:20.636936+01:00 predator kernel: mei_hdcp 0000:00:16.0-b638ab7e-94e2-4ea2-a552-d1c54b627f04: bound 0000:00:02.0 (ops i915_hdcp_ops [i915])
+2026-11-01T13:45:20.637012+01:00 predator kernel: Restarting tasks: Starting
+2026-11-01T13:45:20.637027+01:00 predator kernel: Restarting tasks: Done
+2026-11-01T13:45:20.637038+01:00 predator kernel: probe of 0000:00:16.0-b638ab7e-94e2-4ea2-a552-d1c54b627f04 returned 0 after 3644 usecs
+2026-11-01T13:45:20.637049+01:00 predator kernel: efivarfs: resyncing variable state
+2026-11-01T13:45:20.637064+01:00 predator kernel: probe of 0000:00:16.0-fbf6fcf1-96cf-4e2e-a6a6-1bab8cbe36b1 returned 0 after 1277 usecs
+2026-11-01T13:45:20.637080+01:00 predator kernel: efivarfs: creating variable PMS3-core1101a-47d95147-3665-4bda-8ddf-d48f0e339023
+2026-11-01T13:45:20.637091+01:00 predator kernel: efivarfs: finished resyncing variable state
+2026-11-01T13:45:20.637101+01:00 predator kernel: random: crng reseeded on system resumption
+2026-11-01T13:45:20.637114+01:00 predator kernel: PM: suspend exit
+2026-11-01T13:45:20.637124+01:00 predator kernel: Generic FE-GE Realtek PHY r8169-0-301:00: attached PHY driver (mii_bus:phy_addr=r8169-0-301:00, irq=MAC)
+2026-11-01T13:45:20.724819+01:00 predator kernel: r8169 0000:03:00.1 enp3s0f1: Link is Down
+2026-11-01T13:45:21.850880+01:00 predator kernel: pm_boundary_stage: unloaded attempted=2 completed=2 error=0; EFI record retained
+2026-11-01T13:45:22.014850+01:00 predator pm-debug: tpm-ec-study-20261009 
+2026-11-01T13:45:22.015015+01:00 predator unknown: NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+2026-11-01T13:45:22.015071+01:00 predator unknown: 
+2026-11-01T13:45:23.576868+01:00 predator kernel: r8169 0000:03:00.1 enp3s0f1: Link is Up - 1Gbps/Full - flow control rx/tx

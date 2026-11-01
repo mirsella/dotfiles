@@ -1,0 +1,28 @@
+2026-10-29T14:09:04+01:00
+predator
+4e5cb3ba-062b-4ad0-bd18-7e24492f97e6
+btime 1793271910
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+0
+0
+N
+0
+No jobs running.
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+yes
+all pools are healthy
+fast/data /srv/data/fast
+fast/ncdata /var/lib/nextcloud/data
+tank/backup /srv/backup
+tank/archive /srv/data/archive
+tank/backup/recovery /srv/backup/recovery

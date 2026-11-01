@@ -1,0 +1,9 @@
+2026-10-30T13:39:24+01:00
+BOOT=3c1873e4-b866-41e1-b411-702168ef90cf
+btime 1793363873
+91.24 566.09
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+starting

@@ -1,0 +1,38 @@
+2026-10-28T21:04:04+01:00
+TimersCalendar={ OnCalendar=2026-10-29 08:37:02 UTC ; next_elapse=Thu 2026-10-29 09:37:02 CET }
+NextElapseUSecRealtime=Thu 2026-10-29 09:37:02 CET
+Id=predator-pm-r-async-d1225-20261029-wake.timer
+ActiveState=active
+SubState=waiting
+TimersCalendar={ OnCalendar=2026-10-29 08:37:32 UTC ; next_elapse=Thu 2026-10-29 09:37:32 CET }
+NextElapseUSecRealtime=Thu 2026-10-29 09:37:32 CET
+Id=predator-pm-r-async-d1225-20261029-retry.timer
+ActiveState=active
+SubState=waiting
+TimersCalendar={ OnCalendar=2026-10-29 08:38:32 UTC ; next_elapse=Thu 2026-10-29 09:38:32 CET }
+NextElapseUSecRealtime=Thu 2026-10-29 09:38:32 CET
+Id=predator-pm-r-async-d1225-20261029-probe.timer
+ActiveState=active
+SubState=waiting
+TimersCalendar={ OnCalendar=2026-10-29 08:40:02 UTC ; next_elapse=Thu 2026-10-29 09:40:02 CET }
+NextElapseUSecRealtime=Thu 2026-10-29 09:40:02 CET
+Id=predator-pm-r-async-d1225-20261029-snapshot.timer
+ActiveState=active
+SubState=waiting
+TimersCalendar={ OnCalendar=2026-10-29 08:21:02 UTC ; next_elapse=Thu 2026-10-29 09:21:02 CET }
+NextElapseUSecRealtime=Thu 2026-10-29 09:21:02 CET
+Id=predator-pm-r-async-d1225-20261029-notice-start.timer
+ActiveState=active
+SubState=waiting
+NEXT                        LEFT     LAST                         PASSED            UNIT                                                  ACTIVATES
+Thu 2026-10-29 09:21:02 CET 12h left -                            -                 predator-pm-r-async-d1225-20261029-notice-start.timer predator-pm-r-async-d1225-20261029-notice-start.service
+Thu 2026-10-29 09:37:02 CET 12h left -                            -                 predator-pm-r-async-d1225-20261029-wake.timer         predator-pm-r-async-d1225-20261029-wake.service
+Thu 2026-10-29 09:37:32 CET 12h left -                            -                 predator-pm-r-async-d1225-20261029-retry.timer        predator-pm-r-async-d1225-20261029-retry.service
+Thu 2026-10-29 09:38:32 CET 12h left -                            -                 predator-pm-r-async-d1225-20261029-probe.timer        predator-pm-r-async-d1225-20261029-probe.service
+Thu 2026-10-29 09:40:02 CET 12h left -                            -                 predator-pm-r-async-d1225-20261029-snapshot.timer     predator-pm-r-async-d1225-20261029-snapshot.service
+-                           -        Sat 2026-10-17 18:00:00 CEST 1 week 4 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer  predator-pm-r-async-e7o2-20261017-notice-start.service
+-                           -        Tue 2026-10-20 20:24:11 CEST 1 week 1 day ago  predator-pm-r-async-h8-20261020-notice-start.timer    predator-pm-r-async-h8-20261020-notice-start.service
+-                           -        Sun 2026-10-18 21:00:30 CEST 1 week 3 days ago predator-pm-r-async-q30-20261018-notice-start.timer   predator-pm-r-async-q30-20261018-notice-start.service
+-                           -        Sat 2026-10-17 21:24:00 CEST 1 week 4 days ago predator-pm-r-serial-m15-20261017-notice-start.timer  predator-pm-r-serial-m15-20261017-notice-start.service
+
+9 timers listed.

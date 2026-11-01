@@ -1,0 +1,277 @@
+--- /home/mirsella/dev/dotfiles/.scratch/pm-core-timekeeping-check-20261030/diagnostic-before.rs	2026-10-30 22:03:25.365377588 +0100
++++ /home/mirsella/dev/dotfiles/.scratch/pm-core-timekeeping-check-20261030/diagnostic-deployed.rs	2026-10-30 22:10:26.982656926 +0100
+@@ -131,11 +131,13 @@
+             "ec",
+             "logged_in_users",
+         ];
+-        let version2 = values.get("schema").map(String::as_str) == Some("pm-test-2");
++        let version3 = values.get("schema").map(String::as_str) == Some("pm-test-3");
++        let version2 = version3 || values.get("schema").map(String::as_str) == Some("pm-test-2");
+         require(
+-            values.len() == keys.len() + usize::from(version2)
++            values.len() == keys.len() + usize::from(version2) + usize::from(version3)
+                 && keys.iter().all(|k| values.contains_key(*k))
+-                && (!version2 || values.contains_key("previous_kind")),
++                && (!version2 || values.contains_key("previous_kind"))
++                && (!version3 || values.contains_key("previous_runtime")),
+             "unknown/missing diagnostic keys",
+         )?;
+         require(
+@@ -194,6 +196,15 @@
+             "invalid diagnostic time window",
+         )?;
+         let ordinal = values["ordinal"].parse()?;
++        if version3 {
++            require(
++                ordinal == 8
++                    && values["level"] == "core"
++                    && values["previous_kind"] == "completed"
++                    && values["previous_runtime"] == PRE_CORE_RUNTIME,
++                "unsupported explicit core runtime handoff",
++            )?;
++        }
+         if version2 {
+             require(
+                 if ordinal == 1 {
+@@ -287,7 +298,7 @@
+         if self.ordinal == 1 {
+             return Ok(());
+         }
+-        let kind = if self.get("schema") == "pm-test-2" {
++        let kind = if self.get("schema") != "pm-test-1" {
+             self.get("previous_kind")
+         } else {
+             "completed"
+@@ -298,6 +309,12 @@
+             "predecessor hash changed",
+         )?;
+         let prior = fields(&root_file(Path::new(&path))?)?;
++        if self.get("schema") == "pm-test-3" {
++            require(
++                hash(Path::new(PRE_CORE_RUNTIME))? == PRE_CORE_SHA,
++                "pre-handoff executable changed",
++            )?;
++        }
+         self.validate_predecessor_record(&prior, kind)
+     }
+     fn validate_predecessor_record(
+@@ -305,12 +322,25 @@
+         prior: &BTreeMap<String, String>,
+         kind: &str,
+     ) -> Result<()> {
+-        for key in ["boot", "generation", "kernel", "modules", "runtime"] {
++        for key in ["boot", "generation", "kernel", "modules"] {
+             require(
+                 prior.get(key).map(String::as_str) == Some(self.get(key)),
+                 format!("predecessor {key} mismatch"),
+             )?;
+         }
++        let previous_runtime = if self.get("schema") == "pm-test-3" {
++            require(
++                kind == "completed" && prior.get("level").map(String::as_str) == Some("processors"),
++                "core handoff requires completed processors",
++            )?;
++            self.get("previous_runtime")
++        } else {
++            self.get("runtime")
++        };
++        require(
++            prior.get("runtime").map(String::as_str) == Some(previous_runtime),
++            "predecessor runtime mismatch",
++        )?;
+         let (expected_result, time_key) = if kind == "revalidated" {
+             require(
+                 prior.get("original_completion").map(String::as_str) == Some("absent"),
+@@ -386,24 +416,52 @@
+     }
+ }
+ 
+-// pm_test prints an entry and exit even though it never enters physical S3.
+-// The test-delay marker, absence of real-resume markers and exact counts are
+-// necessary to prevent such cycles being imported as ordinary S3 completions.
++const PRE_CORE_RUNTIME: &str = "/nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic";
++const PRE_CORE_SHA: &str = "f59969c30e72c455e9c574e273464760e82ba3f7965af29c48543884820f4a91";
++
++// Core testing executes timekeeping syscore suspend/resume without firmware S3.
++// A bounded clock accounting message is allowed only after an explicit core
++// BEGIN and its test checkpoint. It is never physical-sleep evidence.
+ fn diagnostic_cycles(journal: &str) -> Result<u64> {
++    diagnostic_history(journal, true)
++}
++fn diagnostic_history(journal: &str, complete: bool) -> Result<u64> {
+     let mut phase = 0;
+     let mut count = 0;
++    let mut core = false;
++    let mut clock_seen = false;
+     for line in journal.lines() {
+         require(
+-            !line.contains("Low-level resume complete")
+-                && !line.contains("Timekeeping suspended for"),
++            !line.contains("Low-level resume complete"),
+             "real sleep evidence in diagnostic boot",
+         )?;
+-        if line.contains("PM: suspend entry (") {
++        if line.contains("DIAG BEGIN id=") {
++            require(phase == 0, "diagnostic BEGIN inside active cycle")?;
++            core = line.contains(" level=core ");
++        }
++        if let Some(duration) = line
++            .split_once("Timekeeping suspended for ")
++            .map(|(_, d)| d)
++        {
++            let seconds: f64 = duration
++                .strip_suffix(" seconds")
++                .ok_or("malformed core clock duration")?
++                .parse()?;
++            require(
++                core && phase == 2
++                    && !clock_seen
++                    && seconds.is_finite()
++                    && (4.0..=10.0).contains(&seconds),
++                "unexpected diagnostic clock suspension",
++            )?;
++            clock_seen = true;
++        } else if line.contains("PM: suspend entry (") {
+             require(
+                 phase == 0 && line.contains("PM: suspend entry (deep)"),
+                 "unexpected diagnostic entry",
+             )?;
+             phase = 1;
++            clock_seen = false;
+         } else if line.contains("PM: suspend debug: Waiting for") {
+             require(
+                 phase == 1 && line.contains(DELAY),
+@@ -414,9 +472,13 @@
+             require(phase == 2, "diagnostic exit without completed test stage")?;
+             count += 1;
+             phase = 0;
++            core = false;
+         }
+     }
+-    require(phase == 0, "unfinished diagnostic kernel history")?;
++    require(
++        !complete || phase == 0,
++        "unfinished diagnostic kernel history",
++    )?;
+     Ok(count)
+ }
+ fn inactive(unit: &str) -> Result<()> {
+@@ -641,10 +703,12 @@
+         journal.push_str(&line);
+         journal.push('\n');
+         require(
+-            !line.contains("Low-level resume complete")
+-                && !line.contains("Timekeeping suspended for"),
++            !line.contains("Low-level resume complete"),
+             "unexpected real sleep during diagnostic",
+         )?;
++        if line.contains("Timekeeping suspended for") {
++            diagnostic_history(&journal, false)?;
++        }
+         let finished = journal.contains("systemd[1]: Finished System Suspend.")
+             || journal.contains("systemd[1]: Finished systemd-suspend.service - System Suspend.");
+         if finished && journal.contains("PM: suspend exit") {
+@@ -1354,6 +1418,103 @@
+     }
+     const CYCLE: &str =
+         "PM: suspend entry (deep)\nPM: suspend debug: Waiting for 5 second(s).\nPM: suspend exit\n";
++    fn core_cycle() -> String {
++        format!(
++            "DIAG BEGIN id=test-core boot=test level=core ordinal=8 real_s3=forbidden\n{}",
++            CYCLE.replace(
++                "PM: suspend exit",
++                "Timekeeping suspended for 5.001 seconds\nPM: suspend exit"
++            )
++        )
++    }
++    #[test]
++    fn core_clock_accounting_is_not_physical_sleep_and_is_strictly_scoped() {
++        let core = core_cycle();
++        assert_eq!(diagnostic_cycles(&core).unwrap(), 1);
++        assert_eq!(
++            diagnostic_cycles(&(CYCLE.to_string() + &core + CYCLE)).unwrap(),
++            3
++        );
++        for bad in [
++            core.replace("level=core", "level=processors"),
++            core.replace("PM: suspend debug: Waiting for 5 second(s).\n", ""),
++            core.replace("5.001 seconds", "900 seconds"),
++            core.replace("5.001 seconds", "NaN seconds"),
++            core.replace("5.001 seconds", "-5 seconds"),
++            core.replace("5.001 seconds", "5 milliseconds"),
++            core.replace(
++                "PM: suspend exit",
++                "Timekeeping suspended for 5.001 seconds\nPM: suspend exit",
++            ),
++            core.clone() + "Low-level resume complete\n",
++            core.clone() + "Timekeeping suspended for 5.001 seconds\n",
++        ] {
++            assert!(diagnostic_cycles(&bad).is_err(), "{bad}");
++        }
++        let (tx, rx) = mpsc::channel();
++        for line in core.lines().chain([
++            "systemd-sleep: System returned from sleep operation",
++            "systemd[1]: Finished System Suspend.",
++        ]) {
++            tx.send(Ok(line.to_owned())).unwrap();
++        }
++        receive(&rx, Duration::from_secs(1)).1.unwrap();
++    }
++    #[test]
++    fn core_runtime_handoff_is_explicit_and_only_accepts_the_verified_processors_boundary() {
++        let data = manifest()
++            .replace("schema=pm-test-1", "schema=pm-test-3")
++            .replace("level=freezer", "level=core")
++            .replace("ordinal=1", "ordinal=8")
++            .replace("previous_id=none", "previous_id=prior-processors")
++            .replace(
++                "previous_sha=none",
++                &format!("previous_sha={}", "b".repeat(64)),
++            )
++            + &format!("\nprevious_kind=completed\nprevious_runtime={PRE_CORE_RUNTIME}");
++        let plan = Plan::parse(&data).unwrap();
++        let mut record = BTreeMap::new();
++        for key in ["boot", "generation", "kernel", "modules"] {
++            record.insert(key.into(), plan.get(key).into());
++        }
++        for (key, value) in [
++            ("runtime", PRE_CORE_RUNTIME),
++            ("id", "prior-processors"),
++            ("level", "processors"),
++            ("ordinal", "7"),
++            ("result", "DIAGNOSTIC_RETURN_VERIFIED"),
++            ("real_s3", "false"),
++            ("completed_epoch", "3100"),
++        ] {
++            record.insert(key.into(), value.into());
++        }
++        plan.validate_predecessor_record(&record, "completed")
++            .unwrap();
++        assert!(
++            plan.validate_predecessor_record(&record, "revalidated")
++                .is_err()
++        );
++        record.insert("runtime".into(), plan.get("runtime").into());
++        assert!(
++            plan.validate_predecessor_record(&record, "completed")
++                .is_err()
++        );
++        record.insert("runtime".into(), PRE_CORE_RUNTIME.into());
++        record.insert("level".into(), "core".into());
++        assert!(
++            plan.validate_predecessor_record(&record, "completed")
++                .is_err()
++        );
++        for bad in [
++            data.replace("ordinal=8", "ordinal=9"),
++            data.replace("level=core", "level=processors"),
++            data.replace("previous_kind=completed", "previous_kind=revalidated"),
++            data.replace(PRE_CORE_RUNTIME, "/nix/store/unapproved/bin/diagnostic"),
++            data.replace("schema=pm-test-3", "schema=pm-test-2"),
++        ] {
++            assert!(Plan::parse(&bad).is_err());
++        }
++    }
+     #[test]
+     fn diagnostic_history_rejects_real_sleep_and_incomplete_or_misordered_cycles() {
+         assert_eq!(diagnostic_cycles("").unwrap(), 0);

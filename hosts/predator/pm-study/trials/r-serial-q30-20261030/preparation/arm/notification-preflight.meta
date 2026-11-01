@@ -1,0 +1,27 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+test ! -e '/run/predator-pm-r-serial-q30-20261030-telegram.conf'
+command -v curl
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-setup'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-start'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-wake-ok'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-wake-failed'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-retry-ok'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-retry-failed'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-probe-ok'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-probe-failed'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-snapshot-ok'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-snapshot-failed'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-canceled'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-wake'.timer -p SubState --value)" = waiting
+test ! -e /run/systemd/system/predator-pm-r-serial-q30-20261030-wake.service.d/60-telegram.conf
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-retry'.timer -p SubState --value)" = waiting
+test ! -e /run/systemd/system/predator-pm-r-serial-q30-20261030-retry.service.d/60-telegram.conf
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-probe'.timer -p SubState --value)" = waiting
+test ! -e /run/systemd/system/predator-pm-r-serial-q30-20261030-probe.service.d/60-telegram.conf
+test "$(systemctl show 'predator-pm-r-serial-q30-20261030-snapshot'.timer -p SubState --value)" = waiting
+test ! -e /run/systemd/system/predator-pm-r-serial-q30-20261030-snapshot.service.d/60-telegram.conf
+
+stderr:

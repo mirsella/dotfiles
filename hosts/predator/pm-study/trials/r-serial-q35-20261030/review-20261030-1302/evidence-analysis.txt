@@ -1,0 +1,34 @@
+event=PM: suspend entry (deep)
+  received_realtime_us=1793360107913524
+  journal_monotonic_us=2103802681
+  source_monotonic_us=2103400810
+event=ACPI: PM: Low-level resume complete
+  received_realtime_us=1793361068723307
+  journal_monotonic_us=2109838989
+  source_monotonic_us=2105725641
+event=Timekeeping suspended for 954.773 seconds
+  received_realtime_us=1793361068723480
+  journal_monotonic_us=2109839162
+  source_monotonic_us=2105726438
+event=PM: suspend exit
+  received_realtime_us=1793361068831444
+  journal_monotonic_us=2109947126
+  source_monotonic_us=2109359181
+early_count[PM: suspend entry (deep)]=1 final_count=1
+early_count[Low-level resume complete]=1 final_count=1
+early_count[PM: suspend exit]=0 final_count=1
+measured_sleep_seconds=954.773
+ordered_current_boot_cycles=1
+early_snapshot_lines=2063
+early_snapshot_tail:
+[ 2109.916839] predator kernel:  ata1: PM: calling ata_port_pm_resume [libata] @ 18303, parent: 0000:00:17.0
+[ 2109.916853] predator kernel:  ata1: PM: ata_port_pm_resume [libata] returned 0 after 6 usecs
+[ 2109.916864] predator kernel:  ata2: PM: calling ata_port_pm_resume [libata] @ 18303, parent: 0000:00:17.0
+[ 2109.916917] predator kernel:  ata2: PM: ata_port_pm_resume [libata] returned 0 after 3 usecs
+[ 2109.916930] predator kernel:  ata3: PM: calling ata_port_pm_resume [libata] @ 18303, parent: 0000:00:17.0
+[ 2109.916942] predator kernel:  ata3: PM: ata_port_pm_resume [libata] returned 0 after 3 usecs
+[ 2109.916953] predator kernel: scsi host0: PM: calling scsi_bus_resume [scsi_mod] @ 18303, parent: ata1
+[ 2109.917172] predator kernel: scsi host0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+classification=RESUMED_VERIFIER_ERROR_PHYSICAL_EVIDENCE_PENDING
+full_pass=false
+completion_record_not_synthesized=true

@@ -1,0 +1,13 @@
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/pci/pci-acpi.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/pci/pci-driver.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/pci/pci-sysfs.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/pci/pcie/pme.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/acpi/device_pm.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/acpi/x86/s2idle.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/net/ethernet/realtek/r8169_main.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/pci/pci.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/pci/pci.h
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/pci/pcie/portdrv.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/misc/cardreader/rtsx_pcr.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/misc/cardreader/rtl8411.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/net/phy/phy_device.c

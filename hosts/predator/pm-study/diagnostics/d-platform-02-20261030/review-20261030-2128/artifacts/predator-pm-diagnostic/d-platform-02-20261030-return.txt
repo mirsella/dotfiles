@@ -1,0 +1,7 @@
+epoch=1793391826
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+request_and_return=Ok(())
+stop=Ok(())
+reaped=Ok(ExitStatus(unix_wait_status(9)))
+reader_joined=true
+uptime=10633.65 82488.89

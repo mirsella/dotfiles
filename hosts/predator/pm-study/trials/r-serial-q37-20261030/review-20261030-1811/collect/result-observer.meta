@@ -1,0 +1,16 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+date --iso-8601=seconds
+cat /proc/sys/kernel/random/boot_id
+systemctl show 'predator-pm-r-serial-q37-20261030-wake'.service -p Result -p ExecMainStatus -p ExecMainStartTimestamp -p ExecMainExitTimestamp
+journalctl -u 'predator-pm-r-serial-q37-20261030-wake'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q37-20261030-retry'.service -p Result -p ExecMainStatus -p ExecMainStartTimestamp -p ExecMainExitTimestamp
+journalctl -u 'predator-pm-r-serial-q37-20261030-retry'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q37-20261030-probe'.service -p Result -p ExecMainStatus -p ExecMainStartTimestamp -p ExecMainExitTimestamp
+journalctl -u 'predator-pm-r-serial-q37-20261030-probe'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q37-20261030-snapshot'.service -p Result -p ExecMainStatus -p ExecMainStartTimestamp -p ExecMainExitTimestamp
+journalctl -u 'predator-pm-r-serial-q37-20261030-snapshot'.service --no-pager -o short-iso-precise
+
+stderr:

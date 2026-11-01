@@ -1,0 +1,43 @@
+2026-10-30T12:02:27+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+2026-10-30T08:46:40.560651+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-d1225-20261030-wake.service - /usr/bin/python3 /home/mirsella/wol_predator.py...
+2026-10-30T08:46:40.650787+0100 raspberrypi python3[87125]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-30T08:46:40.665943+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-wake.service: Deactivated successfully.
+2026-10-30T08:46:40.666310+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-d1225-20261030-wake.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-30T08:46:40.667037+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-wake.service: Triggering OnSuccess= dependencies.
+2026-10-30T09:00:37.055556+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-wake.service: Failed to open /run/systemd/transient/predator-pm-r-serial-d1225-20261030-wake.service: No such file or directory
+2026-10-30T12:02:27.988370+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-wake.service: Failed to open /run/systemd/transient/predator-pm-r-serial-d1225-20261030-wake.service: No such file or directory
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+2026-10-30T08:47:10.556738+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-d1225-20261030-retry.service - /usr/bin/python3 /home/mirsella/wol_predator.py...
+2026-10-30T08:47:10.644423+0100 raspberrypi python3[87129]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-30T08:47:10.662875+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-retry.service: Deactivated successfully.
+2026-10-30T08:47:10.663349+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-d1225-20261030-retry.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-30T08:47:10.664184+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-retry.service: Triggering OnSuccess= dependencies.
+2026-10-30T09:00:37.092320+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-retry.service: Failed to open /run/systemd/transient/predator-pm-r-serial-d1225-20261030-retry.service: No such file or directory
+2026-10-30T12:02:28.024937+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-retry.service: Failed to open /run/systemd/transient/predator-pm-r-serial-d1225-20261030-retry.service: No such file or directory
+Result=exit-code
+ExecMainStartTimestamp=Fri 2026-10-30 08:48:10 CET
+ExecMainExitTimestamp=Fri 2026-10-30 08:48:13 CET
+ExecMainStatus=1
+2026-10-30T08:48:10.556776+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-d1225-20261030-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19...
+2026-10-30T08:48:13.638742+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-probe.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-30T08:48:13.639472+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-probe.service: Failed with result 'exit-code'.
+2026-10-30T08:48:13.641093+0100 raspberrypi systemd[1]: Failed to start predator-pm-r-serial-d1225-20261030-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19.
+2026-10-30T08:48:13.642147+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-probe.service: Triggering OnFailure= dependencies.
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+2026-10-30T08:49:40.564734+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-d1225-20261030-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log...
+2026-10-30T08:49:40.576427+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-snapshot.service: Deactivated successfully.
+2026-10-30T08:49:40.577157+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-d1225-20261030-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log.
+2026-10-30T08:49:40.579438+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-snapshot.service: Triggering OnSuccess= dependencies.
+2026-10-30T09:00:37.165197+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-snapshot.service: Failed to open /run/systemd/transient/predator-pm-r-serial-d1225-20261030-snapshot.service: No such file or directory
+2026-10-30T12:02:28.097439+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-snapshot.service: Failed to open /run/systemd/transient/predator-pm-r-serial-d1225-20261030-snapshot.service: No such file or directory

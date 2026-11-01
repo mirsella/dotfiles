@@ -1,0 +1,13 @@
+   Compiling predator-pm-study v0.1.0 (/home/mirsella/dev/dotfiles/pkgs/predator-pm-study)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.59s
+     Running unittests instrumented.rs (.scratch/pm-instrumented-execution-20261031/target/debug/build/predator-pm-study/10001501bd71f92e/out/predator_pm_instrumented-10001501bd71f92e)
+
+running 5 tests
+test tests::calibration_never_counts_as_real_sleep ... ok
+test tests::real_return_requires_ordered_lowlevel_and_no_debug_checkpoint ... ok
+test tests::timex_abi_matches_linux_x86_64 ... ok
+test tests::retained_rtc_requires_actual_calendar_and_new_marker ... ok
+test tests::no_duplicate_or_missing_history ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

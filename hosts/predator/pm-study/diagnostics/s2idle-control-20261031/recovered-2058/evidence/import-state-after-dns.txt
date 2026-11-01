@@ -1,0 +1,4 @@
+2026-10-31T21:11:27+01:00
+runtime_imported=no
+    PID    PPID STAT     ELAPSED COMMAND
+  21684   21678 Sl         03:59 /run/current-system/sw/bin/nix-store --import

@@ -1,0 +1,16 @@
+2026-11-01T08:52:51,073237432+01:00
+WAKEPATH READY id=path-d3-v2-20261101 nonce=path-d3-v2-20261101-1793520900
+NEXT                            LEFT LAST                              PASSED UNIT                 ACTIVATES
+Sun 2026-11-01 08:56:17 CET 3min 18s Sun 2026-11-01 08:51:17 CET 1min 41s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+ActiveState=inactive
+Type=exec
+Restart=no
+TimeoutStopUSec=3min
+RuntimeMaxUSec=40min
+ExecStopPost={ path=/nix/store/fgxkwdijv3z3n7iwkn7hv111xhydr8ax-predator-pm-study-0.1.0/bin/predator-pm-wake-path ; argv[]=/nix/store/fgxkwdijv3z3n7iwkn7hv111xhydr8ax-predator-pm-study-0.1.0/bin/predator-pm-wake-path restore /var/lib/predator-pm-wake-path/path-d3-v2-20261101-plan.conf ab8a52f58f39a2dddb7363a0b8d3290a346856c6d9d2dbf9991124be522ea653 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+NEXT                         LEFT LAST PASSED UNIT                                       ACTIVATES
+Sun 2026-11-01 09:15:00 CET 22min -         - predator-pm-path-path-d3-v2-20261101.timer predator-pm-path-path-d3-v2-20261101.service
+
+1 timers listed.

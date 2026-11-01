@@ -1,0 +1,4 @@
+
+thread 'main' (3135666) panicked at .scratch/pm-instrumented-execution-20261031/s3-review-1021/independent-review.rs:5:5:
+assertion failed: out.status.success()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

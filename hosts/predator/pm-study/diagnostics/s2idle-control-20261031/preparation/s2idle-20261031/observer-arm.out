@@ -1,0 +1,10 @@
+2026-10-31T11:55:13+01:00
+active
+/home/mirsella/wol_predator.py: OK
+NEXT                        LEFT       LAST PASSED UNIT                                                ACTIVATES
+Sat 2026-10-31 12:23:00 CET 27min left -    -      predator-pm-s2idle-s2idle-20261031-wake.timer       predator-pm-s2idle-s2idle-20261031-wake.service
+Sat 2026-10-31 12:23:30 CET 28min left -    -      predator-pm-s2idle-s2idle-20261031-wake-retry.timer predator-pm-s2idle-s2idle-20261031-wake-retry.service
+Sat 2026-10-31 12:24:30 CET 29min left -    -      predator-pm-s2idle-s2idle-20261031-probe.timer      predator-pm-s2idle-s2idle-20261031-probe.service
+Sat 2026-10-31 12:26:00 CET 30min left -    -      predator-pm-s2idle-s2idle-20261031-snapshot.timer   predator-pm-s2idle-s2idle-20261031-snapshot.service
+
+4 timers listed.

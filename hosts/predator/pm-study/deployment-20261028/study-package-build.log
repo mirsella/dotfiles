@@ -1,0 +1,76 @@
+got build log for '/nix/store/wip58vxjl16pk9i1cfkrcwhvqnq6jxm4-predator-pm-study-0.1.0.drv' from 'daemon'
+Running phase: unpackPhase
+@nix { "action": "setPhase", "phase": "unpackPhase" }
+unpacking source archive /nix/store/2qyzmsbdy8idcq79hq0dq1na7as17bdh-predator-pm-study
+source root is predator-pm-study
+Executing cargoSetupPostUnpackHook
+Finished cargoSetupPostUnpackHook
+Running phase: patchPhase
+@nix { "action": "setPhase", "phase": "patchPhase" }
+Executing cargoSetupPostPatchHook
+Validating consistency between /build/predator-pm-study/Cargo.lock and /build/cargo-vendor-dir/Cargo.lock
+Finished cargoSetupPostPatchHook
+Running phase: updateAutotoolsGnuConfigScriptsPhase
+@nix { "action": "setPhase", "phase": "updateAutotoolsGnuConfigScriptsPhase" }
+Running phase: configurePhase
+@nix { "action": "setPhase", "phase": "configurePhase" }
+Running phase: buildPhase
+@nix { "action": "setPhase", "phase": "buildPhase" }
+Executing cargoBuildHook
+cargoBuildHook flags: -j 4 --target x86_64-unknown-linux-gnu --offline --profile release
+[1m[92m   Compiling[0m predator-pm-study v0.1.0 (/build/predator-pm-study)
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 2.42s
+Executing cargoInstallPostBuildHook
+Finished cargoInstallPostBuildHook
+Finished cargoBuildHook
+Running phase: checkPhase
+@nix { "action": "setPhase", "phase": "checkPhase" }
+Executing cargoCheckHook
+cargoCheckHook flags: -j 4 --profile release --target x86_64-unknown-linux-gnu --offline --
+[1m[92m   Compiling[0m predator-pm-study v0.1.0 (/build/predator-pm-study)
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 1.26s
+[1m[92m     Running[0m unittests control.rs (target/x86_64-unknown-linux-gnu/release/deps/predator_pm_control-329e9ff50f25153d)
+
+running 2 tests
+test notifications::tests::unit_arguments_preserve_literal_expansions_and_quotes ... ok
+test tests::quoting_preserves_literal_shell_metacharacters ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m unittests main.rs (target/x86_64-unknown-linux-gnu/release/deps/predator_pm_study-e05f656f57198b91)
+
+running 18 tests
+test automatic::tests::automatic_plan_requires_exact_arm_age_and_boot ... ok
+test automatic::tests::automatic_schedule_preserves_age_and_leaves_setup_time ... ok
+test tests::ambiguous_or_incomplete_root_queries_refuse_password_handoff ... ok
+test tests::allowing_logins_still_enforces_logind_inhibitors ... ok
+test tests::cursor_selection_excludes_prior_return_text_and_rejects_ambiguity ... ok
+test tests::ec_arm_requires_one_completed_initial_boot_execution ... ok
+test tests::logged_in_users_require_explicit_unambiguous_permission ... ok
+test tests::password_handoff_selects_root_and_not_other_volumes ... ok
+test tests::recorder_mode_is_explicit_and_legacy_plans_keep_rtc ... ok
+test tests::repeated_cycles_require_every_new_resume_and_exit ... ok
+test tests::return_verification_distinguishes_disabled_and_completed_recording ... ok
+test tests::sleep_interval_accepts_explicit_ten_fifteen_and_legacy_thirty_minutes ... ok
+test tests::tpm_arm_is_explicit_and_never_accepts_unknown_or_duplicate_values ... ok
+test trial::tests::age_guard_distinguishes_prepare_from_entry_and_rejects_missed_windows ... ok
+test trial::tests::measured_sleep_must_meet_minimum_on_the_current_cycle ... ok
+test trial::tests::repeat_suspend_ordinal_two_is_explicit_and_bounded ... ok
+test trial::tests::strict_manifest_rejects_silent_defaults_and_conflicting_modes ... ok
+test trial::tests::pm_setting_is_restored_after_failure ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+Finished cargoCheckHook
+Running phase: installPhase
+@nix { "action": "setPhase", "phase": "installPhase" }
+Executing cargoInstallHook
+Finished cargoInstallHook
+Running phase: fixupPhase
+@nix { "action": "setPhase", "phase": "fixupPhase" }
+shrinking RPATHs of ELF executables and libraries in /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0
+shrinking /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-control
+shrinking /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study
+checking for references to /build/ in /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0...
+patching script interpreter paths in /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0
+stripping (with command strip and flags -S -p) in /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin

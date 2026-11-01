@@ -1,0 +1,6 @@
+2026-11-01T08:45:20+01:00
+/nix/store/qar5vnhq2bk1vs3rr7g1z8kwa31bnwn4-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-wake-path-20261101
+/nix/store/qar5vnhq2bk1vs3rr7g1z8kwa31bnwn4-predator-pm-study-0.1.0/bin/predator-pm-wake-path: OK
+Timex { modes: 0, offset: -12068, freq: 550074, maxerror: 928500, esterror: 0, status: 8193, constant: 7, precision: 1, tolerance: 32768000, time: [1793519121, 511989287], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+2026-11-01T08:45:21+01:00

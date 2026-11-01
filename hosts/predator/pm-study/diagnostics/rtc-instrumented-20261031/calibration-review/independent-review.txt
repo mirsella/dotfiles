@@ -1,0 +1,10 @@
+INDEPENDENT_CORE_CALIBRATION_VERIFIED
+original_cycles=9
+new_diagnostic_cycles=1
+real_s3_cycles=0
+raw_hardware_marker_verified=true
+clock_restore_verified=true
+post_restore_btime=1793381198
+markers=56
+completion_epoch=1793435719
+completion_sha256=2333c0af7c6fa351a53ad5202189df7b469963590245485cb386ae7f6b6227ed

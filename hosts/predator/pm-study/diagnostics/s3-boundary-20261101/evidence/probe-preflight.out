@@ -1,0 +1,65 @@
+2026-11-01T11:31:25,303614591+01:00
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:03:02 with 0 errors on Sun Nov  1 10:10:39 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: scrub repaired 0B in 00:44:29 with 0 errors on Sun Nov  1 10:52:07 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+LocalRTC=no
+NTPSynchronized=yes
+2026-11-01 11:31:25.541127+01:00
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_path.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+e4091f3e6f72202d9167114f7260d9fb72285d33919f19bb9f73257391f7dc66  hosts/predator/pm-study.nix
+69bdd984ae587f0d152baae8877315e4acbe705c87b5122ec7626ba71868d75d  pkgs/predator-pm-study/pm_stage.c
+2a824aa24193e5d1c3264c4dd313958db0746ef22dedd5e9d7f4062e2055277c  hosts/predator/pm-study/README.md
+678c83b871243f97ba03b5c92b29ee260722371b4ae309d1b4ee045e7aa054c1  hosts/predator/pm-study/diagnostics/README.md
+awake_probe_preflight=PASS

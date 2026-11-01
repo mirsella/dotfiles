@@ -1,0 +1,70 @@
+2026-10-30T13:33:42+01:00
+8b7a173d-8406-4072-aebc-c85c8b4989e7
+5618.02 36076.10
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+fast: boot used authenticated slot 2; late-phase token 0 rejected
+root: boot used authenticated slot 2; late-phase token 0 rejected
+tank1: boot used authenticated slot 4; late-phase token 0 rejected
+tank2: boot used authenticated slot 4; late-phase token 0 rejected
+tank3: boot used authenticated slot 2; late-phase token 0 rejected
+No jobs running.
+  UNIT                                      LOAD   ACTIVE SUB    DESCRIPTION
+● predator-pm-r-serial-q35-20261030.service loaded failed failed [systemd-run] /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-serial-q35-20261030-plan.conf 47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+1 loaded units listed.
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+all pools are healthy
+fast/data /srv/data/fast
+fast/ncdata /var/lib/nextcloud/data
+tank/backup /srv/backup
+tank/archive /srv/data/archive
+tank/backup/recovery /srv/backup/recovery
+       Server: 172.232.63.219 (2.nixos.pool.ntp.org)
+Poll interval: 17min 4s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 5223A292
+    Precision: 1us (-23)
+Root distance: 14.381ms (max: 5s)
+       Offset: -25.204ms
+        Delay: 4.306ms
+       Jitter: 48.116ms
+ Packet count: 8
+    Frequency: +39.917ppm
+/sys/power/suspend_stats/success=1
+/sys/power/suspend_stats/fail=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+/sys/class/power_supply/ACAD/online=1
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+active_maintenance=
+/home/mirsella/dev/dotfiles/.scratch/pm-serial-q35r1-20261030/runtime-root
+56857827226a4e55319ffa69dec8ad269c3ed7ed7ff6a021f41915535901246c  /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-control
+6681936bb69ab828f41d7207282cd1cf95f1a4e155804a4b266bcb15a1805bea  /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study
+f3e23367d12ac5c5e45302748d3d3d094625b31a5237ae6113a7a7e0d2af71f1  /home/mirsella/dev/dotfiles/hosts/predator/pm-study/README.md
+f3497a67b2b88e4154b180234b0ade942f748f1266b33de5c084c337102f733c  /home/mirsella/dev/dotfiles/hosts/predator/pm-study/trials/r-serial-q35-20261030/README.md

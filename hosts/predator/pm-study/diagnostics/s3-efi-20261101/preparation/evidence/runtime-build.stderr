@@ -1,0 +1,30 @@
+warning: Git tree '/home/mirsella/dev/dotfiles' is dirty
+this derivation will be built:
+  /nix/store/f4gqn3f84i6am19zx50rpmxlmp8qx95d-predator-pm-study-0.1.0.drv
+building '/nix/store/f4gqn3f84i6am19zx50rpmxlmp8qx95d-predator-pm-study-0.1.0.drv'...
+error: Cannot build '/nix/store/f4gqn3f84i6am19zx50rpmxlmp8qx95d-predator-pm-study-0.1.0.drv'.
+       Reason: builder failed with exit code 101.
+       Output paths:
+         /nix/store/rnv9k3xzlhmsmbhs7grjrfmr52iqdij4-predator-pm-study-0.1.0
+       Last 19 log lines:
+       > Running phase: unpackPhase
+       > unpacking source archive /nix/store/rwdn7y1nk29i3yjabl3z2kim9byisnrc-predator-pm-study
+       > source root is predator-pm-study
+       > Executing cargoSetupPostUnpackHook
+       > Finished cargoSetupPostUnpackHook
+       > Running phase: patchPhase
+       > Executing cargoSetupPostPatchHook
+       > Validating consistency between /build/predator-pm-study/Cargo.lock and /build/cargo-vendor-dir/Cargo.lock
+       > Finished cargoSetupPostPatchHook
+       > Running phase: updateAutotoolsGnuConfigScriptsPhase
+       > Running phase: configurePhase
+       > Running phase: buildPhase
+       > Executing cargoBuildHook
+       > cargoBuildHook flags: -j 16 --target x86_64-unknown-linux-gnu --offline --profile release
+       > error: can't find bin `predator-pm-wake-path` at path `/build/predator-pm-study/wake_path.rs`
+       >  --> /build/predator-pm-study/Cargo.toml
+       > error: can't find bin `predator-pm-wake-validation` at path `/build/predator-pm-study/wake_validation.rs`
+       >  --> /build/predator-pm-study/Cargo.toml
+       > error: could not compile due to 2 previous target resolution errors
+       For full logs, run:
+         nix log /nix/store/f4gqn3f84i6am19zx50rpmxlmp8qx95d-predator-pm-study-0.1.0.drv

@@ -1,0 +1,495 @@
+2026-11-01T15:35:54,537641029+01:00
+NAME            TYPE           SIZE TRAN MODEL                SERIAL            MOUNTPOINTS
+sda             disk   128035676160 sata HFS128G39TND-N210A   EI76N026711106D68 
+├─sda1          part     1073741824                                             /boot
+└─sda2          part   126960868864                                             
+  └─crypt-root  crypt  126944091648                                             /var/lib/containers/storage/overlay
+                                                                                /nix/store
+                                                                                /
+sdb             disk   240057409536 sata CT240BX500SSD1       2004E3E6DE68      
+└─sdb1          part   240055746560                                             
+  └─fast-crypt  crypt  240038969344                                             
+sdc             disk   750156374016 usb  TOSHIBA MQ01ABD075   25O3PACTT         
+└─sdc1          part   750154416128                                             
+  └─tank2-crypt crypt  750137638912                                             
+sdd             disk  1000204886016 usb  ST1000LM035-1RK172   WDEDM227          
+└─sdd1          part  1000203091968                                             
+  └─tank1-crypt crypt 1000186314752                                             
+sde             disk  1000170586112 usb  WDC WD10SDRW-11A0XS1 WD-WXD2A419CLC8   
+└─sde1          part  1000168488960                                             
+  └─tank3-crypt crypt 1000151711744                                             
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:03:02 with 0 errors on Sun Nov  1 10:10:39 2026
+config:
+
+	NAME                                                                               STATE     READ WRITE CKSUM
+	fast                                                                               ONLINE       0     0     0
+	  /dev/disk/by-id/dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: scrub repaired 0B in 00:44:29 with 0 errors on Sun Nov  1 10:52:07 2026
+config:
+
+	NAME                                                                                  STATE     READ WRITE CKSUM
+	tank                                                                                  ONLINE       0     0     0
+	  raidz1-0                                                                            ONLINE       0     0     0
+	    /dev/disk/by-id/dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    /dev/disk/by-id/dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    /dev/disk/by-id/dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+BLOCK /sys/class/block/sda /sys/devices/pci0000:00/0000:00:17.0/ata1/host0/target0:0:0/0:0:0:0
+device/vendor=ATA     
+device/model=HFS128G39TND-N21
+device/state=running
+device/power/runtime_status=active
+device/power/control=on
+queue/rotational=0
+
+BLOCK /sys/class/block/sdb /sys/devices/pci0000:00/0000:00:17.0/ata3/host2/target2:0:0/2:0:0:0
+device/vendor=ATA     
+device/model=CT240BX500SSD1  
+device/state=running
+device/power/runtime_status=active
+device/power/control=on
+queue/rotational=0
+
+BLOCK /sys/class/block/sdc /sys/devices/pci0000:00/0000:00:14.0/usb2/2-2/2-2.4/2-2.4:1.0/host5/target5:0:0/5:0:0:0
+device/vendor=TOSHIBA 
+device/model=MQ01ABD075      
+device/state=running
+device/power/runtime_status=active
+device/power/control=on
+queue/rotational=1
+
+BLOCK /sys/class/block/sdd /sys/devices/pci0000:00/0000:00:14.0/usb2/2-2/2-2.2/2-2.2:1.0/host4/target4:0:0/4:0:0:0
+device/vendor=ST1000LM
+device/model=035-1RK172      
+device/state=running
+device/power/runtime_status=active
+device/power/control=on
+queue/rotational=1
+
+BLOCK /sys/class/block/sde /sys/devices/pci0000:00/0000:00:14.0/usb2/2-2/2-2.3/2-2.3:1.0/host3/target3:0:0/3:0:0:0
+device/vendor=WD      
+device/model=easystore 2647  
+device/state=running
+device/power/runtime_status=active
+device/power/control=on
+queue/rotational=1
+
+USB /sys/bus/usb/devices/1-2 /sys/devices/pci0000:00/0000:00:14.0/usb1/1-2
+idVendor=05e3
+idProduct=0610
+manufacturer=GenesysLogic
+product=USB2.1 Hub
+bMaxPower=100mA
+bmAttributes=e0
+speed=480
+power/control=auto
+power/runtime_status=suspended
+power/wakeup=disabled
+
+USB /sys/bus/usb/devices/1-2.1 /sys/devices/pci0000:00/0000:00:14.0/usb1/1-2/1-2.1
+idVendor=05e3
+idProduct=0610
+manufacturer=GenesysLogic
+product=USB2.1 Hub
+bMaxPower=100mA
+bmAttributes=e0
+speed=480
+power/control=auto
+power/runtime_status=suspended
+power/wakeup=disabled
+
+USB /sys/bus/usb/devices/1-7 /sys/devices/pci0000:00/0000:00:14.0/usb1/1-7
+idVendor=04ca
+idProduct=3016
+bMaxPower=100mA
+bmAttributes=e0
+speed=12
+power/control=auto
+power/runtime_status=suspended
+power/wakeup=disabled
+
+USB /sys/bus/usb/devices/1-9 /sys/devices/pci0000:00/0000:00:14.0/usb1/1-9
+idVendor=0408
+idProduct=a060
+manufacturer=Generic
+product=HD WebCam
+serial=200901010001
+bMaxPower=500mA
+bmAttributes=80
+speed=480
+power/control=auto
+power/runtime_status=suspended
+
+USB /sys/bus/usb/devices/2-2 /sys/devices/pci0000:00/0000:00:14.0/usb2/2-2
+idVendor=05e3
+idProduct=0626
+manufacturer=GenesysLogic
+product=USB3.1 Hub
+bMaxPower=0mA
+bmAttributes=e0
+speed=5000
+power/control=auto
+power/runtime_status=active
+power/wakeup=disabled
+
+USB /sys/bus/usb/devices/2-2.1 /sys/devices/pci0000:00/0000:00:14.0/usb2/2-2/2-2.1
+idVendor=05e3
+idProduct=0626
+manufacturer=GenesysLogic
+product=USB3.1 Hub
+bMaxPower=0mA
+bmAttributes=e0
+speed=5000
+power/control=auto
+power/runtime_status=suspended
+power/wakeup=disabled
+
+USB /sys/bus/usb/devices/2-2.2 /sys/devices/pci0000:00/0000:00:14.0/usb2/2-2/2-2.2
+idVendor=174c
+idProduct=1153
+manufacturer=Ugreen
+product=Ugreen Storage Device
+serial=26A1EE8339CB
+bMaxPower=0mA
+bmAttributes=c0
+speed=5000
+power/control=on
+power/runtime_status=active
+
+USB /sys/bus/usb/devices/2-2.3 /sys/devices/pci0000:00/0000:00:14.0/usb2/2-2/2-2.3
+idVendor=1058
+idProduct=2647
+manufacturer=Western Digital
+product=easystore 2647
+serial=5758443241343139434C4338
+bMaxPower=896mA
+bmAttributes=80
+speed=5000
+power/control=on
+power/runtime_status=active
+
+USB /sys/bus/usb/devices/2-2.4 /sys/devices/pci0000:00/0000:00:14.0/usb2/2-2/2-2.4
+idVendor=174c
+idProduct=1153
+manufacturer=Ugreen
+product=Ugreen Storage Device
+serial=26A1EE8313F8
+bMaxPower=0mA
+bmAttributes=c0
+speed=5000
+power/control=on
+power/runtime_status=active
+
+USB /sys/bus/usb/devices/usb1 /sys/devices/pci0000:00/0000:00:14.0/usb1
+idVendor=1d6b
+idProduct=0002
+manufacturer=Linux 6.18.58 xhci-hcd
+product=xHCI Host Controller
+serial=0000:00:14.0
+bMaxPower=0mA
+bmAttributes=e0
+speed=480
+power/control=auto
+power/runtime_status=suspended
+power/wakeup=disabled
+
+USB /sys/bus/usb/devices/usb2 /sys/devices/pci0000:00/0000:00:14.0/usb2
+idVendor=1d6b
+idProduct=0003
+manufacturer=Linux 6.18.58 xhci-hcd
+product=xHCI Host Controller
+serial=0000:00:14.0
+bMaxPower=0mA
+bmAttributes=e0
+speed=5000
+power/control=auto
+power/runtime_status=active
+power/wakeup=disabled
+
+POWER /sys/class/power_supply/ACAD
+DEVTYPE=power_supply
+POWER_SUPPLY_NAME=ACAD
+POWER_SUPPLY_TYPE=Mains
+POWER_SUPPLY_ONLINE=1
+POWER_SUPPLY_TYPE=Mains
+
+POWER /sys/class/power_supply/BAT1
+DEVTYPE=power_supply
+POWER_SUPPLY_NAME=BAT1
+POWER_SUPPLY_TYPE=Battery
+POWER_SUPPLY_STATUS=Full
+POWER_SUPPLY_PRESENT=1
+POWER_SUPPLY_TECHNOLOGY=Li-ion
+POWER_SUPPLY_CYCLE_COUNT=0
+POWER_SUPPLY_VOLTAGE_MIN_DESIGN=15200000
+POWER_SUPPLY_VOLTAGE_NOW=16401000
+POWER_SUPPLY_CURRENT_NOW=0
+POWER_SUPPLY_CHARGE_FULL_DESIGN=3220000
+POWER_SUPPLY_CHARGE_FULL=2572000
+POWER_SUPPLY_CHARGE_NOW=2572000
+POWER_SUPPLY_CAPACITY=100
+POWER_SUPPLY_CAPACITY_LEVEL=Full
+POWER_SUPPLY_TYPE=Battery
+POWER_SUPPLY_MODEL_NAME=0x4B384234314341
+POWER_SUPPLY_MANUFACTURER=LG 
+POWER_SUPPLY_SERIAL_NUMBER=83A7
+
+PCI /sys/bus/pci/devices/0000:00:00.0 driver=/sys/bus/pci/drivers/skl_uncore
+class=0x060000
+vendor=0x8086
+device=0x5910
+power_state=D0
+power/control=on
+power/runtime_status=active
+d3cold_allowed=0
+
+PCI /sys/bus/pci/devices/0000:00:01.0 driver=/sys/bus/pci/drivers/pcieport
+class=0x060400
+vendor=0x8086
+device=0x1901
+power_state=D0
+power/control=auto
+power/runtime_status=active
+power/wakeup=disabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:02.0 driver=/sys/bus/pci/drivers/i915
+class=0x030000
+vendor=0x8086
+device=0x591b
+power_state=D3hot
+power/control=auto
+power/runtime_status=suspended
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:14.0 driver=/sys/bus/pci/drivers/xhci_hcd
+class=0x0c0330
+vendor=0x8086
+device=0xa12f
+power_state=D0
+power/control=on
+power/runtime_status=active
+power/wakeup=enabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:14.2 driver=/sys/bus/pci/drivers/intel_pch_thermal
+class=0x118000
+vendor=0x8086
+device=0xa131
+power_state=D0
+power/control=on
+power/runtime_status=active
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:15.0 driver=/sys/bus/pci/drivers/intel-lpss
+class=0x118000
+vendor=0x8086
+device=0xa160
+power_state=D3hot
+power/control=auto
+power/runtime_status=suspended
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:15.1 driver=/sys/bus/pci/drivers/intel-lpss
+class=0x118000
+vendor=0x8086
+device=0xa161
+power_state=D3hot
+power/control=auto
+power/runtime_status=suspended
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:16.0 driver=/sys/bus/pci/drivers/mei_me
+class=0x078000
+vendor=0x8086
+device=0xa13a
+power_state=D0
+power/control=auto
+power/runtime_status=suspended
+power/wakeup=disabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:17.0 driver=/sys/bus/pci/drivers/ahci
+class=0x010601
+vendor=0x8086
+device=0xa103
+power_state=D0
+power/control=on
+power/runtime_status=active
+power/wakeup=disabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:1c.0 driver=/sys/bus/pci/drivers/pcieport
+class=0x060400
+vendor=0x8086
+device=0xa112
+power_state=D0
+power/control=auto
+power/runtime_status=active
+power/wakeup=enabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:1c.3 driver=/sys/bus/pci/drivers/pcieport
+class=0x060400
+vendor=0x8086
+device=0xa113
+power_state=D0
+power/control=auto
+power/runtime_status=active
+power/wakeup=enabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:1f.0 driver=
+class=0x060100
+vendor=0x8086
+device=0xa152
+power_state=D0
+power/control=on
+power/runtime_status=active
+d3cold_allowed=0
+
+PCI /sys/bus/pci/devices/0000:00:1f.2 driver=
+class=0x058000
+vendor=0x8086
+device=0xa121
+power_state=D0
+power/control=on
+power/runtime_status=active
+d3cold_allowed=0
+
+PCI /sys/bus/pci/devices/0000:00:1f.3 driver=/sys/bus/pci/drivers/snd_hda_intel
+class=0x040380
+vendor=0x8086
+device=0xa171
+power_state=D3hot
+power/control=auto
+power/runtime_status=suspended
+power/wakeup=disabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:00:1f.4 driver=/sys/bus/pci/drivers/i801_smbus
+class=0x0c0500
+vendor=0x8086
+device=0xa123
+power_state=D0
+power/control=auto
+power/runtime_status=suspended
+d3cold_allowed=0
+
+PCI /sys/bus/pci/devices/0000:01:00.0 driver=
+class=0x030000
+vendor=0x10de
+device=0x1c20
+power_state=D0
+power/control=on
+power/runtime_status=active
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:01:00.1 driver=/sys/bus/pci/drivers/snd_hda_intel
+class=0x040300
+vendor=0x10de
+device=0x10f1
+power_state=D3hot
+power/control=auto
+power/runtime_status=suspended
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:02:00.0 driver=/sys/bus/pci/drivers/ath10k_pci
+class=0x028000
+vendor=0x168c
+device=0x003e
+power_state=D0
+power/control=on
+power/runtime_status=active
+power/wakeup=disabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:03:00.0 driver=/sys/bus/pci/drivers/rtsx_pci
+class=0xff0000
+vendor=0x10ec
+device=0x5287
+power_state=D0
+power/control=auto
+power/runtime_status=active
+power/wakeup=disabled
+d3cold_allowed=1
+
+PCI /sys/bus/pci/devices/0000:03:00.1 driver=/sys/bus/pci/drivers/r8169
+class=0x020000
+vendor=0x10ec
+device=0x8168
+power_state=D0
+power/control=on
+power/runtime_status=active
+power/wakeup=enabled
+d3cold_allowed=1
+Filesystem      1B-blocks      Used Available Use% Mounted on
+efivarfs           163752    157180      1452 100% /sys/firmware/efi/efivars
+/dev/sda1      1071624192 210669568 860954624  20% /boot
+ActiveState=inactive
+MainPID=0
+Result=success
+NEXT                        LEFT LAST                              PASSED UNIT                   ACTIVATES
+Sun 2026-11-01 15:36:19 CET  24s Sun 2026-11-01 15:31:19 CET 4min 35s ago nextcloud-cron.timer   nextcloud-cron.service
+-                              - -                                      - night-suspend.timer    night-suspend.service
+-                              - -                                      - predator-pm-next.timer predator-pm-next.service
+
+3 timers listed.
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+A  pkgs/predator-pm-study/boundary-compact.c
+A  pkgs/predator-pm-study/boundary-compact.nix
+A  pkgs/predator-pm-study/boundary-probe.c
+A  pkgs/predator-pm-study/boundary-probe.nix
+A  pkgs/predator-pm-study/boundary-stage.c
+A  pkgs/predator-pm-study/boundary-stage.nix
+A  pkgs/predator-pm-study/boundary_record.rs
+A  pkgs/predator-pm-study/boundary_s3.rs
+A  pkgs/predator-pm-study/boundary_trial.rs
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_path.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+d6de5e0aa195433ace1d3acee192b6f328b5134b9ef8d83697484c46d1364cfb  pkgs/predator-pm-study/Cargo.toml
+5c0e3e70286d63c60d73373239fc284a1872b11c63e6df0c7304f0f70a20c7bb  pkgs/predator-pm-study/boundary_s3.rs
+4884bb9d16b073785e441a17f807a6ce130f53e6b43a0a0cbdb9e41cd0a19f7f  pkgs/predator-pm-study/boundary_trial.rs
+8699c8457d330df8341b529e13cdaf437e50fd1035c576cbd98b4d8e89cdc2e7  pkgs/predator-pm-study/boundary_record.rs
+a0302cb889f671e349ca093fa37ce159b2550ea233374df67a7ca410adff430b  hosts/predator/pm-study/README.md
+694a6962391804a001ffd5ce9e2c7ae0665b1aa4a66d0d00aa26abfef8fd423b  hosts/predator/pm-study/diagnostics/README.md
+42e070fd4a5c7d35d6f808345726580eefe5dfd61bdecb090af448bcbd52e9cc  hosts/predator/pm-study/diagnostics/s3-efi-20261101/README.md
+2026-11-01T15:35:55,955679313+01:00

@@ -1,0 +1,11 @@
+2026-10-30T20:35:26+01:00
+active
+[ 7726.305835] DIAG CAPTURE id=d-devices-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 due=1793389412
+2489735
+c0c9feba06b94c72a44fb76f21fafa7b18a43f8a4cbdb75a3f1f33cb20962256  /home/mirsella/dev/predator-pm-debug/.agents-local/d-devices-02-20261030-baseline.log
+NEXT                        LEFT       LAST PASSED UNIT                                                        ACTIVATES
+Fri 2026-10-30 20:45:32 CET 10min left -    -      predator-pm-diagnostic-d-devices-02-20261030-probe.timer    predator-pm-diagnostic-d-devices-02-20261030-probe.service
+Fri 2026-10-30 20:47:32 CET 12min left -    -      predator-pm-diagnostic-d-devices-02-20261030-snapshot.timer predator-pm-diagnostic-d-devices-02-20261030-snapshot.service
+Fri 2026-10-30 20:48:32 CET 13min left -    -      predator-pm-diagnostic-d-devices-02-20261030-review.timer   predator-pm-diagnostic-d-devices-02-20261030-review.service
+
+3 timers listed.

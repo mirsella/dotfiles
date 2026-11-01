@@ -1,0 +1,25 @@
+Starting predator-pm-r-serial-q30-20261030-notice-setup.service - Predator study Telegram notice...
+{"ok":true,"result":{"message_id":88776,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":932980505,"first_name":"mirsella","type":"private"},"date":1793358421,"text":"Predator / r-serial-q30-20261030 / Pi observer\nNotifications enabled. Test window: 2026-10-30 12:30:04 CET; first wake 12:46:04 CET, retry +30s. Keep the power graph. Schedule notices do not prove sleep entry."}}
+predator-pm-r-serial-q30-20261030-notice-setup.service: Deactivated successfully.
+Finished predator-pm-r-serial-q30-20261030-notice-setup.service - Predator study Telegram notice.
+ExecStart={ path=/usr/bin/python3 ; argv[]=/usr/bin/python3 /home/mirsella/wol_predator.py ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+OnSuccess=predator-pm-r-serial-q30-20261030-notice-wake-ok.service
+OnFailure=predator-pm-r-serial-q30-20261030-notice-wake-failed.service
+ExecStart={ path=/usr/bin/python3 ; argv[]=/usr/bin/python3 /home/mirsella/wol_predator.py ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+OnSuccess=predator-pm-r-serial-q30-20261030-notice-retry-ok.service
+OnFailure=predator-pm-r-serial-q30-20261030-notice-retry-failed.service
+ExecStart={ path=/usr/bin/timeout ; argv[]=/usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+OnSuccess=predator-pm-r-serial-q30-20261030-notice-probe-ok.service
+OnFailure=predator-pm-r-serial-q30-20261030-notice-probe-failed.service
+ExecStart={ path=/usr/bin/cp ; argv[]=/usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-q30-20261030-result.log ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+OnSuccess=predator-pm-r-serial-q30-20261030-notice-snapshot-ok.service
+OnFailure=predator-pm-r-serial-q30-20261030-notice-snapshot-failed.service
+# /run/systemd/system/predator-pm-r-serial-q30-20261030-notice-start.timer
+[Unit]
+Description=Predator study start-window notice
+[Timer]
+OnCalendar=@1793359804
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+600 root /run/predator-pm-r-serial-q30-20261030-telegram.conf

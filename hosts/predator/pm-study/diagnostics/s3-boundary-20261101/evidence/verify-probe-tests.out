@@ -1,0 +1,7 @@
+
+running 2 tests
+test tests::validates_complete_firmware_readback ... ok
+test tests::rejects_wrong_identity_truncation_and_context_claims ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

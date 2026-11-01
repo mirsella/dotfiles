@@ -1,0 +1,18 @@
+{
+  "schema": "s3-recorder-off-owner-confirmation-1",
+  "date": "2026-11-01",
+  "timeZone": "Europe/Paris",
+  "priorTrial": "s3-efi-v2-20261101",
+  "quote": "its constant ~27w. schedule next est maybe ?",
+  "reportedWattsApproximate": 27,
+  "sustainedThroughoutDiscussedTrialConfirmed": true,
+  "meterIncludes": "Laptop and peripherals",
+  "separateLaptopPowerKnown": false,
+  "underlyingDatedGraphReceived": false,
+  "physicalHostS3Conclusion": "UNRESOLVED_COMBINED_LOAD_MEASUREMENT",
+  "recoveryAvailabilityAnswer": "Available",
+  "recoveryAvailabilityLocal": "2026-11-01 16:15–16:30 CET",
+  "proposedVariableExplainedToOwner": "EFI boundary recorder unloaded, zero new EFI writes",
+  "maximumNewTransitions": 1,
+  "machineActionsInSchedulingTurn": 0
+}

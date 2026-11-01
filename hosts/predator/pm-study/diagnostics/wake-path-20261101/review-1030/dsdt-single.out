@@ -1,0 +1,26 @@
+
+Intel ACPI Component Architecture
+ASL+ Optimizing Compiler/Disassembler version 20251212
+Copyright (c) 2000 - 2025 Intel Corporation
+
+External object resolution file acpi-tables/SSDT9
+External object resolution file acpi-tables/SSDT8
+External object resolution file acpi-tables/SSDT7
+External object resolution file acpi-tables/SSDT6
+External object resolution file acpi-tables/SSDT5
+External object resolution file acpi-tables/SSDT4
+External object resolution file acpi-tables/SSDT3
+External object resolution file acpi-tables/SSDT2
+External object resolution file acpi-tables/SSDT13
+External object resolution file acpi-tables/SSDT12
+External object resolution file acpi-tables/SSDT11
+External object resolution file acpi-tables/SSDT10
+External object resolution file acpi-tables/SSDT1
+Firmware Error (ACPI): Could not resolve symbol [^^WMID.FEBC], AE_NOT_FOUND (20251212/dswload-495)
+Firmware Error (ACPI): Could not resolve symbol [^^PEG0.PEGP], AE_NOT_FOUND (20251212/dswload-495)
+Firmware Error (ACPI): Could not resolve symbol [^^PEG1.PEGP], AE_NOT_FOUND (20251212/dswload-495)
+Firmware Error (ACPI): Could not resolve symbol [^^WMID.FEBC], AE_NOT_FOUND (20251212/dswload2-479)
+Firmware Error (ACPI): Could not resolve symbol [^^PEG0.PEGP], AE_NOT_FOUND (20251212/dswload2-479)
+Firmware Error (ACPI): Could not resolve symbol [^^PEG1.PEGP], AE_NOT_FOUND (20251212/dswload2-479)
+Disassembly completed
+ASL Output:    dsdt-single.dsl - 967805 bytes

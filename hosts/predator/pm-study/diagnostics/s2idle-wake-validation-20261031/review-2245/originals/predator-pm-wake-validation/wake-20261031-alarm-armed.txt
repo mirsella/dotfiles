@@ -1,0 +1,78 @@
+epoch=1793481310
+rtc_epoch=1793481310
+alarm=1793482500
+wake_irq=ENODATA:no-recorded-wake-IRQ
+rtc_date=2026-10-31
+rtc_time=21:15:10
+hwclock=2026-10-31 21:15:10.507570+00:00
+last_action=0
+last_value=0
+last_start=N
+markers=0
+clock=Timex { modes: 0, offset: 152996, freq: 423686, maxerror: 818500, esterror: 0, status: 8193, constant: 7, precision: 1, tolerance: 32768000, time: [1793481311, 7020715], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+uptime=6790.54 52620.23
+rtc_driver:
+rtc_time	: 21:15:11
+rtc_date	: 2026-10-31
+alrm_time	: 21:35:00
+alrm_date	: 2026-10-31
+alarm_IRQ	: yes
+alrm_pending	: no
+update IRQ enabled	: no
+periodic IRQ enabled	: no
+periodic IRQ frequency	: 1024
+max user IRQ frequency	: 64
+24hr		: yes
+periodic_IRQ	: no
+update_IRQ	: no
+HPET_emulated	: no
+BCD		: yes
+DST_enable	: no
+periodic_freq	: 1024
+batt_status	: okay
+wakeup_sources:
+name		active_count	event_count	wakeup_count	expire_count	active_since	total_time	max_time	last_change	prevent_suspend_time
+0000:03:00.1	0		0		0		0		0		0		0		0		0
+SYNA7DB5:01 	0		0		0		0		0		0		0		0		0
+INT33A1:00  	0		0		0		0		0		0		0		0		0
+INT3F0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:02  	0		0		0		0		0		0		0		0		0
+PNP0C14:01  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	0		0		0		0		0		0		0		0		0
+INT345D:00  	0		0		0		0		0		0		0		0		0
+alarmtimer.0.auto	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0A:00  	0		0		0		0		0		0		0		0		0
+PNP0B00:00  	10		18		0		0		0		0		0		6790543		0
+PNP0B00:00  	0		0		0		0		0		0		0		0		0
+ACAD        	1		1		0		0		0		0		0		13665		0
+ACPI0003:00 	0		0		0		0		0		0		0		0		0
+PNP0C14:00  	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+ACPI000C:00 	0		0		0		0		0		0		0		0		0
+mmc0        	0		0		0		0		0		0		0		0		0
+0000:00:14.0	0		0		0		0		0		0		0		0		0
+LNXPWRBN:00 	0		0		0		0		0		0		0		0		0
+PNP0A08:00  	0		0		0		0		0		0		0		0		0
+device:41   	0		0		0		0		0		0		0		0		0
+device:3f   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:00 	0		0		0		0		0		0		0		0		0
+device:19   	0		0		0		0		0		0		0		0		0
+device:39   	0		0		0		0		0		0		0		0		0
+device:18   	0		0		0		0		0		0		0		0		0
+device:17   	0		0		0		0		0		0		0		0		0
+0000:00:1c.3	0		0		0		0		0		0		0		0		0
+device:40   	0		0		0		0		0		0		0		0		0
+0000:00:1c.0	0		0		0		0		0		0		0		0		0
+device:3e   	0		0		0		0		0		0		0		0		0
+device:6a   	0		0		0		0		0		0		0		0		0
+device:81   	0		0		0		0		0		0		0		0		0
+device:7e   	0		0		0		0		0		0		0		0		0
+device:7d   	0		0		0		0		0		0		0		0		0
+device:1b   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:01 	0		0		0		0		0		0		0		0		0
+device:00   	0		0		0		0		0		0		0		0		0
+deleted     	0		0		0		0		0		0		0		0		0

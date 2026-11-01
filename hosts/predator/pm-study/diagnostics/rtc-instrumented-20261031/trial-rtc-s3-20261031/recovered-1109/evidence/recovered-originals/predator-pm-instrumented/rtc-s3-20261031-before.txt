@@ -1,0 +1,16 @@
+epoch=1793436901
+uptime=55703.38 432472.90
+clock=Timex { modes: 0, offset: 3664851, freq: 99032, maxerror: 95500, esterror: 0, status: 8193, constant: 6, precision: 1, tolerance: 32768000, time: [1793436901, 718877456], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+Server: 38.242.218.253 (0.nixos.pool.ntp.org)
+Poll interval: 17min 4s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 8B8F051E
+    Precision: 1us (-24)
+Root distance: 52.443ms (max: 5s)
+       Offset: +7.739ms
+        Delay: 27.965ms
+       Jitter: 5.540ms
+ Packet count: 6
+    Frequency: +1.511ppm

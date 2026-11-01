@@ -1,0 +1,1 @@
+cat /home/mirsella/dev/predator-pm-debug/.agents-local/d-devices-01-20261030-result.log

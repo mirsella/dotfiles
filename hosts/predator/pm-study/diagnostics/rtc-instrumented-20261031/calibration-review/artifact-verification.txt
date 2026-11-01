@@ -1,0 +1,17 @@
+rtc-cal-core-r3-20261031-after-kernel.txt: OK
+rtc-cal-core-r3-20261031-before-kernel.txt: OK
+rtc-cal-core-r3-20261031-before.txt: OK
+rtc-cal-core-r3-20261031-clock-handoff.txt: OK
+rtc-cal-core-r3-20261031-clock-quiescence.txt: OK
+rtc-cal-core-r3-20261031-completed.txt: OK
+rtc-cal-core-r3-20261031-cursor.txt: OK
+rtc-cal-core-r3-20261031-mutating.txt: OK
+rtc-cal-core-r3-20261031-observed-journal.txt: OK
+rtc-cal-core-r3-20261031-outcome.txt: OK
+rtc-cal-core-r3-20261031-plan.conf: OK
+rtc-cal-core-r3-20261031-raw-return.txt: OK
+rtc-cal-core-r3-20261031-request-call.txt: OK
+rtc-cal-core-r3-20261031-requested.txt: OK
+rtc-cal-core-r3-20261031-request-ok.txt: OK
+rtc-cal-core-r3-20261031-restored.txt: OK
+rtc-cal-core-r3-20261031-return.txt: OK

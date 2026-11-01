@@ -1,0 +1,18 @@
+2026-11-01T08:52:01,169401780+01:00
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 21.545ms (max: 5s)
+       Offset: -654us
+        Delay: 10.003ms
+       Jitter: 2.373ms
+ Packet count: 632
+    Frequency: -14.194ppm
+active
+/home/mirsella/wol_predator.py: OK
+[44999.193817] WAKEPATH READY id=path-d3-v2-20261101 nonce=path-d3-v2-20261101-1793520900
+7a048b004674d029f7db85b196fedd4df07821bdeaab81d2863044143c0c72c2  /home/mirsella/dev/predator-pm-debug/.agents-local/path-d3-v2-20261101-baseline.log

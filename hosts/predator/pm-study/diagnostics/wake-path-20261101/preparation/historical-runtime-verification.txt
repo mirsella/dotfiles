@@ -1,0 +1,6 @@
+pkgs/predator-pm-study/wake_validation.rs: OK
+pkgs/predator-pm-study/wake_timing.rs: OK
+pkgs/predator-pm-study/s2idle.rs: OK
+pkgs/predator-pm-study/instrumented.rs: OK
+pkgs/predator-pm-study/diagnostic.rs: OK
+pkgs/predator-pm-study/network.rs: OK

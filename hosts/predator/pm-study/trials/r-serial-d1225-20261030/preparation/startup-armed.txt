@@ -1,0 +1,5 @@
+/run/predator-pm-serial-preparation-20261029-shutdown-ack root 600
+NextElapseUSecRealtime=Thu 2026-10-29 20:05:24 CET
+ActiveState=active
+SubState=waiting
+2026-10-29T20:02:27+01:00

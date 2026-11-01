@@ -1,0 +1,38 @@
+trial=r-serial-q35-20261030
+classification=RESUMED_VERIFIER_ERROR_PHYSICAL_EVIDENCE_PENDING
+full_pass=false
+scheduled_task_deleted=scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-serial-q35-review-20261030-1302
+deletion_confirmed=true
+date_guard=2026-10-30T13:02:27+01:00
+boot=8b7a173d-8406-4072-aebc-c85c8b4989e7
+manifest_sha256=47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+collector_exit=0
+notification_status_exit=0
+observed_return_epoch=1793361068
+request_result=Ok(())
+successes=1
+failures=0
+markers=0
+ordered_current_boot_cycles=1
+kernel_measured_sleep_seconds=954.773
+runtime_result=Err("unfinished suspend in kernel history")
+early_kernel_snapshot_saved=2026-10-30T12:51:08.802156083+01:00
+exit_record_received=2026-10-30T12:51:08.831444+01:00
+kernel_completed_artifact=absent
+completed_artifact=absent
+last_completed=stale_other_boot_2026-10-18
+physical_evidence=dated_owner_graph_missing
+pi_result_bytes=2012555
+pi_result_sha256=c5ced61d41140d16387ec10c2e61a7065d485f7c052ee0da4e122579cea16761
+review_telegram_ack=88785
+review_telegram_epoch=1793362079
+future_trial_scheduled=false
+replacement_review_scheduled=false
+baseline_changed=false
+completion_synthesized=false
+committed_or_pushed=false
+recovery_action=false
+The initial local source-hash command used the wrong path remote/ssh-wan.rs. The source exists at .scratch/pm-resume-20261028/ssh-wan.rs, was verified there, and no adapter was replaced.
+Study and trial README preimages are saved for guarded remote synchronization. No original missing STATE.md or PLAN.md was reconstructed.
+Raw and exported timestamps are retained independently. The kernel's physical sleep measurement exceeds 900 seconds, but no compliant runtime completion was recorded and the physical graph is still missing.
+Recommendation only: repair and test the bounded boot-bound final-journal capture, declare any runtime instrumentation change, then repeat a fresh first serial short-age control with comparable startup and dated graph before age testing.

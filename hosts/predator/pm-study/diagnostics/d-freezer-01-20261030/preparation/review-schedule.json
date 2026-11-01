@@ -1,0 +1,10 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-freezer-diagnostic-review-20261030-1909",
+  "enabled": true,
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "schedule": {"type":"fixed_time","timeOfDay":"19:09","weekdays":[5]},
+  "nextRunAt": "2026-10-30T18:09:00.000Z",
+  "guard": "2026-10-30, Europe/Paris, 19:09 <= time < 23:00",
+  "selfDeleteAtStart": true,
+  "continuation": "Review original diagnostic artifacts and exactboot history, then prepare exactly one devices diagnostic on the same healthy boot only after verifiedfreezerreturn, using actual predecessor completed SHA. Preserve bounded9-return ladder, owner-onlyhangrecovery, no realS3 promotion or automaticruntime/kernel changes."
+}

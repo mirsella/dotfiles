@@ -1,0 +1,27 @@
+2026-10-31T08:40:00+01:00
+/var/lib/predator-pm-study/0e17a3fe-84fd-41d1-9dd8-7431dc1a2d62-boot-rtc.txt 97763 root 600 2099-07-02 03:22:46.207000249 +0200
+06581d4fd1429b453b140dc23915f95ffeee4820a8207ac9f7e224fefbada084  /var/lib/predator-pm-study/0e17a3fe-84fd-41d1-9dd8-7431dc1a2d62-boot-rtc.txt
+boot=0e17a3fe-84fd-41d1-9dd8-7431dc1a2d62
+cmdline=init=/nix/store/wmpwgcaxw006s6jl020fkv78vy0vc13c-nixos-system-predator-26.11.20261001.c59305b/init consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+2099-07-02 03:22:45.514293+02:00
+[    1.303591] predator kernel: Linux version 6.18.54 (nixbld@localhost) (gcc (GCC) 16.2.0, GNU ld (GNU Binutils) 2.46) #1-NixOS SMP PREEMPT_DYNAMIC Fri Sep 25 14:35:54 UTC 2026
+[    1.307729] predator kernel: PM: RTC time: 01:22:25, date: 2099-07-02
+[    1.341796] predator kernel: PM:   Magic number: 11:86:356
+[    9.014283] predator kernel: rtc_cmos PNP0B00:00: RTC can wake from S4
+[    9.034719] predator kernel: rtc_cmos PNP0B00:00: registered as rtc0
+[    9.130218] predator kernel: rtc_cmos PNP0B00:00: setting system clock to 2099-07-02T01:22:34 UTC (4086638554)
+[    9.130928] predator kernel: rtc_cmos PNP0B00:00: alarms up to one month, y3k, 242 bytes nvram
+/var/lib/predator-pm-study/3807011a-6769-45f3-91a4-35f290f3a57c-boot-rtc.txt 97803 root 600 2099-07-02 17:05:42.729000908 +0200
+564c783e8ab4c37e11d778018353fa1047720004b89c6231cd2ce298c45cad5a  /var/lib/predator-pm-study/3807011a-6769-45f3-91a4-35f290f3a57c-boot-rtc.txt
+boot=3807011a-6769-45f3-91a4-35f290f3a57c
+cmdline=init=/nix/store/a4f7h0kp099rqm667sw6hsyb3jgn0x5g-nixos-system-predator-26.11.20261001.c59305b/init consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+2099-07-02 17:05:41.202837+02:00
+[    1.306388] predator kernel: Linux version 6.18.54 (nixbld@localhost) (gcc (GCC) 16.2.0, GNU ld (GNU Binutils) 2.46) #1-NixOS SMP PREEMPT_DYNAMIC Fri Sep 25 14:35:54 UTC 2026
+[    1.312146] predator kernel: PM: RTC time: 15:05:20, date: 2099-07-02
+[    1.340523] predator kernel: PM:   Magic number: 11:264:82
+[    9.746166] predator kernel: rtc_cmos PNP0B00:00: RTC can wake from S4
+[    9.747559] predator kernel: rtc_cmos PNP0B00:00: registered as rtc0
+[    9.749646] predator kernel: rtc_cmos PNP0B00:00: setting system clock to 2099-07-02T15:05:30 UTC (4086687930)
+[    9.760789] predator kernel: rtc_cmos PNP0B00:00: alarms up to one month, y3k, 242 bytes nvram
+ExecStart={ path=/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-timesyncd ; argv[]=/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-timesyncd ; ignore_errors=no ; start_time=[Fri 2026-10-30 18:27:01 CET] ; stop_time=[n/a] ; pid=2464 ; code=(null) ; status=0/0 }
+/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/bin/timedatectl

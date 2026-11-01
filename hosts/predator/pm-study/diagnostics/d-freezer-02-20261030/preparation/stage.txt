@@ -1,0 +1,21 @@
+2026-10-30T19:11:36+01:00
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+DIAG READY id=d-freezer-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 due=1793384612 planned_age=3420 real_s3=false
+NEXT                         LEFT LAST                              PASSED UNIT                   ACTIVATES
+Fri 2026-10-30 19:11:38 CET 757ms Fri 2026-10-30 19:06:38 CET 4min 59s ago nextcloud-cron.timer   nextcloud-cron.service
+-                               - -                                      - night-suspend.timer    night-suspend.service
+-                               - -                                      - predator-pm-next.timer predator-pm-next.service
+
+3 timers listed.
+NextElapseUSecMonotonic=45min 5.261437s
+LastTriggerUSec=Fri 2026-10-30 19:06:38 CET
+AccuracyUSec=1min
+RandomizedDelayUSec=0
+2026-10-30T19:01:37.985949+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T19:01:38.430805+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T19:01:39.386653+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+2026-10-30T19:06:38.041652+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T19:06:38.476092+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T19:06:39.080549+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.

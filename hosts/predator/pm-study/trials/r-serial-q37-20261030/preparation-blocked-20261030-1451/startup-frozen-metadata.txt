@@ -1,0 +1,5 @@
+2026-10-30T14:59:48+01:00
+/home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-q37-20261030-startup-blocked.log 2181931 2026-10-30 14:59:48.626666708 +0100
+78dc2e2b53368e389aebdc48a9960782bd65962b47c8ee7c9cb9db31bf49b385  /home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-q37-20261030-startup-blocked.log
+yes
+active

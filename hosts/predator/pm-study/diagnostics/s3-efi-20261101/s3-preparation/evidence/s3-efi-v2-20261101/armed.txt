@@ -1,0 +1,4 @@
+id=s3-efi-v2-20261101
+due=1793539200
+review=1793539800
+no_WoL=true

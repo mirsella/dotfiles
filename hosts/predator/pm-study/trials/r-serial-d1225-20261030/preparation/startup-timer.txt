@@ -1,0 +1,30 @@
+# /run/systemd/transient/predator-pm-serial-preparation-20261029-startup.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=Planned Predator healthy startup 20261029
+
+[Timer]
+OnCalendar=@1793300724
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-serial-preparation-20261029-startup.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=Planned Predator healthy startup 20261029
+
+[Service]
+Type=oneshot
+TimeoutStartSec=20s
+
+[Unit]
+ConditionPathExists=/run/predator-pm-serial-preparation-20261029-shutdown-ack
+
+[Service]
+ExecStart=
+ExecStart="/usr/bin/python3" "/home/mirsella/wol_predator.py"
+NextElapseUSecRealtime=Thu 2026-10-29 20:05:24 CET
+ActiveState=active
+SubState=waiting

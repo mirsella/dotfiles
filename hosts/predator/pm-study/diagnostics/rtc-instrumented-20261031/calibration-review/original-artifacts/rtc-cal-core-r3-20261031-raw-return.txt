@@ -1,0 +1,9 @@
+rtc_date=2023-04-10
+rtc_time=00:00:01
+hwclock=2023-04-10 00:00:01.178148+00:00
+last_action=17
+last_value=3
+last_start=N
+markers=56
+clock=Timex { modes: 0, offset: 0, freq: 277758, maxerror: 16000000, esterror: 16000000, status: 8257, constant: 7, precision: 1, tolerance: 32768000, time: [1793435709, 455832534], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+uptime=54516.11 423255.97

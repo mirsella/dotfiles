@@ -1,0 +1,1 @@
+owned NIC d3cold 1-to-0; six existing debug sites off-to-print; serial s2idle and owned RTC alarm; normal clocks unchanged

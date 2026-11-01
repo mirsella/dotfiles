@@ -1,0 +1,16 @@
+NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+LAN readiness snapshot:
+GENERAL.STATE:100 (connected)
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.GATEWAY:192.168.1.1
+IP4.DNS[1]:192.168.1.1
+LAN monitor cleanup: stop=Ok(()) reap=Ok(ExitStatus(unix_wait_status(9))) joined=true
+No stale networkd online-state cache remains
+NTP: Stopping Network Time Synchronization...
+NTP: systemd-timesyncd.service: Deactivated successfully.
+NTP: Stopped Network Time Synchronization.
+NTP: systemd-timesyncd.service: Consumed 184ms CPU time over 1h 1min 20.754s wall clock time, 3M memory peak, 456B incoming IP traffic, 532B outgoing IP traffic.
+NTP: Starting Network Time Synchronization...
+NTP: Started Network Time Synchronization.
+NTP: Contacted time server 45.138.55.61:123 (0.nixos.pool.ntp.org).
+NTP: Initial clock synchronization to Sat 2026-10-31 22:35:07.465276 CET.

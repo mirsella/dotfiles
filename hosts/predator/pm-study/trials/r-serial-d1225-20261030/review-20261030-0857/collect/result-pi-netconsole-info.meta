@@ -1,0 +1,11 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+umask 077
+mkdir -p /home/mirsella/dev/predator-pm-debug/.agents-local
+if ! test -e '/home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log'; then (set -o noclobber; cat '/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log' > '/home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log'); fi
+stat -c %s '/home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log'
+sha256sum '/home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log'
+
+stderr:

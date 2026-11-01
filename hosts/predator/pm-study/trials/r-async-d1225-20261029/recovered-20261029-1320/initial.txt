@@ -1,0 +1,93 @@
+2026-10-29T13:20:27+01:00
+predator
+4e5cb3ba-062b-4ad0-bd18-7e24492f97e6
+4517.54 34966.36
+btime 1793271910
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+6.18.58
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+No jobs running.
+NO_HOLD
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+/sys/power/mem_sleep=s2idle [deep]
+/sys/power/pm_test=[none] core processors platform devices freezer
+r-async-d1225-20261029-requested.txt 647 bytes
+r-async-d1225-20261029-plan.conf 647 bytes
+r-async-d1225-20261029-before.txt 111058 bytes
+ea4e3b82d0fe520732808af8eb29f3b8473cb877de91c59b67d0a2c74f9b9808  /var/lib/predator-pm-study/r-async-d1225-20261029-before.txt
+a2fb0df21a5e800da11d4e80763bc7d18686fab9fa78278f8144c4c68b63f1da  /var/lib/predator-pm-study/r-async-d1225-20261029-plan.conf
+a2fb0df21a5e800da11d4e80763bc7d18686fab9fa78278f8144c4c68b63f1da  /var/lib/predator-pm-study/r-async-d1225-20261029-requested.txt
+ -4 e5c893be7bb24d97aa2d97103d7e0a23 Sun 2026-10-18 22:27:25 CEST Tue 2026-10-20 11:58:26 CEST
+ -3 3e3c970d025f4b788e00f911e202e948 Tue 2026-10-20 12:19:13 CEST Tue 2026-10-20 20:24:15 CEST
+ -2 9c19e8c7a404454c813eced03d90a71c Tue 2026-10-27 18:06:45 CET  Wed 2026-10-28 19:36:39 CET
+ -1 b223cb35a02b4417a3db569ad986cd4b Wed 2026-10-28 20:56:02 CET  Thu 2026-10-29 09:21:06 CET
+  0 4e5cb3ba062b4ad0bd187e24492f97e6 Thu 2026-10-29 12:05:11 CET  Thu 2026-10-29 13:20:27 CET
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+ActiveState=inactive
+SubState=dead
+FragmentPath=
+Result=success
+ExecMainStatus=0
+ActiveState=active
+SubState=exited
+FragmentPath=/etc/systemd/system/predator-pm-clock-handoff.service
+Result=success
+ExecMainStatus=0
+NTPSynchronized=yes
+       Server: 176.137.36.37 (0.nixos.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 1
+    Reference: GPS
+    Precision: 1us (-23)
+Root distance: 37us (max: 5s)
+       Offset: +26.541ms
+        Delay: 17.206ms
+       Jitter: 10.114ms
+ Packet count: 7
+    Frequency: +2.177ppm
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:04:10 with 0 errors on Sat Oct  3 14:19:29 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: resilvered 132K in 00:00:01 with 0 errors on Sun Oct  4 01:20:38 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+fast/data /srv/data/fast
+fast/ncdata /var/lib/nextcloud/data
+tank/backup /srv/backup
+tank/archive /srv/data/archive
+tank/backup/recovery /srv/backup/recovery

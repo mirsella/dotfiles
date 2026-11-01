@@ -1,0 +1,4 @@
+/home/mirsella/dev/dotfiles/.scratch/pm-instrumented-execution-20261031/runtime-root
+a597160b303d59c49aaaf7e4a7716788adda32ad3a7fa9a62eb2bee8bfc3e56a  /nix/store/bjpzwsx60fw6vf47yyakfqhgna8nkfqy-predator-pm-study-0.1.0/bin/predator-pm-instrumented
+Timex { modes: 0, offset: -12615, freq: 290483, maxerror: 1017000, esterror: 0, status: 8193, constant: 7, precision: 1, tolerance: 32768000, time: [1793434911, 320691338], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+2026-10-31T09:21:51+01:00

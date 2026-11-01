@@ -1,0 +1,6 @@
+host=192.168.1.166
+size=1851536
+remote_sha256=43843381f6fecbb8167d3c8f89c9e6112a098829769ba6bb6a6a0141d619cb8a
+chunk_bytes=32768
+stderr:
+long single-stream transfers stall on this link; fetched with dd iflag=skip_bytes,count_bytes and per-chunk retries

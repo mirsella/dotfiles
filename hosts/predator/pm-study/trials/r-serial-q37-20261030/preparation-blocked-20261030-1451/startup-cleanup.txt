@@ -1,0 +1,15 @@
+2026-10-30T14:56:24.552684+0100 raspberrypi systemd[1]: Started predator-pm-q37-preparation-20261030-startup.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-30T14:56:24.646608+0100 raspberrypi python3[96460]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-30T14:56:24.661654+0100 raspberrypi systemd[1]: predator-pm-q37-preparation-20261030-startup.service: Deactivated successfully.
+2026-10-30T14:58:34+01:00
+NEXT LEFT LAST                         PASSED            UNIT                                                   ACTIVATES
+-    -    Thu 2026-10-29 09:21:02 CET  1 day 5h ago      predator-pm-r-async-d1225-20261029-notice-start.timer  predator-pm-r-async-d1225-20261029-notice-start.service
+-    -    Sat 2026-10-17 18:00:00 CEST 1 week 5 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer   predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 2 days ago predator-pm-r-async-h8-20261020-notice-start.timer     predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 4 days ago predator-pm-r-async-q30-20261018-notice-start.timer    predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Fri 2026-10-30 08:30:40 CET  6h ago            predator-pm-r-serial-d1225-20261030-notice-start.timer predator-pm-r-serial-d1225-20261030-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 1 week 5 days ago predator-pm-r-serial-m15-20261017-notice-start.timer   predator-pm-r-serial-m15-20261017-notice-start.service
+-    -    Fri 2026-10-30 12:35:04 CET  2h 23min ago      predator-pm-r-serial-q35-20261030-notice-start.timer   predator-pm-r-serial-q35-20261030-notice-start.service
+-    -    Fri 2026-10-30 14:12:53 CET  45min ago         predator-pm-r-serial-q35r1-20261030-notice-start.timer predator-pm-r-serial-q35r1-20261030-notice-start.service
+
+8 timers listed.

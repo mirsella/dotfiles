@@ -1,0 +1,1 @@
+Owner notified in current thread: October31 22:04CET, before arming. Exact entry22:15/PiWoL22:31/retry22:31:30/RTCfallback22:35/review22:45 and dated22:13..22:40 power graph requested. Telegram failed with a DNS timeout; its empty output and error remain separately preserved. This record does not claim Telegram delivery.

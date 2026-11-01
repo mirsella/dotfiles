@@ -1,0 +1,4 @@
+hosts/predator/acer-wmi-ph31751.c: OK
+pkgs/predator-pm-study/main.rs: OK
+pkgs/predator-pm-study/trial.rs: OK
+Timeout, server mirsella.mooo.com not responding.

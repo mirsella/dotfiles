@@ -1,0 +1,3 @@
+deep_entry_count=1
+deep_exit_count=0
+sleep_measurement_count=0

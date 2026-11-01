@@ -1,0 +1,134 @@
+interrupts:
+CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+   0:         37          0          0          0          0          0          0          0 IR-IO-APIC    2-edge      timer
+   1:          0          0          0          0          0         17          0          0 IR-IO-APIC    1-edge      i8042
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:          0        205          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+  14:          0          0          2          0          0          0          0          0 IR-IO-APIC   14-fasteoi   INT345D:00
+  16:          0          0          0          0          6          0          0          0 IR-IO-APIC   16-fasteoi   idma64.0, i2c_designware.0, i801_smbus
+  17:          0          0          0          0          0       1293          0          0 IR-IO-APIC   17-fasteoi   idma64.1, i2c_designware.1, snd_hda_intel:card0
+ 120:          0          0          2          0          0          0          0          0 IR-PCI-MSI-0000:00:01.0    0-edge      PCIe bwctrl
+ 121:          0          0          0          1          0          0          0          0 IR-PCI-MSI-0000:00:1c.0    0-edge      PCIe bwctrl
+ 122:          0          0          0          0          1          0          0          0 IR-PCI-MSI-0000:00:1c.3    0-edge      PCIe bwctrl
+ 123:          0          0          0          0          0          0          5          0 IR-PCI-MSI-0000:03:00.0    0-edge      rtsx_pci
+ 124:          0          0          0          0          0          0          0      17431 IR-PCI-MSI-0000:00:14.0    0-edge      xhci_hcd
+ 132:    1221142          0          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.1    0-edge      enp3s0f1
+ 133:          0          0          0          0          0          0          0     878482 IR-PCI-MSI-0000:00:17.0    0-edge      ahci[0000:00:17.0]
+ 134:          0          0          0         34          0          0          0          0 IR-PCI-MSI-0000:00:16.0    0-edge      mei_me
+ 135:          0          0          2          0          0          0          0          0 intel-gpio   27  SYNA7DB5:01
+ 136:          0          0          0          0          0          0        125          0 IR-PCI-MSI-0000:00:02.0    0-edge      i915
+ 137:          0          0          0          0          0          0          0     236943 IR-PCI-MSI-0000:02:00.0    0-edge      ath10k_pci
+ 138:        469          0          0          0          0          0          0          0 IR-PCI-MSI-0000:00:1f.3    0-edge      snd_hda_intel:card1
+ NMI:         88         73         68         68         65         66         64         66   Non-maskable interrupts
+ LOC:    6121199    5013081    4949883    4911640    4868496    4896076    4764053    5044416   Local timer interrupts
+ SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+ PMI:         88         73         68         68         65         66         64         66   Performance monitoring interrupts
+ IWI:          9          0          0          1          7          0         31          0   IRQ work interrupts
+ RTR:          0          0          0          0          0          0          0          0   APIC ICR read retries
+ RES:      66208      53339      52075      51769      48919      50144      48914      47571   Rescheduling interrupts
+ CAL:     744111     628511     586664     576094     583794     578349     583975     585297   Function call interrupts
+ TLB:     468159     453533     436830     437307     451649     446435     459219     447214   TLB shootdowns
+ TRM:       1494       1494       1494       1494       1494       1494       1494       1494   Thermal event interrupts
+ THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+ DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+ MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+ MCP:        139        140        140        140        140        140        140        140   Machine check polls
+ ERR:          0
+ MIS:          0
+ PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+ NPI:          0          0          0          0          0          0          0          0   Nested posted-interrupt event
+ PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+acpi_wakeup:
+Device	S-state	  Status   Sysfs node
+GLAN	  S4	*disabled
+XHC	  S3	*enabled   pci:0000:00:14.0
+XDCI	  S4	*disabled
+HDAS	  S4	*disabled  pci:0000:00:1f.3
+RP01	  S4	*disabled
+PXSX	  S4	*disabled
+RP02	  S4	*disabled
+PXSX	  S4	*disabled
+RP03	  S4	*enabled   pci:0000:00:1c.0
+PXSX	  S4	*disabled  pci:0000:02:00.0
+RP04	  S4	*enabled   pci:0000:00:1c.3
+PXSX	  S4	*disabled  pci:0000:03:00.0
+		*disabled  platform:rtsx_pci_sdmmc.0
+RP05	  S4	*disabled
+PXSX	  S4	*disabled
+RP06	  S4	*disabled
+PXSX	  S4	*disabled
+RP07	  S4	*disabled
+PXSX	  S4	*disabled
+RP08	  S4	*disabled
+PXSX	  S4	*disabled
+RP09	  S4	*disabled
+PXSX	  S4	*disabled
+RP10	  S4	*disabled
+PXSX	  S4	*disabled
+RP11	  S4	*disabled
+PXSX	  S4	*disabled
+RP12	  S4	*disabled
+PXSX	  S4	*disabled
+RP13	  S4	*disabled
+PXSX	  S4	*disabled
+RP14	  S4	*disabled
+PXSX	  S4	*disabled
+RP15	  S4	*disabled
+PXSX	  S4	*disabled
+RP16	  S4	*disabled
+PXSX	  S4	*disabled
+RP17	  S4	*disabled
+PXSX	  S4	*disabled
+RP18	  S4	*disabled
+PXSX	  S4	*disabled
+RP19	  S4	*disabled
+PXSX	  S4	*disabled
+RP20	  S4	*disabled
+PXSX	  S4	*disabled
+RP21	  S4	*disabled
+PXSX	  S4	*disabled
+RP22	  S4	*disabled
+PXSX	  S4	*disabled
+RP23	  S4	*disabled
+PXSX	  S4	*disabled
+RP24	  S4	*disabled
+PXSX	  S4	*disabled
+PWRB	  S4	*enabled   platform:PNP0C0C:00
+ACPI ff_rt_clk=19         disabled     unmasked
+ACPI ff_pwr_btn=0  EN     enabled      unmasked
+ACPI ff_slp_btn=0         invalid      unmasked
+ACPI gpe14=170  EN     enabled      unmasked
+ACPI gpe66=12  EN     enabled      unmasked
+ACPI sci=201
+ACPI sci_not=4
+ACPI gpe_all=182
+ACPI error=0
+PCI 0000:03:00.1 power_state=D0
+PCI 0000:03:00.1 d3cold_allowed=0
+PCI 0000:03:00.1 power/wakeup=enabled
+PCI 0000:03:00.1 power/control=on
+PCI 0000:03:00.1 power/runtime_status=active
+PCI 0000:03:00.1 config256=ec1068810704100012000002100080000130000000000000044040a400000000040040a4000000000000000025100812000000004000000000000000ff0100000150c3ff088000000000000000000000057080000000000000000000000000000000000000000000000000000000000010b00202c08c90051f501900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0038004000000040800000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+PCI 0000:03:00.0 power_state=D0
+PCI 0000:03:00.0 d3cold_allowed=1
+PCI 0000:03:00.0 power/wakeup=disabled
+PCI 0000:03:00.0 power/control=auto
+PCI 0000:03:00.0 power/runtime_status=active
+PCI 0000:03:00.0 config256=ec10875206041000010000ff10008000005040a4000000000000000000000000000000000000000000000000251008120000ffff4000000000000000ff0200000150c3f700000000000000000000000005708100b802e0fe00000000000000000000000000000000000000000000000010b00200c08c90051f201900117c470042011110000000000000000000000000000000001f080c0000000000020000000000000000000000000000000000000011d0000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+PCI 0000:00:1c.3 power_state=D0
+PCI 0000:00:1c.3 d3cold_allowed=1
+PCI 0000:00:1c.3 power/wakeup=enabled
+PCI 0000:00:1c.3 power/control=auto
+PCI 0000:00:1c.3 power/runtime_status=active
+PCI 0000:00:1c.3 config256=868013a107041000f1000406100081000000000000000000000303003030000040a440a4f1ff01000000000000000000000000004000000000000000ff04020010804201018000000000100013487204420c113000b21c0000004001000000000102030037000000000000000e00000003000100000000000000000000000000059001009802e0fe00000000000000000da00000251008120000000000000000010003c80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000011000074218000008009e09000000000003e300000000000600100000000000500100000000004cb30f410804000004
+debug_sites:
+drivers/pci/pci.c:2513 [pci]pci_pme_active =p "PME# %s\n"
+drivers/pci/pci-driver.c:923 [pci_driver]pci_pm_suspend_noirq =p "PCI PM: Suspend power state: %s\n"
+drivers/pci/pci-driver.c:938 [pci_driver]pci_pm_suspend_noirq =p "PCI PM: Skipped\n"
+drivers/acpi/device_pm.c:956 [acpi]acpi_pm_set_device_wakeup =p "ACPI companion missing in %s!\n"
+drivers/acpi/device_pm.c:965 [acpi]acpi_pm_set_device_wakeup =p "Wakeup disabled by ACPI\n"
+drivers/acpi/device_pm.c:971 [acpi]acpi_pm_set_device_wakeup =p "Wakeup enabled by ACPI\n"
+thermal acpitz=29800
+thermal pch_skylake=56500
+thermal x86_pkg_temp=55000
+thermal acpitz=27800

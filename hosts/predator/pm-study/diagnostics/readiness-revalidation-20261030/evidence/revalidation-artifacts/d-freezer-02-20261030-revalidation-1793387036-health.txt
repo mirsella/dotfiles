@@ -1,0 +1,43 @@
+epoch=1793387037
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+checked_cycles=1
+100 (connected)
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+Server: 87.106.8.23 (0.nixos.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 2D8A373D
+    Precision: 1us (-24)
+Root distance: 37.887ms (max: 5s)
+       Offset: -38.957ms
+        Delay: 16.667ms
+       Jitter: 35.997ms
+ Packet count: 10
+    Frequency: +13.915ppm
+pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:04:10 with 0 errors on Sat Oct  3 14:19:29 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: resilvered 132K in 00:00:01 with 0 errors on Sun Oct  4 01:20:38 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors

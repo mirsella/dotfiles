@@ -1,0 +1,1 @@
+temporary-s2idle-and-owned-RTC-alarm-starting; normal clocks unchanged

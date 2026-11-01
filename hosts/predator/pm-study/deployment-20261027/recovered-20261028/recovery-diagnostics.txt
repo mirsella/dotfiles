@@ -1,0 +1,487 @@
+2026-10-28T08:02:30+01:00
+9c19e8c7-a404-454c-813e-ced03d90a71c
+Result=success
+ExecMainCode=0
+ExecMainStatus=0
+MemoryPeak=6074368000
+MemoryHigh=infinity
+MemoryMax=6442450944
+MemorySwapMax=infinity
+2026-10-27T18:44:34+01:00 predator kernel: prepare_slab_obj_exts_hook, biovec-max: Failed to create slab extension vector!
+2026-10-27T18:47:05+01:00 predator systemd-journald[464]: Under memory pressure, flushing caches.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:50:27+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:51:49+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:51:49+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T18:52:40+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-27T19:34:32+01:00 predator kernel: perf: interrupt took too long (2501 > 2500), lowering kernel.perf_event_max_sample_rate to 79000
+2026-10-27T19:34:32+01:00 predator systemd-coredump[51973]: Failed to get EXE, ignoring: No such process
+2026-10-27T19:34:33+01:00 predator systemd-coredump[51973]: Failed to get auxv, ignoring: No such process
+2026-10-27T20:41:38+01:00 predator kernel: perf: interrupt took too long (3130 > 3126), lowering kernel.perf_event_max_sample_rate to 63000
+2026-10-27T23:16:17+01:00 predator kernel: perf: interrupt took too long (3915 > 3912), lowering kernel.perf_event_max_sample_rate to 51000
+2026-10-28T02:25:06+01:00 predator kernel: podman0: port 3(veth2) entered disabled state
+2026-10-28T02:25:06+01:00 predator kernel: veth2 (unregistering): left allmulticast mode
+2026-10-28T02:25:06+01:00 predator kernel: veth2 (unregistering): left promiscuous mode
+2026-10-28T02:25:06+01:00 predator kernel: podman0: port 3(veth2) entered disabled state
+2026-10-28T02:25:13+01:00 predator kernel: podman0: port 3(veth2) entered blocking state
+2026-10-28T02:25:13+01:00 predator kernel: podman0: port 3(veth2) entered disabled state
+2026-10-28T02:25:13+01:00 predator kernel: veth2: entered allmulticast mode
+2026-10-28T02:25:13+01:00 predator kernel: veth2: entered promiscuous mode
+2026-10-28T02:25:13+01:00 predator kernel: podman0: port 3(veth2) entered blocking state
+2026-10-28T02:25:13+01:00 predator kernel: podman0: port 3(veth2) entered forwarding state
+2026-10-28T02:32:31+01:00 predator kernel: INFO: task spl_delay_taskq:481 blocked for more than 122 seconds.
+2026-10-28T02:32:34+01:00 predator kernel:       Tainted: P           O        6.18.54 #1-NixOS
+2026-10-28T02:32:38+01:00 predator kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+2026-10-28T02:32:42+01:00 predator kernel: task:spl_delay_taskq state:D stack:0     pid:481   tgid:481   ppid:2      task_flags:0x288040 flags:0x00080000
+2026-10-28T02:32:47+01:00 predator kernel: Call Trace:
+2026-10-28T02:32:51+01:00 predator kernel:  <TASK>
+2026-10-28T02:32:54+01:00 predator kernel:  __schedule+0x3e8/0x1340
+2026-10-28T02:32:57+01:00 predator kernel:  schedule+0x27/0xa0
+2026-10-28T02:32:59+01:00 predator kernel:  schedule_timeout+0xdc/0x120
+2026-10-28T02:33:01+01:00 predator kernel:  __wait_for_common+0x8c/0x210
+2026-10-28T02:33:04+01:00 predator kernel:  ? __pfx_schedule_timeout+0x10/0x10
+2026-10-28T02:33:08+01:00 predator kernel:  wait_for_completion_state+0x21/0x40
+2026-10-28T02:33:11+01:00 predator kernel:  call_usermodehelper_exec+0x17d/0x1b0
+2026-10-28T02:33:14+01:00 predator kernel:  zfsctl_snapshot_unmount+0x152/0x310 [zfs]
+2026-10-28T02:33:16+01:00 predator kernel:  ? autoremove_wake_function+0x16/0x70
+2026-10-28T02:33:17+01:00 predator kernel:  snapentry_expire+0x3a/0x170 [zfs]
+2026-10-28T02:33:19+01:00 predator kernel:  taskq_thread+0x39f/0x7d0 [spl]
+2026-10-28T02:33:22+01:00 predator kernel:  ? __pfx_default_wake_function+0x10/0x10
+2026-10-28T02:33:24+01:00 predator kernel:  ? __pfx_taskq_thread+0x10/0x10 [spl]
+2026-10-28T02:33:28+01:00 predator kernel:  kthread+0xfd/0x250
+2026-10-28T02:33:28+01:00 predator kernel:  ? __pfx_kthread+0x10/0x10
+2026-10-28T02:33:29+01:00 predator kernel:  ret_from_fork+0x22c/0x260
+2026-10-28T02:33:30+01:00 predator kernel:  ? __pfx_kthread+0x10/0x10
+2026-10-28T02:33:31+01:00 predator kernel:  ret_from_fork_asm+0x1a/0x30
+2026-10-28T02:33:32+01:00 predator kernel:  </TASK>
+2026-10-28T02:38:09+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:38:09+01:00 predator kernel: veth3 (unregistering): left allmulticast mode
+2026-10-28T02:38:09+01:00 predator kernel: veth3 (unregistering): left promiscuous mode
+2026-10-28T02:38:09+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:38:18+01:00 predator kernel: podman0: port 4(veth3) entered blocking state
+2026-10-28T02:38:18+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:38:18+01:00 predator kernel: veth3: entered allmulticast mode
+2026-10-28T02:38:18+01:00 predator kernel: veth3: entered promiscuous mode
+2026-10-28T02:38:18+01:00 predator kernel: podman0: port 4(veth3) entered blocking state
+2026-10-28T02:38:18+01:00 predator kernel: podman0: port 4(veth3) entered forwarding state
+2026-10-28T02:39:49+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:39:49+01:00 predator kernel: veth3 (unregistering): left allmulticast mode
+2026-10-28T02:39:49+01:00 predator kernel: veth3 (unregistering): left promiscuous mode
+2026-10-28T02:39:49+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:39:57+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-28T02:39:58+01:00 predator kernel: podman0: port 4(veth3) entered blocking state
+2026-10-28T02:39:58+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:39:58+01:00 predator kernel: veth3: entered allmulticast mode
+2026-10-28T02:39:58+01:00 predator kernel: veth3: entered promiscuous mode
+2026-10-28T02:39:58+01:00 predator kernel: podman0: port 4(veth3) entered blocking state
+2026-10-28T02:39:58+01:00 predator kernel: podman0: port 4(veth3) entered forwarding state
+2026-10-28T02:43:44+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-28T02:56:20+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:56:20+01:00 predator kernel: veth3 (unregistering): left allmulticast mode
+2026-10-28T02:56:20+01:00 predator kernel: veth3 (unregistering): left promiscuous mode
+2026-10-28T02:56:20+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:56:28+01:00 predator kernel: podman0: port 4(veth3) entered blocking state
+2026-10-28T02:56:28+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-28T02:56:28+01:00 predator kernel: veth3: entered allmulticast mode
+2026-10-28T02:56:28+01:00 predator kernel: veth3: entered promiscuous mode
+2026-10-28T02:56:28+01:00 predator kernel: podman0: port 4(veth3) entered blocking state
+2026-10-28T02:56:28+01:00 predator kernel: podman0: port 4(veth3) entered forwarding state
+2026-10-28T03:00:52+01:00 predator kernel: perf: interrupt took too long (4906 > 4893), lowering kernel.perf_event_max_sample_rate to 40000
+2026-10-28T03:00:53+01:00 predator kernel: Purging GPU memory, 0 pages freed, 0 pages still pinned, 1 pages left available.
+2026-10-28T03:00:53+01:00 predator kernel: beszel-agent invoked oom-killer: gfp_mask=0x140cca(GFP_HIGHUSER_MOVABLE|__GFP_COMP), order=0, oom_score_adj=0
+2026-10-28T03:00:53+01:00 predator kernel: CPU: 7 UID: 992 PID: 2479 Comm: beszel-agent Tainted: P           O        6.18.54 #1-NixOS PREEMPT(lazy) 
+2026-10-28T03:00:53+01:00 predator kernel: Tainted: [P]=PROPRIETARY_MODULE, [O]=OOT_MODULE
+2026-10-28T03:00:53+01:00 predator kernel: Hardware name: Acer Predator PH317-51/Sienna_KLS, BIOS V1.21 11/02/2018
+2026-10-28T03:00:53+01:00 predator kernel: Call Trace:
+2026-10-28T03:00:53+01:00 predator kernel:  <TASK>
+2026-10-28T03:00:53+01:00 predator kernel:  dump_stack_lvl+0x5d/0x80
+2026-10-28T03:00:53+01:00 predator kernel:  dump_header+0x43/0x1aa
+2026-10-28T03:00:53+01:00 predator kernel:  oom_kill_process.cold+0x8/0x8a
+2026-10-28T03:00:53+01:00 predator kernel:  out_of_memory+0x20a/0x590
+2026-10-28T03:00:53+01:00 predator kernel:  __alloc_frozen_pages_noprof+0x10b0/0x1280
+2026-10-28T03:00:53+01:00 predator kernel:  alloc_pages_mpol+0x86/0x170
+2026-10-28T03:00:53+01:00 predator kernel:  folio_alloc_noprof+0x54/0xa0
+2026-10-28T03:00:53+01:00 predator kernel:  __filemap_get_folio+0x1cd/0x600
+2026-10-28T03:00:53+01:00 predator kernel:  ? folio_alloc_noprof+0x54/0xa0
+2026-10-28T03:00:53+01:00 predator kernel:  ? page_cache_ra_unbounded+0x196/0x250
+2026-10-28T03:00:53+01:00 predator kernel:  filemap_fault+0x30b/0x10a0
+2026-10-28T03:00:53+01:00 predator kernel:  ? get_sigframe+0xea/0x270
+2026-10-28T03:00:53+01:00 predator kernel:  __do_fault+0x34/0x1c0
+2026-10-28T03:00:53+01:00 predator kernel:  do_fault+0x351/0x5b0
+2026-10-28T03:00:53+01:00 predator kernel:  __handle_mm_fault+0x97d/0xf70
+2026-10-28T03:00:53+01:00 predator kernel:  handle_mm_fault+0xe7/0x2c0
+2026-10-28T03:00:53+01:00 predator kernel:  do_user_addr_fault+0x23b/0x730
+2026-10-28T03:00:53+01:00 predator kernel:  exc_page_fault+0x82/0x190
+2026-10-28T03:00:53+01:00 predator kernel:  asm_exc_page_fault+0x26/0x30
+2026-10-28T03:00:53+01:00 predator kernel: RIP: 0033:0x467e20
+2026-10-28T03:00:53+01:00 predator kernel: Code: Unable to access opcode bytes at 0x467df6.
+2026-10-28T03:00:53+01:00 predator kernel: RSP: 002b:00000f892e48d8e8 EFLAGS: 00010206
+2026-10-28T03:00:53+01:00 predator kernel: RAX: 0000000000000017 RBX: 00000f892e48daf0 RCX: 00000f892e48d9c0
+2026-10-28T03:00:53+01:00 predator kernel: RDX: 00000f892e48d9c0 RSI: 00000f892e48daf0 RDI: 0000000000000017
+2026-10-28T03:00:53+01:00 predator kernel: RBP: 00000f892e48d960 R08: 0000000000000000 R09: 0000000000000007
+2026-10-28T03:00:53+01:00 predator kernel: R10: 0000000000000080 R11: 0000000000000001 R12: 00000f892e480460
+2026-10-28T03:00:53+01:00 predator kernel: R13: 00000000000000c0 R14: 00000f892e4841e0 R15: 00000f892e480510
+2026-10-28T03:00:53+01:00 predator kernel:  </TASK>
+2026-10-28T03:00:53+01:00 predator kernel: Mem-Info:
+2026-10-28T03:00:53+01:00 predator kernel: active_anon:1056516 inactive_anon:682006 isolated_anon:0
+                                            active_file:22 inactive_file:91 isolated_file:0
+                                            unevictable:59 dirty:4 writeback:0
+                                            slab_reclaimable:54604 slab_unreclaimable:52349
+                                            mapped:9468 shmem:15427 pagetables:17736
+                                            sec_pagetables:514 bounce:0
+                                            kernel_misc_reclaimable:0
+                                            free:41121 free_pcp:0 free_cma:0
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 active_anon:4265124kB inactive_anon:2688964kB active_file:180kB inactive_file:44kB unevictable:236kB isolated(anon):0kB isolated(file):0kB mapped:37872kB dirty:16kB writeback:0kB shmem:61708kB shmem_thp:0kB shmem_pmdmapped:0kB anon_thp:4096kB kernel_stack:11248kB pagetables:70944kB sec_pagetables:2056kB all_unreclaimable? no Balloon:0kB
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 DMA free:14336kB boost:0kB min:128kB low:160kB high:192kB reserved_highatomic:0KB free_highatomic:0KB active_anon:0kB inactive_anon:0kB active_file:0kB inactive_file:0kB unevictable:0kB writepending:0kB zspages:0kB present:15984kB managed:15360kB mlocked:0kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:0kB
+2026-10-28T03:00:53+01:00 predator kernel: lowmem_reserve[]: 0 1827 7809 7809 7809
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 DMA32 free:61564kB boost:24576kB min:40012kB low:43868kB high:47724kB reserved_highatomic:0KB free_highatomic:0KB active_anon:1488784kB inactive_anon:211168kB active_file:0kB inactive_file:0kB unevictable:0kB writepending:4kB zspages:0kB present:1978356kB managed:1871168kB mlocked:0kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:0kB
+2026-10-28T03:00:53+01:00 predator kernel: lowmem_reserve[]: 0 0 5981 5981 5981
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 Normal free:88584kB boost:38912kB min:90928kB low:103932kB high:116936kB reserved_highatomic:0KB free_highatomic:0KB active_anon:2748440kB inactive_anon:2505696kB active_file:280kB inactive_file:288kB unevictable:236kB writepending:12kB zspages:0kB present:6275072kB managed:6125300kB mlocked:16kB bounce:0kB free_pcp:0kB local_pcp:0kB free_cma:0kB
+2026-10-28T03:00:53+01:00 predator kernel: lowmem_reserve[]: 0 0 0 0 0
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 DMA: 0*4kB 0*8kB 0*16kB 0*32kB 0*64kB 0*128kB 0*256kB 0*512kB 0*1024kB 1*2048kB (M) 3*4096kB (M) = 14336kB
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 DMA32: 1522*4kB (UME) 423*8kB (UME) 110*16kB (UE) 215*32kB (UE) 172*64kB (UE) 169*128kB (UE) 37*256kB (UE) 3*512kB (UE) 0*1024kB 0*2048kB 0*4096kB = 61760kB
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 Normal: 3338*4kB (UME) 1728*8kB (UME) 1361*16kB (UME) 888*32kB (UE) 102*64kB (UE) 22*128kB (UE) 1*256kB (E) 0*512kB 0*1024kB 0*2048kB 0*4096kB = 86968kB
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 hugepages_total=0 hugepages_free=0 hugepages_surp=0 hugepages_size=1048576kB
+2026-10-28T03:00:53+01:00 predator kernel: Node 0 hugepages_total=0 hugepages_free=0 hugepages_surp=0 hugepages_size=2048kB
+2026-10-28T03:00:53+01:00 predator kernel: 28304 total pagecache pages
+2026-10-28T03:00:53+01:00 predator kernel: 12096 pages in swap cache
+2026-10-28T03:00:53+01:00 predator kernel: Free swap  = 232kB
+2026-10-28T03:00:53+01:00 predator kernel: Total swap = 8388604kB
+2026-10-28T03:00:53+01:00 predator kernel: 2067353 pages RAM
+2026-10-28T03:00:53+01:00 predator kernel: 0 pages HighMem/MovableOnly
+2026-10-28T03:00:53+01:00 predator kernel: 64396 pages reserved
+2026-10-28T03:00:53+01:00 predator kernel: 0 pages cma reserved
+2026-10-28T03:00:53+01:00 predator kernel: 0 pages hwpoisoned
+2026-10-28T03:00:53+01:00 predator kernel: Memory allocations (profiling is currently turned on):
+2026-10-28T03:00:53+01:00 predator kernel:     3.75 GiB   982684 mm/memory.c:1208 func:folio_prealloc
+2026-10-28T03:00:53+01:00 predator kernel:     2.37 GiB   621199 mm/memory.c:1206 func:folio_prealloc
+2026-10-28T03:00:53+01:00 predator kernel:      475 MiB   121582 mm/swap_state.c:439 func:__read_swap_cache_async
+2026-10-28T03:00:53+01:00 predator kernel:      328 MiB    25766 mm/slub.c:3097 func:alloc_slab_page
+2026-10-28T03:00:53+01:00 predator kernel:      200 MiB    12051 /build/source/module/os/linux/zfs/abd_os.c:295 [abd_os] func:abd_alloc_chunks
+2026-10-28T03:00:53+01:00 predator kernel:     68.0 MiB     3136 mm/slub.c:3099 func:alloc_slab_page
+2026-10-28T03:00:53+01:00 predator kernel:     51.9 MiB    93104 lib/xarray.c:378 func:xas_alloc
+2026-10-28T03:00:53+01:00 predator kernel:     51.1 MiB    13087 arch/x86/mm/pgtable.c:18 func:pte_alloc_one
+2026-10-28T03:00:53+01:00 predator kernel:     47.1 MiB    12070 mm/shmem.c:1898 func:shmem_alloc_folio
+2026-10-28T03:00:53+01:00 predator kernel:     39.4 MiB    10082 /build/source/module/os/linux/spl/spl-kmem-cache.c:145 [spl_kmem_cache] func:kv_alloc
+2026-10-28T03:00:53+01:00 predator kernel: Tasks state (memory values in pages):
+2026-10-28T03:00:53+01:00 predator kernel: [  pid  ]   uid  tgid total_vm      rss rss_anon rss_file rss_shmem pgtables_bytes swapents oom_score_adj name
+2026-10-28T03:00:53+01:00 predator kernel: [    464]     0   464    13051      193      192        0         1   131072      192          -250 systemd-journal
+2026-10-28T03:00:53+01:00 predator kernel: [    512]     0   512    10868     1012      928       84         0    94208       96         -1000 systemd-udevd
+2026-10-28T03:00:53+01:00 predator kernel: [    596]     0   596    34733       94       64       30         0    73728        0             0 mount.envfs
+2026-10-28T03:00:53+01:00 predator kernel: [    650]   996   650     2398      108       32       76         0    61440       96          -900 systemd-oomd
+2026-10-28T03:00:53+01:00 predator kernel: [   1506]     4  1506     2435      126       49       77         0    61440      160          -900 dbus-broker-lau
+2026-10-28T03:00:53+01:00 predator kernel: [   1509]     4  1509     1052      255      235       20         0    49152       64          -900 dbus-broker
+2026-10-28T03:00:53+01:00 predator kernel: [   1511]     0  1511      695      109        0      109         0    49152        0             0 acpid
+2026-10-28T03:00:53+01:00 predator kernel: [   1546]     0  1546     3212      290      224       66         0    77824       64             0 systemd-logind
+2026-10-28T03:00:53+01:00 predator kernel: [   1664]     0  1664    85642      468      448       20         0   167936      608             0 NetworkManager
+2026-10-28T03:00:53+01:00 predator kernel: [   1673]   995  1673     4723      256      256        0         0    90112      160             0 wpa_supplicant
+2026-10-28T03:00:53+01:00 predator kernel: [   1748]     0  1748   143387      236       96      140         0   221184     1216             0 nix-daemon
+2026-10-28T03:00:53+01:00 predator kernel: [   1818]     0  1818   109313     2441     2393       48         0   225280     1664             0 .fail2ban-serve
+2026-10-28T03:00:53+01:00 predator kernel: [   1828]     0  1828     3170      145       62       83         0    61440      224         -1000 sshd
+2026-10-28T03:00:53+01:00 predator kernel: [   1833]  1000  1833     4625      623      512      111         0    77824       64           100 systemd
+2026-10-28T03:00:53+01:00 predator kernel: [   1863]   993  1863    21671      392      320       72         0   163840      608             0 redis-server
+2026-10-28T03:00:53+01:00 predator kernel: [   1872]  1000  1872     4892      432      224      208         0    86016      128           100 (sd-pam)
+2026-10-28T03:00:53+01:00 predator kernel: [   1874]    71  1874    55707      654       64       14       576   180224      416             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [   1899]    60  1899     4550      296      108      188         0    81920      384             0 nginx
+2026-10-28T03:00:53+01:00 predator kernel: [   1903]    60  1903     4639       53       53        0         0    73728      448             0 nginx
+2026-10-28T03:00:53+01:00 predator kernel: [   1904]    71  1904    55745      968       40       99       829   212992      480             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [   1905]    71  1905    55741      371      104       22       245   135168      416             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [   1934]  1000  1934    45519      350      160      190         0   106496        0             0 .gnome-keyring-
+2026-10-28T03:00:53+01:00 predator kernel: [   1937]  1000  1937   147123    11487    11392       95         0   434176     8783           200 atuin
+2026-10-28T03:00:53+01:00 predator kernel: [   1938]  1000  1938     1882      201       88      113         0    57344       96           200 lspmux
+2026-10-28T03:00:53+01:00 predator kernel: [   1940]  1000  1940  1754119     6806     6716       90         0   733184     9663           200 opencode
+2026-10-28T03:00:53+01:00 predator kernel: [   1941]  1000  1941    18239        0        0        0         0    65536        0           200 t3-cache-warmer
+2026-10-28T03:00:53+01:00 predator kernel: [   1945]  1000  1945     2294      142       32      110         0    61440       32           200 dbus-broker-lau
+2026-10-28T03:00:53+01:00 predator kernel: [   1947]  1000  1947   448306      266      128      138         0  3760128    49024           200 node-MainThread
+2026-10-28T03:00:53+01:00 predator kernel: [   1955]  1000  1955      757       92       32       60         0    45056        0           200 dbus-broker
+2026-10-28T03:00:53+01:00 predator kernel: [   2037]    71  2037    55741      188       72        0       116   126976      448             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [   2038]    71  2038    56106      372      104       43       225   143360      544             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [   2039]    71  2039    56108      288      104       85        99   131072      480             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [   2078]  1000  2078  2954721    12166    12084       82         0  5586944    54189           200 node-MainThread
+2026-10-28T03:00:53+01:00 predator kernel: [   2180]     0  2180     2047       66       32       34         0    57344        0             0 agetty
+2026-10-28T03:00:53+01:00 predator kernel: [   2191]   992  2191   461891     1305     1245       60         0   241664      399             0 beszel-agent
+2026-10-28T03:00:53+01:00 predator kernel: [   2198]   239  2198   487902     2714     2639       75         0   339968      718             0 caddy
+2026-10-28T03:00:53+01:00 predator kernel: [   2210]  1000  2210    82586     3198     3158       40         0   405504    12384             0 sleeve-gateway.
+2026-10-28T03:00:53+01:00 predator kernel: [   2218]     0  2218     2854      256      256        0         0    65536      128             0 smartd
+2026-10-28T03:00:53+01:00 predator kernel: [   2219]     0  2219    44213      479      320      159         0   114688       32             0 zed
+2026-10-28T03:00:53+01:00 predator kernel: [   2453] 64091  2453   466614     2361     2274       87         0   303104     1082             0 beszel-hub
+2026-10-28T03:00:53+01:00 predator kernel: [   2707]     0  2707   120479      180       65      115         0   122880       32             0 aardvark-dns
+2026-10-28T03:00:53+01:00 predator kernel: [   2739]     0  2739     2599      141       37      104         0    61440        0         -1000 conmon
+2026-10-28T03:00:53+01:00 predator kernel: [   2743]   999  2743    20114      534      456       78         0   126976      704             0 valkey-server
+2026-10-28T03:00:53+01:00 predator kernel: [   2774]     0  2774     2599       39       39        0         0    65536        0         -1000 conmon
+2026-10-28T03:00:53+01:00 predator kernel: [   2776]   999  2776   163683     6484       64       94      6326   253952      544             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [   2780]  1000  2780    19196       86        0       86         0    69632      128           200 t3-resource-mon
+2026-10-28T03:00:53+01:00 predator kernel: [   3014]     0  3014    90743      500      336       36       128   352256     2496             0 .php-fpm-wrappe
+2026-10-28T03:00:53+01:00 predator kernel: [  20300]   154 20300    22697      137       64       73         0    94208      128             0 systemd-timesyn
+2026-10-28T03:00:53+01:00 predator kernel: [  21228]   993 21228    92305     2790     1395       48      1347   401408     3424             0 .php-fpm-wrappe
+2026-10-28T03:00:53+01:00 predator kernel: [  21678]  1000 21678    48397      177       32      145         0   163840     1280             0 nu
+2026-10-28T03:00:53+01:00 predator kernel: [  21684]  1000 21684     2028      141       32      109         0    61440       96             0 bash
+2026-10-28T03:00:53+01:00 predator kernel: [  21692]  1000 21692   826202     1230     1155       75         0  5586944   608000             0 nix
+2026-10-28T03:00:53+01:00 predator kernel: [  21702]     0 21702  2949799  1424797  1424730       67         0 22102016  1292832             0 nix-daemon
+2026-10-28T03:00:53+01:00 predator kernel: [  26296]   993 26296    92099     2201     1403      111       687   393216     3241             0 .php-fpm-wrappe
+2026-10-28T03:00:53+01:00 predator kernel: [  47233]     0 47233   127154     1392     1362       30         0   299008     1184             0 .fwupd-wrapped
+2026-10-28T03:00:53+01:00 predator kernel: [  47244]     0 47244   137537      504      448       56         0   176128      672             0 udisksd
+2026-10-28T03:00:53+01:00 predator kernel: [  47250]    28 47250    96003      395      368       27         0   114688      320             0 polkitd
+2026-10-28T03:00:53+01:00 predator kernel: [  53445]     0 53445   181890     7015     6930       85         0   397312    14464             0 nix-collect-gar
+2026-10-28T03:00:53+01:00 predator kernel: [  53472]   998 53472   122555      278      192       86         0   139264        0             0 nsncd
+2026-10-28T03:00:53+01:00 predator kernel: [  53958]     0 53958     2599      108       37       71         0    65536        0         -1000 conmon
+2026-10-28T03:00:53+01:00 predator kernel: [  53961]     0 53961     8879        0        0        0         0    57344        0             0 tini
+2026-10-28T03:00:53+01:00 predator kernel: [  53989]     0 53989   110520     6731     6633       98         0   274432     4352             0 python
+2026-10-28T03:00:53+01:00 predator kernel: [  54034]     0 54034   104634     9249     9223       26         0   266240     1696             0 python
+2026-10-28T03:00:53+01:00 predator kernel: [  54120]   989 54120  2945860    26362    26251      111         0  2969600     2176             0 node
+2026-10-28T03:00:53+01:00 predator kernel: [  54243]  1000 54243   163315    42974    42952       22         0   561152      702             0 hermes
+2026-10-28T03:00:53+01:00 predator kernel: [  54710]   987 54710    37987      188      160       28         0   102400        0             0 .host-tools-wra
+2026-10-28T03:00:53+01:00 predator kernel: [  54717]     0 54717   423923    18307    18199      108         0   602112     2827             0 python
+2026-10-28T03:00:53+01:00 predator kernel: [  54888]   989 54888     1245      133       32      101         0    53248        0             0 sh
+2026-10-28T03:00:53+01:00 predator kernel: [  54893]   989 54893   286476     4976     4972        4         0   192512       96             0 .websockify-wra
+2026-10-28T03:00:53+01:00 predator kernel: [  56022]  1000 56022   324087     4132     4010      122         0   200704      316           200 cloudflared
+2026-10-28T03:00:53+01:00 predator kernel: [  56364]   999 56364   163723     1342      114       90      1138   212992      572             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  56365]   999 56365   163683     1187      114       52      1021   200704      572             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  56366]   999 56366   163683     3829      114       67      3648   208896      572             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  56367]   999 56367   163817      386      146      107       133   208896      572             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  56368]   999 56368    23405      230      114      116         0   159744      572             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  56369]   999 56369   197477      123      114        9         0   200704      572             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  56370]   999 56370   163790      333      146       79       108   192512      572             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  57582]     0 57582   468856     2903     2784      119         0   323584        0             0 .podman-wrapped
+2026-10-28T03:00:53+01:00 predator kernel: [  57644]     0 57644     2599      183       37      146         0    61440        0         -1000 conmon
+2026-10-28T03:00:53+01:00 predator kernel: [  57661]     0 57661      643       49        0       49         0    49152        0             0 tini
+2026-10-28T03:00:53+01:00 predator kernel: [  57673]     0 57673   767214    80272    80261       11         0 10223616      192             0 immich
+2026-10-28T03:00:53+01:00 predator kernel: [  57821]     0 57821   547947    20226    20184       42         0  2756608        0             0 MainThread
+2026-10-28T03:00:53+01:00 predator kernel: [  57850]     0 57850   466741     2223     2167       56         0   294912        0             0 .podman-wrapped
+2026-10-28T03:00:53+01:00 predator kernel: [  57851]     0 57851   466700     2219     2106      113         0   307200        0             0 .podman-wrapped
+2026-10-28T03:00:53+01:00 predator kernel: [  57912]     0 57912    13665     3351     3275       76         0   110592        0             0 python3
+2026-10-28T03:00:53+01:00 predator kernel: [  57913]     0 57913     3274      675      640       35         0    65536        0             0 pg_isready
+2026-10-28T03:00:53+01:00 predator kernel: [  57920]     0 57920   437379      629      512      117         0   253952        0             0 .podman-wrapped
+2026-10-28T03:00:53+01:00 predator kernel: [  57957]     0 57957   418945      565      416      149         0   241664        0             0 .podman-wrapped
+2026-10-28T03:00:53+01:00 predator kernel: [  58012]   999 58012   163953     1310      228       71      1011   204800      573             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  58021]     0 58021     3241      246      160       86         0    69632        0             0 sshd-session
+2026-10-28T03:00:53+01:00 predator kernel: [  58034]     0 58034     3142      132      128        4         0    53248        0             0 sshd-session
+2026-10-28T03:00:53+01:00 predator kernel: [  58035]    71 58035    56209      975      204       49       722   151552      461             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [  58037]   989 58037     1245      149       83       66         0    53248        0             0 sh
+2026-10-28T03:00:53+01:00 predator kernel: [  58038]   989 58038     1245      142       83       59         0    53248        0             0 sh
+2026-10-28T03:00:53+01:00 predator kernel: [  58039]   989 58039     1674      193      160       33         0    57344        0             0 ps
+2026-10-28T03:00:53+01:00 predator kernel: [  58040]   989 58040     1245      105       83       22         0    53248        0             0 sh
+2026-10-28T03:00:53+01:00 predator kernel: [  58043]   989 58043     1282       48        0       48         0    57344        0             0 awk
+2026-10-28T03:00:53+01:00 predator kernel: [  58044]    71 58044    56209      536      141        0       395   147456      460             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [  58045]   999 58045   163823      548      106       82       360   204800      580             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: [  58053]    71 58053    56176      485      173       70       242   147456      460             0 .postgres-wrapp
+2026-10-28T03:00:53+01:00 predator kernel: [  58061]   999 58061   163683      163      106       57         0   159744      580             0 postgres
+2026-10-28T03:00:53+01:00 predator kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=beszel-agent.service,mems_allowed=0,global_oom,task_memcg=/system.slice/nix-daemon.service,task=nix-daemon,pid=21702,uid=0
+2026-10-28T03:00:53+01:00 predator kernel: Out of memory: Killed process 21702 (nix-daemon) total-vm:11799196kB, anon-rss:5698920kB, file-rss:268kB, shmem-rss:0kB, UID:0 pgtables:21584kB oom_score_adj:0
+2026-10-27T18:43:49+01:00 predator nix-daemon[1748]: accepted connection from pid 21692, user mirsella
+2026-10-28T02:24:56+01:00 predator systemd[1]: Starting Back up Hermes runtime state to Tank...
+2026-10-28T02:24:57+01:00 predator host-tools[53614]: /srv/backup tank/backup zfs rw,noatime,xattr,posixacl,casesensitive
+2026-10-28T02:25:02+01:00 predator runuser[53763]: pam_unix(runuser:session): session opened for user mirsella(uid=1000) by (uid=0)
+2026-10-28T02:25:02+01:00 predator runuser[53763]: pam_unix(runuser:session): session closed for user mirsella
+2026-10-28T02:25:05+01:00 predator host-tools[53777]: tar: hermes/.hermes/state/gateway.loop-tick.4810.sock: socket ignored
+2026-10-28T02:25:05+01:00 predator host-tools[53777]: tar: hermes/.hermes/gateway.sock: socket ignored
+2026-10-28T02:26:08+01:00 predator systemd[1]: Starting Sanoid snapshot service...
+2026-10-28T02:26:57+01:00 predator systemctl[54109]: Job for hermes-browser-control.service failed because a timeout was exceeded.
+2026-10-28T02:26:57+01:00 predator systemctl[54109]: See "systemctl status hermes-browser-control.service" and "journalctl -xeu hermes-browser-control.service" for details.
+2026-10-28T02:28:28+01:00 predator host-tools[53441]: host-tools: Backup failed; partial archive retained at /srv/backup/hermes/hermes-eROSFi.tar.gz.partial: Service recovery failed: systemctl start ["hermes-backend.service", "hermes-browser-control.service", "camofox-browser.service"] exited exit status: 1
+2026-10-28T02:28:27+01:00 predator systemd[1]: hermes-backup.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-28T02:28:27+01:00 predator systemd[1]: hermes-backup.service: Failed with result 'exit-code'.
+2026-10-28T02:28:28+01:00 predator systemd[1]: Failed to start Back up Hermes runtime state to Tank.
+2026-10-28T02:28:28+01:00 predator systemd[1]: hermes-backup.service: Consumed 33.426s CPU time over 3min 31.182s wall clock time, 35.1M memory peak, 1.1M memory swap peak, 1G read from disk, 2.3M written to disk.
+2026-10-28T02:33:42+01:00 predator systemd[1]: sanoid.service: start-pre operation timed out. Terminating.
+2026-10-28T02:34:33+01:00 predator zfs[54490]: Usage:         allow <filesystem|volume>
+2026-10-28T02:34:33+01:00 predator zfs[54490]:         allow [-ldug] <"everyone"|user|group>[,...] <perm|@setname>[,...]
+2026-10-28T02:34:33+01:00 predator zfs[54490]:             <filesystem|volume>
+2026-10-28T02:34:33+01:00 predator zfs[54490]:         allow [-ld] -e <perm|@setname>[,...] <filesystem|volume>
+2026-10-28T02:34:33+01:00 predator zfs[54490]:         allow -c <perm|@setname>[,...] <filesystem|volume>
+2026-10-28T02:34:33+01:00 predator zfs[54490]:         allow -s @setname <perm|@setname>[,...] <filesystem|volume>
+2026-10-28T02:34:33+01:00 predator zfs[54490]: Options:
+2026-10-28T02:34:33+01:00 predator zfs[54490]:   -h          show this help message and exit
+2026-10-28T02:34:33+01:00 predator zfs[54490]:   -l          set permission locally
+2026-10-28T02:34:33+01:00 predator zfs[54490]:   -d          set permission for descents
+2026-10-28T02:34:33+01:00 predator zfs[54490]:   -u          set permission for user
+2026-10-28T02:34:33+01:00 predator zfs[54490]:   -g          set permission for group
+2026-10-28T02:34:33+01:00 predator zfs[54490]:   -e          set permission for everyone
+2026-10-28T02:34:33+01:00 predator zfs[54490]:   -c          set create time permission
+2026-10-28T02:34:33+01:00 predator zfs[54490]:   -s          define permission set
+2026-10-28T02:34:33+01:00 predator zfs[54490]: The following permissions are supported:
+2026-10-28T02:34:33+01:00 predator zfs[54490]: NAME             TYPE                  NOTES
+2026-10-28T02:34:33+01:00 predator zfs[54490]: allow            subcommand            Must also have the permission that is being
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 allowed
+2026-10-28T02:34:33+01:00 predator zfs[54490]: clone            subcommand            Must also have the 'create' ability and 'mount'
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 ability in the origin file system
+2026-10-28T02:34:33+01:00 predator zfs[54490]: create           subcommand            Must also have the 'mount' ability
+2026-10-28T02:34:33+01:00 predator zfs[54490]: destroy          subcommand            Must also have the 'mount' ability
+2026-10-28T02:34:33+01:00 predator zfs[54490]: diff             subcommand            Allows lookup of paths within a dataset;
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 given an object number. Ordinary users need this
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 in order to use zfs diff
+2026-10-28T02:34:33+01:00 predator zfs[54490]: hold             subcommand            Allows adding a user hold to a snapshot
+2026-10-28T02:34:33+01:00 predator zfs[54490]: mount            subcommand            Allows mount/umount of ZFS datasets
+2026-10-28T02:34:33+01:00 predator zfs[54490]: promote          subcommand            Must also have the 'mount'
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 and 'promote' ability in the origin file system
+2026-10-28T02:34:33+01:00 predator zfs[54490]: receive          subcommand            Must also have the 'mount' and 'create' ability
+2026-10-28T02:34:33+01:00 predator zfs[54490]: release          subcommand            Allows releasing a user hold which
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 might destroy the snapshot
+2026-10-28T02:34:33+01:00 predator zfs[54490]: rename           subcommand            Must also have the 'mount' and 'create'
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 ability in the new parent
+2026-10-28T02:34:33+01:00 predator zfs[54490]: rollback         subcommand
+2026-10-28T02:34:33+01:00 predator zfs[54490]: send             subcommand            Allow sending datasets
+2026-10-28T02:34:33+01:00 predator zfs[54490]: send:raw         subcommand            Allow sending datasets, but only in 'raw'
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 replication mode
+2026-10-28T02:34:33+01:00 predator zfs[54490]: send:encrypted   subcommand            Allow sending only encrypted datasets, and
+2026-10-28T02:34:33+01:00 predator zfs[54490]:                                 only in 'raw' replication mode
+2026-10-28T02:34:37+01:00 predator zfs[54490]: share            subcommand            Allows sharing file systems over NFS or SMB
+2026-10-28T02:34:37+01:00 predator zfs[54490]:                                 protocols
+2026-10-28T02:34:37+01:00 predator zfs[54490]: snapshot         subcommand
+2026-10-28T02:34:37+01:00 predator zfs[54490]: bookmark         subcommand
+2026-10-28T02:34:37+01:00 predator zfs[54490]: load-key         subcommand            Allows loading or unloading an encryption key
+2026-10-28T02:34:37+01:00 predator zfs[54490]: change-key       subcommand            Allows changing or adding an encryption key
+2026-10-28T02:34:37+01:00 predator zfs[54490]: groupquota       other                 Allows accessing any groupquota@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: groupused        other                 Allows reading any groupused@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: userprop         other                 Allows changing any user property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: userquota        other                 Allows accessing any userquota@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: userused         other                 Allows reading any userused@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: userobjquota     other                 Allows accessing any userobjquota@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: userobjused      other                 Allows reading any userobjused@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: groupobjquota    other                 Allows accessing any
+2026-10-28T02:34:37+01:00 predator zfs[54490]:                                 groupobjquota@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: groupobjused     other                 Allows reading any groupobjused@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: projectused      other                 Allows reading any projectused@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: projectquota     other                 Allows accessing any projectquota@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: projectobjused   other                 Allows accessing any
+2026-10-28T02:34:37+01:00 predator zfs[54490]:                                 projectobjused@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: projectobjquota  other                 Allows accessing any
+2026-10-28T02:34:37+01:00 predator zfs[54490]:                                 projectobjquota@... property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: aclinherit       property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: aclmode          property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: acltype          property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: atime            property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: canmount         property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: casesensitivity  property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: checksum         property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: compression      property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: context          property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: copies           property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: dedup            property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: defaultgroupobjquota property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: defaultgroupquota property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: defaultprojectobjquota property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: defaultprojectquota property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: defaultuserobjquota property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: defaultuserquota property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: defcontext       property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: devices          property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: direct           property
+2026-10-28T02:34:37+01:00 predator zfs[54490]: dnodesize        property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: encryption       property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: exec             property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: filesystem_limit property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: fscontext        property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: keyformat        property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: keylocation      property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: logbias          property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: longname         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: mlslabel         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: mountpoint       property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: nbmand           property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: normalization    property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: overlay          property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: pbkdf2iters      property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: prefetch         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: primarycache     property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: quota            property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: readonly         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: recordsize       property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: redundant_metadata property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: refquota         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: refreservation   property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: relatime         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: reservation      property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: rootcontext      property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: secondarycache   property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: setuid           property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: sharenfs         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: sharesmb         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: snapdev          property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: snapdir          property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: snapshot_limit   property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: special_small_blocks property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: sync             property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: utf8only         property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: version          property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: volblocksize     property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: volmode          property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: volsize          property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: volthreading     property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: vscan            property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: xattr            property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: zoned            property
+2026-10-28T02:35:08+01:00 predator zfs[54490]: zfs: error: invalid user/group sanoid
+2026-10-28T02:37:44+01:00 predator systemd[1]: sanoid.service: State 'stop-post' timed out. Terminating.
+2026-10-28T02:37:57+01:00 predator systemd[1]: sanoid.service: Failed with result 'timeout'.
+2026-10-28T02:37:58+01:00 predator systemd[1]: Failed to start Sanoid snapshot service.
+2026-10-28T02:37:58+01:00 predator systemd[1]: sanoid.service: Consumed 7.120s CPU time over 11min 49.345s wall clock time, 8.7M memory peak, 232K memory swap peak, 6.3G read from disk, 632K written to disk.
+2026-10-28T03:00:52+01:00 predator systemd[1]: nix-daemon.service: The kernel OOM killer killed some processes in this unit.
+FragmentPath=/etc/systemd/system.control/predator-pm-clock-handoff.service
+Result=success
+ExecStart={ path=/nix/store/wqjpcch9axzfapjdcm572318c7zrcgia-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/wqjpcch9axzfapjdcm572318c7zrcgia-predator-pm-study-0.1.0/bin/predator-pm-study clock-handoff ; ignore_errors=no ; start_time=[Tue 2026-10-27 18:41:08 CET] ; stop_time=[Tue 2026-10-27 18:41:09 CET] ; pid=20282 ; code=exited ; status=0 }
+  File: /home/mirsella/dev/dotfiles/.scratch/pm-resume-20261027/build.status
+  Size: 2         	Blocks: 8          IO Block: 4096   regular file
+Device: 254,0	Inode: 786628      Links: 1
+Access: (0644/-rw-r--r--)  Uid: ( 1000/mirsella)   Gid: (  100/   users)
+Access: 2026-10-28 08:01:30.830089620 +0100
+Modify: 2026-10-28 03:00:57.421293525 +0100
+Change: 2026-10-28 03:00:57.421293525 +0100
+ Birth: 2026-10-28 03:00:57.421293525 +0100
+  File: /home/mirsella/dev/dotfiles/.scratch/pm-resume-20261027/build.log
+  Size: 592737    	Blocks: 1160       IO Block: 4096   regular file
+Device: 254,0	Inode: 786856      Links: 1
+Access: (0644/-rw-r--r--)  Uid: ( 1000/mirsella)   Gid: (  100/   users)
+Access: 2026-10-28 03:00:57.427293529 +0100
+Modify: 2026-10-28 03:00:56.885293174 +0100
+Change: 2026-10-28 03:00:56.885293174 +0100
+ Birth: 2026-10-27 18:43:48.902688354 +0100

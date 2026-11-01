@@ -1,0 +1,5 @@
+operation=Ok(())
+evidence=Ok(())
+cleanup=Ok(())
+reader=Ok(ExitStatus(unix_wait_status(9)))
+join_ok=true

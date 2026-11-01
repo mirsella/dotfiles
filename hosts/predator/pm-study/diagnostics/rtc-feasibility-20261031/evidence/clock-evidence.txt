@@ -1,0 +1,65 @@
+2026-10-31T08:36:07+01:00
+f8eb6e44-85ae-4e56-bc00-587876699945
+tsc
+tsc hpet acpi_pm 
+flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb pti ssbd ibrs ibpb stibp tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp vnmi md_clear flush_l1d arch_capabilities
+[    1.364508] predator kernel: tsc: Detected 2799.927 MHz TSC
+[    1.366675] predator kernel: TSC deadline timer available
+[    1.366907] predator kernel: clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    1.367494] predator kernel: clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    1.367581] predator kernel: clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 79635855245 ns
+[    1.367885] predator kernel: clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x285bfbafad2, max_idle_ns: 440795215530 ns
+[    1.369534] predator kernel: PM: RTC time: 17:26:33, date: 2026-10-30
+[    1.393277] predator kernel: clocksource: Switched to clocksource tsc-early
+[    1.397365] predator kernel: clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    1.403527] predator kernel: PM:   Magic number: 14:458:442
+[    1.409618] predator kernel: tsc: Refined TSC clocksource calibration: 2807.999 MHz
+[    1.409631] predator kernel: clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x2879c523a63, max_idle_ns: 440795252908 ns
+[    1.409641] predator kernel: clocksource: Switched to clocksource tsc
+[   27.964412] predator kernel: pm_stage: phase recorder loaded, armed=0, century register=0x32
+[13926.741819] predator kernel: Calling timekeeping_syscore_suspend+0x0/0x10
+[13926.742068] predator kernel: Calling timekeeping_syscore_resume+0x0/0x10
+[14822.574317] predator kernel: Calling timekeeping_syscore_suspend+0x0/0x10
+[14822.574551] predator kernel: Calling timekeeping_syscore_resume+0x0/0x10
+abcb8a0a-354d-4de3-a6ef-4bfd9c1a8ea1-boot-rtc.txt 99279 2026-10-16
+ef0daaba-80a7-4dc0-815f-db43bd7e5af1-boot-rtc.txt 98818 2026-10-16
+6ae5f220-7ff6-42cf-b520-330f8257dd6e-boot-rtc.txt 98787 2026-10-12
+5271820b-0d2c-4232-a00e-ebd0bf5c34d2-boot-rtc.txt 98598 2026-10-18
+f8eb6e44-85ae-4e56-bc00-587876699945-boot-rtc.txt 101104 2026-10-30
+74360ddd-a1a9-4ee3-93e6-2b533d11165d-boot-rtc.txt 98675 2026-10-16
+5cb8ff7a-ec4d-4c5f-a5af-5f15bc6ca698-boot-rtc.txt 98810 2026-10-12
+4f67b02a-fd49-416e-8731-8cb9c410719f-boot-rtc.txt 98422 2026-10-18
+0e17a3fe-84fd-41d1-9dd8-7431dc1a2d62-boot-rtc.txt 97763 2099-07-02
+7254fdfa-d105-4cac-a29d-db8ce540811d-boot-rtc.txt 98757 2026-10-18
+8fb3bc53-b732-4249-ac20-3b3ee11025d6-boot-rtc.txt 99141 2026-10-13
+b223cb35-a02b-4417-a3db-569ad986cd4b-boot-rtc.txt 101110 2026-10-28
+3a4f575d-fc54-4a64-af06-14f9a8fa63d0-boot-rtc.txt 99220 2026-10-15
+356dd395-0874-4edd-93a5-bf3e0e316fee-boot-rtc.txt 95485 2026-10-10
+63072a8d-448c-497b-a6ec-49a8784b9bed-boot-rtc.txt 99048 2026-10-12
+4e5cb3ba-062b-4ad0-bd18-7e24492f97e6-boot-rtc.txt 101283 2026-10-29
+e5c893be-7bb2-4d97-aa2d-97103d7e0a23-boot-rtc.txt 98367 2026-10-18
+efe15d4d-b69c-4d19-8b2b-8aba76fb495f-boot-rtc.txt 98499 2026-10-16
+214d0240-3825-4946-8492-c30bf530eba0-boot-rtc.txt 98999 2026-10-16
+3807011a-6769-45f3-91a4-35f290f3a57c-boot-rtc.txt 97803 2099-07-02
+3e3c970d-025f-4b78-8e00-f911e202e948-boot-rtc.txt 99140 2026-10-20
+de9d9e05-8614-417f-b090-74857b150977-boot-rtc.txt 98100 2026-10-15
+d8cff31a-ae76-45a1-b913-7f7d8b51b4e1-boot-rtc.txt 99626 2026-10-12
+97c84d69-2b6a-497f-a992-d0dc7a4fb5a9-boot-rtc.txt 98530 2026-10-18
+9c19e8c7-a404-454c-813e-ced03d90a71c-boot-rtc.txt 99695 2026-10-27
+5026ab30-85d0-4f9b-9e35-ce176899500f-boot-rtc.txt 98516 2026-10-18
+c991ef76-ded0-42b8-ad47-9758216c6602-boot-rtc.txt 96431 2026-10-09
+614a8318-dc72-4308-ae89-d4680fafac4e-boot-rtc.txt 100993 2026-10-30
+13bec0dd-b611-43aa-a9b7-30a8de33195e-boot-rtc.txt 100604 2026-10-29
+4aa86e0f-f921-40ef-838b-b13ef4fbc2b1-boot-rtc.txt 98752 2026-10-12
+6fe6b4f3-9bbc-4451-a6f5-0f9e21ff208a-boot-rtc.txt 99262 2026-10-12
+3c1873e4-b866-41e1-b411-702168ef90cf-boot-rtc.txt 101403 2026-10-30
+b0f7e947-a7bf-4410-aece-191277fd0a9d-boot-rtc.txt 99290 2026-10-17
+e7bbc49a-91e8-4b69-ba62-1bf6c30e77f3-boot-rtc.txt 98535 2026-10-12
+ec5879d4-6451-49be-be4b-da0dc810db4d-boot-rtc.txt 95267 2026-10-09
+c1ec58b7-8e62-4f8d-a4c7-383f458695b3-boot-rtc.txt 103312 2026-10-09
+59e8d37c-6497-47e1-a444-dd46b4b13aa9-boot-rtc.txt 98818 2026-10-16
+8b7a173d-8406-4072-aebc-c85c8b4989e7-boot-rtc.txt 101124 2026-10-30
+/sys/module/rtc_cmos/parameters/use_acpi_alarm
+Y
+/nix/store/3jcksrsfmyw8vk1cwp0x5ynb3h1q1pdp-predator-pm-stage-20261009/lib/modules/6.18.58/extra/pm_stage.ko.xz
+8fd79959fa979cabf2dfac97c4a60dbdab505cca5cf3e3902772faebd3071d9e  /run/booted-system/kernel-modules/lib/modules/6.18.58/extra/pm_stage.ko.xz

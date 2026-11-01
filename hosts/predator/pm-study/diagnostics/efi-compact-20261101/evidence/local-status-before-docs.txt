@@ -1,0 +1,38 @@
+ M AGENTS.md
+ M README.md
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M modules/home/workstation.nix
+ M pkgs/host-tools/src/agent_tools.rs
+ M pkgs/kache/default.nix
+ M pkgs/kache/local-cache-fixes.patch
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+AM pkgs/predator-pm-study/boundary-compact.c
+A  pkgs/predator-pm-study/boundary-compact.nix
+A  pkgs/predator-pm-study/boundary-probe.c
+A  pkgs/predator-pm-study/boundary-probe.nix
+ M pkgs/predator-pm-study/instrumented.rs
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/wake_path.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs

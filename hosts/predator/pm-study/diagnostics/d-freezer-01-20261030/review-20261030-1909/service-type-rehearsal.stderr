@@ -1,0 +1,12 @@
+Running as unit: predator-pm-diagnostic-job-proof-oneshot-20261030.service
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 93ms
+             CPU time consumed: 43ms
+                   Memory peak: 2M (swap: 0B)
+Running as unit: predator-pm-diagnostic-job-proof-exec-20261030.service
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 89ms
+             CPU time consumed: 45ms
+                   Memory peak: 2M (swap: 0B)

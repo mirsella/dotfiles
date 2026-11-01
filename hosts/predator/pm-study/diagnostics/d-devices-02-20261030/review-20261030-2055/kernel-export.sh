@@ -1,0 +1,1 @@
+journalctl -k -b f8eb6e4485ae4e56bc00587876699945 --no-pager -o export

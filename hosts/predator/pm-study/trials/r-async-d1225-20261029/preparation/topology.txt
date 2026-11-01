@@ -1,0 +1,136 @@
+2026-10-28T21:01:25+01:00
+b223cb35-a02b-4417-a3db-569ad986cd4b
+
+USB=/sys/bus/usb/devices/1-2
+busnum=1
+devpath=2
+idVendor=05e3
+idProduct=0610
+product=USB2.1 Hub
+manufacturer=GenesysLogic
+speed=480
+power/control=auto
+power/runtime_status=suspended
+
+USB=/sys/bus/usb/devices/1-2.1
+busnum=1
+devpath=2.1
+idVendor=05e3
+idProduct=0610
+product=USB2.1 Hub
+manufacturer=GenesysLogic
+speed=480
+power/control=auto
+power/runtime_status=suspended
+
+USB=/sys/bus/usb/devices/1-7
+busnum=1
+devpath=7
+idVendor=04ca
+idProduct=3016
+speed=12
+power/control=auto
+power/runtime_status=suspended
+
+USB=/sys/bus/usb/devices/1-9
+busnum=1
+devpath=9
+idVendor=0408
+idProduct=a060
+product=HD WebCam
+manufacturer=Generic
+serial=200901010001
+speed=480
+power/control=auto
+power/runtime_status=suspended
+
+USB=/sys/bus/usb/devices/2-2
+busnum=2
+devpath=2
+idVendor=05e3
+idProduct=0626
+product=USB3.1 Hub
+manufacturer=GenesysLogic
+speed=5000
+power/control=auto
+power/runtime_status=active
+
+USB=/sys/bus/usb/devices/2-2.1
+busnum=2
+devpath=2.1
+idVendor=05e3
+idProduct=0626
+product=USB3.1 Hub
+manufacturer=GenesysLogic
+speed=5000
+power/control=auto
+power/runtime_status=suspended
+
+USB=/sys/bus/usb/devices/2-2.2
+busnum=2
+devpath=2.2
+idVendor=174c
+idProduct=1153
+product=Ugreen Storage Device
+manufacturer=Ugreen
+serial=26A1EE8339CB
+speed=5000
+power/control=on
+power/runtime_status=active
+
+USB=/sys/bus/usb/devices/2-2.3
+busnum=2
+devpath=2.3
+idVendor=1058
+idProduct=2647
+product=easystore 2647
+manufacturer=Western Digital
+serial=5758443241343139434C4338
+speed=5000
+power/control=on
+power/runtime_status=active
+
+USB=/sys/bus/usb/devices/2-2.4
+busnum=2
+devpath=2.4
+idVendor=174c
+idProduct=1153
+product=Ugreen Storage Device
+manufacturer=Ugreen
+serial=26A1EE8313F8
+speed=5000
+power/control=on
+power/runtime_status=active
+
+USB=/sys/bus/usb/devices/usb1
+busnum=1
+devpath=0
+idVendor=1d6b
+idProduct=0002
+product=xHCI Host Controller
+manufacturer=Linux 6.18.58 xhci-hcd
+serial=0000:00:14.0
+speed=480
+power/control=auto
+power/runtime_status=suspended
+
+USB=/sys/bus/usb/devices/usb2
+busnum=2
+devpath=0
+idVendor=1d6b
+idProduct=0003
+product=xHCI Host Controller
+manufacturer=Linux 6.18.58 xhci-hcd
+serial=0000:00:14.0
+speed=5000
+power/control=auto
+power/runtime_status=active
+SESSION  UID USER     SEAT LEADER CLASS   TTY IDLE SINCE
+      1 1000 mirsella -    1696   manager -   no   -
+      4 1000 mirsella -    5678   user    -   no   -
+
+2 sessions listed.
+WHO            UID USER PID  COMM           WHAT  WHY                                       MODE
+NetworkManager 0   root 1636 NetworkManager sleep NetworkManager needs to turn off networks delay
+
+1 inhibitors listed.

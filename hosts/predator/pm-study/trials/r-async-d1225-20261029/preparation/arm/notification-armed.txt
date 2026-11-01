@@ -1,0 +1,25 @@
+Starting predator-pm-r-async-d1225-20261029-notice-setup.service - Predator study Telegram notice...
+{"ok":true,"result":{"message_id":88727,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":932980505,"first_name":"mirsella","type":"private"},"date":1793217742,"text":"Predator / r-async-d1225-20261029 / Pi observer\nNotifications enabled. Test window: 2026-10-29 09:21:02 CET; first wake 09:37:02 CET, retry +30s. Keep the power graph. Schedule notices do not prove sleep entry."}}
+predator-pm-r-async-d1225-20261029-notice-setup.service: Deactivated successfully.
+Finished predator-pm-r-async-d1225-20261029-notice-setup.service - Predator study Telegram notice.
+ExecStart={ path=/usr/bin/python3 ; argv[]=/usr/bin/python3 /home/mirsella/wol_predator.py ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+OnSuccess=predator-pm-r-async-d1225-20261029-notice-wake-ok.service
+OnFailure=predator-pm-r-async-d1225-20261029-notice-wake-failed.service
+ExecStart={ path=/usr/bin/python3 ; argv[]=/usr/bin/python3 /home/mirsella/wol_predator.py ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+OnSuccess=predator-pm-r-async-d1225-20261029-notice-retry-ok.service
+OnFailure=predator-pm-r-async-d1225-20261029-notice-retry-failed.service
+ExecStart={ path=/usr/bin/timeout ; argv[]=/usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+OnSuccess=predator-pm-r-async-d1225-20261029-notice-probe-ok.service
+OnFailure=predator-pm-r-async-d1225-20261029-notice-probe-failed.service
+ExecStart={ path=/usr/bin/cp ; argv[]=/usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-async-d1225-20261029-result.log ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+OnSuccess=predator-pm-r-async-d1225-20261029-notice-snapshot-ok.service
+OnFailure=predator-pm-r-async-d1225-20261029-notice-snapshot-failed.service
+# /run/systemd/system/predator-pm-r-async-d1225-20261029-notice-start.timer
+[Unit]
+Description=Predator study start-window notice
+[Timer]
+OnCalendar=@1793262062
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+600 root /run/predator-pm-r-async-d1225-20261029-telegram.conf

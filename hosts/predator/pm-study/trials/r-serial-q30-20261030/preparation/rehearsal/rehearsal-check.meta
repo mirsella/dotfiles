@@ -1,0 +1,8 @@
+host=192.168.1.19
+status=exit status: 1
+script:
+set -eu
+'/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study' check-trial '/var/lib/predator-pm-study/r-serial-q30-20261030-plan.conf' '97ba58c433bf52024f86a342647ee5fba1ba667d5546ee96d9bba19ebd4524cf'
+
+stderr:
+Error: "active maintenance: nextcloud-cron.service loaded activating condition start nextcloud-cron.service"

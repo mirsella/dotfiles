@@ -1,0 +1,16 @@
+{
+  "classification": "BLOCKED_BEFORE_ARMING",
+  "taskId": "scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-s3-logging-preparation-20261031-0830",
+  "dateGuardPassedAt": "2026-10-31T08:30:22+01:00",
+  "exactTaskDeletedAtStart": true,
+  "schedulerCheckedAt": "2026-10-31T07:45:49.708Z",
+  "consumedTaskStillPresent": false,
+  "remainingPredatorTasks": [],
+  "newSuspendAttempts": 0,
+  "newPowerTransitions": 0,
+  "newMachineTimers": 0,
+  "newRuntime": null,
+  "newTrialManifest": null,
+  "nextTrial": null,
+  "blocker": "RTC recorder disables available kernel sleep-duration clocks; no independently validated replacement measurement or complete RTC writeback/retention protocol is established."
+}

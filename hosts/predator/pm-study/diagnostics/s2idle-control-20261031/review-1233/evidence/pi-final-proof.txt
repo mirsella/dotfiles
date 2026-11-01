@@ -1,0 +1,62 @@
+2026-10-31T12:34:16+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+NTPSynchronized=yes
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 37.909ms (max: 5s)
+       Offset: +697us
+        Delay: 9.212ms
+       Jitter: 2.270ms
+ Packet count: 597
+    Frequency: -14.023ppm
+MainPID=1974
+ActiveState=active
+SubState=running
+ActiveEnterTimestamp=Sat 2026-10-17 13:25:43 CEST
+No jobs running.
+NEXT LEFT LAST                         PASSED            UNIT                                                   ACTIVATES
+-    -    Thu 2026-10-29 09:21:02 CET  2 days ago        predator-pm-r-async-d1225-20261029-notice-start.timer  predator-pm-r-async-d1225-20261029-notice-start.service
+-    -    Sat 2026-10-17 18:00:00 CEST 1 week 6 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer   predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 3 days ago predator-pm-r-async-h8-20261020-notice-start.timer     predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 5 days ago predator-pm-r-async-q30-20261018-notice-start.timer    predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Fri 2026-10-30 08:30:40 CET  1 day 4h ago      predator-pm-r-serial-d1225-20261030-notice-start.timer predator-pm-r-serial-d1225-20261030-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 1 week 6 days ago predator-pm-r-serial-m15-20261017-notice-start.timer   predator-pm-r-serial-m15-20261017-notice-start.service
+-    -    Fri 2026-10-30 12:35:04 CET  23h ago           predator-pm-r-serial-q35-20261030-notice-start.timer   predator-pm-r-serial-q35-20261030-notice-start.service
+-    -    Fri 2026-10-30 14:12:53 CET  22h ago           predator-pm-r-serial-q35r1-20261030-notice-start.timer predator-pm-r-serial-q35r1-20261030-notice-start.service
+-    -    Fri 2026-10-30 17:44:18 CET  18h ago           predator-pm-r-serial-q37-20261030-notice-start.timer   predator-pm-r-serial-q37-20261030-notice-start.service
+
+9 timers listed.
+ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8  /home/mirsella/wol_predator.py
+a767d259d642d52e1dbebc881fd7bbf58e11f6adee27f2a7ff39f7f2d8d6cfa2  /home/mirsella/dev/predator-pm-debug/.agents-local/s2idle-20261031-baseline.log
+c41b683160c76853729a1de6bd461c703adecd3512abeb05b7eec9a056e5262e  /home/mirsella/dev/predator-pm-debug/.agents-local/s2idle-20261031-result.log
+/home/mirsella/dev/predator-pm-debug/.agents-local/s2idle-20261031-baseline.log root 644 2882530 2026-10-31 11:53:48.376481065 +0100
+/home/mirsella/dev/predator-pm-debug/.agents-local/s2idle-20261031-result.log root 644 2912202 2026-10-31 12:26:00.577478882 +0100
+UNIT wake
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+ActiveState=inactive
+UNIT wake-retry
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+ActiveState=inactive
+UNIT probe
+Result=exit-code
+ExecMainStartTimestamp=Sat 2026-10-31 12:24:30 CET
+ExecMainExitTimestamp=Sat 2026-10-31 12:24:33 CET
+ExecMainStatus=1
+ActiveState=failed
+UNIT snapshot
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+ActiveState=inactive

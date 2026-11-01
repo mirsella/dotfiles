@@ -1,0 +1,1273 @@
+epoch=1793360106
+uptime=2102.74 16165.36
+2026-10-30 12:35:06.850591+01:00
+pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:04:10 with 0 errors on Sat Oct  3 14:19:29 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: resilvered 132K in 00:00:01 with 0 errors on Sun Oct  4 01:20:38 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+[    1.329044] predator kernel: Linux version 6.18.58 (nixbld@localhost) (gcc (GCC) 16.2.0, GNU ld (GNU Binutils) 2.46) #1-NixOS SMP PREEMPT_DYNAMIC @1792571549
+[    1.329135] predator kernel: Command line: init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+[    1.329217] predator kernel: BIOS-provided physical RAM map:
+[    1.329248] predator kernel: BIOS-e820: [mem 0x0000000000000000-0x0000000000057fff] usable
+[    1.329263] predator kernel: BIOS-e820: [mem 0x0000000000058000-0x0000000000058fff] reserved
+[    1.329290] predator kernel: BIOS-e820: [mem 0x0000000000059000-0x000000000009dfff] usable
+[    1.329304] predator kernel: BIOS-e820: [mem 0x000000000009e000-0x00000000000fffff] reserved
+[    1.329319] predator kernel: BIOS-e820: [mem 0x0000000000100000-0x0000000061d3cfff] usable
+[    1.329330] predator kernel: BIOS-e820: [mem 0x0000000061d3d000-0x0000000061d3dfff] ACPI NVS
+[    1.329341] predator kernel: BIOS-e820: [mem 0x0000000061d3e000-0x0000000061d3efff] reserved
+[    1.329351] predator kernel: BIOS-e820: [mem 0x0000000061d3f000-0x0000000079bfdfff] usable
+[    1.329361] predator kernel: BIOS-e820: [mem 0x0000000079bfe000-0x000000007a78dfff] reserved
+[    1.329371] predator kernel: BIOS-e820: [mem 0x000000007a78e000-0x000000007ae7dfff] ACPI NVS
+[    1.329381] predator kernel: BIOS-e820: [mem 0x000000007ae7e000-0x000000007aefdfff] ACPI data
+[    1.329396] predator kernel: BIOS-e820: [mem 0x000000007aefe000-0x000000007aefefff] usable
+[    1.329407] predator kernel: BIOS-e820: [mem 0x000000007aeff000-0x000000007fffffff] reserved
+[    1.329416] predator kernel: BIOS-e820: [mem 0x00000000e0000000-0x00000000efffffff] reserved
+[    1.329426] predator kernel: BIOS-e820: [mem 0x00000000fd000000-0x00000000fe7fffff] reserved
+[    1.329436] predator kernel: BIOS-e820: [mem 0x00000000fec00000-0x00000000fec00fff] reserved
+[    1.329446] predator kernel: BIOS-e820: [mem 0x00000000fed00000-0x00000000fed00fff] reserved
+[    1.329456] predator kernel: BIOS-e820: [mem 0x00000000fed10000-0x00000000fed19fff] reserved
+[    1.329466] predator kernel: BIOS-e820: [mem 0x00000000fed84000-0x00000000fed84fff] reserved
+[    1.329476] predator kernel: BIOS-e820: [mem 0x00000000fee00000-0x00000000fee00fff] reserved
+[    1.329485] predator kernel: BIOS-e820: [mem 0x00000000ffa00000-0x00000000ffffffff] reserved
+[    1.329495] predator kernel: BIOS-e820: [mem 0x0000000100000000-0x000000027effffff] usable
+[    1.329505] predator kernel: NX (Execute Disable) protection: active
+[    1.329514] predator kernel: APIC: Static calls initialized
+[    1.329525] predator kernel: efi: EFI v2.5 by INSYDE Corp.
+[    1.329536] predator kernel: efi: ACPI 2.0=0x7aefd014 SMBIOS=0x79f9a000 SMBIOS 3.0=0x79f98000 ESRT=0x79f967d8 MEMATTR=0x6a4ed018 RNG=0x7aeaaf98 INITRD=0x639f96d8 TPMEventLog=0x7aea1018 
+[    1.329549] predator kernel: random: crng init done
+[    1.329560] predator kernel: TPM Final Events table not present
+[    1.329571] predator kernel: efi: Remove mem44: MMIO range=[0xe0000000-0xefffffff] (256MB) from e820 map
+[    1.329582] predator kernel: e820: remove [mem 0xe0000000-0xefffffff] reserved
+[    1.329593] predator kernel: efi: Remove mem45: MMIO range=[0xfd000000-0xfe7fffff] (24MB) from e820 map
+[    1.329604] predator kernel: e820: remove [mem 0xfd000000-0xfe7fffff] reserved
+[    1.329615] predator kernel: efi: Not removing mem46: MMIO range=[0xfec00000-0xfec00fff] (4KB) from e820 map
+[    1.329625] predator kernel: efi: Not removing mem47: MMIO range=[0xfed00000-0xfed00fff] (4KB) from e820 map
+[    1.329636] predator kernel: efi: Not removing mem48: MMIO range=[0xfed10000-0xfed19fff] (40KB) from e820 map
+[    1.329647] predator kernel: efi: Not removing mem49: MMIO range=[0xfed84000-0xfed84fff] (4KB) from e820 map
+[    1.329658] predator kernel: efi: Not removing mem50: MMIO range=[0xfee00000-0xfee00fff] (4KB) from e820 map
+[    1.329675] predator kernel: efi: Remove mem51: MMIO range=[0xffa00000-0xffffffff] (6MB) from e820 map
+[    1.329688] predator kernel: e820: remove [mem 0xffa00000-0xffffffff] reserved
+[    1.329699] predator kernel: SMBIOS 3.0.0 present.
+[    1.329710] predator kernel: DMI: Acer Predator PH317-51/Sienna_KLS, BIOS V1.21 11/02/2018
+[    1.329720] predator kernel: DMI: Memory slots populated: 1/2
+[    1.329731] predator kernel: tsc: Detected 2800.000 MHz processor
+[    1.329745] predator kernel: tsc: Detected 2799.927 MHz TSC
+[    1.329757] predator kernel: e820: update [mem 0x00000000-0x00000fff] usable ==> reserved
+[    1.329770] predator kernel: e820: remove [mem 0x000a0000-0x000fffff] usable
+[    1.329782] predator kernel: last_pfn = 0x27f000 max_arch_pfn = 0x400000000
+[    1.329794] predator kernel: MTRR map: 4 entries (3 fixed + 1 variable; max 23), built from 10 variable MTRRs
+[    1.329807] predator kernel: x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    1.329819] predator kernel: last_pfn = 0x7aeff max_arch_pfn = 0x400000000
+[    1.329831] predator kernel: esrt: Reserving ESRT space from 0x0000000079f967d8 to 0x0000000079f96810.
+[    1.329843] predator kernel: Using GB pages for direct mapping
+[    1.329856] predator kernel: Secure boot enabled
+[    1.329871] predator kernel: RAMDISK: [mem 0x5be1f000-0x5e9fefff]
+[    1.329885] predator kernel: ACPI: Early table checksum verification disabled
+[    1.329897] predator kernel: ACPI: RSDP 0x000000007AEFD014 000024 (v02 ACRSYS)
+[    1.329910] predator kernel: ACPI: XSDT 0x000000007AEC0188 00012C (v01 ACRSYS ACRPRDCT 00000000      01000013)
+[    1.329923] predator kernel: ACPI: FACP 0x000000007AEE8000 00010C (v05 ACRSYS ACRPRDCT 00000000 1025 00040000)
+[    1.329935] predator kernel: ACPI: DSDT 0x000000007AEC4000 01FC29 (v02 ACRSYS ACRPRDCT 00000000 1025 00040000)
+[    1.329947] predator kernel: ACPI: FACS 0x000000007AE59000 000040
+[    1.329959] predator kernel: ACPI: UEFI 0x000000007AEFB000 000042 (v01 ACRSYS ACRPRDCT 00000002 1025 00040000)
+[    1.329971] predator kernel: ACPI: MSDM 0x000000007AEF4000 000055 (v03 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.329986] predator kernel: ACPI: SSDT 0x000000007AEF2000 000046 (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+[    1.329999] predator kernel: ACPI: SSDT 0x000000007AEED000 003113 (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+[    1.330024] predator kernel: ACPI: ASPT 0x000000007AEEB000 000034 (v07 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330036] predator kernel: ACPI: DBGP 0x000000007AEE9000 000034 (v01 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330048] predator kernel: ACPI: APIC 0x000000007AEE6000 0000BC (v03 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330061] predator kernel: ACPI: SSDT 0x000000007AEC3000 000BC8 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+[    1.330073] predator kernel: ACPI: LPIT 0x000000007AEC1000 000094 (v01 ACRSYS ACRPRDCT 00000000 1025 00040000)
+[    1.330086] predator kernel: ACPI: SSDT 0x000000007AEBE000 00029F (v02 ACRSYS ACRPRDCT 00000000 1025 00040000)
+[    1.330101] predator kernel: ACPI: SSDT 0x000000007AEB9000 003002 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+[    1.330113] predator kernel: ACPI: DBGP 0x000000007AEB7000 000034 (v01 ACRSYS ACRPRDCT 00000002 1025 00040000)
+[    1.330126] predator kernel: ACPI: SSDT 0x000000007AEB4000 00106A (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+[    1.330138] predator kernel: ACPI: SSDT 0x000000007AEB3000 000EDE (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+[    1.330151] predator kernel: ACPI: DMAR 0x000000007AEE4000 0000F0 (v01 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330164] predator kernel: ACPI: SSDT 0x000000007AEF5000 0058C1 (v01 ACRSYS ACRPRDCT 00001000 1025 00040000)
+[    1.330180] predator kernel: ACPI: TPM2 0x000000007AEF1000 000034 (v03 ACRSYS ACRPRDCT 00000000 1025 00040000)
+[    1.330192] predator kernel: ACPI: BOOT 0x000000007AEEA000 000028 (v01 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330207] predator kernel: ACPI: MCFG 0x000000007AEE5000 00003C (v01 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330220] predator kernel: ACPI: WSMT 0x000000007AEBF000 000028 (v01 ACRSYS ACRPRDCT 00000000 1025 00040000)
+[    1.330233] predator kernel: ACPI: SSDT 0x000000007AEB8000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+[    1.330246] predator kernel: ACPI: NHLT 0x000000007AEAD000 00002D (v00 ACRSYS ACRPRDCT 00000002 1025 00040000)
+[    1.330259] predator kernel: ACPI: UEFI 0x000000007AEFC000 000236 (v01 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330271] predator kernel: ACPI: ASF! 0x000000007AEEC000 0000A5 (v32 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330283] predator kernel: ACPI: SSDT 0x000000007AEC2000 0001BC (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+[    1.330296] predator kernel: ACPI: DBG2 0x000000007AEB6000 000054 (v00 ACRSYS ACRPRDCT 00000002 1025 00040000)
+[    1.330311] predator kernel: ACPI: FPDT 0x000000007AEAC000 000044 (v01 ACRSYS ACRPRDCT 00000002 1025 00040000)
+[    1.330323] predator kernel: ACPI: HPET 0x000000007AEE7000 000038 (v01 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330337] predator kernel: ACPI: SSDT 0x000000007AEAE000 00477C (v01 ACRSYS ACRPRDCT 00001000 1025 00040000)
+[    1.330350] predator kernel: ACPI: SSDT 0x000000007AEBD000 000346 (v01 ACRSYS ACRPRDCT 00000000 1025 00040000)
+[    1.330362] predator kernel: ACPI: SSDT 0x000000007AEF3000 0004C3 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+[    1.330375] predator kernel: ACPI: BGRT 0x000000007AEAB000 000038 (v01 ACRSYS ACRPRDCT 00000001 1025 00040000)
+[    1.330387] predator kernel: ACPI: Reserving FACP table memory at [mem 0x7aee8000-0x7aee810b]
+[    1.330399] predator kernel: ACPI: Reserving DSDT table memory at [mem 0x7aec4000-0x7aee3c28]
+[    1.330411] predator kernel: ACPI: Reserving FACS table memory at [mem 0x7ae59000-0x7ae5903f]
+[    1.330427] predator kernel: ACPI: Reserving UEFI table memory at [mem 0x7aefb000-0x7aefb041]
+[    1.330441] predator kernel: ACPI: Reserving MSDM table memory at [mem 0x7aef4000-0x7aef4054]
+[    1.330454] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aef2000-0x7aef2045]
+[    1.330466] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aeed000-0x7aef0112]
+[    1.330480] predator kernel: ACPI: Reserving ASPT table memory at [mem 0x7aeeb000-0x7aeeb033]
+[    1.330493] predator kernel: ACPI: Reserving DBGP table memory at [mem 0x7aee9000-0x7aee9033]
+[    1.330503] predator kernel: ACPI: Reserving APIC table memory at [mem 0x7aee6000-0x7aee60bb]
+[    1.330521] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aec3000-0x7aec3bc7]
+[    1.330537] predator kernel: ACPI: Reserving LPIT table memory at [mem 0x7aec1000-0x7aec1093]
+[    1.330551] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aebe000-0x7aebe29e]
+[    1.330567] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aeb9000-0x7aebc001]
+[    1.330582] predator kernel: ACPI: Reserving DBGP table memory at [mem 0x7aeb7000-0x7aeb7033]
+[    1.330599] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aeb4000-0x7aeb5069]
+[    1.330616] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aeb3000-0x7aeb3edd]
+[    1.330634] predator kernel: ACPI: Reserving DMAR table memory at [mem 0x7aee4000-0x7aee40ef]
+[    1.330649] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aef5000-0x7aefa8c0]
+[    1.330664] predator kernel: ACPI: Reserving TPM2 table memory at [mem 0x7aef1000-0x7aef1033]
+[    1.330677] predator kernel: ACPI: Reserving BOOT table memory at [mem 0x7aeea000-0x7aeea027]
+[    1.330693] predator kernel: ACPI: Reserving MCFG table memory at [mem 0x7aee5000-0x7aee503b]
+[    1.330711] predator kernel: ACPI: Reserving WSMT table memory at [mem 0x7aebf000-0x7aebf027]
+[    1.330732] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aeb8000-0x7aeb851d]
+[    1.330751] predator kernel: ACPI: Reserving NHLT table memory at [mem 0x7aead000-0x7aead02c]
+[    1.330771] predator kernel: ACPI: Reserving UEFI table memory at [mem 0x7aefc000-0x7aefc235]
+[    1.330787] predator kernel: ACPI: Reserving ASF! table memory at [mem 0x7aeec000-0x7aeec0a4]
+[    1.330802] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aec2000-0x7aec21bb]
+[    1.330819] predator kernel: ACPI: Reserving DBG2 table memory at [mem 0x7aeb6000-0x7aeb6053]
+[    1.330836] predator kernel: ACPI: Reserving FPDT table memory at [mem 0x7aeac000-0x7aeac043]
+[    1.330855] predator kernel: ACPI: Reserving HPET table memory at [mem 0x7aee7000-0x7aee7037]
+[    1.330871] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aeae000-0x7aeb277b]
+[    1.330894] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aebd000-0x7aebd345]
+[    1.330909] predator kernel: ACPI: Reserving SSDT table memory at [mem 0x7aef3000-0x7aef34c2]
+[    1.330926] predator kernel: ACPI: Reserving BGRT table memory at [mem 0x7aeab000-0x7aeab037]
+[    1.330943] predator kernel: No NUMA configuration found
+[    1.330961] predator kernel: Faking a node at [mem 0x0000000000000000-0x000000027effffff]
+[    1.330978] predator kernel: NODE_DATA(0) allocated [mem 0x27eff8780-0x27effdcff]
+[    1.330997] predator kernel: Zone ranges:
+[    1.331026] predator kernel:   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    1.331038] predator kernel:   DMA32    [mem 0x0000000001000000-0x00000000ffffffff]
+[    1.331062] predator kernel:   Normal   [mem 0x0000000100000000-0x000000027effffff]
+[    1.331089] predator kernel:   Device   empty
+[    1.331105] predator kernel: Movable zone start for each node
+[    1.331119] predator kernel: Early memory node ranges
+[    1.331130] predator kernel:   node   0: [mem 0x0000000000001000-0x0000000000057fff]
+[    1.331146] predator kernel:   node   0: [mem 0x0000000000059000-0x000000000009dfff]
+[    1.331163] predator kernel:   node   0: [mem 0x0000000000100000-0x0000000061d3cfff]
+[    1.331180] predator kernel:   node   0: [mem 0x0000000061d3f000-0x0000000079bfdfff]
+[    1.331199] predator kernel:   node   0: [mem 0x000000007aefe000-0x000000007aefefff]
+[    1.331218] predator kernel:   node   0: [mem 0x0000000100000000-0x000000027effffff]
+[    1.331627] predator kernel: Initmem setup node 0 [mem 0x0000000000001000-0x000000027effffff]
+[    1.331649] predator kernel: On node 0, zone DMA: 1 pages in unavailable ranges
+[    1.331897] predator kernel: On node 0, zone DMA: 1 pages in unavailable ranges
+[    1.331946] predator kernel: On node 0, zone DMA: 98 pages in unavailable ranges
+[    1.331966] predator kernel: On node 0, zone DMA32: 2 pages in unavailable ranges
+[    1.332273] predator kernel: On node 0, zone DMA32: 4864 pages in unavailable ranges
+[    1.332322] predator kernel: On node 0, zone Normal: 20737 pages in unavailable ranges
+[    1.332563] predator kernel: On node 0, zone Normal: 4096 pages in unavailable ranges
+[    1.332611] predator kernel: Reserving Intel graphics memory at [mem 0x7c000000-0x7fffffff]
+[    1.332640] predator kernel: ACPI: PM-Timer IO Port: 0x1808
+[    1.332656] predator kernel: ACPI: LAPIC_NMI (acpi_id[0x01] high edge lint[0x1])
+[    1.332667] predator kernel: ACPI: LAPIC_NMI (acpi_id[0x02] high edge lint[0x1])
+[    1.332680] predator kernel: ACPI: LAPIC_NMI (acpi_id[0x03] high edge lint[0x1])
+[    1.332695] predator kernel: ACPI: LAPIC_NMI (acpi_id[0x04] high edge lint[0x1])
+[    1.332709] predator kernel: ACPI: LAPIC_NMI (acpi_id[0x05] high edge lint[0x1])
+[    1.332727] predator kernel: ACPI: LAPIC_NMI (acpi_id[0x06] high edge lint[0x1])
+[    1.332745] predator kernel: ACPI: LAPIC_NMI (acpi_id[0x07] high edge lint[0x1])
+[    1.332764] predator kernel: ACPI: LAPIC_NMI (acpi_id[0x08] high edge lint[0x1])
+[    1.332782] predator kernel: IOAPIC[0]: apic_id 2, version 32, address 0xfec00000, GSI 0-119
+[    1.332806] predator kernel: ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    1.332825] predator kernel: ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    1.332844] predator kernel: ACPI: Using ACPI (MADT) for SMP configuration information
+[    1.332867] predator kernel: ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    1.332889] predator kernel: e820: update [mem 0x6a265000-0x6a358fff] usable ==> reserved
+[    1.332910] predator kernel: TSC deadline timer available
+[    1.332929] predator kernel: CPU topo: Max. logical packages:   1
+[    1.332948] predator kernel: CPU topo: Max. logical dies:       1
+[    1.332968] predator kernel: CPU topo: Max. dies per package:   1
+[    1.332992] predator kernel: CPU topo: Max. threads per core:   2
+[    1.333028] predator kernel: CPU topo: Num. cores per package:     4
+[    1.333047] predator kernel: CPU topo: Num. threads per package:   8
+[    1.333066] predator kernel: CPU topo: Allowing 8 present CPUs plus 0 hotplug CPUs
+[    1.333084] predator kernel: PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    1.333104] predator kernel: PM: hibernation: Registered nosave memory: [mem 0x00058000-0x00058fff]
+[    1.333118] predator kernel: PM: hibernation: Registered nosave memory: [mem 0x0009e000-0x000fffff]
+[    1.333140] predator kernel: PM: hibernation: Registered nosave memory: [mem 0x61d3d000-0x61d3efff]
+[    1.333158] predator kernel: PM: hibernation: Registered nosave memory: [mem 0x6a265000-0x6a358fff]
+[    1.333180] predator kernel: PM: hibernation: Registered nosave memory: [mem 0x79bfe000-0x7aefdfff]
+[    1.333200] predator kernel: PM: hibernation: Registered nosave memory: [mem 0x7aeff000-0xffffffff]
+[    1.333220] predator kernel: [mem 0x80000000-0xfebfffff] available for PCI devices
+[    1.333241] predator kernel: Booting paravirtualized kernel on bare hardware
+[    1.333257] predator kernel: clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    1.333276] predator kernel: setup_percpu: NR_CPUS:512 nr_cpumask_bits:8 nr_cpu_ids:8 nr_node_ids:1
+[    1.333295] predator kernel: percpu: Embedded 98 pages/cpu s278528 r8192 d114688 u524288
+[    1.333320] predator kernel: pcpu-alloc: s278528 r8192 d114688 u524288 alloc=1*2097152
+[    1.333341] predator kernel: pcpu-alloc: [0] 0 1 2 3 [0] 4 5 6 7 
+[    1.333366] predator kernel: Kernel command line: init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+[    1.333384] predator kernel: printk: log buffer data + meta data: 1048576 + 3670016 = 4718592 bytes
+[    1.333403] predator kernel: Dentry cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    1.333444] predator kernel: Inode-cache hash table entries: 524288 (order: 10, 4194304 bytes, linear)
+[    1.333470] predator kernel: software IO TLB: area num 8.
+[    1.333491] predator kernel: Fallback order for Node 0: 0 
+[    1.333506] predator kernel: Built 1 zonelists, mobility grouping on.  Total pages: 2067353
+[    1.333520] predator kernel: Policy zone: Normal
+[    1.333540] predator kernel: mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    1.333551] predator kernel: SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=8, Nodes=1
+[    1.333564] predator kernel: allocated 16777216 bytes of page_ext
+[    1.333575] predator kernel: Kernel/User page tables isolation: enabled
+[    1.333586] predator kernel: ftrace: allocating 48989 entries in 192 pages
+[    1.333597] predator kernel: ftrace: allocated 192 pages with 2 groups
+[    1.333609] predator kernel: Dynamic Preempt: lazy
+[    1.333628] predator kernel: rcu: Preemptible hierarchical RCU implementation.
+[    1.333649] predator kernel: rcu:         RCU event tracing is enabled.
+[    1.333663] predator kernel: rcu:         RCU restricting CPUs from NR_CPUS=512 to nr_cpu_ids=8.
+[    1.333675] predator kernel:         Trampoline variant of Tasks RCU enabled.
+[    1.333687] predator kernel:         Rude variant of Tasks RCU enabled.
+[    1.333698] predator kernel:         Tracing variant of Tasks RCU enabled.
+[    1.333711] predator kernel: rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    1.333721] predator kernel: rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=8
+[    1.333735] predator kernel: RCU Tasks: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    1.333749] predator kernel: RCU Tasks Rude: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    1.333774] predator kernel: RCU Tasks Trace: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    1.333789] predator kernel: NR_IRQS: 33024, nr_irqs: 2048, preallocated irqs: 16
+[    1.333809] predator kernel: rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    1.333825] predator kernel: clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    1.333844] predator kernel: kfence: initialized - using 2097152 bytes for 255 objects at 0x(____ptrval____)-0x(____ptrval____)
+[    1.333865] predator kernel: Console: colour dummy device 80x25
+[    1.333883] predator kernel: printk: legacy console [tty0] enabled
+[    1.333901] predator kernel: ACPI: Core revision 20250807
+[    1.333917] predator kernel: clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 79635855245 ns
+[    1.333934] predator kernel: APIC: Switch to symmetric I/O mode setup
+[    1.333953] predator kernel: DMAR: Host address width 39
+[    1.333970] predator kernel: DMAR: DRHD base: 0x000000fed90000 flags: 0x0
+[    1.333985] predator kernel: DMAR: dmar0: reg_base_addr fed90000 ver 1:0 cap 1c0000c40660462 ecap 19e2ff0505e
+[    1.334010] predator kernel: DMAR: DRHD base: 0x000000fed91000 flags: 0x1
+[    1.334033] predator kernel: DMAR: dmar1: reg_base_addr fed91000 ver 1:0 cap d2008c40660462 ecap f050da
+[    1.334052] predator kernel: DMAR: RMRR base: 0x0000007a66a000 end: 0x0000007a689fff
+[    1.334073] predator kernel: DMAR: RMRR base: 0x0000007b800000 end: 0x0000007fffffff
+[    1.334103] predator kernel: DMAR: ANDD device: 1 name: \_SB.PCI0.I2C0
+[    1.334127] predator kernel: DMAR: ANDD device: 2 name: \_SB.PCI0.I2C1
+[    1.334162] predator kernel: DMAR-IR: IOAPIC id 2 under DRHD base  0xfed91000 IOMMU 1
+[    1.334193] predator kernel: DMAR-IR: HPET id 0 under DRHD base 0xfed91000
+[    1.334236] predator kernel: DMAR-IR: Queued invalidation will be enabled to support x2apic and Intr-remapping.
+[    1.334270] predator kernel: DMAR-IR: Enabled IRQ remapping in x2apic mode
+[    1.334352] predator kernel: x2apic enabled
+[    1.334377] predator kernel: APIC: Switched APIC routing to: cluster x2apic
+[    1.334406] predator kernel: ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    1.334428] predator kernel: clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x285bfbafad2, max_idle_ns: 440795215530 ns
+[    1.334444] predator kernel: Calibrating delay loop (skipped), value calculated using timer frequency.. 5599.85 BogoMIPS (lpj=2799927)
+[    1.334474] predator kernel: x86/cpu: SGX disabled or unsupported by BIOS.
+[    1.334490] predator kernel: CPU0: Thermal monitoring enabled (TM1)
+[    1.334506] predator kernel: Last level iTLB entries: 4KB 64, 2MB 8, 4MB 8
+[    1.334521] predator kernel: Last level dTLB entries: 4KB 64, 2MB 32, 4MB 32, 1GB 4
+[    1.334536] predator kernel: process: using mwait in idle threads
+[    1.334552] predator kernel: mitigations: Enabled attack vectors: user_kernel, user_user, guest_host, guest_guest, SMT mitigations: auto
+[    1.334566] predator kernel: Speculative Store Bypass: Mitigation: Speculative Store Bypass disabled via prctl
+[    1.334582] predator kernel: SRBDS: Mitigation: Microcode
+[    1.334601] predator kernel: Spectre V2 : Mitigation: IBRS
+[    1.334616] predator kernel: RETBleed: Mitigation: IBRS
+[    1.334632] predator kernel: Spectre V2 : User space: Mitigation: STIBP via prctl
+[    1.334646] predator kernel: MDS: Mitigation: Clear CPU buffers
+[    1.334667] predator kernel: MMIO Stale Data: Mitigation: Clear CPU buffers
+[    1.334679] predator kernel: VMSCAPE: Mitigation: IBPB before exit to userspace
+[    1.334690] predator kernel: Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    1.334699] predator kernel: Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    1.334709] predator kernel: Spectre V2 : Enabling IBPB for BPF
+[    1.334722] predator kernel: Spectre V2 : mitigation: Enabling conditional Indirect Branch Prediction Barrier
+[    1.334732] predator kernel: GDS: Mitigation: Microcode
+[    1.334742] predator kernel: x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    1.334752] predator kernel: x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    1.334763] predator kernel: x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    1.334775] predator kernel: x86/fpu: Supporting XSAVE feature 0x008: 'MPX bounds registers'
+[    1.334789] predator kernel: x86/fpu: Supporting XSAVE feature 0x010: 'MPX CSR'
+[    1.334800] predator kernel: x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    1.334810] predator kernel: x86/fpu: xstate_offset[3]:  832, xstate_sizes[3]:   64
+[    1.334825] predator kernel: x86/fpu: xstate_offset[4]:  896, xstate_sizes[4]:   64
+[    1.334842] predator kernel: x86/fpu: Enabled xstate features 0x1f, context size is 960 bytes, using 'compacted' format.
+[    1.334859] predator kernel: Freeing SMP alternatives memory: 48K
+[    1.334875] predator kernel: pid_max: default: 32768 minimum: 301
+[    1.334886] predator kernel: LSM: initializing lsm=lockdown,capability,landlock,yama,bpf,ima
+[    1.334899] predator kernel: landlock: Up and running.
+[    1.334911] predator kernel: Yama: becoming mindful.
+[    1.334922] predator kernel: LSM support for eBPF active
+[    1.334933] predator kernel: Mount-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    1.334948] predator kernel: Mountpoint-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    1.334959] predator kernel: smpboot: CPU0: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz (family: 0x6, model: 0x9e, stepping: 0x9)
+[    1.334971] predator kernel: Performance Events: PEBS fmt3+, Skylake events, 32-deep LBR, full-width counters, Intel PMU driver.
+[    1.334982] predator kernel: ... version:                   4
+[    1.334992] predator kernel: ... bit width:                 48
+[    1.335013] predator kernel: ... generic counters:          4
+[    1.335025] predator kernel: ... generic bitmap:            000000000000000f
+[    1.335036] predator kernel: ... fixed-purpose counters:    3
+[    1.335051] predator kernel: ... fixed-purpose bitmap:      0000000000000007
+[    1.335062] predator kernel: ... value mask:                0000ffffffffffff
+[    1.335073] predator kernel: ... max period:                00007fffffffffff
+[    1.335085] predator kernel: ... global_ctrl mask:          000000070000000f
+[    1.335096] predator kernel: signal: max sigframe size: 2032
+[    1.335108] predator kernel: Estimated ratio of average max frequency by base frequency (times 1024): 1243
+[    1.335127] predator kernel: rcu: Hierarchical SRCU implementation.
+[    1.335138] predator kernel: rcu:         Max phase no-delay instances is 400.
+[    1.335152] predator kernel: Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    1.335168] predator kernel: NMI watchdog: Enabled. Permanently consumes one hw-PMU counter.
+[    1.335179] predator kernel: smp: Bringing up secondary CPUs ...
+[    1.335190] predator kernel: smpboot: x86: Booting SMP configuration:
+[    1.335201] predator kernel: .... node  #0, CPUs:      #1 #2 #3 #4 #5 #6 #7
+[    1.335215] predator kernel: MDS CPU bug present and SMT on, data leak possible. See https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/mds.html for more details.
+[    1.335228] predator kernel: MMIO Stale Data CPU bug present and SMT on, data leak possible. See https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/processor_mmio_stale_data.html for more details.
+[    1.335245] predator kernel: VMSCAPE: SMT on, STIBP is required for full protection. See https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/vmscape.html for more details.
+[    1.335255] predator kernel: smp: Brought up 1 node, 8 CPUs
+[    1.335270] predator kernel: smpboot: Total of 8 processors activated (44798.83 BogoMIPS)
+[    1.335286] predator kernel: Memory: 7854716K/8269412K available (18186K kernel code, 5431K rwdata, 13716K rodata, 6720K init, 3992K bss, 376776K reserved, 0K cma-reserved)
+[    1.335302] predator kernel: devtmpfs: initialized
+[    1.335324] predator kernel: x86/mm: Memory block size: 128MB
+[    1.335336] predator kernel: ACPI: PM: Registering ACPI NVS region [mem 0x61d3d000-0x61d3dfff] (4096 bytes)
+[    1.335359] predator kernel: ACPI: PM: Registering ACPI NVS region [mem 0x7a78e000-0x7ae7dfff] (7274496 bytes)
+[    1.335381] predator kernel: posixtimers hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    1.335405] predator kernel: futex hash table entries: 2048 (131072 bytes on 1 NUMA nodes, total 128 KiB, linear).
+[    1.335429] predator kernel: pinctrl core: initialized pinctrl subsystem
+[    1.335456] predator kernel: PM: RTC time: 11:00:04, date: 2026-10-30
+[    1.335496] predator kernel: NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    1.335550] predator kernel: DMA: preallocated 1024 KiB GFP_KERNEL pool for atomic allocations
+[    1.335653] predator kernel: DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    1.335674] predator kernel: DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    1.335685] predator kernel: audit: initializing netlink subsys (disabled)
+[    1.335695] predator kernel: audit: type=2000 audit(1793358004.048:1): state=initialized audit_enabled=0 res=1
+[    1.335708] predator kernel: thermal_sys: Registered thermal governor 'fair_share'
+[    1.335718] predator kernel: thermal_sys: Registered thermal governor 'bang_bang'
+[    1.335731] predator kernel: thermal_sys: Registered thermal governor 'step_wise'
+[    1.335745] predator kernel: thermal_sys: Registered thermal governor 'user_space'
+[    1.335758] predator kernel: thermal_sys: Registered thermal governor 'power_allocator'
+[    1.335771] predator kernel: cpuidle: using governor menu
+[    1.335781] predator kernel: Simple Boot Flag at 0x44 set to 0x1
+[    1.335792] predator kernel: efi: Freeing EFI boot services memory: 61432K
+[    1.335807] predator kernel: ACPI FADT declares the system doesn't support PCIe ASPM, so disable it
+[    1.335823] predator kernel: acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    1.335837] predator kernel: PCI: ECAM [mem 0xe0000000-0xefffffff] (base 0xe0000000) for domain 0000 [bus 00-ff]
+[    1.335856] predator kernel: PCI: Using configuration type 1 for base access
+[    1.335881] predator kernel: kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    1.335931] predator kernel: HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    1.335986] predator kernel: HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    1.336059] predator kernel: HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    1.336076] predator kernel: HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    1.336092] predator kernel: fbcon: Taking over console
+[    1.336111] predator kernel: ACPI: Added _OSI(Module Device)
+[    1.336130] predator kernel: ACPI: Added _OSI(Processor Device)
+[    1.336149] predator kernel: ACPI: Added _OSI(Processor Aggregator Device)
+[    1.336169] predator kernel: ACPI: 14 ACPI AML tables successfully acquired and loaded
+[    1.336177] predator kernel: ACPI: [Firmware Bug]: BIOS _OSI(Linux) query ignored
+[    1.336194] predator kernel: ACPI: Dynamic OEM Table Load:
+[    1.336203] predator kernel: ACPI: SSDT 0xFFFF8D3343059800 0003FF (v02 PmRef  Cpu0Cst  00003001 INTL 20160527)
+[    1.336212] predator kernel: ACPI: Dynamic OEM Table Load:
+[    1.336221] predator kernel: ACPI: SSDT 0xFFFF8D3343060000 000651 (v02 PmRef  Cpu0Ist  00003000 INTL 20160527)
+[    1.336230] predator kernel: ACPI: Dynamic OEM Table Load:
+[    1.336240] predator kernel: ACPI: SSDT 0xFFFF8D3343067800 00065C (v02 PmRef  ApIst    00003000 INTL 20160527)
+[    1.336251] predator kernel: ACPI: Dynamic OEM Table Load:
+[    1.336267] predator kernel: ACPI: SSDT 0xFFFF8D3342517200 000197 (v02 PmRef  ApHwp    00003000 INTL 20160527)
+[    1.336318] predator kernel: ACPI: Dynamic OEM Table Load:
+[    1.336350] predator kernel: ACPI: SSDT 0xFFFF8D3342514600 00018A (v02 PmRef  ApCst    00003000 INTL 20160527)
+[    1.336358] predator kernel: ACPI: EC: EC started
+[    1.336364] predator kernel: ACPI: EC: interrupt blocked
+[    1.336371] predator kernel: ACPI: EC: EC_CMD/EC_SC=0x66, EC_DATA=0x62
+[    1.336380] predator kernel: ACPI: \_SB_.PCI0.LPCB.EC0_: Boot DSDT EC used to handle transactions
+[    1.336398] predator kernel: ACPI: Interpreter enabled
+[    1.336416] predator kernel: ACPI: PM: (supports S0 S3 S4 S5)
+[    1.336425] predator kernel: ACPI: Using IOAPIC for interrupt routing
+[    1.336432] predator kernel: PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    1.336439] predator kernel: PCI: Using E820 reservations for host bridge windows
+[    1.336446] predator kernel: ACPI: Enabled 7 GPEs in block 00 to 7F
+[    1.336453] predator kernel: ACPI: \_SB_.PCI0.PEG0.PG00: New power resource
+[    1.336460] predator kernel: ACPI: \_SB_.PCI0.RP03.PXSX.WRST: New power resource
+[    1.336469] predator kernel: ACPI: \_TZ_.FN00: New power resource
+[    1.336478] predator kernel: ACPI: \_TZ_.FN01: New power resource
+[    1.336485] predator kernel: ACPI: \_TZ_.FN02: New power resource
+[    1.336491] predator kernel: ACPI: \_TZ_.FN03: New power resource
+[    1.336501] predator kernel: ACPI: \_TZ_.FN04: New power resource
+[    1.336508] predator kernel: ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-fe])
+[    1.336983] predator kernel: acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI HPX-Type3]
+[    1.337485] predator kernel: acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug PME]
+[    1.337967] predator kernel: acpi PNP0A08:00: _OSC: OS now controls [AER PCIeCapability LTR]
+[    1.338311] predator kernel: acpi PNP0A08:00: FADT indicates ASPM is unsupported, using BIOS configuration
+[    1.338334] predator kernel: PCI host bridge to bus 0000:00
+[    1.338542] predator kernel: pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    1.338709] predator kernel: pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    1.338871] predator kernel: pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000fffff window]
+[    1.339046] predator kernel: pci_bus 0000:00: root bus resource [mem 0x80000000-0xdfffffff window]
+[    1.339207] predator kernel: pci_bus 0000:00: root bus resource [mem 0xfd000000-0xfe7fffff window]
+[    1.339364] predator kernel: pci_bus 0000:00: root bus resource [bus 00-fe]
+[    1.339549] predator kernel: pci 0000:00:00.0: [8086:5910] type 00 class 0x060000 conventional PCI endpoint
+[    1.339753] predator kernel: pci 0000:00:01.0: [8086:1901] type 01 class 0x060400 PCIe Root Port
+[    1.339934] predator kernel: pci 0000:00:01.0: PCI bridge to [bus 01]
+[    1.340154] predator kernel: pci 0000:00:01.0:   bridge window [io  0x4000-0x4fff]
+[    1.340334] predator kernel: pci 0000:00:01.0:   bridge window [mem 0xa3000000-0xa40fffff]
+[    1.340509] predator kernel: pci 0000:00:01.0:   bridge window [mem 0x90000000-0xa1ffffff 64bit pref]
+[    1.340686] predator kernel: pci 0000:00:01.0: PME# supported from D0 D3hot D3cold
+[    1.340863] predator kernel: pci 0000:00:02.0: [8086:591b] type 00 class 0x030000 PCIe Root Complex Integrated Endpoint
+[    1.341059] predator kernel: pci 0000:00:02.0: BAR 0 [mem 0xa2000000-0xa2ffffff 64bit]
+[    1.341222] predator kernel: pci 0000:00:02.0: BAR 2 [mem 0xb0000000-0xbfffffff 64bit pref]
+[    1.341378] predator kernel: pci 0000:00:02.0: BAR 4 [io  0x5000-0x503f]
+[    1.341546] predator kernel: pci 0000:00:02.0: Video device with shadowed ROM at [mem 0x000c0000-0x000dffff]
+[    1.341758] predator kernel: pci 0000:00:14.0: [8086:a12f] type 00 class 0x0c0330 conventional PCI endpoint
+[    1.342056] predator kernel: pci 0000:00:14.0: BAR 0 [mem 0xa4500000-0xa450ffff 64bit]
+[    1.342263] predator kernel: pci 0000:00:14.0: PME# supported from D3hot D3cold
+[    1.342492] predator kernel: pci 0000:00:14.2: [8086:a131] type 00 class 0x118000 conventional PCI endpoint
+[    1.342701] predator kernel: pci 0000:00:14.2: BAR 0 [mem 0xa452a000-0xa452afff 64bit]
+[    1.342928] predator kernel: pci 0000:00:15.0: [8086:a160] type 00 class 0x118000 conventional PCI endpoint
+[    1.343139] predator kernel: pci 0000:00:15.0: BAR 0 [mem 0xa452b000-0xa452bfff 64bit]
+[    1.343369] predator kernel: pci 0000:00:15.1: [8086:a161] type 00 class 0x118000 conventional PCI endpoint
+[    1.343575] predator kernel: pci 0000:00:15.1: BAR 0 [mem 0xa452c000-0xa452cfff 64bit]
+[    1.343797] predator kernel: pci 0000:00:16.0: [8086:a13a] type 00 class 0x078000 conventional PCI endpoint
+[    1.344016] predator kernel: pci 0000:00:16.0: BAR 0 [mem 0xa452d000-0xa452dfff 64bit]
+[    1.344192] predator kernel: pci 0000:00:16.0: PME# supported from D3hot
+[    1.344360] predator kernel: pci 0000:00:17.0: [8086:a103] type 00 class 0x010601 conventional PCI endpoint
+[    1.344516] predator kernel: pci 0000:00:17.0: BAR 0 [mem 0xa4528000-0xa4529fff]
+[    1.344698] predator kernel: pci 0000:00:17.0: BAR 1 [mem 0xa4530000-0xa45300ff]
+[    1.344907] predator kernel: pci 0000:00:17.0: BAR 2 [io  0x5080-0x5087]
+[    1.345128] predator kernel: pci 0000:00:17.0: BAR 3 [io  0x5088-0x508b]
+[    1.345292] predator kernel: pci 0000:00:17.0: BAR 4 [io  0x5060-0x507f]
+[    1.345484] predator kernel: pci 0000:00:17.0: BAR 5 [mem 0xa452e000-0xa452e7ff]
+[    1.345648] predator kernel: pci 0000:00:17.0: PME# supported from D3hot
+[    1.345846] predator kernel: pci 0000:00:1c.0: [8086:a112] type 01 class 0x060400 PCIe Root Port
+[    1.346079] predator kernel: pci 0000:00:1c.0: PCI bridge to [bus 02]
+[    1.346262] predator kernel: pci 0000:00:1c.0:   bridge window [mem 0xa4200000-0xa43fffff]
+[    1.346440] predator kernel: pci 0000:00:1c.0: PME# supported from D0 D3hot D3cold
+[    1.346630] predator kernel: pci 0000:00:1c.3: [8086:a113] type 01 class 0x060400 PCIe Root Port
+[    1.346803] predator kernel: pci 0000:00:1c.3: PCI bridge to [bus 03]
+[    1.346985] predator kernel: pci 0000:00:1c.3:   bridge window [io  0x3000-0x3fff]
+[    1.347181] predator kernel: pci 0000:00:1c.3:   bridge window [mem 0xa4400000-0xa44fffff]
+[    1.347363] predator kernel: pci 0000:00:1c.3: PME# supported from D0 D3hot D3cold
+[    1.347523] predator kernel: pci 0000:00:1f.0: [8086:a152] type 00 class 0x060100 conventional PCI endpoint
+[    1.347683] predator kernel: pci 0000:00:1f.2: [8086:a121] type 00 class 0x058000 conventional PCI endpoint
+[    1.347852] predator kernel: pci 0000:00:1f.2: BAR 0 [mem 0xa4524000-0xa4527fff]
+[    1.348032] predator kernel: pci 0000:00:1f.3: [8086:a171] type 00 class 0x040380 conventional PCI endpoint
+[    1.348191] predator kernel: pci 0000:00:1f.3: BAR 0 [mem 0xa4520000-0xa4523fff 64bit]
+[    1.348350] predator kernel: pci 0000:00:1f.3: BAR 4 [mem 0xa4510000-0xa451ffff 64bit]
+[    1.348505] predator kernel: pci 0000:00:1f.3: PME# supported from D3hot D3cold
+[    1.348671] predator kernel: pci 0000:00:1f.4: [8086:a123] type 00 class 0x0c0500 conventional PCI endpoint
+[    1.348836] predator kernel: pci 0000:00:1f.4: BAR 0 [mem 0xa452f000-0xa452f0ff 64bit]
+[    1.348998] predator kernel: pci 0000:00:1f.4: BAR 4 [io  0x5040-0x505f]
+[    1.349205] predator kernel: pci 0000:01:00.0: [10de:1c20] type 00 class 0x030000 PCIe Endpoint
+[    1.349375] predator kernel: pci 0000:01:00.0: BAR 0 [mem 0xa3000000-0xa3ffffff]
+[    1.349528] predator kernel: pci 0000:01:00.0: BAR 1 [mem 0x90000000-0x9fffffff 64bit pref]
+[    1.349679] predator kernel: pci 0000:01:00.0: BAR 3 [mem 0xa0000000-0xa1ffffff 64bit pref]
+[    1.349831] predator kernel: pci 0000:01:00.0: BAR 5 [io  0x4000-0x407f]
+[    1.349981] predator kernel: pci 0000:01:00.0: ROM [mem 0xfff80000-0xffffffff pref]
+[    1.350188] predator kernel: pci 0000:01:00.0: Enabling HDA controller
+[    1.350342] predator kernel: pci 0000:01:00.1: [10de:10f1] type 00 class 0x040300 PCIe Endpoint
+[    1.350498] predator kernel: pci 0000:01:00.1: BAR 0 [mem 0xa4000000-0xa4003fff]
+[    1.350659] predator kernel: pci 0000:00:01.0: PCI bridge to [bus 01]
+[    1.350817] predator kernel: pci 0000:02:00.0: [168c:003e] type 00 class 0x028000 PCIe Endpoint
+[    1.350969] predator kernel: pci 0000:02:00.0: BAR 0 [mem 0xa4200000-0xa43fffff 64bit]
+[    1.351241] predator kernel: pci 0000:02:00.0: PME# supported from D0 D3hot D3cold
+[    1.351411] predator kernel: pci 0000:00:1c.0: PCI bridge to [bus 02]
+[    1.351571] predator kernel: pci 0000:03:00.0: [10ec:5287] type 00 class 0xff0000 PCIe Endpoint
+[    1.351730] predator kernel: pci 0000:03:00.0: BAR 0 [mem 0xa4405000-0xa4405fff]
+[    1.351888] predator kernel: pci 0000:03:00.0: ROM [mem 0xffff0000-0xffffffff pref]
+[    1.352091] predator kernel: pci 0000:03:00.0: supports D1 D2
+[    1.352254] predator kernel: pci 0000:03:00.0: PME# supported from D1 D2 D3hot D3cold
+[    1.352414] predator kernel: pci 0000:03:00.1: [10ec:8168] type 00 class 0x020000 PCIe Endpoint
+[    1.352571] predator kernel: pci 0000:03:00.1: BAR 0 [io  0x3000-0x30ff]
+[    1.352728] predator kernel: pci 0000:03:00.1: BAR 2 [mem 0xa4404000-0xa4404fff 64bit]
+[    1.352884] predator kernel: pci 0000:03:00.1: BAR 4 [mem 0xa4400000-0xa4403fff 64bit]
+[    1.353087] predator kernel: pci 0000:03:00.1: supports D1 D2
+[    1.353249] predator kernel: pci 0000:03:00.1: PME# supported from D0 D1 D2 D3hot D3cold
+[    1.353414] predator kernel: pci 0000:00:1c.3: PCI bridge to [bus 03]
+[    1.353428] predator kernel: ACPI: PCI: Interrupt link LNKA configured for IRQ 11
+[    1.353435] predator kernel: ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    1.353441] predator kernel: ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    1.353447] predator kernel: ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    1.353454] predator kernel: ACPI: PCI: Interrupt link LNKE configured for IRQ 11
+[    1.353460] predator kernel: ACPI: PCI: Interrupt link LNKF configured for IRQ 11
+[    1.353466] predator kernel: ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    1.353472] predator kernel: ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    1.353481] predator kernel: ACPI: EC: interrupt unblocked
+[    1.353487] predator kernel: ACPI: EC: event unblocked
+[    1.353493] predator kernel: ACPI: EC: EC_CMD/EC_SC=0x66, EC_DATA=0x62
+[    1.353499] predator kernel: ACPI: EC: GPE=0x14
+[    1.353506] predator kernel: ACPI: \_SB_.PCI0.LPCB.EC0_: Boot DSDT EC initialization complete
+[    1.353513] predator kernel: ACPI: \_SB_.PCI0.LPCB.EC0_: EC: Used to handle transactions and events
+[    1.353519] predator kernel: iommu: Default domain type: Translated
+[    1.353526] predator kernel: iommu: DMA domain TLB invalidation policy: lazy mode
+[    1.353532] predator kernel: ACPI: bus type USB registered
+[    1.353538] predator kernel: usbcore: registered new interface driver usbfs
+[    1.353544] predator kernel: usbcore: registered new interface driver hub
+[    1.353551] predator kernel: usbcore: registered new device driver usb
+[    1.353557] predator kernel: efivars: Registered efivars operations
+[    1.353564] predator kernel: NetLabel: Initializing
+[    1.353570] predator kernel: NetLabel:  domain hash size = 128
+[    1.353576] predator kernel: NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    1.353582] predator kernel: NetLabel:  unlabeled traffic allowed by default
+[    1.353589] predator kernel: PCI: Using ACPI for IRQ routing
+[    1.353595] predator kernel: PCI: pci_cache_line_size set to 64 bytes
+[    1.353604] predator kernel: e820: reserve RAM buffer [mem 0x00058000-0x0005ffff]
+[    1.353612] predator kernel: e820: reserve RAM buffer [mem 0x0009e000-0x0009ffff]
+[    1.353618] predator kernel: e820: reserve RAM buffer [mem 0x61d3d000-0x63ffffff]
+[    1.353624] predator kernel: e820: reserve RAM buffer [mem 0x6a265000-0x6bffffff]
+[    1.353630] predator kernel: e820: reserve RAM buffer [mem 0x79bfe000-0x7bffffff]
+[    1.353636] predator kernel: e820: reserve RAM buffer [mem 0x7aeff000-0x7bffffff]
+[    1.353643] predator kernel: e820: reserve RAM buffer [mem 0x27f000000-0x27fffffff]
+[    1.353804] predator kernel: pci 0000:00:02.0: vgaarb: setting as boot VGA device
+[    1.354039] predator kernel: pci 0000:00:02.0: vgaarb: bridge control possible
+[    1.354251] predator kernel: pci 0000:00:02.0: vgaarb: VGA device added: decodes=io+mem,owns=io+mem,locks=none
+[    1.354472] predator kernel: pci 0000:01:00.0: vgaarb: bridge control possible
+[    1.354692] predator kernel: pci 0000:01:00.0: vgaarb: VGA device added: decodes=io+mem,owns=none,locks=none
+[    1.354710] predator kernel: vgaarb: loaded
+[    1.354726] predator kernel: hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0, 0, 0, 0, 0, 0
+[    1.354743] predator kernel: hpet0: 8 comparators, 64-bit 24.000000 MHz counter
+[    1.354757] predator kernel: clocksource: Switched to clocksource tsc-early
+[    1.354771] predator kernel: VFS: Disk quotas dquot_6.6.0
+[    1.354786] predator kernel: VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    1.354800] predator kernel: pnp: PnP ACPI init
+[    1.355012] predator kernel: system 00:00: [mem 0xfd000000-0xfdabffff] has been reserved
+[    1.355242] predator kernel: system 00:00: [mem 0xfdad0000-0xfdadffff] has been reserved
+[    1.355439] predator kernel: system 00:00: [mem 0xfdb00000-0xfdffffff] has been reserved
+[    1.355622] predator kernel: system 00:00: [mem 0xfe000000-0xfe01ffff] has been reserved
+[    1.355802] predator kernel: system 00:00: [mem 0xfe036000-0xfe03bfff] has been reserved
+[    1.355984] predator kernel: system 00:00: [mem 0xfe03d000-0xfe3fffff] has been reserved
+[    1.356180] predator kernel: system 00:00: [mem 0xfe410000-0xfe7fffff] has been reserved
+[    1.356387] predator kernel: system 00:01: [io  0x2000-0x20fe] has been reserved
+[    1.356587] predator kernel: system 00:02: [io  0x0680-0x069f] has been reserved
+[    1.356782] predator kernel: system 00:02: [io  0xfd60-0xfd63] has been reserved
+[    1.356977] predator kernel: system 00:02: [io  0xffff] has been reserved
+[    1.357189] predator kernel: system 00:02: [io  0xffff] has been reserved
+[    1.357386] predator kernel: system 00:02: [io  0xffff] has been reserved
+[    1.357597] predator kernel: system 00:02: [io  0x1800-0x18fe] could not be reserved
+[    1.357780] predator kernel: system 00:02: [io  0x164e-0x164f] has been reserved
+[    1.357964] predator kernel: system 00:03: [io  0x0800-0x087f] has been reserved
+[    1.358169] predator kernel: system 00:06: [mem 0xfed10000-0xfed17fff] has been reserved
+[    1.358359] predator kernel: system 00:06: [mem 0xfed18000-0xfed18fff] has been reserved
+[    1.358544] predator kernel: system 00:06: [mem 0xfed19000-0xfed19fff] has been reserved
+[    1.358731] predator kernel: system 00:06: [mem 0xe0000000-0xefffffff] has been reserved
+[    1.358911] predator kernel: system 00:06: [mem 0xfed20000-0xfed3ffff] has been reserved
+[    1.359118] predator kernel: system 00:06: [mem 0xfed90000-0xfed93fff] could not be reserved
+[    1.359300] predator kernel: system 00:06: [mem 0xfed45000-0xfed8ffff] could not be reserved
+[    1.359487] predator kernel: system 00:06: [mem 0xff000000-0xff000fff] has been reserved
+[    1.359674] predator kernel: system 00:06: [mem 0xff010000-0xffffffff] has been reserved
+[    1.359822] predator kernel: system 00:06: [mem 0xfee00000-0xfeefffff] could not be reserved
+[    1.359966] predator kernel: system 00:06: [mem 0x80000000-0x8001ffff] has been reserved
+[    1.359977] predator kernel: pnp: PnP ACPI: found 7 devices
+[    1.359986] predator kernel: ACPI Warning: Time parameter 255 us > 100 us violating ACPI spec, please fix the firmware. (20250807/exsystem-142)
+[    1.359999] predator kernel: clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    1.360014] predator kernel: NET: Registered PF_INET protocol family
+[    1.360031] predator kernel: IP idents hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    1.360050] predator kernel: tcp_listen_portaddr_hash hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    1.360065] predator kernel: Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    1.360079] predator kernel: TCP established hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    1.360093] predator kernel: TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, linear)
+[    1.360108] predator kernel: TCP: Hash tables configured (established 65536 bind 65536)
+[    1.360123] predator kernel: MPTCP token hash table entries: 8192 (order: 6, 196608 bytes, linear)
+[    1.360139] predator kernel: UDP hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    1.360153] predator kernel: UDP-Lite hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    1.360170] predator kernel: NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    1.360184] predator kernel: NET: Registered PF_XDP protocol family
+[    1.360412] predator kernel: pci 0000:01:00.0: ROM [mem 0xfff80000-0xffffffff pref]: can't claim; no compatible bridge window
+[    1.360623] predator kernel: pci 0000:03:00.0: ROM [mem 0xffff0000-0xffffffff pref]: can't claim; no compatible bridge window
+[    1.360791] predator kernel: pci 0000:01:00.0: ROM [mem 0xa4080000-0xa40fffff pref]: assigned
+[    1.360965] predator kernel: pci 0000:00:01.0: PCI bridge to [bus 01]
+[    1.361150] predator kernel: pci 0000:00:01.0:   bridge window [io  0x4000-0x4fff]
+[    1.361320] predator kernel: pci 0000:00:01.0:   bridge window [mem 0xa3000000-0xa40fffff]
+[    1.361492] predator kernel: pci 0000:00:01.0:   bridge window [mem 0x90000000-0xa1ffffff 64bit pref]
+[    1.361731] predator kernel: pci 0000:00:1c.0: PCI bridge to [bus 02]
+[    1.361976] predator kernel: pci 0000:00:1c.0:   bridge window [mem 0xa4200000-0xa43fffff]
+[    1.362210] predator kernel: pci 0000:03:00.0: ROM [mem 0xa4410000-0xa441ffff pref]: assigned
+[    1.362467] predator kernel: pci 0000:00:1c.3: PCI bridge to [bus 03]
+[    1.362724] predator kernel: pci 0000:00:1c.3:   bridge window [io  0x3000-0x3fff]
+[    1.362961] predator kernel: pci 0000:00:1c.3:   bridge window [mem 0xa4400000-0xa44fffff]
+[    1.363186] predator kernel: pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    1.363385] predator kernel: pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    1.363595] predator kernel: pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000fffff window]
+[    1.363790] predator kernel: pci_bus 0000:00: resource 7 [mem 0x80000000-0xdfffffff window]
+[    1.363976] predator kernel: pci_bus 0000:00: resource 8 [mem 0xfd000000-0xfe7fffff window]
+[    1.364215] predator kernel: pci_bus 0000:01: resource 0 [io  0x4000-0x4fff]
+[    1.364498] predator kernel: pci_bus 0000:01: resource 1 [mem 0xa3000000-0xa40fffff]
+[    1.364784] predator kernel: pci_bus 0000:01: resource 2 [mem 0x90000000-0xa1ffffff 64bit pref]
+[    1.365181] predator kernel: pci_bus 0000:02: resource 1 [mem 0xa4200000-0xa43fffff]
+[    1.365518] predator kernel: pci_bus 0000:03: resource 0 [io  0x3000-0x3fff]
+[    1.365792] predator kernel: pci_bus 0000:03: resource 1 [mem 0xa4400000-0xa44fffff]
+[    1.366149] predator kernel: pci 0000:01:00.1: extending delay after power-on from D3hot to 20 msec
+[    1.366450] predator kernel: pci 0000:01:00.1: D0 power state depends on 0000:01:00.0
+[    1.366468] predator kernel: PCI: CLS 64 bytes, default 64
+[    1.366556] predator kernel: pci 0000:00:1f.1: [8086:a120] type 00 class 0x058000 conventional PCI endpoint
+[    1.366640] predator kernel: pci 0000:00:1f.1: BAR 0 [mem 0xfd000000-0xfdffffff 64bit]
+[    1.366661] predator kernel: DMAR: ACPI device "device:7d" under DMAR at fed91000 as 00:15.0
+[    1.366680] predator kernel: DMAR: ACPI device "device:7e" under DMAR at fed91000 as 00:15.1
+[    1.366706] predator kernel: PCI-DMA: Using software bounce buffering for IO (SWIOTLB)
+[    1.366731] predator kernel: software IO TLB: mapped [mem 0x0000000075650000-0x0000000079650000] (64MB)
+[    1.366749] predator kernel: Trying to unpack rootfs image as initramfs...
+[    1.366768] predator kernel: Initialise system trusted keyrings
+[    1.366785] predator kernel: Key type blacklist registered
+[    1.366802] predator kernel: workingset: timestamp_bits=40 max_order=21 bucket_order=0
+[    1.366819] predator kernel: integrity: Platform Keyring initialized
+[    1.366837] predator kernel: integrity: Machine keyring initialized
+[    1.366853] predator kernel: Key type asymmetric registered
+[    1.366873] predator kernel: Asymmetric key parser 'x509' registered
+[    1.366892] predator kernel: Block layer SCSI generic (bsg) driver version 0.4 loaded (major 248)
+[    1.366910] predator kernel: io scheduler mq-deadline registered
+[    1.366928] predator kernel: io scheduler kyber registered
+[    1.366945] predator kernel: Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    1.366964] predator kernel: Linux agpgart interface v0.103
+[    1.366980] predator kernel: ACPI: bus type drm_connector registered
+[    1.366997] predator kernel: usbcore: registered new interface driver usbserial_generic
+[    1.367038] predator kernel: usbserial: USB Serial support registered for generic
+[    1.367072] predator kernel: intel_pstate: Intel P-state driver initializing
+[    1.367087] predator kernel: intel_pstate: Disabling energy efficiency optimization
+[    1.367102] predator kernel: intel_pstate: HWP enabled
+[    1.367390] predator kernel: simple-framebuffer simple-framebuffer.0: [drm] Registered 1 planes with drm panic
+[    1.367418] predator kernel: [drm] Initialized simpledrm 1.0.0 for simple-framebuffer.0 on minor 0
+[    1.367437] predator kernel: Console: switching to colour frame buffer device 240x67
+[    1.367716] predator kernel: simple-framebuffer simple-framebuffer.0: [drm] fb0: simpledrmdrmfb frame buffer device
+[    1.367743] predator kernel: pstore: Using crash dump compression: deflate
+[    1.367767] predator kernel: pstore: Registered efi_pstore as persistent store backend
+[    1.367786] predator kernel: drop_monitor: Initializing network drop monitor service
+[    1.367805] predator kernel: NET: Registered PF_INET6 protocol family
+[    1.367824] predator kernel: Segment Routing with IPv6
+[    1.367843] predator kernel: In-situ OAM (IOAM) with IPv6
+[    1.367862] predator kernel: ENERGY_PERF_BIAS: Set to 'normal', was 'performance'
+[    1.367881] predator kernel: microcode: Current revision: 0x000000f8
+[    1.367898] predator kernel: microcode: Updated early from: 0x0000009a
+[    1.367913] predator kernel: IPI shorthand broadcast: enabled
+[    1.367931] predator kernel: sched_clock: Marking stable (443001319, 3805110)->(455875838, -9069409)
+[    1.367948] predator kernel: registered taskstats version 1
+[    1.367963] predator kernel: Loading compiled-in X.509 certificates
+[    1.367978] predator kernel: Demotion targets for Node 0: null
+[    1.367993] predator kernel: Key type .fscrypt registered
+[    1.368029] predator kernel: Key type fscrypt-provisioning registered
+[    1.368045] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368072] predator kernel: integrity: Loaded X.509 cert 'Database Key: 24beeda886b40d3221f8c6ccc7ab8367'
+[    1.368086] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368096] predator kernel: integrity: Loaded X.509 cert 'Microsoft Corporation UEFI CA 2011: 13adbf4309bd82709c8cd54f316ed522988a1bd4'
+[    1.368107] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368154] predator kernel: integrity: Loaded X.509 cert 'Microsoft Windows Production PCA 2011: a92902398e16c49778cd90f99e4f9ae17c55af53'
+[    1.368171] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368195] predator kernel: integrity: Loaded X.509 cert 'Microsoft Option ROM UEFI CA 2023: 514fbf937fa46fb57bf07af8bed84b3b864b1711'
+[    1.368207] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368218] predator kernel: integrity: Loaded X.509 cert 'Microsoft UEFI CA 2023: 81aa6b3244c935bce0d6628af39827421e32497d'
+[    1.368233] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368247] predator kernel: integrity: Loaded X.509 cert 'Microsoft Corporation: Windows UEFI CA 2023: aefc5fbbbe055d8f8daa585473499417ab5a5272'
+[    1.368261] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368273] predator kernel: integrity: Loaded X.509 cert 'Acer Database: 84f00f5841571abd2cc11a8c26d5c9c8d2b6b0b5'
+[    1.368285] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368296] predator kernel: integrity: Problem loading X.509 certificate -65
+[    1.368308] predator kernel: integrity: Error adding keys to platform keyring UEFI:db
+[    1.368319] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.368330] predator kernel: integrity: Problem loading X.509 certificate -65
+[    1.368348] predator kernel: integrity: Error adding keys to platform keyring UEFI:db
+[    1.368358] predator kernel: ima: Allocated hash algorithm: sha1
+[    1.368377] predator kernel: ima: No architecture policies found
+[    1.368395] predator kernel: PM:   Magic number: 14:407:25
+[    1.368693] predator kernel: memory memory65: hash matches
+[    1.368723] predator kernel: RAS: Correctable Errors collector initialized.
+[    1.368743] predator kernel: clk: Disabling unused clocks
+[    1.368762] predator kernel: PM: genpd: Disabling unused power domains
+[    1.368782] predator kernel: Freeing initrd memory: 44928K
+[    1.368802] predator kernel: Freeing unused decrypted memory: 2028K
+[    1.368822] predator kernel: Freeing unused kernel image (initmem) memory: 6720K
+[    1.368846] predator kernel: Write protecting the kernel read-only data: 32768k
+[    1.368866] predator kernel: Freeing unused kernel image (text/rodata gap) memory: 244K
+[    1.368885] predator kernel: Freeing unused kernel image (rodata/data gap) memory: 620K
+[    1.368905] predator kernel: x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    1.368925] predator kernel: x86/mm: Checking user space page tables
+[    1.368945] predator kernel: x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    1.368971] predator kernel: Run /init as init process
+[    1.368990] predator kernel:   with arguments:
+[    1.369036] predator kernel:     /init
+[    1.369060] predator kernel:   with environment:
+[    1.369093] predator kernel:     HOME=/
+[    1.369114] predator kernel:     TERM=linux
+[    1.369135] predator kernel: autofs4: module verification failed: signature and/or required key missing - tainting kernel
+[    1.369158] predator systemd[1]: Inserted module 'autofs4'
+[    1.369183] predator systemd[1]: Successfully made /usr/ read-only.
+[    1.369209] predator systemd[1]: systemd 262 running in system mode (+PAM +AUDIT -SELINUX +APPARMOR +IMA +IPE +SMACK +SECCOMP -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK -BTF -XKBCOMMON +UTMP +LIBARCHIVE)
+[    1.369235] predator systemd[1]: Detected architecture x86-64.
+[    1.369257] predator systemd[1]: Running in initrd.
+[    1.369279] predator systemd[1]: Received untrusted credentials: predator-pcr-signature
+[    1.369304] predator systemd[1]: Acquired 0 regular credentials, 1 untrusted credentials.
+[    1.369327] predator systemd[1]: Initializing machine ID from random generator.
+[    1.369350] predator systemd[1]: Hostname set to <predator>.
+[    1.369372] predator systemd[1]: bpf-restrict-fs: LSM BPF program attached
+[    1.369392] predator systemd[1]: Queued start job for default target Initrd Default Target.
+[    1.369434] predator systemd[1]: Created slice Slice /system/modprobe.
+[    1.369469] predator systemd[1]: Created slice Slice /system/systemd-cryptsetup.
+[    1.369489] predator systemd[1]: Started Dispatch Password Requests to Console Directory Watch.
+[    1.369511] predator systemd[1]: Expecting device /dev/disk/by-id/ata-HFS128G39TND-N210A_EI76N026711106D68-part2...
+[    1.369531] predator systemd[1]: Expecting device /dev/mapper/crypt-root...
+[    1.369551] predator systemd[1]: Reached target Path Units.
+[    1.369571] predator systemd[1]: Reached target Slice Units.
+[    1.369592] predator systemd[1]: Reached target Swaps.
+[    1.369616] predator systemd[1]: Reached target Timer Units.
+[    1.369637] predator systemd[1]: Listening on D-Bus System Message Bus Socket.
+[    1.369658] predator systemd[1]: Listening on Journal Socket (/dev/log).
+[    1.369678] predator systemd[1]: Listening on Journal Sockets.
+[    1.369699] predator systemd[1]: Listening on Network Management Metrics Varlink Socket.
+[    1.369720] predator systemd[1]: Listening on Network Management Varlink Socket.
+[    1.369740] predator systemd[1]: Listening on Network Management Netlink Socket.
+[    1.369761] predator systemd[1]: Listening on Resolve Monitor Varlink Socket.
+[    1.369781] predator systemd[1]: Listening on Resolve Service Varlink Socket.
+[    1.369806] predator systemd[1]: Listening on udev Kernel Socket.
+[    1.369827] predator systemd[1]: Listening on udev Varlink Socket.
+[    1.369847] predator systemd[1]: Reached target Socket Units.
+[    1.369872] predator systemd[1]: Starting Copy secrets into place...
+[    1.369892] predator systemd[1]: Starting Create List of Static Device Nodes...
+[    1.369913] predator systemd[1]: Starting Load Kernel Module configfs...
+[    1.369934] predator systemd[1]: Starting Journal Service...
+[    1.369955] predator systemd[1]: Starting Load Kernel Modules...
+[    1.369976] predator systemd[1]: Starting Generate Network Units from Kernel Command Line...
+[    1.370034] predator systemd[1]: Starting TPM PCR OS Separator...
+[    1.370057] predator systemd[1]: Starting TPM PCR Barrier (initrd)...
+[    1.370091] predator systemd[1]: Starting Coldplug All udev Devices...
+[    1.370157] predator systemd-journald[123]: Collecting audit messages is disabled.
+[    1.370208] predator systemd[1]: Finished Copy secrets into place.
+[    1.370229] predator kernel: NET: Registered PF_PACKET protocol family
+[    1.370250] predator systemd[1]: Finished Create List of Static Device Nodes.
+[    1.370271] predator systemd[1]: modprobe@configfs.service: Deactivated successfully.
+[    1.370292] predator systemd[1]: Finished Load Kernel Module configfs.
+[    1.370315] predator systemd[1]: Finished Generate Network Units from Kernel Command Line.
+[    1.370336] predator systemd[1]: Reached target Preparation for Network.
+[    1.370362] predator systemd[1]: Listening on Network Management Resolve Hook Socket.
+[    1.370383] predator systemd[1]: Kernel Configuration File System skipped, unmet condition check ConditionPathExists=/sys/kernel/config
+[    1.370403] predator kernel: device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    1.370424] predator systemd[1]: Starting Create Static Device Nodes in /dev gracefully...
+[    1.370443] predator kernel: device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+[    1.370463] predator systemd[1]: Finished Load Kernel Modules.
+[    1.370484] predator systemd[1]: Starting Apply Kernel Variables...
+[    1.370505] predator systemd[1]: Finished Create Static Device Nodes in /dev gracefully.
+[    1.370525] predator systemd[1]: Finished Apply Kernel Variables.
+[    1.370550] predator systemd[1]: Starting Network Name Resolution...
+[    1.376046] predator systemd[1]: Starting Create Static Device Nodes in /dev...
+[    1.378146] predator systemd[1]: Started Journal Service.
+[    1.410419] predator kernel: tsc: Refined TSC clocksource calibration: 2807.999 MHz
+[    1.410479] predator kernel: clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x2879c523a63, max_idle_ns: 440795252908 ns
+[    1.410518] predator kernel: clocksource: Switched to clocksource tsc
+[    1.642208] predator kernel: i8042: PNP: PS/2 Controller [PNP0303:PS2K] at 0x60,0x64 irq 1
+[    1.642271] predator kernel: i8042: PNP: PS/2 appears to have AUX port disabled, if this is incorrect please boot with i8042.nopnp
+[    1.656022] predator kernel: serio: i8042 KBD port at 0x60,0x64 irq 1
+[    1.656080] predator kernel: SCSI subsystem initialized
+[    1.659035] predator kernel: xhci_hcd 0000:00:14.0: xHCI Host Controller
+[    1.669836] predator kernel: xhci_hcd 0000:00:14.0: new USB bus registered, assigned bus number 1
+[    1.670713] predator kernel: xhci_hcd 0000:00:14.0: hcc params 0x200077c1 hci version 0x100 quirks 0x0000000001109810
+[    1.671024] predator kernel: xhci_hcd 0000:00:14.0: xHCI Host Controller
+[    1.671247] predator kernel: xhci_hcd 0000:00:14.0: new USB bus registered, assigned bus number 2
+[    1.672179] predator kernel: xhci_hcd 0000:00:14.0: Host supports USB 3.0 SuperSpeed
+[    1.676200] predator kernel: usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 6.18
+[    1.676357] predator kernel: usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.676411] predator kernel: usb usb1: Product: xHCI Host Controller
+[    1.678083] predator kernel: usb usb1: Manufacturer: Linux 6.18.58 xhci-hcd
+[    1.678268] predator kernel: usb usb1: SerialNumber: 0000:00:14.0
+[    1.678773] predator kernel: hub 1-0:1.0: USB hub found
+[    1.680479] predator kernel: hub 1-0:1.0: 16 ports detected
+[    1.683124] predator kernel: usb usb2: New USB device found, idVendor=1d6b, idProduct=0003, bcdDevice= 6.18
+[    1.683445] predator kernel: usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.684497] predator kernel: usb usb2: Product: xHCI Host Controller
+[    1.684621] predator kernel: usb usb2: Manufacturer: Linux 6.18.58 xhci-hcd
+[    1.686020] predator kernel: usb usb2: SerialNumber: 0000:00:14.0
+[    1.688071] predator kernel: hub 2-0:1.0: USB hub found
+[    1.688455] predator kernel: hub 2-0:1.0: 8 ports detected
+[    1.688734] predator kernel: usb: port power management may be unreliable
+[    1.695015] predator kernel: libata version 3.00 loaded.
+[    1.706022] predator kernel: r8169 0000:03:00.1: can't disable ASPM; OS doesn't have ASPM control
+[    1.707127] predator kernel: input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input0
+[    1.718249] predator kernel: ahci 0000:00:17.0: AHCI vers 0001.0301, 32 command slots, 6 Gbps, SATA mode
+[    1.718597] predator kernel: r8169 0000:03:00.1 eth0: RTL8411b, 98:29:a6:3a:a7:50, XID 5c8, IRQ 133
+[    1.718882] predator kernel: ahci 0000:00:17.0: 2/2 ports implemented (port mask 0x5)
+[    1.719239] predator kernel: r8169 0000:03:00.1 eth0: jumbo features [frames: 9194 bytes, tx checksumming: ko]
+[    1.719497] predator kernel: ahci 0000:00:17.0: flags: 64bit ncq sntf pm led clo only pio slum part ems deso sadm sds apst 
+[    1.723707] predator kernel: scsi host0: ahci
+[    1.724058] predator kernel: r8169 0000:03:00.1 enp3s0f1: renamed from eth0
+[    1.724276] predator kernel: scsi host1: ahci
+[    1.725266] predator kernel: scsi host2: ahci
+[    1.725714] predator kernel: ata1: SATA max UDMA/133 abar m2048@0xa452e000 port 0xa452e100 irq 132 lpm-pol 3
+[    1.727360] predator kernel: ata2: DUMMY
+[    1.727424] predator kernel: ata3: SATA max UDMA/133 abar m2048@0xa452e000 port 0xa452e200 irq 132 lpm-pol 3
+[    1.757063] predator kernel: Generic FE-GE Realtek PHY r8169-0-301:00: attached PHY driver (mii_bus:phy_addr=r8169-0-301:00, irq=MAC)
+[    1.918045] predator kernel: r8169 0000:03:00.1 enp3s0f1: Link is Down
+[    1.922081] predator kernel: usb 1-2: new high-speed USB device number 2 using xhci_hcd
+[    2.039042] predator kernel: ata1: SATA link up 6.0 Gbps (SStatus 133 SControl 300)
+[    2.039183] predator kernel: ata3: SATA link up 6.0 Gbps (SStatus 133 SControl 300)
+[    2.043391] predator kernel: ata1.00: ATA-9: HFS128G39TND-N210A, 30001P10, max UDMA/133
+[    2.043476] predator kernel: ata1.00: 250069680 sectors, multi 1: LBA48 NCQ (depth 32), AA
+[    2.043505] predator kernel: ata3.00: Model 'CT240BX500SSD1', rev ' M6CR013', applying quirks: nolpm
+[    2.045105] predator kernel: ata1.00: Features: Dev-Sleep DIPM
+[    2.046069] predator kernel: ata3.00: ATA-9: CT240BX500SSD1,  M6CR013, max UDMA/133
+[    2.049079] predator kernel: ata1.00: configured for UDMA/133
+[    2.049165] predator kernel: ata3.00: 468862128 sectors, multi 1: LBA48 NCQ (depth 32), AA
+[    2.050809] predator kernel: ata3.00: LPM support broken, forcing max_power
+[    2.050900] predator kernel: usb 1-2: New USB device found, idVendor=05e3, idProduct=0610, bcdDevice= 6.63
+[    2.053177] predator kernel: usb 1-2: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.053364] predator kernel: usb 1-2: Product: USB2.1 Hub
+[    2.054328] predator kernel: usb 1-2: Manufacturer: GenesysLogic
+[    2.056078] predator kernel: ata3.00: Features: Dev-Sleep DIPM
+[    2.057091] predator kernel: hub 1-2:1.0: USB hub found
+[    2.059084] predator kernel: hub 1-2:1.0: 4 ports detected
+[    2.062149] predator kernel: ahci 0000:00:17.0: port does not support device sleep
+[    2.063062] predator kernel: scsi 0:0:0:0: Direct-Access     ATA      HFS128G39TND-N21 1P10 PQ: 0 ANSI: 5
+[    2.074088] predator kernel: ata3.00: configured for UDMA/133
+[    2.086087] predator kernel: ahci 0000:00:17.0: port does not support device sleep
+[    2.086879] predator kernel: scsi 2:0:0:0: Direct-Access     ATA      CT240BX500SSD1   R013 PQ: 0 ANSI: 5
+[    2.123457] predator kernel: sd 0:0:0:0: [sda] 250069680 512-byte logical blocks: (128 GB/119 GiB)
+[    2.124386] predator kernel: sd 2:0:0:0: [sdb] 468862128 512-byte logical blocks: (240 GB/224 GiB)
+[    2.125248] predator kernel: sd 2:0:0:0: [sdb] Write Protect is off
+[    2.125930] predator kernel: sd 0:0:0:0: [sda] 4096-byte physical blocks
+[    2.126621] predator kernel: sd 0:0:0:0: [sda] Write Protect is off
+[    2.127289] predator kernel: sd 2:0:0:0: [sdb] Mode Sense: 00 3a 00 00
+[    2.128019] predator kernel: sd 0:0:0:0: [sda] Mode Sense: 00 3a 00 00
+[    2.130440] predator kernel: sd 2:0:0:0: [sdb] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA
+[    2.131239] predator kernel: sd 0:0:0:0: [sda] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA
+[    2.131907] predator kernel: sd 2:0:0:0: [sdb] Preferred minimum I/O size 512 bytes
+[    2.132589] predator kernel: sd 0:0:0:0: [sda] Preferred minimum I/O size 4096 bytes
+[    2.160049] predator kernel:  sdb: sdb1
+[    2.160192] predator kernel: sd 2:0:0:0: [sdb] Attached SCSI disk
+[    2.161611] predator kernel:  sda: sda1 sda2
+[    2.163030] predator kernel: usb 2-2: new SuperSpeed USB device number 2 using xhci_hcd
+[    2.163494] predator kernel: sd 0:0:0:0: [sda] Attached SCSI disk
+[    2.184494] predator kernel: usb 2-2: New USB device found, idVendor=05e3, idProduct=0626, bcdDevice= 6.63
+[    2.184801] predator kernel: usb 2-2: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.185034] predator kernel: usb 2-2: Product: USB3.1 Hub
+[    2.185670] predator kernel: usb 2-2: Manufacturer: GenesysLogic
+[    2.194079] predator kernel: hub 2-2:1.0: USB hub found
+[    2.194846] predator kernel: hub 2-2:1.0: 4 ports detected
+[    2.290019] predator kernel: usb 1-7: new full-speed USB device number 3 using xhci_hcd
+[    2.417064] predator kernel: usb 1-7: New USB device found, idVendor=04ca, idProduct=3016, bcdDevice= 0.01
+[    2.417721] predator kernel: usb 1-7: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+[    2.502085] predator kernel: usb 1-2.1: new high-speed USB device number 4 using xhci_hcd
+[    2.605339] predator kernel: usb 1-2.1: New USB device found, idVendor=05e3, idProduct=0610, bcdDevice= 6.63
+[    2.605533] predator kernel: usb 1-2.1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.605633] predator kernel: usb 1-2.1: Product: USB2.1 Hub
+[    2.606359] predator kernel: usb 1-2.1: Manufacturer: GenesysLogic
+[    2.612080] predator kernel: hub 1-2.1:1.0: USB hub found
+[    2.615079] predator kernel: hub 1-2.1:1.0: 4 ports detected
+[    2.671068] predator kernel: usb 2-2.1: new SuperSpeed USB device number 3 using xhci_hcd
+[    2.692475] predator kernel: usb 2-2.1: New USB device found, idVendor=05e3, idProduct=0626, bcdDevice= 6.63
+[    2.692700] predator kernel: usb 2-2.1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.692804] predator kernel: usb 2-2.1: Product: USB3.1 Hub
+[    2.693564] predator kernel: usb 2-2.1: Manufacturer: GenesysLogic
+[    2.702118] predator kernel: hub 2-2.1:1.0: USB hub found
+[    2.705084] predator kernel: hub 2-2.1:1.0: 4 ports detected
+[    2.799099] predator kernel: usb 1-9: new high-speed USB device number 5 using xhci_hcd
+[    2.938847] predator kernel: usb 1-9: New USB device found, idVendor=0408, idProduct=a060, bcdDevice= 0.01
+[    2.939161] predator kernel: usb 1-9: New USB device strings: Mfr=3, Product=1, SerialNumber=2
+[    2.939306] predator kernel: usb 1-9: Product: HD WebCam
+[    2.939988] predator kernel: usb 1-9: Manufacturer: Generic
+[    2.941078] predator kernel: usb 1-9: SerialNumber: 200901010001
+[    2.989145] predator kernel: usb 2-2.2: new SuperSpeed USB device number 4 using xhci_hcd
+[    3.003068] predator kernel: usb 2-2.2: New USB device found, idVendor=174c, idProduct=1153, bcdDevice= 1.00
+[    3.003307] predator kernel: usb 2-2.2: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    3.003421] predator kernel: usb 2-2.2: Product: Ugreen Storage Device
+[    3.004194] predator kernel: usb 2-2.2: Manufacturer: Ugreen
+[    3.005330] predator kernel: usb 2-2.2: SerialNumber: 26A1EE8339CB
+[    3.078042] predator kernel: usb 2-2.3: new SuperSpeed USB device number 5 using xhci_hcd
+[    3.091990] predator kernel: usb 2-2.3: New USB device found, idVendor=1058, idProduct=2647, bcdDevice=10.23
+[    3.092240] predator kernel: usb 2-2.3: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    3.092403] predator kernel: usb 2-2.3: Product: easystore 2647
+[    3.093026] predator kernel: usb 2-2.3: Manufacturer: Western Digital
+[    3.094048] predator kernel: usb 2-2.3: SerialNumber: 5758443241343139434C4338
+[    3.165091] predator kernel: usb 2-2.4: new SuperSpeed USB device number 6 using xhci_hcd
+[    3.178621] predator kernel: usb 2-2.4: New USB device found, idVendor=174c, idProduct=1153, bcdDevice= 1.00
+[    3.178838] predator kernel: usb 2-2.4: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    3.178933] predator kernel: usb 2-2.4: Product: Ugreen Storage Device
+[    3.179628] predator kernel: usb 2-2.4: Manufacturer: Ugreen
+[    3.180675] predator kernel: usb 2-2.4: SerialNumber: 26A1EE8313F8
+[    4.274012] predator kernel: Key type trusted registered
+[    4.276012] predator kernel: Key type encrypted registered
+[    5.349065] predator kernel: r8169 0000:03:00.1 enp3s0f1: Link is Up - 1Gbps/Full - flow control rx/tx
+[    5.448026] predator kernel: EXT4-fs (dm-0): mounted filesystem f737acd4-5735-40b8-acf6-487726a38a8c r/w with ordered data mode. Quota mode: none.
+[   10.117845] predator systemd-journald[123]: Received SIGTERM from PID 1 (systemd).
+[   10.117951] predator systemd[1]: systemd 262 running in system mode (+PAM +AUDIT -SELINUX +APPARMOR +IMA +IPE +SMACK +SECCOMP -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK -BTF -XKBCOMMON +UTMP +LIBARCHIVE)
+[   10.117982] predator systemd[1]: Detected architecture x86-64.
+[   10.118027] predator systemd[1]: Received untrusted credentials: predator-pcr-signature
+[   10.118050] predator systemd[1]: Acquired 0 regular credentials, 1 untrusted credentials.
+[   10.118076] predator systemd[1]: bpf-restrict-fs: LSM BPF program attached
+[   10.118101] predator systemd[1]: Configuration file /etc/systemd/system.control/predator-pm-next.timer.d/90-suspend-study-hold-20261012.conf is marked world-inaccessible. This has no effect as configuration data is accessible via APIs without restrictions. Proceeding anyway.
+[   10.118126] predator systemd[1]: Configuration file /etc/systemd/system.control/predator-pm-next.service.d/90-suspend-study-hold-20261012.conf is marked world-inaccessible. This has no effect as configuration data is accessible via APIs without restrictions. Proceeding anyway.
+[   10.118147] predator systemd[1]: initrd-switch-root.service: Deactivated successfully.
+[   10.118177] predator systemd[1]: Stopped initrd-switch-root.service.
+[   10.118204] predator systemd[1]: systemd-journald.service: Scheduled restart job, restart counter is at 1.
+[   10.118232] predator systemd[1]: Created slice Slice /system/getty.
+[   10.118254] predator systemd[1]: Created slice PHP FastCGI Process Manager Slice.
+[   10.118275] predator systemd[1]: Created slice Slice /system/systemd-fsck.
+[   10.118299] predator systemd[1]: Created slice User and Session Slice.
+[   10.118321] predator systemd[1]: Created slice Slice /user/1000.
+[   10.118342] predator systemd[1]: Started /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference attribute watcher.
+[   10.118367] predator systemd[1]: Created slice Slice /system/nixos-sysfs.
+[   10.118389] predator systemd[1]: Started /sys/devices/system/cpu/cpufreq/policy1/energy_performance_preference attribute watcher.
+[   10.118410] predator systemd[1]: Started /sys/devices/system/cpu/cpufreq/policy2/energy_performance_preference attribute watcher.
+[   10.118431] predator systemd[1]: Started /sys/devices/system/cpu/cpufreq/policy3/energy_performance_preference attribute watcher.
+[   10.118456] predator systemd[1]: Started /sys/devices/system/cpu/cpufreq/policy4/energy_performance_preference attribute watcher.
+[   10.118477] predator systemd[1]: Started /sys/devices/system/cpu/cpufreq/policy5/energy_performance_preference attribute watcher.
+[   10.118498] predator systemd[1]: Started /sys/devices/system/cpu/cpufreq/policy6/energy_performance_preference attribute watcher.
+[   10.118520] predator systemd[1]: Started /sys/devices/system/cpu/cpufreq/policy7/energy_performance_preference attribute watcher.
+[   10.118544] predator systemd[1]: Started Dispatch Password Requests to Console Directory Watch.
+[   10.118565] predator systemd[1]: Started Forward Password Requests to Wall Directory Watch.
+[   10.118587] predator systemd[1]: Expecting device /dev/disk/by-id/ata-CT240BX500SSD1_2004E3E6DE68-part1...
+[   10.118609] predator systemd[1]: Expecting device /dev/disk/by-id/wwn-0x500003961228993f-part1...
+[   10.118631] predator systemd[1]: Expecting device /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1...
+[   10.118653] predator systemd[1]: Expecting device /dev/disk/by-id/wwn-0x50014ee26a2aa7c6-part1...
+[   10.118674] predator systemd[1]: Expecting device /dev/disk/by-uuid/16CC-BD3D...
+[   10.118695] predator systemd[1]: Reached target Local Encrypted Volumes.
+[   10.118716] predator systemd[1]: Stopped target initrd-fs.target.
+[   10.118739] predator systemd[1]: Stopped target initrd-root-fs.target.
+[   10.118763] predator systemd[1]: Stopped target initrd-switch-root.target.
+[   10.118785] predator systemd[1]: Reached target Virtual Machines and Containers.
+[   10.118806] predator systemd[1]: Reached target Path Units.
+[   10.118827] predator systemd[1]: Reached target Remote File Systems.
+[   10.118848] predator systemd[1]: Reached target Slice Units.
+[   10.118876] predator systemd[1]: Listening on Query the User Interactively for a Password.
+[   10.118902] predator systemd[1]: Listening on Process Core Dump Socket.
+[   10.118925] predator systemd[1]: Listening on Credential Encryption/Decryption.
+[   10.118947] predator systemd[1]: Listening on Factory Reset Management.
+[   10.118968] predator systemd[1]: Listening on Hostname Service Socket.
+[   10.118992] predator systemd[1]: Starting Journal Log Access Socket...
+[   10.119025] predator systemd[1]: Listening on Journal Audit Socket.
+[   10.119050] predator systemd[1]: Listening on Console Output Muting Service Socket.
+[   10.119069] predator systemd[1]: Listening on Userspace Out-Of-Memory (OOM) Killer Socket.
+[   10.119087] predator systemd[1]: Listening on TPM PCR Measurements.
+[   10.119106] predator systemd[1]: Listening on Make TPM PCR Policy.
+[   10.119125] predator systemd[1]: Listening on Disk Repartitioning Service Socket.
+[   10.119143] predator systemd[1]: Listening on udev Varlink Socket.
+[   10.119163] predator systemd[1]: Mounting Huge Pages File System...
+[   10.119186] predator systemd[1]: Mounting POSIX Message Queue File System...
+[   10.119205] predator systemd[1]: Mounting Kernel Debug File System...
+[   10.119224] predator systemd[1]: Mounting Kernel Trace File System...
+[   10.119243] predator systemd[1]: Starting Create List of Static Device Nodes...
+[   10.119262] predator systemd[1]: Starting Load Kernel Module configfs...
+[   10.119281] predator systemd[1]: Load Kernel Module drm skipped, unmet condition check ConditionKernelModuleLoaded=!drm
+[   10.119300] predator systemd[1]: Load Kernel Module efi_pstore skipped, unmet condition check ConditionKernelModuleLoaded=!efi_pstore
+[   10.119319] predator systemd[1]: Starting Load Kernel Module fuse...
+[   10.119342] predator systemd[1]: Starting /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference attribute setter...
+[   10.119363] predator systemd[1]: Starting /sys/devices/system/cpu/cpufreq/policy1/energy_performance_preference attribute setter...
+[   10.119382] predator systemd[1]: Starting /sys/devices/system/cpu/cpufreq/policy2/energy_performance_preference attribute setter...
+[   10.119400] predator systemd[1]: Starting /sys/devices/system/cpu/cpufreq/policy3/energy_performance_preference attribute setter...
+[   10.119419] predator systemd[1]: Starting /sys/devices/system/cpu/cpufreq/policy4/energy_performance_preference attribute setter...
+[   10.119438] predator systemd[1]: Starting /sys/devices/system/cpu/cpufreq/policy5/energy_performance_preference attribute setter...
+[   10.119457] predator systemd[1]: Starting /sys/devices/system/cpu/cpufreq/policy6/energy_performance_preference attribute setter...
+[   10.119475] predator kernel: fuse: init (API version 7.45)
+[   10.119496] predator systemd[1]: Starting /sys/devices/system/cpu/cpufreq/policy7/energy_performance_preference attribute setter...
+[   10.119518] predator systemd[1]: systemd-cryptsetup@crypt\x2droot.service: Deactivated successfully.
+[   10.119537] predator systemd[1]: Stopped systemd-cryptsetup@crypt\x2droot.service.
+[   10.119558] predator systemd[1]: Clear Stale Hibernate Storage Info skipped, unmet condition check ConditionPathExists=/sys/firmware/efi/efivars/HibernateLocation-8cf2644b-4b0b-428f-9387-6d876050dc67
+[   10.119577] predator systemd[1]: Starting Journal Service...
+[   10.119596] predator systemd[1]: Starting Load Kernel Modules...
+[   10.119615] predator systemd[1]: Starting Remount Root and Kernel File Systems...
+[   10.119634] predator systemd[1]: Starting Wait Until Kernel Time Synchronized...
+[   10.119656] predator systemd[1]: Early TPM SRK Setup skipped, unmet condition check ConditionPathExists=!/run/systemd/tpm2-srk-public-key.pem
+[   10.119675] predator systemd[1]: Starting Coldplug All udev Devices...
+[   10.119693] predator systemd[1]: Listening on Journal Log Access Socket.
+[   10.119713] predator kernel: loop: module loaded
+[   10.119813] predator systemd-journald[473]: Collecting audit messages is enabled.
+[   10.119932] predator systemd[1]: Mounted Huge Pages File System.
+[   10.119982] predator kernel: spl: loading out-of-tree module taints kernel.
+[   10.120011] predator systemd[1]: Mounted POSIX Message Queue File System.
+[   10.120034] predator kernel: EXT4-fs (dm-0): re-mounted f737acd4-5735-40b8-acf6-487726a38a8c.
+[   10.123030] predator systemd[1]: Started Journal Service.
+[   10.320629] predator systemd-journald[473]: Received client request to flush runtime journal.
+[   10.320938] predator systemd-journald[473]: File /var/log/journal/c0f5916edc2c45d484796af366ec6e88/system.journal corrupted or uncleanly shut down, renaming and replacing: Device or resource busy
+[   10.343440] predator kernel: zfs: module license 'CDDL' taints kernel.
+[   10.343537] predator kernel: Disabling lock debugging due to kernel taint
+[   10.343589] predator kernel: zfs: module license taints kernel.
+[   11.157078] predator kernel: ZFS: Loaded module v2.4.4-1, ZFS pool version 5000, ZFS filesystem version 5
+[   11.235020] predator kernel: Adding 8388604k swap on /swapfile.  Priority:-2 extents:9 across:120905728k SS
+[   11.274087] predator kernel: input: Acer Wireless Radio Control as /devices/LNXSYSTM:00/10251229:00/input/input1
+[   11.286022] predator kernel: input: Lid Switch as /devices/pci0000:00/0000:00:1f.0/PNP0C0D:00/input/input2
+[   11.286150] predator kernel: ACPI: button: Lid Switch [LID0]
+[   11.286204] predator kernel: input: Sleep Button as /devices/platform/PNP0C0E:00/input/input3
+[   11.287695] predator kernel: ACPI: button: Sleep Button [SLPB]
+[   11.287821] predator kernel: wmi_bus wmi_bus-PNP0C14:00: [Firmware Bug]: WMBF method block execution control method not found
+[   11.290023] predator kernel: wmi_bus wmi_bus-PNP0C14:01: [Firmware Info]: 00000000-0000-0000-0000-000000000000 has zero instances
+[   11.290424] predator kernel: input: Power Button as /devices/platform/PNP0C0C:00/input/input4
+[   11.290475] predator kernel: wmi_bus wmi_bus-PNP0C14:01: [Firmware Info]: 00000000-0000-0000-0000-000000000000 has zero instances
+[   11.290746] predator kernel: wmi_bus wmi_bus-PNP0C14:01: [Firmware Info]: 00000000-0000-0000-0000-000000000000 has zero instances
+[   11.291034] predator kernel: wmi_bus wmi_bus-PNP0C14:01: [Firmware Info]: 00000000-0000-0000-0000-000000000000 has zero instances
+[   11.291338] predator kernel: ACPI: button: Power Button [PWRB]
+[   11.350270] predator kernel: resource: resource sanity check: requesting [mem 0x00000000fdffe800-0x00000000fe0007ff], which spans more than pnp 00:00 [mem 0xfdb00000-0xfdffffff]
+[   11.357042] predator kernel: caller get_primary_reg_base+0x4c/0xa0 [intel_pmc_core] mapping multiple BARs
+[   11.357133] predator kernel: intel_pmc_core INT33A1:00:  initialized
+[   11.370028] predator kernel: rtc_cmos PNP0B00:00: RTC can wake from S4
+[   11.378468] predator kernel: ACPI: AC: AC Adapter [ACAD] (on-line)
+[   11.378516] predator kernel: ACPI: battery: Slot [BAT1] (battery present)
+[   11.390076] predator kernel: rtc_cmos PNP0B00:00: registered as rtc0
+[   11.390345] predator kernel: rtc_cmos PNP0B00:00: setting system clock to 2026-10-30T11:00:15 UTC (1793358015)
+[   11.390559] predator kernel: rtc_cmos PNP0B00:00: alarms up to one month, y3k, 242 bytes nvram
+[   11.433021] predator kernel: thermal LNXTHERM:00: registered as thermal_zone0
+[   11.436359] predator kernel: hid: raw HID events driver (C) Jiri Kosina
+[   11.436400] predator kernel: ACPI: thermal: Thermal Zone [TZ00] (28 C)
+[   11.440040] predator kernel: thermal LNXTHERM:01: registered as thermal_zone2
+[   11.444585] predator kernel: ACPI: thermal: Thermal Zone [TZ01] (30 C)
+[   11.455019] predator kernel: mei_me 0000:00:16.0: enabling device (0000 -> 0002)
+[   11.466145] predator kernel: intel-lpss 0000:00:15.0: enabling device (0000 -> 0002)
+[   11.468434] predator kernel: idma64 idma64.0: Found Intel integrated DMA 64-bit
+[   11.484019] predator kernel: intel-lpss 0000:00:15.1: enabling device (0000 -> 0002)
+[   11.504031] predator kernel: idma64 idma64.1: Found Intel integrated DMA 64-bit
+[   11.518245] predator kernel: i801_smbus 0000:00:1f.4: SPD Write Disable is set
+[   11.521597] predator kernel: i801_smbus 0000:00:1f.4: SMBus using PCI interrupt
+[   11.522959] predator kernel: i2c i2c-2: Successfully instantiated SPD at 0x50
+[   11.531686] predator kernel: usbcore: registered new device driver onboard-usb-dev
+[   11.535014] predator kernel: mc: Linux media interface: v0.10
+[   11.547027] predator kernel: usb-storage 2-2.3:1.0: USB Mass Storage device detected
+[   11.547685] predator kernel: scsi host3: usb-storage 2-2.3:1.0
+[   11.549149] predator kernel: usbcore: registered new interface driver usb-storage
+[   11.672517] predator kernel: RAPL PMU: API unit is 2^-32 Joules, 5 fixed counters, 655360 ms ovfl timer
+[   11.672644] predator kernel: RAPL PMU: hw unit of domain pp0-core 2^-14 Joules
+[   11.672683] predator kernel: RAPL PMU: hw unit of domain package 2^-14 Joules
+[   11.676023] predator kernel: RAPL PMU: hw unit of domain dram 2^-14 Joules
+[   11.676184] predator kernel: RAPL PMU: hw unit of domain pp1-gpu 2^-14 Joules
+[   11.676235] predator kernel: RAPL PMU: hw unit of domain psys 2^-14 Joules
+[   11.685120] predator kernel: iTCO_wdt iTCO_wdt: Found a Intel PCH TCO device (Version=4, TCOBASE=0x0400)
+[   11.689180] predator kernel: iTCO_wdt iTCO_wdt: initialized. heartbeat=30 sec (nowayout=0)
+[   11.703161] predator kernel: ee1004 2-0050: 512 byte EE1004-compliant SPD EEPROM, read-only
+[   11.716832] predator kernel: scsi host4: uas
+[   11.718547] predator kernel: scsi 4:0:0:0: Direct-Access     ST1000LM 035-1RK172       0    PQ: 0 ANSI: 6
+[   11.718982] predator kernel: videodev: Linux video capture interface: v2.00
+[   11.723019] predator kernel: sd 4:0:0:0: [sdc] 1953525168 512-byte logical blocks: (1.00 TB/932 GiB)
+[   11.723447] predator kernel: sd 4:0:0:0: [sdc] 4096-byte physical blocks
+[   11.731065] predator kernel: sd 4:0:0:0: [sdc] Write Protect is off
+[   11.731702] predator kernel: sd 4:0:0:0: [sdc] Mode Sense: 43 00 00 00
+[   11.734031] predator kernel: sd 4:0:0:0: [sdc] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA
+[   11.738040] predator kernel: scsi host5: uas
+[   11.740063] predator kernel: usbcore: registered new interface driver uas
+[   11.740117] predator kernel: scsi 5:0:0:0: Direct-Access     TOSHIBA  MQ01ABD075       0    PQ: 0 ANSI: 6
+[   11.740274] predator kernel: input: SYNA7DB5:01 06CB:7DB7 Mouse as /devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-1/i2c-SYNA7DB5:01/0018:06CB:7DB7.0001/input/input5
+[   11.742028] predator kernel: input: SYNA7DB5:01 06CB:7DB7 Touchpad as /devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-1/i2c-SYNA7DB5:01/0018:06CB:7DB7.0001/input/input6
+[   11.744022] predator kernel: hid-generic 0018:06CB:7DB7.0001: input,hidraw0: I2C HID v1.00 Mouse [SYNA7DB5:01 06CB:7DB7] on i2c-SYNA7DB5:01
+[   11.751702] predator kernel: sd 5:0:0:0: [sdd] 1465149168 512-byte logical blocks: (750 GB/699 GiB)
+[   11.752366] predator kernel: sd 5:0:0:0: [sdd] Write Protect is off
+[   11.752792] predator kernel: sd 5:0:0:0: [sdd] Mode Sense: 43 00 00 00
+[   11.753196] predator kernel: sd 5:0:0:0: [sdd] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA
+[   11.770576] predator kernel: sd 4:0:0:0: [sdc] Preferred minimum I/O size 4096 bytes
+[   11.771061] predator kernel: sd 4:0:0:0: [sdc] Optimal transfer size 33553920 bytes not a multiple of preferred minimum block size (4096 bytes)
+[   11.785602] predator kernel: sd 5:0:0:0: [sdd] Preferred minimum I/O size 512 bytes
+[   11.786157] predator kernel: sd 5:0:0:0: [sdd] Optimal transfer size 33553920 bytes
+[   11.812441] predator kernel: Bluetooth: Core ver 2.22
+[   11.812578] predator kernel: NET: Registered PF_BLUETOOTH protocol family
+[   11.812628] predator kernel: cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[   11.812675] predator kernel: Bluetooth: HCI device and connection manager initialized
+[   11.814426] predator kernel: Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[   11.814535] predator kernel: Bluetooth: HCI socket layer initialized
+[   11.815087] predator kernel: Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[   11.815137] predator kernel: Bluetooth: L2CAP socket layer initialized
+[   11.817022] predator kernel: Bluetooth: SCO socket layer initialized
+[   12.126052] predator kernel:  sdd: sdd1
+[   12.128040] predator kernel: sd 5:0:0:0: [sdd] Attached SCSI disk
+[   12.212037] predator kernel:  sdc: sdc1
+[   12.214014] predator kernel: sd 4:0:0:0: [sdc] Attached SCSI disk
+[   12.503047] predator kernel: snd_hda_intel 0000:01:00.1: Disabling MSI
+[   12.504582] predator kernel: snd_hda_intel 0000:01:00.1: Handle vga_switcheroo audio client
+[   12.511035] predator kernel: intel_tcc_cooling: Programmable TCC Offset detected
+[   12.511157] predator kernel: i915 0000:00:02.0: [drm] Found kabylake (device ID 591b) integrated display version 9.00 stepping C0
+[   12.533024] predator kernel: input: SYNA7DB5:01 06CB:7DB7 Mouse as /devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-1/i2c-SYNA7DB5:01/0018:06CB:7DB7.0001/input/input8
+[   12.534026] predator kernel: Console: switching to colour dummy device 80x25
+[   12.535019] predator kernel: input: SYNA7DB5:01 06CB:7DB7 Touchpad as /devices/pci0000:00/0000:00:15.1/i2c_designware.1/i2c-1/i2c-SYNA7DB5:01/0018:06CB:7DB7.0001/input/input9
+[   12.535089] predator kernel: hid-multitouch 0018:06CB:7DB7.0001: input,hidraw0: I2C HID v1.00 Mouse [SYNA7DB5:01 06CB:7DB7] on i2c-SYNA7DB5:01
+[   12.535522] predator kernel: uvcvideo 1-9:1.0: Found UVC 1.00 device HD WebCam (0408:a060)
+[   12.539017] predator kernel: usbcore: registered new interface driver btusb
+[   12.543403] predator kernel: usbcore: registered new interface driver uvcvideo
+[   12.543564] predator kernel: i915 0000:00:02.0: vgaarb: deactivate vga console
+[   12.545027] predator kernel: Bluetooth: hci0: using rampatch file: qca/rampatch_usb_00000302.bin
+[   12.545104] predator kernel: Bluetooth: hci0: QCA: patch rome 0x302 build 0x3e8, firmware rome 0x302 build 0x111
+[   12.546059] predator kernel: mousedev: PS/2 mouse device common for all mice
+[   12.548020] predator kernel: input: HDA NVidia HDMI/DP,pcm=3 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card0/input11
+[   12.548065] predator kernel: i915 0000:00:02.0: vgaarb: VGA decodes changed: olddecodes=io+mem,decodes=none:owns=io+mem
+[   12.549021] predator kernel: input: HDA NVidia HDMI/DP,pcm=7 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card0/input12
+[   12.549388] predator kernel: input: HDA NVidia HDMI/DP,pcm=8 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card0/input13
+[   12.549426] predator kernel: input: HDA NVidia HDMI/DP,pcm=9 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card0/input14
+[   12.551024] predator kernel: i915 0000:00:02.0: [drm] Finished loading DMC firmware i915/kbl_dmc_ver1_04.bin (v1.4)
+[   12.588068] predator kernel: mei_hdcp 0000:00:16.0-b638ab7e-94e2-4ea2-a552-d1c54b627f04: bound 0000:00:02.0 (ops i915_hdcp_ops [i915])
+[   12.591020] predator kernel: i915 0000:00:02.0: [drm] Registered 3 planes with drm panic
+[   12.591495] predator kernel: [drm] Initialized i915 1.6.0 for 0000:00:02.0 on minor 1
+[   12.591566] predator kernel: ACPI: video: [Firmware Bug]: ACPI(PEGP) defines _DOD but not _DOS
+[   12.591599] predator kernel: ACPI: video: Video Device [PEGP] (multi-head: yes  rom: yes  post: no)
+[   12.591642] predator kernel: input: Video Bus as /devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:00/LNXVIDEO:00/input/input15
+[   12.594016] predator kernel: ACPI: video: Video Device [GFX0] (multi-head: yes  rom: no  post: no)
+[   12.594102] predator kernel: input: Video Bus as /devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/LNXVIDEO:01/input/input16
+[   12.595028] predator kernel: fbcon: i915drmfb (fb0) is primary device
+[   12.595090] predator kernel: snd_hda_intel 0000:00:1f.3: bound 0000:00:02.0 (ops intel_audio_component_bind_ops [i915])
+[   12.606034] predator kernel: Console: switching to colour frame buffer device 240x67
+[   12.609010] predator kernel: scsi 3:0:0:0: Direct-Access     WD       easystore 2647   1023 PQ: 0 ANSI: 6
+[   12.624010] predator kernel: i915 0000:00:02.0: [drm] fb0: i915drmfb frame buffer device
+[   12.662014] predator kernel: intel_rapl_common: Found RAPL domain package
+[   12.662078] predator kernel: intel_rapl_common: Found RAPL domain core
+[   12.662111] predator kernel: intel_rapl_common: Found RAPL domain uncore
+[   12.662137] predator kernel: intel_rapl_common: Found RAPL domain dram
+[   12.662166] predator kernel: intel_rapl_common: Found RAPL domain psys
+[   12.902082] predator kernel: Bluetooth: hci0: using NVM file: qca/nvm_usb_00000302.bin
+[   12.924038] predator kernel: Bluetooth: hci0: HCI Enhanced Setup Synchronous Connection command is advertised, but not supported.
+[   12.924139] predator kernel: sd 3:0:0:0: [sde] 1953458176 512-byte logical blocks: (1.00 TB/931 GiB)
+[   12.925217] predator kernel: sd 3:0:0:0: [sde] Write Protect is off
+[   12.926333] predator kernel: sd 3:0:0:0: [sde] Mode Sense: 47 00 10 08
+[   12.927289] predator kernel: sd 3:0:0:0: [sde] No Caching mode page found
+[   12.928238] predator kernel: sd 3:0:0:0: [sde] Assuming drive cache: write through
+[   12.929058] predator kernel: scsi 3:0:0:1: Enclosure         WD       SES Device       1023 PQ: 0 ANSI: 6
+[   12.980063] predator kernel:  sde: sde1
+[   12.980145] predator kernel: sd 3:0:0:0: [sde] Attached SCSI disk
+[   12.993930] predator kernel: scsi 3:0:0:1: Wrong diagnostic page; asked for 1 got 8
+[   12.994506] predator kernel: scsi 3:0:0:1: Failed to get diagnostic page 0x1
+[   12.994897] predator kernel: scsi 3:0:0:1: Failed to bind enclosure -19
+[   12.995482] predator kernel: ses 3:0:0:1: Attached Enclosure device
+[   13.008017] predator kernel: snd_hda_codec_alc269 hdaudioC1D0: ALC255: picked fixup  (pin match)
+[   13.040016] predator kernel: snd_hda_codec_alc269 hdaudioC1D0: autoconfig for ALC255: line_outs=1 (0x14/0x0/0x0/0x0/0x0) type:speaker
+[   13.040456] predator kernel: snd_hda_codec_alc269 hdaudioC1D0:    speaker_outs=0 (0x0/0x0/0x0/0x0/0x0)
+[   13.040769] predator kernel: snd_hda_codec_alc269 hdaudioC1D0:    hp_outs=1 (0x21/0x0/0x0/0x0/0x0)
+[   13.041050] predator kernel: snd_hda_codec_alc269 hdaudioC1D0:    mono: mono_out=0x0
+[   13.041357] predator kernel: snd_hda_codec_alc269 hdaudioC1D0:    inputs:
+[   13.041652] predator kernel: snd_hda_codec_alc269 hdaudioC1D0:      Internal Mic=0x12
+[   13.041943] predator kernel: snd_hda_codec_alc269 hdaudioC1D0:      Headset Mic=0x19
+[   13.042303] predator kernel: ath10k_pci 0000:02:00.0: pci irq msi oper_irq_mode 2 irq_mode 0 reset_mode 0
+[   13.088497] predator kernel: input: HDA Digital PCBeep as /devices/pci0000:00/0000:00:1f.3/sound/card1/input17
+[   13.088574] predator kernel: input: HDA Intel PCH Front Headphone as /devices/pci0000:00/0000:00:1f.3/sound/card1/input18
+[   13.254126] predator kernel: ath10k_pci 0000:02:00.0: qca6174 hw3.2 target 0x05030000 chip_id 0x00340aff sub 11ad:0807
+[   13.254811] predator kernel: ath10k_pci 0000:02:00.0: kconfig debug 0 debugfs 0 tracing 0 dfs 1 testmode 0
+[   13.255446] predator kernel: ath10k_pci 0000:02:00.0: firmware ver WLAN.RM.4.4.1-00309- api 6 features wowlan,ignore-otp,mfp crc32 0793bcf2
+[   13.329037] predator kernel: ath10k_pci 0000:02:00.0: board_file api 2 bmi_id N/A crc32 d2863f91
+[   13.421098] predator kernel: ath10k_pci 0000:02:00.0: htt-ver 3.87 wmi-op 4 htt-op 3 cal otp max-sta 32 raw 0 hwcrypto 1
+[   13.479031] predator kernel: ath: EEPROM regdomain: 0x6c
+[   13.479145] predator kernel: ath: EEPROM indicates we should expect a direct regpair map
+[   13.479251] predator kernel: ath: Country alpha2 being used: 00
+[   13.479375] predator kernel: ath: Regpair used: 0x6c
+[   13.500051] predator kernel: ath10k_pci 0000:02:00.0 wlp2s0: renamed from wlan0
+[   16.966518] predator kernel: device-mapper: table: 254:4: adding target device (start sect 0 len 1465112576) caused an alignment inconsistency
+[   16.966578] predator kernel: device-mapper: table: 254:4: adding target device (start sect 0 len 1465112576) caused an alignment inconsistency
+[   28.846045] predator kernel: pm_stage: phase recorder loaded, armed=0, century register=0x32
+[   28.862319] predator kernel: netconsole: netconsole: local port 6665
+[   28.862410] predator kernel: netconsole: netconsole: local IPv4 address 192.168.1.19
+[   28.862442] predator kernel: netconsole: netconsole: interface name 'enp3s0f1'
+[   28.862469] predator kernel: netconsole: netconsole: local ethernet address 'ff:ff:ff:ff:ff:ff'
+[   28.863439] predator kernel: netconsole: netconsole: remote port 16666
+[   28.863508] predator kernel: netconsole: netconsole: remote IPv4 address 192.168.1.166
+[   28.864400] predator kernel: netconsole: netconsole: remote ethernet address dc:a6:32:0d:3e:c8
+[   28.873660] predator kernel: printk: legacy console [netcon0] enabled
+[   28.873747] predator kernel: netconsole: network logging started
+[   28.896822] predator pm-debug: tpm-ec-study-20261009 
+[   28.898125] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358033
+[   28.898192] predator unknown: 
+[   28.973453] predator pm-debug: tpm-ec-study-20261009 
+[   28.973484] predator unknown: NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+[   28.973498] predator unknown: 
+[   30.887051] predator kernel: bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   30.912486] predator kernel: podman0: port 1(veth0) entered blocking state
+[   30.912658] predator kernel: podman0: port 1(veth0) entered disabled state
+[   30.912735] predator kernel: veth0: entered allmulticast mode
+[   30.914085] predator kernel: veth0: entered promiscuous mode
+[   30.917149] predator kernel: podman0: port 1(veth0) entered blocking state
+[   30.917269] predator kernel: podman0: port 1(veth0) entered forwarding state
+[   31.165058] predator kernel: podman0: port 2(veth1) entered blocking state
+[   31.165234] predator kernel: podman0: port 2(veth1) entered disabled state
+[   31.166584] predator kernel: veth1: entered allmulticast mode
+[   31.170503] predator kernel: veth1: entered promiscuous mode
+[   31.172690] predator kernel: podman0: port 2(veth1) entered blocking state
+[   31.172812] predator kernel: podman0: port 2(veth1) entered forwarding state
+[   31.325934] predator kernel: podman0: port 3(veth2) entered blocking state
+[   31.326069] predator kernel: podman0: port 3(veth2) entered disabled state
+[   31.327053] predator kernel: veth2: entered allmulticast mode
+[   31.328149] predator kernel: veth2: entered promiscuous mode
+[   31.330227] predator kernel: podman0: port 3(veth2) entered blocking state
+[   31.330363] predator kernel: podman0: port 3(veth2) entered forwarding state
+[   31.331057] predator kernel: podman0: port 3(veth2) entered disabled state
+[   31.333962] predator kernel: podman0: port 3(veth2) entered blocking state
+[   31.334093] predator kernel: podman0: port 3(veth2) entered forwarding state
+[   63.173044] predator kernel: podman0: port 4(veth3) entered blocking state
+[   63.173294] predator kernel: podman0: port 4(veth3) entered disabled state
+[   63.173472] predator kernel: veth3: entered allmulticast mode
+[   63.173597] predator kernel: veth3: entered promiscuous mode
+[   63.175039] predator kernel: podman0: port 4(veth3) entered blocking state
+[   63.175206] predator kernel: podman0: port 4(veth3) entered forwarding state
+[  286.387089] predator pm-debug: tpm-ec-study-20261009 
+[  286.387283] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358290
+[  286.387371] predator unknown: 
+[  286.677324] predator pm-debug: tpm-ec-study-20261009 
+[  286.677501] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=286.67 2050.90 awake_since_verified_return=286s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  286.677599] predator unknown: 
+[  286.887139] predator pm-debug: tpm-ec-study-20261009 
+[  286.887358] predator unknown: TRIAL READY id=r-serial-q30-20261030 profile=Q pm_async=0 due=1793359804 wake=1793360764 manifest=97ba58c433bf52024f86a342647ee5fba1ba667d5546ee96d9bba19ebd4524cf
+[  286.887444] predator unknown: 
+[  304.093023] predator pm-debug: tpm-ec-study-20261009 
+[  304.093130] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358308
+[  304.093183] predator unknown: 
+[  304.182089] predator pm-debug: tpm-ec-study-20261009 
+[  304.182165] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=304.18 2187.10 awake_since_verified_return=304s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  304.182203] predator unknown: 
+[  355.252086] predator pm-debug: tpm-ec-study-20261009 
+[  355.252277] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358359
+[  355.252360] predator unknown: 
+[  355.580165] predator pm-debug: tpm-ec-study-20261009 
+[  355.580260] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=355.57 2582.72 awake_since_verified_return=355s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  355.580299] predator unknown: 
+[  355.652070] predator pm-debug: tpm-ec-study-20261009 
+[  355.652173] predator unknown: TRIAL READY id=r-serial-q30-20261030 profile=Q pm_async=0 due=1793359804 wake=1793360764 manifest=97ba58c433bf52024f86a342647ee5fba1ba667d5546ee96d9bba19ebd4524cf
+[  355.652206] predator unknown: 
+[  360.991091] predator pm-debug: tpm-ec-study-20261009 
+[  360.991314] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358365
+[  360.991417] predator unknown: 
+[  361.270119] predator pm-debug: tpm-ec-study-20261009 
+[  361.270278] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=361.26 2625.66 awake_since_verified_return=361s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  361.270359] predator unknown: 
+[  361.463087] predator pm-debug: tpm-ec-study-20261009 
+[  361.463246] predator unknown: TRIAL READY id=r-serial-q30-20261030 profile=Q pm_async=0 due=1793359804 wake=1793360764 manifest=97ba58c433bf52024f86a342647ee5fba1ba667d5546ee96d9bba19ebd4524cf
+[  361.463324] predator unknown: 
+[  418.832134] predator pm-debug: tpm-ec-study-20261009 
+[  418.832304] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358422
+[  418.832399] predator unknown: 
+[  419.279043] predator pm-debug: tpm-ec-study-20261009 
+[  419.279175] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=419.27 3076.69 awake_since_verified_return=418s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  419.279200] predator unknown: 
+[  503.725104] predator pm-debug: tpm-ec-study-20261009 
+[  503.725407] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358507
+[  503.725599] predator unknown: 
+[  504.197059] predator pm-debug: tpm-ec-study-20261009 
+[  504.197141] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=504.19 3735.01 awake_since_verified_return=503s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  504.197183] predator unknown: 
+[  504.255017] predator pm-debug: tpm-ec-study-20261009 
+[  504.255096] predator unknown: TRIAL READY id=r-serial-q35-20261030 profile=Q pm_async=0 due=1793360104 wake=1793361064 manifest=47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+[  504.255120] predator unknown: 
+[  505.375033] predator pm-debug: tpm-ec-study-20261009 
+[  505.375398] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358509
+[  505.375570] predator unknown: 
+[  505.671769] predator pm-debug: tpm-ec-study-20261009 
+[  505.671990] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=505.66 3745.81 awake_since_verified_return=505s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  505.672304] predator unknown: 
+[  505.882150] predator pm-debug: tpm-ec-study-20261009 
+[  505.882446] predator unknown: TRIAL READY id=r-serial-q35-20261030 profile=Q pm_async=0 due=1793360104 wake=1793361064 manifest=47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+[  505.882637] predator unknown: 
+[  513.791116] predator pm-debug: tpm-ec-study-20261009 
+[  513.791499] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358517
+[  513.791695] predator unknown: 
+[  514.088893] predator pm-debug: tpm-ec-study-20261009 
+[  514.089208] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=514.08 3809.77 awake_since_verified_return=513s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  514.089288] predator unknown: 
+[  514.304347] predator pm-debug: tpm-ec-study-20261009 
+[  514.304724] predator unknown: TRIAL READY id=r-serial-q35-20261030 profile=Q pm_async=0 due=1793360104 wake=1793361064 manifest=47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+[  514.304869] predator unknown: 
+[  572.860304] predator pm-debug: tpm-ec-study-20261009 
+[  572.860696] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358576
+[  572.861042] predator unknown: 
+[  573.349591] predator pm-debug: tpm-ec-study-20261009 
+[  573.349876] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=573.34 4269.13 awake_since_verified_return=572s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[  573.349974] predator unknown: 
+[  573.434323] predator pm-debug: tpm-ec-study-20261009 
+[  573.434540] predator unknown: TRIAL READY id=r-serial-q35-20261030 profile=Q pm_async=0 due=1793360104 wake=1793361064 manifest=47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+[  573.434653] predator unknown: 
+[ 2100.211979] predator pm-debug: tpm-ec-study-20261009 
+[ 2100.212172] predator unknown: CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793360104
+[ 2100.212246] predator unknown: 
+[ 2100.699151] predator pm-debug: tpm-ec-study-20261009 
+[ 2100.699401] predator unknown: PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=2100.69 16151.72 awake_since_verified_return=2100s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+[ 2100.699436] predator unknown: 
+[ 2102.238463] predator pm-debug: tpm-ec-study-20261009 
+[ 2102.238799] predator unknown: WARMED /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
+[ 2102.238893] predator unknown: 
+[ 2102.287141] predator pm-debug: tpm-ec-study-20261009 
+[ 2102.287325] predator unknown: WARMED /dev/disk/by-id/wwn-0x500003961228993f-part1
+[ 2102.287471] predator unknown: 
+[ 2102.732031] predator pm-debug: tpm-ec-study-20261009 
+[ 2102.732278] predator unknown: WARMED /dev/disk/by-id/wwn-0x50014ee26a2aa7c6-part1
+[ 2102.732389] predator unknown:

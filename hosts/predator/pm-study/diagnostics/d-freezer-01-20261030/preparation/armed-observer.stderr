@@ -1,0 +1,4 @@
+Running timer as unit: predator-pm-diagnostic-d-freezer-01-20261030-probe.timer
+Will run service as unit: predator-pm-diagnostic-d-freezer-01-20261030-probe.service
+Running timer as unit: predator-pm-diagnostic-d-freezer-01-20261030-snapshot.timer
+Will run service as unit: predator-pm-diagnostic-d-freezer-01-20261030-snapshot.service

@@ -1,0 +1,74 @@
+2026-10-30T18:29:27+01:00
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+2026-10-30T17:14:43.975905+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-q37-20261030-notice-setup.service - Predator study Telegram notice...
+2026-10-30T17:14:44.247254+0100 raspberrypi curl[98383]: {"ok":true,"result":{"message_id":88804,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":[REDACTED_NOTIFICATION_PRIVATE_VALUE],"first_name":"mirsella","type":"private"},"date":1793376884,"text":"Predator / r-serial-q37-20261030 / Pi observer\nNotifications enabled. Test window: 2026-10-30 17:44:18 CET; first wake 18:00:18 CET, retry +30s. Keep the power graph. Schedule notices do not prove sleep entry."}}
+2026-10-30T17:14:44.248086+0100 raspberrypi systemd[1]: predator-pm-r-serial-q37-20261030-notice-setup.service: Deactivated successfully.
+2026-10-30T17:14:44.248486+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-q37-20261030-notice-setup.service - Predator study Telegram notice.
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+2026-10-30T17:44:18.560633+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-q37-20261030-notice-start.service - Predator study Telegram notice...
+2026-10-30T17:44:18.828794+0100 raspberrypi curl[98645]: {"ok":true,"result":{"message_id":88807,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":[REDACTED_NOTIFICATION_PRIVATE_VALUE],"first_name":"mirsella","type":"private"},"date":1793378658,"text":"Predator / r-serial-q37-20261030 / Pi observer\nTest window is starting now. First wake: 18:00:18 CET. Suspend entry is not yet confirmed; preflight or inhibitors can refuse it. Watch the power graph."}}
+2026-10-30T17:44:18.829639+0100 raspberrypi systemd[1]: predator-pm-r-serial-q37-20261030-notice-start.service: Deactivated successfully.
+2026-10-30T17:44:18.829999+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-q37-20261030-notice-start.service - Predator study Telegram notice.
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+2026-10-30T18:00:18.691858+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-q37-20261030-notice-wake-ok.service - Predator study Telegram notice...
+2026-10-30T18:00:18.945804+0100 raspberrypi curl[98929]: {"ok":true,"result":{"message_id":88808,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":[REDACTED_NOTIFICATION_PRIVATE_VALUE],"first_name":"mirsella","type":"private"},"date":1793379618,"text":"Predator / r-serial-q37-20261030 / Pi observer\nFirst WoL command completed successfully. Packet receipt and resume are not yet confirmed."}}
+2026-10-30T18:00:18.946651+0100 raspberrypi systemd[1]: predator-pm-r-serial-q37-20261030-notice-wake-ok.service: Deactivated successfully.
+2026-10-30T18:00:18.947038+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-q37-20261030-notice-wake-ok.service - Predator study Telegram notice.
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+2026-10-30T18:00:48.699827+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-q37-20261030-notice-retry-ok.service - Predator study Telegram notice...
+2026-10-30T18:00:48.942951+0100 raspberrypi curl[98957]: {"ok":true,"result":{"message_id":88809,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":[REDACTED_NOTIFICATION_PRIVATE_VALUE],"first_name":"mirsella","type":"private"},"date":1793379648,"text":"Predator / r-serial-q37-20261030 / Pi observer\nRetry WoL command completed successfully. Reachability check follows."}}
+2026-10-30T18:00:48.943780+0100 raspberrypi systemd[1]: predator-pm-r-serial-q37-20261030-notice-retry-ok.service: Deactivated successfully.
+2026-10-30T18:00:48.944156+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-q37-20261030-notice-retry-ok.service - Predator study Telegram notice.
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+2026-10-30T18:01:51.684716+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-q37-20261030-notice-probe-failed.service - Predator study Telegram notice...
+2026-10-30T18:01:51.968436+0100 raspberrypi curl[99018]: {"ok":true,"result":{"message_id":88810,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":[REDACTED_NOTIFICATION_PRIVATE_VALUE],"first_name":"mirsella","type":"private"},"date":1793379711,"text":"Predator / r-serial-q37-20261030 / Pi observer\nSSH probe FAILED: Predator is unreachable. Possible hang; check power/LEDs. Preserve the graph and allow the snapshot at wake +3 minutes before attended recovery when practical."}}
+2026-10-30T18:01:51.969382+0100 raspberrypi systemd[1]: predator-pm-r-serial-q37-20261030-notice-probe-failed.service: Deactivated successfully.
+2026-10-30T18:01:51.969799+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-q37-20261030-notice-probe-failed.service - Predator study Telegram notice.
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+2026-10-30T18:03:18.595024+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-q37-20261030-notice-snapshot-ok.service - Predator study Telegram notice...
+2026-10-30T18:03:18.878212+0100 raspberrypi curl[99084]: {"ok":true,"result":{"message_id":88811,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":[REDACTED_NOTIFICATION_PRIVATE_VALUE],"first_name":"mirsella","type":"private"},"date":1793379798,"text":"Predator / r-serial-q37-20261030 / Pi observer\nFull netconsole snapshot saved on Pi. Main-side collection follows. Preserve the power graph; final classification is pending."}}
+2026-10-30T18:03:18.879056+0100 raspberrypi systemd[1]: predator-pm-r-serial-q37-20261030-notice-snapshot-ok.service: Deactivated successfully.
+2026-10-30T18:03:18.879548+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-q37-20261030-notice-snapshot-ok.service - Predator study Telegram notice.
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --

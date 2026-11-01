@@ -1,0 +1,7 @@
+2026-11-01T13:34:31,770478694+01:00
+active
+NEXT                        LEFT       LAST PASSED UNIT                                                  ACTIVATES
+Sun 2026-11-01 13:48:00 CET 13min left -    -      predator-pm-boundary-core-efi-20261101-probe.timer    predator-pm-boundary-core-efi-20261101-probe.service
+Sun 2026-11-01 13:49:00 CET 14min left -    -      predator-pm-boundary-core-efi-20261101-snapshot.timer predator-pm-boundary-core-efi-20261101-snapshot.service
+
+2 timers listed.

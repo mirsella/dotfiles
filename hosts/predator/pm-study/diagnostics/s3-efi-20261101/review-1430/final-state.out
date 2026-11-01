@@ -1,0 +1,200 @@
+2026-11-01T14:31:32,095510413+01:00
+Id=systemd-suspend.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+
+Id=predator-pm-boundary-s3-efi-v2-20261101.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+[none] core processors platform devices freezer
+s2idle [deep]
+/sys/bus/acpi/drivers/tpm_crb
+TPM_CRB_Acer_rawEC_HOLD_and_owned_cleanup=PASS
+btime 1793535079
+4812.69 34962.45
+Filesystem     1B-blocks   Used Available Use% Mounted on
+efivarfs          163752 157180      1452 100% /sys/firmware/efi/efivars
+ff_rt_clk=      14         disabled     unmasked
+ff_pwr_btn=       0  EN     enabled      unmasked
+ff_slp_btn=       0         invalid      unmasked
+gpe14=      47  EN     enabled      unmasked
+gpe66=      10  EN     enabled      unmasked
+gpe69=       0         disabled     unmasked
+gpe6D=       0  EN     enabled      unmasked
+sci=      71
+sci_not=       1
+gpe_all=      57
+error=       0
+            CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+   0:         37          0          0          0          0          0          0          0 IR-IO-APIC    2-edge      timer
+   1:         21          0          0          0          0          7          0          0 IR-IO-APIC    1-edge      i8042
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:         35         37          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+  14:          0          1          0          0          0          0          0          0 IR-IO-APIC   14-fasteoi   INT345D:00
+  16:          0          0          0          6          0          0          0          0 IR-IO-APIC   16-fasteoi   idma64.0, i2c_designware.0, i801_smbus
+  17:         70          0          0          0          0       1206          0          0 IR-IO-APIC   17-fasteoi   idma64.1, i2c_designware.1, snd_hda_intel:card0
+ 120:          1          0          1          0          0          0          0          0 IR-PCI-MSI-0000:00:01.0    0-edge      PCIe bwctrl
+ 121:          1          0          0          1          0          0          0          0 IR-PCI-MSI-0000:00:1c.0    0-edge      PCIe bwctrl
+ 122:          1          0          0          0          1          0          0          0 IR-PCI-MSI-0000:00:1c.3    0-edge      PCIe bwctrl
+ 123:          5          0          0          0          0          0          4          0 IR-PCI-MSI-0000:03:00.0    0-edge      rtsx_pci
+ 124:       1279          0          0          0          0          0          0       5304 IR-PCI-MSI-0000:00:14.0    0-edge      xhci_hcd
+ 132:      58064      71438          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.1    0-edge      enp3s0f1
+ 133:      36101          0          0          0          0          0          0      96828 IR-PCI-MSI-0000:00:17.0    0-edge      ahci[0000:00:17.0]
+ 134:          0          0          0          0          0          0          0         34 IR-PCI-MSI-0000:00:16.0    0-edge      mei_me
+ 135:          0          1          0          0          0          0          0          0 intel-gpio   27  SYNA7DB5:01
+ 136:         81          0          0          0          0          0         88          0 IR-PCI-MSI-0000:00:02.0    0-edge      i915
+ 137:        316          0          0          0          0          0          0        311 IR-PCI-MSI-0000:00:1f.3    0-edge      snd_hda_intel:card1
+ 138:      24632          0          0          0          0          0          0          0 IR-PCI-MSI-0000:02:00.0    0-edge      ath10k_pci
+ NMI:          8          7          7          7          6          6          7          6   Non-maskable interrupts
+ LOC:     639789     598767     534569     516006     523674     521630     513651     521787   Local timer interrupts
+ SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+ PMI:          8          7          7          7          6          6          7          6   Performance monitoring interrupts
+ IWI:         33          1          1          9          2          0         12          0   IRQ work interrupts
+ RTR:          0          0          0          0          0          0          0          0   APIC ICR read retries
+ RES:       5954       6270       5492       5176       5191       5425       4990       4824   Rescheduling interrupts
+ CAL:      89019      72792      72394      67767      71330      66127      69419      71742   Function call interrupts
+ TLB:      38430      36364      36671      36889      36156      37308      36907      37496   TLB shootdowns
+ TRM:       1362       1362       1362       1362       1362       1362       1362       1362   Thermal event interrupts
+ THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+ DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+ MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+ MCP:         18         19         19         19         19         19         19         19   Machine check polls
+ ERR:          0
+ MIS:          0
+ PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+ NPI:          0          0          0          0          0          0          0          0   Nested posted-interrupt event
+ PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+0000:03:00.1
+d3cold_allowed=1
+power_state=D0
+power/wakeup=enabled
+power/control=on
+power/runtime_status=active
+0000:03:00.0
+d3cold_allowed=1
+power_state=D0
+power/wakeup=disabled
+power/control=auto
+power/runtime_status=active
+0000:00:1c.3
+d3cold_allowed=1
+power_state=D0
+power/wakeup=enabled
+power/control=auto
+power/runtime_status=active
+2026-11-01T14:20:11.072332+01:00 predator systemd-logind[1534]: suspend requested from client PID 33314 ('busctl') (unit predator-pm-boundary-s3-efi-v2-20261101.service)...
+2026-11-01T14:20:11.077014+01:00 predator systemd-logind[1534]: The system will suspend now!
+2026-11-01T14:25:03.954525+01:00 predator systemd-logind[1534]: Operation 'suspend' finished.
+root 600 2945 /var/lib/predator-pm-efi-s3-reviewed/core-control-review.json
+root 600 2295623 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-after-kernel.jsonl
+root 600 15724 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-alarm-armed.txt
+root 600 10 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-alarm-intent.txt
+root 600 1551108 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-before-kernel.jsonl
+root 600 15713 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-before.txt
+root 600 922 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-clock-handoff.txt
+root 600 298 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-completed.json
+root 600 125 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-cursor.txt
+root 600 78 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-mutating.txt
+root 600 748354 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-observed.jsonl
+root 600 104 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-outcome.txt
+root 600 912 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-plan.conf
+root 600 15714 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-raw-return.txt
+root 600 47 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-request-call.txt
+root 600 911 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-requested.txt
+root 600 5 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-request-ok.txt
+root 600 15706 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-restored.txt
+root 600 380 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-stage-before.txt
+root 600 154 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-stage-readback.txt
+root 600 379 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-stage-status.txt
+root 600 4038 /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-verification.json
+78a64967499872a4cd565d4c4788402b55432fb418c884b9c297d6a93af31896  /var/lib/predator-pm-efi-s3-reviewed/core-control-review.json
+31f330483843e26cbeb537e3ad8402cf857f56ddafc0243b332e8f3af6fcef85  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-after-kernel.jsonl
+f253a2e520452116393325bfd7d860ec1049bc5824269df1c73dc362cd2e87d0  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-alarm-armed.txt
+f49739ff0dbc8c4e16be13dba6987745732dc3077e3b7ddb193b44b04c6b34f0  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-alarm-intent.txt
+357adab4d87d2446035becb3c6a396d86f218d27aa5faa174eb9ed96ca0cd64f  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-before-kernel.jsonl
+85b23478bd055b3ba4380fa9dc3901b48f5b06b340abbfc3d93ed80f3fa98957  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-before.txt
+ea361abae9deab9ecdbb28980442efe7f1999c397dac0c1236c41deb593998e5  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-clock-handoff.txt
+4e303475cf76fe2f972237f93ba15d18c5a77c6a52a9f6685e284eb1dbc96121  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-completed.json
+70f9d1aee4292f3eb61ebebd134941ad3df91a0cbb9f32d3086a7e009302df87  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-cursor.txt
+60f0734b50e821f8d61473f0c55233482329e3a04331171673a72c92694264f8  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-mutating.txt
+c763f171292f2add61aa461bb7750d39ecbd78504c1a670b5995f12603b089ca  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-observed.jsonl
+ed6c49b6b4c269651901180e12f4c4a7dff6ca29a1e1d235af6b641f09ac2b4e  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-outcome.txt
+bb535457f04bf08d1663900ff454339b1521f68e81de6cf1f98b111f2183bd5c  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-plan.conf
+9c96233da2a2cf29600a56a8163f405d18b6258061c43446fefed801a3060b40  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-raw-return.txt
+4174eadbcfbb3df313fba8938f8c24785c70d05687b33188f3ac6f612f4ded9c  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-request-call.txt
+a479d401e882666ac542b8fde450f0d976ee028e78399ee7bb16e9206945e987  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-requested.txt
+a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-request-ok.txt
+cf8e41ed08ced68939baa197d4f6dd4301939c57a4451517c445e3fad9ddef6b  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-restored.txt
+65711c0e667b354155d69dc959f9fd9070cc92492b9afae7220275b427210e20  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-stage-before.txt
+c0fdf6b14d1732f876777dbe8b3e8b7c803bbc077c45e9aefda3dc41b7a6fdc5  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-stage-readback.txt
+1c0dc76f0f3cbf5b59385a11d288e285bc15a960040fa586cdd0e7fc02a3bb74  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-stage-status.txt
+69d81713c5a6bc8e82609d6b0e84f107a6c14d6bd3866cb45b95f3142ab29750  /var/lib/predator-pm-efi-s3-reviewed/s3-efi-v2-20261101-verification.json
+767cd2aff3f22cc1b8691ae63e3435d83279f7952b763870a53e0b680214b942  /var/lib/predator-pm-wake-validation/wake-20261031-plan.conf
+14b4bc808a6056346cc7d2844c8d48b35d16b3970f1312ac5c34a740b7a6fbb9  /var/lib/predator-pm-wake-validation/wake-20261031-completed.txt
+ab8a52f58f39a2dddb7363a0b8d3290a346856c6d9d2dbf9991124be522ea653  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-plan.conf
+584492d7d63f6224de4aa3543559962ae41e49fe118252608d111155fe25e222  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-completed.txt
+ed6c49b6b4c269651901180e12f4c4a7dff6ca29a1e1d235af6b641f09ac2b4e  /var/lib/predator-pm-efi-s3/core-efi-20261101-outcome.txt
+33c76ad264bf7b7f766935fb0e1122cb56c9618977aba88645baba6cdc84864e  /var/lib/predator-pm-efi-s3/core-efi-20261101-restored.txt
+8ec9a59873daefb342530ce89044b651a2b3e280d817e260d7d0c7b49af7a48e  /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-status.txt
+27710f1f377a715009da5559cd4830a0290628a4f7d29e40d26bb12b235536de  /var/lib/predator-pm-efi-s3/core-efi-20261101-stage-readback.txt
+810564d7fc6d6ab3331220ce07e9c9a9959debde3d8299179c106881bef23e3b  /nix/store/2bis3s5m9djibh5fjgrjknpwah6w60rv-predator-pm-study-0.1.0/bin/predator-pm-boundary-s3
+90535c76374d5e2c29ba03780949b8917084c01fb6a610c0427a32e3471627c0  /nix/store/ymy989dq8bxys9j2jkanpc3d80qmvliy-predator-pm-boundary-stage-20261101/lib/modules/6.18.58/extra/pm_boundary_stage.ko.xz
+NEXT                            LEFT LAST                         PASSED UNIT                   ACTIVATES
+Sun 2026-11-01 14:36:19 CET 4min 46s Sun 2026-11-01 14:31:19 CET 13s ago nextcloud-cron.timer   nextcloud-cron.service
+-                                  - -                                 - night-suspend.timer    night-suspend.service
+-                                  - -                                 - predator-pm-next.timer predator-pm-next.service
+
+3 timers listed.
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+A  pkgs/predator-pm-study/boundary-compact.c
+A  pkgs/predator-pm-study/boundary-compact.nix
+A  pkgs/predator-pm-study/boundary-probe.c
+A  pkgs/predator-pm-study/boundary-probe.nix
+A  pkgs/predator-pm-study/boundary-stage.c
+A  pkgs/predator-pm-study/boundary-stage.nix
+A  pkgs/predator-pm-study/boundary_record.rs
+A  pkgs/predator-pm-study/boundary_s3.rs
+A  pkgs/predator-pm-study/boundary_trial.rs
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_path.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+5c0e3e70286d63c60d73373239fc284a1872b11c63e6df0c7304f0f70a20c7bb  pkgs/predator-pm-study/boundary_s3.rs
+4884bb9d16b073785e441a17f807a6ce130f53e6b43a0a0cbdb9e41cd0a19f7f  pkgs/predator-pm-study/boundary_trial.rs
+8699c8457d330df8341b529e13cdaf437e50fd1035c576cbd98b4d8e89cdc2e7  pkgs/predator-pm-study/boundary_record.rs
+aeeba42b27ef3c2448626e9557bb14494190b51833c63e78c81dba8610a537e7  pkgs/predator-pm-study/boundary-stage.c
+d0685d03c9d523f4513d8636bd8912c45656390698610cfc07687a30d179c441  hosts/predator/pm-study/README.md
+24929108df2e24c7bead3275ca091f6c214705d8e7e63a8d7f97d4a55816d9bc  hosts/predator/pm-study/diagnostics/README.md
+baae0bee399afb13f4cd766399094cbafcd62bd8abf78ed88887830d3d435e3c  hosts/predator/pm-study/diagnostics/s3-efi-20261101/README.md
+2026-11-01T14:31:32,567486085+01:00

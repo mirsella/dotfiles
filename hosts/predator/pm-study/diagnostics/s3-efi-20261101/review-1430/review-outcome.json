@@ -1,0 +1,277 @@
+{
+  "acpiCounterChanges": [
+    {
+      "armed": 0,
+      "counter": "error",
+      "delta": 0,
+      "rawReturn": 0
+    },
+    {
+      "armed": 0,
+      "counter": "ff_pwr_btn",
+      "delta": 0,
+      "rawReturn": 0
+    },
+    {
+      "armed": 12,
+      "counter": "ff_rt_clk",
+      "delta": 1,
+      "rawReturn": 13
+    },
+    {
+      "armed": 0,
+      "counter": "ff_slp_btn",
+      "delta": 0,
+      "rawReturn": 0
+    },
+    {
+      "armed": 47,
+      "counter": "gpe14",
+      "delta": 0,
+      "rawReturn": 47
+    },
+    {
+      "armed": 7,
+      "counter": "gpe66",
+      "delta": 2,
+      "rawReturn": 9
+    },
+    {
+      "armed": 0,
+      "counter": "gpe69",
+      "delta": 0,
+      "rawReturn": 0
+    },
+    {
+      "armed": 0,
+      "counter": "gpe6D",
+      "delta": 0,
+      "rawReturn": 0
+    },
+    {
+      "armed": 54,
+      "counter": "gpe_all",
+      "delta": 2,
+      "rawReturn": 56
+    },
+    {
+      "armed": 66,
+      "counter": "sci",
+      "delta": 3,
+      "rawReturn": 69
+    },
+    {
+      "armed": 1,
+      "counter": "sci_not",
+      "delta": 0,
+      "rawReturn": 1
+    }
+  ],
+  "contextFlags": 7,
+  "counterAfter": 2,
+  "counterBefore": 1,
+  "entryExitIntervalsMicros": {
+    "_SOURCE_BOOTTIME_TIMESTAMP": 5820710,
+    "_SOURCE_MONOTONIC_TIMESTAMP": 5820710,
+    "__MONOTONIC_TIMESTAMP": 5915951,
+    "__REALTIME_TIMESTAMP": 292902248
+  },
+  "fullPhysicalPass": false,
+  "independentCoreAnchor": "PINNED_AND_PRESERVED",
+  "independentVerification": "PASS",
+  "mode": "s3",
+  "originalHarnessResult": "S3_LOWLEVEL_RETURN",
+  "physicalSleepSeconds": null,
+  "piFrozenHashesAndPrefix": "PASS",
+  "piProbeAndSnapshot": "PASS",
+  "priorKernelRecordsPreserved": 2122,
+  "rawEpoch": 1793539504,
+  "rawRtcEpoch": 1793539505,
+  "realS3": true,
+  "recordPhase": 22,
+  "recordSequence": 3,
+  "remainingFree": 6572,
+  "reportedStorageCost": 462,
+  "rootPortStatus": {
+    "after": "0x00000000",
+    "before": "0x00000000",
+    "timing": "boundary snapshots only; no in-sleep capture"
+  },
+  "timestamps": [
+    {
+      "message": "PM: suspend entry (deep)",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4132609255,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4132609255,
+        "__MONOTONIC_TIMESTAMP": 4127559046,
+        "__REALTIME_TIMESTAMP": 1793539211225475
+      }
+    },
+    {
+      "message": "pm_boundary_stage: begin nonce=deep1101a phase=20 sequence=1 context=7",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4134399610,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4134399610,
+        "__MONOTONIC_TIMESTAMP": 4133381114,
+        "__REALTIME_TIMESTAMP": 1793539504033839
+      }
+    },
+    {
+      "message": "pm_boundary_stage: end nonce=deep1101a phase=20 sequence=1 error=0 efi=0 fast_clock_delta_ns=0",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4134447713,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4134447713,
+        "__MONOTONIC_TIMESTAMP": 4133381139,
+        "__REALTIME_TIMESTAMP": 1793539504033864
+      }
+    },
+    {
+      "message": "ACPI: PM: Low-level resume complete",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4134449257,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4134449257,
+        "__MONOTONIC_TIMESTAMP": 4133381163,
+        "__REALTIME_TIMESTAMP": 1793539504033888
+      }
+    },
+    {
+      "message": "pm_boundary_stage: begin nonce=deep1101a phase=21 sequence=2 context=7",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4134449271,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4134449271,
+        "__MONOTONIC_TIMESTAMP": 4133381196,
+        "__REALTIME_TIMESTAMP": 1793539504033921
+      }
+    },
+    {
+      "message": "pm_boundary_stage: end nonce=deep1101a phase=21 sequence=2 error=0 efi=0 fast_clock_delta_ns=0",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4134494786,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4134494786,
+        "__MONOTONIC_TIMESTAMP": 4133381221,
+        "__REALTIME_TIMESTAMP": 1793539504033946
+      }
+    },
+    {
+      "message": "pm_boundary_stage: begin nonce=deep1101a phase=22 sequence=3 context=7",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4134495713,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4134495713,
+        "__MONOTONIC_TIMESTAMP": 4133381686,
+        "__REALTIME_TIMESTAMP": 1793539504034411
+      }
+    },
+    {
+      "message": "pm_boundary_stage: end nonce=deep1101a phase=22 sequence=3 error=0 efi=0 fast_clock_delta_ns=45854846",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4134541574,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4134541574,
+        "__MONOTONIC_TIMESTAMP": 4133381710,
+        "__REALTIME_TIMESTAMP": 1793539504034435
+      }
+    },
+    {
+      "message": "PM: suspend exit",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 4138429965,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 4138429965,
+        "__MONOTONIC_TIMESTAMP": 4133474997,
+        "__REALTIME_TIMESTAMP": 1793539504127723
+      }
+    }
+  ],
+  "trialOriginals": 21,
+  "usableAboveLinuxReserve": 1452,
+  "wakeAttribution": "RTC timing, expired alarm and RTC counter support RTC wake; no wake IRQ captured, power-button source counts also rose, exact triggering status bit and owner interaction remain unverified",
+  "wakeupSourceChanges": [
+    {
+      "after": [
+        16,
+        29,
+        0,
+        0,
+        0,
+        2,
+        1,
+        4134712,
+        0
+      ],
+      "before": [
+        14,
+        26,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4127334,
+        0
+      ],
+      "source": "PNP0B00:00#0"
+    },
+    {
+      "after": [
+        4,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4129414,
+        0
+      ],
+      "before": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2033775,
+        0
+      ],
+      "source": "PNP0C0C:00#0"
+    },
+    {
+      "after": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4129414,
+        0
+      ],
+      "before": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2033775,
+        0
+      ],
+      "source": "PNP0C0C:00#1"
+    }
+  ],
+  "schema": "s3-independent-review-20261101-1",
+  "trial": "s3-efi-v2-20261101",
+  "boot": "39d7579b-b86d-4d30-b910-131943e550c8",
+  "btime": 1793535079,
+  "independentCoreAnchorOriginals": 1,
+  "cleanupVerified": true,
+  "fullHealthVerified": true,
+  "healthObservedAtLocal": "2026-11-01T14:31:40+01:00",
+  "hangReproduced": false,
+  "powerGraphReceived": false,
+  "ownerInteractionConfirmed": false,
+  "scheduledTaskDeleted": true,
+  "additionalPowerTransitions": 0,
+  "furtherPowerWorkflowScheduled": false
+}

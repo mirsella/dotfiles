@@ -1,0 +1,50 @@
+waiting for another Nix process to finish fetching input 'git+file:///home/mirsella/dev/dotfiles'...
+warning: Git tree '/home/mirsella/dev/dotfiles' is dirty
+waiting for another Nix process to finish fetching input 'github:nix-community/neovim-nightly-overlay/ca14eed2583453aab3c37e5ba711ccea22f5299b?narHash=sha256-SNBDw%2B6/YaZfmeAQcenfUYd4hA7YwIfj3G71CXMlqJI%3D'...
+waiting for another Nix process to finish fetching input 'github:oxalica/rust-overlay/c7e9d512653a35ef4d5879c3df4d44d7b78d0e6d?narHash=sha256-ObKS44vw4IIVpQ69YJzUGjZ0IwnpWoUlwjJSY7gefdo%3D'...
+warning: unable to download 'https://cache.nixos.org/9cqn5ihvvm2ml6ksjrdjxh4f3l3wsmwm.narinfo': Timeout was reached (28) Resolving timed out after 15000 milliseconds; retrying in 60 ms (attempt 1/5)
+warning: unable to download 'https://cache.nixos.org/9cqn5ihvvm2ml6ksjrdjxh4f3l3wsmwm.narinfo': Timeout was reached (28) Resolving timed out after 15000 milliseconds; retrying in 77 ms (attempt 2/5)
+warning: unable to download 'https://cache.nixos.org/9cqn5ihvvm2ml6ksjrdjxh4f3l3wsmwm.narinfo': Timeout was reached (28) Resolving timed out after 15000 milliseconds; retrying in 82 ms (attempt 3/5)
+warning: unable to download 'https://cache.nixos.org/9cqn5ihvvm2ml6ksjrdjxh4f3l3wsmwm.narinfo': Timeout was reached (28) Connection timeout after 15000 ms; retrying in 699 ms (attempt 4/5)
+these 2 derivations will be built:
+  /nix/store/bxy79ygsfvarwsvcyx99j4cfjyipj99h-cargo-vendor-dir.drv
+  /nix/store/z9drpd30kjfg4db503dlbhqj3ya7gsvl-predator-pm-study-0.1.0.drv
+these 2 paths will be fetched (375.2 KiB download, 2.6 MiB unpacked):
+  /nix/store/wclwb59gv26xb0yhmna74l8rgzsbys70-syn-3.0.9
+  /nix/store/7dykslli7fcjlpr6cgls8ylzw7s023xf-unicode-ident-1.0.27
+copying path '/nix/store/wclwb59gv26xb0yhmna74l8rgzsbys70-syn-3.0.9' from 'https://cache.nixos.org'...
+copying path '/nix/store/7dykslli7fcjlpr6cgls8ylzw7s023xf-unicode-ident-1.0.27' from 'https://cache.nixos.org'...
+building '/nix/store/bxy79ygsfvarwsvcyx99j4cfjyipj99h-cargo-vendor-dir.drv'...
+building '/nix/store/z9drpd30kjfg4db503dlbhqj3ya7gsvl-predator-pm-study-0.1.0.drv'...
+error: Cannot build '/nix/store/z9drpd30kjfg4db503dlbhqj3ya7gsvl-predator-pm-study-0.1.0.drv'.
+       Reason: builder failed with exit code 101.
+       Output paths:
+         /nix/store/9cqn5ihvvm2ml6ksjrdjxh4f3l3wsmwm-predator-pm-study-0.1.0
+       Last 25 log lines:
+       > Executing cargoBuildHook
+       > cargoBuildHook flags: -j 16 --target x86_64-unknown-linux-gnu --offline --profile release
+       >    Compiling serde_core v1.0.229
+       >    Compiling zmij v1.0.23
+       >    Compiling serde_json v1.0.151
+       >    Compiling itoa v1.0.18
+       >    Compiling memchr v2.8.3
+       >    Compiling predator-pm-study v0.1.0 (/build/predator-pm-study)
+       > error[E0282]: type annotations needed for `std::result::Result<wake_timing::Cycle, _>`
+       >    --> wake_validation.rs:868:9
+       >     |
+       > 868 |     let op = (|| {
+       >     |         ^^
+       > ...
+       > 934 |         Ok(result)
+       >     |         ---------- type must be known at this point
+       >     |
+       > help: consider giving `op` an explicit type, where the type for type parameter `E` is specified
+       >     |
+       > 868 |     let op: std::result::Result<_, E> = (|| {
+       >     |           +++++++++++++++++++++++++++
+       >
+       > For more information about this error, try `rustc --explain E0282`.
+       > error: could not compile `predator-pm-study` (bin "predator-pm-wake-validation") due to 1 previous error
+       > warning: build failed, waiting for other jobs to finish...
+       For full logs, run:
+         nix log /nix/store/z9drpd30kjfg4db503dlbhqj3ya7gsvl-predator-pm-study-0.1.0.drv

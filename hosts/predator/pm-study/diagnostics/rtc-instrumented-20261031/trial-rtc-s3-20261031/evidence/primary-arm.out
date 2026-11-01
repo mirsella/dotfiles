@@ -1,0 +1,15 @@
+2026-10-31T09:45:50+01:00
+RTC READY id=rtc-s3-20261031 nonce=rtc-s3-20261031-1793436900
+NEXT                            LEFT LAST                              PASSED UNIT                 ACTIVATES
+Sat 2026-10-31 09:47:35 CET 1min 43s Sat 2026-10-31 09:42:35 CET 3min 16s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+ActiveState=inactive
+Type=exec
+TimeoutStopUSec=3min
+RuntimeMaxUSec=40min
+ExecStopPost={ path=/nix/store/jzmh15h5pf69b7xcz6g61xm2584f4ybp-predator-pm-study-0.1.0/bin/predator-pm-instrumented ; argv[]=/nix/store/jzmh15h5pf69b7xcz6g61xm2584f4ybp-predator-pm-study-0.1.0/bin/predator-pm-instrumented restore /var/lib/predator-pm-instrumented/rtc-s3-20261031-plan.conf aa5be693e84beca952edddf18a7594169c3b08e3885bf61caaf4ca68d1ba5fa9 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+NEXT                        LEFT LAST PASSED UNIT                                           ACTIVATES
+Sat 2026-10-31 09:55:00 CET 9min -         - predator-pm-instrumented-rtc-s3-20261031.timer predator-pm-instrumented-rtc-s3-20261031.service
+
+1 timers listed.

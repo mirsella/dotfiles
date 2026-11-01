@@ -1,0 +1,4 @@
+trial=r-serial-q37-20261030
+epoch=1793380355
+issues=["result-predator failed: exit status: 255; preserved \"/home/mirsella/dev/dotfiles/.scratch/pm-serial-q37-review-20261030-1811/collect/result-predator.txt\""]
+classification=requires_power_graph_and_boot_bound_review

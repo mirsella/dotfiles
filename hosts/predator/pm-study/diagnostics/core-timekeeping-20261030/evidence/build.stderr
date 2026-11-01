@@ -1,0 +1,4 @@
+warning: Git tree '/home/mirsella/dev/dotfiles' is dirty
+this derivation will be built:
+  /nix/store/gcyn90xrmv28kc2nkpwrk1dz1jyklhj1-predator-pm-study-0.1.0.drv
+building '/nix/store/gcyn90xrmv28kc2nkpwrk1dz1jyklhj1-predator-pm-study-0.1.0.drv'...

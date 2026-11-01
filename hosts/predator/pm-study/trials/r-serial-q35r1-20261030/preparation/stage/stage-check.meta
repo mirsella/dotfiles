@@ -1,0 +1,7 @@
+host=192.168.1.19
+status=exit status: 0
+script:
+set -eu
+'/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study' check-trial '/var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf' '3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e'
+
+stderr:

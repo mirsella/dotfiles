@@ -1,0 +1,2 @@
+.scratch/pm-s2idle-rtc-fallback-20261031-2145/operator.rs: OK
+.scratch/pm-s2idle-rtc-fallback-20261031-2145/operator: OK

@@ -1,0 +1,30 @@
+2026-10-30T21:13:33+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+active
+NTPSynchronized=yes
+2026-10-30T21:10:32.568589+0100 raspberrypi systemd[1]: Starting predator-pm-diagnostic-d-platform-01-20261030-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19...
+2026-10-30T21:10:32.702842+0100 raspberrypi timeout[103512]: # 192.168.1.19:22 SSH-2.0-OpenSSH_10.6
+2026-10-30T21:10:32.934717+0100 raspberrypi timeout[103512]: 192.168.1.19 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINxDZ7naaL4K946jtu7gZ1lQgmKlXXXNcTkyJr3AISax
+2026-10-30T21:10:32.936129+0100 raspberrypi systemd[1]: predator-pm-diagnostic-d-platform-01-20261030-probe.service: Deactivated successfully.
+2026-10-30T21:10:32.938750+0100 raspberrypi systemd[1]: Finished predator-pm-diagnostic-d-platform-01-20261030-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19.
+2026-10-30T21:12:32.576425+0100 raspberrypi systemd[1]: Starting predator-pm-diagnostic-d-platform-01-20261030-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/d-platform-01-20261030-result.log...
+2026-10-30T21:12:32.588356+0100 raspberrypi systemd[1]: predator-pm-diagnostic-d-platform-01-20261030-snapshot.service: Deactivated successfully.
+2026-10-30T21:12:32.589028+0100 raspberrypi systemd[1]: Finished predator-pm-diagnostic-d-platform-01-20261030-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/d-platform-01-20261030-result.log.
+2026-10-30T21:13:32.568693+0100 raspberrypi systemd[1]: Starting predator-pm-diagnostic-d-platform-01-20261030-review.service - /usr/bin/printf DIAG REVIEW READY d-platform-01-20261030\n...
+2026-10-30T21:13:32.572119+0100 raspberrypi printf[103519]: DIAG REVIEW READY d-platform-01-20261030
+2026-10-30T21:13:32.573771+0100 raspberrypi systemd[1]: predator-pm-diagnostic-d-platform-01-20261030-review.service: Deactivated successfully.
+2026-10-30T21:13:32.574523+0100 raspberrypi systemd[1]: Finished predator-pm-diagnostic-d-platform-01-20261030-review.service - /usr/bin/printf DIAG REVIEW READY d-platform-01-20261030\n.
+2550582
+475bf97c6305114448e3ca92a0dee68892a8a011a73f5b3703b29e62410601ac  /home/mirsella/dev/predator-pm-debug/.agents-local/d-platform-01-20261030-result.log
+NEXT LEFT LAST                         PASSED            UNIT                                                   ACTIVATES
+-    -    Thu 2026-10-29 09:21:02 CET  1 day 11h ago     predator-pm-r-async-d1225-20261029-notice-start.timer  predator-pm-r-async-d1225-20261029-notice-start.service
+-    -    Sat 2026-10-17 18:00:00 CEST 1 week 6 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer   predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 3 days ago predator-pm-r-async-h8-20261020-notice-start.timer     predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 5 days ago predator-pm-r-async-q30-20261018-notice-start.timer    predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Fri 2026-10-30 08:30:40 CET  12h ago           predator-pm-r-serial-d1225-20261030-notice-start.timer predator-pm-r-serial-d1225-20261030-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 1 week 6 days ago predator-pm-r-serial-m15-20261017-notice-start.timer   predator-pm-r-serial-m15-20261017-notice-start.service
+-    -    Fri 2026-10-30 12:35:04 CET  8h ago            predator-pm-r-serial-q35-20261030-notice-start.timer   predator-pm-r-serial-q35-20261030-notice-start.service
+-    -    Fri 2026-10-30 14:12:53 CET  7h ago            predator-pm-r-serial-q35r1-20261030-notice-start.timer predator-pm-r-serial-q35r1-20261030-notice-start.service
+-    -    Fri 2026-10-30 17:44:18 CET  3h 29min ago      predator-pm-r-serial-q37-20261030-notice-start.timer   predator-pm-r-serial-q37-20261030-notice-start.service
+
+9 timers listed.

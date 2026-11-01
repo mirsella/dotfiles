@@ -1,0 +1,54 @@
+2026-10-20T20:24:11.720892+02:00 predator systemd[1]: Starting [systemd-run] /nix/store/5qjb1am045yn7wxqgz24cr919amdza28-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-async-h8-20261020-plan.conf ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e...
+2026-10-20T20:24:11.798126+02:00 predator predator-pm-study[198642]: CAPTURE CHECK boot=3e3c970d-025f-4b78-8e00-f911e202e948 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b nonce=1792520651
+2026-10-20T20:24:12.231151+02:00 predator predator-pm-study[198642]: PREFLIGHT boot=3e3c970d-025f-4b78-8e00-f911e202e948 uptime=29100.28 226266.74 awake_since_verified_return=29100s prior_successes=0 prior_markers=0 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2026-10-20T20:24:13.718802+02:00 predator predator-pm-study[198642]: WARMED /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
+2026-10-20T20:24:14.019087+02:00 predator predator-pm-study[198642]: WARMED /dev/disk/by-id/wwn-0x500003961228993f-part1
+2026-10-20T20:24:14.410870+02:00 predator predator-pm-study[198642]: WARMED /dev/disk/by-id/wwn-0x50014ee26a2aa7c6-part1
+2026-10-20T20:24:15.229317+02:00 predator predator-pm-study[198642]: PREFLIGHT boot=3e3c970d-025f-4b78-8e00-f911e202e948 uptime=29103.28 226287.94 awake_since_verified_return=29103s prior_successes=0 prior_markers=0 active_generation=/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+2026-10-20T20:24:15.381789+02:00 predator predator-pm-study[198642]: BEGIN trial=r-async-h8-20261020 boot=3e3c970d-025f-4b78-8e00-f911e202e948 due_epoch=1792520651 wake_epoch=1792521611 profile=H ordinal=1 pm_async=1 pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced
+2026-10-20T20:24:15.470052+02:00 predator predator-pm-study[198642]: SUSPEND REQUEST logged_in_users=allow command=busctl ["call", "org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "SuspendWithFlags", "t", "1"]
+2026-10-20T20:24:15.588160+02:00 predator systemd[1]: Starting System Suspend...
+2026-10-20T20:24:15.630837+02:00 predator predator-pm-study[198642]: Starting System Suspend...
+2026-10-20T20:24:15.633194+02:00 predator systemd-sleep[198737]: Successfully froze unit 'user.slice'.
+2026-10-20T20:24:15.634123+02:00 predator systemd-sleep[198737]: Performing sleep operation 'suspend'...
+57f2c59318ff06c83bb9efec2d3d20216ff5541f9df20174e9e25b4c443166fa  /var/lib/predator-pm-study/r-async-h8-20261020-before.txt
+ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e  /var/lib/predator-pm-study/r-async-h8-20261020-plan.conf
+ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e  /var/lib/predator-pm-study/r-async-h8-20261020-requested.txt
+Oct 27 18:07:06 predator systemd[1]: Starting Network Time Synchronization...
+Oct 27 18:07:06 predator systemd-timesyncd[1492]: Disabling NSCD because DNSSEC validation is turned off
+Oct 27 18:07:06 predator systemd[1]: Started Network Time Synchronization.
+Oct 27 18:07:00 predator systemd-timesyncd[1492]: Contacted time server 45.90.162.253:123 (0.nixos.pool.ntp.org).
+Oct 27 18:07:00 predator systemd-timesyncd[1492]: Initial clock synchronization to Tue 2026-10-27 18:07:00.152594 CET.
+Oct 27 18:07:06 predator systemd[1]: Starting Restore NTP after initrd networkd hands the LAN to NetworkManager...
+Oct 27 18:07:06 predator predator-pm-study[2205]: Removed inactive initrd networkd's stale online-state cache after verified NetworkManager handoff
+Oct 27 18:07:06 predator systemd[1]: Stopping Network Time Synchronization...
+Oct 27 18:07:06 predator systemd[1]: systemd-timesyncd.service: Deactivated successfully.
+Oct 27 18:07:06 predator systemd[1]: Stopped Network Time Synchronization.
+Oct 27 18:07:06 predator systemd[1]: systemd-timesyncd.service: Consumed 152ms CPU time over 6.870s wall clock time, 3.8M memory peak, 4.1M read from disk, 349B incoming IP traffic, 230B outgoing IP traffic.
+Oct 27 18:07:06 predator systemd[1]: Starting Network Time Synchronization...
+Oct 27 18:07:06 predator systemd-timesyncd[2324]: Disabling NSCD because DNSSEC validation is turned off
+Oct 27 18:07:06 predator systemd[1]: Started Network Time Synchronization.
+Oct 27 18:07:07 predator predator-pm-study[2205]: NTP: Stopping Network Time Synchronization...
+Oct 27 18:07:07 predator predator-pm-study[2205]: NTP: systemd-timesyncd.service: Deactivated successfully.
+Oct 27 18:07:07 predator predator-pm-study[2205]: NTP: Stopped Network Time Synchronization.
+Oct 27 18:07:07 predator predator-pm-study[2205]: NTP: systemd-timesyncd.service: Consumed 152ms CPU time over 6.870s wall clock time, 3.8M memory peak, 4.1M read from disk, 349B incoming IP traffic, 230B outgoing IP traffic.
+Oct 27 18:07:07 predator predator-pm-study[2205]: NTP: Starting Network Time Synchronization...
+Oct 27 18:07:07 predator predator-pm-study[2205]: NTP: Disabling NSCD because DNSSEC validation is turned off
+Oct 27 18:07:07 predator predator-pm-study[2205]: NTP: Started Network Time Synchronization.
+Oct 27 18:08:36 predator predator-pm-study[2205]: Error: "no fresh NTP synchronization after resume"
+Oct 27 18:08:36 predator systemd[1]: predator-pm-clock-handoff.service: Main process exited, code=exited, status=1/FAILURE
+Oct 27 18:08:36 predator systemd[1]: predator-pm-clock-handoff.service: Failed with result 'exit-code'.
+Oct 27 18:08:36 predator systemd[1]: Failed to start Restore NTP after initrd networkd hands the LAN to NetworkManager.
+Oct 27 18:08:36 predator systemd[1]: predator-pm-clock-handoff.service: Consumed 111ms CPU time over 1min 30.213s wall clock time, 22M memory peak, 38.4M read from disk.
+enp3s0f1
+b55d1a6c-0926-4b0c-a1c6-7cd6a614cf3e
+192.168.1.19/24
+192.168.1.1
+
+default via 192.168.1.1 dev enp3s0f1 proto static 
+10.88.0.0/16 dev podman0 proto kernel scope link src 10.88.0.1 
+192.168.1.0/24 dev enp3s0f1 proto kernel scope link src 192.168.1.19 
+ActiveState=active
+SubState=running
+Result=success
+4aa86e0f-f921-40ef-838b-b13ef4fbc2b1-hold-released-20261013.txt

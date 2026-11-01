@@ -1,0 +1,47 @@
+[ 2749.544622] DIAG CAPTURE id=d-freezer-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 nonce=1793383960
+# recv 2026-10-30T19:12:22+0100
+[ 2749.550887] systemd-journald[462]: Received client request to sync journal (with offlining).
+# recv 2026-10-30T19:12:26+0100
+[ 2753.873534] pm-diagnostic: 
+# recv 2026-10-30T19:12:26+0100
+[ 2753.873543] DIAG READY id=d-freezer-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 due=1793384612 planned_age=3420 real_s3=false
+# recv 2026-10-30T19:12:26+0100
+[ 2753.873581] 
+# recv 2026-10-30T19:23:34+0100
+[ 3421.061313] pm-diagnostic: 
+# recv 2026-10-30T19:23:34+0100
+[ 3421.061316] DIAG BEGIN id=d-freezer-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 age_since_boot=3422 pm_async=0 test_delay=5 real_s3=forbidden
+# recv 2026-10-30T19:23:34+0100
+[ 3421.061330] 
+# recv 2026-10-30T19:23:34+0100
+[ 3421.063190] systemd-journald[462]: Received client request to sync journal (with offlining).
+# recv 2026-10-30T19:23:34+0100
+[ 3421.213035] PM: suspend entry (deep)
+# recv 2026-10-30T19:23:34+0100
+[ 3421.257374] Filesystems sync: 0.044 seconds
+# recv 2026-10-30T19:23:34+0100
+[ 3421.269843] Freezing user space processes
+# recv 2026-10-30T19:23:34+0100
+[ 3421.271721] Freezing user space processes completed (elapsed 0.001 seconds)
+# recv 2026-10-30T19:23:34+0100
+[ 3421.271769] OOM killer disabled.
+# recv 2026-10-30T19:23:34+0100
+[ 3421.271788] Freezing remaining freezable tasks
+# recv 2026-10-30T19:23:34+0100
+[ 3421.272998] Freezing remaining freezable tasks completed (elapsed 0.001 seconds)
+# recv 2026-10-30T19:23:34+0100
+[ 3421.273036] PM: suspend debug: Waiting for 5 second(s).
+# recv 2026-10-30T19:23:39+0100
+[ 3426.259674] OOM killer enabled.
+# recv 2026-10-30T19:23:39+0100
+[ 3426.259688] Restarting tasks: Starting
+# recv 2026-10-30T19:23:39+0100
+[ 3426.262677] Restarting tasks: Done
+# recv 2026-10-30T19:23:39+0100
+[ 3426.262712] efivarfs: resyncing variable state
+# recv 2026-10-30T19:23:39+0100
+[ 3426.374550] efivarfs: finished resyncing variable state
+# recv 2026-10-30T19:23:39+0100
+[ 3426.374602] random: crng reseeded on system resumption
+# recv 2026-10-30T19:23:39+0100
+[ 3426.395792] PM: suspend exit

@@ -1,0 +1,6 @@
+drivers/pci/pci.c:2513 [pci]pci_pme_active =_ "PME# %s\n"
+drivers/pci/pci-driver.c:923 [pci_driver]pci_pm_suspend_noirq =_ "PCI PM: Suspend power state: %s\n"
+drivers/pci/pci-driver.c:938 [pci_driver]pci_pm_suspend_noirq =_ "PCI PM: Skipped\n"
+drivers/acpi/device_pm.c:956 [acpi]acpi_pm_set_device_wakeup =_ "ACPI companion missing in %s!\n"
+drivers/acpi/device_pm.c:965 [acpi]acpi_pm_set_device_wakeup =_ "Wakeup disabled by ACPI\n"
+drivers/acpi/device_pm.c:971 [acpi]acpi_pm_set_device_wakeup =_ "Wakeup enabled by ACPI\n"

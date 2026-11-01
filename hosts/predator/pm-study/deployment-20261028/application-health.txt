@@ -1,0 +1,4 @@
+2026-10-28T10:31:31+01:00
+{"installed":true,"maintenance":false,"needsDbUpgrade":false,"version":"35.0.2.2","versionstring":"35.0.2","edition":"","productname":"Nextcloud","extendedSupport":false}
+{"res":"pong"}
+{"major":3,"minor":3,"patch":5,"prerelease":null}

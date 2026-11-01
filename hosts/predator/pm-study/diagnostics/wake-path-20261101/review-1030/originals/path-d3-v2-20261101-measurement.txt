@@ -1,0 +1,2 @@
+verified_D0_bridge_D3hot_NIC_PME_and_ACPI_arming=Ok(())
+raw_registers_are_post_return_not_in_sleep

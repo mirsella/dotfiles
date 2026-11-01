@@ -1,0 +1,9 @@
+2026-10-31T09:44:37+01:00
+NEXT                            LEFT LAST                             PASSED UNIT                 ACTIVATES
+Sat 2026-10-31 09:47:35 CET 2min 58s Sat 2026-10-31 09:42:35 CET 2min 1s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+ActiveState=inactive
+ExecMainStartTimestamp=Sat 2026-10-31 09:42:37 CET
+ExecMainExitTimestamp=Sat 2026-10-31 09:42:38 CET
+RTC READY id=rtc-s3-20261031 nonce=rtc-s3-20261031-1793436900

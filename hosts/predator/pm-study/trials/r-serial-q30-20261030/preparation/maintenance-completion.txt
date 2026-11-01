@@ -1,0 +1,21 @@
+2026-10-30T12:05:58+01:00
+ActiveState=inactive
+SubState=dead
+Result=success
+ExecMainStartTimestamp=Fri 2026-10-30 12:05:08 CET
+ExecMainExitTimestamp=Fri 2026-10-30 12:05:10 CET
+2026-10-30T12:05:08.022217+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T12:05:08.503756+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T12:05:10.237447+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+2026-10-30T12:05:10.238832+01:00 predator systemd[1]: nextcloud-cron.service: Consumed 1.080s CPU time over 2.215s wall clock time, 53.3M memory peak, 3.6M read from disk, 216K written to disk.
+active
+active
+active
+active
+active
+active
+active
+active
+1
+0
+0

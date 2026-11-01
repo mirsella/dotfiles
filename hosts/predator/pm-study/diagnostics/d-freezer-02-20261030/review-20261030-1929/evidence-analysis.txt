@@ -1,0 +1,14 @@
+__REALTIME_TIMESTAMP=1793384614211071 __MONOTONIC_TIMESTAMP=3421430908 _SOURCE_MONOTONIC_TIMESTAMP=3421213035 MESSAGE=PM: suspend entry (deep)
+__REALTIME_TIMESTAMP=1793384619262751 __MONOTONIC_TIMESTAMP=3426482588 _SOURCE_MONOTONIC_TIMESTAMP=3421273036 MESSAGE=PM: suspend debug: Waiting for 5 second(s).
+__REALTIME_TIMESTAMP=1793384619393189 __MONOTONIC_TIMESTAMP=3426613026 _SOURCE_MONOTONIC_TIMESTAMP=3426395792 MESSAGE=PM: suspend exit
+validated_boot_records=1207
+ordered_diagnostic_cycles=1
+five_second_markers=1
+actual_s3_resume_messages=0
+timekeeping_sleep_measurements=0
+raw_return_and_reader_cleanup=verified
+mode_cleanup=Ok
+completed_artifact=absent
+classification=DIAGNOSTIC_RETURNED_POSTCHECK_FAILED
+protocol_completion=false
+predecessor_eligible=false

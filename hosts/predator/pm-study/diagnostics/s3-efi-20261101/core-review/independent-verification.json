@@ -1,0 +1,77 @@
+{
+  "contextFlags": 7,
+  "counterAfter": 1,
+  "counterBefore": 0,
+  "independentVerification": "PASS",
+  "mode": "core",
+  "originalCompletionAbsent": true,
+  "originalHarnessResult": "POST_CLEANUP_EXACT_BTIME_GUARD_FAILURE",
+  "originals": 16,
+  "physicalSleepSeconds": null,
+  "piFrozenHashesAndPrefix": "PASS",
+  "piProbeAndSnapshot": "PASS",
+  "priorKernelRecordsPreserved": 1162,
+  "rawEpoch": 1793537120,
+  "rawRtcEpoch": 1793537121,
+  "realS3": false,
+  "recordPhase": 11,
+  "recordSequence": 2,
+  "remainingFree": 7034,
+  "reportedStorageCost": 308,
+  "timestamps": [
+    {
+      "message": "PM: suspend entry (deep)",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 2031857672,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 2031857672,
+        "__MONOTONIC_TIMESTAMP": 2031913543,
+        "__REALTIME_TIMESTAMP": 1793537110492030
+      }
+    },
+    {
+      "message": "pm_boundary_stage: begin nonce=core1101a phase=10 sequence=1 context=7",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 2033707416,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 2033707416,
+        "__MONOTONIC_TIMESTAMP": 2037269554,
+        "__REALTIME_TIMESTAMP": 1793537120509309
+      }
+    },
+    {
+      "message": "pm_boundary_stage: end nonce=core1101a phase=10 sequence=1 error=0 efi=0 fast_clock_delta_ns=0",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 2033755209,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 2033755209,
+        "__MONOTONIC_TIMESTAMP": 2037269592,
+        "__REALTIME_TIMESTAMP": 1793537120509347
+      }
+    },
+    {
+      "message": "pm_boundary_stage: begin nonce=core1101a phase=11 sequence=2 context=7",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 2038741222,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 2038741222,
+        "__MONOTONIC_TIMESTAMP": 2037269658,
+        "__REALTIME_TIMESTAMP": 1793537120509413
+      }
+    },
+    {
+      "message": "pm_boundary_stage: end nonce=core1101a phase=11 sequence=2 error=0 efi=0 fast_clock_delta_ns=0",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 2038785429,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 2038785429,
+        "__MONOTONIC_TIMESTAMP": 2037269697,
+        "__REALTIME_TIMESTAMP": 1793537120509453
+      }
+    },
+    {
+      "message": "PM: suspend exit",
+      "microseconds": {
+        "_SOURCE_BOOTTIME_TIMESTAMP": 2042222071,
+        "_SOURCE_MONOTONIC_TIMESTAMP": 2042222071,
+        "__MONOTONIC_TIMESTAMP": 2037397359,
+        "__REALTIME_TIMESTAMP": 1793537120637114
+      }
+    }
+  ]
+}

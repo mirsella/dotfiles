@@ -1,0 +1,36 @@
+epoch=1793393629
+readiness=Ok(())
+stop=Ok(())
+reaped=Ok(ExitStatus(unix_wait_status(9)))
+reader_joined=true
+elapsed_ms=16
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=66
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=82
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=97
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=113
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=2787
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=2841
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=2897
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=2960
+GENERAL.STATE:100 (connected)
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1

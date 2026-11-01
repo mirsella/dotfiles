@@ -1,0 +1,16 @@
+schema=compact-efi-probe-1
+attempted=1
+write_errno=0
+audit_errno=-116
+efi_status=0
+reserve_bytes=5120
+margin_bytes=1024
+allocation_budget_bytes=1024
+charged_bytes=96
+before_storage_bytes=163752
+before_remaining_bytes=7498
+before_max_bytes=7438
+after_storage_bytes=163752
+after_remaining_bytes=7342
+after_max_bytes=7282
+write_duration_ns=47637358

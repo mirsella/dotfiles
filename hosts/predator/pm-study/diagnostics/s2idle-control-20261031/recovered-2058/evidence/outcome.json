@@ -1,0 +1,16 @@
+{
+  "classification": "REMOTE_SYNC_DEFERRED_TRANSPORT_UNAVAILABLE",
+  "lastSuccessfulRemoteStatusInspection": "2026-10-31T21:19:34+01:00",
+  "regularStaging": "SSH exited255: temporary DNS resolution failure",
+  "boundedLocalResolverCheck": "timed out after15seconds",
+  "numericAddressStaging": "SSH exited255: connection to82.67.102.55:22 timed out, strict existing host-key alias retained",
+  "remoteStagingCommandExecuted": false,
+  "remoteDocumentationOrSourceWrites": false,
+  "clockFixRuntimePreviouslyImportedRootedAndLiveTested": true,
+  "clockFixRuntimeLiveTest": "2026-10-31T21:14:49+01:00",
+  "lastFullHealthyInspection": "2026-10-31T21:17:04+01:00",
+  "newPowerTransitions": 0,
+  "machineTimersArmed": false,
+  "nextWorkflowRemainsConditionalOnFreshConnectivityAndFullHealth": true,
+  "preserveAttemptedPayloadAndRebuildBeforeLaterSync": true
+}

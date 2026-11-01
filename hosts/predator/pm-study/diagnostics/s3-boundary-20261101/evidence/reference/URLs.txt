@@ -1,0 +1,10 @@
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/firmware/efi/efi-pstore.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/firmware/efi/vars.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/fs/pstore/platform.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/arch/x86/platform/efi/efi_64.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/firmware/efi/runtime-wrappers.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/include/linux/efi.h
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/drivers/acpi/sleep.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/arch/x86/kernel/acpi/sleep.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/arch/x86/platform/efi/quirks.c
+https://raw.githubusercontent.com/gregkh/linux/v6.18.58/kernel/printk/printk.c

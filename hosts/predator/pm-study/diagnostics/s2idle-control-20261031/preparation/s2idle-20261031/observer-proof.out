@@ -1,0 +1,19 @@
+2026-10-31T11:53:48+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 28.510ms (max: 5s)
+       Offset: +2.272ms
+        Delay: 8.985ms
+       Jitter: 2.067ms
+ Packet count: 595
+    Frequency: -14.425ppm
+active
+/home/mirsella/wol_predator.py: OK
+[ 3542.391817] S2IDLE READY id=s2idle-20261031 nonce=s2idle-20261031-1793444820
+a767d259d642d52e1dbebc881fd7bbf58e11f6adee27f2a7ff39f7f2d8d6cfa2  /home/mirsella/dev/predator-pm-debug/.agents-local/s2idle-20261031-baseline.log

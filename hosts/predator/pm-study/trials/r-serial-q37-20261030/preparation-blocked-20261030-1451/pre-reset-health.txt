@@ -1,0 +1,94 @@
+2026-10-30T14:52:30+01:00
+3c1873e4-b866-41e1-b411-702168ef90cf
+4476.68 34653.96
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+fast: boot used authenticated slot 2; late-phase token 0 rejected
+root: boot used authenticated slot 2; late-phase token 0 rejected
+tank1: boot used authenticated slot 4; late-phase token 0 rejected
+tank2: boot used authenticated slot 4; late-phase token 0 rejected
+tank3: boot used authenticated slot 2; late-phase token 0 rejected
+No jobs running.
+  UNIT                                        LOAD   ACTIVE SUB    DESCRIPTION
+● predator-pm-r-serial-q35r1-20261030.service loaded failed failed [systemd-run] /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf 3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+1 loaded units listed.
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+immich_redis Up About an hour (healthy)
+immich_ml Up About an hour (healthy)
+immich_postgres Up About an hour (healthy)
+immich_server Up About an hour (healthy)
+all pools are healthy
+fast/ncdata /var/lib/nextcloud/data
+fast/data /srv/data/fast
+tank/backup /srv/backup
+tank/archive /srv/data/archive
+tank/backup/recovery /srv/backup/recovery
+       Server: 82.66.203.162 (0.nixos.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 1
+    Reference: PPS
+    Precision: 1us (-24)
+Root distance: 22us (max: 5s)
+       Offset: +4.110ms
+        Delay: 9.499ms
+       Jitter: 2.050ms
+ Packet count: 8
+    Frequency: +3.403ppm
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+/sys/class/power_supply/ACAD/online=1
+NEXT                        LEFT LAST                              PASSED UNIT                   ACTIVATES
+Fri 2026-10-30 14:52:57 CET  18s Fri 2026-10-30 14:47:57 CET 4min 41s ago nextcloud-cron.timer   nextcloud-cron.service
+-                              - -                                      - night-suspend.timer    night-suspend.service
+-                              - -                                      - predator-pm-next.timer predator-pm-next.service
+
+3 timers listed.
+active_maintenance=
+6681936bb69ab828f41d7207282cd1cf95f1a4e155804a4b266bcb15a1805bea  /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study
+56857827226a4e55319ffa69dec8ad269c3ed7ed7ff6a021f41915535901246c  /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-control
+3889118e0b42971fe6fc3c4f88619c2b9a7fb405575d6c73dda421287dc741b3  hosts/predator/pm-study/README.md
+bc0b61b978c01ebfb42dd1ca283264b4de01920c8356a7c52be24a7b6aab7f71  hosts/predator/pm-study/trials/r-serial-q35r1-20261030/README.md
+dc626ff76f258e1dd36f5f0bef4285ee0951482b135dccccf0333ca8bb779d86  pkgs/predator-pm-study/trial.rs
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/

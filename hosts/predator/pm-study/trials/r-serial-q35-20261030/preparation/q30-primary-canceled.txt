@@ -1,0 +1,14 @@
+2026-10-30T12:08:24+01:00
+Id=predator-pm-r-serial-q30-20261030.timer
+LoadState=not-found
+ActiveState=inactive
+SubState=dead
+
+Id=predator-pm-r-serial-q30-20261030.service
+LoadState=not-found
+ActiveState=inactive
+SubState=dead
+8b7a173d-8406-4072-aebc-c85c8b4989e7
+0
+0
+1

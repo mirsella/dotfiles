@@ -1,0 +1,4 @@
+id=core-efi-20261101
+due=1793537100
+review=1793538000
+no_WoL=true

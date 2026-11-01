@@ -1,0 +1,80 @@
+2026-10-30T14:42:04+01:00
+predator
+3c1873e4-b866-41e1-b411-702168ef90cf
+btime 1793363873
+3850.72 29783.82
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+6681936bb69ab828f41d7207282cd1cf95f1a4e155804a4b266bcb15a1805bea  /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study
+56857827226a4e55319ffa69dec8ad269c3ed7ed7ff6a021f41915535901246c  /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-control
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+No jobs running.
+  UNIT                                        LOAD   ACTIVE SUB    DESCRIPTION
+● predator-pm-r-serial-q35r1-20261030.service loaded failed failed [systemd-run] /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf 3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+1 loaded units listed.
+LoadState=loaded
+ActiveState=failed
+SubState=failed
+MainPID=0
+ControlPID=0
+Result=exit-code
+ExecMainStartTimestamp=Fri 2026-10-30 14:12:53 CET
+ExecMainExitTimestamp=Fri 2026-10-30 14:12:57 CET
+ExecMainStatus=1
+ControlGroup=
+NEXT                        LEFT LAST                             PASSED UNIT                   ACTIVATES
+Fri 2026-10-30 14:42:57 CET  52s Fri 2026-10-30 14:37:57 CET 4min 7s ago nextcloud-cron.timer   nextcloud-cron.service
+-                              - -                                     - night-suspend.timer    night-suspend.service
+-                              - -                                     - predator-pm-next.timer predator-pm-next.service
+
+3 timers listed.
+# /etc/systemd/system/nextcloud-cron.service -> /nix/store/6slakvplfbjad921pamwz4d25kam5hiw-unit-nextcloud-cron.service/nextcloud-cron.service
+[Unit]
+After=nextcloud-setup.service
+RequiresMountsFor=/var/lib/nextcloud/data
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/6awpfcv4lkmk67qf6ca73m076zcfbczp-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="NEXTCLOUD_CONFIG_DIR=/var/lib/nextcloud/config"
+Environment="PATH=/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/bin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/bin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/bin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/sbin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/sbin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/sbin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/sbin"
+Environment="TZDIR=/nix/store/fsrw69w5mx838p7xydbdvywhwl6wnbjw-tzdata-2026e/share/zoneinfo"
+ExecCondition=/nix/store/xyday6vxlcc409zszksizbqm19avld52-php-with-extensions-8.4.27/bin/php -dmemory_limit=1G -f /nix/store/kcnm576s3zpq4gcp59m9nf40vf2c38cs-nextcloud-35.0.2-with-apps/occ status --exit-code
+ExecStart=/nix/store/xyday6vxlcc409zszksizbqm19avld52-php-with-extensions-8.4.27/bin/php -dmemory_limit=1G -f /nix/store/kcnm576s3zpq4gcp59m9nf40vf2c38cs-nextcloud-35.0.2-with-apps/cron.php
+KillMode=process
+LoadCredential=mail_smtppassword:/run/secrets/nextcloud-resend
+Type=exec
+User=nextcloud
+
+# /etc/systemd/system/nextcloud-cron.timer -> /nix/store/6gfi2hcmnvl3w57wbsgqnz9v4wrzjq2w-unit-nextcloud-cron.timer/nextcloud-cron.timer
+[Unit]
+After=nextcloud-setup.service
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=5m
+Unit=nextcloud-cron.service
+
+
+[Install]
+WantedBy=timers.target
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+Result=success
+ExecMainStartTimestamp=Fri 2026-10-30 14:37:57 CET
+ExecMainExitTimestamp=Fri 2026-10-30 14:37:58 CET
+ExecMainStatus=0
+ExecCondition={ path=/nix/store/xyday6vxlcc409zszksizbqm19avld52-php-with-extensions-8.4.27/bin/php ; argv[]=/nix/store/xyday6vxlcc409zszksizbqm19avld52-php-with-extensions-8.4.27/bin/php -dmemory_limit=1G -f /nix/store/kcnm576s3zpq4gcp59m9nf40vf2c38cs-nextcloud-35.0.2-with-apps/occ status --exit-code ; ignore_errors=no ; start_time=[Fri 2026-10-30 14:37:57 CET] ; stop_time=[Fri 2026-10-30 14:37:57 CET] ; pid=28050 ; code=exited ; status=0 }
+ExecStart={ path=/nix/store/xyday6vxlcc409zszksizbqm19avld52-php-with-extensions-8.4.27/bin/php ; argv[]=/nix/store/xyday6vxlcc409zszksizbqm19avld52-php-with-extensions-8.4.27/bin/php -dmemory_limit=1G -f /nix/store/kcnm576s3zpq4gcp59m9nf40vf2c38cs-nextcloud-35.0.2-with-apps/cron.php ; ignore_errors=no ; start_time=[Fri 2026-10-30 14:37:57 CET] ; stop_time=[Fri 2026-10-30 14:37:58 CET] ; pid=28055 ; code=exited ; status=0 }

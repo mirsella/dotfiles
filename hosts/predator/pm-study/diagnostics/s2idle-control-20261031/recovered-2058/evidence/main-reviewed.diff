@@ -1,0 +1,51 @@
+--- .scratch/pm-s2idle-recovery-20261031-2058/remote-main-before.rs	2026-10-31 21:19:34.498042577 +0100
++++ pkgs/predator-pm-study/main.rs	2026-10-31 21:03:36.019547426 +0100
+@@ -11,6 +11,7 @@
+ 
+ type Result<T> = std::result::Result<T, Box<dyn Error>>;
+ mod automatic;
++mod network;
+ mod trial;
+ const STATE: &str = "/var/lib/predator-pm-study";
+ fn not_held() -> Result<()> {
+@@ -790,37 +791,9 @@
+             ],
+         )?;
+     }
+-    check(
+-        output(
+-            "nmcli",
+-            &["-g", "GENERAL.CON-UUID", "device", "show", "enp3s0f1"],
+-        )? == LAN_UUID
+-            && output("nmcli", &["-g", "IP4.DNS", "device", "show", "enp3s0f1"])? == "192.168.1.1",
+-        "study LAN profile did not restore expected DNS",
+-    )?;
+-    check(
+-        output(
+-            "systemctl",
+-            &[
+-                "show",
+-                "NetworkManager.service",
+-                "-p",
+-                "ActiveState",
+-                "--value",
+-            ],
+-        )? == "active"
+-            && output(
+-                "nmcli",
+-                &["-g", "GENERAL.STATE", "device", "show", "enp3s0f1"],
+-            )?
+-            .starts_with("100")
+-            && !output(
+-                "nmcli",
+-                &["-g", "IP4.GATEWAY", "device", "show", "enp3s0f1"],
+-            )?
+-            .is_empty(),
+-        "NetworkManager has not completed the LAN handoff",
+-    )?;
++    // nmcli activation can return before the final device-state notification.
++    // Wait for the declared profile, gateway and DNS without periodic polling.
++    network::wait()?;
+     let state = Path::new("/run/systemd/netif/state");
+     match fs::symlink_metadata(state) {
+         Ok(meta) => {

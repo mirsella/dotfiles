@@ -1,0 +1,30 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-wake'.timer -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-retry'.timer -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-probe'.timer -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-snapshot'.timer -p LoadState --value)" = not-found
+systemd-run --unit='predator-pm-r-async-d1225-20261029-wake' --on-calendar=@1793263022 --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot /usr/bin/python3 /home/mirsella/wol_predator.py
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-wake'.timer -p SubState --value)" = waiting
+systemctl cat 'predator-pm-r-async-d1225-20261029-wake'.timer 'predator-pm-r-async-d1225-20261029-wake'.service
+systemd-run --unit='predator-pm-r-async-d1225-20261029-retry' --on-calendar=@1793263052 --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot /usr/bin/python3 /home/mirsella/wol_predator.py
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-retry'.timer -p SubState --value)" = waiting
+systemctl cat 'predator-pm-r-async-d1225-20261029-retry'.timer 'predator-pm-r-async-d1225-20261029-retry'.service
+systemd-run --unit='predator-pm-r-async-d1225-20261029-probe' --on-calendar=@1793263112 --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot --property=TimeoutStartSec=20s /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-probe'.timer -p SubState --value)" = waiting
+systemctl cat 'predator-pm-r-async-d1225-20261029-probe'.timer 'predator-pm-r-async-d1225-20261029-probe'.service
+systemd-run --unit='predator-pm-r-async-d1225-20261029-snapshot' --on-calendar=@1793263202 --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot /usr/bin/cp --no-clobber '/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log' '/home/mirsella/dev/predator-pm-debug/.agents-local/r-async-d1225-20261029-result.log'
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-snapshot'.timer -p SubState --value)" = waiting
+systemctl cat 'predator-pm-r-async-d1225-20261029-snapshot'.timer 'predator-pm-r-async-d1225-20261029-snapshot'.service
+
+stderr:
+Running timer as unit: predator-pm-r-async-d1225-20261029-wake.timer
+Will run service as unit: predator-pm-r-async-d1225-20261029-wake.service
+Running timer as unit: predator-pm-r-async-d1225-20261029-retry.timer
+Will run service as unit: predator-pm-r-async-d1225-20261029-retry.service
+Running timer as unit: predator-pm-r-async-d1225-20261029-probe.timer
+Will run service as unit: predator-pm-r-async-d1225-20261029-probe.service
+Running timer as unit: predator-pm-r-async-d1225-20261029-snapshot.timer
+Will run service as unit: predator-pm-r-async-d1225-20261029-snapshot.service

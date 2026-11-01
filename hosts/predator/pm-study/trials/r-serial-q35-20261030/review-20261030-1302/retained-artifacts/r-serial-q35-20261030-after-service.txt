@@ -1,0 +1,7 @@
+2026-10-30T12:35:07.860005+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T12:35:07.903489+01:00 predator systemd-sleep[18303]: Successfully froze unit 'user.slice'.
+2026-10-30T12:35:07.904387+01:00 predator systemd-sleep[18303]: Performing sleep operation 'suspend'...
+2026-10-30T12:51:08.633839+01:00 predator systemd-sleep[18303]: System returned from sleep operation 'suspend'.
+2026-10-30T12:51:08.640302+01:00 predator systemd-sleep[18303]: Successfully thawed unit 'user.slice'.
+2026-10-30T12:51:08.643116+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T12:51:08.643576+01:00 predator systemd[1]: Finished System Suspend.

@@ -1,0 +1,20 @@
+2026-10-30T17:47:02+01:00
+active
+2331434 2026-10-30 17:44:22.606292959 +0100
+[  248.918068] TRIAL READY id=r-serial-q37-20261030 profile=Q pm_async=0 due=1793378658 wake=1793379618 manifest=65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a
+[  249.951114] TRIAL READY id=r-serial-q37-20261030 profile=Q pm_async=0 due=1793378658 wake=1793379618 manifest=65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a
+[  385.713532] TRIAL READY id=r-serial-q37-20261030 profile=Q pm_async=0 due=1793378658 wake=1793379618 manifest=65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a
+[  446.910653] TRIAL READY id=r-serial-q37-20261030 profile=Q pm_async=0 due=1793378658 wake=1793379618 manifest=65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a
+[ 2222.864509] BEGIN trial=r-serial-q37-20261030 boot=614a8318-dc72-4308-ae89-d4680fafac4e due_epoch=1793378658 wake_epoch=1793379618 profile=Q ordinal=1 pm_async=0 pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced
+# recv 2026-10-30T17:44:22+0100
+[ 2223.856243] platform PNP0C04:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.857340] platform PNP0103:00: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.858433] platform PNP0103:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.859522] platform INT0800:00: PM: calling platform_pm_suspend @ 19080, parent: 0000:00:1f.0
+# recv 2026-10-30T17:44:22+0100
+[ 2223.860626] platform INT0800:00: PM: platform_pm_suspend returned 0 after 0 usecs
+# recv 2026-10-30T17:44:22+0100
+[ 2223.861740] r8169 0000:03:00.1: PM: calling pci_pm_suspend @ 19080, parent: 0000:00:1c.3

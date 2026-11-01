@@ -1,0 +1,19 @@
+Preparation: 2026-10-28 19:35 Europe/Paris
+Prior boot: 9c19e8c7-a404-454c-813e-ced03d90a71c
+Ordinary systemctl reboot requested: 2026-10-28 19:36:29 CET
+Reboot request SSH exit: 255, connection closed by remote host during shutdown
+New-boot SSH wait: timeout 360s, exit 124, empty stdout and stderr
+New boot UUID, btime, kernel verification and boot audit: unavailable
+Pi LAN SSH host-key probe at 19:44: exit 1; neighbor FAILED
+Pi frozen snapshot: /home/mirsella/dev/predator-pm-debug/.agents-local/preparation-20261028-1935-netconsole.log
+Snapshot bytes: 1406956
+Snapshot SHA256: 3de41999e8e80d4c9af66b31cdb26d71c17b483881650711145f8cbb60f46912
+Snapshot last receive time: 2026-10-28 19:36:41 CET, old-boot NIC shutdown
+Preparation schedule deleted successfully before machine actions
+No manifest staged, no suspend requested, no real trial armed
+No review or replacement preparation scheduled
+No recovery WoL, power toggle or second reboot attempted
+Physical screen/power status: awaiting owner
+Telegram failure notice: API ok=true, message_id=88726
+Current study README updated locally; not copied to unavailable Predator
+Interpretation: post-reboot unavailability, cause and phase unverified; not a suspend result

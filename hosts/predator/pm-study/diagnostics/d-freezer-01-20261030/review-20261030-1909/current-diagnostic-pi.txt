@@ -1,0 +1,15 @@
+[ 1561.238959] DIAG CAPTURE id=d-freezer-01-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 nonce=1793382790
+# recv 2026-10-30T18:52:34+0100
+[ 1561.245341] systemd-journald[462]: Received client request to sync journal (with offlining).
+# recv 2026-10-30T18:53:43+0100
+[ 1630.580355] pm-diagnostic: 
+# recv 2026-10-30T18:53:43+0100
+[ 1630.580366] DIAG READY id=d-freezer-01-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 due=1793383412 planned_age=2220 real_s3=false
+# recv 2026-10-30T18:53:43+0100
+[ 1630.580414] 
+# recv 2026-10-30T19:03:33+0100
+[ 2220.359946] pm-diagnostic: 
+# recv 2026-10-30T19:03:33+0100
+[ 2220.359953] DIAG CLEANUP id=d-freezer-01-20261030 pm_test=none pm_async=1
+# recv 2026-10-30T19:03:33+0100
+[ 2220.359982] 

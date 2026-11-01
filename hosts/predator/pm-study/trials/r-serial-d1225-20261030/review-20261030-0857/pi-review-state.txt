@@ -1,0 +1,33 @@
+2026-10-30T09:02:08+01:00
+raspberrypi
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+active
+yes
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 20.667ms (max: 5s)
+       Offset: -137us
+        Delay: 8.873ms
+       Jitter: 1.209ms
+ Packet count: 548
+    Frequency: -14.409ppm
+ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8  /home/mirsella/wol_predator.py
+/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log 1851536 2026-10-30 08:30:46.645519791 +0100
+/home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log 1851536 2026-10-30 08:49:40.569069902 +0100
+43843381f6fecbb8167d3c8f89c9e6112a098829769ba6bb6a6a0141d619cb8a  /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log
+43843381f6fecbb8167d3c8f89c9e6112a098829769ba6bb6a6a0141d619cb8a  /home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log
+192.168.1.19 dev wlan0 FAILED 
+NEXT LEFT LAST                         PASSED            UNIT                                                   ACTIVATES
+-    -    Thu 2026-10-29 09:21:02 CET  23h ago           predator-pm-r-async-d1225-20261029-notice-start.timer  predator-pm-r-async-d1225-20261029-notice-start.service
+-    -    Sat 2026-10-17 18:00:00 CEST 1 week 5 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer   predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 2 days ago predator-pm-r-async-h8-20261020-notice-start.timer     predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 4 days ago predator-pm-r-async-q30-20261018-notice-start.timer    predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Fri 2026-10-30 08:30:40 CET  31min ago         predator-pm-r-serial-d1225-20261030-notice-start.timer predator-pm-r-serial-d1225-20261030-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 1 week 5 days ago predator-pm-r-serial-m15-20261017-notice-start.timer   predator-pm-r-serial-m15-20261017-notice-start.service
+
+6 timers listed.

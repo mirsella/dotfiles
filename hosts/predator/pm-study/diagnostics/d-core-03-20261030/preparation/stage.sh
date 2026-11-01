@@ -1,0 +1,36 @@
+set -euo pipefail
+date --iso-8601=seconds
+test "$(cat /proc/sys/kernel/random/boot_id)" = f8eb6e44-85ae-4e56-bc00-587876699945
+test -z "$(systemctl list-timers --all --no-legend 'predator-pm-*' | awk '$1 != "-" {print}')"
+systemctl list-timers --all --no-pager nextcloud-cron.timer
+umask 077
+set -o noclobber
+cat > /var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf <<'PLAN'
+schema=pm-test-2
+id=d-core-03-20261030
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+kernel=/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+modules=/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+runtime=/nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic
+btime=1793381192
+due=1793396012
+window_start=1793379600
+window_end=1793397600
+level=core
+ordinal=9
+previous_id=d-core-02-20261030
+previous_sha=eca6e7a4891fa4fe6fda605df4888e38a00bf19ee472ea0ed99c529ec7e7daf4
+previous_kind=completed
+pm_async=0
+pm_trace=0
+recorder=off
+mem_sleep=deep
+test_delay=5
+tpm=initialized
+ec=not-run
+logged_in_users=allow-inhibitors-enforced
+PLAN
+/nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic check /var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf 7168689addc30e52c30e2128ec1e037dc5a06c635ba66f805523650a761ddc9a
+printf '<6>DIAG CAPTURE id=d-core-03-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 due=1793396012\n' > /dev/kmsg
+journalctl --sync

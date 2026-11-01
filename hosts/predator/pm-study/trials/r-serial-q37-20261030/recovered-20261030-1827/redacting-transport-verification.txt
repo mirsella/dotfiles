@@ -1,0 +1,2 @@
+/home/mirsella/dev/dotfiles/.scratch/pm-serial-q37-ownerboot-20261030/redacting-ssh.rs: OK
+/home/mirsella/dev/dotfiles/.scratch/pm-serial-q37-ownerboot-20261030/redacting-bin/ssh: OK

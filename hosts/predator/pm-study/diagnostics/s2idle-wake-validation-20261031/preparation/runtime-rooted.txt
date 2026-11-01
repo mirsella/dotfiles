@@ -1,0 +1,2 @@
+/home/mirsella/dev/dotfiles/.scratch/pm-s2idle-rtc-fallback-20261031-2145/runtime-root
+743a5546ccf6e13d401de82c934691efb75b92c9e4103e12a1c15091966086fc  /nix/store/y5x8nw8lvhjjmxp9m1aiy4hkgsfsrr7g-predator-pm-study-0.1.0/bin/predator-pm-wake-validation

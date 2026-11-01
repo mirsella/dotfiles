@@ -1,0 +1,23 @@
+2026-10-29T20:11:03+01:00
+971f5fd85e83510230a42372ad5a841c28e87a4fceddca26b2c7c4b8a5ba2594  /var/lib/predator-pm-study/r-serial-d1225-20261030-plan.conf
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 08:30:40 CET
+AccuracyUSec=1s
+RandomizedDelayUSec=0
+ActiveState=inactive
+SubState=dead
+TimeoutStartUSec=25min
+ExecStart={ path=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-serial-d1225-20261030-plan.conf 971f5fd85e83510230a42372ad5a841c28e87a4fceddca26b2c7c4b8a5ba2594 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+ExecStopPost={ path=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study restore-trial /var/lib/predator-pm-study/r-serial-d1225-20261030-plan.conf 971f5fd85e83510230a42372ad5a841c28e87a4fceddca26b2c7c4b8a5ba2594 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+NEXT                        LEFT LAST PASSED UNIT                                      ACTIVATES
+Fri 2026-10-30 08:30:40 CET  12h -         - predator-pm-r-serial-d1225-20261030.timer predator-pm-r-serial-d1225-20261030.service
+-                              - -         - night-suspend.timer                       night-suspend.service
+-                              - -         - predator-pm-next.timer                    predator-pm-next.service
+
+3 timers listed.
+1
+0
+0
+N
+0

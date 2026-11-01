@@ -1,0 +1,80 @@
+{
+  "Pi_baseline_is_result_prefix": true,
+  "full_pass": false,
+  "interval_microseconds_separate_domains": {
+    "_SOURCE_BOOTTIME_TIMESTAMP": 1136638081,
+    "_SOURCE_MONOTONIC_TIMESTAMP": 1136638081,
+    "__MONOTONIC_TIMESTAMP": 121,
+    "__REALTIME_TIMESTAMP": 120
+  },
+  "kernel_phases": [
+    {
+      "_SOURCE_BOOTTIME_TIMESTAMP": 6790650591,
+      "_SOURCE_MONOTONIC_TIMESTAMP": 6790650591,
+      "__MONOTONIC_TIMESTAMP": 6790698044,
+      "__REALTIME_TIMESTAMP": 1793481311158132,
+      "message": "PM: suspend entry (s2idle)"
+    },
+    {
+      "_SOURCE_BOOTTIME_TIMESTAMP": 6842844799,
+      "_SOURCE_MONOTONIC_TIMESTAMP": 6842844799,
+      "__MONOTONIC_TIMESTAMP": 6846635802,
+      "__REALTIME_TIMESTAMP": 1793482503743137,
+      "message": "PM: suspend-to-idle"
+    },
+    {
+      "_SOURCE_BOOTTIME_TIMESTAMP": 7979482880,
+      "_SOURCE_MONOTONIC_TIMESTAMP": 7979482880,
+      "__MONOTONIC_TIMESTAMP": 6846635923,
+      "__REALTIME_TIMESTAMP": 1793482503743257,
+      "message": "PM: resume from suspend-to-idle"
+    },
+    {
+      "_SOURCE_BOOTTIME_TIMESTAMP": 7983055184,
+      "_SOURCE_MONOTONIC_TIMESTAMP": 7983055184,
+      "__MONOTONIC_TIMESTAMP": 6846784569,
+      "__REALTIME_TIMESTAMP": 1793482503891904,
+      "message": "PM: suspend exit"
+    }
+  ],
+  "original_artifacts_verified": 20,
+  "original_owner_mode": "root:0600; extracted copies owned by local user",
+  "physical_sleep_seconds": null,
+  "result": "RTC_FALLBACK_WINDOW_RETURN",
+  "rtc_before_helper": {
+    "STA_UNSYNC": false,
+    "alarm_epoch": 1793482500,
+    "armed_epoch": 1793481310,
+    "return_epoch": 1793482504,
+    "rtc_matches_realtime": true
+  },
+  "verification": "PASS",
+  "wake_attribution": "strongly supported RTC alarm via ACPI fixed event/IRQ9; exact fixed-event status bit not captured at wake",
+  "wakeup_source_changes": [
+    {
+      "after": [
+        12,
+        22,
+        0,
+        0,
+        0,
+        0,
+        0,
+        6847894,
+        0
+      ],
+      "before": [
+        10,
+        18,
+        0,
+        0,
+        0,
+        0,
+        0,
+        6790543,
+        0
+      ],
+      "source": "PNP0B00:00#0"
+    }
+  ]
+}

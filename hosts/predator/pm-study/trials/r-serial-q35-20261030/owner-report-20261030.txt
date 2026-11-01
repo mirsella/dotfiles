@@ -1,0 +1,5 @@
+Owner report, October 30, 2026 after the 13:02 review:
+"correctly went to 3w. schedule the next test"
+Applies to r-serial-q35-20261030, the 12:35 request and same-boot 12:51 resume.
+Confirms owner-observed approximately 3 W low power. No dated power graph was supplied.
+The runtime verifier error and absent completion remain unchanged. No PASS, completed_epoch or D primer was synthesized.

@@ -1,0 +1,8 @@
+Running timer as unit: predator-pm-s2idle-s2idle-20261031-wake.timer
+Will run service as unit: predator-pm-s2idle-s2idle-20261031-wake.service
+Running timer as unit: predator-pm-s2idle-s2idle-20261031-wake-retry.timer
+Will run service as unit: predator-pm-s2idle-s2idle-20261031-wake-retry.service
+Running timer as unit: predator-pm-s2idle-s2idle-20261031-probe.timer
+Will run service as unit: predator-pm-s2idle-s2idle-20261031-probe.service
+Running timer as unit: predator-pm-s2idle-s2idle-20261031-snapshot.timer
+Will run service as unit: predator-pm-s2idle-s2idle-20261031-snapshot.service

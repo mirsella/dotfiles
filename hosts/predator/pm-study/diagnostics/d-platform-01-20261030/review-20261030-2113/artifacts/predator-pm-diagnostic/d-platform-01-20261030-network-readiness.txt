@@ -1,0 +1,105 @@
+epoch=1793390928
+readiness=Ok(())
+stop=Ok(())
+reaped=Ok(ExitStatus(unix_wait_status(9)))
+reader_joined=true
+elapsed_ms=18
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=464
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=509
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=552
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=596
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=638
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=682
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=723
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=757
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=793
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=827
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=859
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=892
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=927
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=958
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=989
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1025
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1066
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1110
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1153
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1194
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1236
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1278
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1320
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1360
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1403
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1445
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1496
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=2931
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=2985
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=3033
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=3107
+GENERAL.STATE:100 (connected)
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1

@@ -1,0 +1,8 @@
+2026-11-01T08:35:28,556195563+01:00
+/home/mirsella/wol_predator.py: OK
+AWAKE_ONLY_PACKET_PROOF label=awake-packet-20261101-0835 sends=1 payload=canonical102bytes
+broadcast 192.168.1.255 dev wlan0 src 192.168.1.166 uid 0 
+    cache <local,brd> 
+2026-11-01T08:35:28,741810350+01:00
+WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-11-01T08:35:28,810321189+01:00

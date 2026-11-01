@@ -1,0 +1,10 @@
+Trial r-serial-q37-20261030 armed on healthy owner-recovery boot614a8318-dc72-4308-ae89-d4680fafac4e, btime1793376438 (17:07:18CET). No extra agent power action.
+Exact owner reset mechanism/off duration unspecified; do not claim controlled-start equivalence or earlier WoL causation. Approximately30W prior startup outage is not a Q suspend result.
+Same frozen system/kernel/modules and corrected5gqr runtime; no runtime edits/build required. Existing24tests/Nixbuild remain valid. Preserve all GCroots.
+ManifestSHA25665a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a; schema2Q/ordinal1/serial0; due1793378658/wake1793379618; review18:11. Stage/rehearse/arm/status all succeeded. Arm completed17:14:47.
+Actual cron17:12:20..17:12:22,next17:17:20; observed5minphase forecast, not guarantee against coalescing. Maintenance guard unchanged.
+Independent final proofs17:16:51: primary waiting17:44:18/serviceinactive, newpinnedattempt/restore, zero cycles/failures/markers, recorderN,async1,trace0,no requestedartifact/jobs/failedunits,NTPyes. Pi receiver/NTP/waker correct; only this realtrial futuretimers at17:44:18,18:00:18,18:00:48,18:01:48,18:03:18.
+Full baselinePi2298461bytes SHA256740c198f89d86cced600dbc579575fa104e089609211dbec7a5fcdaae4591fab. Setupnotice88804epoch1793376884; ownernotice88805epoch1793377040. Datedgraph17:43..18:05 requested.
+Review task ID and verifiedUTC nextRunAt are in review-schedule.json; createddisabled thenenabled afterarm with exactselfdeletion/dateguard and standingautomaticeligiblecontinuation. One realtrial pending; no E.
+New notification output is redacted before collection through source-preserved proxy invoking unchanged originaladapter. Technicalcaptureintegrity still checked; old evidence untouched. Privatecredentials/recipient excluded from archive.
+No delegates,commit,push,securityexperiment,baselinechange,missingSTATE/PLAN reconstruction or unfinishedbackgroundprocess. Guardedremote documentation/evidence sync only, with old preimages checked and preserved.

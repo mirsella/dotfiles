@@ -1,0 +1,11 @@
+2026-10-30T21:30:12+01:00
+active
+[11016.930557] DIAG CAPTURE id=d-processors-01-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 due=1793392712
+2581889
+514ed2304b7de3df0c33fab078c9e8efa9c43ee29ec7f4021e3f293d799ea0b0  /home/mirsella/dev/predator-pm-debug/.agents-local/d-processors-01-20261030-baseline.log
+NEXT                        LEFT       LAST PASSED UNIT                                                           ACTIVATES
+Fri 2026-10-30 21:40:32 CET 10min left -    -      predator-pm-diagnostic-d-processors-01-20261030-probe.timer    predator-pm-diagnostic-d-processors-01-20261030-probe.service
+Fri 2026-10-30 21:42:32 CET 12min left -    -      predator-pm-diagnostic-d-processors-01-20261030-snapshot.timer predator-pm-diagnostic-d-processors-01-20261030-snapshot.service
+Fri 2026-10-30 21:43:32 CET 13min left -    -      predator-pm-diagnostic-d-processors-01-20261030-review.timer   predator-pm-diagnostic-d-processors-01-20261030-review.service
+
+3 timers listed.

@@ -1,0 +1,2 @@
+compact operator stopped: journalctl ["-b", "bf51c3ac-164e-4bfa-b56c-7b71df526b7f", "-k", "--since", "2026-11-01 12:27:00", "--no-pager", "-o", "short-iso-precise"]: exit status: 1 Failed to add match 'bf51c3ac-164e-4bfa-b56c-7b71df526b7f': Invalid argument
+

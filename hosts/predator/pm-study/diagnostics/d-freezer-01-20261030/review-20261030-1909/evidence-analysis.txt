@@ -1,0 +1,13 @@
+DIAG BEGIN=0
+PM: suspend entry=0
+suspend debug: Waiting=0
+PM: suspend exit=0
+Low-level resume complete=0
+Timekeeping suspended for=0
+DIAG VERIFIED=0
+validated_expected_boot_records=1170
+requested_is_trimmed_plan=true
+classification=ABORTED_BEFORE_DIAGNOSTIC_SELF_JOB_GUARD
+new_cycles=0
+phase_exercised=false
+completion=false

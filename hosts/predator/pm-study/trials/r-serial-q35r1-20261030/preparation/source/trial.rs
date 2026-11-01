@@ -1,0 +1,797 @@
+//! Schema 2: untraced Q/M/H/D/E trials with 16-minute wake delays and at least
+//! 15 minutes of measured sleep. The extra minute allows for entry overhead.
+//! Ordinal 1 is the boot's first suspend, aged from boot; ordinal 2 is a repeat
+//! on the same boot, aged from the last verified completion.
+use super::*;
+use std::{
+    collections::BTreeMap,
+    os::unix::fs::MetadataExt,
+    sync::mpsc,
+    time::{Duration, Instant},
+};
+
+struct Plan {
+    values: BTreeMap<String, String>,
+    due: u64,
+    wake: u64,
+    minimum: u64,
+    maximum: u64,
+}
+
+impl Plan {
+    fn get(&self, key: &str) -> &str {
+        &self.values[key]
+    }
+
+    fn parse(data: &str) -> Result<Self> {
+        let required = [
+            "schema_version",
+            "trial_id",
+            "profile",
+            "boot",
+            "generation",
+            "kernel",
+            "modules",
+            "runtime",
+            "due",
+            "wake",
+            "pm_async",
+            "pm_trace",
+            "recorder",
+            "mem_sleep",
+            "pm_test",
+            "tpm",
+            "ec",
+            "logged_in_users",
+            "ordinal",
+            "daytime_start",
+            "daytime_end",
+        ];
+        let mut values = BTreeMap::new();
+        for line in data.lines() {
+            let (key, value) = line.split_once('=').ok_or("malformed trial line")?;
+            check(
+                required.contains(&key) && !value.is_empty(),
+                format!("unknown/empty trial field: {key}"),
+            )?;
+            check(
+                values.insert(key.to_owned(), value.to_owned()).is_none(),
+                format!("duplicate trial field: {key}"),
+            )?;
+        }
+        for key in required {
+            check(
+                values.contains_key(key),
+                format!("missing trial field: {key}"),
+            )?;
+        }
+        for (key, expected) in [
+            ("schema_version", "2"),
+            ("pm_trace", "0"),
+            ("recorder", "off"),
+            ("mem_sleep", "deep"),
+            ("pm_test", "none"),
+            ("tpm", "initialized"),
+            ("ec", "not-run"),
+        ] {
+            check(
+                values[key] == expected,
+                format!("unsupported {key}: {}", values[key]),
+            )?;
+        }
+        check(
+            matches!(values["pm_async"].as_str(), "0" | "1"),
+            "invalid pm_async",
+        )?;
+        let ordinal: u8 = values["ordinal"].parse()?;
+        check(
+            matches!(ordinal, 1 | 2),
+            format!("unsupported ordinal: {}", values["ordinal"]),
+        )?;
+        LoginPolicy::from_plan(data)?;
+        let id = &values["trial_id"];
+        check(
+            !id.is_empty()
+                && id.len() <= 64
+                && id
+                    .bytes()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-'),
+            "invalid trial ID",
+        )?;
+        let boot = &values["boot"];
+        check(
+            boot.len() == 36
+                && boot.bytes().enumerate().all(|(i, c)| {
+                    if [8, 13, 18, 23].contains(&i) {
+                        c == b'-'
+                    } else {
+                        c.is_ascii_hexdigit()
+                    }
+                }),
+            "invalid boot ID",
+        )?;
+        for key in ["generation", "kernel", "modules", "runtime"] {
+            check(
+                values[key].starts_with("/nix/store/")
+                    && values[key]
+                        .bytes()
+                        .all(|c| c.is_ascii_alphanumeric() || b"/._+-".contains(&c)),
+                format!("invalid store path: {key}"),
+            )?;
+        }
+        let (minimum, maximum) = match values["profile"].as_str() {
+            "Q" => (1800, 2400),
+            "M" => (10800, 11700),
+            "H" => (28800, 29700),
+            "D" => (43200, 45000),
+            "E" => (25200, 26100),
+            _ => return Err("only Q/M/H/D/E profiles are implemented".into()),
+        };
+        let due: u64 = values["due"].parse()?;
+        let wake: u64 = values["wake"].parse()?;
+        check(
+            wake.checked_sub(due) == Some(960),
+            "this runtime requires a 16-minute wake delay to allow 15 minutes asleep",
+        )?;
+        let start: u64 = values["daytime_start"].parse()?;
+        let end: u64 = values["daytime_end"].parse()?;
+        check(
+            start <= due
+                && wake.checked_add(180).is_some_and(|last| last <= end)
+                && end.checked_sub(start).is_some_and(|length| length <= 43200),
+            "attempt exceeds attended daytime window",
+        )?;
+        Ok(Self {
+            values,
+            due,
+            wake,
+            minimum,
+            maximum,
+        })
+    }
+
+    fn identity(&self) -> Result<()> {
+        check(
+            text("/proc/sys/kernel/random/boot_id")? == self.get("boot"),
+            "trial boot changed",
+        )?;
+        for (path, expected) in [
+            ("/run/booted-system", "generation"),
+            ("/run/current-system", "generation"),
+            ("/run/booted-system/kernel", "kernel"),
+            ("/run/booted-system/kernel-modules", "modules"),
+        ] {
+            check(
+                fs::canonicalize(path)? == Path::new(self.get(expected)),
+                format!("trial identity changed: {path}"),
+            )?;
+        }
+        check(
+            env::current_exe()? == Path::new(self.get("runtime")),
+            "trial runtime changed",
+        )?;
+        Ok(())
+    }
+
+    fn age(&self, awake: u64, epoch: u64, execute: bool) -> Result<()> {
+        let age = if execute {
+            check(
+                (self.due..=self.due + 30).contains(&epoch),
+                "outside 30-second submission window",
+            )?;
+            awake
+        } else {
+            check(epoch < self.due, "trial is no longer in the future")?;
+            awake.checked_add(self.due - epoch).ok_or("age overflow")?
+        };
+        check(
+            (self.minimum..=self.maximum).contains(&age),
+            format!("awake age {age}s outside profile {}", self.get("profile")),
+        )
+    }
+
+    fn save(&self, suffix: &str, contents: &str) -> Result<()> {
+        save(&format!("{}-{suffix}.txt", self.get("trial_id")), contents)
+    }
+
+    fn preflight(&self, execute: bool) -> Result<Baseline> {
+        self.identity()?;
+        let before = preflight_pm(
+            self.get("boot"),
+            TpmState::Initialized,
+            EcState::NotRun,
+            self.get("pm_async"),
+            self.get("kernel"),
+        )?;
+        let ordinal: u64 = self.get("ordinal").parse()?;
+        check(
+            before.successes == ordinal - 1 && before.markers == 0,
+            format!(
+                "ordinal {ordinal} requires {} prior cycles and no markers; found {} cycles, {} markers",
+                ordinal - 1,
+                before.successes,
+                before.markers
+            ),
+        )?;
+        self.age(before.awake_seconds, now()?, execute)?;
+        check(
+            output(
+                "systemctl",
+                &[
+                    "show",
+                    "predator-pm-next.timer",
+                    "-p",
+                    "ActiveState",
+                    "--value",
+                ],
+            )? == "inactive",
+            "another study timer is active",
+        )?;
+        check(
+            output(
+                "nmcli",
+                &["-g", "GENERAL.CON-UUID", "device", "show", "enp3s0f1"],
+            )? == "c4e6863b-7f76-4a4d-9a48-9937af0b5a36",
+            "declared LAN profile is not active",
+        )?;
+        check(
+            !output("nmcli", &["-g", "IP4.DNS", "device", "show", "enp3s0f1"])?.is_empty(),
+            "LAN DNS missing",
+        )?;
+        maintenance()?;
+        Ok(before)
+    }
+}
+
+// Explicit cleanup also runs when the operation fails. Never rely on unwinding
+// alone for restoring a sysfs setting, and report both failures if necessary.
+fn with_pm<T>(path: &Path, selected: &str, action: impl FnOnce() -> Result<T>) -> Result<T> {
+    let previous = text(path)?;
+    check(previous == "1", "expected ordinary pm_async=1 before trial")?;
+    let outcome = (|| {
+        fs::write(path, selected)?;
+        check(text(path)? == selected, "PM setting readback mismatch")?;
+        action()
+    })();
+    let cleanup = (|| {
+        fs::write(path, &previous)?;
+        check(text(path)? == previous, "PM restoration readback mismatch")
+    })();
+    match (outcome, cleanup) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(error), Ok(())) => Err(error),
+        (result, Err(error)) => Err(format!(
+            "PM restoration failed: {error}; operation error={:?}",
+            result.err()
+        )
+        .into()),
+    }
+}
+
+fn captured(program: &str, args: &[&str]) -> String {
+    match output(program, args) {
+        Ok(value) => value,
+        Err(error) => format!("CAPTURE_ERROR: {error}"),
+    }
+}
+
+fn raw_return(plan: &Plan, returned: u64, result: &Result<()>) -> Result<()> {
+    // Persist independently of clock restoration and the eventual verdict.
+    plan.save("return", &format!("observed_epoch={returned}\nboot={}\nrequest_result={result:?}\nuptime={}\nsuccess={}\nfail={}\nmarkers={}\n",
+        text("/proc/sys/kernel/random/boot_id")?, text("/proc/uptime")?, text("/sys/power/suspend_stats/success")?, text("/sys/power/suspend_stats/fail")?, text("/sys/module/pm_stage/parameters/markers")?))?;
+    plan.save(
+        "after-kernel",
+        &captured(
+            "journalctl",
+            &["-k", "-b", "0", "--no-pager", "-o", "short-monotonic"],
+        ),
+    )?;
+    plan.save(
+        "after-service",
+        &captured(
+            "journalctl",
+            &[
+                "-b",
+                "0",
+                "-u",
+                "systemd-suspend.service",
+                "--no-pager",
+                "-o",
+                "short-iso-precise",
+            ],
+        ),
+    )
+}
+
+fn verified_sleep_seconds(journal: &str, ordinal: u64) -> Result<f64> {
+    let mut last = None;
+    for (index, (_, suffix)) in journal
+        .lines()
+        .filter_map(|line| line.split_once("Timekeeping suspended for "))
+        .enumerate()
+    {
+        let seconds: f64 = suffix
+            .strip_suffix(" seconds")
+            .ok_or("malformed kernel sleep duration")?
+            .parse()?;
+        check(
+            seconds.is_finite() && seconds >= 0.0,
+            "invalid kernel sleep duration",
+        )?;
+        last = Some((index + 1, seconds));
+    }
+    let (count, seconds) = last.ok_or("missing kernel sleep duration")?;
+    check(
+        count as u64 == ordinal,
+        "sleep duration count does not match completed cycle ordinal",
+    )?;
+    check(
+        seconds >= 900.0,
+        format!("SHORT_SLEEP: kernel measured {seconds:.3}s; at least 900s required"),
+    )?;
+    Ok(seconds)
+}
+
+fn receive_kernel_history(
+    lines: &mpsc::Receiver<std::io::Result<String>>,
+    ordinal: u64,
+    timeout: Duration,
+) -> (String, Result<()>) {
+    let deadline = Instant::now() + timeout;
+    let mut kernel = String::new();
+    let result = (|| loop {
+        let line = match lines.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+            Ok(line) => line?,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                return Err("timed out waiting for complete kernel suspend history".into());
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                return Err("kernel journal ended before the expected suspend exit".into());
+            }
+        };
+        let exit = line.contains("PM: suspend exit");
+        kernel.push_str(&line);
+        kernel.push('\n');
+        if exit {
+            let cycles = completed_cycles(&kernel)?;
+            check(cycles <= ordinal, "unexpected extra kernel suspend cycle")?;
+            if cycles == ordinal {
+                return Ok(());
+            }
+        }
+        check(
+            Instant::now() < deadline,
+            "kernel history deadline exceeded",
+        )?;
+    })();
+    (kernel, result)
+}
+
+fn complete_kernel_history(plan: &Plan, ordinal: u64) -> Result<String> {
+    // The systemd return message can precede journald's ingestion of the kernel
+    // exit. Keep after-kernel immutable and follow this exact boot until the
+    // ordered current cycle arrives, with a fixed deadline even under log load.
+    plan.identity()?;
+    let boot = plan.get("boot").replace('-', "");
+    let mut child = Command::new("journalctl")
+        .args([
+            "-k",
+            "-b",
+            &boot,
+            "--no-pager",
+            "-o",
+            "short-monotonic",
+            "--follow",
+            "--lines=all",
+        ])
+        .stdout(Stdio::piped())
+        .spawn()?;
+    let stdout = child.stdout.take().expect("piped journalctl stdout");
+    let (sender, receiver) = mpsc::channel();
+    let reader = std::thread::spawn(move || {
+        for line in BufReader::new(stdout).lines() {
+            let failed = line.is_err();
+            if sender.send(line).is_err() || failed {
+                break;
+            }
+        }
+    });
+    let (kernel, result) = receive_kernel_history(&receiver, ordinal, Duration::from_secs(30));
+    // Kill the direct child, not a timeout wrapper that could orphan journalctl.
+    // Reap and join on every outcome before saving or propagating any error.
+    let stopped = child.kill();
+    let reaped = child.wait();
+    let joined = reader.join();
+    plan.save("verification-kernel", &kernel)?;
+    plan.save(
+        "verification",
+        &format!(
+            "boot={}\nordinal={ordinal}\ntimeout_seconds=30\nresult={result:?}\nstop={stopped:?}\nreap={reaped:?}\nreader_joined={}\n",
+            plan.get("boot"), joined.is_ok()
+        ),
+    )?;
+    stopped?;
+    reaped?;
+    check(joined.is_ok(), "kernel journal reader panicked")?;
+    result?;
+    plan.identity()?;
+    Ok(kernel)
+}
+
+fn attempt(plan: &Plan, data: &str) -> Result<()> {
+    let ordinal: u64 = plan.get("ordinal").parse()?;
+    plan.save("requested", data)?; // create_new is the duplicate-attempt guard.
+    let mut ntp_stopped = false;
+    let result = (|| {
+        capture()?;
+        plan.preflight(true)?;
+        for disk in DISKS {
+            let warmed = Command::new("timeout")
+                .args([
+                    "30s",
+                    "dd",
+                    &format!("if={disk}"),
+                    "bs=4096",
+                    "count=1",
+                    "iflag=direct",
+                    "status=none",
+                ])
+                .stdout(Stdio::null())
+                .status()?;
+            check(warmed.success(), format!("disk warm-up failed: {disk}"))?;
+            marker(&format!("WARMED {disk}"))?;
+        }
+        plan.save(
+            "before",
+            &format!(
+                "epoch={}\nuptime={}\n{}\n{}\n{}\n",
+                now()?,
+                text("/proc/uptime")?,
+                output("hwclock", &["--show", "--utc"])?,
+                output("zpool", &["status"])?,
+                output(
+                    "journalctl",
+                    &["-k", "-b", "0", "--no-pager", "-o", "short-monotonic"]
+                )?
+            ),
+        )?;
+        output("rtcwake", &["--mode", "disable"])?;
+        let before = plan.preflight(true)?;
+        ntp_stopped = true;
+        output("systemctl", &["stop", "systemd-timesyncd.service"])?;
+        marker(&format!(
+            "BEGIN trial={} boot={} due_epoch={} wake_epoch={} profile={} ordinal={} pm_async={} pm_trace=0 recorder=off TPM=initialized raw-EC=not-run inhibitors=enforced",
+            plan.get("trial_id"),
+            plan.get("boot"),
+            plan.due,
+            plan.wake,
+            plan.get("profile"),
+            ordinal,
+            plan.get("pm_async")
+        ))?;
+        output("journalctl", &["--sync"])?;
+        plan.identity()?;
+        plan.age(before.awake_seconds, now()?, true)?;
+        check(
+            text("/sys/power/pm_async")? == plan.get("pm_async"),
+            "PM setting changed at entry",
+        )?;
+        let request = suspend_and_wait(LoginPolicy::from_plan(data)?);
+        let returned = now()?;
+        raw_return(plan, returned, &request)?;
+        request.map(|()| returned)
+    })();
+    let clock = if ntp_stopped { restore_clock() } else { Ok(()) };
+    plan.save(
+        "recovery",
+        &format!(
+            "request={:?}\nclock={clock:?}\n{}\n{}\n{}\n",
+            result.as_ref().map(|_| ()),
+            captured("timedatectl", &["timesync-status"]),
+            captured("zpool", &["status"]),
+            captured("findmnt", &["-rn", "-t", "zfs", "-o", "SOURCE,TARGET"])
+        ),
+    )?;
+    let returned =
+        result.map_err(|error| format!("request/entry/return failed: {error}; clock={clock:?}"))?;
+    check(
+        text("/sys/power/suspend_stats/success")?.parse::<u64>()? == ordinal
+            && text("/sys/power/suspend_stats/fail")? == "0",
+        format!("kernel did not complete suspend cycle {ordinal} successfully"),
+    )?;
+    let kernel = complete_kernel_history(plan, ordinal)?;
+    check(
+        completed_cycles(&kernel)? == ordinal,
+        "kernel cycle incomplete",
+    )?;
+    check(
+        text("/sys/module/pm_stage/parameters/markers")? == "0",
+        "unarmed recorder wrote markers",
+    )?;
+    plan.identity()?;
+    plan.save(
+        "kernel-completed",
+        &format!(
+            "boot={}\nreturned_epoch={returned}\nclock={clock:?}\n",
+            plan.get("boot")
+        ),
+    )?;
+    clock.map_err(|error| format!("RECOVERY_FAILURE after complete kernel cycle: {error}"))?;
+    check(
+        (plan.wake.saturating_sub(2)..=plan.wake + 180).contains(&returned),
+        "EARLY_OR_LATE_WAKE: kernel returned outside planned WoL window",
+    )?;
+    let sleep_seconds = verified_sleep_seconds(&kernel, ordinal)?;
+    check(
+        output("zpool", &["status", "-x"])? == "all pools are healthy",
+        "RECOVERY_FAILURE: unhealthy pool",
+    )?;
+    for (mount, dataset) in [
+        ("/srv/data/fast", "fast/data"),
+        ("/var/lib/nextcloud/data", "fast/ncdata"),
+        ("/srv/backup", "tank/backup"),
+        ("/srv/backup/recovery", "tank/backup/recovery"),
+        ("/srv/data/archive", "tank/archive"),
+    ] {
+        check(
+            output("findmnt", &["-n", "-o", "SOURCE", "-M", mount])? == dataset,
+            format!("RECOVERY_FAILURE: missing {mount}"),
+        )?;
+    }
+    let record = record_completion(plan.get("boot"), ordinal, 0, now()?)?;
+    plan.save(
+        "completed",
+        &format!(
+            "{record}returned_epoch={returned}\nsleep_seconds={sleep_seconds:.3}\nphysical_sleep=AWAITING_OWNER_GRAPH\n"
+        ),
+    )?;
+    marker(&format!(
+        "VERIFIED trial={} timed deep cycle {ordinal}; slept {sleep_seconds:.3}s; fresh NTP and storage healthy; physical sleep evidence still required",
+        plan.get("trial_id")
+    ))
+}
+
+fn load(path: &str, hash: &str) -> Result<(Plan, String)> {
+    check(
+        hash.len() == 64 && hash.bytes().all(|c| c.is_ascii_hexdigit()),
+        "invalid manifest hash",
+    )?;
+    let meta = fs::symlink_metadata(path)?;
+    check(
+        meta.is_file() && meta.uid() == 0 && meta.mode() & 0o777 == 0o600,
+        "trial manifest must be root-owned mode 0600",
+    )?;
+    let data = fs::read_to_string(path)?;
+    check(
+        output("sha256sum", &[path])?.split_whitespace().next() == Some(hash),
+        "manifest hash changed",
+    )?;
+    let plan = Plan::parse(&data)?;
+    plan.identity()?;
+    Ok((plan, data))
+}
+
+pub fn restore(path: &str, hash: &str) -> Result<()> {
+    let (plan, _) = load(path, hash)?;
+    check(
+        Path::new(&format!("{STATE}/{}-requested.txt", plan.get("trial_id"))).exists(),
+        "no trial execution to clean up",
+    )?;
+    let current = text("/sys/power/pm_async")?;
+    check(
+        current == "1" || current == plan.get("pm_async"),
+        "unexpected PM value during trial cleanup",
+    )?;
+    fs::write("/sys/power/pm_async", "1")?;
+    check(
+        text("/sys/power/pm_async")? == "1",
+        "trial cleanup PM readback failed",
+    )?;
+    check(
+        text("/sys/module/pm_stage/parameters/armed")? == "N",
+        "unexpected armed recorder during cleanup",
+    )?;
+    output("systemctl", &["start", "systemd-timesyncd.service"])?;
+    marker(&format!(
+        "TRIAL CLEANUP id={} pm_async=1 timesyncd=started",
+        plan.get("trial_id")
+    ))
+}
+
+pub fn run(path: &str, hash: &str, execute: bool) -> Result<()> {
+    let (plan, data) = load(path, hash)?;
+    not_held()?;
+    let result = with_pm(
+        Path::new("/sys/power/pm_async"),
+        plan.get("pm_async"),
+        || {
+            if execute {
+                attempt(&plan, &data)
+            } else {
+                capture()?;
+                plan.preflight(false)?;
+                marker(&format!(
+                    "TRIAL READY id={} profile={} pm_async={} due={} wake={} manifest={hash}",
+                    plan.get("trial_id"),
+                    plan.get("profile"),
+                    plan.get("pm_async"),
+                    plan.due,
+                    plan.wake
+                ))
+            }
+        },
+    );
+    if execute {
+        // Do not overwrite earlier errors on an accidental duplicate invocation.
+        let suffix = if Path::new(&format!("{STATE}/{}-result.txt", plan.get("trial_id"))).exists()
+        {
+            format!("repeat-error-{}", now()?)
+        } else {
+            "result".into()
+        };
+        plan.save(
+            &suffix,
+            &format!(
+                "epoch={}\nresult={result:?}\npm_async={}\n",
+                now()?,
+                text("/sys/power/pm_async")?
+            ),
+        )?;
+    }
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn manifest() -> String {
+        "schema_version=2\ntrial_id=serial-m-test\nprofile=M\nboot=214d0240-3825-4946-8492-c30bf530eba0\ngeneration=/nix/store/g-system\nkernel=/nix/store/k/bzImage\nmodules=/nix/store/m\nruntime=/nix/store/r/bin/predator-pm-study\ndue=20000\nwake=20960\npm_async=0\npm_trace=0\nrecorder=off\nmem_sleep=deep\npm_test=none\ntpm=initialized\nec=not-run\nlogged_in_users=allow\nordinal=1\ndaytime_start=19900\ndaytime_end=21200".into()
+    }
+    #[test]
+    fn strict_manifest_rejects_silent_defaults_and_conflicting_modes() {
+        for profile in ["Q", "M", "H", "D", "E"] {
+            let data = manifest().replace("profile=M", &format!("profile={profile}"));
+            assert!(Plan::parse(&data).is_ok());
+            assert!(Plan::parse(&data.replace("wake=20960", "wake=20180")).is_err());
+            assert!(Plan::parse(&data.replace("schema_version=2", "schema_version=1")).is_err());
+        }
+        for change in [
+            manifest() + "\nunknown=1",
+            manifest() + "\npm_async=1",
+            manifest().replace("recorder=off", "recorder=rtc"),
+            manifest().replace("ordinal=1", "ordinal=3"),
+            manifest().replace("profile=M", "profile=L"),
+            manifest().replace("wake=20960", "wake=20900"),
+            manifest().replace("wake=20960", "wake=20959"),
+            manifest().replace("wake=20960", "wake=20961"),
+            manifest().replace("daytime_end=21200", "daytime_end=21139"),
+            manifest().replace("pm_async=0\n", ""),
+        ] {
+            assert!(Plan::parse(&change).is_err(), "accepted {change}");
+        }
+    }
+    #[test]
+    fn repeat_suspend_ordinal_two_is_explicit_and_bounded() {
+        assert!(Plan::parse(&manifest().replace("ordinal=1", "ordinal=2")).is_ok());
+        for ordinal in ["0", "3", "x"] {
+            assert!(
+                Plan::parse(&manifest().replace("ordinal=1", &format!("ordinal={ordinal}")))
+                    .is_err(),
+                "accepted ordinal={ordinal}"
+            );
+        }
+    }
+    #[test]
+    fn measured_sleep_must_meet_minimum_on_the_current_cycle() {
+        let line = |seconds: &str| {
+            format!("[ 1942.478482] predator kernel: Timekeeping suspended for {seconds} seconds\n")
+        };
+        assert_eq!(verified_sleep_seconds(&line("900.000"), 1).unwrap(), 900.0);
+        assert!(
+            verified_sleep_seconds(&line("897.522"), 1)
+                .unwrap_err()
+                .to_string()
+                .starts_with("SHORT_SLEEP:")
+        );
+        assert_eq!(
+            verified_sleep_seconds(&(line("897.522") + &line("957.100")), 2).unwrap(),
+            957.1
+        );
+        assert!(verified_sleep_seconds(&(line("957.100") + &line("897.522")), 2).is_err());
+        assert!(verified_sleep_seconds(&line("957.100"), 2).is_err());
+        assert!(verified_sleep_seconds(&(line("957.100") + &line("957.100")), 1).is_err());
+        assert!(verified_sleep_seconds("", 1).is_err());
+        for invalid in ["NaN", "inf", "-1", "unknown"] {
+            assert!(verified_sleep_seconds(&line(invalid), 1).is_err());
+            assert!(verified_sleep_seconds(&(line(invalid) + &line("957.100")), 2).is_err());
+            assert!(verified_sleep_seconds(&(line("957.100") + &line(invalid)), 2).is_err());
+        }
+        assert!(verified_sleep_seconds("Timekeeping suspended for 957.100 minutes", 1).is_err());
+    }
+    // Relevant messages from the immutable October 30 Q35 capture. The exit
+    // reached journald 29 ms after after-kernel was saved. Keep this incomplete
+    // prefix: validating only that raw snapshot must still reject it.
+    const Q35_EARLY: &str = "[ 2103.802681] predator kernel: PM: suspend entry (deep)\n\
+[ 2109.838989] predator kernel: ACPI: PM: Low-level resume complete\n\
+[ 2109.839162] predator kernel: Timekeeping suspended for 954.773 seconds\n\
+[ 2109.917172] predator kernel: scsi host0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs\n";
+    const Q35_EXIT: &str = "[ 2109.947126] predator kernel: PM: suspend exit";
+
+    #[test]
+    fn later_kernel_exit_completes_the_preserved_early_snapshot() {
+        assert!(completed_cycles(Q35_EARLY).is_err());
+        let (sender, receiver) = mpsc::channel();
+        for line in Q35_EARLY.lines() {
+            sender.send(Ok(line.into())).unwrap();
+        }
+        sender.send(Ok(Q35_EXIT.into())).unwrap();
+        let (kernel, result) = receive_kernel_history(&receiver, 1, Duration::from_secs(1));
+        result.unwrap();
+        assert!(kernel.starts_with(Q35_EARLY));
+        assert_eq!(completed_cycles(&kernel).unwrap(), 1);
+        assert_eq!(verified_sleep_seconds(&kernel, 1).unwrap(), 954.773);
+    }
+
+    #[test]
+    fn missing_kernel_exit_times_out_and_preserves_partial_evidence() {
+        let (sender, receiver) = mpsc::channel();
+        for line in Q35_EARLY.lines() {
+            sender.send(Ok(line.into())).unwrap();
+        }
+        let (kernel, result) = receive_kernel_history(&receiver, 1, Duration::from_millis(20));
+        assert_eq!(kernel, Q35_EARLY);
+        assert!(result.unwrap_err().to_string().contains("timed out"));
+        drop(sender);
+    }
+
+    #[test]
+    fn previous_cycle_cannot_satisfy_repeat_or_closed_journal() {
+        let (sender, receiver) = mpsc::channel();
+        for line in Q35_EARLY.lines().chain([Q35_EXIT]).chain(Q35_EARLY.lines()) {
+            sender.send(Ok(line.into())).unwrap();
+        }
+        drop(sender);
+        let (kernel, result) = receive_kernel_history(&receiver, 2, Duration::from_secs(1));
+        assert!(result.unwrap_err().to_string().contains("ended before"));
+        assert!(completed_cycles(&kernel).is_err());
+    }
+
+    #[test]
+    fn kernel_follow_rejects_misordered_exit() {
+        let (sender, receiver) = mpsc::channel();
+        sender.send(Ok(Q35_EXIT.into())).unwrap();
+        let (kernel, result) = receive_kernel_history(&receiver, 1, Duration::from_secs(1));
+        assert!(result.unwrap_err().to_string().contains("exit without"));
+        assert_eq!(kernel, format!("{Q35_EXIT}\n"));
+    }
+    #[test]
+    fn age_guard_distinguishes_prepare_from_entry_and_rejects_missed_windows() {
+        let plan = Plan::parse(&manifest()).unwrap();
+        assert!(plan.age(7100, 16000, false).is_ok());
+        assert!(plan.age(11100, 20000, true).is_ok());
+        assert!(plan.age(11100, 20031, true).is_err());
+        assert!(plan.age(11100, 19999, true).is_err());
+        assert!(plan.age(100, 20000, true).is_err());
+        assert!(plan.age(12000, 20000, true).is_err());
+    }
+    #[test]
+    fn pm_setting_is_restored_after_failure() {
+        let path = env::temp_dir().join(format!("predator-pm-setting-{}", std::process::id()));
+        fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .unwrap()
+            .write_all(b"1")
+            .unwrap();
+        let failed: Result<()> = with_pm(&path, "0", || {
+            assert_eq!(text(&path).unwrap(), "0");
+            Err("simulated abort".into())
+        });
+        assert!(failed.is_err());
+        assert_eq!(text(&path).unwrap(), "1");
+        with_pm(&path, "0", || Ok(())).unwrap();
+        assert_eq!(text(&path).unwrap(), "1");
+        fs::remove_file(path).unwrap();
+    }
+}

@@ -1,0 +1,70 @@
+2026-10-30T20:03:33+01:00
+5820.54 45089.07
+No jobs running.
+  UNIT                                                 LOAD   ACTIVE SUB    DESCRIPTION
+● predator-pm-diagnostic-d-freezer-02-20261030.service loaded failed failed [systemd-run] /nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-plan.conf 91e1616b734ee77a0077bccd130cecfe5621dfa0fba8b2326207e1064a8f4484
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+1 loaded units listed.
+Id=predator-pm-diagnostic-d-freezer-02-20261030.service
+ActiveState=failed
+MainPID=0
+Result=exit-code
+ExecMainStatus=1
+
+Id=systemd-suspend.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+/sys/power/suspend_stats/success=1
+/sys/power/suspend_stats/fail=0
+/sys/power/pm_async=1
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+GENERAL.STATE:100 (connected)
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+NEXT                           LEFT LAST                              PASSED UNIT                   ACTIVATES
+Fri 2026-10-30 20:06:39 CET 3min 6s Fri 2026-10-30 20:01:39 CET 1min 53s ago nextcloud-cron.timer   nextcloud-cron.service
+-                                 - -                                      - night-suspend.timer    night-suspend.service
+-                                 - -                                      - predator-pm-next.timer predator-pm-next.service
+
+3 timers listed.
+6fe6c20a0224cd98858c0a607a14ca5f41c4a21f3618037c2b62af6076532ff6  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-after-kernel.txt
+8c1697ad61be8185bc02455a679da50f94c8f8fb8e3d4895721e2635ffa82544  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-before-kernel.txt
+d553fac9f6b8a7fc229fd553e9756ac3985956b2ba16f67eb2f26e291ee7a1fd  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-before.txt
+55e6ec65d225ffecf9550e7bedc588cb53b044a5b380b710ff98d994371ed45c  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-cursor.txt
+65aa135f2cfe48cbc2d182833e5353d842e45e8f13c407c17bd0a18bfaf5566d  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-observed-journal.txt
+52125d1722d78cb519292008895f3074d6794209524139263fbf0ffab63bf3c2  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-outcome.txt
+91e1616b734ee77a0077bccd130cecfe5621dfa0fba8b2326207e1064a8f4484  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-plan.conf
+2db6f800c48963e4b704c8cddc7d0815fb6058f48c56d352bcff0c598205db49  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-requested.txt
+070da2b7b41bb3710b066bd006cc1ebed80b379cef7ed7b14e26304cdce0d5d5  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-return.txt
+280573317fc03a7338ca233c367593ff2fac0163eb8cfe70fabc375f4648fd08  /var/lib/predator-pm-study/last-completed.txt
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.toml
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs

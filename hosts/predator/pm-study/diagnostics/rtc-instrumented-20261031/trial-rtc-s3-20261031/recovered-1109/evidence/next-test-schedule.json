@@ -1,0 +1,21 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-s2idle-control-20261031-1145",
+  "title": "Predator instrumented s2idle control — October 31 11:45",
+  "enabled": true,
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "nextRunAt": "2026-10-31T10:45:00.000Z",
+  "localPreparationStart": "2026-10-31T11:45:00+01:00",
+  "timezone": "Europe/Paris",
+  "dateGuard": "2026-10-31",
+  "selfDeleteExactTaskAtStart": true,
+  "scope": "Prepare, validate and execute one eligible separately implemented RTC-instrumented s2idle control with Pi WoL and dated review",
+  "actualEntryTime": null,
+  "machineTimersArmed": false,
+  "automaticDeepRetry": false,
+  "maximumNewPowerTransitions": 1,
+  "boot": "ae29f675-9167-4975-a884-01885468bc38",
+  "observedBtime": 1793440484,
+  "historyOnNewBoot": {"diagnosticCycles": 0, "actualS3Attempts": 0, "s2idleAttempts": 0},
+  "ownerReport": "force rebooted it, it was at 15w. schedule next tests",
+  "exactResetMethodAndOffDuration": "not supplied"
+}

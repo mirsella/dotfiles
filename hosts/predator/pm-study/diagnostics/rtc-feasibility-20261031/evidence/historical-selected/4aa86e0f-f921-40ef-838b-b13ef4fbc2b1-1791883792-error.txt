@@ -1,0 +1,4 @@
+boot=4aa86e0f-f921-40ef-838b-b13ef4fbc2b1
+due=1791883792
+observed_epoch=1791884126
+error=return outside planned WoL window

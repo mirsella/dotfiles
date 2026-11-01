@@ -1,0 +1,200 @@
+2026-10-30T22:38:36+01:00
+f8eb6e44-85ae-4e56-bc00-587876699945
+15122.96 117200.68
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+25d8e1e0530e68c2ca20b35b7c2181a6518b3775c5f5ffe703b2e3871256f750  /nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic
+69786216f26a8f378cfc39e5829a75cc8c057ce108dc2767f39c655e7167283f  /var/lib/predator-pm-diagnostic/d-core-03-20261030-after-kernel.txt
+869c08f48e6a3664ff2605b1be75db139451a2c0f62e72c1799162da0c0ec5e8  /var/lib/predator-pm-diagnostic/d-core-03-20261030-before-kernel.txt
+cdfb7c3386a28e84bee2916f91efffe327d7dd9b18f62a9ad8781d4389ced90d  /var/lib/predator-pm-diagnostic/d-core-03-20261030-before.txt
+7851bcb034541c585c6385dcedd970a0e1f2fa2f3c6b0c0d93d4f1c241370ddc  /var/lib/predator-pm-diagnostic/d-core-03-20261030-completed.txt
+a6492bd4b5055311cdc6d000f1ac2f6336c153d70a2609b7d8c297e0804a8ed5  /var/lib/predator-pm-diagnostic/d-core-03-20261030-cursor.txt
+abfe59245bad30b90934cc914bd5efb8db4642b96ee7d9c193083b118808dedd  /var/lib/predator-pm-diagnostic/d-core-03-20261030-network-readiness.txt
+85648ad5d3e0ddc80ca4b539766c778cb71d0ccfc246fabdc78056f11f662acb  /var/lib/predator-pm-diagnostic/d-core-03-20261030-observed-journal.txt
+750303cb6b0c077648aaed8b2256fe629aad8a940dbb84c495ead72ff62ec9a4  /var/lib/predator-pm-diagnostic/d-core-03-20261030-outcome.txt
+7168689addc30e52c30e2128ec1e037dc5a06c635ba66f805523650a761ddc9a  /var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf
+46d9997e714204ff8198c7aa5bded9d20e7999566c22f517f09882efe1239179  /var/lib/predator-pm-diagnostic/d-core-03-20261030-requested.txt
+58de3b3a0c55f29e2fe20e6c459bed8f48c22124aa0ac94cee3c3d6f771b9a1d  /var/lib/predator-pm-diagnostic/d-core-03-20261030-return.txt
+280573317fc03a7338ca233c367593ff2fac0163eb8cfe70fabc375f4648fd08  /var/lib/predator-pm-study/last-completed.txt
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-after-kernel.txt 0 600 814913
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-before-kernel.txt 0 600 717359
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-before.txt 0 600 1597
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-completed.txt 0 600 548
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-cursor.txt 0 600 126
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-network-readiness.txt 0 600 1150
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-observed-journal.txt 0 600 102867
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-outcome.txt 0 600 49
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf 0 600 795
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-requested.txt 0 600 794
+/var/lib/predator-pm-diagnostic/d-core-03-20261030-return.txt 0 600 185
+/sys/power/suspend_stats/success=9
+/sys/power/suspend_stats/fail=0
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+Id=systemd-suspend.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+
+Id=predator-pm-diagnostic-d-core-03-20261030.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+No jobs running.
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+100 (connected)
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+       Server: 87.106.8.23 (0.nixos.pool.ntp.org)
+Poll interval: 4min 16s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 2D8A373D
+    Precision: 1us (-24)
+Root distance: 36.505ms (max: 5s)
+       Offset: -13.481ms
+        Delay: 15.951ms
+       Jitter: 581.777ms
+ Packet count: 23
+    Frequency: +74.330ppm
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:04:10 with 0 errors on Sat Oct  3 14:19:29 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: resilvered 132K in 00:00:01 with 0 errors on Sun Oct  4 01:20:38 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+fast/data /srv/data/fast
+fast/ncdata /var/lib/nextcloud/data
+tank/backup /srv/backup
+tank/backup/recovery /srv/backup/recovery
+tank/archive /srv/data/archive
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+immich_redis Up 4 hours (healthy)
+immich_ml Up 4 hours (healthy)
+immich_postgres Up 4 hours (healthy)
+immich_server Up 4 hours (healthy)
+NEXT                            LEFT LAST                              PASSED UNIT                   ACTIVATES
+Fri 2026-10-30 22:42:19 CET 3min 42s Fri 2026-10-30 22:37:19 CET 1min 17s ago nextcloud-cron.timer   nextcloud-cron.service
+-                                  - -                                      - night-suspend.timer    night-suspend.service
+-                                  - -                                      - predator-pm-next.timer predator-pm-next.service
+
+3 timers listed.
+2026-10-30T19:23:34.188860+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T19:23:34.208525+01:00 predator systemd-sleep[27468]: Successfully froze unit 'user.slice'.
+2026-10-30T19:23:34.209248+01:00 predator systemd-sleep[27468]: Performing sleep operation 'suspend'...
+2026-10-30T19:23:39.392281+01:00 predator systemd-sleep[27468]: System returned from sleep operation 'suspend'.
+2026-10-30T19:23:39.396826+01:00 predator systemd-sleep[27468]: Successfully thawed unit 'user.slice'.
+2026-10-30T19:23:39.401571+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T19:23:39.402136+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T19:23:39.402613+01:00 predator systemd[1]: systemd-suspend.service: Consumed 5.001s CPU time over 5.212s wall clock time, 2.2M memory peak, 112K read from disk.
+2026-10-30T20:18:33.940329+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T20:18:33.982886+01:00 predator systemd-sleep[50306]: Successfully froze unit 'user.slice'.
+2026-10-30T20:18:33.983759+01:00 predator systemd-sleep[50306]: Performing sleep operation 'suspend'...
+2026-10-30T20:18:42.838279+01:00 predator systemd-sleep[50306]: System returned from sleep operation 'suspend'.
+2026-10-30T20:18:42.843654+01:00 predator systemd-sleep[50306]: Successfully thawed unit 'user.slice'.
+2026-10-30T20:18:42.848788+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T20:18:42.849385+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T20:18:42.849713+01:00 predator systemd[1]: systemd-suspend.service: Consumed 5.649s CPU time over 8.908s wall clock time, 2M memory peak.
+2026-10-30T20:43:34.197404+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T20:43:34.227085+01:00 predator systemd-sleep[60927]: Successfully froze unit 'user.slice'.
+2026-10-30T20:43:34.227884+01:00 predator systemd-sleep[60927]: Performing sleep operation 'suspend'...
+2026-10-30T20:43:43.050702+01:00 predator systemd-sleep[60927]: System returned from sleep operation 'suspend'.
+2026-10-30T20:43:43.053412+01:00 predator systemd-sleep[60927]: Successfully thawed unit 'user.slice'.
+2026-10-30T20:43:43.055400+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T20:43:43.055888+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T20:43:43.056238+01:00 predator systemd[1]: systemd-suspend.service: Consumed 5.668s CPU time over 8.858s wall clock time, 2.2M memory peak.
+2026-10-30T21:08:34.463079+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T21:08:34.476801+01:00 predator systemd-sleep[71617]: Successfully froze unit 'user.slice'.
+2026-10-30T21:08:34.477394+01:00 predator systemd-sleep[71617]: Performing sleep operation 'suspend'...
+2026-10-30T21:08:45.131618+01:00 predator systemd-sleep[71617]: System returned from sleep operation 'suspend'.
+2026-10-30T21:08:45.135875+01:00 predator systemd-sleep[71617]: Successfully thawed unit 'user.slice'.
+2026-10-30T21:08:45.140297+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T21:08:45.141268+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T21:08:45.141784+01:00 predator systemd[1]: systemd-suspend.service: Consumed 5.915s CPU time over 10.677s wall clock time, 2M memory peak.
+2026-10-30T21:23:34.278399+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T21:23:34.317075+01:00 predator systemd-sleep[78363]: Successfully froze unit 'user.slice'.
+2026-10-30T21:23:34.318032+01:00 predator systemd-sleep[78363]: Performing sleep operation 'suspend'...
+2026-10-30T21:23:45.936720+01:00 predator systemd-sleep[78363]: System returned from sleep operation 'suspend'.
+2026-10-30T21:23:45.942114+01:00 predator systemd-sleep[78363]: Successfully thawed unit 'user.slice'.
+2026-10-30T21:23:45.942881+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T21:23:45.943271+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T21:23:45.943454+01:00 predator systemd[1]: systemd-suspend.service: Consumed 5.916s CPU time over 11.664s wall clock time, 2M memory peak.
+2026-10-30T21:38:34.391682+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T21:38:34.425129+01:00 predator systemd-sleep[85132]: Successfully froze unit 'user.slice'.
+2026-10-30T21:38:34.425914+01:00 predator systemd-sleep[85132]: Performing sleep operation 'suspend'...
+2026-10-30T21:38:45.171145+01:00 predator systemd-sleep[85132]: System returned from sleep operation 'suspend'.
+2026-10-30T21:38:45.180351+01:00 predator systemd-sleep[85132]: Successfully thawed unit 'user.slice'.
+2026-10-30T21:38:45.191926+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T21:38:45.192846+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T21:38:45.193430+01:00 predator systemd[1]: systemd-suspend.service: Consumed 5.915s CPU time over 10.800s wall clock time, 2M memory peak.
+2026-10-30T21:53:34.249083+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T21:53:34.289888+01:00 predator systemd-sleep[92053]: Successfully froze unit 'user.slice'.
+2026-10-30T21:53:34.290854+01:00 predator systemd-sleep[92053]: Performing sleep operation 'suspend'...
+2026-10-30T21:53:45.996826+01:00 predator systemd-sleep[92053]: System returned from sleep operation 'suspend'.
+2026-10-30T21:53:45.999062+01:00 predator systemd-sleep[92053]: Successfully thawed unit 'user.slice'.
+2026-10-30T21:53:46.001899+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T21:53:46.002237+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T21:53:46.002369+01:00 predator systemd[1]: systemd-suspend.service: Consumed 5.992s CPU time over 11.752s wall clock time, 2M memory peak.
+2026-10-30T22:18:33.734761+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T22:18:33.744645+01:00 predator systemd-sleep[103012]: Successfully froze unit 'user.slice'.
+2026-10-30T22:18:33.744936+01:00 predator systemd-sleep[103012]: Performing sleep operation 'suspend'...
+2026-10-30T22:18:44.460459+01:00 predator systemd-sleep[103012]: System returned from sleep operation 'suspend'.
+2026-10-30T22:18:44.464746+01:00 predator systemd-sleep[103012]: Successfully thawed unit 'user.slice'.
+2026-10-30T22:18:44.465622+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T22:18:44.465912+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T22:18:44.466033+01:00 predator systemd[1]: systemd-suspend.service: Consumed 6.094s CPU time over 5.768s wall clock time, 2M memory peak.
+2026-10-30T22:33:32.641581+01:00 predator systemd[1]: Starting [systemd-run] /nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf 7168689addc30e52c30e2128ec1e037dc5a06c635ba66f805523650a761ddc9a...
+2026-10-30T22:33:32.656816+01:00 predator systemd[1]: Started [systemd-run] /nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-core-03-20261030-plan.conf 7168689addc30e52c30e2128ec1e037dc5a06c635ba66f805523650a761ddc9a.
+2026-10-30T22:33:34.098172+01:00 predator predator-pm-diagnostic[110041]: DIAG BEGIN id=d-core-03-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=core ordinal=9 age_since_boot=14822 pm_async=0 test_delay=5 real_s3=forbidden
+2026-10-30T22:33:34.312127+01:00 predator systemd[1]: Starting System Suspend...
+2026-10-30T22:33:34.353539+01:00 predator systemd-sleep[110175]: Successfully froze unit 'user.slice'.
+2026-10-30T22:33:34.354594+01:00 predator systemd-sleep[110175]: Performing sleep operation 'suspend'...
+2026-10-30T22:33:44.628850+01:00 predator systemd-sleep[110175]: System returned from sleep operation 'suspend'.
+2026-10-30T22:33:44.631253+01:00 predator systemd-sleep[110175]: Successfully thawed unit 'user.slice'.
+2026-10-30T22:33:44.633272+01:00 predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-30T22:33:44.633635+01:00 predator systemd[1]: Finished System Suspend.
+2026-10-30T22:33:44.633884+01:00 predator systemd[1]: systemd-suspend.service: Consumed 6.010s CPU time over 5.947s wall clock time, 2.2M memory peak.
+2026-10-30T22:33:44.949617+01:00 predator predator-pm-diagnostic[110041]: DIAG CLEANUP id=d-core-03-20261030 pm_test=none pm_async=1
+2026-10-30T22:33:48.500331+01:00 predator predator-pm-diagnostic[110041]: DIAG VERIFIED id=d-core-03-20261030 level=core ordinal=9 real_s3=false
+2026-10-30T22:33:48.605565+01:00 predator predator-pm-diagnostic[110530]: DIAG CLEANUP id=d-core-03-20261030 pm_test=none pm_async=1
+2026-10-30T22:33:48.616801+01:00 predator systemd[1]: predator-pm-diagnostic-d-core-03-20261030.service: Deactivated successfully.
+2026-10-30T22:33:48.618039+01:00 predator systemd[1]: predator-pm-diagnostic-d-core-03-20261030.service: Consumed 2.228s CPU time over 11.602s wall clock time, 14.4M memory peak, 3.1M written to disk.

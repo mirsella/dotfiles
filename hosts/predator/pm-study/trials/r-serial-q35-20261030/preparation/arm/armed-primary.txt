@@ -1,0 +1,28 @@
+CAPTURE CHECK boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793358576
+PREFLIGHT boot=8b7a173d-8406-4072-aebc-c85c8b4989e7 uptime=573.34 4269.13 awake_since_verified_return=572s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+TRIAL READY id=r-serial-q35-20261030 profile=Q pm_async=0 due=1793360104 wake=1793361064 manifest=47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+# /run/systemd/transient/predator-pm-r-serial-q35-20261030.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-serial-q35-20261030-plan.conf 47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+
+[Timer]
+OnCalendar=@1793360104
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-r-serial-q35-20261030.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-serial-q35-20261030-plan.conf 47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5
+
+[Service]
+Type=oneshot
+TimeoutStartSec=25min
+Environment="PATH=/run/current-system/sw/bin"
+ExecStopPost=
+ExecStopPost="/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study" "restore-trial" "/var/lib/predator-pm-study/r-serial-q35-20261030-plan.conf" "47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5"
+ExecStart=
+ExecStart="/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study" "attempt-trial" "/var/lib/predator-pm-study/r-serial-q35-20261030-plan.conf" "47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5"

@@ -1,0 +1,9 @@
+compact-20261101-a/after-write.txt: OK
+compact-20261101-a/before.txt: OK
+compact-20261101-a/load-result.txt: OK
+compact-20261101-a/outcome.txt: OK
+compact-20261101-a/readback.txt: OK
+compact-20261101-a/request.txt: OK
+compact-20261101-a/status-after.txt: OK
+compact-20261101-a/status-before.txt: OK
+compact-20261101-a/write-result.txt: OK

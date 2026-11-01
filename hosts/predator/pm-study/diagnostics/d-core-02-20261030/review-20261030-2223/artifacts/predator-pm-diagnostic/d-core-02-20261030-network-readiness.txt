@@ -1,0 +1,138 @@
+epoch=1793395127
+readiness=Ok(())
+stop=Ok(())
+reaped=Ok(ExitStatus(unix_wait_status(9)))
+reader_joined=true
+elapsed_ms=139
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=160
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=182
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=221
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=271
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=320
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=371
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=422
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=472
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=523
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=575
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=624
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=673
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=719
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=764
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=810
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=859
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=904
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=948
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=991
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1036
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1081
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1125
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1172
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1215
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1257
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1300
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1342
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1382
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1425
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1470
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1513
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1559
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1602
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1645
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1686
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1726
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1770
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=1811
+GENERAL.STATE:20 (unavailable)
+GENERAL.CON-UUID:
+elapsed_ms=2904
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=2952
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=3002
+GENERAL.STATE:70 (connecting (getting IP configuration))
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1
+elapsed_ms=3054
+GENERAL.STATE:100 (connected)
+GENERAL.CON-UUID:c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+IP4.DNS[1]:192.168.1.1

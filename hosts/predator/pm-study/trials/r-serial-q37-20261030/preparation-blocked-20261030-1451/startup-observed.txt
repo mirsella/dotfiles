@@ -1,0 +1,8 @@
+2026-10-30T14:56:24.552684+0100 raspberrypi systemd[1]: Started predator-pm-q37-preparation-20261030-startup.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-30T14:56:24.646608+0100 raspberrypi python3[96460]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-30T14:56:24.661654+0100 raspberrypi systemd[1]: predator-pm-q37-preparation-20261030-startup.service: Deactivated successfully.
+BOUNDED_JOURNAL_EXIT=124
+2026-10-30T14:56:24.552684+0100 raspberrypi systemd[1]: Started predator-pm-q37-preparation-20261030-startup.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-30T14:56:24.646608+0100 raspberrypi python3[96460]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-30T14:56:24.661654+0100 raspberrypi systemd[1]: predator-pm-q37-preparation-20261030-startup.service: Deactivated successfully.
+2026-10-30T14:57:36+01:00

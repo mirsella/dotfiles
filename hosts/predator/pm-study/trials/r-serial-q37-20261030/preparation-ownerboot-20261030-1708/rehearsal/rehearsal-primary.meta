@@ -1,0 +1,15 @@
+host=192.168.1.19
+status=exit status: 0
+script:
+set -eu
+test "$(systemctl show 'predator-pm-r-serial-q37-20261030-rehearsal'.timer -p LoadState --value)" = not-found
+systemd-run --unit='predator-pm-r-serial-q37-20261030-rehearsal' --on-calendar=@1793377288 --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot /run/current-system/sw/bin/true
+test "$(systemctl show 'predator-pm-r-serial-q37-20261030-rehearsal'.timer -p SubState --value)" = waiting
+systemctl cat 'predator-pm-r-serial-q37-20261030-rehearsal'.timer 'predator-pm-r-serial-q37-20261030-rehearsal'.service
+systemctl stop 'predator-pm-r-serial-q37-20261030-rehearsal'.timer
+test "$(systemctl show 'predator-pm-r-serial-q37-20261030-rehearsal'.timer -p ActiveState --value)" = inactive
+systemctl show 'predator-pm-r-serial-q37-20261030-rehearsal'.timer -p ActiveState -p SubState
+
+stderr:
+Running timer as unit: predator-pm-r-serial-q37-20261030-rehearsal.timer
+Will run service as unit: predator-pm-r-serial-q37-20261030-rehearsal.service

@@ -1,0 +1,4 @@
+trial=r-serial-q35-20261030
+epoch=1793361837
+issues=[]
+classification=requires_power_graph_and_boot_bound_review

@@ -1,0 +1,4 @@
+    PID    PPID COMMAND
+  83475   83474 journalctl -u predator-pm-serial-preparation-20261029-startup.service --since 2026-10-29 20:02:00 --follow --no-pager -o cat
+Stopped only the expired read-only startup journal follower and removed its spent acknowledgement guard. Trial observer timers remain intact.
+2026-10-29T20:12:07+01:00

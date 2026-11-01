@@ -1,0 +1,6 @@
+NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+No stale networkd online-state cache remains
+NTP: Starting Network Time Synchronization...
+NTP: Started Network Time Synchronization.
+NTP: Contacted time server 38.242.218.253:123 (0.nixos.pool.ntp.org).
+NTP: Initial clock synchronization to Sat 2026-10-31 09:35:17.088762 CET.

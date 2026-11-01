@@ -1,0 +1,48 @@
+2026-10-30T12:04:48+01:00
+  UNIT                                     LOAD   ACTIVE   SUB     DESCRIPTION
+  sys-devices-virtual-net-podman0.device   loaded active   plugged /sys/devices/virtual/net/podman0
+  sys-subsystem-net-devices-podman0.device loaded active   plugged /sys/subsystem/net/devices/podman0
+  var-lib-nextcloud-data.mount             loaded active   mounted /var/lib/nextcloud/data
+  healthchecks-ping@hermes-backup.service  loaded inactive dead    Ping healthchecks.io check hermes-backup
+  hermes-agent.service                     loaded active   running Hermes Agent Gateway
+  hermes-backend.service                   loaded active   running Hermes Agent web dashboard and desktop backend
+  hermes-backup.service                    loaded inactive dead    Back up Hermes runtime state to Tank
+  hermes-browser-control.service           loaded active   running Private browser viewer, on-demand startup and idle cleanup
+  hermes-network-isolation.service         loaded active   exited  Deny browser access to private networks and raw browser ports
+  hermes-secret-service.service            loaded active   running Unlocked personal Secret Service for Proton account tools
+  nextcloud-cron.service                   loaded inactive dead    nextcloud-cron.service
+  nextcloud-setup.service                  loaded inactive dead    nextcloud-setup.service
+  nextcloud-update-db.service              loaded inactive dead    nextcloud-update-db.service
+  nginx.service                            loaded active   running Nginx Web Server
+  phpfpm-nextcloud.service                 loaded active   running PHP FastCGI Process Manager service for pool nextcloud
+  podman-immich_ml.service                 loaded active   running podman-immich_ml.service
+  podman-immich_postgres.service           loaded active   running podman-immich_postgres.service
+  podman-immich_redis.service              loaded active   running podman-immich_redis.service
+  podman-immich_server.service             loaded active   running podman-immich_server.service
+  podman.service                           loaded active   running Podman API Service
+  postgresql-setup.service                 loaded active   exited  PostgreSQL Setup Scripts
+  postgresql.service                       loaded active   running PostgreSQL Server
+  redis-nextcloud.service                  loaded active   running Redis Server - redis-nextcloud
+  podman.socket                            loaded active   running Podman API Socket
+  postgresql.target                        loaded active   active  PostgreSQL
+  hermes-backup.timer                      loaded active   waiting hermes-backup.timer
+  nextcloud-cron.timer                     loaded active   waiting nextcloud-cron.timer
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+27 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+Id=docker.service
+LoadState=not-found
+ActiveState=inactive
+SubState=dead
+Id=hermes-gateway.service
+LoadState=not-found
+ActiveState=inactive
+SubState=dead
+Id=hermes-dashboard.service
+LoadState=not-found
+ActiveState=inactive
+SubState=dead

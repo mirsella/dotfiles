@@ -1,0 +1,16 @@
+2026-10-28T19:44:12+01:00
+raspberrypi
+active
+LAN SSH host-key probe (read-only):
+probe_status=1
+192.168.1.19 dev wlan0 FAILED 
+/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log bytes=1406956 mtime=2026-10-28 19:36:41.795245278 +0100
+/home/mirsella/dev/predator-pm-debug/.agents-local/preparation-20261028-1935-netconsole.log bytes=1406956 mtime=2026-10-28 19:44:15.208706386 +0100
+3de41999e8e80d4c9af66b31cdb26d71c17b483881650711145f8cbb60f46912  /home/mirsella/dev/predator-pm-debug/.agents-local/preparation-20261028-1935-netconsole.log
+NEXT LEFT LAST                         PASSED            UNIT                                                 ACTIVATES
+-    -    Sat 2026-10-17 18:00:00 CEST 1 week 4 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 1 day ago  predator-pm-r-async-h8-20261020-notice-start.timer   predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 2 days ago predator-pm-r-async-q30-20261018-notice-start.timer  predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 1 week 3 days ago predator-pm-r-serial-m15-20261017-notice-start.timer predator-pm-r-serial-m15-20261017-notice-start.service
+
+4 timers listed.

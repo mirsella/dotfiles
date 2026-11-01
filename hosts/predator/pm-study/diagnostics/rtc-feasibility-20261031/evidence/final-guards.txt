@@ -1,0 +1,8 @@
+2026-10-31T08:46:00+01:00
+ActiveState=inactive
+MainPID=0
+f8eb6e44-85ae-4e56-bc00-587876699945
+btime 1793381193
+51567.28 400337.31
+0-7
+final_guard_result=PASS_NO_NEW_PM_OPERATION

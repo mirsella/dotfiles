@@ -1,0 +1,10 @@
+
+running 5 tests
+test tests::complete_readback_and_budget ... ok
+test tests::independent_crc_known_vector ... ok
+test tests::rejects_corruption_truncation_wrong_identity ... ok
+test tests::dynamic_max_is_valid_but_original_audit_requires_explicit_review ... ok
+test tests::rejects_unsafe_or_unmeasurable_capacity ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

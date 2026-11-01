@@ -1,0 +1,13 @@
+# Core syscore clock interpretation
+
+At22:00, before the first core checkpoint, matching-version upstream Linux6.18.58 source showed that core testing executes `syscore_suspend()` and `syscore_resume()`, including timekeeping, but skips `suspend_ops->enter(state)`. Timekeeping resume can inject/account the elapsed five-second checkpoint and print `Timekeeping suspended for ... seconds` without firmware S3. The earlier blanket diagnostic rejection was too strict for core.
+
+Sources archived in `evidence/` were fetched from `https://raw.githubusercontent.com/gregkh/linux/v6.18.58/`: `kernel/power/suspend.c`, `kernel/time/timekeeping.c`, and `kernel/time/timekeeping_debug.c`. An initial guessed `kernel/time/debug.c` URL returned404; the correct file was located before interpretation. These are matching-version upstream references, not a claim that the running kernel tree was byte-compared. No kernel/configuration change was made.
+
+The pending d-core-01 timer was safely cancelled at22:01:10 before any requested artifact/cycle; original preparation retained. New diagnostic source preserves all ordinary S3 code and health/cleanup/deadline checks. It permits at most one finite4..10-second clock-accounting line only after an explicit core BEGIN and exact five-second checkpoint, before exit. Every low-level-resume message and unscoped/wrong-phase/duplicate/malformed clock line still fails. Streaming and final parsers agree, and independent collection checks the same evidence. This clock number is not physical sleep.
+
+Explicit pm-test-3 predecessor handoff is limited to completed processors ordinal7→core ordinal8. It pins the old gqgw… runtime and binary SHA256`f59969c30e72c455e9c574e273464760e82ba3f7965af29c48543884820f4a91`, the real completed SHA, and identical boot/system/kernel/modules. No old completion is edited or synthesized. Ordinal9 must use the same new runtime with ordinary pm-test-2 completed predecessor.
+
+New package `/nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0`; diagnostic binary SHA256`25d8e1e0530e68c2ca20b35b7c2181a6518b3775c5f5ffe703b2e3871256f750`, source SHA256`61143dbe75133ad76af9f57cd4962d652041237ef7ef558a2d52aca46bb55fd5`. All38 project tests, independent collector regression, Nix build and flake evaluation passed. Package imported administratively with matching local/remote hash; no activation/trust change. Root `.scratch/pm-core-timekeeping-check-20261030/runtime-root` on both machines supplements all older roots.
+
+Full source-before/source-after/diff, source references, tests/build/import/root/hash proofs, cancellation and one-step helper are in `evidence/`; disposable target/exported NAR stay in scratch. No reboot, WoL, firmware/TPM/storage or ordinary S3 baseline change.

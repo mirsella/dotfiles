@@ -1,0 +1,15 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-rehearsal'.timer -p LoadState --value)" = not-found
+systemd-run --unit='predator-pm-r-async-d1225-20261029-rehearsal' --on-calendar=@1793218300 --timer-property=AccuracySec=1s --timer-property=RandomizedDelaySec=0 --timer-property=Persistent=no --property=Type=oneshot /usr/bin/true
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-rehearsal'.timer -p SubState --value)" = waiting
+systemctl cat 'predator-pm-r-async-d1225-20261029-rehearsal'.timer 'predator-pm-r-async-d1225-20261029-rehearsal'.service
+systemctl stop 'predator-pm-r-async-d1225-20261029-rehearsal'.timer
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-rehearsal'.timer -p ActiveState --value)" = inactive
+systemctl show 'predator-pm-r-async-d1225-20261029-rehearsal'.timer -p ActiveState -p SubState
+
+stderr:
+Running timer as unit: predator-pm-r-async-d1225-20261029-rehearsal.timer
+Will run service as unit: predator-pm-r-async-d1225-20261029-rehearsal.service

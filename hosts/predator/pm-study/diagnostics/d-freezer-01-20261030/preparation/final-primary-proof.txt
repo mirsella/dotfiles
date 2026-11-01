@@ -1,0 +1,29 @@
+2026-10-30T18:58:39+01:00
+f8eb6e44-85ae-4e56-bc00-587876699945
+1926.76 14800.27
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 19:03:32 CET
+AccuracyUSec=1s
+RandomizedDelayUSec=0
+Persistent=no
+ActiveState=inactive
+TimeoutStartUSec=3min
+MainPID=0
+ExecStart={ path=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic ; argv[]=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-freezer-01-20261030-plan.conf 9f2e4cbe873f8f5c5a8ead91f707deafcda8d7d260228cec54c7a43e6590c874 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+ExecStopPost={ path=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic ; argv[]=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic restore /var/lib/predator-pm-diagnostic/d-freezer-01-20261030-plan.conf 9f2e4cbe873f8f5c5a8ead91f707deafcda8d7d260228cec54c7a43e6590c874 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/power/pm_async=1
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+No jobs running.
+NTPSynchronized=yes
+e41a77caf4e6aaa7d6290c7a9541f8ef5ef7fb1cfcdc7874098f8d5249028311  /home/mirsella/dev/dotfiles/hosts/predator/pm-study/README.md
+44918707bb5f093de02fec56eabb0727fdda16ecdee698d9add5c2c61dde19d7  /home/mirsella/dev/dotfiles/hosts/predator/pm-study/trials/r-serial-q37-20261030/README.md
+3b069bfb0e93775fdca3bc1d8560c024709397b6ecce430e22f90a8d1eb51a43  /home/mirsella/dev/dotfiles/pkgs/predator-pm-study/Cargo.toml
+dc626ff76f258e1dd36f5f0bef4285ee0951482b135dccccf0333ca8bb779d86  /home/mirsella/dev/dotfiles/pkgs/predator-pm-study/trial.rs

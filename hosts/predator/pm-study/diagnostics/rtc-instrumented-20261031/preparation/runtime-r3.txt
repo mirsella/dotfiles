@@ -1,0 +1,8 @@
+runtime=/nix/store/jzmh15h5pf69b7xcz6g61xm2584f4ybp-predator-pm-study-0.1.0/bin/predator-pm-instrumented
+binary_sha256=31b46685045189ce6f8e73df2aaafb7944d86a5ff6c3d3f3782aaab4f58655a1
+source_sha256=947f45892c8c052553938d4df5e7dbfb36db83d367e7ffde76e14db4156dea87
+manifest=rtc-cal-core-r3-20261031
+preflight=passed-2026-10-31T09:25:32+0100
+runtime_transition=separate-instrumentation-protocol-after-nine-original-diagnostics
+original_diagnostic_runner_unchanged=true
+full_pass_requires_dated_power_graph=true

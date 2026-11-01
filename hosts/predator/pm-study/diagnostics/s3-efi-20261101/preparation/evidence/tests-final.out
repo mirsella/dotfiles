@@ -1,0 +1,11 @@
+
+running 6 tests
+test tests::clock_layout ... ok
+test tests::cleanup_never_crosses_active_sleep ... ok
+test boundary_record::tests::bounded_storage_and_complete_sequence ... ok
+test tests::manifest_rejects_replay_and_unreviewed_second_cycle ... ok
+test boundary_record::tests::keeps_four_domains_and_distinguishes_control ... ok
+test boundary_record::tests::crc_and_record_integrity ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

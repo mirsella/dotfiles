@@ -1,0 +1,18 @@
+2026-10-28T21:04:03+01:00
+b223cb35-a02b-4417-a3db-569ad986cd4b
+a2fb0df21a5e800da11d4e80763bc7d18686fab9fa78278f8144c4c68b63f1da  /var/lib/predator-pm-study/r-async-d1225-20261029-plan.conf
+ActiveState=active
+SubState=waiting
+TimersCalendar={ OnCalendar=2026-10-29 08:21:02 UTC ; next_elapse=Thu 2026-10-29 09:21:02 CET }
+NextElapseUSecRealtime=Thu 2026-10-29 09:21:02 CET
+ActiveState=inactive
+SubState=dead
+NEXT                        LEFT LAST PASSED UNIT                                     ACTIVATES
+Thu 2026-10-29 09:21:02 CET  12h -         - predator-pm-r-async-d1225-20261029.timer predator-pm-r-async-d1225-20261029.service
+-                              - -         - night-suspend.timer                      night-suspend.service
+-                              - -         - predator-pm-next.timer                   predator-pm-next.service
+
+3 timers listed.
+0
+0
+N

@@ -1,0 +1,9 @@
+# Second platform checkpoint
+
+**DIAGNOSTIC_RETURN_VERIFIED**, completed21:23:49 CET, epoch1793391829. Due21:23:32 October30, epoch1793391812, platform/ordinal5 on boot`f8eb6e44-85ae-4e56-bc00-587876699945`, btime1793381192, planned age10620seconds. Same frozen system/kernel/modules and gqgwph5fdwycdl019dl2gwg6x32mvhan diagnostic runtime. Completed predecessor d-platform-01-20261030 SHA256`0c5f6a3ef042e00ba0b5464ba249f86625389120f8a77004fb8a65763cb0697a`.
+
+Strict pm-test-2 manifest SHA256`6ccb9f0f9f181058518acca38f230230513686fbf978ac2c18aa911d4f57c5f6`; serial0/trace0/recorderoff/deep/delay5/TPMinitialized/rawECnot-run/inhibitors/window18–23. Pinned health/identity/actual cron checks passed. Typeexec/runtime180/start-stop30/safe restore, nonpersistent accuracy1s/random0. Only this phase pending. Pi probe21:25:32, snapshot21:27:32, bounded review event21:28:32, no reboot/WoL. Require genuine current cycle, cumulative counters5/0, complete matching artifacts/full health before processors ordinal6. No actual S3 or ordinary completion is implied.
+
+Review21:28 validated4249 exact-boot records, five cumulative cycles/one current platform cycle, no real-S3 resume/duration, successful request/return/operation/cleanup/reader teardowns and full post-health. Network readiness2686ms; current counters5/0, normal modes/markers, no jobs/failed units, expected LAN/DNS and healthy services/storage/NTP. Ordinary last-completed unchanged. Completed SHA256`f03c23f02ce324974dbfe0c7f2a69ef7ce9ef3fbb1dafc76a1c9ba6cbcfeca61`.
+
+Pi probe21:25:33.073198 and snapshot21:27:32.570506 succeeded; full **2,581,303bytes**, SHA256`5c4b2130797203aa1d2a08a76509a1a6f06658ec4d62741ff5919ffa3676eb9a`. Review event21:28:32.553718 received; follower PID103676 reaped21:28:33. Evidence review-20261030-2128. Both platform repeats returned, permitting the next CPU-offline checkpoint, not proving absence of intermittent faults.

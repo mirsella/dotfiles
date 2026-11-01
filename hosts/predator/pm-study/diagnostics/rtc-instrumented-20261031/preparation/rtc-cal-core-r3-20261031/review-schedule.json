@@ -1,0 +1,11 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-rtc-core-review-20261031-0941",
+  "title": "Predator RTC core calibration review and one guarded S3 trial — October 31 09:41",
+  "enabled": true,
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "schedule": {"type": "fixed_time", "timeOfDay": "09:41"},
+  "nextRunAt": "2026-10-31T08:41:00.000Z",
+  "dateGuard": "2026-10-31",
+  "deleteExactTaskAtStart": true,
+  "continuation": "Independently review calibration; if fully verified, arm exactly one separately manifested and reviewed S3 attempt using Pi WoL and dated power proof. Target 09:50 only with full guards and >300s lead."
+}

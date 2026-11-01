@@ -1,0 +1,42 @@
+2026-10-30T19:14:18+01:00
+f8eb6e44-85ae-4e56-bc00-587876699945
+2865.46 22097.01
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 19:23:32 CET
+AccuracyUSec=1s
+Persistent=no
+ActiveState=inactive
+Type=exec
+TimeoutStartUSec=30s
+TimeoutStopUSec=30s
+RuntimeMaxUSec=3min
+MainPID=0
+ExecStart={ path=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic ; argv[]=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-plan.conf 91e1616b734ee77a0077bccd130cecfe5621dfa0fba8b2326207e1064a8f4484 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+ExecStopPost={ path=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic ; argv[]=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic restore /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-plan.conf 91e1616b734ee77a0077bccd130cecfe5621dfa0fba8b2326207e1064a8f4484 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/power/pm_async=1
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+No jobs running.
+NTPSynchronized=yes
+NEXT                            LEFT LAST                              PASSED UNIT                                               ACTIVATES
+Fri 2026-10-30 19:16:38 CET 2min 19s Fri 2026-10-30 19:11:38 CET 2min 40s ago nextcloud-cron.timer                               nextcloud-cron.service
+Fri 2026-10-30 19:23:32 CET     9min -                                      - predator-pm-diagnostic-d-freezer-02-20261030.timer predator-pm-diagnostic-d-freezer-02-20261030.service
+-                                  - -                                      - night-suspend.timer                                night-suspend.service
+-                                  - -                                      - predator-pm-next.timer                             predator-pm-next.service
+
+4 timers listed.
+2026-10-30T19:11:38.094268+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T19:11:38.537280+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T19:11:39.486795+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+280573317fc03a7338ca233c367593ff2fac0163eb8cfe70fabc375f4648fd08  /var/lib/predator-pm-study/last-completed.txt
+91e1616b734ee77a0077bccd130cecfe5621dfa0fba8b2326207e1064a8f4484  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-plan.conf
+a23145e71b294e49dbb663e653d4c8f8f1f33fd59151c7dcf8619be49d04546b  /home/mirsella/dev/dotfiles/hosts/predator/pm-study/README.md
+2a07dfa2e0eac0af78587285c6ff383293e2caab25b181a385789e44316c55e1  /home/mirsella/dev/dotfiles/hosts/predator/pm-study/diagnostics/README.md
+bb419fe36c1fc143a16b1c2f35eab68adc5aa34101676e9d7a4127e37e2fadba  /home/mirsella/dev/dotfiles/hosts/predator/pm-study/diagnostics/d-freezer-01-20261030/README.md

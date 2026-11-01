@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-01",
+  "timezone": "Europe/Paris",
+  "status": "BLOCKED_BEFORE_S3_DURABLE_CAPTURE_UNVALIDATED",
+  "ownerAvailableForRecovery": true,
+  "awakeProbe": {
+    "nonce": "awake-20261101-a",
+    "loadAttempts": 1,
+    "loadResult": "ENOSPC_CONSERVATIVE_CAPACITY_GUARD",
+    "requiredFreeBytes": 65536,
+    "firmwareReportedFreeBytes": 7498,
+    "kernelReservedBytes": 5120,
+    "usableBytes": 2378,
+    "variableWriteAttempts": 0,
+    "privateVariableCreated": false,
+    "moduleLeftLoaded": false,
+    "resetRetentionVerified": false,
+    "suspendedContextVerified": false
+  },
+  "normalReboot": {
+    "authorization": "Owner selected Reboot once",
+    "requests": 1,
+    "requestedEpoch": 1793530730,
+    "oldBoot": "f9b45aa6-b820-4ab5-b18c-9324d8d53087",
+    "oldBootSuspendSuccess": 2,
+    "oldBootSuspendFail": 0,
+    "newBoot": "bf51c3ac-164e-4bfa-b56c-7b71df526b7f",
+    "newBtime": 1793530757,
+    "sameSystemKernelModules": true,
+    "newBootSuspendSuccess": 0,
+    "newBootSuspendFail": 0,
+    "fullHealthAndSecurityPassed": true,
+    "usableEfiBytesAfter": 2378,
+    "capacityReclaimed": false
+  },
+  "newSuspendTransitions": 0,
+  "newWolSends": 0,
+  "s3TrialArmed": false,
+  "alternativeKernelTested": false,
+  "powerWorkflowScheduled": false,
+  "originalS3HangCauseProven": false
+}

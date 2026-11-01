@@ -1,0 +1,5 @@
+operation=Ok(0.00012100000003556488)
+reader_stop=Ok(())
+reader_reap=Ok(ExitStatus(unix_wait_status(9)))
+reader_joined=true
+pre_restore_epoch=1793444874

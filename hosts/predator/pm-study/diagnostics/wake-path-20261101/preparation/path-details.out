@@ -1,0 +1,151 @@
+2026-11-01T08:38:06,854539541+01:00
+bios_date=11/02/2018
+bios_vendor=Insyde Corp.
+bios_version=V1.21
+product_name=Predator PH317-51
+
+DEVICE 0000:03:00.0
+d3cold_allowed=1
+power_state=D0
+power/wakeup=disabled
+power/control=auto
+power/runtime_status=active
+firmware_node=/sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:40/device:41
+path=\_SB_.PCI0.RP04.PXSX
+power_state=ABSENT
+real_power_state=ABSENT
+power/wakeup=ABSENT
+
+DEVICE 0000:03:00.1
+d3cold_allowed=1
+power_state=D0
+power/wakeup=enabled
+power/control=on
+power/runtime_status=active
+
+DEVICE 0000:00:1c.3
+d3cold_allowed=1
+power_state=D0
+power/wakeup=enabled
+power/control=auto
+power/runtime_status=active
+firmware_node=/sys/devices/LNXSYSTM:00/LNXSYBUS:00/PNP0A08:00/device:40
+path=\_SB_.PCI0.RP04
+power_state=ABSENT
+real_power_state=ABSENT
+power/wakeup=ABSENT
+
+PCIe services
+0000:00:01.0:pcie010 -> ../../../devices/pci0000:00/0000:00:01.0/0000:00:01.0:pcie010
+0000:00:1c.3:pcie010 -> ../../../devices/pci0000:00/0000:00:1c.3/0000:00:1c.3:pcie010
+0000:00:1c.0:pcie010 -> ../../../devices/pci0000:00/0000:00:1c.0/0000:00:1c.0:pcie010
+
+Dynamic debug selected original lines
+drivers/pci/pci.c:2513 [pci]pci_pme_active =_ "PME# %s\n"
+drivers/pci/pci-driver.c:923 [pci_driver]pci_pm_suspend_noirq =_ "PCI PM: Suspend power state: %s\n"
+drivers/pci/pci-driver.c:938 [pci_driver]pci_pm_suspend_noirq =_ "PCI PM: Skipped\n"
+drivers/acpi/device_pm.c:956 [acpi]acpi_pm_set_device_wakeup =_ "ACPI companion missing in %s!\n"
+drivers/acpi/device_pm.c:965 [acpi]acpi_pm_set_device_wakeup =_ "Wakeup disabled by ACPI\n"
+drivers/acpi/device_pm.c:971 [acpi]acpi_pm_set_device_wakeup =_ "Wakeup enabled by ACPI\n"
+
+Boot PCI firmware negotiation
+efi: ACPI 2.0=0x7aefd014 SMBIOS=0x79f9a000 SMBIOS 3.0=0x79f98000 ESRT=0x79f967d8 MEMATTR=0x6a4ec018 RNG=0x7aeaaf98 INITRD=0x639f96d8 TPMEventLog=0x7aea1018 
+acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI HPX-Type3]
+acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug PME]
+acpi PNP0A08:00: _OSC: OS now controls [AER PCIeCapability LTR]
+pci 0000:00:01.0: PME# supported from D0 D3hot D3cold
+pci 0000:00:14.0: PME# supported from D3hot D3cold
+pci 0000:00:16.0: PME# supported from D3hot
+pci 0000:00:17.0: PME# supported from D3hot
+pci 0000:00:1c.0: PME# supported from D0 D3hot D3cold
+pci 0000:00:1c.3: [8086:a113] type 01 class 0x060400 PCIe Root Port
+pci 0000:00:1c.3: PCI bridge to [bus 03]
+pci 0000:00:1c.3:   bridge window [io  0x3000-0x3fff]
+pci 0000:00:1c.3:   bridge window [mem 0xa4400000-0xa44fffff]
+pci 0000:00:1c.3: PME# supported from D0 D3hot D3cold
+pci 0000:00:1f.3: PME# supported from D3hot D3cold
+pci 0000:02:00.0: PME# supported from D0 D3hot D3cold
+pci 0000:03:00.0: [10ec:5287] type 00 class 0xff0000 PCIe Endpoint
+pci 0000:03:00.0: BAR 0 [mem 0xa4405000-0xa4405fff]
+pci 0000:03:00.0: ROM [mem 0xffff0000-0xffffffff pref]
+pci 0000:03:00.0: supports D1 D2
+pci 0000:03:00.0: PME# supported from D1 D2 D3hot D3cold
+pci 0000:03:00.1: [10ec:8168] type 00 class 0x020000 PCIe Endpoint
+pci 0000:03:00.1: BAR 0 [io  0x3000-0x30ff]
+pci 0000:03:00.1: BAR 2 [mem 0xa4404000-0xa4404fff 64bit]
+pci 0000:03:00.1: BAR 4 [mem 0xa4400000-0xa4403fff 64bit]
+pci 0000:03:00.1: supports D1 D2
+pci 0000:03:00.1: PME# supported from D0 D1 D2 D3hot D3cold
+pci 0000:00:1c.3: PCI bridge to [bus 03]
+pci 0000:03:00.0: ROM [mem 0xffff0000-0xffffffff pref]: can't claim; no compatible bridge window
+pci 0000:03:00.0: ROM [mem 0xa4410000-0xa441ffff pref]: assigned
+pci 0000:00:1c.3: PCI bridge to [bus 03]
+pci 0000:00:1c.3:   bridge window [io  0x3000-0x3fff]
+pci 0000:00:1c.3:   bridge window [mem 0xa4400000-0xa44fffff]
+pci 0000:01:00.1: extending delay after power-on from D3hot to 20 msec
+r8169 0000:03:00.1: can't disable ASPM; OS doesn't have ASPM control
+r8169 0000:03:00.1 eth0: RTL8411b, 98:29:a6:3a:a7:50, XID 5c8, IRQ 132
+r8169 0000:03:00.1 eth0: jumbo features [frames: 9194 bytes, tx checksumming: ko]
+r8169 0000:03:00.1 enp3s0f1: renamed from eth0
+Generic FE-GE Realtek PHY r8169-0-301:00: attached PHY driver (mii_bus:phy_addr=r8169-0-301:00, irq=MAC)
+r8169 0000:03:00.1 enp3s0f1: Link is Down
+r8169 0000:03:00.1 enp3s0f1: Link is Up - 1Gbps/Full - flow control rx/tx
+Generic FE-GE Realtek PHY r8169-0-301:00: PM: calling mdio_bus_phy_suspend [libphy] @ 50180, parent: r8169-0-301
+Generic FE-GE Realtek PHY r8169-0-301:00: PM: mdio_bus_phy_suspend [libphy] returned 0 after 0 usecs
+rtsx_pci_sdmmc rtsx_pci_sdmmc.0: PM: calling platform_pm_suspend @ 50180, parent: 0000:03:00.0
+r8169 0000:03:00.1: PM: calling pci_pm_suspend @ 50180, parent: 0000:00:1c.3
+r8169 0000:03:00.1 enp3s0f1: Link is Down
+r8169 0000:03:00.1: PM: pci_pm_suspend returned 0 after 6325 usecs
+rtsx_pci 0000:03:00.0: PM: calling pci_pm_suspend @ 50180, parent: 0000:00:1c.3
+rtsx_pci 0000:03:00.0: PM: pci_pm_suspend returned 0 after 10 usecs
+pcieport 0000:00:1c.3: PM: calling pci_pm_suspend @ 50180, parent: pci0000:00
+pcieport 0000:00:1c.3: PM: pci_pm_suspend returned 0 after 12 usecs
+r8169 0000:03:00.1: PM: calling pci_pm_suspend_late @ 50180, parent: 0000:00:1c.3
+r8169 0000:03:00.1: PM: pci_pm_suspend_late returned 0 after 0 usecs
+rtsx_pci 0000:03:00.0: PM: calling pci_pm_suspend_late @ 50180, parent: 0000:00:1c.3
+rtsx_pci 0000:03:00.0: PM: pci_pm_suspend_late returned 0 after 0 usecs
+pcieport 0000:00:1c.3: PM: calling pci_pm_suspend_late @ 50180, parent: pci0000:00
+pcieport 0000:00:1c.3: PM: pci_pm_suspend_late returned 0 after 0 usecs
+r8169 0000:03:00.1: PM: calling pci_pm_suspend_noirq @ 50180, parent: 0000:00:1c.3
+r8169 0000:03:00.1: PM: pci_pm_suspend_noirq returned 0 after 12601 usecs
+rtsx_pci 0000:03:00.0: PM: calling pci_pm_suspend_noirq @ 50180, parent: 0000:00:1c.3
+rtsx_pci 0000:03:00.0: PM: pci_pm_suspend_noirq returned 0 after 12620 usecs
+pcieport 0000:00:1c.3: PM: calling pci_pm_suspend_noirq @ 50180, parent: pci0000:00
+pcieport 0000:00:1c.3: PM: pci_pm_suspend_noirq returned 0 after 12633 usecs
+pcieport 0000:00:1c.3: PM: calling pci_pm_resume_noirq @ 50180, parent: pci0000:00
+pcieport 0000:00:1c.3: PM: pci_pm_resume_noirq returned 0 after 12712 usecs
+rtsx_pci 0000:03:00.0: PM: calling pci_pm_resume_noirq @ 50180, parent: 0000:00:1c.3
+rtsx_pci 0000:03:00.0: PM: pci_pm_resume_noirq returned 0 after 12691 usecs
+r8169 0000:03:00.1: PM: calling pci_pm_resume_noirq @ 50180, parent: 0000:00:1c.3
+r8169 0000:03:00.1: PM: pci_pm_resume_noirq returned 0 after 12661 usecs
+pcieport 0000:00:1c.3: PM: calling pci_pm_resume_early @ 50180, parent: pci0000:00
+pcieport 0000:00:1c.3: PM: pci_pm_resume_early returned 0 after 0 usecs
+rtsx_pci 0000:03:00.0: PM: calling pci_pm_resume_early @ 50180, parent: 0000:00:1c.3
+rtsx_pci 0000:03:00.0: PM: pci_pm_resume_early returned 0 after 0 usecs
+r8169 0000:03:00.1: PM: calling pci_pm_resume_early @ 50180, parent: 0000:00:1c.3
+r8169 0000:03:00.1: PM: pci_pm_resume_early returned 0 after 0 usecs
+pcieport 0000:00:1c.3: PM: calling pci_pm_resume @ 50180, parent: pci0000:00
+pcieport 0000:00:1c.3: PM: pci_pm_resume returned 0 after 41 usecs
+rtsx_pci 0000:03:00.0: PM: calling pci_pm_resume @ 50180, parent: 0000:00:1c.3
+rtsx_pci 0000:03:00.0: PM: pci_pm_resume returned 0 after 10270 usecs
+r8169 0000:03:00.1: PM: calling pci_pm_resume @ 50180, parent: 0000:00:1c.3
+r8169 0000:03:00.1: PM: pci_pm_resume returned 0 after 160217 usecs
+r8169 0000:03:00.1 enp3s0f1: Link is Down
+rtsx_pci_sdmmc rtsx_pci_sdmmc.0: PM: calling platform_pm_resume @ 50180, parent: 0000:03:00.0
+Generic FE-GE Realtek PHY r8169-0-301:00: PM: calling mdio_bus_phy_resume [libphy] @ 50180, parent: r8169-0-301
+Generic FE-GE Realtek PHY r8169-0-301:00: PM: mdio_bus_phy_resume [libphy] returned 0 after 0 usecs
+Generic FE-GE Realtek PHY r8169-0-301:00: attached PHY driver (mii_bus:phy_addr=r8169-0-301:00, irq=MAC)
+r8169 0000:03:00.1 enp3s0f1: Link is Down
+r8169 0000:03:00.1 enp3s0f1: Link is Up - 1Gbps/Full - flow control rx/tx
+
+EEE
+EEE settings for enp3s0f1:
+	EEE status: enabled - active
+	Tx LPI: 0 (us)
+	Supported EEE link modes:  100baseT/Full
+	                           1000baseT/Full
+	Advertised EEE link modes:  100baseT/Full
+	                            1000baseT/Full
+	Link partner advertised EEE link modes:  100baseT/Full
+	                                         1000baseT/Full
+2026-11-01T08:38:07,054403142+01:00

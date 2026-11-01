@@ -1,0 +1,3 @@
+2026-10-31T22:15:11.027308+01:00 predator systemd-logind[1551]: suspend requested from client PID 50176 ('busctl') (unit predator-pm-wake-wake-20261031.service)...
+2026-10-31T22:15:11.032063+01:00 predator systemd-logind[1551]: The system will suspend now!
+2026-10-31T22:35:03.610654+01:00 predator systemd-logind[1551]: Operation 'suspend' finished.

@@ -1,0 +1,2 @@
+.scratch/pm-s3-rtc-20261101/operator.rs: OK
+.scratch/pm-s3-rtc-20261101/operator: OK

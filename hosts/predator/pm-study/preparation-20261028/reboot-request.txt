@@ -1,0 +1,2 @@
+2026-10-28T19:36:29+01:00
+RESET_METHOD=ordinary systemctl reboot; healthy idle server, zero prior suspends; no power cycle

@@ -1,0 +1,35 @@
+2026-10-30T20:03:56+01:00
+/home/mirsella/dev/dotfiles/.scratch/pm-diagnostic-readiness-20261030/runtime-root
+DIAG REVALIDATED id=d-freezer-02-20261030 original_return_epoch=1793384619 original_completion=absent real_s3=false
+result=DIAGNOSTIC_RETURN_REVALIDATED
+id=d-freezer-02-20261030
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+kernel=/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+modules=/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+runtime=/nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic
+level=freezer
+ordinal=1
+validated_epoch=1793387037
+original_return_epoch=1793384619
+original_manifest_sha=91e1616b734ee77a0077bccd130cecfe5621dfa0fba8b2326207e1064a8f4484
+original_runtime=/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic
+original_runtime_sha=f1a3981959b6ea5eae30fa1e668b62cb15c7c21620529bfd3e777b59c68944d9
+original_completion=absent
+original_failure=LAN profile changed
+real_s3=false
+physical_sleep_seconds=not-applicable
+original_requested_sha=2db6f800c48963e4b704c8cddc7d0815fb6058f48c56d352bcff0c598205db49
+original_before_sha=d553fac9f6b8a7fc229fd553e9756ac3985956b2ba16f67eb2f26e291ee7a1fd
+original_before-kernel_sha=8c1697ad61be8185bc02455a679da50f94c8f8fb8e3d4895721e2635ffa82544
+original_cursor_sha=55e6ec65d225ffecf9550e7bedc588cb53b044a5b380b710ff98d994371ed45c
+original_observed-journal_sha=65aa135f2cfe48cbc2d182833e5353d842e45e8f13c407c17bd0a18bfaf5566d
+original_return_sha=070da2b7b41bb3710b066bd006cc1ebed80b379cef7ed7b14e26304cdce0d5d5
+original_outcome_sha=52125d1722d78cb519292008895f3074d6794209524139263fbf0ffab63bf3c2
+original_after-kernel_sha=6fe6c20a0224cd98858c0a607a14ca5f41c4a21f3618037c2b62af6076532ff6
+8ad223af8553390f307e19a84aa2b9f825fc9f0fb5d1a9d567d515696dd32e2c  /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-revalidated.txt
+280573317fc03a7338ca233c367593ff2fac0163eb8cfe70fabc375f4648fd08  /var/lib/predator-pm-study/last-completed.txt
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+No jobs running.

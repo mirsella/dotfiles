@@ -1,0 +1,1 @@
+.scratch/pm-efi-compact-20261101/pm-study-preimage.nix: OK

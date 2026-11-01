@@ -1,0 +1,118 @@
+
+running 2 tests
+test notifications::tests::unit_arguments_preserve_literal_expansions_and_quotes ... ok
+test tests::quoting_preserves_literal_shell_metacharacters ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 14 tests
+test tests::cleanup_cannot_enable_real_s3_while_sleep_is_active_or_queued ... ok
+test tests::channel_loss_and_unexpected_sleep_are_explicit_errors ... ok
+test tests::diagnostic_history_rejects_real_sleep_and_incomplete_or_misordered_cycles ... ok
+test tests::network_readiness_waits_for_connection_and_dns_but_rejects_wrong_profile ... ok
+test tests::core_clock_accounting_is_not_physical_sleep_and_is_strictly_scoped ... ok
+test tests::explicit_diagnostic_schema_cannot_select_real_suspend_or_skip_first_phase ... ok
+test tests::core_runtime_handoff_is_explicit_and_only_accepts_the_verified_processors_boundary ... ok
+test tests::explicit_revalidated_predecessor_does_not_impersonate_original_completion ... ok
+test tests::revalidation_requires_genuine_original_return_cleanup_and_bounded_time ... ok
+test tests::waits_for_late_kernel_exit_after_service_finished ... ok
+test tests::rejects_invalid_windows_and_predecessor_paths ... ok
+test tests::readiness_deadline_preserves_unready_state_and_never_accepts_wrong_uuid ... ok
+test tests::readiness_events_and_final_snapshot_cover_reconnection_and_missed_events ... ok
+test tests::timeout_preserves_partial_capture_without_accepting_kernel_exit_alone ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 8 tests
+test tests::calibration_never_counts_as_real_sleep ... ok
+test tests::cleanup_never_crosses_an_active_sleep_job ... ok
+test tests::timex_abi_matches_linux_x86_64 ... ok
+test tests::receiver_waits_for_late_kernel_exit_after_service_finish ... ok
+test tests::no_duplicate_or_missing_history ... ok
+test tests::real_return_requires_ordered_lowlevel_and_no_debug_checkpoint ... ok
+test tests::retained_rtc_requires_actual_calendar_and_new_marker ... ok
+test tests::manifests_require_explicit_history_modes_and_external_proof ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 9 tests
+test tests::active_or_queued_sleep_prevents_cleanup ... ok
+test tests::early_and_late_return_are_never_planned_interval_success ... ok
+test tests::fresh_history_never_relabels_previous_cycles ... ok
+test tests::delayed_kernel_exit_is_not_a_false_failure ... ok
+test tests::overrides_cannot_silently_select_deep ... ok
+test tests::rtc_marker_is_s2idle_not_s3 ... ok
+test tests::timex_abi ... ok
+test tests::requires_s2idle_loop_and_ordered_return ... ok
+test tests::strict_new_boot_protocol ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 26 tests
+test automatic::tests::automatic_schedule_preserves_age_and_leaves_setup_time ... ok
+test automatic::tests::automatic_plan_requires_exact_arm_age_and_boot ... ok
+test network::tests::activating_profile_is_not_ready_even_with_address_and_dns ... ok
+test network::tests::activation_event_and_missed_subscription_are_both_handled ... ok
+test network::tests::rejects_wrong_profile_failed_state_and_wrong_routes ... ok
+test network::tests::deadline_or_wrong_final_profile_cannot_pass ... ok
+test tests::allowing_logins_still_enforces_logind_inhibitors ... ok
+test tests::cursor_selection_excludes_prior_return_text_and_rejects_ambiguity ... ok
+test tests::ambiguous_or_incomplete_root_queries_refuse_password_handoff ... ok
+test tests::logged_in_users_require_explicit_unambiguous_permission ... ok
+test tests::ec_arm_requires_one_completed_initial_boot_execution ... ok
+test tests::password_handoff_selects_root_and_not_other_volumes ... ok
+test tests::recorder_mode_is_explicit_and_legacy_plans_keep_rtc ... ok
+test tests::repeated_cycles_require_every_new_resume_and_exit ... ok
+test tests::return_verification_distinguishes_disabled_and_completed_recording ... ok
+test tests::sleep_interval_accepts_explicit_ten_fifteen_and_legacy_thirty_minutes ... ok
+test tests::tpm_arm_is_explicit_and_never_accepts_unknown_or_duplicate_values ... ok
+test trial::tests::kernel_follow_rejects_misordered_exit ... ok
+test trial::tests::age_guard_distinguishes_prepare_from_entry_and_rejects_missed_windows ... ok
+test trial::tests::later_kernel_exit_completes_the_preserved_early_snapshot ... ok
+test trial::tests::measured_sleep_must_meet_minimum_on_the_current_cycle ... ok
+test trial::tests::previous_cycle_cannot_satisfy_repeat_or_closed_journal ... ok
+test trial::tests::pm_setting_is_restored_after_failure ... ok
+test trial::tests::repeat_suspend_ordinal_two_is_explicit_and_bounded ... ok
+test trial::tests::strict_manifest_rejects_silent_defaults_and_conflicting_modes ... ok
+test trial::tests::missing_kernel_exit_times_out_and_preserves_partial_evidence ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 13 tests
+test tests::active_or_queued_sleep_prevents_cleanup ... ok
+test tests::early_and_late_return_are_never_planned_interval_success ... ok
+test tests::only_owned_alarm_can_be_removed ... ok
+test tests::overrides_cannot_silently_select_deep ... ok
+test tests::actual_suspend_state_and_arming_are_required ... ok
+test tests::timex_abi ... ok
+test tests::pinned_debug_sites_refuse_missing_foreign_or_enabled_baselines ... ok
+test tests::cumulative_history_requires_exact_reviewed_cycle ... ok
+test wake_timing::tests::source_is_never_receipt_and_timekeeping_is_allowed ... ok
+test wake_timing::tests::missing_source_is_not_silently_substituted ... ok
+test wake_timing::tests::rejects_wrong_boot_deep_duplicate_and_fake_service ... ok
+test wake_timing::tests::waits_for_late_kernel_exit ... ok
+test tests::strict_reviewed_boot_single_variable_protocol ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 11 tests
+test tests::active_or_queued_sleep_prevents_cleanup ... ok
+test tests::early_and_late_return_are_never_planned_interval_success ... ok
+test tests::only_owned_alarm_can_be_removed ... ok
+test tests::fresh_history_never_relabels_previous_cycles ... ok
+test tests::timex_abi ... ok
+test tests::overrides_cannot_silently_select_deep ... ok
+test wake_timing::tests::missing_source_is_not_silently_substituted ... ok
+test wake_timing::tests::source_is_never_receipt_and_timekeeping_is_allowed ... ok
+test wake_timing::tests::waits_for_late_kernel_exit ... ok
+test wake_timing::tests::rejects_wrong_boot_deep_duplicate_and_fake_service ... ok
+test tests::strict_new_boot_protocol ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,15 @@
+conditional_phase=acpi_suspend_start
+action=10
+value=3
+start=true
+encoded_rtc=2099-07-02T00:00:00Z
+early_observed_rtc=2099-07-02T00:59:40Z
+rtc_elapsed_seconds=3580
+candidate_count_within_2h=1
+candidate_count_within_24h=1
+naive_magic=11:598:960
+assumptions=device_hash_0,continuous_rtc,no_intervening_firmware_or_clock_rewrite
+physical_sleep_duration=unknown
+low_level_return_marker=not_retained
+culprit=not_identified
+full_pass=false

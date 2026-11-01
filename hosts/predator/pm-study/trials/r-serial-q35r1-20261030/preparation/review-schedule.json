@@ -1,0 +1,11 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-serial-q35r1-review-20261030-1439",
+  "title": "Predator corrected serial Q35 review 2026-10-30 14:39 CET",
+  "enabled": true,
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "schedule": {"type": "fixed_time", "timeOfDay": "14:39", "weekdays": [5]},
+  "nextRunAt": "2026-10-30T13:39:00.000Z",
+  "dateGuard": "2026-10-30 Europe/Paris, 14:39 <= time < 23:00",
+  "selfDeleteAtStart": true,
+  "scope": "Collect, classify, preserve and notify; no automatic next suspend or recovery."
+}

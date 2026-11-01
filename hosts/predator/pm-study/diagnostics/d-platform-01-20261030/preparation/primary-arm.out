@@ -1,0 +1,40 @@
+2026-10-30T20:58:18+01:00
+DIAG READY id=d-platform-01-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=platform ordinal=4 due=1793390912 planned_age=9720 real_s3=false
+# /run/systemd/transient/predator-pm-diagnostic-d-platform-01-20261030.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-platform-01-20261030-plan.conf a11f6c641261914f0217777e3b95320c941b02c2efa57d42498b663ed9a67397
+
+[Timer]
+OnCalendar=@1793390912
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-diagnostic-d-platform-01-20261030.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-platform-01-20261030-plan.conf a11f6c641261914f0217777e3b95320c941b02c2efa57d42498b663ed9a67397
+
+[Service]
+Type=exec
+TimeoutStartSec=30s
+RuntimeMaxSec=3min
+TimeoutStopSec=30s
+ExecStopPost=
+ExecStopPost="/nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic" "restore" "/var/lib/predator-pm-diagnostic/d-platform-01-20261030-plan.conf" "a11f6c641261914f0217777e3b95320c941b02c2efa57d42498b663ed9a67397"
+Environment="PATH=/run/current-system/sw/bin"
+ExecStart=
+ExecStart="/nix/store/gqgwph5fdwycdl019dl2gwg6x32mvhan-predator-pm-study-0.1.0/bin/predator-pm-diagnostic" "run" "/var/lib/predator-pm-diagnostic/d-platform-01-20261030-plan.conf" "a11f6c641261914f0217777e3b95320c941b02c2efa57d42498b663ed9a67397"
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 21:08:32 CET
+ActiveState=inactive
+Type=exec
+RuntimeMaxUSec=3min
+MainPID=0
+3
+0
+[none] core processors platform devices freezer
+1

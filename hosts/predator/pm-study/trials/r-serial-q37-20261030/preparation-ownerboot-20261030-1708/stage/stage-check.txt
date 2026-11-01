@@ -1,0 +1,3 @@
+CAPTURE CHECK boot=614a8318-dc72-4308-ae89-d4680fafac4e active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793376687
+PREFLIGHT boot=614a8318-dc72-4308-ae89-d4680fafac4e uptime=248.87 1754.58 awake_since_verified_return=248s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+TRIAL READY id=r-serial-q37-20261030 profile=Q pm_async=0 due=1793378658 wake=1793379618 manifest=65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a

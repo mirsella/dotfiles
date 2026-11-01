@@ -1,0 +1,18 @@
+Owner report: "predator was at 30w, so weird not the hanged amount. its now rebooted. check what happened."
+This is an approximately30W observation during the failed shutdown/startup preparation, not a Q37 suspend result or the earlier approximately15W D hangs. Exact physical observation time, reset method and off duration were not supplied. No dated graph or screen photograph is available.
+
+Recovered shutdown evidence, old boot3c1873e4-b866-41e1-b411-702168ef90cf:
+- Poweroff requested14:53:25.149805; systemd reported powering down.
+- Nix daemon stopped successfully14:53:25.458834. Its cgroup consumed90ms CPU over1h15m10.151s, with11M memory peak; pre-reset inspection found no nixbld children. The recorded shutdown was not delayed by a heavy Nix build.
+- Four encrypted data mappings returned EBUSY during deactivation. The preceding successful shutdown at13:34 had the same four errors. These warnings alone do not explain why this startup failed.
+- systemd-poweroff finished14:53:32.800007, followed by final shutdown/sync/SIGTERM; journald stopped14:53:33.029048. This is software progress, not independent proof that power was cut.
+- Pi netconsole continued into kernel device shutdown, last old-boot line r8169 shutdown at14:53:34. No driver cause can be assigned from that boundary.
+- Persistent boot list goes directly from this boot, ending14:53:33, to the owner-recovery boot beginning17:07:19. No intermediate boot was retained. An unsuccessful early boot might leave no persistent journal, so this cannot distinguish late shutdown/power transition from early startup failure.
+- Current pstore is empty and its archival service skipped because empty. No saved crash record identifies the failure.
+
+New owner-recovery boot614a8318-dc72-4308-ae89-d4680fafac4e has btime1793376438,2026-10-30T17:07:18+01:00. Do not attribute it to the earlier14:56 planned WoL.
+At17:08:43 startup was still completing, with a transient container-healthcheck failure. By17:08:57 jobs and failed units were empty and all four Immich containers healthy, without agent intervention. At17:09:35 full health passed: same frozen system/kernel/modules/corrected runtime, all five authenticated boot audits/late-phase rejection, zero cycles/failures/markers, ordinaryasync1, expected PM/TPM/AC/lid/screen/WoL/LAN/DNS/NTP, healthy pools/five mounts/apps, no active checked maintenance or nixbld children. USB snapshot exactly matches Q35r1 preparation. Battery was full with current_now0 after recovery; that does not establish its state during the30W interval.
+
+New Pi frozen recovery log2294945bytes, SHA256c6fca9cac83fb85b66af1d3230252d79d8a2acd1f422c6277d93590d7d3d3694, includes the recovery boot; old frozen captures remain unchanged. Pi neighbor cache initially still saidFAILED despite received new netconsole and successful authenticated SSH; that cached state alone is not a fresh reachability test.
+
+Conclusion: recovered from an owner-observed30W shutdown/startup outage. Heavy Nix building is contradicted by recovered daemon/shutdown evidence. The exact late-shutdown versus early-startup failure remains unresolved; no suspend occurred. Current healthy boot can support the already selected first serialQ37 without another agent reset, under standing automatic continuation, subject to cron forecast and final guards. Its owner-reboot provenance differs from the planned controlled startup and must remain explicit.

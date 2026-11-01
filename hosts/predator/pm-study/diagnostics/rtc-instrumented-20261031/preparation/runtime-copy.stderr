@@ -1,0 +1,7 @@
+
+thread 'main' (3019103) panicked at /home/mirsella/dev/dotfiles/.scratch/pm-resume-20261028/ssh-wan.rs:13:5:
+assertion `left == right` failed: expected exactly one study SSH destination
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: failed to start SSH connection to '192.168.1.19'

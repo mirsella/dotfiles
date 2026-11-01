@@ -1,0 +1,18 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:ec3a1d16-3127-4eb3-a89b-dcdd45951c21:schedule-task:predator-serial-d1225-review-20261030-0857",
+  "title": "Predator serial D evidence Oct30 08:57",
+  "nextRunAt": "2026-10-30T07:57:00.000Z",
+  "enabled": true,
+  "schedule": {
+    "type": "fixed_time",
+    "timeOfDay": "08:57",
+    "weekdays": [5]
+  },
+  "timezone": "Europe/Paris",
+  "exactSelfDeletionEmbedded": true,
+  "dateGuard": "2026-10-30 at or after 08:57 and before 23:00 CET",
+  "reviewThresholdEpoch": 1793347000,
+  "trial": "r-serial-d1225-20261030",
+  "conditionalRepeatArmed": false,
+  "conditionalRepeat": "same-boot async E, ordinal 2, verified serial D completed_epoch+25500; only after compliant primer and physical evidence"
+}

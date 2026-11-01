@@ -1,0 +1,73 @@
+2026-11-01T08:31:25+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+               Local time: Sun 2026-11-01 08:31:25 CET
+           Universal time: Sun 2026-11-01 07:31:25 UTC
+                 RTC time: n/a
+                Time zone: Europe/Paris (CET, +0100)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 21.545ms (max: 5s)
+       Offset: -654us
+        Delay: 10.003ms
+       Jitter: 2.373ms
+ Packet count: 632
+    Frequency: -14.194ppm
+MainPID=1974
+ActiveState=active
+No jobs running.
+NEXT LEFT LAST                         PASSED             UNIT                                                   ACTIVATES
+-    -    Thu 2026-10-29 09:21:02 CET  2 days ago         predator-pm-r-async-d1225-20261029-notice-start.timer  predator-pm-r-async-d1225-20261029-notice-start.service
+-    -    Sat 2026-10-17 18:00:00 CEST 2 weeks 0 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer   predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 4 days ago  predator-pm-r-async-h8-20261020-notice-start.timer     predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 6 days ago  predator-pm-r-async-q30-20261018-notice-start.timer    predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Fri 2026-10-30 08:30:40 CET  2 days ago         predator-pm-r-serial-d1225-20261030-notice-start.timer predator-pm-r-serial-d1225-20261030-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 2 weeks 0 days ago predator-pm-r-serial-m15-20261017-notice-start.timer   predator-pm-r-serial-m15-20261017-notice-start.service
+-    -    Fri 2026-10-30 12:35:04 CET  1 day 19h ago      predator-pm-r-serial-q35-20261030-notice-start.timer   predator-pm-r-serial-q35-20261030-notice-start.service
+-    -    Fri 2026-10-30 14:12:53 CET  1 day 18h ago      predator-pm-r-serial-q35r1-20261030-notice-start.timer predator-pm-r-serial-q35r1-20261030-notice-start.service
+-    -    Fri 2026-10-30 17:44:18 CET  1 day 14h ago      predator-pm-r-serial-q37-20261030-notice-start.timer   predator-pm-r-serial-q37-20261030-notice-start.service
+
+9 timers listed.
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00 promiscuity 0  allmulti 0 minmtu 0 maxmtu 0 numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 tso_max_size 524280 tso_max_segs 65535 gro_max_size 65536 
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute 
+       valid_lft forever preferred_lft forever
+2: eth0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
+    link/ether dc:a6:32:0d:3e:c7 brd ff:ff:ff:ff:ff:ff promiscuity 0  allmulti 0 minmtu 68 maxmtu 1500 numtxqueues 5 numrxqueues 5 gso_max_size 65536 gso_max_segs 65535 tso_max_size 65536 tso_max_segs 65535 gro_max_size 65536 parentbus platform parentdev fd580000.ethernet 
+3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether dc:a6:32:0d:3e:c8 brd ff:ff:ff:ff:ff:ff promiscuity 0  allmulti 0 minmtu 68 maxmtu 1500 numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 tso_max_size 65536 tso_max_segs 65535 gro_max_size 65536 parentbus sdio parentdev mmc1:0001:1 
+    inet 192.168.1.166/24 brd 192.168.1.255 scope global dynamic noprefixroute wlan0
+       valid_lft 34935sec preferred_lft 34935sec
+    inet6 fe80::fbad:f114:5e6d:c3bd/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+broadcast 192.168.1.255 dev wlan0 src 192.168.1.166 uid 0 
+    cache <local,brd> 
+ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8  /home/mirsella/wol_predator.py
+#!/usr/bin/env python3
+"""Send a Wake-on-LAN magic packet to predator. Runs daily from cron (07:00)."""
+
+import socket
+
+MAC = "98:29:a6:3a:a7:50"
+BROADCAST = "192.168.1.255"
+PORT = 9
+
+mac_bytes = bytes(int(b, 16) for b in MAC.split(":"))
+packet = b"\xff" * 6 + mac_bytes * 16
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+sock.sendto(packet, (BROADCAST, PORT))
+print(f"WOL sent to {MAC} via {BROADCAST}:{PORT}")
+COMMAND_UNAVAILABLE=tcpdump
+2026-11-01T08:31:25+01:00
+read_only_observer_inspection=PASS

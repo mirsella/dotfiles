@@ -1,0 +1,41 @@
+2026-11-01T14:34:56,591534639+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+               Local time: Sun 2026-11-01 14:34:56 CET
+           Universal time: Sun 2026-11-01 13:34:56 UTC
+                 RTC time: n/a
+                Time zone: Europe/Paris (CET, +0100)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 45.882ms (max: 5s)
+       Offset: +431us
+        Delay: 9.662ms
+       Jitter: 1.128ms
+ Packet count: 642
+    Frequency: -13.766ppm
+MainPID=1974
+ActiveState=active
+No jobs running.
+NEXT LEFT LAST                         PASSED             UNIT                                                   ACTIVATES
+-    -    Thu 2026-10-29 09:21:02 CET  3 days ago         predator-pm-r-async-d1225-20261029-notice-start.timer  predator-pm-r-async-d1225-20261029-notice-start.service
+-    -    Sat 2026-10-17 18:00:00 CEST 2 weeks 0 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer   predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 4 days ago  predator-pm-r-async-h8-20261020-notice-start.timer     predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 6 days ago  predator-pm-r-async-q30-20261018-notice-start.timer    predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Fri 2026-10-30 08:30:40 CET  2 days ago         predator-pm-r-serial-d1225-20261030-notice-start.timer predator-pm-r-serial-d1225-20261030-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 2 weeks 0 days ago predator-pm-r-serial-m15-20261017-notice-start.timer   predator-pm-r-serial-m15-20261017-notice-start.service
+-    -    Fri 2026-10-30 12:35:04 CET  2 days ago         predator-pm-r-serial-q35-20261030-notice-start.timer   predator-pm-r-serial-q35-20261030-notice-start.service
+-    -    Fri 2026-10-30 14:12:53 CET  2 days ago         predator-pm-r-serial-q35r1-20261030-notice-start.timer predator-pm-r-serial-q35r1-20261030-notice-start.service
+-    -    Fri 2026-10-30 17:44:18 CET  1 day 20h ago      predator-pm-r-serial-q37-20261030-notice-start.timer   predator-pm-r-serial-q37-20261030-notice-start.service
+
+9 timers listed.
+ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8  /home/mirsella/wol_predator.py
+1c6b69b7ca5f33d7a31d400ac42acaf365403dcbbf103952de1999e0679588e5  /home/mirsella/dev/predator-pm-debug/.agents-local/s3-efi-v2-20261101-baseline.log
+ca27a5afad8035b7a0f38eeac245393d3fe665c126df8e0401970eb3d58402ef  /home/mirsella/dev/predator-pm-debug/.agents-local/s3-efi-v2-20261101-result.log
+2026-11-01T14:34:56,897773968+01:00

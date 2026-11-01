@@ -1,0 +1,15 @@
+Freezing user space processes
+Freezing user space processes completed (elapsed 0.001 seconds)
+Freezing remaining freezable tasks
+Freezing remaining freezable tasks completed (elapsed 0.000 seconds)
+PM: suspend of devices complete after 1352.042 msecs
+PM: start suspend of devices complete after 1376.968 msecs
+PM: late suspend of devices complete after 15.460 msecs
+intel_pch_thermal 0000:00:14.2: PM: pci_pm_suspend_noirq returned 0 after 50450394 usecs
+PM: noirq suspend of devices complete after 50726.345 msecs
+pcieport 0000:00:01.0: PM: pci_pm_resume_noirq returned 0 after 1331115 usecs
+PM: noirq resume of devices complete after 1462.069 msecs
+PM: early resume of devices complete after 2.719 msecs
+PM: resume of devices complete after 1809.418 msecs
+Restarting tasks: Starting
+Restarting tasks: Done

@@ -1,0 +1,17 @@
+2026-10-29T20:07:28+01:00
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+ActiveState=inactive
+ConditionResult=no
+NextElapseUSecRealtime=
+LastTriggerUSec=
+ActiveState=inactive
+SubState=dead
+2026-10-29T20:05:24.568655+0100 raspberrypi systemd[1]: Starting predator-pm-serial-preparation-20261029-startup.service - Planned Predator healthy startup 20261029...
+2026-10-29T20:05:24.664264+0100 raspberrypi python3[83480]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-29T20:05:24.681361+0100 raspberrypi systemd[1]: predator-pm-serial-preparation-20261029-startup.service: Deactivated successfully.
+2026-10-29T20:05:24.681737+0100 raspberrypi systemd[1]: Finished predator-pm-serial-preparation-20261029-startup.service - Planned Predator healthy startup 20261029.
+/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log 1814772 2026-10-29 20:06:40.532812866 +0100
+192.168.1.19 dev wlan0 FAILED 

@@ -1,0 +1,35 @@
+2026-10-31T21:46:34+01:00
+/sys/class/rtc/rtc0/name=rtc_cmos PNP0B00:00
+/sys/class/rtc/rtc0/since_epoch=1793479594
+/sys/class/rtc/rtc0/date=2026-10-31
+/sys/class/rtc/rtc0/time=20:46:34
+/sys/class/rtc/rtc0/device/power/wakeup=enabled
+/sys/class/rtc/rtc0/wakealarm=/sys/bus/pci/devices/0000:03:00.1/power/wakeup=enabled
+rtc_time	: 20:46:34
+rtc_date	: 2026-10-31
+alrm_time	: 00:00:03
+alrm_date	: 2021-04-11
+alarm_IRQ	: no
+alrm_pending	: no
+update IRQ enabled	: no
+periodic IRQ enabled	: no
+periodic IRQ frequency	: 1024
+max user IRQ frequency	: 64
+24hr		: yes
+periodic_IRQ	: no
+update_IRQ	: no
+HPET_emulated	: no
+BCD		: yes
+DST_enable	: no
+periodic_freq	: 1024
+batt_status	: okay
+# /etc/systemd/sleep.conf -> /nix/store/s92zvg3p116x5jdyvb149b2kxrzngncq-etc-systemd-sleep.conf
+[Sleep]
+AllowHibernation=false
+AllowSuspend=true
+
+FragmentPath=/etc/systemd/system/systemd-suspend.service
+DropInPaths=
+b8d111d32b28e900a2a1a7c620fa4a4590b2ba1e6bfcdf19cf3758038433090b  /nix/store/qzs6qmgvvka19nv4dyihz9rc8mbybkkv-predator-pm-study-0.1.0/bin/predator-pm-study
+{"PRIORITY":"6","_HOSTNAME":"predator","_SOURCE_MONOTONIC_TIMESTAMP":"64698779","_BOOT_ID":"f9b45aa6b8204ab5b18c9324d8d53087","__SEQNUM_ID":"54417c9662f74242b2dd43af698fff66","__REALTIME_TIMESTAMP":"1793474585156227","_RUNTIME_SCOPE":"system","__CURSOR":"s=54417c9662f74242b2dd43af698fff66;i=18dbc21;b=f9b45aa6b8204ab5b18c9324d8d53087;m=3db2f4c;t=65f27d78fda83;x=b0633589feae2d72","_TRANSPORT":"kernel","SYSLOG_FACILITY":"0","_SOURCE_BOOTTIME_TIMESTAMP":"64698779","__SEQNUM":"26065953","SYSLOG_IDENTIFIER":"kernel","_MACHINE_ID":"c0f5916edc2c45d484796af366ec6e88","MESSAGE":"podman0: port 4(veth3) entered blocking state","__MONOTONIC_TIMESTAMP":"64696140"}
+{"SYSLOG_IDENTIFIER":"kernel","__MONOTONIC_TIMESTAMP":"64696342","_BOOT_ID":"f9b45aa6b8204ab5b18c9324d8d53087","_RUNTIME_SCOPE":"system","_TRANSPORT":"kernel","SYSLOG_FACILITY":"0","__REALTIME_TIMESTAMP":"1793474585156429","_SOURCE_MONOTONIC_TIMESTAMP":"64698863","_HOSTNAME":"predator","_MACHINE_ID":"c0f5916edc2c45d484796af366ec6e88","__SEQNUM_ID":"54417c9662f74242b2dd43af698fff66","__CURSOR":"s=54417c9662f74242b2dd43af698fff66;i=18dbc22;b=f9b45aa6b8204ab5b18c9324d8d53087;m=3db3016;t=65f27d78fdb4d;x=336aa8c21c50a064","__SEQNUM":"26065954","MESSAGE":"podman0: port 4(veth3) entered forwarding state","PRIORITY":"6","_SOURCE_BOOTTIME_TIMESTAMP":"64698863"}

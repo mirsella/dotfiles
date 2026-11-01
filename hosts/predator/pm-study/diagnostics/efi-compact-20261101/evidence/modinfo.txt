@@ -1,0 +1,18 @@
+filename:       /home/mirsella/dev/dotfiles/.scratch/pm-efi-compact-20261101/runtime-root/lib/modules/6.18.58/extra/pm_boundary_compact.ko.xz
+description:    One 64-byte awake EFI breadcrumb with measured allocation budget
+license:        GPL
+import_ns:      EFIVAR
+depends:        
+name:           pm_boundary_compact
+retpoline:      Y
+vermagic:       6.18.58 SMP preempt mod_unload 
+sig_id:         PKCS#7
+signer:         ko
+sig_key:        65:93:62:EA:E3:A0:60:8E:DA:E3:72:C2:D3:ED:BD:42:3F
+sig_hashalgo:   sha256
+signature:      30:44:02:20:16:3A:C9:D7:75:53:4D:E8:DC:97:A6:50:97:A5:97:9D:
+		17:7E:F8:A7:4D:E4:D3:D3:7C:83:33:C8:EB:19:04:64:02:20:2A:6E:
+		42:FE:13:C4:DB:72:AE:61:3B:BD:B7:9D:AE:3E:47:49:2B:FF:33:41:
+		0A:8F:7D:63:68:C5:D5:CB:CA:A9
+parm:           nonce:charp
+parm:           boot_id:charp

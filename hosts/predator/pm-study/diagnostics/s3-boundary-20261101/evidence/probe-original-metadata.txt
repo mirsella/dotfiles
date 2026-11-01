@@ -1,0 +1,6 @@
+drwx------ root/root         0 2026-11-01 11:33 awake-20261101-a/
+-rw------- root/root         0 2026-11-01 11:33 awake-20261101-a/load.out
+-rw------- root/root      3780 2026-11-01 11:33 awake-20261101-a/failed-load-kernel.txt
+-rw------- root/root       166 2026-11-01 11:33 awake-20261101-a/before.txt
+-rw------- root/root         2 2026-11-01 11:33 awake-20261101-a/load.status
+-rw------- root/root       194 2026-11-01 11:33 awake-20261101-a/load.stderr

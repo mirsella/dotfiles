@@ -1,0 +1,35 @@
+2026-11-01T09:35:03.883202+01:00 predator kernel: scsi target3:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T09:35:03.883424+01:00 predator kernel: sd 3:0:0:0: PM: calling scsi_bus_resume [scsi_mod] @ 308322, parent: target3:0:0
+2026-11-01T09:35:03.883670+01:00 predator kernel: sd 3:0:0:0: PM: scsi_bus_resume [scsi_mod] returned 0 after 2 usecs
+2026-11-01T09:35:03.883919+01:00 predator kernel: ses 3:0:0:1: PM: calling scsi_bus_resume [scsi_mod] @ 308322, parent: target3:0:0
+2026-11-01T09:35:03.884165+01:00 predator kernel: ses 3:0:0:1: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs
+2026-11-01T09:35:03.884407+01:00 predator kernel: ieee80211 phy0: PM: calling wiphy_resume [cfg80211] @ 308322, parent: 0000:02:00.0
+2026-11-01T09:35:03.884602+01:00 predator kernel: ieee80211 phy0: PM: wiphy_resume [cfg80211] returned 0 after 281770 usecs
+2026-11-01T09:35:03.884793+01:00 predator kernel: rfkill rfkill1: PM: calling rfkill_resume [rfkill] @ 308322, parent: phy0
+2026-11-01T09:35:03.885002+01:00 predator kernel: rfkill rfkill1: PM: rfkill_resume [rfkill] returned 0 after 3 usecs
+2026-11-01T09:35:03.885206+01:00 predator kernel: input input17: PM: calling input_dev_resume @ 308322, parent: card1
+2026-11-01T09:35:03.885434+01:00 predator kernel: input input17: PM: input_dev_resume returned 0 after 2 usecs
+2026-11-01T09:35:03.885657+01:00 predator kernel: input input18: PM: calling input_dev_resume @ 308322, parent: card1
+2026-11-01T09:35:03.885881+01:00 predator kernel: input input18: PM: input_dev_resume returned 0 after 0 usecs
+2026-11-01T09:35:03.886099+01:00 predator kernel: PM: resume of devices complete after 1851.825 msecs
+2026-11-01T09:35:03.886117+01:00 predator kernel: GFP mask restored
+2026-11-01T09:35:03.886130+01:00 predator kernel: OOM killer enabled.
+2026-11-01T09:35:03.886142+01:00 predator kernel: mei_hdcp 0000:00:16.0-b638ab7e-94e2-4ea2-a552-d1c54b627f04: bound 0000:00:02.0 (ops i915_hdcp_ops [i915])
+2026-11-01T09:35:03.886224+01:00 predator kernel: Restarting tasks: Starting
+2026-11-01T09:35:03.886243+01:00 predator kernel: probe of 0000:00:16.0-b638ab7e-94e2-4ea2-a552-d1c54b627f04 returned 0 after 3070 usecs
+2026-11-01T09:35:03.886257+01:00 predator kernel: Restarting tasks: Done
+2026-11-01T09:35:03.886268+01:00 predator kernel: efivarfs: resyncing variable state
+2026-11-01T09:35:03.886282+01:00 predator kernel: probe of 0000:00:16.0-fbf6fcf1-96cf-4e2e-a6a6-1bab8cbe36b1 returned 0 after 2384 usecs
+2026-11-01T09:35:03.886293+01:00 predator kernel: efivarfs: finished resyncing variable state
+2026-11-01T09:35:03.886307+01:00 predator kernel: random: crng reseeded on system resumption
+2026-11-01T09:35:03.886319+01:00 predator kernel: PM: suspend exit
+2026-11-01T09:35:03.886329+01:00 predator kernel: Generic FE-GE Realtek PHY r8169-0-301:00: attached PHY driver (mii_bus:phy_addr=r8169-0-301:00, irq=MAC)
+2026-11-01T09:35:03.990742+01:00 predator kernel: r8169 0000:03:00.1 enp3s0f1: Link is Down
+2026-11-01T09:35:05.235322+01:00 predator pm-debug: tpm-ec-study-20261009 
+2026-11-01T09:35:05.235514+01:00 predator unknown: NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+2026-11-01T09:35:05.235569+01:00 predator unknown: 
+2026-11-01T09:35:06.801816+01:00 predator kernel: r8169 0000:03:00.1 enp3s0f1: Link is Up - 1Gbps/Full - flow control rx/tx
+2026-11-01T09:35:24.074791+01:00 predator pm-wake-path: 
+2026-11-01T09:35:24.074892+01:00 predator unknown: WAKEPATH RETURN id=path-d3-v2-20261101 result=RTC_FALLBACK_WINDOW_RETURN full_pass=false
+2026-11-01T09:35:24.074921+01:00 predator unknown: 
+2026-11-01T10:23:02.919943+01:00 predator kernel: perf: interrupt took too long (3184 > 3130), lowering kernel.perf_event_max_sample_rate to 62000

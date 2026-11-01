@@ -1,0 +1,24 @@
+STARTUP_EPOCH=1793363857
+2026-10-30T13:34:37+01:00
+# /run/systemd/transient/predator-pm-q35r1-preparation-20261030-startup.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/python3 /home/mirsella/wol_predator.py
+
+[Timer]
+OnCalendar=@1793363857
+Persistent=no
+AccuracySec=1s
+RandomizedDelaySec=0
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-q35r1-preparation-20261030-startup.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/python3 /home/mirsella/wol_predator.py
+ConditionPathExists=/run/predator-pm-q35r1-preparation-20261030-shutdown-ack
+
+[Service]
+TimeoutStartSec=30s
+ExecStart=
+ExecStart="/usr/bin/python3" "/home/mirsella/wol_predator.py"

@@ -1,0 +1,12 @@
+2026-11-01T15:55:35,610140563+01:00
+RECORDER_OFF READY id=off-s3-20261101 nonce=off1101a boot=39d7579b-b86d-4d30-b910-131943e550c8
+ActiveState=inactive
+Restart=no
+RuntimeMaxUSec=15min
+MainPID=0
+ExecStart={ path=/nix/store/nbxvgd86xdy14jlvyn09h858gldgpqg4-predator-pm-study-0.1.0/bin/predator-pm-recorder-off ; argv[]=/nix/store/nbxvgd86xdy14jlvyn09h858gldgpqg4-predator-pm-study-0.1.0/bin/predator-pm-recorder-off run /var/lib/predator-pm-recorder-off/off-s3-20261101-plan.conf 9cbcb49aa9c5c61650874bbe8544af5b8241495f48368f4865c91ded9e957ba1 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+ExecStopPost={ path=/nix/store/nbxvgd86xdy14jlvyn09h858gldgpqg4-predator-pm-study-0.1.0/bin/predator-pm-recorder-off ; argv[]=/nix/store/nbxvgd86xdy14jlvyn09h858gldgpqg4-predator-pm-study-0.1.0/bin/predator-pm-recorder-off restore /var/lib/predator-pm-recorder-off/off-s3-20261101-plan.conf 9cbcb49aa9c5c61650874bbe8544af5b8241495f48368f4865c91ded9e957ba1 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+NEXT                         LEFT LAST PASSED UNIT                                           ACTIVATES
+Sun 2026-11-01 16:15:00 CET 19min -         - predator-pm-recorder-off-off-s3-20261101.timer predator-pm-recorder-off-off-s3-20261101.service
+
+1 timers listed.

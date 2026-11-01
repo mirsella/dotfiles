@@ -1,0 +1,1078 @@
+2026-10-30T13:34:01.896515+01:00 predator podman[35976]: 2026-10-30 13:34:01.896434969 +0100 CET m=+0.697954507 container health_status ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961 (image=ghcr.io/immich-app/immich-machine-learning@sha256:5b28c9352c8374b8a1ed96fbdd8d6755fea6e43510ec43fdf6538aa02ea40f56, name=immich_ml, health_status=healthy, health_failing_streak=0, health_log=, org.opencontainers.image.url=https://github.com/immich-app/immich, PODMAN_SYSTEMD_UNIT=podman-immich_ml.service, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.version=v3.3.5, org.opencontainers.image.description=High performance self-hosted photo and video management solution., org.opencontainers.image.created=2026-10-21T18:13:44.122Z, org.opencontainers.image.source=https://github.com/immich-app/immich, org.opencontainers.image.title=immich, org.opencontainers.image.revision=8303cb117e197c700332b33b61b45314c9cc5bb4)
+2026-10-30T13:34:04.157615+01:00 predator systemd[1]: Starting Notify Telegram of storage connection events...
+2026-10-30T13:34:04.310511+01:00 predator systemd[1]: storage-alerts.service: Deactivated successfully.
+2026-10-30T13:34:04.312051+01:00 predator systemd[1]: Finished Notify Telegram of storage connection events.
+2026-10-30T13:34:04.432843+01:00 predator podman[36011]: 2026-10-30 13:34:04.432554972 +0100 CET m=+0.104981546 container health_status 3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf (image=docker.io/valkey/valkey@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d, name=immich_redis, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=podman-immich_redis.service, org.opencontainers.image.source=https://github.com/valkey-io/valkey)
+2026-10-30T13:34:04.466403+01:00 predator podman[36013]: 2026-10-30 13:34:04.466179901 +0100 CET m=+0.127433760 container health_status 492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5 (image=ghcr.io/immich-app/immich-server@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6, name=immich_server, health_status=healthy, health_failing_streak=0, health_log=, org.opencontainers.image.revision=8303cb117e197c700332b33b61b45314c9cc5bb4, PODMAN_SYSTEMD_UNIT=podman-immich_server.service, org.opencontainers.image.created=2026-10-21T18:13:42.816Z, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.source=https://github.com/immich-app/immich, org.opencontainers.image.title=immich, org.opencontainers.image.version=v3.3.5, org.opencontainers.image.url=https://github.com/immich-app/immich, org.opencontainers.image.description=High performance self-hosted photo and video management solution.)
+2026-10-30T13:34:06.390839+01:00 predator podman[36060]: 2026-10-30 13:34:06.390636402 +0100 CET m=+0.193288238 container health_status a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4 (image=ghcr.io/immich-app/postgres@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23, name=immich_postgres, health_status=healthy, health_failing_streak=0, health_log=, org.opencontainers.image.version=14-vectorchord0.4.3-pgvector0.8.1-pgvectors0.2.0, org.opencontainers.image.created=2025-10-07T12:08:54.320Z, PODMAN_SYSTEMD_UNIT=podman-immich_postgres.service, org.opencontainers.image.description=Base images for Immich containers, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.revision=c5095615488fa07469b5df48a3c3e5cebeed7296, org.opencontainers.image.source=https://github.com/immich-app/base-images, org.opencontainers.image.title=base-images, org.opencontainers.image.url=https://github.com/immich-app/base-images)
+2026-10-30T13:34:32.802001+01:00 predator podman[36171]: 2026-10-30 13:34:32.801936874 +0100 CET m=+0.623489257 container health_status ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961 (image=ghcr.io/immich-app/immich-machine-learning@sha256:5b28c9352c8374b8a1ed96fbdd8d6755fea6e43510ec43fdf6538aa02ea40f56, name=immich_ml, health_status=healthy, health_failing_streak=0, health_log=, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.created=2026-10-21T18:13:44.122Z, org.opencontainers.image.title=immich, org.opencontainers.image.version=v3.3.5, org.opencontainers.image.revision=8303cb117e197c700332b33b61b45314c9cc5bb4, org.opencontainers.image.source=https://github.com/immich-app/immich, PODMAN_SYSTEMD_UNIT=podman-immich_ml.service, org.opencontainers.image.description=High performance self-hosted photo and video management solution., org.opencontainers.image.url=https://github.com/immich-app/immich)
+2026-10-30T13:34:35.299287+01:00 predator podman[36205]: 2026-10-30 13:34:35.298829505 +0100 CET m=+0.098027283 container health_status 3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf (image=docker.io/valkey/valkey@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d, name=immich_redis, health_status=healthy, health_failing_streak=0, health_log=, org.opencontainers.image.source=https://github.com/valkey-io/valkey, PODMAN_SYSTEMD_UNIT=podman-immich_redis.service)
+2026-10-30T13:34:35.323836+01:00 predator podman[36206]: 2026-10-30 13:34:35.323621473 +0100 CET m=+0.122845180 container health_status 492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5 (image=ghcr.io/immich-app/immich-server@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6, name=immich_server, health_status=healthy, health_failing_streak=0, health_log=, org.opencontainers.image.url=https://github.com/immich-app/immich, PODMAN_SYSTEMD_UNIT=podman-immich_server.service, org.opencontainers.image.description=High performance self-hosted photo and video management solution., org.opencontainers.image.revision=8303cb117e197c700332b33b61b45314c9cc5bb4, org.opencontainers.image.title=immich, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.created=2026-10-21T18:13:42.816Z, org.opencontainers.image.version=v3.3.5, org.opencontainers.image.source=https://github.com/immich-app/immich)
+2026-10-30T13:34:37.311890+01:00 predator sshd-session[36277]: Connection from 109.138.216.149 port 47820 on 192.168.1.19 port 22 rdomain ""
+2026-10-30T13:34:37.386627+01:00 predator podman[36257]: 2026-10-30 13:34:37.386249586 +0100 CET m=+0.192704716 container health_status a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4 (image=ghcr.io/immich-app/postgres@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23, name=immich_postgres, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=podman-immich_postgres.service, org.opencontainers.image.created=2025-10-07T12:08:54.320Z, org.opencontainers.image.source=https://github.com/immich-app/base-images, org.opencontainers.image.url=https://github.com/immich-app/base-images, org.opencontainers.image.description=Base images for Immich containers, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.revision=c5095615488fa07469b5df48a3c3e5cebeed7296, org.opencontainers.image.title=base-images, org.opencontainers.image.version=14-vectorchord0.4.3-pgvector0.8.1-pgvectors0.2.0)
+2026-10-30T13:34:37.572385+01:00 predator sshd-session[36277]: Accepted key ED25519 SHA256:Y8Xmd8d+/SfbsiyozITkC13MVP5MKrwlllz1cw58z4E found at /etc/ssh/authorized_keys.d/mirsella:1
+2026-10-30T13:34:37.578514+01:00 predator sshd-session[36277]: Postponed publickey for mirsella from 109.138.216.149 port 47820 ssh2 [preauth]
+2026-10-30T13:34:37.598016+01:00 predator sshd-session[36277]: Accepted key ED25519 SHA256:Y8Xmd8d+/SfbsiyozITkC13MVP5MKrwlllz1cw58z4E found at /etc/ssh/authorized_keys.d/mirsella:1
+2026-10-30T13:34:37.611911+01:00 predator sshd-session[36277]: Accepted publickey for mirsella from 109.138.216.149 port 47820 ssh2: ED25519 SHA256:Y8Xmd8d+/SfbsiyozITkC13MVP5MKrwlllz1cw58z4E
+2026-10-30T13:34:37.626158+01:00 predator sshd-session[36277]: pam_unix(sshd:session): session opened for user mirsella(uid=1000) by (uid=0)
+2026-10-30T13:34:37.638569+01:00 predator systemd-logind[1538]: New session '42' of user 'mirsella' with class 'user' and type 'tty'.
+2026-10-30T13:34:37.649799+01:00 predator systemd[1]: Started Session 42 of User mirsella.
+2026-10-30T13:34:37.660269+01:00 predator sshd-session[36277]: User child is on pid 36282
+2026-10-30T13:34:37.694919+01:00 predator sshd-session[36282]: Starting session: command for mirsella from 109.138.216.149 port 47820 id 0
+2026-10-30T13:34:37.757848+01:00 predator sudo[36285]: mirsella : PWD=/home/mirsella ; USER=root ; COMMAND=/etc/profiles/per-user/mirsella/bin/bash -s
+2026-10-30T13:34:37.769391+01:00 predator sudo[36285]: pam_unix(sudo:session): session opened for user root(uid=0) by mirsella(uid=1000)
+2026-10-30T13:34:37.805459+01:00 predator systemd-logind[1538]: poweroff requested from client PID 36291 ('systemctl') (unit session-42.scope)...
+2026-10-30T13:34:37.806090+01:00 predator systemd-logind[1538]: System is powering down.
+2026-10-30T13:34:37.819852+01:00 predator systemd-logind[1538]: The system will power off now!
+2026-10-30T13:34:37.822223+01:00 predator sudo[36285]: pam_unix(sudo:session): session closed for user root
+2026-10-30T13:34:37.864114+01:00 predator sshd-session[36282]: Received disconnect from 109.138.216.149 port 47820:11: disconnected by user
+2026-10-30T13:34:37.864394+01:00 predator sshd-session[36282]: Disconnected from user mirsella 109.138.216.149 port 47820
+2026-10-30T13:34:37.865161+01:00 predator sshd-session[36277]: pam_unix(sshd:session): session closed for user mirsella
+2026-10-30T13:34:37.874062+01:00 predator systemd[1]: session-42.scope: Deactivated successfully.
+2026-10-30T13:34:37.874483+01:00 predator systemd[1]: Stopped Session 42 of User mirsella.
+2026-10-30T13:34:37.877300+01:00 predator systemd-logind[1538]: Session 42 logged out. Waiting for processes to exit.
+2026-10-30T13:34:37.877783+01:00 predator immich_redis[2819]: 2:signal-handler (1793363677) Received SIGTERM scheduling shutdown...
+2026-10-30T13:34:37.877797+01:00 predator immich_redis[2819]: 2:signal-handler (1793363677) Received SIGTERM scheduling shutdown...
+2026-10-30T13:34:37.878076+01:00 predator systemd[1]: Stopping libcrun container...
+2026-10-30T13:34:37.879604+01:00 predator systemd[1]: Stopping libcrun container...
+2026-10-30T13:34:37.880710+01:00 predator immich_postgres[2716]: 2026-10-30 13:34:37.880 CET [1] LOG:  received fast shutdown request
+2026-10-30T13:34:37.881401+01:00 predator systemd[1]: Stopping libcrun container...
+2026-10-30T13:34:37.883125+01:00 predator systemd[1]: Stopping libcrun container...
+2026-10-30T13:34:37.884634+01:00 predator systemd[1]: Stopping [systemd-run] /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/libexec/podman/aardvark-dns --config /run/containers/networks/aardvark-dns -p 53 run...
+2026-10-30T13:34:37.885701+01:00 predator immich_ml[2790]: [10/30/26 12:34:37] INFO     Handling signal: term                              
+2026-10-30T13:34:37.886358+01:00 predator systemd[1]: Removed slice Slice /system/modprobe.
+2026-10-30T13:34:37.888045+01:00 predator systemd[1]: Removed slice Slice /system/systemd-pcrlogin.
+2026-10-30T13:34:37.888837+01:00 predator immich_postgres[2716]: 2026-10-30 13:34:37.888 CET [39] ERROR:  canceling statement due to user request
+2026-10-30T13:34:37.889587+01:00 predator systemd[1]: Stopped target Host and Network Name Lookups.
+2026-10-30T13:34:37.891017+01:00 predator systemd[1]: Stopped target Sound Card.
+2026-10-30T13:34:37.892267+01:00 predator systemd[1]: Stopped target Timer Units.
+2026-10-30T13:34:37.893216+01:00 predator systemd[1]: 3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf-1d2ea6b2f17dfe97.timer: Deactivated successfully.
+2026-10-30T13:34:37.893420+01:00 predator systemd[1]: Stopped [systemd-run] /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/.podman-wrapped healthcheck run 3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf.
+2026-10-30T13:34:37.894351+01:00 predator systemd[1]: 492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5-2d0de7ef4a03e005.timer: Deactivated successfully.
+2026-10-30T13:34:37.894477+01:00 predator systemd[1]: Stopped [systemd-run] /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/.podman-wrapped healthcheck run 492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5.
+2026-10-30T13:34:37.895179+01:00 predator immich_postgres[2716]: 2026-10-30 13:34:37.895 CET [1] LOG:  aborting any active transactions
+2026-10-30T13:34:37.895333+01:00 predator immich_postgres[2716]: 2026-10-30 13:34:37.895 CET [1] LOG:  background worker "logical replication launcher" (PID 39) exited with exit code 1
+2026-10-30T13:34:37.895609+01:00 predator systemd[1]: a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4-3b4aa454d36d5677.timer: Deactivated successfully.
+2026-10-30T13:34:37.895722+01:00 predator systemd[1]: Stopped [systemd-run] /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/.podman-wrapped healthcheck run a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4.
+2026-10-30T13:34:37.897046+01:00 predator systemd[1]: ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961-7d59578895a25f81.timer: Deactivated successfully.
+2026-10-30T13:34:37.897208+01:00 predator systemd[1]: Stopped [systemd-run] /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/.podman-wrapped healthcheck run ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961.
+2026-10-30T13:34:37.898392+01:00 predator systemd[1]: db-backup.timer: Deactivated successfully.
+2026-10-30T13:34:37.898448+01:00 predator systemd[1]: Stopped db-backup.timer.
+2026-10-30T13:34:37.899404+01:00 predator systemd[1]: fstrim.timer: Deactivated successfully.
+2026-10-30T13:34:37.899496+01:00 predator systemd[1]: Stopped Discard unused filesystem blocks once a week.
+2026-10-30T13:34:37.900403+01:00 predator systemd[1]: fwupd-refresh.timer: Deactivated successfully.
+2026-10-30T13:34:37.900510+01:00 predator systemd[1]: Stopped Refresh fwupd metadata regularly.
+2026-10-30T13:34:37.900971+01:00 predator immich_postgres[2716]: 2026-10-30 13:34:37.900 CET [34] LOG:  shutting down
+2026-10-30T13:34:37.901431+01:00 predator systemd[1]: hermes-backup.timer: Deactivated successfully.
+2026-10-30T13:34:37.901524+01:00 predator systemd[1]: Stopped hermes-backup.timer.
+2026-10-30T13:34:37.902331+01:00 predator systemd[1]: logrotate.timer: Deactivated successfully.
+2026-10-30T13:34:37.902421+01:00 predator systemd[1]: Stopped logrotate.timer.
+2026-10-30T13:34:37.903230+01:00 predator systemd[1]: nextcloud-cron.timer: Deactivated successfully.
+2026-10-30T13:34:37.903390+01:00 predator systemd[1]: Stopped nextcloud-cron.timer.
+2026-10-30T13:34:37.904128+01:00 predator systemd[1]: nix-gc.timer: Deactivated successfully.
+2026-10-30T13:34:37.904176+01:00 predator systemd[1]: Stopped nix-gc.timer.
+2026-10-30T13:34:37.905026+01:00 predator systemd[1]: recovery-backup.timer: Deactivated successfully.
+2026-10-30T13:34:37.905108+01:00 predator systemd[1]: Stopped recovery-backup.timer.
+2026-10-30T13:34:37.905896+01:00 predator systemd[1]: restic-backups-fast.timer: Deactivated successfully.
+2026-10-30T13:34:37.905978+01:00 predator systemd[1]: Stopped restic-backups-fast.timer.
+2026-10-30T13:34:37.906776+01:00 predator systemd[1]: restic-check.timer: Deactivated successfully.
+2026-10-30T13:34:37.906875+01:00 predator systemd[1]: Stopped restic-check.timer.
+2026-10-30T13:34:37.907827+01:00 predator systemd[1]: sanoid.timer: Deactivated successfully.
+2026-10-30T13:34:37.907940+01:00 predator systemd[1]: Stopped sanoid.timer.
+2026-10-30T13:34:37.908696+01:00 predator systemd[1]: storage-alerts.timer: Deactivated successfully.
+2026-10-30T13:34:37.908786+01:00 predator systemd[1]: Stopped Check for USB storage errors every minute.
+2026-10-30T13:34:37.909482+01:00 predator systemd[1]: systemd-tmpfiles-clean.timer: Deactivated successfully.
+2026-10-30T13:34:37.909550+01:00 predator systemd[1]: Stopped Daily Cleanup of Temporary Directories.
+2026-10-30T13:34:37.910181+01:00 predator systemd[1]: zfs-scrub.timer: Deactivated successfully.
+2026-10-30T13:34:37.910244+01:00 predator systemd[1]: Stopped zfs-scrub.timer.
+2026-10-30T13:34:37.910995+01:00 predator systemd[1]: zpool-trim.timer: Deactivated successfully.
+2026-10-30T13:34:37.911057+01:00 predator systemd[1]: Stopped zpool-trim.timer.
+2026-10-30T13:34:37.911727+01:00 predator systemd[1]: Stopped target Multi-User System.
+2026-10-30T13:34:37.912461+01:00 predator systemd[1]: Stopped target Login Prompts.
+2026-10-30T13:34:37.913092+01:00 predator systemd[1]: Stopped target Virtual Machines and Containers.
+2026-10-30T13:34:37.913961+01:00 predator systemd[1]: Stopped target PHP FastCGI Process manager pools target.
+2026-10-30T13:34:37.914806+01:00 predator systemd[1]: Stopped target PostgreSQL.
+2026-10-30T13:34:37.915661+01:00 predator systemd[1]: Stopped target System Time Synchronized.
+2026-10-30T13:34:37.916407+01:00 predator systemd[1]: Stopped target System Time Set.
+2026-10-30T13:34:37.917063+01:00 predator systemd[1]: Stopped target ZFS startup target.
+2026-10-30T13:34:37.917731+01:00 predator systemd[1]: systemd-rfkill.socket: Deactivated successfully.
+2026-10-30T13:34:37.917931+01:00 predator systemd[1]: Closed Load/Save RF Kill Switch Status /dev/rfkill Watch.
+2026-10-30T13:34:37.920543+01:00 predator systemd[1]: Unmounting /bin...
+2026-10-30T13:34:37.923261+01:00 predator systemd[1]: Mounting /run/initramfs...
+2026-10-30T13:34:37.925125+01:00 predator systemd[1]: Unmounting /srv/backup/recovery...
+2026-10-30T13:34:37.931308+01:00 predator systemd[1]: Unmounting /srv/data/archive...
+2026-10-30T13:34:37.932689+01:00 predator systemd[1]: Stopping Beszel Server Monitoring Agent...
+2026-10-30T13:34:37.933563+01:00 predator systemd[1]: beszel-setup.service: Deactivated successfully.
+2026-10-30T13:34:37.933814+01:00 predator systemd[1]: Stopped Converge Beszel hub settings, account and system.
+2026-10-30T13:34:37.934720+01:00 predator beszel-agent[2153]: 2026/10/30 13:34:37 INFO Shutting down cause="terminated signal received"
+2026-10-30T13:34:37.934720+01:00 predator beszel-agent[2153]: 2026/10/30 13:34:37 INFO Stopping SSH server
+2026-10-30T13:34:37.935104+01:00 predator systemd[1]: beszel-setup.service: Consumed 22ms CPU time over 1h 18min 9.321s wall clock time, 2.2M memory peak, 504K read from disk, 4.2K incoming IP traffic, 2.5K outgoing IP traffic.
+2026-10-30T13:34:37.935658+01:00 predator systemd[1]: Stopping Beszel Server Monitoring Web App...
+2026-10-30T13:34:37.936143+01:00 predator podman[36294]: 2026-10-30 13:34:37.935855377 +0100 CET m=+0.026970413 container died ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961 (image=ghcr.io/immich-app/immich-machine-learning@sha256:5b28c9352c8374b8a1ed96fbdd8d6755fea6e43510ec43fdf6538aa02ea40f56, name=immich_ml, org.opencontainers.image.description=High performance self-hosted photo and video management solution., org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.source=https://github.com/immich-app/immich, org.opencontainers.image.title=immich, org.opencontainers.image.version=v3.3.5, PODMAN_SYSTEMD_UNIT=podman-immich_ml.service, org.opencontainers.image.revision=8303cb117e197c700332b33b61b45314c9cc5bb4, org.opencontainers.image.created=2026-10-21T18:13:44.122Z, org.opencontainers.image.url=https://github.com/immich-app/immich)
+2026-10-30T13:34:37.936668+01:00 predator systemd[1]: Stopping Caddy...
+2026-10-30T13:34:37.941413+01:00 predator fwupd[22211]: 12:34:37.939 FuMain               Received SIGTERM
+2026-10-30T13:34:37.938748+01:00 predator systemd[1]: Stopping Fail2Ban Service...
+2026-10-30T13:34:37.939876+01:00 predator systemd[1]: Stopping Firmware update daemon...
+2026-10-30T13:34:37.941037+01:00 predator systemd[1]: Stopping Hermes Agent web dashboard and desktop backend...
+2026-10-30T13:34:37.941962+01:00 predator systemd[1]: logrotate-checkconf.service: Deactivated successfully.
+2026-10-30T13:34:37.942183+01:00 predator systemd[1]: Stopped Logrotate configuration check.
+2026-10-30T13:34:37.944645+01:00 predator systemd[1]: Stopping Nginx Web Server...
+2026-10-30T13:34:37.945885+01:00 predator systemd[1]: Stopping Nix Daemon...
+2026-10-30T13:34:37.946723+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy0-energy_performance_preference.service: Deactivated successfully.
+2026-10-30T13:34:37.947079+01:00 predator systemd[1]: Stopped /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference attribute setter.
+2026-10-30T13:34:37.948388+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy1-energy_performance_preference.service: Deactivated successfully.
+2026-10-30T13:34:37.948585+01:00 predator systemd[1]: Stopped /sys/devices/system/cpu/cpufreq/policy1/energy_performance_preference attribute setter.
+2026-10-30T13:34:37.949828+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy2-energy_performance_preference.service: Deactivated successfully.
+2026-10-30T13:34:37.950109+01:00 predator systemd[1]: Stopped /sys/devices/system/cpu/cpufreq/policy2/energy_performance_preference attribute setter.
+2026-10-30T13:34:37.951283+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy3-energy_performance_preference.service: Deactivated successfully.
+2026-10-30T13:34:37.951539+01:00 predator systemd[1]: Stopped /sys/devices/system/cpu/cpufreq/policy3/energy_performance_preference attribute setter.
+2026-10-30T13:34:37.952749+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy4-energy_performance_preference.service: Deactivated successfully.
+2026-10-30T13:34:37.953041+01:00 predator systemd[1]: Stopped /sys/devices/system/cpu/cpufreq/policy4/energy_performance_preference attribute setter.
+2026-10-30T13:34:37.954066+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy5-energy_performance_preference.service: Deactivated successfully.
+2026-10-30T13:34:37.954122+01:00 predator immich_redis[2819]: 2:M 30 Oct 2026 12:34:37.950 * User requested shutdown...
+2026-10-30T13:34:37.954130+01:00 predator immich_redis[2819]: 2:M 30 Oct 2026 12:34:37.950 * Saving the final RDB snapshot before exiting.
+2026-10-30T13:34:37.954136+01:00 predator immich_redis[2819]: 2:M 30 Oct 2026 12:34:37.951 * DB saved on disk
+2026-10-30T13:34:37.954142+01:00 predator immich_redis[2819]: 2:M 30 Oct 2026 12:34:37.951 * Module lua unloaded
+2026-10-30T13:34:37.954148+01:00 predator immich_redis[2819]: 2:M 30 Oct 2026 12:34:37.951 # Valkey is now ready to exit, bye bye...
+2026-10-30T13:34:37.954368+01:00 predator systemd[1]: Stopped /sys/devices/system/cpu/cpufreq/policy5/energy_performance_preference attribute setter.
+2026-10-30T13:34:37.955178+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy6-energy_performance_preference.service: Deactivated successfully.
+2026-10-30T13:34:37.956386+01:00 predator systemd[1]: Stopped /sys/devices/system/cpu/cpufreq/policy6/energy_performance_preference attribute setter.
+2026-10-30T13:34:37.957513+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy7-energy_performance_preference.service: Deactivated successfully.
+2026-10-30T13:34:37.957733+01:00 predator systemd[1]: Stopped /sys/devices/system/cpu/cpufreq/policy7/energy_performance_preference attribute setter.
+2026-10-30T13:34:37.959212+01:00 predator systemd[1]: Removed slice Slice /system/nixos-sysfs.
+2026-10-30T13:34:37.959904+01:00 predator php-fpm[3209]: [NOTICE] Terminating ...
+2026-10-30T13:34:37.960090+01:00 predator systemd[1]: Stopping PHP FastCGI Process Manager service for pool nextcloud...
+2026-10-30T13:34:37.961492+01:00 predator systemd[1]: Stopping podman-immich_ml.service...
+2026-10-30T13:34:37.965706+01:00 predator systemd[1]: Stopping podman-immich_server.service...
+2026-10-30T13:34:37.966735+01:00 predator systemd[1]: Stopping Authorization Manager...
+2026-10-30T13:34:37.968215+01:00 predator php-fpm[3209]: [NOTICE] exiting, bye-bye!
+2026-10-30T13:34:37.974389+01:00 predator systemd[1]: Stopping Post-Boot Actions...
+2026-10-30T13:34:37.974965+01:00 predator systemd[1]: postgresql-setup.service: Deactivated successfully.
+2026-10-30T13:34:37.975274+01:00 predator systemd[1]: Stopped PostgreSQL Setup Scripts.
+2026-10-30T13:34:37.975987+01:00 predator systemd[1]: postgresql-setup.service: Consumed 39ms CPU time over 1h 18min 12.801s wall clock time, 4.8M memory peak, 3.2M read from disk.
+2026-10-30T13:34:37.976241+01:00 predator systemd[1]: Stopping PostgreSQL Server...
+2026-10-30T13:34:37.976360+01:00 predator postgres[1843]: [1843] LOG:  received fast shutdown request
+2026-10-30T13:34:37.976818+01:00 predator systemd[1]: predator-lid-screen.service: Deactivated successfully.
+2026-10-30T13:34:37.977009+01:00 predator systemd[1]: Stopped Set the Predator screen power from the lid state.
+2026-10-30T13:34:37.978035+01:00 predator systemd[1]: Stopping ACPI Daemon...
+2026-10-30T13:34:37.978791+01:00 predator systemd[1]: Stopping Getty on tty1...
+2026-10-30T13:34:37.979423+01:00 predator systemd[1]: predator-pm-clock-handoff.service: Deactivated successfully.
+2026-10-30T13:34:37.979669+01:00 predator systemd[1]: Stopped Restore NTP after initrd networkd hands the LAN to NetworkManager.
+2026-10-30T13:34:37.980543+01:00 predator systemd[1]: predator-pm-clock-handoff.service: Consumed 501ms CPU time over 1h 18min 10.276s wall clock time, 21.7M memory peak, 38.1M read from disk, 8K written to disk.
+2026-10-30T13:34:37.983590+01:00 predator systemd[1]: Stopping Redis Server - redis-nextcloud...
+2026-10-30T13:34:37.984070+01:00 predator systemd[1]: reload-systemd-vconsole-setup.service: Deactivated successfully.
+2026-10-30T13:34:37.984271+01:00 predator systemd[1]: Stopped Reset console on configuration changes.
+2026-10-30T13:34:37.984989+01:00 predator smartd[2170]: smartd received signal 15: Terminated
+2026-10-30T13:34:37.985099+01:00 predator systemd[1]: Stopping S.M.A.R.T. Daemon...
+2026-10-30T13:34:37.985055+01:00 predator smartd[2170]: smartd is exiting (exit status 0)
+2026-10-30T13:34:37.985844+01:00 predator systemd[1]: Stopping SSH Daemon...
+2026-10-30T13:34:37.985744+01:00 predator sshd[1806]: Received signal 15; terminating.
+2026-10-30T13:34:37.987603+01:00 predator systemd[1]: systemd-time-wait-sync.service: Deactivated successfully.
+2026-10-30T13:34:37.987849+01:00 predator systemd[1]: Stopped Wait Until Kernel Time Synchronized.
+2026-10-30T13:34:37.989076+01:00 predator systemd[1]: Stopping Disk Manager...
+2026-10-30T13:34:37.989616+01:00 predator systemd[1]: zfs-share.service: Deactivated successfully.
+2026-10-30T13:34:37.989744+01:00 predator systemd[1]: Stopped ZFS file system shares.
+2026-10-30T13:34:37.991646+01:00 predator systemd[1]: Starting Sync ZFS pool "fast"...
+2026-10-30T13:34:37.993479+01:00 predator systemd[1]: Starting Sync ZFS pool "tank"...
+2026-10-30T13:34:37.994266+01:00 predator zed[18379]: Exiting
+2026-10-30T13:34:37.994454+01:00 predator systemd[1]: Stopping ZFS Event Daemon (zed)...
+2026-10-30T13:34:37.996480+01:00 predator postgres[1843]: [1843] LOG:  aborting any active transactions
+2026-10-30T13:34:37.998831+01:00 predator postgres[1843]: [1843] LOG:  background worker "logical replication launcher" (PID 2008) exited with exit code 1
+2026-10-30T13:34:37.999860+01:00 predator immich_postgres[2716]: 2026-10-30 13:34:37.999 CET [1] LOG:  database system is shut down
+2026-10-30T13:34:38.003973+01:00 predator postgres[1907]: [1907] LOG:  shutting down
+2026-10-30T13:34:38.007908+01:00 predator systemd[1]: nix-daemon.service: Deactivated successfully.
+2026-10-30T13:34:38.008312+01:00 predator systemd[1]: Stopped Nix Daemon.
+2026-10-30T13:34:38.009026+01:00 predator systemd[1]: nix-daemon.service: Consumed 131ms CPU time over 1h 18min 16.487s wall clock time, 10.4M memory peak, 4.2M read from disk, 248K written to disk.
+2026-10-30T13:34:38.009582+01:00 predator systemd[1]: sshd.service: Deactivated successfully.
+2026-10-30T13:34:38.010000+01:00 predator systemd[1]: Stopped SSH Daemon.
+2026-10-30T13:34:38.010642+01:00 predator systemd[1]: sshd.service: Consumed 4.762s CPU time over 1h 18min 15.831s wall clock time, 14.2M memory peak, 5.4M read from disk, 176K written to disk, 7.6M incoming IP traffic, 3M outgoing IP traffic.
+2026-10-30T13:34:38.011007+01:00 predator postgres[1907]: [1907] LOG:  checkpoint starting: shutdown immediate
+2026-10-30T13:34:38.011121+01:00 predator systemd[1]: nginx.service: Deactivated successfully.
+2026-10-30T13:34:38.011556+01:00 predator systemd[1]: Stopped Nginx Web Server.
+2026-10-30T13:34:38.012158+01:00 predator systemd[1]: nginx.service: Consumed 317ms CPU time over 1h 18min 15.860s wall clock time, 17.3M memory peak, 17.2M read from disk, 48K written to disk, 7.3K incoming IP traffic, 19.2K outgoing IP traffic.
+2026-10-30T13:34:38.015175+01:00 predator systemd[1]: getty@tty1.service: Deactivated successfully.
+2026-10-30T13:34:38.015644+01:00 predator systemd[1]: Stopped Getty on tty1.
+2026-10-30T13:34:38.028851+01:00 predator systemd[1]: beszel-agent.service: Deactivated successfully.
+2026-10-30T13:34:38.029296+01:00 predator systemd[1]: Stopped Beszel Server Monitoring Agent.
+2026-10-30T13:34:38.029830+01:00 predator systemd[1]: beszel-agent.service: Consumed 6.869s CPU time over 1h 18min 10.353s wall clock time, 25.3M memory peak, 22.1M read from disk, 60.8K incoming IP traffic, 242.6K outgoing IP traffic.
+2026-10-30T13:34:38.031993+01:00 predator systemd[1]: caddy.service: Deactivated successfully.
+2026-10-30T13:34:38.032477+01:00 predator systemd[1]: Stopped Caddy.
+2026-10-30T13:34:38.032890+01:00 predator systemd[1]: caddy.service: Consumed 1.411s CPU time over 1h 18min 10.349s wall clock time, 60.9M memory peak, 86.2M read from disk, 624K written to disk, 841.9K incoming IP traffic, 217.7K outgoing IP traffic.
+2026-10-30T13:34:38.034632+01:00 predator systemd[1]: smartd.service: Deactivated successfully.
+2026-10-30T13:34:38.035084+01:00 predator systemd[1]: Stopped S.M.A.R.T. Daemon.
+2026-10-30T13:34:38.035546+01:00 predator systemd[1]: smartd.service: Consumed 104ms CPU time over 1h 18min 10.318s wall clock time, 3.6M memory peak, 2.5M read from disk.
+2026-10-30T13:34:38.036132+01:00 predator systemd[1]: beszel-hub.service: Deactivated successfully.
+2026-10-30T13:34:38.036625+01:00 predator systemd[1]: Stopped Beszel Server Monitoring Web App.
+2026-10-30T13:34:38.037016+01:00 predator systemd[1]: beszel-hub.service: Consumed 3.156s CPU time over 1h 18min 10.357s wall clock time, 44.7M memory peak, 53.1M read from disk, 15.7M written to disk, 560.2K incoming IP traffic, 282.2K outgoing IP traffic.
+2026-10-30T13:34:38.039690+01:00 predator systemd[1]: phpfpm-nextcloud.service: Deactivated successfully.
+2026-10-30T13:34:38.040147+01:00 predator systemd[1]: Stopped PHP FastCGI Process Manager service for pool nextcloud.
+2026-10-30T13:34:38.040486+01:00 predator systemd[1]: phpfpm-nextcloud.service: Consumed 2.099s CPU time over 1h 18min 3.046s wall clock time, 71.4M memory peak, 22.6M read from disk, 96K written to disk.
+2026-10-30T13:34:38.045875+01:00 predator systemd[1]: zfs-zed.service: Deactivated successfully.
+2026-10-30T13:34:38.046265+01:00 predator systemd[1]: Stopped ZFS Event Daemon (zed).
+2026-10-30T13:34:38.046647+01:00 predator podman[36347]: 2026-10-30 13:34:38.046492571 +0100 CET m=+0.034924998 container died a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4 (image=ghcr.io/immich-app/postgres@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23, name=immich_postgres, org.opencontainers.image.created=2025-10-07T12:08:54.320Z, org.opencontainers.image.revision=c5095615488fa07469b5df48a3c3e5cebeed7296, org.opencontainers.image.title=base-images, org.opencontainers.image.url=https://github.com/immich-app/base-images, PODMAN_SYSTEMD_UNIT=podman-immich_postgres.service, org.opencontainers.image.source=https://github.com/immich-app/base-images, org.opencontainers.image.description=Base images for Immich containers, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.version=14-vectorchord0.4.3-pgvector0.8.1-pgvectors0.2.0)
+2026-10-30T13:34:38.047221+01:00 predator systemd[1]: fwupd.service: Deactivated successfully.
+2026-10-30T13:34:38.047241+01:00 predator podman[36324]: 2026-10-30 13:34:38.047165981 +0100 CET m=+0.082115454 container died 3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf (image=docker.io/valkey/valkey@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d, name=immich_redis, PODMAN_SYSTEMD_UNIT=podman-immich_redis.service, org.opencontainers.image.source=https://github.com/valkey-io/valkey)
+2026-10-30T13:34:38.047563+01:00 predator systemd[1]: Stopped Firmware update daemon.
+2026-10-30T13:34:38.047832+01:00 predator systemd[1]: fwupd.service: Consumed 997ms CPU time over 34min 21.690s wall clock time, 37.7M memory peak, 53.4M read from disk, 112K written to disk.
+2026-10-30T13:34:38.049210+01:00 predator systemd[1]: udisks2.service: Deactivated successfully.
+2026-10-30T13:34:38.049748+01:00 predator systemd[1]: Stopped Disk Manager.
+2026-10-30T13:34:38.049955+01:00 predator redis[1829]: User requested shutdown...
+2026-10-30T13:34:38.050013+01:00 predator redis[1829]: Saving the final RDB snapshot before exiting.
+2026-10-30T13:34:38.050078+01:00 predator systemd[1]: udisks2.service: Consumed 1.471s CPU time over 34min 21.428s wall clock time, 11.9M memory peak, 12.9M read from disk.
+2026-10-30T13:34:38.050453+01:00 predator redis[1829]: BGSAVE done, 5 keys saved, 0 keys skipped, 477 bytes written.
+2026-10-30T13:34:38.050841+01:00 predator systemd[1]: polkit.service: Deactivated successfully.
+2026-10-30T13:34:38.051238+01:00 predator systemd[1]: Stopped Authorization Manager.
+2026-10-30T13:34:38.051681+01:00 predator systemd[1]: polkit.service: Consumed 328ms CPU time over 34min 21.291s wall clock time, 6.9M memory peak, 4.4M read from disk.
+2026-10-30T13:34:38.053476+01:00 predator systemd[1]: bin.mount: Deactivated successfully.
+2026-10-30T13:34:38.053771+01:00 predator systemd[1]: Unmounted /bin.
+2026-10-30T13:34:38.054744+01:00 predator systemd[1]: Mounted /run/initramfs.
+2026-10-30T13:34:38.055309+01:00 predator systemd[1]: srv-backup-recovery.mount: Deactivated successfully.
+2026-10-30T13:34:38.055614+01:00 predator systemd[1]: Unmounted /srv/backup/recovery.
+2026-10-30T13:34:38.056270+01:00 predator systemd[1]: srv-data-archive.mount: Deactivated successfully.
+2026-10-30T13:34:38.056597+01:00 predator systemd[1]: Unmounted /srv/data/archive.
+2026-10-30T13:34:38.057471+01:00 predator systemd[1]: post-boot.service: Deactivated successfully.
+2026-10-30T13:34:38.057734+01:00 predator systemd[1]: Stopped Post-Boot Actions.
+2026-10-30T13:34:38.058518+01:00 predator systemd[1]: Finished Sync ZFS pool "fast".
+2026-10-30T13:34:38.060181+01:00 predator systemd[1]: libpod-a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4.scope: Deactivated successfully.
+2026-10-30T13:34:38.060594+01:00 predator systemd[1]: Stopped libcrun container.
+2026-10-30T13:34:38.060763+01:00 predator systemd[1]: libpod-a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4.scope: Consumed 16.277s CPU time over 1h 18min 7.941s wall clock time, 147.9M memory peak, 119.3M read from disk, 12.3M written to disk, 1M incoming IP traffic, 6.4M outgoing IP traffic.
+2026-10-30T13:34:38.061642+01:00 predator systemd[1]: libpod-3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf.scope: Deactivated successfully.
+2026-10-30T13:34:38.061996+01:00 predator systemd[1]: Stopped libcrun container.
+2026-10-30T13:34:38.062156+01:00 predator systemd[1]: libpod-3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf.scope: Consumed 16.331s CPU time over 1h 18min 7.672s wall clock time, 24.1M memory peak, 31.9M read from disk, 72K written to disk, 18.2M incoming IP traffic, 30.5M outgoing IP traffic.
+2026-10-30T13:34:38.062627+01:00 predator systemd[1]: libpod-492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5.scope: Deactivated successfully.
+2026-10-30T13:34:38.063105+01:00 predator systemd[1]: Stopped libcrun container.
+2026-10-30T13:34:38.063313+01:00 predator systemd[1]: libpod-492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5.scope: Consumed 43.907s CPU time over 1h 17min 35.732s wall clock time, 1G memory peak, 295.2M read from disk, 36.9M incoming IP traffic, 19.1M outgoing IP traffic.
+2026-10-30T13:34:38.063636+01:00 predator systemd[1]: libpod-ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961.scope: Deactivated successfully.
+2026-10-30T13:34:38.063955+01:00 predator systemd[1]: Stopped libcrun container.
+2026-10-30T13:34:38.064194+01:00 predator systemd[1]: libpod-ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961.scope: Consumed 1min 39.596s CPU time over 1h 18min 7.776s wall clock time, 347.1M memory peak, 184.1M read from disk, 184K written to disk, 318.5K incoming IP traffic, 282.4K outgoing IP traffic.
+2026-10-30T13:34:38.065043+01:00 predator systemd[1]: hermes-backend.service: Deactivated successfully.
+2026-10-30T13:34:38.065307+01:00 predator systemd[1]: Stopped Hermes Agent web dashboard and desktop backend.
+2026-10-30T13:34:38.065730+01:00 predator systemd[1]: hermes-backend.service: Consumed 25.597s CPU time over 1h 18min 10.183s wall clock time, 246.2M memory peak, 116.1M read from disk, 440K written to disk.
+2026-10-30T13:34:38.065962+01:00 predator systemd[1]: run-p2691-i2692.scope: Deactivated successfully.
+2026-10-30T13:34:38.066203+01:00 predator systemd[1]: Stopped [systemd-run] /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/libexec/podman/aardvark-dns --config /run/containers/networks/aardvark-dns -p 53 run.
+2026-10-30T13:34:38.066362+01:00 predator systemd[1]: run-p2691-i2692.scope: Consumed 731ms CPU time over 1h 18min 8.045s wall clock time, 2.9M memory peak, 1.3M read from disk, 597.1K incoming IP traffic, 656.8K outgoing IP traffic.
+2026-10-30T13:34:38.066900+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy2-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.066909+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy2-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy2-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.066916+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy2-energy_performance_preference.path: Failed with result 'resources'.
+2026-10-30T13:34:38.067218+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy3-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.067225+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy3-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy3-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.067231+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy3-energy_performance_preference.path: Failed with result 'resources'.
+2026-10-30T13:34:38.067908+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy4-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.067917+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy4-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy4-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.067923+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy4-energy_performance_preference.path: Failed with result 'resources'.
+2026-10-30T13:34:38.068211+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy5-energy_performance_preference.service/start is destructive (systemd-poweroff.service has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.068218+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy5-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy5-energy_performance_preference.service/start is destructive (systemd-poweroff.service has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.068223+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy5-energy_performance_preference.path: Failed with result 'resources'.
+2026-10-30T13:34:38.068501+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy0-energy_performance_preference.service/start is destructive (poweroff.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.068507+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy0-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy0-energy_performance_preference.service/start is destructive (poweroff.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.068513+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy0-energy_performance_preference.path: Failed with result 'resources'.
+2026-10-30T13:34:38.068789+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy6-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.068796+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy6-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy6-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.068801+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy6-energy_performance_preference.path: Failed with result 'resources'.
+2026-10-30T13:34:38.069311+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy1-energy_performance_preference.service/start is destructive (poweroff.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.069327+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy1-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy1-energy_performance_preference.service/start is destructive (poweroff.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.069339+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy1-energy_performance_preference.path: Failed with result 'resources'.
+2026-10-30T13:34:38.069872+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy7-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.069883+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy7-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy7-energy_performance_preference.service/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.069892+01:00 predator systemd[1]: nixos-sysfs@sys-devices-system-cpu-cpufreq-policy7-energy_performance_preference.path: Failed with result 'resources'.
+2026-10-30T13:34:38.071109+01:00 predator redis[1829]: DB saved on disk
+2026-10-30T13:34:38.071142+01:00 predator redis[1829]: Removing the unix socket file.
+2026-10-30T13:34:38.071166+01:00 predator redis[1829]: Redis is now ready to exit, bye bye...
+2026-10-30T13:34:38.073329+01:00 predator systemd[1]: redis-nextcloud.service: Deactivated successfully.
+2026-10-30T13:34:38.073836+01:00 predator systemd[1]: Stopped Redis Server - redis-nextcloud.
+2026-10-30T13:34:38.074249+01:00 predator systemd[1]: redis-nextcloud.service: Consumed 19.816s CPU time over 1h 18min 15.902s wall clock time, 11.1M memory peak, 11.4M read from disk, 48K written to disk.
+2026-10-30T13:34:38.084089+01:00 predator systemd-logind[1538]: Removed session 42.
+2026-10-30T13:34:38.086294+01:00 predator systemd[1]: Removed slice Slice /system/getty.
+2026-10-30T13:34:38.086938+01:00 predator systemd[1]: Removed slice PHP FastCGI Process Manager Slice.
+2026-10-30T13:34:38.087209+01:00 predator systemd[1]: system-phpfpm.slice: Consumed 2.099s CPU time over 1h 18min 29.280s wall clock time, 71.5M memory peak, 22.6M read from disk, 96K written to disk.
+2026-10-30T13:34:38.087914+01:00 predator systemd[1]: Unmounting /srv/backup...
+2026-10-30T13:34:38.089425+01:00 predator postgres[1907]: [1907] LOG:  checkpoint complete: wrote 10 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.023 s, sync=0.014 s, total=0.086 s; sync files=4, longest=0.007 s, average=0.004 s; distance=58 kB, estimate=123 kB; lsn=0/74DF4218, redo lsn=0/74DF4218
+2026-10-30T13:34:38.089698+01:00 predator systemd[1]: Unmounting /usr/bin...
+2026-10-30T13:34:38.091497+01:00 predator systemd[1]: Unmounting /var/lib/nextcloud/data...
+2026-10-30T13:34:38.091632+01:00 predator systemd[1]: fwupd-efi.service: Deactivated successfully.
+2026-10-30T13:34:38.091834+01:00 predator systemd[1]: Stopped Sign fwupd EFI app.
+2026-10-30T13:34:38.094862+01:00 predator postgres[1843]: [1843] LOG:  database system is shut down
+2026-10-30T13:34:38.102485+01:00 predator systemd[1]: Starting Generate shutdown ramfs...
+2026-10-30T13:34:38.104463+01:00 predator systemd[1]: Stopping Hermes Agent Gateway...
+2026-10-30T13:34:38.105115+01:00 predator hermes[2253]: 2026-10-30 13:34:38,104 WARNING gateway.run: Shutdown context: signal=SIGTERM under_systemd=yes parent_pid=1 parent_name=systemd loadavg_1m=0.20
+2026-10-30T13:34:38.106534+01:00 predator systemd[1]: Stopping Permit User Sessions...
+2026-10-30T13:34:38.109556+01:00 predator systemd[1]: postgresql.service: Deactivated successfully.
+2026-10-30T13:34:38.109951+01:00 predator systemd[1]: Stopped PostgreSQL Server.
+2026-10-30T13:34:38.110255+01:00 predator systemd[1]: postgresql.service: Consumed 4.559s CPU time over 1h 18min 15.949s wall clock time, 59M memory peak, 48.8M read from disk, 37.7M written to disk.
+2026-10-30T13:34:38.113474+01:00 predator acpid[1503]: exiting
+2026-10-30T13:34:38.116491+01:00 predator systemd[1]: acpid.service: Deactivated successfully.
+2026-10-30T13:34:38.117131+01:00 predator systemd[1]: Stopped ACPI Daemon.
+2026-10-30T13:34:38.120445+01:00 predator systemd[1]: usr-bin.mount: Deactivated successfully.
+2026-10-30T13:34:38.120583+01:00 predator systemd[1]: usr-bin.mount: Unit process 541 (mount.envfs) remains running after unit stopped.
+2026-10-30T13:34:38.120892+01:00 predator systemd[1]: Unmounted /usr/bin.
+2026-10-30T13:34:38.121469+01:00 predator systemd[1]: usr-bin.mount: Consumed 302ms CPU time over 1h 18min 28.230s wall clock time, 4.6M memory peak, 2.8M read from disk.
+2026-10-30T13:34:38.122550+01:00 predator systemd[1]: systemd-user-sessions.service: Deactivated successfully.
+2026-10-30T13:34:38.122934+01:00 predator systemd[1]: Stopped Permit User Sessions.
+2026-10-30T13:34:38.129942+01:00 predator systemd[1]: var-lib-nextcloud-data.mount: Deactivated successfully.
+2026-10-30T13:34:38.130623+01:00 predator systemd[1]: Unmounted /var/lib/nextcloud/data.
+2026-10-30T13:34:38.137977+01:00 predator systemd[1]: home-manager-mirsella.service: Deactivated successfully.
+2026-10-30T13:34:38.138391+01:00 predator systemd[1]: Stopped Home Manager environment for mirsella.
+2026-10-30T13:34:38.138832+01:00 predator systemd[1]: home-manager-mirsella.service: Consumed 3.710s CPU time over 1h 18min 17.216s wall clock time, 449.7M memory peak, 378.4M read from disk, 8K written to disk.
+2026-10-30T13:34:38.141069+01:00 predator systemd[1]: Stopping TPM PCR Barrier (User)...
+2026-10-30T13:34:38.156405+01:00 predator podman[36340]: 2026-10-30 13:34:38.156256359 +0100 CET m=+0.146154400 container died 492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5 (image=ghcr.io/immich-app/immich-server@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6, name=immich_server, org.opencontainers.image.created=2026-10-21T18:13:42.816Z, org.opencontainers.image.description=High performance self-hosted photo and video management solution., org.opencontainers.image.url=https://github.com/immich-app/immich, org.opencontainers.image.version=v3.3.5, org.opencontainers.image.licenses=AGPL-3.0, PODMAN_SYSTEMD_UNIT=podman-immich_server.service, org.opencontainers.image.revision=8303cb117e197c700332b33b61b45314c9cc5bb4, org.opencontainers.image.source=https://github.com/immich-app/immich, org.opencontainers.image.title=immich)
+2026-10-30T13:34:38.163679+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for run-p36451-i36452.scope/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.171357+01:00 predator kernel: podman0: port 2(veth1) entered disabled state
+2026-10-30T13:34:38.171447+01:00 predator kernel: veth1 (unregistering): left allmulticast mode
+2026-10-30T13:34:38.171479+01:00 predator kernel: veth1 (unregistering): left promiscuous mode
+2026-10-30T13:34:38.171504+01:00 predator kernel: podman0: port 2(veth1) entered disabled state
+2026-10-30T13:34:38.179399+01:00 predator fail2ban.server[1799]: INFO Shutdown in progress...
+2026-10-30T13:34:38.180135+01:00 predator fail2ban.observer[1799]: INFO Observer stop ... try to end queue 5 seconds
+2026-10-30T13:34:38.193928+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for run-p36463-i36464.scope/start is destructive (systemd-poweroff.service has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.199569+01:00 predator kernel: podman0: port 1(veth0) entered disabled state
+2026-10-30T13:34:38.200335+01:00 predator kernel: veth0 (unregistering): left allmulticast mode
+2026-10-30T13:34:38.200399+01:00 predator kernel: veth0 (unregistering): left promiscuous mode
+2026-10-30T13:34:38.200440+01:00 predator kernel: podman0: port 1(veth0) entered disabled state
+2026-10-30T13:34:38.200408+01:00 predator fail2ban.observer[1799]: INFO Observer stopped, 0 events remaining.
+2026-10-30T13:34:38.213623+01:00 predator systemd-pcrextend[36448]: Extended PCR index 11 with 'shutdown' (banks sha1, sha256).
+2026-10-30T13:34:38.216619+01:00 predator make-initrd-ng[36425]: /etc/initrd-release -> /nix/store/j7n3p8kvpgy8laxr5svxrzvyna6l3p9d-etc-os-release
+2026-10-30T13:34:38.217131+01:00 predator make-initrd-ng[36425]: /etc/os-release -> /nix/store/j7n3p8kvpgy8laxr5svxrzvyna6l3p9d-etc-os-release
+2026-10-30T13:34:38.217131+01:00 predator make-initrd-ng[36425]: /etc/systemd/system-shutdown/zpool -> /nix/store/4rq204dcma6bqw317wpphh3lbi2dk4ck-zpool-sync-shutdown
+2026-10-30T13:34:38.217131+01:00 predator make-initrd-ng[36425]: /shutdown -> /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-shutdown
+2026-10-30T13:34:38.216923+01:00 predator systemd[1]: systemd-pcrphase.service: Deactivated successfully.
+2026-10-30T13:34:38.217380+01:00 predator systemd[1]: Stopped TPM PCR Barrier (User).
+2026-10-30T13:34:38.218625+01:00 predator systemd[1]: Stopped target Remote File Systems.
+2026-10-30T13:34:38.226771+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for run-p36475-i36476.scope/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.231335+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-30T13:34:38.231405+01:00 predator kernel: veth3 (unregistering): left allmulticast mode
+2026-10-30T13:34:38.231446+01:00 predator kernel: veth3 (unregistering): left promiscuous mode
+2026-10-30T13:34:38.231473+01:00 predator kernel: podman0: port 4(veth3) entered disabled state
+2026-10-30T13:34:38.240503+01:00 predator fail2ban.server[1799]: INFO Stopping all jails
+2026-10-30T13:34:38.303137+01:00 predator systemd[1]: Requested transaction contradicts existing jobs: Transaction for run-p36489-i36490.scope/start is destructive (poweroff.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.314362+01:00 predator kernel: podman0: port 3(veth2) entered disabled state
+2026-10-30T13:34:38.314599+01:00 predator kernel: veth2 (unregistering): left allmulticast mode
+2026-10-30T13:34:38.314749+01:00 predator kernel: veth2 (unregistering): left promiscuous mode
+2026-10-30T13:34:38.314860+01:00 predator kernel: podman0: port 3(veth2) entered disabled state
+2026-10-30T13:34:38.351463+01:00 predator dbus-broker-launch[1498]: Activation request for 'org.freedesktop.nm_dispatcher' failed.
+2026-10-30T13:34:38.460642+01:00 predator systemd[1]: generate-shutdown-ramfs.service: Deactivated successfully.
+2026-10-30T13:34:38.462066+01:00 predator systemd[1]: Finished Generate shutdown ramfs.
+2026-10-30T13:34:38.463187+01:00 predator systemd[1]: generate-shutdown-ramfs.service: Consumed 199ms CPU time over 358ms wall clock time, 50M memory peak, 14.7M read from disk.
+2026-10-30T13:34:38.513437+01:00 predator podman[36340]: 2026-10-30 13:34:38.513023797 +0100 CET m=+0.502921884 container remove 492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5 (image=ghcr.io/immich-app/immich-server@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6, name=immich_server, org.opencontainers.image.source=https://github.com/immich-app/immich, org.opencontainers.image.title=immich, PODMAN_SYSTEMD_UNIT=podman-immich_server.service, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.url=https://github.com/immich-app/immich, org.opencontainers.image.description=High performance self-hosted photo and video management solution., org.opencontainers.image.revision=8303cb117e197c700332b33b61b45314c9cc5bb4, org.opencontainers.image.version=v3.3.5, org.opencontainers.image.created=2026-10-21T18:13:42.816Z)
+2026-10-30T13:34:38.513918+01:00 predator podman-immich_server-pre-stop[36340]: Error: cleaning up container 492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5: removing container 492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5 network: netavark: remove aardvark entries: aardvark-dns failed to start: Failed to start transient scope unit: Transaction for run-p36475-i36476.scope/start is destructive (shutdown.target has 'start' job queued, but 'stop' is included in transaction).
+2026-10-30T13:34:38.519587+01:00 predator systemd[1]: podman-immich_server.service: Control process exited, code=exited, status=125/n/a
+2026-10-30T13:34:38.533767+01:00 predator systemd[1]: podman-immich_server.service: Main process exited, code=exited, status=143/n/a
+2026-10-30T13:34:38.630892+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Flush ticket(s) with iptables-multiport
+2026-10-30T13:34:38.663994+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 193.47.62.69
+2026-10-30T13:34:38.664156+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 45.148.10.121
+2026-10-30T13:34:38.664259+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 45.148.10.141
+2026-10-30T13:34:38.664393+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 45.148.10.151
+2026-10-30T13:34:38.664488+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 45.148.10.152
+2026-10-30T13:34:38.664588+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 45.148.10.157
+2026-10-30T13:34:38.664674+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 77.91.71.91
+2026-10-30T13:34:38.664770+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 164.30.17.82
+2026-10-30T13:34:38.664856+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 177.104.140.2
+2026-10-30T13:34:38.664950+01:00 predator fail2ban.actions[1799]: NOTICE [sshd] Repeal Ban 202.165.25.8
+2026-10-30T13:34:38.671014+01:00 predator podman[36347]: 2026-10-30 13:34:38.670564367 +0100 CET m=+0.658996839 container remove a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4 (image=ghcr.io/immich-app/postgres@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23, name=immich_postgres, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.source=https://github.com/immich-app/base-images, org.opencontainers.image.revision=c5095615488fa07469b5df48a3c3e5cebeed7296, org.opencontainers.image.url=https://github.com/immich-app/base-images, org.opencontainers.image.version=14-vectorchord0.4.3-pgvector0.8.1-pgvectors0.2.0, org.opencontainers.image.description=Base images for Immich containers, org.opencontainers.image.title=base-images, PODMAN_SYSTEMD_UNIT=podman-immich_postgres.service, org.opencontainers.image.created=2025-10-07T12:08:54.320Z)
+2026-10-30T13:34:38.712454+01:00 predator podman[36324]: 2026-10-30 13:34:38.711854851 +0100 CET m=+0.746804357 container remove 3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf (image=docker.io/valkey/valkey@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d, name=immich_redis, PODMAN_SYSTEMD_UNIT=podman-immich_redis.service, org.opencontainers.image.source=https://github.com/valkey-io/valkey)
+2026-10-30T13:34:38.740817+01:00 predator systemd[1]: hermes-agent.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-30T13:34:38.741378+01:00 predator systemd[1]: hermes-agent.service: Failed with result 'exit-code'.
+2026-10-30T13:34:38.747951+01:00 predator systemd[1]: Stopped Hermes Agent Gateway.
+2026-10-30T13:34:38.749353+01:00 predator systemd[1]: hermes-agent.service: Consumed 1min 35.562s CPU time over 1h 18min 11.029s wall clock time, 437.7M memory peak, 287.2M read from disk, 9.3M written to disk, 6.8M incoming IP traffic, 1.6M outgoing IP traffic.
+2026-10-30T13:34:38.751907+01:00 predator systemd[1]: podman-immich_server.service: Failed with result 'exit-code'.
+2026-10-30T13:34:38.753766+01:00 predator systemd[1]: Stopped podman-immich_server.service.
+2026-10-30T13:34:38.754946+01:00 predator systemd[1]: podman-immich_server.service: Consumed 1.307s CPU time over 1h 17min 37.130s wall clock time, 24.6M memory peak, 3.9M read from disk, 664K written to disk, 936B outgoing IP traffic.
+2026-10-30T13:34:38.761131+01:00 predator systemd[1]: Unmounting /srv/data/fast...
+2026-10-30T13:34:38.762854+01:00 predator systemd[1]: Stopping Private browser viewer, on-demand startup and idle cleanup...
+2026-10-30T13:34:38.764290+01:00 predator systemd[1]: Stopping Unlocked personal Secret Service for Proton account tools...
+2026-10-30T13:34:38.765317+01:00 predator systemd[1]: Stopping Sleev inference gateway...
+2026-10-30T13:34:38.767780+01:00 predator camofox-browser[1580]: {"ts":"2026-10-30T12:34:38.767Z","level":"info","msg":"req","reqId":"499cfc59","method":"GET","path":"/","userId":"-"}
+2026-10-30T13:34:38.770959+01:00 predator systemd[1]: hermes-secret-service.service: Deactivated successfully.
+2026-10-30T13:34:38.772720+01:00 predator systemd[1]: Stopped Unlocked personal Secret Service for Proton account tools.
+2026-10-30T13:34:38.773542+01:00 predator systemd[1]: hermes-secret-service.service: Consumed 95ms CPU time over 1h 18min 15.913s wall clock time, 7.2M memory peak, 8.1M read from disk.
+2026-10-30T13:34:38.775264+01:00 predator camofox-browser[1580]: {"ts":"2026-10-30T12:34:38.775Z","level":"info","msg":"res","reqId":"499cfc59","status":200,"ms":8}
+2026-10-30T13:34:38.776882+01:00 predator systemd[1]: Stopping User Manager for UID 1000...
+2026-10-30T13:34:38.781755+01:00 predator systemd[1697]: Activating special unit Exit the Session...
+2026-10-30T13:34:38.782349+01:00 predator systemd[1]: hermes-browser-control.service: Deactivated successfully.
+2026-10-30T13:34:38.783856+01:00 predator systemd[1]: Stopped Private browser viewer, on-demand startup and idle cleanup.
+2026-10-30T13:34:38.785182+01:00 predator systemd[1]: hermes-browser-control.service: Consumed 204ms CPU time over 1h 18min 17.627s wall clock time, 4.2M memory peak, 4.2M read from disk, 8K written to disk, 1.8K incoming IP traffic, 1.9K outgoing IP traffic.
+2026-10-30T13:34:38.792305+01:00 predator systemd[1697]: Removed slice User Background Tasks Slice.
+2026-10-30T13:34:38.793029+01:00 predator systemd[1697]: Stopped target Bluetooth.
+2026-10-30T13:34:38.793704+01:00 predator systemd[1697]: Stopped target Main User Target.
+2026-10-30T13:34:38.796865+01:00 predator systemd[1697]: Stopping T3 Code server...
+2026-10-30T13:34:38.800661+01:00 predator camofox-browser[1580]: {"ts":"2026-10-30T12:34:38.799Z","level":"info","msg":"shutting down","signal":"SIGTERM"}
+2026-10-30T13:34:38.800799+01:00 predator atuin[1864]: Shutting down gRPC server...
+2026-10-30T13:34:38.798749+01:00 predator systemd[1697]: Stopping Atuin daemon...
+2026-10-30T13:34:38.805943+01:00 predator camofox-browser[1580]: {"ts":"2026-10-30T12:34:38.801Z","level":"info","msg":"killing vnc watcher on shutdown"}
+2026-10-30T13:34:38.799435+01:00 predator systemd[1]: Stopping Private lazy Camofox browser and virtual display...
+2026-10-30T13:34:38.800219+01:00 predator systemd[1697]: Stopping Language server multiplexer server...
+2026-10-30T13:34:38.803291+01:00 predator systemd[1697]: Stopped Run user-specific NixOS activation.
+2026-10-30T13:34:38.806084+01:00 predator systemd[1697]: Stopping OpenCode server...
+2026-10-30T13:34:38.814130+01:00 predator systemd[1697]: Stopped Language server multiplexer server.
+2026-10-30T13:34:38.825502+01:00 predator systemd[1]: var-lib-containers-storage-overlay-b0a276dd106f9d5494a01fa2024bd332685ae843acfee8e01c9658538251d39a-merged.mount: Deactivated successfully.
+2026-10-30T13:34:38.825714+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay/b0a276dd106f9d5494a01fa2024bd332685ae843acfee8e01c9658538251d39a/merged.
+2026-10-30T13:34:38.829359+01:00 predator systemd[1]: run-netns-netns\x2da7788f2e\x2dcbe7\x2d102a\x2d578a\x2d716cf8b6e3c8.mount: Deactivated successfully.
+2026-10-30T13:34:38.829515+01:00 predator systemd[1]: Unmounted /run/netns/netns-a7788f2e-cbe7-102a-578a-716cf8b6e3c8.
+2026-10-30T13:34:38.832129+01:00 predator systemd[1]: var-lib-containers-storage-overlay\x2dcontainers-492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5-userdata-shm.mount: Deactivated successfully.
+2026-10-30T13:34:38.832256+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay-containers/492afc7682a218a932e2a4321e4c24f3b04e922fb82b4b38a935adc59dcf18a5/userdata/shm.
+2026-10-30T13:34:38.834793+01:00 predator systemd[1]: var-lib-containers-storage-overlay-258154d2e8287e111c43822c94b4b00fea8ed53fb8b87d3a1b8333f8cef37820-merged.mount: Deactivated successfully.
+2026-10-30T13:34:38.834925+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay/258154d2e8287e111c43822c94b4b00fea8ed53fb8b87d3a1b8333f8cef37820/merged.
+2026-10-30T13:34:38.838608+01:00 predator systemd[1]: run-netns-netns\x2dfd8b14c1\x2df0ff\x2d3a01\x2da4af\x2d4a17e42f99b4.mount: Deactivated successfully.
+2026-10-30T13:34:38.838782+01:00 predator systemd[1]: Unmounted /run/netns/netns-fd8b14c1-f0ff-3a01-a4af-4a17e42f99b4.
+2026-10-30T13:34:38.841701+01:00 predator systemd[1]: var-lib-containers-storage-overlay\x2dcontainers-ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961-userdata-shm.mount: Deactivated successfully.
+2026-10-30T13:34:38.841848+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay-containers/ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961/userdata/shm.
+2026-10-30T13:34:38.844879+01:00 predator systemd[1]: var-lib-containers-storage-overlay-344c1cf025a31e38d2940eb0969f2d36efbf2879949239d5ce599520e7fc93c0-merged.mount: Deactivated successfully.
+2026-10-30T13:34:38.845009+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay/344c1cf025a31e38d2940eb0969f2d36efbf2879949239d5ce599520e7fc93c0/merged.
+2026-10-30T13:34:38.847792+01:00 predator systemd[1]: run-netns-netns\x2d3d446a6f\x2d458d\x2da4f7\x2d4eb5\x2dfbb603bc5346.mount: Deactivated successfully.
+2026-10-30T13:34:38.847942+01:00 predator systemd[1]: Unmounted /run/netns/netns-3d446a6f-458d-a4f7-4eb5-fbb603bc5346.
+2026-10-30T13:34:38.850555+01:00 predator systemd[1]: var-lib-containers-storage-overlay\x2dcontainers-a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4-userdata-shm.mount: Deactivated successfully.
+2026-10-30T13:34:38.850690+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay-containers/a6befa4edf3f60fd63114cc7a13e0b499406e7940cc1dea1604891c2fa6870d4/userdata/shm.
+2026-10-30T13:34:38.854753+01:00 predator systemd[1]: var-lib-containers-storage-overlay-632f1fc877e2dfb59ce51bc49bcc60b9f89dd463273fcb782ad2934a38e1c138-merged.mount: Deactivated successfully.
+2026-10-30T13:34:38.854891+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay/632f1fc877e2dfb59ce51bc49bcc60b9f89dd463273fcb782ad2934a38e1c138/merged.
+2026-10-30T13:34:38.856760+01:00 predator sleeve-gateway[2164]: 13:34:38  i  gateway      shutdown
+2026-10-30T13:34:38.857743+01:00 predator systemd[1]: run-netns-netns\x2d734a316f\x2d7e8e\x2d507d\x2d2cd5\x2d12abe10f3890.mount: Deactivated successfully.
+2026-10-30T13:34:38.857883+01:00 predator systemd[1]: Unmounted /run/netns/netns-734a316f-7e8e-507d-2cd5-12abe10f3890.
+2026-10-30T13:34:38.860494+01:00 predator systemd[1]: var-lib-containers-storage-overlay\x2dcontainers-3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf-userdata-shm.mount: Deactivated successfully.
+2026-10-30T13:34:38.860618+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay-containers/3a3566605de13a3062373fc180d5043832664a0968976e0fb5a2129f925c8edf/userdata/shm.
+2026-10-30T13:34:38.863228+01:00 predator systemd[1]: var-lib-containers-storage-overlay.mount: Deactivated successfully.
+2026-10-30T13:34:38.863382+01:00 predator systemd[1]: Unmounted /var/lib/containers/storage/overlay.
+2026-10-30T13:34:38.865907+01:00 predator systemd[1]: srv-data-fast.mount: Deactivated successfully.
+2026-10-30T13:34:38.867747+01:00 predator systemd[1]: Unmounted /srv/data/fast.
+2026-10-30T13:34:38.885080+01:00 predator systemd[1697]: Stopped Atuin daemon.
+2026-10-30T13:34:38.886784+01:00 predator systemd[1697]: atuin-daemon.service: Consumed 2min 45.245s CPU time over 1h 18min 16.031s wall clock time, 143.2M memory peak.
+2026-10-30T13:34:38.891880+01:00 predator systemd[1]: camofox-browser.service: Killing process 2040 (sh) with signal SIGKILL.
+2026-10-30T13:34:38.892223+01:00 predator systemd[1]: camofox-browser.service: Killing process 2045 (.websockify-wra) with signal SIGKILL.
+2026-10-30T13:34:38.892570+01:00 predator systemd[1]: camofox-browser.service: Killing process 36256 (sleep) with signal SIGKILL.
+2026-10-30T13:34:38.902241+01:00 predator systemd[1]: camofox-browser.service: Deactivated successfully.
+2026-10-30T13:34:38.903907+01:00 predator systemd[1]: Stopped Private lazy Camofox browser and virtual display.
+2026-10-30T13:34:38.906340+01:00 predator systemd[1]: camofox-browser.service: Consumed 2min 2.126s CPU time over 1h 18min 17.757s wall clock time, 277M memory peak, 194.5M read from disk, 8K written to disk, 870B incoming IP traffic, 1.1K outgoing IP traffic.
+2026-10-30T13:34:38.910063+01:00 predator systemd[1]: hermes-network-isolation.service: Deactivated successfully.
+2026-10-30T13:34:38.910920+01:00 predator systemd[1]: Stopped Deny browser access to private networks and raw browser ports.
+2026-10-30T13:34:38.914537+01:00 predator systemd[1]: hermes-network-isolation.service: Consumed 59ms CPU time over 1h 18min 17.999s wall clock time, 6M memory peak, 4M read from disk.
+2026-10-30T13:34:38.946453+01:00 predator systemd[1]: podman-immich_postgres.service: Deactivated successfully.
+2026-10-30T13:34:38.947430+01:00 predator systemd[1]: Stopped podman-immich_postgres.service.
+2026-10-30T13:34:38.949144+01:00 predator systemd[1]: podman-immich_postgres.service: Consumed 955ms CPU time over 1h 18min 11.259s wall clock time, 36.2M memory peak, 41.3M read from disk, 2M written to disk, 992B outgoing IP traffic.
+2026-10-30T13:34:38.957998+01:00 predator sleeve-gateway[2164]: 13:34:38  i  gateway      shutdown
+2026-10-30T13:34:38.960623+01:00 predator podman[36294]: 2026-10-30 13:34:38.960396884 +0100 CET m=+1.051511937 container remove ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961 (image=ghcr.io/immich-app/immich-machine-learning@sha256:5b28c9352c8374b8a1ed96fbdd8d6755fea6e43510ec43fdf6538aa02ea40f56, name=immich_ml, org.opencontainers.image.revision=8303cb117e197c700332b33b61b45314c9cc5bb4, org.opencontainers.image.url=https://github.com/immich-app/immich, PODMAN_SYSTEMD_UNIT=podman-immich_ml.service, org.opencontainers.image.licenses=AGPL-3.0, org.opencontainers.image.source=https://github.com/immich-app/immich, org.opencontainers.image.description=High performance self-hosted photo and video management solution., org.opencontainers.image.title=immich, org.opencontainers.image.version=v3.3.5, org.opencontainers.image.created=2026-10-21T18:13:44.122Z)
+2026-10-30T13:34:38.961807+01:00 predator podman-immich_ml-pre-stop[36341]: Error: no container with ID ac52ecb0aabfa1aba17635199b6f901b38d63ede1e5205f7d99c424d6bca7961 found in database: no such container
+2026-10-30T13:34:38.968594+01:00 predator systemd[1]: podman-immich_ml.service: Main process exited, code=exited, status=143/n/a
+2026-10-30T13:34:38.971229+01:00 predator sleeve-gateway[2164]: 13:34:38  i  gateway      stopped
+2026-10-30T13:34:38.972648+01:00 predator sleeve-gateway[2164]: 13:34:38  i  gateway      stopped        Finished server process [2164]
+2026-10-30T13:34:38.973772+01:00 predator systemd[1697]: opencode.service: Main process exited, code=exited, status=130/n/a
+2026-10-30T13:34:38.974125+01:00 predator systemd[1697]: opencode.service: Failed with result 'exit-code'.
+2026-10-30T13:34:38.974822+01:00 predator systemd[1697]: Stopped OpenCode server.
+2026-10-30T13:34:38.974880+01:00 predator systemd[1]: podman-immich_ml.service: Control process exited, code=exited, status=125/n/a
+2026-10-30T13:34:38.975182+01:00 predator systemd[1697]: opencode.service: Consumed 59.181s CPU time over 1h 18min 16.086s wall clock time, 134.5M memory peak.
+2026-10-30T13:34:38.987219+01:00 predator systemd[1]: sleev-gateway.service: Deactivated successfully.
+2026-10-30T13:34:38.987886+01:00 predator systemd[1]: Stopped Sleev inference gateway.
+2026-10-30T13:34:38.989198+01:00 predator systemd[1]: sleev-gateway.service: Consumed 15.997s CPU time over 1h 18min 11.279s wall clock time, 147M memory peak, 159.8M read from disk, 1.2M written to disk, 803.8K incoming IP traffic, 1013K outgoing IP traffic.
+2026-10-30T13:34:39.020556+01:00 predator systemd[1]: var-lib-containers-storage-overlay.mount: Deactivated successfully.
+2026-10-30T13:34:39.021712+01:00 predator systemd[1]: podman-immich_redis.service: Deactivated successfully.
+2026-10-30T13:34:39.022501+01:00 predator systemd[1]: Stopped podman-immich_redis.service.
+2026-10-30T13:34:39.023564+01:00 predator systemd[1]: podman-immich_redis.service: Consumed 899ms CPU time over 1h 18min 11.325s wall clock time, 27.5M memory peak, 24.6M read from disk, 608K written to disk, 992B outgoing IP traffic.
+2026-10-30T13:34:39.034212+01:00 predator systemd[1]: var-lib-containers-storage-overlay.mount: Deactivated successfully.
+2026-10-30T13:34:39.036135+01:00 predator systemd[1]: podman-immich_ml.service: Failed with result 'exit-code'.
+2026-10-30T13:34:39.036795+01:00 predator systemd[1]: Stopped podman-immich_ml.service.
+2026-10-30T13:34:39.037865+01:00 predator systemd[1]: podman-immich_ml.service: Consumed 733ms CPU time over 1h 18min 11.351s wall clock time, 34.9M memory peak, 26.4M read from disk, 656K written to disk, 992B outgoing IP traffic.
+2026-10-30T13:34:39.039018+01:00 predator systemd[1]: Stopped target Network is Online.
+2026-10-30T13:34:39.040041+01:00 predator systemd[1]: NetworkManager-wait-online.service: Deactivated successfully.
+2026-10-30T13:34:39.040408+01:00 predator systemd[1]: Stopped Network Manager Wait Online.
+2026-10-30T13:34:39.041538+01:00 predator systemd[1]: NetworkManager-wait-online.service: Consumed 86ms CPU time over 1h 18min 16.920s wall clock time, 2.8M memory peak, 1M read from disk.
+2026-10-30T13:34:39.042361+01:00 predator fail2ban.jail[1799]: INFO Jail 'sshd' stopped
+2026-10-30T13:34:39.043253+01:00 predator fail2ban.database[1799]: INFO Connection to database closed.
+2026-10-30T13:34:39.043413+01:00 predator fail2ban.server[1799]: INFO Exiting Fail2ban
+2026-10-30T13:34:39.043722+01:00 predator fail2ban-client[36321]: Shutdown successful
+2026-10-30T13:34:39.050788+01:00 predator systemd[1]: srv-backup.mount: Deactivated successfully.
+2026-10-30T13:34:39.051376+01:00 predator systemd[1]: Unmounted /srv/backup.
+2026-10-30T13:34:39.053493+01:00 predator systemd[1]: Finished Sync ZFS pool "tank".
+2026-10-30T13:34:39.079308+01:00 predator systemd[1]: fail2ban.service: Deactivated successfully.
+2026-10-30T13:34:39.079918+01:00 predator systemd[1]: Stopped Fail2Ban Service.
+2026-10-30T13:34:39.081103+01:00 predator systemd[1]: fail2ban.service: Consumed 5.301s CPU time over 1h 18min 16.940s wall clock time, 39.1M memory peak, 16.6M read from disk, 1.4M written to disk.
+2026-10-30T13:34:39.083210+01:00 predator systemd[1]: Stopped target Network.
+2026-10-30T13:34:39.084496+01:00 predator systemd[1]: Stopping Network Manager...
+2026-10-30T13:34:39.085660+01:00 predator systemd[1]: network-local-commands.service: Deactivated successfully.
+2026-10-30T13:34:39.086028+01:00 predator systemd[1]: Stopped Extra networking commands..
+2026-10-30T13:34:39.087530+01:00 predator systemd[1]: Stopping WPA Supplicant instance...
+2026-10-30T13:34:39.089347+01:00 predator dbus-broker-launch[1498]: Activation request for 'org.freedesktop.nm_dispatcher' failed.
+2026-10-30T13:34:39.093251+01:00 predator wpa_supplicant[1706]: p2p-dev-wlp2s0: CTRL-EVENT-DSCP-POLICY clear_all
+2026-10-30T13:34:39.093402+01:00 predator wpa_supplicant[1706]: p2p-dev-wlp2s0: CTRL-EVENT-DSCP-POLICY clear_all
+2026-10-30T13:34:39.093419+01:00 predator wpa_supplicant[1706]: nl80211: deinit ifname=p2p-dev-wlp2s0 disabled_11b_rates=0
+2026-10-30T13:34:39.165094+01:00 predator wpa_supplicant[1706]: p2p-dev-wlp2s0: CTRL-EVENT-TERMINATING
+2026-10-30T13:34:39.165489+01:00 predator wpa_supplicant[1706]: wlp2s0: CTRL-EVENT-DSCP-POLICY clear_all
+2026-10-30T13:34:39.384259+01:00 predator wpa_supplicant[1706]: wlp2s0: CTRL-EVENT-DSCP-POLICY clear_all
+2026-10-30T13:34:39.384280+01:00 predator wpa_supplicant[1706]: nl80211: deinit ifname=wlp2s0 disabled_11b_rates=0
+2026-10-30T13:34:39.384576+01:00 predator wpa_supplicant[1706]: wlp2s0: CTRL-EVENT-TERMINATING
+2026-10-30T13:34:39.391091+01:00 predator systemd[1]: wpa_supplicant.service: Deactivated successfully.
+2026-10-30T13:34:39.392203+01:00 predator systemd[1]: Stopped WPA Supplicant instance.
+2026-10-30T13:34:39.394396+01:00 predator systemd[1]: wpa_supplicant.service: Consumed 1.024s CPU time over 1h 18min 18.402s wall clock time, 7.3M memory peak, 8.6M read from disk.
+2026-10-30T13:34:39.399579+01:00 predator dbus-broker-launch[1498]: Activation request for 'org.freedesktop.nm_dispatcher' failed.
+2026-10-30T13:34:39.442221+01:00 predator systemd[1]: NetworkManager.service: Deactivated successfully.
+2026-10-30T13:34:39.443236+01:00 predator systemd[1]: Stopped Network Manager.
+2026-10-30T13:34:39.445397+01:00 predator systemd[1]: NetworkManager.service: Consumed 1.980s CPU time over 1h 18min 18.127s wall clock time, 15.2M memory peak, 13M read from disk, 80K written to disk, 17.3K incoming IP traffic, 96B outgoing IP traffic.
+2026-10-30T13:34:39.448923+01:00 predator systemd[1]: Stopped target Preparation for Network.
+2026-10-30T13:34:39.454054+01:00 predator systemd[1]: Stopping Firewall...
+2026-10-30T13:34:39.455404+01:00 predator systemd[1]: resolvconf.service: Deactivated successfully.
+2026-10-30T13:34:39.455805+01:00 predator systemd[1]: Stopped resolvconf update.
+2026-10-30T13:34:39.574465+01:00 predator systemd[1]: firewall.service: Deactivated successfully.
+2026-10-30T13:34:39.575245+01:00 predator systemd[1]: Stopped Firewall.
+2026-10-30T13:34:40.883617+01:00 predator systemd[1697]: Stopped T3 Code server.
+2026-10-30T13:34:40.883897+01:00 predator systemd[1697]: t3code.service: Consumed 54.265s CPU time over 1h 18min 18.036s wall clock time, 1.1G memory peak.
+2026-10-30T13:34:40.884571+01:00 predator systemd[1697]: Stopped target Basic System.
+2026-10-30T13:34:40.884890+01:00 predator systemd[1697]: Stopped target Paths.
+2026-10-30T13:34:40.888961+01:00 predator systemd[1697]: Stopped Sync agent settings when their local inputs change.
+2026-10-30T13:34:40.890139+01:00 predator systemd[1697]: Stopped target Sockets.
+2026-10-30T13:34:40.890700+01:00 predator systemd[1697]: Stopped target Timers.
+2026-10-30T13:34:40.891194+01:00 predator systemd[1697]: Stopped Apply migration backup retention weekly.
+2026-10-30T13:34:40.891666+01:00 predator systemd[1697]: Stopped Daily Cleanup of User's Temporary Directories.
+2026-10-30T13:34:40.892231+01:00 predator systemd[1697]: Closed Atuin daemon socket.
+2026-10-30T13:34:40.892832+01:00 predator systemd[1697]: Closed Podman API Socket.
+2026-10-30T13:34:40.893490+01:00 predator dbus-broker[1894]: Dispatched 896 messages @ 3(±4)μs / message.
+2026-10-30T13:34:40.896049+01:00 predator systemd[1697]: Stopping D-Bus User Message Bus...
+2026-10-30T13:34:40.896229+01:00 predator systemd[1697]: Stopped Create User Files and Directories.
+2026-10-30T13:34:40.899564+01:00 predator systemd[1697]: Stopped D-Bus User Message Bus.
+2026-10-30T13:34:40.900781+01:00 predator systemd[1697]: Removed slice User Core Session Slice.
+2026-10-30T13:34:40.901816+01:00 predator systemd[1697]: Closed D-Bus User Message Bus Socket.
+2026-10-30T13:34:40.902586+01:00 predator systemd[1697]: Removed slice User Application Slice.
+2026-10-30T13:34:40.902656+01:00 predator systemd[1697]: app.slice: Consumed 4min 39.104s CPU time over 1h 18min 18.261s wall clock time, 1.4G memory peak.
+2026-10-30T13:34:40.903402+01:00 predator systemd[1697]: Reached target Shutdown.
+2026-10-30T13:34:40.904072+01:00 predator systemd[1697]: Finished Exit the Session.
+2026-10-30T13:34:40.904629+01:00 predator systemd[1697]: Reached target Exit the Session.
+2026-10-30T13:34:40.941590+01:00 predator (sd-pam)[1726]: pam_unix(systemd-user:session): session closed for user mirsella
+2026-10-30T13:34:40.944482+01:00 predator systemd[1]: user@1000.service: Deactivated successfully.
+2026-10-30T13:34:40.945851+01:00 predator systemd[1]: Stopped User Manager for UID 1000.
+2026-10-30T13:34:40.947707+01:00 predator systemd[1]: user@1000.service: Consumed 4min 40.306s CPU time over 1h 18min 19.572s wall clock time, 1.5G memory peak, 934.2M read from disk, 89.8M written to disk, 22.2M incoming IP traffic, 8.8M outgoing IP traffic.
+2026-10-30T13:34:40.948889+01:00 predator systemd-logind[1538]: Removed session 1.
+2026-10-30T13:34:40.951124+01:00 predator systemd[1]: Stopping Userspace Out-Of-Memory (OOM) Killer...
+2026-10-30T13:34:40.956252+01:00 predator systemd[1]: Stopping User Runtime Directory /run/user/1000...
+2026-10-30T13:34:40.960057+01:00 predator systemd[1]: systemd-oomd.service: Deactivated successfully.
+2026-10-30T13:34:40.960975+01:00 predator systemd[1]: Stopped Userspace Out-Of-Memory (OOM) Killer.
+2026-10-30T13:34:40.995240+01:00 predator systemd[1]: run-user-1000.mount: Deactivated successfully.
+2026-10-30T13:34:40.995363+01:00 predator systemd[1]: Unmounted /run/user/1000.
+2026-10-30T13:34:40.998694+01:00 predator systemd[1]: user-runtime-dir@1000.service: Deactivated successfully.
+2026-10-30T13:34:40.999381+01:00 predator systemd[1]: Stopped User Runtime Directory /run/user/1000.
+2026-10-30T13:34:41.003947+01:00 predator systemd[1]: Removed slice Slice /user/1000.
+2026-10-30T13:34:41.005796+01:00 predator systemd[1]: user-1000.slice: Consumed 4min 52.570s CPU time over 1h 18min 32.192s wall clock time, 1.5G memory peak, 1.1G read from disk, 170.3M written to disk, 22.2M incoming IP traffic, 8.8M outgoing IP traffic.
+2026-10-30T13:34:41.006461+01:00 predator systemd[1]: Stopping User Login Management...
+2026-10-30T13:34:41.033985+01:00 predator systemd[1]: systemd-logind.service: Deactivated successfully.
+2026-10-30T13:34:41.034711+01:00 predator systemd[1]: Stopped User Login Management.
+2026-10-30T13:34:41.036356+01:00 predator systemd[1]: systemd-logind.service: Consumed 27.434s CPU time over 1h 18min 19.957s wall clock time, 5.1M memory peak, 944K read from disk.
+2026-10-30T13:34:41.040613+01:00 predator systemd[1]: Stopped target User and Group Name Lookups.
+2026-10-30T13:34:41.043433+01:00 predator systemd[1]: Stopping Name Service Cache Daemon (nsncd)...
+2026-10-30T13:34:41.046265+01:00 predator systemd[1]: nscd.service: Deactivated successfully.
+2026-10-30T13:34:41.047039+01:00 predator systemd[1]: Stopped Name Service Cache Daemon (nsncd).
+2026-10-30T13:34:41.048833+01:00 predator systemd[1]: nscd.service: Consumed 1.700s CPU time over 43min 28.756s wall clock time, 3.6M memory peak, 477K incoming IP traffic, 255.4K outgoing IP traffic.
+2026-10-30T13:34:41.053943+01:00 predator systemd[1]: Stopped target Basic System.
+2026-10-30T13:34:41.056145+01:00 predator systemd[1]: Stopped target Path Units.
+2026-10-30T13:34:41.057800+01:00 predator systemd[1]: Stopped target Slice Units.
+2026-10-30T13:34:41.060003+01:00 predator systemd[1]: Removed slice Virtual Machine and Container Slice.
+2026-10-30T13:34:41.061582+01:00 predator systemd[1]: machine.slice: Consumed 2min 56.112s CPU time over 1h 18min 10.950s wall clock time, 1.5G memory peak, 630.6M read from disk, 12.6M written to disk, 56.5M incoming IP traffic, 56.4M outgoing IP traffic.
+2026-10-30T13:34:41.062384+01:00 predator systemd[1]: Removed slice User and Session Slice.
+2026-10-30T13:34:41.063867+01:00 predator systemd[1]: user.slice: Consumed 4min 52.570s CPU time over 1h 18min 32.252s wall clock time, 1.5G memory peak, 1.1G read from disk, 170.3M written to disk, 22.2M incoming IP traffic, 8.8M outgoing IP traffic.
+2026-10-30T13:34:41.064020+01:00 predator systemd[1]: Stopped target Socket Units.
+2026-10-30T13:34:41.065811+01:00 predator systemd[1]: fail2ban.socket: Deactivated successfully.
+2026-10-30T13:34:41.066656+01:00 predator systemd[1]: Closed Fail2Ban Socket.
+2026-10-30T13:34:41.068371+01:00 predator systemd[1]: nix-daemon.socket: Deactivated successfully.
+2026-10-30T13:34:41.068642+01:00 predator systemd[1]: Closed Nix Daemon Socket.
+2026-10-30T13:34:41.070469+01:00 predator systemd[1]: podman.socket: Deactivated successfully.
+2026-10-30T13:34:41.071208+01:00 predator systemd[1]: Closed Podman API Socket.
+2026-10-30T13:34:41.072819+01:00 predator systemd[1]: polkit-agent-helper.socket: Deactivated successfully.
+2026-10-30T13:34:41.073106+01:00 predator systemd[1]: Closed Authorization Manager Agent Helper.
+2026-10-30T13:34:41.074931+01:00 predator systemd[1]: sshd-unix-local.socket: Deactivated successfully.
+2026-10-30T13:34:41.075173+01:00 predator systemd[1]: Closed OpenSSH Server Socket (systemd-ssh-generator, AF_UNIX Local).
+2026-10-30T13:34:41.076704+01:00 predator systemd[1]: systemd-hostnamed.socket: Deactivated successfully.
+2026-10-30T13:34:41.076942+01:00 predator systemd[1]: Closed Hostname Service Socket.
+2026-10-30T13:34:41.078430+01:00 predator systemd[1]: systemd-importd.socket: Deactivated successfully.
+2026-10-30T13:34:41.078665+01:00 predator systemd[1]: Closed Disk Image Download Service Socket.
+2026-10-30T13:34:41.080131+01:00 predator systemd[1]: systemd-machined.socket: Deactivated successfully.
+2026-10-30T13:34:41.080374+01:00 predator systemd[1]: Closed Virtual Machine and Container Registration Service Socket.
+2026-10-30T13:34:41.081851+01:00 predator systemd[1]: systemd-mute-console.socket: Deactivated successfully.
+2026-10-30T13:34:41.082075+01:00 predator systemd[1]: Closed Console Output Muting Service Socket.
+2026-10-30T13:34:41.083865+01:00 predator systemd[1]: systemd-oomd.socket: Deactivated successfully.
+2026-10-30T13:34:41.084113+01:00 predator systemd[1]: Closed Userspace Out-Of-Memory (OOM) Killer Socket.
+2026-10-30T13:34:41.085741+01:00 predator systemd[1]: systemd-repart.socket: Deactivated successfully.
+2026-10-30T13:34:41.086111+01:00 predator systemd[1]: Closed Disk Repartitioning Service Socket.
+2026-10-30T13:34:41.088047+01:00 predator dbus-broker[1501]: Dispatched 36572 messages @ 10(±8)μs / message.
+2026-10-30T13:34:41.090543+01:00 predator systemd[1]: Stopping D-Bus System Message Bus...
+2026-10-30T13:34:41.094828+01:00 predator systemd[1]: Stopping TPM PCR Barrier (Initialization)...
+2026-10-30T13:34:41.097241+01:00 predator systemd[1]: dbus-broker.service: Deactivated successfully.
+2026-10-30T13:34:41.098066+01:00 predator systemd[1]: Stopped D-Bus System Message Bus.
+2026-10-30T13:34:41.099555+01:00 predator systemd[1]: dbus-broker.service: Consumed 2.970s CPU time over 1h 18min 20.313s wall clock time, 8.5M memory peak, 8.4M read from disk.
+2026-10-30T13:34:41.103602+01:00 predator systemd[1]: dbus.socket: Deactivated successfully.
+2026-10-30T13:34:41.103816+01:00 predator systemd[1]: Closed D-Bus System Message Bus Socket.
+2026-10-30T13:34:41.188791+01:00 predator systemd-pcrextend[36685]: Extended PCR index 11 with 'final' (banks sha1, sha256).
+2026-10-30T13:34:41.192779+01:00 predator systemd[1]: systemd-pcrphase-sysinit.service: Deactivated successfully.
+2026-10-30T13:34:41.193609+01:00 predator systemd[1]: Stopped TPM PCR Barrier (Initialization).
+2026-10-30T13:34:41.196190+01:00 predator systemd[1]: Stopped target System Initialization.
+2026-10-30T13:34:41.197698+01:00 predator systemd[1]: Stopped target Local Encrypted Volumes.
+2026-10-30T13:34:41.198886+01:00 predator systemd[1]: systemd-ask-password-console.path: Deactivated successfully.
+2026-10-30T13:34:41.199578+01:00 predator systemd[1]: Stopped Dispatch Password Requests to Console Directory Watch.
+2026-10-30T13:34:41.200871+01:00 predator systemd[1]: systemd-ask-password-wall.path: Deactivated successfully.
+2026-10-30T13:34:41.201549+01:00 predator systemd[1]: Stopped Forward Password Requests to Wall Directory Watch.
+2026-10-30T13:34:41.203039+01:00 predator systemd[1]: sops-install-secrets.service: Deactivated successfully.
+2026-10-30T13:34:41.203201+01:00 predator systemd[1]: Stopped sops-install-secrets.service.
+2026-10-30T13:34:41.204759+01:00 predator systemd[1]: sops-install-secrets.service: Consumed 256ms CPU time over 1h 18min 21.001s wall clock time, 45.4M memory peak, 64.6M read from disk.
+2026-10-30T13:34:41.208136+01:00 predator systemd[1]: Stopping Load/Save Screen Backlight Brightness of backlight:intel_backlight...
+2026-10-30T13:34:41.209429+01:00 predator systemd[1]: systemd-boot-random-seed.service: Deactivated successfully.
+2026-10-30T13:34:41.209540+01:00 predator systemd[1]: Stopped Update Boot Loader Random Seed.
+2026-10-30T13:34:41.213898+01:00 predator systemd[1]: Stopping Load/Save OS Random Seed...
+2026-10-30T13:34:41.215215+01:00 predator systemd[1]: systemd-sysctl.service: Deactivated successfully.
+2026-10-30T13:34:41.215374+01:00 predator systemd[1]: Stopped Apply Kernel Variables.
+2026-10-30T13:34:41.216815+01:00 predator systemd[1]: systemd-coredump.socket: Deactivated successfully.
+2026-10-30T13:34:41.216936+01:00 predator systemd[1]: Closed Process Core Dump Socket.
+2026-10-30T13:34:41.218571+01:00 predator systemd[1]: Stopping Network Time Synchronization...
+2026-10-30T13:34:41.219782+01:00 predator systemd[1]: systemd-tpm2-setup.service: Deactivated successfully.
+2026-10-30T13:34:41.219887+01:00 predator systemd[1]: Stopped TPM SRK Setup.
+2026-10-30T13:34:41.221166+01:00 predator systemd[1]: systemd-tpm2-setup.service: Consumed 21ms CPU time over 1h 18min 32.098s wall clock time, 5.5M memory peak, 7.2M read from disk.
+2026-10-30T13:34:41.221268+01:00 predator systemd[1]: Stopped target Trusted Platform Module.
+2026-10-30T13:34:41.228778+01:00 predator systemd[1]: Stopping Record System Boot/Shutdown in UTMP...
+2026-10-30T13:34:41.236194+01:00 predator systemd[1]: systemd-timesyncd.service: Deactivated successfully.
+2026-10-30T13:34:41.236964+01:00 predator systemd[1]: Stopped Network Time Synchronization.
+2026-10-30T13:34:41.238457+01:00 predator systemd[1]: systemd-timesyncd.service: Consumed 93ms CPU time over 43min 32.405s wall clock time, 3.1M memory peak, 608B incoming IP traffic, 608B outgoing IP traffic.
+2026-10-30T13:34:41.245988+01:00 predator systemd[1]: systemd-random-seed.service: Deactivated successfully.
+2026-10-30T13:34:41.246842+01:00 predator systemd[1]: Stopped Load/Save OS Random Seed.
+2026-10-30T13:34:41.256447+01:00 predator systemd[1]: systemd-update-utmp.service: Deactivated successfully.
+2026-10-30T13:34:41.257213+01:00 predator systemd[1]: Stopped Record System Boot/Shutdown in UTMP.
+2026-10-30T13:34:41.259178+01:00 predator systemd[1]: systemd-tmpfiles-setup.service: Deactivated successfully.
+2026-10-30T13:34:41.259300+01:00 predator systemd[1]: Stopped Create System Files and Directories.
+2026-10-30T13:34:41.260726+01:00 predator systemd[1]: systemd-tmpfiles-setup.service: Consumed 109ms CPU time over 1h 18min 21.043s wall clock time, 3.4M memory peak, 4.1M read from disk.
+2026-10-30T13:34:41.260837+01:00 predator systemd[1]: Stopped target Local File Systems.
+2026-10-30T13:34:41.263483+01:00 predator systemd[1]: Unmounting /boot...
+2026-10-30T13:34:41.267971+01:00 predator systemd[1]: Unmounting /run/keys...
+2026-10-30T13:34:41.272412+01:00 predator systemd[1]: Unmounting /run/netns...
+2026-10-30T13:34:41.285476+01:00 predator systemd[1]: Unmounting /run/secrets.d...
+2026-10-30T13:34:41.289412+01:00 predator systemd[1]: Unmounting /run/wrappers...
+2026-10-30T13:34:41.291337+01:00 predator systemd[1]: zfs-mount.service: Deactivated successfully.
+2026-10-30T13:34:41.291527+01:00 predator systemd[1]: Stopped Mount ZFS filesystems.
+2026-10-30T13:34:41.293622+01:00 predator systemd[1]: zfs-mount.service: Consumed 91ms CPU time over 1h 18min 21.290s wall clock time, 4.9M memory peak, 1.2M read from disk.
+2026-10-30T13:34:41.293789+01:00 predator systemd[1]: Stopped target ZFS pool import target.
+2026-10-30T13:34:41.295787+01:00 predator systemd[1]: zfs-import-fast.service: Deactivated successfully.
+2026-10-30T13:34:41.295996+01:00 predator systemd[1]: Stopped Import ZFS pool "fast".
+2026-10-30T13:34:41.298252+01:00 predator systemd[1]: zfs-import-fast.service: Consumed 209ms CPU time over 1h 18min 29.258s wall clock time, 12.2M memory peak, 35M read from disk, 32K written to disk.
+2026-10-30T13:34:41.302907+01:00 predator systemd[1]: Stopping Cryptography Setup for fast-crypt...
+2026-10-30T13:34:41.304986+01:00 predator systemd[1]: zfs-import-tank.service: Deactivated successfully.
+2026-10-30T13:34:41.305165+01:00 predator systemd[1]: Stopped Import ZFS pool "tank".
+2026-10-30T13:34:41.307307+01:00 predator systemd[1]: zfs-import-tank.service: Consumed 444ms CPU time over 1h 18min 25.074s wall clock time, 11.2M memory peak, 42.1M read from disk.
+2026-10-30T13:34:41.311701+01:00 predator systemd[1]: Stopping Cryptography Setup for tank1-crypt...
+2026-10-30T13:34:41.317970+01:00 predator systemd[1]: Stopping Cryptography Setup for tank2-crypt...
+2026-10-30T13:34:41.322376+01:00 predator systemd[1]: Stopping Cryptography Setup for tank3-crypt...
+2026-10-30T13:34:41.324509+01:00 predator systemd[1]: systemd-modules-load.service: Deactivated successfully.
+2026-10-30T13:34:41.324727+01:00 predator systemd[1]: Stopped Load Kernel Modules.
+2026-10-30T13:34:41.326736+01:00 predator systemd[1]: systemd-modules-load.service: Consumed 1.252s CPU time over 1h 18min 32.357s wall clock time, 6.4M memory peak, 7.7M read from disk.
+2026-10-30T13:34:41.332116+01:00 predator systemd-cryptsetup[36704]: Loaded shared library 'libcryptsetup.so.12' via dlopen().
+2026-10-30T13:34:41.332232+01:00 predator systemd-cryptsetup[36704]: Allocating crypt device context by device fast-crypt.
+2026-10-30T13:34:41.332258+01:00 predator systemd-cryptsetup[36704]: Initialising device-mapper backend library.
+2026-10-30T13:34:41.332774+01:00 predator systemd-cryptsetup[36704]: dm version   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.332801+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.332827+01:00 predator systemd-cryptsetup[36704]: Detected dm-ioctl version 4.50.0.
+2026-10-30T13:34:41.332838+01:00 predator systemd-cryptsetup[36704]: Detected dm-crypt version 1.28.0.
+2026-10-30T13:34:41.332883+01:00 predator systemd-cryptsetup[36704]: Device-mapper backend running with UDEV support enabled.
+2026-10-30T13:34:41.332930+01:00 predator systemd-cryptsetup[36704]: dm status fast-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:41.332965+01:00 predator systemd-cryptsetup[36704]: Releasing device-mapper backend.
+2026-10-30T13:34:41.333080+01:00 predator systemd-cryptsetup[36704]: Trying to open device /dev/sdb1 with direct-io.
+2026-10-30T13:34:41.333135+01:00 predator systemd-cryptsetup[36704]: Allocating context for crypt device /dev/sdb1.
+2026-10-30T13:34:41.333147+01:00 predator systemd-cryptsetup[36704]: Trying to open device /dev/sdb1 with direct-io.
+2026-10-30T13:34:41.333183+01:00 predator systemd-cryptsetup[36704]: Initialising device-mapper backend library.
+2026-10-30T13:34:41.333201+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.333227+01:00 predator systemd-cryptsetup[36704]: dm table fast-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.333283+01:00 predator systemd-cryptsetup[36704]: Trying to open device /dev/sdb1 with direct-io.
+2026-10-30T13:34:41.333370+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.333401+01:00 predator systemd-cryptsetup[36704]: dm deps fast-crypt  [ opencount flush ]   [16384]
+2026-10-30T13:34:41.334454+01:00 predator systemd-cryptsetup[36704]: Crypto backend (OpenSSL 3.5.9 29 Sep 2026 [default][legacy][threads][argon2]) initialized in cryptsetup library version 2.8.8.
+2026-10-30T13:34:41.334470+01:00 predator systemd-cryptsetup[36704]: Detected kernel Linux 6.18.58 x86_64.
+2026-10-30T13:34:41.334832+01:00 predator systemd-cryptsetup[36704]: Reloading LUKS2 header (repair disabled).
+2026-10-30T13:34:41.334865+01:00 predator systemd-cryptsetup[36704]: Acquiring read lock for device /dev/sdb1.
+2026-10-30T13:34:41.334936+01:00 predator systemd-cryptsetup[36704]: Opening lock resource file /run/cryptsetup/L_8:17
+2026-10-30T13:34:41.334990+01:00 predator systemd-cryptsetup[36704]: Verifying lock handle for /dev/sdb1.
+2026-10-30T13:34:41.335012+01:00 predator systemd-cryptsetup[36704]: Device /dev/sdb1 READ lock taken.
+2026-10-30T13:34:41.335025+01:00 predator systemd-cryptsetup[36704]: Trying to read primary LUKS2 header at offset 0x0.
+2026-10-30T13:34:41.335037+01:00 predator systemd-cryptsetup[36704]: Reusing open ro fd on device /dev/sdb1
+2026-10-30T13:34:41.335142+01:00 predator systemd[1]: systemd-backlight@backlight:intel_backlight.service: Deactivated successfully.
+2026-10-30T13:34:41.335312+01:00 predator systemd-cryptsetup[36704]: LUKS2 header version 2 of size 16384 bytes, checksum sha256.
+2026-10-30T13:34:41.336087+01:00 predator systemd[1]: Stopped Load/Save Screen Backlight Brightness of backlight:intel_backlight.
+2026-10-30T13:34:41.339388+01:00 predator systemd[1]: boot.mount: Deactivated successfully.
+2026-10-30T13:34:41.340032+01:00 predator systemd-cryptsetup[36704]: Checksum:a37b64e4496b6ec916efb2005ce929b7174d85ccadb1651bc42b375545fa7b25 (on-disk)
+2026-10-30T13:34:41.340078+01:00 predator systemd-cryptsetup[36704]: Checksum:a37b64e4496b6ec916efb2005ce929b7174d85ccadb1651bc42b375545fa7b25 (in-memory)
+2026-10-30T13:34:41.340456+01:00 predator systemd-cryptsetup[36704]: Trying to read secondary LUKS2 header at offset 0x4000.
+2026-10-30T13:34:41.340493+01:00 predator systemd[1]: Unmounted /boot.
+2026-10-30T13:34:41.340499+01:00 predator systemd-cryptsetup[36704]: Reusing open ro fd on device /dev/sdb1
+2026-10-30T13:34:41.340673+01:00 predator systemd-cryptsetup[36704]: LUKS2 header version 2 of size 16384 bytes, checksum sha256.
+2026-10-30T13:34:41.340873+01:00 predator systemd-cryptsetup[36705]: Loaded shared library 'libcryptsetup.so.12' via dlopen().
+2026-10-30T13:34:41.340986+01:00 predator systemd-cryptsetup[36705]: Allocating crypt device context by device tank1-crypt.
+2026-10-30T13:34:41.341007+01:00 predator systemd-cryptsetup[36705]: Initialising device-mapper backend library.
+2026-10-30T13:34:41.341146+01:00 predator systemd-cryptsetup[36704]: Checksum:f8e681232ea20d4e33f598f5281b525d40d09a234a553c5cab9c083285c2e1d0 (on-disk)
+2026-10-30T13:34:41.341230+01:00 predator systemd-cryptsetup[36704]: Checksum:f8e681232ea20d4e33f598f5281b525d40d09a234a553c5cab9c083285c2e1d0 (in-memory)
+2026-10-30T13:34:41.341528+01:00 predator systemd-cryptsetup[36705]: dm version   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.341555+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.341580+01:00 predator systemd-cryptsetup[36705]: Detected dm-ioctl version 4.50.0.
+2026-10-30T13:34:41.341592+01:00 predator systemd-cryptsetup[36705]: Detected dm-crypt version 1.28.0.
+2026-10-30T13:34:41.341635+01:00 predator systemd-cryptsetup[36705]: Device-mapper backend running with UDEV support enabled.
+2026-10-30T13:34:41.341680+01:00 predator systemd-cryptsetup[36705]: dm status tank1-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:41.341717+01:00 predator systemd-cryptsetup[36705]: Releasing device-mapper backend.
+2026-10-30T13:34:41.341780+01:00 predator systemd-cryptsetup[36704]: Device size 240055746560, offset 16777216.
+2026-10-30T13:34:41.341834+01:00 predator systemd-cryptsetup[36705]: Trying to open device /dev/sdc1 with direct-io.
+2026-10-30T13:34:41.341888+01:00 predator systemd-cryptsetup[36705]: Allocating context for crypt device /dev/sdc1.
+2026-10-30T13:34:41.341901+01:00 predator systemd-cryptsetup[36705]: Trying to open device /dev/sdc1 with direct-io.
+2026-10-30T13:34:41.341909+01:00 predator systemd-cryptsetup[36704]: Device /dev/sdb1 READ lock released.
+2026-10-30T13:34:41.341937+01:00 predator systemd-cryptsetup[36705]: Initialising device-mapper backend library.
+2026-10-30T13:34:41.341954+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.341979+01:00 predator systemd-cryptsetup[36705]: dm table tank1-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.342039+01:00 predator systemd-cryptsetup[36705]: Trying to open device /dev/sdc1 with direct-io.
+2026-10-30T13:34:41.342090+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.342113+01:00 predator systemd-cryptsetup[36705]: dm deps tank1-crypt  [ opencount flush ]   [16384]
+2026-10-30T13:34:41.342119+01:00 predator systemd-cryptsetup[36704]: PBKDF argon2id, time_ms 2000 (iterations 0), max_memory_kb 1048576, parallel_threads 4.
+2026-10-30T13:34:41.342161+01:00 predator systemd-cryptsetup[36704]: Deactivating volume fast-crypt.
+2026-10-30T13:34:41.342191+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.342294+01:00 predator systemd-cryptsetup[36704]: dm status fast-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:41.342437+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.342480+01:00 predator systemd-cryptsetup[36704]: dm table fast-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.342586+01:00 predator systemd-cryptsetup[36704]: Trying to open device /dev/sdb1 with direct-io.
+2026-10-30T13:34:41.343052+01:00 predator systemd-cryptsetup[36705]: Crypto backend (OpenSSL 3.5.9 29 Sep 2026 [default][legacy][threads][argon2]) initialized in cryptsetup library version 2.8.8.
+2026-10-30T13:34:41.343069+01:00 predator systemd-cryptsetup[36705]: Detected kernel Linux 6.18.58 x86_64.
+2026-10-30T13:34:41.343566+01:00 predator systemd[1]: run-keys.mount: Deactivated successfully.
+2026-10-30T13:34:41.344273+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.344282+01:00 predator systemd[1]: Unmounted /run/keys.
+2026-10-30T13:34:41.344350+01:00 predator systemd-cryptsetup[36704]: dm deps fast-crypt  [ opencount flush ]   [16384]
+2026-10-30T13:34:41.344404+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.344451+01:00 predator systemd-cryptsetup[36704]: dm table fast-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.344531+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.344607+01:00 predator systemd-cryptsetup[36704]: Udev cookie 0xd4d6134 (semid 5) created
+2026-10-30T13:34:41.344638+01:00 predator systemd-cryptsetup[36704]: Udev cookie 0xd4d6134 (semid 5) incremented to 1
+2026-10-30T13:34:41.344674+01:00 predator systemd-cryptsetup[36704]: Udev cookie 0xd4d6134 (semid 5) incremented to 2
+2026-10-30T13:34:41.344701+01:00 predator systemd-cryptsetup[36704]: Udev cookie 0xd4d6134 (semid 5) assigned to REMOVE task(2) with flags DISABLE_LIBRARY_FALLBACK (0x20)
+2026-10-30T13:34:41.344727+01:00 predator systemd-cryptsetup[36704]: dm remove fast-crypt  [ opencount flush retryremove ]   [2048]
+2026-10-30T13:34:41.344757+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 1/25 for fast-crypt.
+2026-10-30T13:34:41.346040+01:00 predator systemd[1]: run-netns.mount: Deactivated successfully.
+2026-10-30T13:34:41.346735+01:00 predator systemd[1]: Unmounted /run/netns.
+2026-10-30T13:34:41.348580+01:00 predator systemd[1]: run-secrets.d.mount: Deactivated successfully.
+2026-10-30T13:34:41.349245+01:00 predator systemd[1]: Unmounted /run/secrets.d.
+2026-10-30T13:34:41.350919+01:00 predator systemd[1]: run-wrappers.mount: Deactivated successfully.
+2026-10-30T13:34:41.350929+01:00 predator systemd-cryptsetup[36706]: Loaded shared library 'libcryptsetup.so.12' via dlopen().
+2026-10-30T13:34:41.351039+01:00 predator systemd-cryptsetup[36706]: Allocating crypt device context by device tank2-crypt.
+2026-10-30T13:34:41.351061+01:00 predator systemd-cryptsetup[36706]: Initialising device-mapper backend library.
+2026-10-30T13:34:41.351622+01:00 predator systemd-cryptsetup[36706]: dm version   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.351625+01:00 predator systemd[1]: Unmounted /run/wrappers.
+2026-10-30T13:34:41.351652+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.351678+01:00 predator systemd-cryptsetup[36706]: Detected dm-ioctl version 4.50.0.
+2026-10-30T13:34:41.351690+01:00 predator systemd-cryptsetup[36706]: Detected dm-crypt version 1.28.0.
+2026-10-30T13:34:41.351736+01:00 predator systemd-cryptsetup[36706]: Device-mapper backend running with UDEV support enabled.
+2026-10-30T13:34:41.351789+01:00 predator systemd-cryptsetup[36706]: dm status tank2-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:41.351824+01:00 predator systemd-cryptsetup[36706]: Releasing device-mapper backend.
+2026-10-30T13:34:41.351943+01:00 predator systemd-cryptsetup[36706]: Trying to open device /dev/sdd1 with direct-io.
+2026-10-30T13:34:41.352001+01:00 predator systemd-cryptsetup[36706]: Allocating context for crypt device /dev/sdd1.
+2026-10-30T13:34:41.352013+01:00 predator systemd-cryptsetup[36706]: Trying to open device /dev/sdd1 with direct-io.
+2026-10-30T13:34:41.352050+01:00 predator systemd-cryptsetup[36706]: Initialising device-mapper backend library.
+2026-10-30T13:34:41.352068+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.352093+01:00 predator systemd-cryptsetup[36706]: dm table tank2-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.352151+01:00 predator systemd-cryptsetup[36706]: Trying to open device /dev/sdd1 with direct-io.
+2026-10-30T13:34:41.352203+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.352227+01:00 predator systemd-cryptsetup[36706]: dm deps tank2-crypt  [ opencount flush ]   [16384]
+2026-10-30T13:34:41.353167+01:00 predator systemd-cryptsetup[36706]: Crypto backend (OpenSSL 3.5.9 29 Sep 2026 [default][legacy][threads][argon2]) initialized in cryptsetup library version 2.8.8.
+2026-10-30T13:34:41.353184+01:00 predator systemd-cryptsetup[36706]: Detected kernel Linux 6.18.58 x86_64.
+2026-10-30T13:34:41.354655+01:00 predator systemd-cryptsetup[36706]: Reloading LUKS2 header (repair disabled).
+2026-10-30T13:34:41.354673+01:00 predator systemd-cryptsetup[36706]: Acquiring read lock for device /dev/sdd1.
+2026-10-30T13:34:41.354751+01:00 predator systemd-cryptsetup[36706]: Opening lock resource file /run/cryptsetup/L_8:49
+2026-10-30T13:34:41.354806+01:00 predator systemd-cryptsetup[36706]: Verifying lock handle for /dev/sdd1.
+2026-10-30T13:34:41.354829+01:00 predator systemd-cryptsetup[36706]: Device /dev/sdd1 READ lock taken.
+2026-10-30T13:34:41.354842+01:00 predator systemd-cryptsetup[36706]: Trying to read primary LUKS2 header at offset 0x0.
+2026-10-30T13:34:41.354853+01:00 predator systemd-cryptsetup[36706]: Reusing open ro fd on device /dev/sdd1
+2026-10-30T13:34:41.356293+01:00 predator systemd-cryptsetup[36706]: LUKS2 header version 2 of size 16384 bytes, checksum sha256.
+2026-10-30T13:34:41.359829+01:00 predator systemd-cryptsetup[36707]: Loaded shared library 'libcryptsetup.so.12' via dlopen().
+2026-10-30T13:34:41.359939+01:00 predator systemd-cryptsetup[36707]: Allocating crypt device context by device tank3-crypt.
+2026-10-30T13:34:41.359961+01:00 predator systemd-cryptsetup[36707]: Initialising device-mapper backend library.
+2026-10-30T13:34:41.360512+01:00 predator systemd-cryptsetup[36707]: dm version   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.360539+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.360564+01:00 predator systemd-cryptsetup[36707]: Detected dm-ioctl version 4.50.0.
+2026-10-30T13:34:41.360575+01:00 predator systemd-cryptsetup[36707]: Detected dm-crypt version 1.28.0.
+2026-10-30T13:34:41.360620+01:00 predator systemd-cryptsetup[36707]: Device-mapper backend running with UDEV support enabled.
+2026-10-30T13:34:41.360669+01:00 predator systemd-cryptsetup[36707]: dm status tank3-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:41.360703+01:00 predator systemd-cryptsetup[36707]: Releasing device-mapper backend.
+2026-10-30T13:34:41.360822+01:00 predator systemd-cryptsetup[36707]: Trying to open device /dev/sde1 with direct-io.
+2026-10-30T13:34:41.360879+01:00 predator systemd-cryptsetup[36707]: Allocating context for crypt device /dev/sde1.
+2026-10-30T13:34:41.360891+01:00 predator systemd-cryptsetup[36707]: Trying to open device /dev/sde1 with direct-io.
+2026-10-30T13:34:41.360927+01:00 predator systemd-cryptsetup[36707]: Initialising device-mapper backend library.
+2026-10-30T13:34:41.360945+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.360969+01:00 predator systemd-cryptsetup[36707]: dm table tank3-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.361027+01:00 predator systemd-cryptsetup[36707]: Trying to open device /dev/sde1 with direct-io.
+2026-10-30T13:34:41.361078+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.361102+01:00 predator systemd-cryptsetup[36707]: dm deps tank3-crypt  [ opencount flush ]   [16384]
+2026-10-30T13:34:41.362010+01:00 predator systemd-cryptsetup[36706]: Checksum:b77f8b087ba1add9b798abee7495e9e1998b119a174298d3a813acd1c83702c4 (on-disk)
+2026-10-30T13:34:41.362043+01:00 predator systemd-cryptsetup[36707]: Crypto backend (OpenSSL 3.5.9 29 Sep 2026 [default][legacy][threads][argon2]) initialized in cryptsetup library version 2.8.8.
+2026-10-30T13:34:41.362053+01:00 predator systemd-cryptsetup[36706]: Checksum:b77f8b087ba1add9b798abee7495e9e1998b119a174298d3a813acd1c83702c4 (in-memory)
+2026-10-30T13:34:41.362058+01:00 predator systemd-cryptsetup[36707]: Detected kernel Linux 6.18.58 x86_64.
+2026-10-30T13:34:41.362499+01:00 predator systemd-cryptsetup[36707]: Reloading LUKS2 header (repair disabled).
+2026-10-30T13:34:41.362515+01:00 predator systemd-cryptsetup[36707]: Acquiring read lock for device /dev/sde1.
+2026-10-30T13:34:41.362528+01:00 predator systemd-cryptsetup[36706]: Trying to read secondary LUKS2 header at offset 0x4000.
+2026-10-30T13:34:41.362542+01:00 predator systemd-cryptsetup[36706]: Reusing open ro fd on device /dev/sdd1
+2026-10-30T13:34:41.362591+01:00 predator systemd-cryptsetup[36707]: Opening lock resource file /run/cryptsetup/L_8:65
+2026-10-30T13:34:41.362667+01:00 predator systemd[1]: Removed slice Slice /system/systemd-backlight.
+2026-10-30T13:34:41.362668+01:00 predator systemd-cryptsetup[36707]: Verifying lock handle for /dev/sde1.
+2026-10-30T13:34:41.362699+01:00 predator systemd-cryptsetup[36707]: Device /dev/sde1 READ lock taken.
+2026-10-30T13:34:41.362713+01:00 predator systemd-cryptsetup[36707]: Trying to read primary LUKS2 header at offset 0x0.
+2026-10-30T13:34:41.362724+01:00 predator systemd-cryptsetup[36707]: Reusing open ro fd on device /dev/sde1
+2026-10-30T13:34:41.363133+01:00 predator systemd-cryptsetup[36707]: LUKS2 header version 2 of size 16384 bytes, checksum sha256.
+2026-10-30T13:34:41.363972+01:00 predator systemd-cryptsetup[36706]: LUKS2 header version 2 of size 16384 bytes, checksum sha256.
+2026-10-30T13:34:41.364184+01:00 predator systemd[1]: Stopped target Swaps.
+2026-10-30T13:34:41.365698+01:00 predator systemd-cryptsetup[36706]: Checksum:34f29d029373176978e8028ffa7bf4c674005dd5785b2a9dcfdf6e6a98135e0e (on-disk)
+2026-10-30T13:34:41.365779+01:00 predator systemd-cryptsetup[36706]: Checksum:34f29d029373176978e8028ffa7bf4c674005dd5785b2a9dcfdf6e6a98135e0e (in-memory)
+2026-10-30T13:34:41.366264+01:00 predator systemd-cryptsetup[36706]: Device size 750154416128, offset 16777216.
+2026-10-30T13:34:41.366421+01:00 predator systemd-cryptsetup[36706]: Device /dev/sdd1 READ lock released.
+2026-10-30T13:34:41.366616+01:00 predator systemd-cryptsetup[36706]: PBKDF argon2id, time_ms 2000 (iterations 0), max_memory_kb 1048576, parallel_threads 4.
+2026-10-30T13:34:41.366655+01:00 predator systemd-cryptsetup[36706]: Deactivating volume tank2-crypt.
+2026-10-30T13:34:41.366689+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.366793+01:00 predator systemd-cryptsetup[36706]: dm status tank2-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:41.366896+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.366938+01:00 predator systemd-cryptsetup[36706]: dm table tank2-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.367044+01:00 predator systemd-cryptsetup[36706]: Trying to open device /dev/sdd1 with direct-io.
+2026-10-30T13:34:41.367158+01:00 predator systemd[1]: Deactivating swap /swapfile...
+2026-10-30T13:34:41.367655+01:00 predator systemd-cryptsetup[36707]: Checksum:feeeef2a7e5cd724b774bfd828186e66ee85aab1da91b3af1369fc8998faca10 (on-disk)
+2026-10-30T13:34:41.367699+01:00 predator systemd-cryptsetup[36707]: Checksum:feeeef2a7e5cd724b774bfd828186e66ee85aab1da91b3af1369fc8998faca10 (in-memory)
+2026-10-30T13:34:41.367810+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.367858+01:00 predator systemd-cryptsetup[36706]: dm deps tank2-crypt  [ opencount flush ]   [16384]
+2026-10-30T13:34:41.367902+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.367947+01:00 predator systemd-cryptsetup[36706]: dm table tank2-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.368002+01:00 predator systemd-cryptsetup[36707]: Trying to read secondary LUKS2 header at offset 0x4000.
+2026-10-30T13:34:41.368015+01:00 predator systemd-cryptsetup[36707]: Reusing open ro fd on device /dev/sde1
+2026-10-30T13:34:41.368019+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.368090+01:00 predator systemd-cryptsetup[36706]: Udev cookie 0xd4d658e (semid 6) created
+2026-10-30T13:34:41.368119+01:00 predator systemd-cryptsetup[36706]: Udev cookie 0xd4d658e (semid 6) incremented to 1
+2026-10-30T13:34:41.368152+01:00 predator systemd-cryptsetup[36706]: Udev cookie 0xd4d658e (semid 6) incremented to 2
+2026-10-30T13:34:41.368175+01:00 predator systemd-cryptsetup[36706]: Udev cookie 0xd4d658e (semid 6) assigned to REMOVE task(2) with flags DISABLE_LIBRARY_FALLBACK (0x20)
+2026-10-30T13:34:41.368202+01:00 predator systemd-cryptsetup[36706]: dm remove tank2-crypt  [ opencount flush retryremove ]   [2048]
+2026-10-30T13:34:41.368226+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 1/25 for tank2-crypt.
+2026-10-30T13:34:41.368393+01:00 predator systemd-cryptsetup[36707]: LUKS2 header version 2 of size 16384 bytes, checksum sha256.
+2026-10-30T13:34:41.368482+01:00 predator systemd[1]: systemd-fsck@dev-disk-by\x2duuid-16CC\x2dBD3D.service: Deactivated successfully.
+2026-10-30T13:34:41.368627+01:00 predator systemd[1]: Stopped File System Check on /dev/disk/by-uuid/16CC-BD3D.
+2026-10-30T13:34:41.368973+01:00 predator systemd-cryptsetup[36707]: Checksum:c24ba5e7b736fd56cc9b2598abb298ab665cbb4da25240b2a149b5b8ce55a082 (on-disk)
+2026-10-30T13:34:41.369015+01:00 predator systemd-cryptsetup[36707]: Checksum:c24ba5e7b736fd56cc9b2598abb298ab665cbb4da25240b2a149b5b8ce55a082 (in-memory)
+2026-10-30T13:34:41.369274+01:00 predator systemd-cryptsetup[36707]: Device size 1000168488960, offset 16777216.
+2026-10-30T13:34:41.369386+01:00 predator systemd-cryptsetup[36707]: Device /dev/sde1 READ lock released.
+2026-10-30T13:34:41.369502+01:00 predator systemd-cryptsetup[36707]: PBKDF argon2id, time_ms 2000 (iterations 0), max_memory_kb 1048576, parallel_threads 4.
+2026-10-30T13:34:41.369527+01:00 predator systemd-cryptsetup[36707]: Deactivating volume tank3-crypt.
+2026-10-30T13:34:41.369549+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.369628+01:00 predator systemd-cryptsetup[36707]: dm status tank3-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:41.369670+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.369695+01:00 predator systemd-cryptsetup[36707]: dm table tank3-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.369770+01:00 predator systemd-cryptsetup[36707]: Trying to open device /dev/sde1 with direct-io.
+2026-10-30T13:34:41.370108+01:00 predator systemd[1]: systemd-fsck@dev-disk-by\x2duuid-16CC\x2dBD3D.service: Consumed 52ms CPU time over 1h 18min 31.040s wall clock time, 11M memory peak, 4.5M read from disk, 4K written to disk.
+2026-10-30T13:34:41.370362+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.370396+01:00 predator systemd-cryptsetup[36707]: dm deps tank3-crypt  [ opencount flush ]   [16384]
+2026-10-30T13:34:41.370429+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.370452+01:00 predator systemd-cryptsetup[36707]: dm table tank3-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.370499+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.370548+01:00 predator systemd-cryptsetup[36707]: Udev cookie 0xd4d2737 (semid 7) created
+2026-10-30T13:34:41.370567+01:00 predator systemd-cryptsetup[36707]: Udev cookie 0xd4d2737 (semid 7) incremented to 1
+2026-10-30T13:34:41.370590+01:00 predator systemd-cryptsetup[36707]: Udev cookie 0xd4d2737 (semid 7) incremented to 2
+2026-10-30T13:34:41.370608+01:00 predator systemd-cryptsetup[36707]: Udev cookie 0xd4d2737 (semid 7) assigned to REMOVE task(2) with flags DISABLE_LIBRARY_FALLBACK (0x20)
+2026-10-30T13:34:41.370622+01:00 predator systemd-cryptsetup[36707]: dm remove tank3-crypt  [ opencount flush retryremove ]   [2048]
+2026-10-30T13:34:41.370638+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 1/25 for tank3-crypt.
+2026-10-30T13:34:41.371002+01:00 predator systemd[1]: Removed slice Slice /system/systemd-fsck.
+2026-10-30T13:34:41.372307+01:00 predator systemd[1]: system-systemd\x2dfsck.slice: Consumed 52ms CPU time over 1h 18min 32.562s wall clock time, 11.2M memory peak, 4.5M read from disk, 7K written to disk.
+2026-10-30T13:34:41.372409+01:00 predator systemd[1]: Stopped target Preparation for Local File Systems.
+2026-10-30T13:34:41.373877+01:00 predator systemd[1]: systemd-tmpfiles-setup-dev.service: Deactivated successfully.
+2026-10-30T13:34:41.373993+01:00 predator systemd[1]: Stopped Create Static Device Nodes in /dev.
+2026-10-30T13:34:41.375436+01:00 predator systemd[1]: systemd-tmpfiles-setup-dev-early.service: Deactivated successfully.
+2026-10-30T13:34:41.375548+01:00 predator systemd[1]: Stopped Create Static Device Nodes in /dev gracefully.
+2026-10-30T13:34:41.415305+01:00 predator systemd[1]: swapfile.swap: Deactivated successfully.
+2026-10-30T13:34:41.416061+01:00 predator systemd[1]: Deactivated swap /swapfile.
+2026-10-30T13:34:41.417251+01:00 predator systemd[1]: swapfile.swap: Consumed 35ms CPU time over 1h 18min 31.326s wall clock time, 2.6M memory peak, 1.3M read from disk.
+2026-10-30T13:34:41.418449+01:00 predator systemd[1]: systemd-remount-fs.service: Deactivated successfully.
+2026-10-30T13:34:41.418652+01:00 predator systemd[1]: Stopped Remount Root and Kernel File Systems.
+2026-10-30T13:34:41.420102+01:00 predator systemd[1]: systemd-fsck-root.service: Deactivated successfully.
+2026-10-30T13:34:41.420200+01:00 predator systemd[1]: Stopped File System Check on Root Device.
+2026-10-30T13:34:41.421387+01:00 predator systemd[1]: systemd-fsck-root.service: Consumed 517ms CPU time over 1h 18min 38.232s wall clock time, 107.9M memory peak.
+2026-10-30T13:34:41.436258+01:00 predator systemd-cryptsetup[36705]: Reloading LUKS2 header (repair disabled).
+2026-10-30T13:34:41.436302+01:00 predator systemd-cryptsetup[36705]: Acquiring read lock for device /dev/sdc1.
+2026-10-30T13:34:41.436414+01:00 predator systemd-cryptsetup[36705]: Opening lock resource file /run/cryptsetup/L_8:33
+2026-10-30T13:34:41.436475+01:00 predator systemd-cryptsetup[36705]: Verifying lock handle for /dev/sdc1.
+2026-10-30T13:34:41.436498+01:00 predator systemd-cryptsetup[36705]: Device /dev/sdc1 READ lock taken.
+2026-10-30T13:34:41.436512+01:00 predator systemd-cryptsetup[36705]: Trying to read primary LUKS2 header at offset 0x0.
+2026-10-30T13:34:41.436523+01:00 predator systemd-cryptsetup[36705]: Reusing open ro fd on device /dev/sdc1
+2026-10-30T13:34:41.443152+01:00 predator systemd-cryptsetup[36705]: LUKS2 header version 2 of size 16384 bytes, checksum sha256.
+2026-10-30T13:34:41.447516+01:00 predator systemd-cryptsetup[36705]: Checksum:7e0bfea5fcca8d259d6e3da23f525dd712fad15f8a897ef1b5afd7afdf5ef87e (on-disk)
+2026-10-30T13:34:41.447562+01:00 predator systemd-cryptsetup[36705]: Checksum:7e0bfea5fcca8d259d6e3da23f525dd712fad15f8a897ef1b5afd7afdf5ef87e (in-memory)
+2026-10-30T13:34:41.447921+01:00 predator systemd-cryptsetup[36705]: Trying to read secondary LUKS2 header at offset 0x4000.
+2026-10-30T13:34:41.447938+01:00 predator systemd-cryptsetup[36705]: Reusing open ro fd on device /dev/sdc1
+2026-10-30T13:34:41.448303+01:00 predator systemd-cryptsetup[36705]: LUKS2 header version 2 of size 16384 bytes, checksum sha256.
+2026-10-30T13:34:41.448892+01:00 predator systemd-cryptsetup[36705]: Checksum:7a1a00e257e831d09dc2ba93005d2dba14f44b6693c4214b3b78d9b645284962 (on-disk)
+2026-10-30T13:34:41.448937+01:00 predator systemd-cryptsetup[36705]: Checksum:7a1a00e257e831d09dc2ba93005d2dba14f44b6693c4214b3b78d9b645284962 (in-memory)
+2026-10-30T13:34:41.449236+01:00 predator systemd-cryptsetup[36705]: Device size 1000203091968, offset 16777216.
+2026-10-30T13:34:41.449348+01:00 predator systemd-cryptsetup[36705]: Device /dev/sdc1 READ lock released.
+2026-10-30T13:34:41.449485+01:00 predator systemd-cryptsetup[36705]: PBKDF argon2id, time_ms 2000 (iterations 0), max_memory_kb 1048576, parallel_threads 4.
+2026-10-30T13:34:41.449510+01:00 predator systemd-cryptsetup[36705]: Deactivating volume tank1-crypt.
+2026-10-30T13:34:41.449535+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.449608+01:00 predator systemd-cryptsetup[36705]: dm status tank1-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:41.449683+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.449709+01:00 predator systemd-cryptsetup[36705]: dm table tank1-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.449789+01:00 predator systemd-cryptsetup[36705]: Trying to open device /dev/sdc1 with direct-io.
+2026-10-30T13:34:41.450307+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.450353+01:00 predator systemd-cryptsetup[36705]: dm deps tank1-crypt  [ opencount flush ]   [16384]
+2026-10-30T13:34:41.450385+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.450409+01:00 predator systemd-cryptsetup[36705]: dm table tank1-crypt  [ opencount flush securedata ]   [16384]
+2026-10-30T13:34:41.450455+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:41.450510+01:00 predator systemd-cryptsetup[36705]: Udev cookie 0xd4d393c (semid 8) created
+2026-10-30T13:34:41.450530+01:00 predator systemd-cryptsetup[36705]: Udev cookie 0xd4d393c (semid 8) incremented to 1
+2026-10-30T13:34:41.450553+01:00 predator systemd-cryptsetup[36705]: Udev cookie 0xd4d393c (semid 8) incremented to 2
+2026-10-30T13:34:41.450568+01:00 predator systemd-cryptsetup[36705]: Udev cookie 0xd4d393c (semid 8) assigned to REMOVE task(2) with flags DISABLE_LIBRARY_FALLBACK (0x20)
+2026-10-30T13:34:41.450583+01:00 predator systemd-cryptsetup[36705]: dm remove tank1-crypt  [ opencount flush retryremove ]   [2048]
+2026-10-30T13:34:41.450600+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 1/25 for tank1-crypt.
+2026-10-30T13:34:41.545401+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 2/25 for fast-crypt.
+2026-10-30T13:34:41.568818+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 2/25 for tank2-crypt.
+2026-10-30T13:34:41.570856+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 2/25 for tank3-crypt.
+2026-10-30T13:34:41.651213+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 2/25 for tank1-crypt.
+2026-10-30T13:34:41.746031+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 3/25 for fast-crypt.
+2026-10-30T13:34:41.769028+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 3/25 for tank2-crypt.
+2026-10-30T13:34:41.771064+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 3/25 for tank3-crypt.
+2026-10-30T13:34:41.851832+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 3/25 for tank1-crypt.
+2026-10-30T13:34:41.946646+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 4/25 for fast-crypt.
+2026-10-30T13:34:41.969619+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 4/25 for tank2-crypt.
+2026-10-30T13:34:41.971572+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 4/25 for tank3-crypt.
+2026-10-30T13:34:42.052452+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 4/25 for tank1-crypt.
+2026-10-30T13:34:42.147260+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 5/25 for fast-crypt.
+2026-10-30T13:34:42.169825+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 5/25 for tank2-crypt.
+2026-10-30T13:34:42.171774+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 5/25 for tank3-crypt.
+2026-10-30T13:34:42.253076+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 5/25 for tank1-crypt.
+2026-10-30T13:34:42.347894+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 6/25 for fast-crypt.
+2026-10-30T13:34:42.370421+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 6/25 for tank2-crypt.
+2026-10-30T13:34:42.371966+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 6/25 for tank3-crypt.
+2026-10-30T13:34:42.453696+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 6/25 for tank1-crypt.
+2026-10-30T13:34:42.548508+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 7/25 for fast-crypt.
+2026-10-30T13:34:42.571017+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 7/25 for tank2-crypt.
+2026-10-30T13:34:42.572410+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 7/25 for tank3-crypt.
+2026-10-30T13:34:42.654294+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 7/25 for tank1-crypt.
+2026-10-30T13:34:42.749125+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 8/25 for fast-crypt.
+2026-10-30T13:34:42.771612+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 8/25 for tank2-crypt.
+2026-10-30T13:34:42.772779+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 8/25 for tank3-crypt.
+2026-10-30T13:34:42.854911+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 8/25 for tank1-crypt.
+2026-10-30T13:34:42.949744+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 9/25 for fast-crypt.
+2026-10-30T13:34:42.972207+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 9/25 for tank2-crypt.
+2026-10-30T13:34:42.973085+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 9/25 for tank3-crypt.
+2026-10-30T13:34:43.055529+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 9/25 for tank1-crypt.
+2026-10-30T13:34:43.150372+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 10/25 for fast-crypt.
+2026-10-30T13:34:43.172841+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 10/25 for tank2-crypt.
+2026-10-30T13:34:43.173236+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 10/25 for tank3-crypt.
+2026-10-30T13:34:43.256151+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 10/25 for tank1-crypt.
+2026-10-30T13:34:43.350977+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 11/25 for fast-crypt.
+2026-10-30T13:34:43.373435+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 11/25 for tank2-crypt.
+2026-10-30T13:34:43.373437+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 11/25 for tank3-crypt.
+2026-10-30T13:34:43.456786+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 11/25 for tank1-crypt.
+2026-10-30T13:34:43.551573+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 12/25 for fast-crypt.
+2026-10-30T13:34:43.574036+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 12/25 for tank3-crypt.
+2026-10-30T13:34:43.574054+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 12/25 for tank2-crypt.
+2026-10-30T13:34:43.657412+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 12/25 for tank1-crypt.
+2026-10-30T13:34:43.752167+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 13/25 for fast-crypt.
+2026-10-30T13:34:43.774245+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 13/25 for tank2-crypt.
+2026-10-30T13:34:43.774260+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 13/25 for tank3-crypt.
+2026-10-30T13:34:43.858009+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 13/25 for tank1-crypt.
+2026-10-30T13:34:43.952760+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 14/25 for fast-crypt.
+2026-10-30T13:34:43.974808+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 14/25 for tank3-crypt.
+2026-10-30T13:34:43.974822+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 14/25 for tank2-crypt.
+2026-10-30T13:34:44.058607+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 14/25 for tank1-crypt.
+2026-10-30T13:34:44.153376+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 15/25 for fast-crypt.
+2026-10-30T13:34:44.175420+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 15/25 for tank2-crypt.
+2026-10-30T13:34:44.175421+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 15/25 for tank3-crypt.
+2026-10-30T13:34:44.259205+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 15/25 for tank1-crypt.
+2026-10-30T13:34:44.353968+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 16/25 for fast-crypt.
+2026-10-30T13:34:44.376018+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 16/25 for tank2-crypt.
+2026-10-30T13:34:44.376019+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 16/25 for tank3-crypt.
+2026-10-30T13:34:44.459806+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 16/25 for tank1-crypt.
+2026-10-30T13:34:44.554585+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 17/25 for fast-crypt.
+2026-10-30T13:34:44.576444+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 17/25 for tank3-crypt.
+2026-10-30T13:34:44.576445+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 17/25 for tank2-crypt.
+2026-10-30T13:34:44.660433+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 17/25 for tank1-crypt.
+2026-10-30T13:34:44.755200+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 18/25 for fast-crypt.
+2026-10-30T13:34:44.777045+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 18/25 for tank2-crypt.
+2026-10-30T13:34:44.777048+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 18/25 for tank3-crypt.
+2026-10-30T13:34:44.861053+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 18/25 for tank1-crypt.
+2026-10-30T13:34:44.955820+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 19/25 for fast-crypt.
+2026-10-30T13:34:44.977642+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 19/25 for tank3-crypt.
+2026-10-30T13:34:44.977643+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 19/25 for tank2-crypt.
+2026-10-30T13:34:45.061675+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 19/25 for tank1-crypt.
+2026-10-30T13:34:45.156457+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 20/25 for fast-crypt.
+2026-10-30T13:34:45.178238+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 20/25 for tank3-crypt.
+2026-10-30T13:34:45.178239+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 20/25 for tank2-crypt.
+2026-10-30T13:34:45.262294+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 20/25 for tank1-crypt.
+2026-10-30T13:34:45.357072+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 21/25 for fast-crypt.
+2026-10-30T13:34:45.378836+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 21/25 for tank2-crypt.
+2026-10-30T13:34:45.378837+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 21/25 for tank3-crypt.
+2026-10-30T13:34:45.462916+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 21/25 for tank1-crypt.
+2026-10-30T13:34:45.557687+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 22/25 for fast-crypt.
+2026-10-30T13:34:45.579435+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 22/25 for tank3-crypt.
+2026-10-30T13:34:45.579436+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 22/25 for tank2-crypt.
+2026-10-30T13:34:45.663515+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 22/25 for tank1-crypt.
+2026-10-30T13:34:45.757911+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 23/25 for fast-crypt.
+2026-10-30T13:34:45.780040+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 23/25 for tank3-crypt.
+2026-10-30T13:34:45.780041+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 23/25 for tank2-crypt.
+2026-10-30T13:34:45.864135+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 23/25 for tank1-crypt.
+2026-10-30T13:34:45.958531+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 24/25 for fast-crypt.
+2026-10-30T13:34:45.980637+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 24/25 for tank3-crypt.
+2026-10-30T13:34:45.980638+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 24/25 for tank2-crypt.
+2026-10-30T13:34:46.064756+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 24/25 for tank1-crypt.
+2026-10-30T13:34:46.159152+01:00 predator systemd-cryptsetup[36704]: EBUSY retry 25/25 for fast-crypt.
+2026-10-30T13:34:46.180879+01:00 predator systemd-cryptsetup[36707]: EBUSY retry 25/25 for tank3-crypt.
+2026-10-30T13:34:46.180880+01:00 predator systemd-cryptsetup[36706]: EBUSY retry 25/25 for tank2-crypt.
+2026-10-30T13:34:46.265400+01:00 predator systemd-cryptsetup[36705]: EBUSY retry 25/25 for tank1-crypt.
+2026-10-30T13:34:46.359755+01:00 predator systemd-cryptsetup[36704]: device-mapper: remove ioctl on fast-crypt  failed: Device or resource busy
+2026-10-30T13:34:46.359802+01:00 predator systemd-cryptsetup[36704]: Udev cookie 0xd4d6134 (semid 5) decremented to 1
+2026-10-30T13:34:46.359826+01:00 predator systemd-cryptsetup[36704]: Udev cookie 0xd4d6134 (semid 5) decremented to 0
+2026-10-30T13:34:46.359839+01:00 predator systemd-cryptsetup[36704]: Udev cookie 0xd4d6134 (semid 5) waiting for zero
+2026-10-30T13:34:46.359862+01:00 predator systemd-cryptsetup[36704]: Udev cookie 0xd4d6134 (semid 5) destroyed
+2026-10-30T13:34:46.359893+01:00 predator systemd-cryptsetup[36704]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:46.359934+01:00 predator systemd-cryptsetup[36704]: dm status fast-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:46.359978+01:00 predator systemd-cryptsetup[36704]: Device fast-crypt is still in use.
+2026-10-30T13:34:46.359995+01:00 predator systemd-cryptsetup[36704]: Failed to deactivate 'fast-crypt': Device or resource busy
+2026-10-30T13:34:46.360008+01:00 predator systemd-cryptsetup[36704]: Releasing crypt device /dev/sdb1 context.
+2026-10-30T13:34:46.360020+01:00 predator systemd-cryptsetup[36704]: Releasing device-mapper backend.
+2026-10-30T13:34:46.360114+01:00 predator systemd-cryptsetup[36704]: Closing read only fd for /dev/sdb1.
+2026-10-30T13:34:46.362581+01:00 predator systemd[1]: systemd-cryptsetup@fast\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-30T13:34:46.363216+01:00 predator systemd[1]: systemd-cryptsetup@fast\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-30T13:34:46.364040+01:00 predator systemd[1]: Stopped Cryptography Setup for fast-crypt.
+2026-10-30T13:34:46.381207+01:00 predator systemd-cryptsetup[36707]: device-mapper: remove ioctl on tank3-crypt  failed: Device or resource busy
+2026-10-30T13:34:46.381207+01:00 predator systemd-cryptsetup[36706]: device-mapper: remove ioctl on tank2-crypt  failed: Device or resource busy
+2026-10-30T13:34:46.381219+01:00 predator systemd-cryptsetup[36707]: Udev cookie 0xd4d2737 (semid 7) decremented to 1
+2026-10-30T13:34:46.381220+01:00 predator systemd-cryptsetup[36706]: Udev cookie 0xd4d658e (semid 6) decremented to 1
+2026-10-30T13:34:46.381226+01:00 predator systemd-cryptsetup[36707]: Udev cookie 0xd4d2737 (semid 7) decremented to 0
+2026-10-30T13:34:46.381226+01:00 predator systemd-cryptsetup[36706]: Udev cookie 0xd4d658e (semid 6) decremented to 0
+2026-10-30T13:34:46.381230+01:00 predator systemd-cryptsetup[36706]: Udev cookie 0xd4d658e (semid 6) waiting for zero
+2026-10-30T13:34:46.381230+01:00 predator systemd-cryptsetup[36707]: Udev cookie 0xd4d2737 (semid 7) waiting for zero
+2026-10-30T13:34:46.381235+01:00 predator systemd-cryptsetup[36706]: Udev cookie 0xd4d658e (semid 6) destroyed
+2026-10-30T13:34:46.381238+01:00 predator systemd-cryptsetup[36707]: Udev cookie 0xd4d2737 (semid 7) destroyed
+2026-10-30T13:34:46.381243+01:00 predator systemd-cryptsetup[36706]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:46.381246+01:00 predator systemd-cryptsetup[36707]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:46.381255+01:00 predator systemd-cryptsetup[36706]: dm status tank2-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:46.381256+01:00 predator systemd-cryptsetup[36707]: dm status tank3-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:46.381265+01:00 predator systemd-cryptsetup[36706]: Device tank2-crypt is still in use.
+2026-10-30T13:34:46.381269+01:00 predator systemd-cryptsetup[36707]: Device tank3-crypt is still in use.
+2026-10-30T13:34:46.381270+01:00 predator systemd-cryptsetup[36706]: Failed to deactivate 'tank2-crypt': Device or resource busy
+2026-10-30T13:34:46.381274+01:00 predator systemd-cryptsetup[36706]: Releasing crypt device /dev/sdd1 context.
+2026-10-30T13:34:46.381274+01:00 predator systemd-cryptsetup[36707]: Failed to deactivate 'tank3-crypt': Device or resource busy
+2026-10-30T13:34:46.381277+01:00 predator systemd-cryptsetup[36706]: Releasing device-mapper backend.
+2026-10-30T13:34:46.381278+01:00 predator systemd-cryptsetup[36707]: Releasing crypt device /dev/sde1 context.
+2026-10-30T13:34:46.381281+01:00 predator systemd-cryptsetup[36707]: Releasing device-mapper backend.
+2026-10-30T13:34:46.381308+01:00 predator systemd-cryptsetup[36707]: Closing read only fd for /dev/sde1.
+2026-10-30T13:34:46.381309+01:00 predator systemd-cryptsetup[36706]: Closing read only fd for /dev/sdd1.
+2026-10-30T13:34:46.382424+01:00 predator systemd[1]: systemd-cryptsetup@tank2\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-30T13:34:46.382596+01:00 predator systemd[1]: systemd-cryptsetup@tank2\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-30T13:34:46.382819+01:00 predator systemd[1]: Stopped Cryptography Setup for tank2-crypt.
+2026-10-30T13:34:46.384187+01:00 predator systemd[1]: systemd-cryptsetup@tank3\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-30T13:34:46.384385+01:00 predator systemd[1]: systemd-cryptsetup@tank3\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-30T13:34:46.384571+01:00 predator systemd[1]: Stopped Cryptography Setup for tank3-crypt.
+2026-10-30T13:34:46.465588+01:00 predator systemd-cryptsetup[36705]: device-mapper: remove ioctl on tank1-crypt  failed: Device or resource busy
+2026-10-30T13:34:46.465633+01:00 predator systemd-cryptsetup[36705]: Udev cookie 0xd4d393c (semid 8) decremented to 1
+2026-10-30T13:34:46.465656+01:00 predator systemd-cryptsetup[36705]: Udev cookie 0xd4d393c (semid 8) decremented to 0
+2026-10-30T13:34:46.465671+01:00 predator systemd-cryptsetup[36705]: Udev cookie 0xd4d393c (semid 8) waiting for zero
+2026-10-30T13:34:46.465695+01:00 predator systemd-cryptsetup[36705]: Udev cookie 0xd4d393c (semid 8) destroyed
+2026-10-30T13:34:46.465724+01:00 predator systemd-cryptsetup[36705]: dm versions   [ opencount flush ]   [2048]
+2026-10-30T13:34:46.465770+01:00 predator systemd-cryptsetup[36705]: dm status tank1-crypt  [ opencount noflush ]   [16384]
+2026-10-30T13:34:46.465816+01:00 predator systemd-cryptsetup[36705]: Device tank1-crypt is still in use.
+2026-10-30T13:34:46.465833+01:00 predator systemd-cryptsetup[36705]: Failed to deactivate 'tank1-crypt': Device or resource busy
+2026-10-30T13:34:46.465846+01:00 predator systemd-cryptsetup[36705]: Releasing crypt device /dev/sdc1 context.
+2026-10-30T13:34:46.465858+01:00 predator systemd-cryptsetup[36705]: Releasing device-mapper backend.
+2026-10-30T13:34:46.465952+01:00 predator systemd-cryptsetup[36705]: Closing read only fd for /dev/sdc1.
+2026-10-30T13:34:46.468503+01:00 predator systemd[1]: systemd-cryptsetup@tank1\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-30T13:34:46.469147+01:00 predator systemd[1]: systemd-cryptsetup@tank1\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-30T13:34:46.470024+01:00 predator systemd[1]: Stopped Cryptography Setup for tank1-crypt.
+2026-10-30T13:34:46.476468+01:00 predator systemd[1]: Removed slice Slice /system/systemd-cryptsetup.
+2026-10-30T13:34:46.477996+01:00 predator systemd[1]: system-systemd\x2dcryptsetup.slice: Consumed 1.729s CPU time over 1h 18min 46.323s wall clock time, 11.1M memory peak, 3.3M read from disk.
+2026-10-30T13:34:46.478123+01:00 predator systemd[1]: Reached target System Shutdown.
+2026-10-30T13:34:46.479545+01:00 predator systemd[1]: Reached target Unmount All Filesystems.
+2026-10-30T13:34:46.480885+01:00 predator systemd[1]: Reached target Late Shutdown Services.
+2026-10-30T13:34:46.482304+01:00 predator systemd[1]: systemd-poweroff.service: Deactivated successfully.
+2026-10-30T13:34:46.482383+01:00 predator systemd[1]: Finished System Power Off.
+2026-10-30T13:34:46.483880+01:00 predator systemd[1]: Reached target System Power Off.
+2026-10-30T13:34:46.485240+01:00 predator systemd[1]: Shutting down.
+2026-10-30T13:34:46.595914+01:00 predator systemd-shutdown[1]: Syncing filesystems and block devices.
+2026-10-30T13:34:46.711368+01:00 predator systemd-shutdown[1]: Sending SIGTERM to remaining processes...
+2026-10-30T13:34:46.712757+01:00 predator systemd-journald[473]: Journal stopped

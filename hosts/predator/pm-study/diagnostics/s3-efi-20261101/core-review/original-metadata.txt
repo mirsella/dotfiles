@@ -1,0 +1,17 @@
+drwx------ root/root         0 2026-11-01 13:45 predator-pm-efi-s3/
+-rw------- root/root    806105 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-before-kernel.jsonl
+-rw------- root/root     11017 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-restored.txt
+-rw------- root/root       842 2026-11-01 13:32 predator-pm-efi-s3/core-efi-20261101-plan.conf
+-rw------- root/root       841 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-requested.txt
+-rw------- root/root    745274 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-observed.jsonl
+-rw------- root/root     11010 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-before.txt
+-rw------- root/root       124 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-cursor.txt
+-rw------- root/root       154 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-stage-readback.txt
+-rw------- root/root       377 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-stage-status.txt
+-rw------- root/root         5 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-request-ok.txt
+-rw------- root/root        78 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-mutating.txt
+-rw------- root/root     11024 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-raw-return.txt
+-rw------- root/root        47 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-request-call.txt
+-rw------- root/root       382 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-stage-before.txt
+-rw------- root/root       921 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-clock-handoff.txt
+-rw------- root/root       104 2026-11-01 13:45 predator-pm-efi-s3/core-efi-20261101-outcome.txt

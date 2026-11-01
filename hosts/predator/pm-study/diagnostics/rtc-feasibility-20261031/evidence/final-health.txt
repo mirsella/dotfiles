@@ -1,0 +1,348 @@
+2026-10-31T08:45:50+01:00
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+51556.93 400260.59
+btime 1793381193
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+running
+No jobs running.
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+/sys/power/suspend_stats/success=9
+/sys/power/suspend_stats/fail=0
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/power/mem_sleep=s2idle [deep]
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/module/pm_stage/parameters/last_action=0
+/sys/module/pm_stage/parameters/last_value=0
+/sys/module/pm_stage/parameters/last_start=N
+/sys/class/rtc/rtc0/wakealarm=/sys/class/power_supply/ACAD/online=1
+/sys/class/graphics/fb0/blank=4
+fast: boot used authenticated slot 2; late-phase token 0 rejected
+root: boot used authenticated slot 2; late-phase token 0 rejected
+tank1: boot used authenticated slot 4; late-phase token 0 rejected
+tank2: boot used authenticated slot 4; late-phase token 0 rejected
+tank3: boot used authenticated slot 2; late-phase token 0 rejected
+state:      closed
+Settings for enp3s0f1:
+	Supported ports: [ TP	 MII ]
+	Supported link modes:   10baseT/Half 10baseT/Full
+	                        100baseT/Half 100baseT/Full
+	                        1000baseT/Full
+	Supported pause frame use: Symmetric Receive-only
+	Supports auto-negotiation: Yes
+	Supported FEC modes: Not reported
+	Advertised link modes:  10baseT/Half 10baseT/Full
+	                        100baseT/Half 100baseT/Full
+	                        1000baseT/Full
+	Advertised pause frame use: Symmetric Receive-only
+	Advertised auto-negotiation: Yes
+	Advertised FEC modes: Not reported
+	Link partner advertised link modes:  10baseT/Half 10baseT/Full
+	                                     100baseT/Half 100baseT/Full
+	                                     1000baseT/Full
+	Link partner advertised pause frame use: Symmetric Receive-only
+	Link partner advertised auto-negotiation: Yes
+	Link partner advertised FEC modes: Not reported
+	Speed: 1000Mb/s
+	Duplex: Full
+	Auto-negotiation: on
+	master-slave cfg: preferred slave
+	master-slave status: slave
+	Port: Twisted Pair
+	PHYAD: 0
+	Transceiver: external
+	MDI-X: Unknown
+	Supports Wake-on: pumbg
+	Wake-on: g
+	Link detected: yes
+100 (connected)
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+               Local time: Sat 2026-10-31 08:45:58 CET
+           Universal time: Sat 2026-10-31 07:45:58 UTC
+                 RTC time: Sat 2026-10-31 07:45:58
+                Time zone: Europe/Paris (CET, +0100)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no
+       Server: 87.106.8.23 (0.nixos.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 3
+    Reference: 3E800112
+    Precision: 1us (-24)
+Root distance: 38.001ms (max: 5s)
+       Offset: +990us
+        Delay: 14.790ms
+       Jitter: 1.500ms
+ Packet count: 42
+    Frequency: +4.597ppm
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:04:10 with 0 errors on Sat Oct  3 14:19:29 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: resilvered 132K in 00:00:01 with 0 errors on Sun Oct  4 01:20:38 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+fast/data /srv/data/fast
+fast/ncdata /var/lib/nextcloud/data
+tank/backup /srv/backup
+tank/backup/recovery /srv/backup/recovery
+tank/archive /srv/data/archive
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+immich_redis Up 14 hours (healthy)
+immich_ml Up 14 hours (healthy)
+immich_postgres Up 14 hours (healthy)
+immich_server Up 14 hours (healthy)
+NEXT                            LEFT LAST                              PASSED UNIT                   ACTIVATES
+Sat 2026-10-31 08:47:28 CET 1min 29s Sat 2026-10-31 08:42:28 CET 3min 30s ago nextcloud-cron.timer   nextcloud-cron.service
+-                                  - -                                      - night-suspend.timer    night-suspend.service
+-                                  - -                                      - predator-pm-next.timer predator-pm-next.service
+
+3 timers listed.
+# /etc/systemd/system/predator-pm-preserve-rtc.service -> /nix/store/gianbrr1ksqwyvhz9nmm7mzn7n3znlc7-unit-predator-pm-preserve-rtc.service/predator-pm-preserve-rtc.service
+[Unit]
+After=local-fs.target systemd-journald.service
+Before=systemd-timesyncd.service
+DefaultDependencies=false
+Description=Preserve suspend phase RTC evidence before clock synchronization
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/6awpfcv4lkmk67qf6ca73m076zcfbczp-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="PATH=/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/bin:/nix/store/avshcbcrykiffn4vlhmz848ab69wbp9n-systemd-262/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/bin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/bin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/bin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/bin:/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/sbin:/nix/store/avshcbcrykiffn4vlhmz848ab69wbp9n-systemd-262/sbin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/sbin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/sbin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/sbin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/sbin"
+Environment="TZDIR=/nix/store/fsrw69w5mx838p7xydbdvywhwl6wnbjw-tzdata-2026e/share/zoneinfo"
+X-RestartIfChanged=false
+ExecStart=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study preserve-rtc
+RemainAfterExit=true
+Type=oneshot
+
+[Install]
+WantedBy=sysinit.target
+
+# /etc/systemd/system/predator-pm-clock-handoff.service -> /nix/store/0r5n29rbbkqc7d7p4dmrsv3iwxlwk6sg-unit-predator-pm-clock-handoff.service/predator-pm-clock-handoff.service
+[Unit]
+After=network-online.target NetworkManager.service NetworkManager-ensure-profiles.service predator-pm-preserve-rtc.service
+Description=Restore NTP after initrd networkd hands the LAN to NetworkManager
+Wants=network-online.target
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/6awpfcv4lkmk67qf6ca73m076zcfbczp-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="PATH=/nix/store/55w48cr7iihfw70692fs95pf43jkc080-networkmanager-1.58.1/bin:/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/bin:/nix/store/avshcbcrykiffn4vlhmz848ab69wbp9n-systemd-262/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/bin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/bin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/bin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/bin:/nix/store/55w48cr7iihfw70692fs95pf43jkc080-networkmanager-1.58.1/sbin:/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/sbin:/nix/store/avshcbcrykiffn4vlhmz848ab69wbp9n-systemd-262/sbin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/sbin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/sbin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/sbin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/sbin"
+Environment="TZDIR=/nix/store/fsrw69w5mx838p7xydbdvywhwl6wnbjw-tzdata-2026e/share/zoneinfo"
+ExecStart=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study clock-handoff
+RemainAfterExit=true
+TimeoutStartSec=2min
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target
+
+# /etc/systemd/system/systemd-timesyncd.service -> /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/example/systemd/system/systemd-timesyncd.service
+#  SPDX-License-Identifier: LGPL-2.1-or-later
+#
+#  This file is part of systemd.
+#
+#  systemd is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
+#  (at your option) any later version.
+
+[Unit]
+Description=Network Time Synchronization
+Documentation=man:systemd-timesyncd.service(8)
+ConditionCapability=CAP_SYS_TIME
+ConditionVirtualization=!container
+DefaultDependencies=no
+After=systemd-sysusers.service systemd-resolved.service systemd-resolved-varlink.socket
+Before=time-set.target sysinit.target shutdown.target
+Conflicts=shutdown.target
+Wants=time-set.target
+
+[Service]
+AmbientCapabilities=CAP_SYS_TIME
+BusName=org.freedesktop.timesync1
+CapabilityBoundingSet=CAP_SYS_TIME
+ExecStart=/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-timesyncd
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=disconnected
+ProtectProc=invisible
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+Restart=always
+RestartSec=0
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RuntimeDirectory=systemd/timesync
+StateDirectory=systemd/timesync
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=@system-service @clock
+Type=notify
+User=systemd-timesync
+WatchdogSec=3min
+
+[Install]
+WantedBy=sysinit.target
+Alias=dbus-org.freedesktop.timesync1.service
+
+# /nix/store/ffl7cjrskkbhmp130csb37bvkm4p6s0a-system-units/systemd-timesyncd.service.d/overrides.conf -> /nix/store/2ay1wr4wg3j6s0gck1072sqnm48v3yn9-unit-systemd-timesyncd.service/systemd-timesyncd.service
+[Unit]
+X-Restart-Triggers=/nix/store/cd884caaxagk9xrsbz6d6w98r10jlc7d-X-Restart-Triggers-systemd-timesyncd
+
+[Service]
+Environment="LD_LIBRARY_PATH=/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib"
+Environment="LOCALE_ARCHIVE=/nix/store/6awpfcv4lkmk67qf6ca73m076zcfbczp-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="PATH=/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/bin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/bin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/bin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/sbin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/sbin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/sbin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/sbin"
+Environment="TZDIR=/nix/store/fsrw69w5mx838p7xydbdvywhwl6wnbjw-tzdata-2026e/share/zoneinfo"
+
+[Install]
+WantedBy=sysinit.target
+Id=predator-pm-preserve-rtc.service
+Before=predator-pm-clock-handoff.service systemd-timesyncd.service
+After=local-fs.target system.slice systemd-journald.service systemd-journald.socket
+ActiveState=active
+Result=success
+ExecMainStartTimestamp=Fri 2026-10-30 18:26:53 CET
+ExecMainExitTimestamp=Fri 2026-10-30 18:26:54 CET
+
+Id=predator-pm-clock-handoff.service
+Before=multi-user.target shutdown.target
+After=network-online.target NetworkManager.service sysinit.target system.slice basic.target systemd-journald.socket predator-pm-preserve-rtc.service NetworkManager-ensure-profiles.service
+ActiveState=active
+Result=success
+ExecMainStartTimestamp=Fri 2026-10-30 18:27:00 CET
+ExecMainExitTimestamp=Fri 2026-10-30 18:27:02 CET
+
+Id=systemd-timesyncd.service
+Before=time-set.target shutdown.target sysinit.target
+After=systemd-resolved.service predator-pm-preserve-rtc.service systemd-journald.socket system.slice systemd-resolved-varlink.socket systemd-remount-fs.service systemd-sysusers.service -.mount
+ActiveState=active
+Result=success
+ExecMainStartTimestamp=Fri 2026-10-30 18:27:01 CET
+ExecMainExitTimestamp=
+2026-10-30T18:26:53.008058+01:00 predator systemd[1]: Starting Preserve suspend phase RTC evidence before clock synchronization...
+2026-10-30T18:26:54.058725+01:00 predator systemd[1]: Finished Preserve suspend phase RTC evidence before clock synchronization.
+2026-10-30T18:26:54.067262+01:00 predator systemd[1]: Starting Network Time Synchronization...
+2026-10-30T18:26:54.234793+01:00 predator systemd[1]: Started Network Time Synchronization.
+2026-10-30T18:26:54.284385+01:00 predator systemd-timesyncd[1493]: Contacted time server 87.106.8.23:123 (0.nixos.pool.ntp.org).
+2026-10-30T18:26:54.284556+01:00 predator systemd-timesyncd[1493]: Initial clock synchronization to Fri 2026-10-30 18:26:54.466638 CET.
+2026-10-30T18:27:00.717274+01:00 predator systemd[1]: Starting Restore NTP after initrd networkd hands the LAN to NetworkManager...
+2026-10-30T18:27:00.848136+01:00 predator predator-pm-study[2176]: NETWORK HANDOFF activating declared LAN profile; inherited initrd connection is not sufficient
+2026-10-30T18:27:01.322989+01:00 predator predator-pm-study[2176]: Removed inactive initrd networkd's stale online-state cache after verified NetworkManager handoff
+2026-10-30T18:27:01.362650+01:00 predator systemd[1]: Stopping Network Time Synchronization...
+2026-10-30T18:27:01.378677+01:00 predator systemd[1]: systemd-timesyncd.service: Deactivated successfully.
+2026-10-30T18:27:01.379204+01:00 predator systemd[1]: Stopped Network Time Synchronization.
+2026-10-30T18:27:01.379999+01:00 predator systemd[1]: systemd-timesyncd.service: Consumed 152ms CPU time over 7.311s wall clock time, 3.3M memory peak, 2.2M read from disk, 349B incoming IP traffic, 230B outgoing IP traffic.
+2026-10-30T18:27:01.384000+01:00 predator systemd[1]: Starting Network Time Synchronization...
+2026-10-30T18:27:01.443401+01:00 predator systemd[1]: Started Network Time Synchronization.
+2026-10-30T18:27:01.465272+01:00 predator systemd-timesyncd[2464]: Contacted time server 87.106.8.23:123 (0.nixos.pool.ntp.org).
+2026-10-30T18:27:01.465388+01:00 predator systemd-timesyncd[2464]: Initial clock synchronization to Fri 2026-10-30 18:27:01.544123 CET.
+2026-10-30T18:27:01.905483+01:00 predator predator-pm-study[2176]: NTP: Stopping Network Time Synchronization...
+2026-10-30T18:27:01.905483+01:00 predator predator-pm-study[2176]: NTP: systemd-timesyncd.service: Deactivated successfully.
+2026-10-30T18:27:01.905483+01:00 predator predator-pm-study[2176]: NTP: Stopped Network Time Synchronization.
+2026-10-30T18:27:01.905483+01:00 predator predator-pm-study[2176]: NTP: systemd-timesyncd.service: Consumed 152ms CPU time over 7.311s wall clock time, 3.3M memory peak, 2.2M read from disk, 349B incoming IP traffic, 230B outgoing IP traffic.
+2026-10-30T18:27:01.905483+01:00 predator predator-pm-study[2176]: NTP: Starting Network Time Synchronization...
+2026-10-30T18:27:01.905483+01:00 predator predator-pm-study[2176]: NTP: Started Network Time Synchronization.
+2026-10-30T18:27:01.905483+01:00 predator predator-pm-study[2176]: NTP: Contacted time server 87.106.8.23:123 (0.nixos.pool.ntp.org).
+2026-10-30T18:27:01.905483+01:00 predator predator-pm-study[2176]: NTP: Initial clock synchronization to Fri 2026-10-30 18:27:01.544123 CET.
+2026-10-30T18:27:02.502039+01:00 predator systemd[1]: Finished Restore NTP after initrd networkd hands the LAN to NetworkManager.
+/var/lib/predator-pm-study/f8eb6e44-85ae-4e56-bc00-587876699945-boot-rtc.txt 101104 root 600 2026-10-30 18:26:54.046999734 +0100
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+cmdline=init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+2026-10-30 18:26:53.240658+01:00
+[    1.363877] predator kernel: Linux version 6.18.58 (nixbld@localhost) (gcc (GCC) 16.2.0, GNU ld (GNU Binutils) 2.46) #1-NixOS SMP PREEMPT_DYNAMIC @1792571549
+[    1.363927] predator kernel: Command line: init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+2026-10-31 08:45:58.978378+01:00
+filename:       /run/booted-system/kernel-modules/lib/modules/6.18.58/extra/pm_stage.ko.xz
+description:    Predator suspend-phase RTC recorder with corrected century
+license:        GPL
+depends:        
+name:           pm_stage
+retpoline:      Y
+vermagic:       6.18.58 SMP preempt mod_unload 
+sig_id:         PKCS#7
+signer:         
+sig_key:        
+sig_hashalgo:   unknown
+signature:      
+parm:           armed:bool
+parm:           last_action:uint
+parm:           last_value:int
+parm:           last_start:bool
+parm:           markers:ulong
+25d8e1e0530e68c2ca20b35b7c2181a6518b3775c5f5ffe703b2e3871256f750  /nix/store/cs0lilrdblqkd20835ihmlk61yf8nh0b-predator-pm-study-0.1.0/bin/predator-pm-diagnostic
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.toml
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+22389d77fb60d4871e59c31a85b99d876b40b0acfaf82ad23e651d4d67f05652  hosts/predator/pm-study/README.md
+621c84ddaa407085495bf558a78b080880cfe07a754d660b44712dc1db367313  hosts/predator/pm-study/diagnostics/README.md
+8ac7b97f4f1227d011f1d8d38b8670de34b3a5a7ec5620091f7a1b49beae7aee  hosts/predator/pm-study/diagnostics/ladder-summary-20261030/README.md
+61143dbe75133ad76af9f57cd4962d652041237ef7ef558a2d52aca46bb55fd5  pkgs/predator-pm-study/diagnostic.rs
+69bdd984ae587f0d152baae8877315e4acbe705c87b5122ec7626ba71868d75d  pkgs/predator-pm-study/pm_stage.c

@@ -1,0 +1,5 @@
+runtime=/nix/store/yr5hax9gcx03sgfc8aywzff3c2rcab6s-predator-pm-study-0.1.0/bin/predator-pm-instrumented
+binary_sha256=706a3f14b217e56a1252d9eaa83a324a3ae8122ce476a7292d340bb40cf925d8
+source_sha256=e4045656f6be3a58251d494bb203f17b8a8676719b60b834da76c1c68c9fbc7b
+status=not-deployed
+superseded_reason=explicit-08h00-lower-bound-correction-before-any-manifest

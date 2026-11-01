@@ -1,0 +1,5 @@
+Predator is reachable and healthy on the same recovery boot. The new recorder-OFF wake-validation runtime passed all70 tests, Nix build and flake evaluation. RTC wake capability is enabled; its clock matches UTC and no existing alarm is armed. Independent Pi NTP/receiver/nonce/waker checks passed.
+
+Tonight's ONE s2idle test: entry22:15CET, PiWoL22:31, one retry22:31:30. The runner must arm and verify an independent RTC fallback for22:35 before it requests sleep; no verified RTC readback means no suspend request. Pi probe22:36:30, frozen capture22:38, automatic review22:45. The phase logger stays off so RTC/timekeeping remain valid.
+
+Please retain a dated power graph covering22:13 through22:40. We'll distinguish WoL-window versus RTC-fallback-window return using actual wake evidence, not timing alone. This is not an S3 PASS. No repeat/deep trial is authorized by the review; if both wake routes fail, owner recovery is needed.

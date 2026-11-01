@@ -1,0 +1,10 @@
+
+running 5 tests
+test tests::elapsed_time_changes_naive_magic ... ok
+test tests::seconds_rollovers_and_leap_year ... ok
+test tests::kernel_radices_and_century ... ok
+test tests::every_zero_device_state_has_unique_one_day_recovery_window ... ok
+test tests::all_hash_triplets_roundtrip ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+

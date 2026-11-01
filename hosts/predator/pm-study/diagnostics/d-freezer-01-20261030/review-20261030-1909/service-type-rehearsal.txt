@@ -1,0 +1,20 @@
+2026-10-30T19:10:40+01:00
+ActiveState=activating
+SubState=start
+Type=oneshot
+85920 predator-pm-diagnostic-job-proof-oneshot-20261030.service start running
+ActiveState=inactive
+SubState=dead
+MainPID=0
+Result=success
+ActiveState=active
+SubState=running
+Type=exec
+ActiveState=inactive
+SubState=dead
+MainPID=0
+Result=success
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/power/pm_async=1

@@ -1,0 +1,3 @@
+2026-10-29T20:02:26+01:00
+planned healthy poweroff; boot=4e5cb3ba-062b-4ad0-bd18-7e24492f97e6; no forced reset
+POWEROFF_ACCEPTED_20261029_4e5cb3ba epoch=1793300546

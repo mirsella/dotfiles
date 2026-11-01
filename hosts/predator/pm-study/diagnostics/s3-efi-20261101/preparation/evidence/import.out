@@ -1,0 +1,48 @@
+2026-11-01T13:32:38,921910689+01:00
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+A  pkgs/predator-pm-study/boundary-compact.c
+A  pkgs/predator-pm-study/boundary-compact.nix
+A  pkgs/predator-pm-study/boundary-probe.c
+A  pkgs/predator-pm-study/boundary-probe.nix
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_path.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+aa73c21393b56912900c7f2d8601157c7da74d8248b40710e59ff65ce0316c8c  hosts/predator/pm-study.nix
+23bb4b799df35c7b7db495acfa2cc1cbf282f0d05de0895eff3e56f546dbc4ba  pkgs/predator-pm-study/Cargo.toml
+afd512a3dfe31f75a4e6687a75c5b9ae9ce744b7eda28a17f619dbd158ddabbc  pkgs/predator-pm-study/wake_path.rs
+b0e0f337b532443b3cbd550aa6ad12e33a78a7d18d72430057534885f21bdd77  hosts/predator/pm-study/README.md
+6fc6f8093525f61b6408a3e2326c96a10f70a42b4706845705aff62302e1de51  hosts/predator/pm-study/diagnostics/README.md
+/nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0
+/nix/store/ymy989dq8bxys9j2jkanpc3d80qmvliy-predator-pm-boundary-stage-20261101
+/nix/var/nix/gcroots/predator-pm-boundary-stage-20261101
+/nix/var/nix/gcroots/predator-pm-boundary-trial-20261101
+90535c76374d5e2c29ba03780949b8917084c01fb6a610c0427a32e3471627c0  /nix/store/ymy989dq8bxys9j2jkanpc3d80qmvliy-predator-pm-boundary-stage-20261101/lib/modules/6.18.58/extra/pm_boundary_stage.ko.xz
+12b551f868bb0e0eae8c012bc9e41a0fbbc6e4dc975bf651e3a538e1651ed886  /nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0/bin/predator-pm-boundary-trial
+2026-11-01T13:32:39,632347758+01:00

@@ -1,0 +1,18 @@
+
+running 13 tests
+test tests::active_or_queued_sleep_prevents_cleanup ... ok
+test tests::only_owned_alarm_can_be_removed ... ok
+test tests::actual_suspend_state_and_arming_are_required ... ok
+test tests::overrides_cannot_silently_select_deep ... ok
+test tests::timex_abi ... ok
+test tests::early_and_late_return_are_never_planned_interval_success ... ok
+test tests::pinned_debug_sites_refuse_missing_foreign_or_enabled_baselines ... ok
+test tests::cumulative_history_requires_exact_reviewed_cycle ... ok
+test wake_timing::tests::missing_source_is_not_silently_substituted ... ok
+test wake_timing::tests::waits_for_late_kernel_exit ... ok
+test wake_timing::tests::source_is_never_receipt_and_timekeeping_is_allowed ... ok
+test wake_timing::tests::rejects_wrong_boot_deep_duplicate_and_fake_service ... ok
+test tests::strict_reviewed_boot_single_variable_protocol ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

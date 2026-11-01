@@ -1,0 +1,41 @@
+set -euo pipefail
+export TZ=Europe/Paris
+test "$(date +%F)" = 2026-11-01
+h=$(date +%H); test "$h" -ge 8; test "$h" -lt 23
+test "$(cat /proc/sys/kernel/random/boot_id)" = 39d7579b-b86d-4d30-b910-131943e550c8
+date --iso-8601=ns
+test -z "$(systemctl list-jobs --no-legend)"
+test -z "$(systemctl list-timers --all --no-legend | grep -E 'predator-pm-(recorder-off|boundary|path|wake|diagnostic|instrumented|s2idle)-' | grep -v '^-' || true)"
+install -d -m700 /var/lib/predator-pm-recorder-off
+umask 077
+set -o noclobber
+cat > /var/lib/predator-pm-recorder-off/off-s3-20261101-plan.conf <<'PLAN'
+schema=recorder-off-s3-20261101-1
+id=off-s3-20261101
+nonce=off1101a
+boot=39d7579b-b86d-4d30-b910-131943e550c8
+btime=1793535079
+mode=s3
+due=1793546100
+rtc=1793546400
+review=1793547000
+runtime=/nix/store/nbxvgd86xdy14jlvyn09h858gldgpqg4-predator-pm-study-0.1.0/bin/predator-pm-recorder-off
+runtime_sha=94b44bc3d6c5a4666372cee0cb47176966b2d684060bd26145fe856975d5d377
+source_sha=a7285638fc2cef87ff86e5cec7a617093265f075e6dd216c7a7923bad1d7c270
+recorder=absent
+efi_writes=0
+success_before=2
+core_review_sha=78a64967499872a4cd565d4c4788402b55432fb418c884b9c297d6a93af31896
+prior_completion_sha=4e303475cf76fe2f972237f93ba15d18c5a77c6a52a9f6685e284eb1dbc96121
+meter_scope=owner-confirmed-identical-laptop-and-peripherals
+hypothesis=late-EFI-recording-may-perturb-S3-power-entry
+prediction=lower-same-load-power-supports-instrumentation-sensitivity-not-unique-causality
+rollback=owned-RTC-alarm-clear-and-async1-after-inactive-sleep
+retention_sha=176cbbc62c46cd68c977a07d6c3f775d770ff0983176190646c17f9c18d37b63
+owner_ready=owner-confirmed-1615-1630-20261101
+pm_async=0
+pm_trace=0
+pm_test=none
+PLAN
+/nix/store/nbxvgd86xdy14jlvyn09h858gldgpqg4-predator-pm-study-0.1.0/bin/predator-pm-recorder-off check /var/lib/predator-pm-recorder-off/off-s3-20261101-plan.conf 9cbcb49aa9c5c61650874bbe8544af5b8241495f48368f4865c91ded9e957ba1
+journalctl --sync

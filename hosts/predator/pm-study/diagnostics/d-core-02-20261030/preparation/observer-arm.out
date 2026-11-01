@@ -1,0 +1,11 @@
+2026-10-30T22:07:44+01:00
+active
+[13270.029517] DIAG CAPTURE id=d-core-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 due=1793395112
+2644222
+cf22558379c36d1fd13c55d2ac1ad2361e93a7de78ec7296d0bdb8c7c3bc7608  /home/mirsella/dev/predator-pm-debug/.agents-local/d-core-02-20261030-baseline.log
+NEXT                        LEFT       LAST PASSED UNIT                                                     ACTIVATES
+Fri 2026-10-30 22:20:32 CET 12min left -    -      predator-pm-diagnostic-d-core-02-20261030-probe.timer    predator-pm-diagnostic-d-core-02-20261030-probe.service
+Fri 2026-10-30 22:22:32 CET 14min left -    -      predator-pm-diagnostic-d-core-02-20261030-snapshot.timer predator-pm-diagnostic-d-core-02-20261030-snapshot.service
+Fri 2026-10-30 22:23:32 CET 15min left -    -      predator-pm-diagnostic-d-core-02-20261030-review.timer   predator-pm-diagnostic-d-core-02-20261030-review.service
+
+3 timers listed.

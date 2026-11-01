@@ -1,0 +1,8 @@
+.scratch/pm-efi-compact-20261101/used-source/boundary-compact.c: OK
+.scratch/pm-efi-compact-20261101/used-source/boundary-compact.nix: OK
+.scratch/pm-efi-compact-20261101/used-source/operate: OK
+.scratch/pm-efi-compact-20261101/used-source/operate.rs: OK
+.scratch/pm-efi-compact-20261101/used-source/operator-pins.sha256: OK
+.scratch/pm-efi-compact-20261101/used-source/pins.sha256: OK
+.scratch/pm-efi-compact-20261101/used-source/verify: OK
+.scratch/pm-efi-compact-20261101/used-source/verify.rs: OK

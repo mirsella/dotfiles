@@ -1,0 +1,50 @@
+2026-10-30T13:43:55+01:00
+3c1873e4-b866-41e1-b411-702168ef90cf
+361.83 2651.22
+3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e  /var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 14:12:53 CET
+AccuracyUSec=1s
+RandomizedDelayUSec=0
+Persistent=no
+ActiveState=inactive
+TimeoutStartUSec=25min
+ExecStart={ path=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf 3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+ExecStopPost={ path=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study restore-trial /var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf 3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/power/pm_async=1
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+yes
+NEXT                         LEFT LAST PASSED UNIT                                      ACTIVATES
+Fri 2026-10-30 14:12:53 CET 28min -         - predator-pm-r-serial-q35r1-20261030.timer predator-pm-r-serial-q35r1-20261030.service
+-                               - -         - night-suspend.timer                       night-suspend.service
+-                               - -         - predator-pm-next.timer                    predator-pm-next.service
+
+3 timers listed.
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+f3e23367d12ac5c5e45302748d3d3d094625b31a5237ae6113a7a7e0d2af71f1  hosts/predator/pm-study/README.md
+f3497a67b2b88e4154b180234b0ade942f748f1266b33de5c084c337102f733c  hosts/predator/pm-study/trials/r-serial-q35-20261030/README.md
+0196d788c0ca465d6c37dcdf6159cf13645b3f89c0685fe3f567fae9e0048aa3  pkgs/predator-pm-study/trial.rs

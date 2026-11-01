@@ -1,0 +1,3 @@
+hosts/predator/pm-study/README.md: OK
+hosts/predator/pm-study/diagnostics/README.md: OK
+hosts/predator/pm-study/diagnostics/s2idle-control-20261031/README.md: OK

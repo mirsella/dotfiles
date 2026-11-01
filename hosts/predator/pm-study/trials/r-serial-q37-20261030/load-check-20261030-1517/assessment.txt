@@ -1,0 +1,9 @@
+Owner question: its not just building heavily ?
+Actual check start: 2026-10-30T15:17:13+01:00 (scratch name was selected earlier).
+One bounded authenticated SSH attempt failed exit255, No route to host.
+Remote load, memory and process inspection did not execute; current build activity is unavailable.
+Pi observation began15:17:18; receiver active; neighbor FAILED then INCOMPLETE; two pings, no replies.
+Live netconsole bytes2181931; SHA25678dc2e2b53368e389aebdc48a9960782bd65962b47c8ee7c9cb9db31bf49b385; lastwrite14:53:34.742530279; unchanged from startup/follow-up captures.
+Prior pre-reset health recorded no nixbld children and no active checked maintenance. Last captured messages are kernel device shutdown, not build activity.
+Assessment: ordinary build load is less consistent with observed shutdown and loss of LAN neighbor resolution. Severe stall/network failure cannot be excluded while unreachable. Physical power state and cause remain unknown.
+No wake, reset, configuration change or new schedule. Remote documentation synchronization remains blocked.

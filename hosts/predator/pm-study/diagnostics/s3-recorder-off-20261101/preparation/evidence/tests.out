@@ -1,0 +1,16 @@
+
+running 11 tests
+test boundary_record::tests::crc_and_record_integrity ... ok
+test tests::boot_identity_allows_only_bounded_wall_clock_estimate_change ... ok
+test tests::independent_review_does_not_relabel_original_harness_failure ... ok
+test tests::clock_layout ... ok
+test tests::cleanup_never_crosses_active_sleep ... ok
+test boundary_record::tests::bounded_storage_and_complete_sequence ... ok
+test tests::accepts_only_reviewed_two_cycle_history_and_exact_records ... ok
+test boundary_record::tests::keeps_four_domains_and_distinguishes_control ... ok
+test tests::new_cycle_requires_source_clocks_and_no_boundary_activity ... ok
+test tests::no_recorder_or_foreign_alarm_is_accepted ... ok
+test tests::manifest_rejects_replay_recorder_and_unreviewed_third_cycle ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

@@ -1,0 +1,14 @@
+epoch=1793522108
+rtc=2026-11-01 08:35:08.504276+00:00
+clock=Timex { modes: 0, offset: -2928636, freq: -1161581, maxerror: 1000, esterror: 0, status: 24577, constant: 2, precision: 1, tolerance: 32768000, time: [1793522109, 3612046], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+uptime=47588.54 351723.17
+btime_observed=btime 1793474520
+mem_sleep=s2idle [deep]
+nic_d3cold_allowed=1
+debug_sites=drivers/pci/pci.c:2513 [pci]pci_pme_active =_ "PME# %s\n"
+drivers/pci/pci-driver.c:923 [pci_driver]pci_pm_suspend_noirq =_ "PCI PM: Suspend power state: %s\n"
+drivers/pci/pci-driver.c:938 [pci_driver]pci_pm_suspend_noirq =_ "PCI PM: Skipped\n"
+drivers/acpi/device_pm.c:956 [acpi]acpi_pm_set_device_wakeup =_ "ACPI companion missing in %s!\n"
+drivers/acpi/device_pm.c:965 [acpi]acpi_pm_set_device_wakeup =_ "Wakeup disabled by ACPI\n"
+drivers/acpi/device_pm.c:971 [acpi]acpi_pm_set_device_wakeup =_ "Wakeup enabled by ACPI\n"
+

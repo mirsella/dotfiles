@@ -1,0 +1,12 @@
+{
+  "boot": "39d7579b-b86d-4d30-b910-131943e550c8",
+  "btime": 1793535079,
+  "completedEpoch": 1793539524,
+  "id": "s3-efi-v2-20261101",
+  "physicalSleepSeconds": null,
+  "restoration": "PASS",
+  "result": "S3_LOWLEVEL_RETURN",
+  "rtcTarget": 1793539500,
+  "successAfter": 2,
+  "successBefore": 1
+}

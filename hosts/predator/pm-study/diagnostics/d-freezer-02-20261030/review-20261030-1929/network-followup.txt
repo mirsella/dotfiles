@@ -1,0 +1,72 @@
+2026-10-30T19:30:57+01:00
+GENERAL.DEVICE:                         enp3s0f1
+GENERAL.TYPE:                           ethernet
+GENERAL.NM-TYPE:                        NMDeviceEthernet
+GENERAL.DBUS-PATH:                      /org/freedesktop/NetworkManager/Devices/2
+GENERAL.VENDOR:                         Realtek Semiconductor Co., Ltd.
+GENERAL.PRODUCT:                        RTL8111/8168/8211/8411 PCI Express Gigabit Ethernet Controller
+GENERAL.DRIVER:                         r8169
+GENERAL.DRIVER-VERSION:                 6.18.58
+GENERAL.FIRMWARE-VERSION:               rtl8411-2_0.0.1 07/08/13
+GENERAL.HWADDR:                         98:29:A6:3A:A7:50
+GENERAL.MTU:                            1500
+GENERAL.STATE:                          100 (connected)
+GENERAL.REASON:                         0 (No reason given)
+GENERAL.IP4-CONNECTIVITY:               4 (full)
+GENERAL.IP6-CONNECTIVITY:               4 (full)
+GENERAL.UDI:                            /sys/devices/pci0000:00/0000:00:1c.3/0000:03:00.1/net/enp3s0f1
+GENERAL.PATH:                           pci-0000:03:00.1
+GENERAL.IP-IFACE:                       enp3s0f1
+GENERAL.IS-SOFTWARE:                    no
+GENERAL.NM-MANAGED:                     yes
+GENERAL.AUTOCONNECT:                    yes
+GENERAL.FIRMWARE-MISSING:               no
+GENERAL.NM-PLUGIN-MISSING:              no
+GENERAL.PHYS-PORT-ID:                   --
+GENERAL.CONNECTION:                     predator-pm-study-lan
+GENERAL.CON-UUID:                       c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+GENERAL.CON-PATH:                       /org/freedesktop/NetworkManager/ActiveConnection/5
+GENERAL.METERED:                        no (guessed)
+WIRED-PROPERTIES.CARRIER:               on
+IP4.ADDRESS[1]:                         192.168.1.19/24
+IP4.GATEWAY:                            192.168.1.1
+IP4.ROUTE[1]:                           dst = 0.0.0.0/0, nh = 192.168.1.1, mt = 100
+IP4.ROUTE[2]:                           dst = 192.168.1.0/24, nh = 0.0.0.0, mt = 100
+IP4.DNS[1]:                             192.168.1.1
+STATE      CONNECTIVITY  WIFI-HW  WIFI     WWAN-HW  WWAN     METERED      
+connected  full          enabled  enabled  missing  enabled  no (guessed) 
+LEVEL  DOMAINS                                                                                                                                                                                                                       
+WARN   PLATFORM,RFKILL,ETHER,WIFI,BT,MB,DHCP4,DHCP6,PPP,IP4,IP6,AUTOIP4,DNS,VPN,SHARING,SUPPLICANT,AGENTS,SETTINGS,SUSPEND,CORE,DEVICE,OLPC,INFINIBAND,FIREWALL,ADSL,BOND,VLAN,BRIDGE,TEAM,CONCHECK,DCB,DISPATCH,AUDIT,SYSTEMD,PROXY 
+predator-pm-study-lan
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+1793384623
+yes
+manual
+192.168.1.1
+predator-pm-study-lan:c4e6863b-7f76-4a4d-9a48-9937af0b5a36:802-3-ethernet:enp3s0f1
+lo:1bb85d4c-70b1-4811-af21-886ac0f1fa71:loopback:lo
+podman0:3c3ffbed-ed8c-43b7-9288-799b72c278be:bridge:podman0
+2026-10-30T19:23:34.134139+01:00 predator systemd-logind[1543]: suspend requested from client PID 27465 ('busctl') (unit predator-pm-diagnostic-d-freezer-02-20261030.service)...
+2026-10-30T19:23:34.136070+01:00 predator systemd-logind[1543]: The system will suspend now!
+2026-10-30T19:23:39.413678+01:00 predator systemd-logind[1543]: Operation 'suspend' finished.
+2026-10-30T19:23:39.500288+01:00 predator systemd[1]: Starting Network Manager Script Dispatcher Service...
+2026-10-30T19:23:39.513798+01:00 predator systemd[1]: Started Network Manager Script Dispatcher Service.
+2026-10-30T19:23:39.694678+01:00 predator NetworkManager[1620]: <warn>  [1793384619.6946] device (p2p-dev-wlp2s0): error setting IPv4 forwarding to '1': Resource temporarily unavailable
+2026-10-30T19:23:39.721849+01:00 predator NetworkManager[1620]: <warn>  [1793384619.7218] device (p2p-dev-wlp2s0): error setting IPv4 forwarding to '1': Resource temporarily unavailable
+2026-10-30T19:23:53.469876+01:00 predator systemd[1]: NetworkManager-dispatcher.service: Deactivated successfully.
+ActiveState=inactive
+MainPID=0
+No jobs running.
+/sys/power/pm_async=1
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/power/suspend_stats/success=1
+/sys/power/suspend_stats/fail=0
+d-freezer-02-20261030-outcome.txt 49 2026-10-30T19:23:39.5560520790 root 600
+d-freezer-02-20261030-requested.txt 702 2026-10-30T19:23:32.6788951060 root 600
+d-freezer-02-20261030-after-kernel.txt 107996 2026-10-30T19:23:39.5730524690 root 600
+d-freezer-02-20261030-before.txt 1593 2026-10-30T19:23:33.4839134130 root 600
+d-freezer-02-20261030-observed-journal.txt 4495 2026-10-30T19:23:39.5140511160 root 600
+d-freezer-02-20261030-return.txt 183 2026-10-30T19:23:39.5260513910 root 600
+d-freezer-02-20261030-plan.conf 703 2026-10-30T19:11:36.5869938830 root 600
+d-freezer-02-20261030-cursor.txt 125 2026-10-30T19:23:34.0289258140 root 600
+d-freezer-02-20261030-before-kernel.txt 106231 2026-10-30T19:23:33.4369123440 root 600

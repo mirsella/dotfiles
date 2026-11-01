@@ -1,0 +1,24 @@
+2026-10-30T12:02:06+01:00
+predator
+8b7a173d-8406-4072-aebc-c85c8b4989e7
+btime 1793358004
+122.70 791.58
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+0
+0
+1
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+-rw------- 1 root root 110792 Oct 30 08:30 /var/lib/predator-pm-study/r-serial-d1225-20261030-before.txt
+-rw------- 1 root root    648 Oct 29 20:09 /var/lib/predator-pm-study/r-serial-d1225-20261030-plan.conf
+-rw------- 1 root root    648 Oct 30 08:30 /var/lib/predator-pm-study/r-serial-d1225-20261030-requested.txt
+-rw------- 1 root root 91 Oct 18 21:16 /var/lib/predator-pm-study/last-completed.txt

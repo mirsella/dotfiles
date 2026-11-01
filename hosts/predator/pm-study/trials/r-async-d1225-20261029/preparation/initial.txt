@@ -1,0 +1,262 @@
+2026-10-28T20:59:14+01:00
+predator
+b223cb35-a02b-4417-a3db-569ad986cd4b
+btime 1793217362
+192.63 1312.05
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+6.18.58
+running
+No jobs running.
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+fast: boot used authenticated slot 2; late-phase token 0 rejected
+root: boot used authenticated slot 2; late-phase token 0 rejected
+tank1: boot used authenticated slot 4; late-phase token 0 rejected
+tank2: boot used authenticated slot 4; late-phase token 0 rejected
+tank3: boot used authenticated slot 2; late-phase token 0 rejected
+
+STUDY
+0
+0
+N
+1
+0
+1
+1
+Y
+s2idle [deep]
+[none] core processors platform devices freezer
+1
+state:      closed
+4
+crw------- 1 root root  10,   224 Oct 28 20:56 /dev/tpm0
+crw------- 1 root root 252, 65536 Oct 28 20:56 /dev/tpmrm0
+/sys/bus/acpi/drivers/tpm_crb
+netconsole             49152  0
+pm_stage               12288  0
+acer_wireless          16384  0
+configfs               65536  2 netconsole
+FragmentPath=/etc/systemd/system/predator-pm-clock-handoff.service
+Result=success
+ExecMainStatus=0
+ExecStart={ path=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study clock-handoff ; ignore_errors=no ; start_time=[Wed 2026-10-28 20:56:29 CET] ; stop_time=[Wed 2026-10-28 20:56:31 CET] ; pid=2247 ; code=exited ; status=0 }
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+	Speed: 1000Mb/s
+	Duplex: Full
+	Supports Wake-on: pumbg
+	Wake-on: g
+	Link detected: yes
+NTPSynchronized=yes
+       Server: 82.64.141.144 (0.nixos.pool.ntp.org)
+Poll interval: 2min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: C035676C
+    Precision: 1us (-26)
+Root distance: 14.007ms (max: 5s)
+       Offset: -21us
+        Delay: 15.130ms
+       Jitter: 120us
+ Packet count: 3
+    Frequency: +2.217ppm
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:04:10 with 0 errors on Sat Oct  3 14:19:29 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: resilvered 132K in 00:00:01 with 0 errors on Sun Oct  4 01:20:38 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+fast/data zfs /srv/data/fast
+fast/ncdata zfs /var/lib/nextcloud/data
+tank/backup zfs /srv/backup
+tank/backup/recovery zfs /srv/backup/recovery
+tank/archive zfs /srv/data/archive
+active
+active
+active
+active
+active
+active
+active
+active
+immich_ml Up 2 minutes (healthy)
+immich_redis Up 2 minutes (healthy)
+immich_postgres Up 2 minutes (healthy)
+immich_server Up 2 minutes (healthy)
+
+RECENT BOOTS
+ -4 5271820b0d2c4232a00eebd0bf5c34d2 Sun 2026-10-18 20:28:14 CEST Sun 2026-10-18 22:27:08 CEST
+ -3 e5c893be7bb24d97aa2d97103d7e0a23 Sun 2026-10-18 22:27:25 CEST Tue 2026-10-20 11:58:26 CEST
+ -2 3e3c970d025f4b788e00f911e202e948 Tue 2026-10-20 12:19:13 CEST Tue 2026-10-20 20:24:15 CEST
+ -1 9c19e8c7a404454c813eced03d90a71c Tue 2026-10-27 18:06:45 CET  Wed 2026-10-28 19:36:39 CET
+  0 b223cb35a02b4417a3db569ad986cd4b Wed 2026-10-28 20:56:02 CET  Wed 2026-10-28 20:59:22 CET
+
+OLD BOOT SHUTDOWN
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 10/25 for fast-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 10/25 for tank2-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 10/25 for tank1-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 10/25 for tank3-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 11/25 for fast-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 11/25 for tank2-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 11/25 for tank1-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 11/25 for tank3-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 12/25 for fast-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 12/25 for tank2-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 12/25 for tank1-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 12/25 for tank3-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 13/25 for fast-crypt.
+2026-10-28T19:36:36+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 13/25 for tank2-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 13/25 for tank1-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 13/25 for tank3-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 14/25 for fast-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 14/25 for tank2-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 14/25 for tank1-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 14/25 for tank3-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 15/25 for fast-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 15/25 for tank2-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 15/25 for tank1-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 15/25 for tank3-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 16/25 for fast-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 16/25 for tank2-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 16/25 for tank1-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 16/25 for tank3-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 17/25 for fast-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 17/25 for tank2-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 17/25 for tank1-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 17/25 for tank3-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 18/25 for fast-crypt.
+2026-10-28T19:36:37+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 18/25 for tank2-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 18/25 for tank1-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 18/25 for tank3-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 19/25 for fast-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 19/25 for tank2-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 19/25 for tank1-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 19/25 for tank3-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 20/25 for fast-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 20/25 for tank2-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 20/25 for tank1-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 20/25 for tank3-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 21/25 for fast-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 21/25 for tank2-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 21/25 for tank1-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 21/25 for tank3-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 22/25 for fast-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 22/25 for tank2-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 22/25 for tank1-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 22/25 for tank3-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 23/25 for fast-crypt.
+2026-10-28T19:36:38+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 23/25 for tank2-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 23/25 for tank1-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 23/25 for tank3-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 24/25 for fast-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 24/25 for tank2-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 24/25 for tank1-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 24/25 for tank3-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: EBUSY retry 25/25 for fast-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: EBUSY retry 25/25 for tank2-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: EBUSY retry 25/25 for tank1-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: EBUSY retry 25/25 for tank3-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: device-mapper: remove ioctl on fast-crypt  failed: Device or resource busy
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Udev cookie 0xd4debaf (semid 7) decremented to 1
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Udev cookie 0xd4debaf (semid 7) decremented to 0
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Udev cookie 0xd4debaf (semid 7) waiting for zero
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Udev cookie 0xd4debaf (semid 7) destroyed
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: dm versions   [ opencount flush ]   [2048]
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: dm status fast-crypt  [ opencount noflush ]   [16384]
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Device fast-crypt is still in use.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Failed to deactivate 'fast-crypt': Device or resource busy
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Releasing crypt device /dev/sdb1 context.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Releasing device-mapper backend.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461992]: Closing read only fd for /dev/sdb1.
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@fast\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@fast\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Stopped Cryptography Setup for fast-crypt.
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@fast\x2dcrypt.service: Consumed 59ms CPU time over 1d 1h 29min 49.358s wall clock time, 2.8M memory peak, 1.1M read from disk.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: device-mapper: remove ioctl on tank2-crypt  failed: Device or resource busy
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Udev cookie 0xd4d4028 (semid 8) decremented to 1
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Udev cookie 0xd4d4028 (semid 8) decremented to 0
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Udev cookie 0xd4d4028 (semid 8) waiting for zero
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Udev cookie 0xd4d4028 (semid 8) destroyed
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: dm versions   [ opencount flush ]   [2048]
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: dm status tank2-crypt  [ opencount noflush ]   [16384]
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Device tank2-crypt is still in use.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Failed to deactivate 'tank2-crypt': Device or resource busy
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Releasing crypt device /dev/sdd1 context.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Releasing device-mapper backend.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461994]: Closing read only fd for /dev/sdd1.
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@tank2\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@tank2\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Stopped Cryptography Setup for tank2-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: device-mapper: remove ioctl on tank1-crypt  failed: Device or resource busy
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Udev cookie 0xd4df5a1 (semid 9) decremented to 1
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Udev cookie 0xd4df5a1 (semid 9) decremented to 0
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Udev cookie 0xd4df5a1 (semid 9) waiting for zero
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Udev cookie 0xd4df5a1 (semid 9) destroyed
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: dm versions   [ opencount flush ]   [2048]
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: dm status tank1-crypt  [ opencount noflush ]   [16384]
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Device tank1-crypt is still in use.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Failed to deactivate 'tank1-crypt': Device or resource busy
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Releasing crypt device /dev/sdc1 context.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Releasing device-mapper backend.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461993]: Closing read only fd for /dev/sdc1.
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@tank1\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@tank1\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Stopped Cryptography Setup for tank1-crypt.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: device-mapper: remove ioctl on tank3-crypt  failed: Device or resource busy
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Udev cookie 0xd4dba38 (semid 10) decremented to 1
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Udev cookie 0xd4dba38 (semid 10) decremented to 0
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Udev cookie 0xd4dba38 (semid 10) waiting for zero
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Udev cookie 0xd4dba38 (semid 10) destroyed
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: dm versions   [ opencount flush ]   [2048]
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: dm status tank3-crypt  [ opencount noflush ]   [16384]
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Device tank3-crypt is still in use.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Failed to deactivate 'tank3-crypt': Device or resource busy
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Releasing crypt device /dev/sde1 context.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Releasing device-mapper backend.
+2026-10-28T19:36:39+01:00 predator systemd-cryptsetup[461995]: Closing read only fd for /dev/sde1.
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@tank3\x2dcrypt.service: Control process exited, code=exited, status=1/FAILURE
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-cryptsetup@tank3\x2dcrypt.service: Failed with result 'exit-code'.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Stopped Cryptography Setup for tank3-crypt.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Removed slice Slice /system/systemd-cryptsetup.
+2026-10-28T19:36:39+01:00 predator systemd[1]: system-systemd\x2dcryptsetup.slice: Consumed 1.575s CPU time over 1d 1h 30min 83ms wall clock time, 10.4M memory peak, 4.6M read from disk.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Reached target System Shutdown.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Reached target Unmount All Filesystems.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Reached target Late Shutdown Services.
+2026-10-28T19:36:39+01:00 predator systemd[1]: systemd-reboot.service: Deactivated successfully.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Finished System Reboot.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Reached target System Reboot.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Shutting down.
+2026-10-28T19:36:39+01:00 predator systemd[1]: Watchdog running with a hardware timeout of 2min.
+2026-10-28T19:36:39+01:00 predator systemd-shutdown[1]: Using hardware watchdog /dev/watchdog-itco: 'iTCO_wdt', version 4.
+2026-10-28T19:36:39+01:00 predator systemd-shutdown[1]: Watchdog running with a hardware timeout of 2min.
+2026-10-28T19:36:39+01:00 predator systemd-shutdown[1]: Syncing filesystems and block devices.
+2026-10-28T19:36:39+01:00 predator systemd-shutdown[1]: Sending SIGTERM to remaining processes...
+2026-10-28T19:36:39+01:00 predator systemd-journald[224323]: Journal stopped

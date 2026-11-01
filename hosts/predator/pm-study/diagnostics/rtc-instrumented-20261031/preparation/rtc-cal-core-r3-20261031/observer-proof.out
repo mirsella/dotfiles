@@ -1,0 +1,19 @@
+2026-10-31T09:25:35+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 27.114ms (max: 5s)
+       Offset: +2.192ms
+        Delay: 10.059ms
+       Jitter: 1.609ms
+ Packet count: 591
+    Frequency: -14.439ppm
+active
+/home/mirsella/wol_predator.py: OK
+[53940.734525] RTC READY id=rtc-cal-core-r3-20261031 nonce=rtc-cal-core-r3-20261031-1793435700
+84f653e96f1aaabafa90b900cf4dae75c0ed7179c014b93003fac3fd49c2e5e7  /home/mirsella/dev/predator-pm-debug/.agents-local/rtc-cal-core-r3-20261031-baseline.log

@@ -1,0 +1,51 @@
+[ 3421.277469] predator predator-pm-diagnostic[27335]: DIAG BEGIN id=d-freezer-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 age_since_boot=3422 pm_async=0 test_delay=5 real_s3=forbidden
+[ 3421.278040] predator pm-diagnostic: 
+[ 3421.278114] predator unknown: DIAG BEGIN id=d-freezer-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 age_since_boot=3422 pm_async=0 test_delay=5 real_s3=forbidden
+[ 3421.278137] predator unknown: 
+[ 3421.342469] predator systemd-journald[462]: Received client request to sync journal (with offlining).
+[ 3421.353976] predator systemd-logind[1543]: suspend requested from client PID 27465 ('busctl') (unit predator-pm-diagnostic-d-freezer-02-20261030.service)...
+[ 3421.355907] predator systemd-logind[1543]: The system will suspend now!
+[ 3421.382324] predator systemd[1]: Starting Sleep Actions...
+[ 3421.386427] predator wpa_supplicant[1672]: p2p-dev-wlp2s0: CTRL-EVENT-DSCP-POLICY clear_all
+[ 3421.387071] predator wpa_supplicant[1672]: p2p-dev-wlp2s0: CTRL-EVENT-DSCP-POLICY clear_all
+[ 3421.387085] predator wpa_supplicant[1672]: nl80211: deinit ifname=p2p-dev-wlp2s0 disabled_11b_rates=0
+[ 3421.405722] predator systemd[1]: Finished Sleep Actions.
+[ 3421.406753] predator systemd[1]: Reached target Sleep.
+[ 3421.408697] predator systemd[1]: Starting System Suspend...
+[ 3421.417432] predator wpa_supplicant[1672]: wlp2s0: CTRL-EVENT-DSCP-POLICY clear_all
+[ 3421.428189] predator systemd[1]: user@1000.service: Unit now frozen-by-parent.
+[ 3421.428237] predator systemd[1]: user-1000.slice: Unit now frozen-by-parent.
+[ 3421.428294] predator systemd[1]: user.slice: Unit now frozen.
+[ 3421.428362] predator systemd-sleep[27468]: Successfully froze unit 'user.slice'.
+[ 3421.429085] predator systemd-sleep[27468]: Performing sleep operation 'suspend'...
+[ 3421.430908] predator kernel: PM: suspend entry (deep)
+[ 3421.438509] predator wpa_supplicant[1672]: wlp2s0: CTRL-EVENT-DSCP-POLICY clear_all
+[ 3421.438523] predator wpa_supplicant[1672]: nl80211: deinit ifname=wlp2s0 disabled_11b_rates=0
+[ 3421.474047] predator kernel: Filesystems sync: 0.044 seconds
+[ 3426.480179] predator kernel: Freezing user space processes
+[ 3426.480271] predator zed[2185]: Exiting
+[ 3426.481724] predator kernel: Freezing user space processes completed (elapsed 0.001 seconds)
+[ 3426.481586] predator systemd[1]: zfs-zed.service: Deactivated successfully.
+[ 3426.482459] predator kernel: OOM killer disabled.
+[ 3426.482506] predator kernel: Freezing remaining freezable tasks
+[ 3426.482550] predator kernel: Freezing remaining freezable tasks completed (elapsed 0.001 seconds)
+[ 3426.482588] predator kernel: PM: suspend debug: Waiting for 5 second(s).
+[ 3426.482690] predator kernel: OOM killer enabled.
+[ 3426.482780] predator kernel: Restarting tasks: Starting
+[ 3426.482834] predator kernel: Restarting tasks: Done
+[ 3426.482875] predator kernel: efivarfs: resyncing variable state
+[ 3426.589108] predator systemd[1]: zfs-zed.service: Scheduled restart job, restart counter is at 1.
+[ 3426.591034] predator kernel: efivarfs: finished resyncing variable state
+[ 3426.591137] predator kernel: random: crng reseeded on system resumption
+[ 3426.593124] predator systemd[1]: Started ZFS Event Daemon (zed).
+[ 3426.606016] predator podman[27477]: 2026-10-30 19:23:39.386093464 +0100 CET m=+0.074588925 container health_status 935e8abdb85e015c016d6dbe8358879f6150c2cc221c3acddebbe955c651072b (image=docker.io/valkey/valkey@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d, name=immich_redis, health_status=healthy, health_failing_streak=0, health_log=, PODMAN_SYSTEMD_UNIT=podman-immich_redis.service, org.opencontainers.image.source=https://github.com/valkey-io/valkey)
+[ 3426.612118] predator systemd-sleep[27468]: System returned from sleep operation 'suspend'.
+[ 3426.613026] predator kernel: PM: suspend exit
+[ 3426.613464] predator zed[27527]: ZFS Event Daemon 2.4.4-1 (PID 27527)
+[ 3426.615369] predator zed[27527]: Processing events since eid=10
+[ 3426.615184] predator systemd[1]: user@1000.service: Unit now thawed.
+[ 3426.615219] predator systemd[1]: user-1000.slice: Unit now thawed.
+[ 3426.615245] predator systemd[1]: user.slice: Unit now thawed.
+[ 3426.616663] predator systemd-sleep[27468]: Successfully thawed unit 'user.slice'.
+[ 3426.621409] predator systemd[1]: systemd-suspend.service: Deactivated successfully.
+[ 3426.621973] predator systemd[1]: Finished System Suspend.

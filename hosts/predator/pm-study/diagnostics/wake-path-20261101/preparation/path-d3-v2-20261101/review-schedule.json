@@ -1,0 +1,10 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-wake-path-followup-20261101-1030",
+  "enabled": true,
+  "projectId": "c3eaf030-c57d-431f-92db-30bed3c78262",
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "nextRunAt": "2026-11-01T09:30:00.000Z",
+  "lastRunStatus": "never",
+  "verifiedAtEpoch": 1793519555,
+  "verifiedBy": "T3 list_scheduled_tasks exact followup ID; first task already deleted"
+}

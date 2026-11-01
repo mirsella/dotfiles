@@ -1,0 +1,27 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+test ! -e '/run/predator-pm-r-async-d1225-20261029-telegram.conf'
+command -v curl
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-setup'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-start'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-wake-ok'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-wake-failed'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-retry-ok'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-retry-failed'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-probe-ok'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-probe-failed'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-snapshot-ok'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-snapshot-failed'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-notice-canceled'.service -p LoadState --value)" = not-found
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-wake'.timer -p SubState --value)" = waiting
+test ! -e /run/systemd/system/predator-pm-r-async-d1225-20261029-wake.service.d/60-telegram.conf
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-retry'.timer -p SubState --value)" = waiting
+test ! -e /run/systemd/system/predator-pm-r-async-d1225-20261029-retry.service.d/60-telegram.conf
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-probe'.timer -p SubState --value)" = waiting
+test ! -e /run/systemd/system/predator-pm-r-async-d1225-20261029-probe.service.d/60-telegram.conf
+test "$(systemctl show 'predator-pm-r-async-d1225-20261029-snapshot'.timer -p SubState --value)" = waiting
+test ! -e /run/systemd/system/predator-pm-r-async-d1225-20261029-snapshot.service.d/60-telegram.conf
+
+stderr:

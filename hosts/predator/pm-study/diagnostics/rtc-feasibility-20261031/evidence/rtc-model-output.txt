@@ -1,0 +1,22 @@
+MODEL ONLY: device hash fixed at 0; RTC continues ticking; no clock writes/reset by firmware; retention and drift not validated on hardware.
+line=1 action=sync_filesystems file_hash=658 user11=Rtc { year: 2039, month: 10, day: 9, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2031, month: 10, day: 9, hour: 0, minute: 0, second: 0 }
+line=2 action=freeze_processes file_hash=598 user11=Rtc { year: 2079, month: 12, day: 8, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2071, month: 12, day: 8, hour: 0, minute: 0, second: 0 }
+line=3 action=dpm_prepare file_hash=538 user11=Rtc { year: 2019, month: 3, day: 8, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2011, month: 3, day: 8, hour: 0, minute: 0, second: 0 }
+line=4 action=dpm_suspend file_hash=478 user11=Rtc { year: 2059, month: 5, day: 7, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2051, month: 5, day: 7, hour: 0, minute: 0, second: 0 }
+line=5 action=dpm_suspend_late file_hash=418 user11=Rtc { year: 2099, month: 7, day: 6, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2091, month: 7, day: 6, hour: 0, minute: 0, second: 0 }
+line=6 action=dpm_suspend_noirq file_hash=358 user11=Rtc { year: 2039, month: 10, day: 5, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2031, month: 10, day: 5, hour: 0, minute: 0, second: 0 }
+line=7 action=CPU_OFF file_hash=298 user11=Rtc { year: 2079, month: 12, day: 4, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2071, month: 12, day: 4, hour: 0, minute: 0, second: 0 }
+line=8 action=syscore_suspend file_hash=238 user11=Rtc { year: 2019, month: 3, day: 4, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2011, month: 3, day: 4, hour: 0, minute: 0, second: 0 }
+line=9 action=machine_suspend file_hash=178 user11=Rtc { year: 2059, month: 5, day: 3, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2051, month: 5, day: 3, hour: 0, minute: 0, second: 0 }
+line=10 action=acpi_suspend file_hash=118 user11=Rtc { year: 2099, month: 7, day: 2, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2091, month: 7, day: 2, hour: 0, minute: 0, second: 0 }
+line=11 action=syscore_resume file_hash=58 user11=Rtc { year: 2039, month: 10, day: 1, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2031, month: 10, day: 1, hour: 0, minute: 0, second: 0 }
+line=12 action=CPU_ON file_hash=995 user11=Rtc { year: 2031, month: 4, day: 14, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2023, month: 4, day: 14, hour: 0, minute: 0, second: 0 }
+line=13 action=dpm_resume_noirq file_hash=935 user11=Rtc { year: 2071, month: 6, day: 13, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2063, month: 6, day: 13, hour: 0, minute: 0, second: 0 }
+line=14 action=dpm_resume_early file_hash=875 user11=Rtc { year: 2011, month: 9, day: 12, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2003, month: 9, day: 12, hour: 0, minute: 0, second: 0 }
+line=15 action=dpm_resume file_hash=815 user11=Rtc { year: 2051, month: 11, day: 11, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2043, month: 11, day: 11, hour: 0, minute: 0, second: 0 }
+line=16 action=dpm_complete file_hash=755 user11=Rtc { year: 2091, month: 1, day: 11, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2083, month: 1, day: 11, hour: 0, minute: 0, second: 0 }
+line=17 action=console_resume_all file_hash=695 user11=Rtc { year: 2031, month: 4, day: 10, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2023, month: 4, day: 10, hour: 0, minute: 0, second: 0 }
+line=18 action=suspend_enter file_hash=635 user11=Rtc { year: 2071, month: 6, day: 9, hour: 0, minute: 0, second: 0 } user3=Rtc { year: 2063, month: 6, day: 9, hour: 0, minute: 0, second: 0 }
+minimum encoded-date spacing across all 288 action/user states: 345600s, pair=Some(((1, 0), (6, 0)))
+historical observed=Rtc { year: 2099, month: 7, day: 2, hour: 1, minute: 22, second: 25 } raw_magic=(11, 86, 356) conditional_candidates_max24h=[(10, 11, 4945)]
+historical observed=Rtc { year: 2099, month: 7, day: 2, hour: 15, minute: 5, second: 20 } raw_magic=(11, 264, 82) conditional_candidates_max24h=[(10, 11, 54320)]

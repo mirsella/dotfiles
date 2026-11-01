@@ -1,0 +1,42 @@
+2026-10-30T19:10:00+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+active
+NTPSynchronized=yes
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 34.583ms (max: 5s)
+       Offset: -2.839ms
+        Delay: 6.653ms
+       Jitter: 3.710ms
+ Packet count: 566
+    Frequency: -13.529ppm
+2026-10-30T19:05:32.556609+0100 raspberrypi systemd[1]: Starting predator-pm-diagnostic-d-freezer-01-20261030-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19...
+2026-10-30T19:05:32.623301+0100 raspberrypi timeout[101983]: # 192.168.1.19:22 SSH-2.0-OpenSSH_10.6
+2026-10-30T19:05:32.840374+0100 raspberrypi timeout[101983]: 192.168.1.19 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINxDZ7naaL4K946jtu7gZ1lQgmKlXXXNcTkyJr3AISax
+2026-10-30T19:05:32.841772+0100 raspberrypi systemd[1]: predator-pm-diagnostic-d-freezer-01-20261030-probe.service: Deactivated successfully.
+2026-10-30T19:05:32.842146+0100 raspberrypi systemd[1]: Finished predator-pm-diagnostic-d-freezer-01-20261030-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19.
+2026-10-30T19:07:32.560583+0100 raspberrypi systemd[1]: Starting predator-pm-diagnostic-d-freezer-01-20261030-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-01-20261030-result.log...
+2026-10-30T19:07:32.573673+0100 raspberrypi systemd[1]: predator-pm-diagnostic-d-freezer-01-20261030-snapshot.service: Deactivated successfully.
+2026-10-30T19:07:32.574433+0100 raspberrypi systemd[1]: Finished predator-pm-diagnostic-d-freezer-01-20261030-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-01-20261030-result.log.
+NEXT LEFT LAST                         PASSED            UNIT                                                   ACTIVATES
+-    -    Thu 2026-10-29 09:21:02 CET  1 day 9h ago      predator-pm-r-async-d1225-20261029-notice-start.timer  predator-pm-r-async-d1225-20261029-notice-start.service
+-    -    Sat 2026-10-17 18:00:00 CEST 1 week 6 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer   predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 1 week 2 days ago predator-pm-r-async-h8-20261020-notice-start.timer     predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 4 days ago predator-pm-r-async-q30-20261018-notice-start.timer    predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Fri 2026-10-30 08:30:40 CET  10h ago           predator-pm-r-serial-d1225-20261030-notice-start.timer predator-pm-r-serial-d1225-20261030-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 1 week 5 days ago predator-pm-r-serial-m15-20261017-notice-start.timer   predator-pm-r-serial-m15-20261017-notice-start.service
+-    -    Fri 2026-10-30 12:35:04 CET  6h ago            predator-pm-r-serial-q35-20261030-notice-start.timer   predator-pm-r-serial-q35-20261030-notice-start.service
+-    -    Fri 2026-10-30 14:12:53 CET  4h 57min ago      predator-pm-r-serial-q35r1-20261030-notice-start.timer predator-pm-r-serial-q35r1-20261030-notice-start.service
+-    -    Fri 2026-10-30 17:44:18 CET  1h 25min ago      predator-pm-r-serial-q37-20261030-notice-start.timer   predator-pm-r-serial-q37-20261030-notice-start.service
+
+9 timers listed.
+/home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-01-20261030-result.log 2455611 2026-10-30 19:07:32.568824343 +0100
+/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log 2455611 2026-10-30 19:03:33.368292240 +0100
+7863f41a6c49844a538b60778f07f6ec3a79268183ab355b6a0b1256c23c7995  /home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-01-20261030-result.log
+7863f41a6c49844a538b60778f07f6ec3a79268183ab355b6a0b1256c23c7995  /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log
+192.168.1.19 dev wlan0 lladdr 98:29:a6:3a:a7:50 STALE 

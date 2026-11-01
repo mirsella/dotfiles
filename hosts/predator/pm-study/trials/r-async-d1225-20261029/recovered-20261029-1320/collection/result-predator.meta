@@ -1,0 +1,17 @@
+host=192.168.1.19
+status=exit status: 0
+script:
+set -eu
+date --iso-8601=seconds
+cat /proc/sys/kernel/random/boot_id /proc/uptime
+readlink -f /run/booted-system /run/current-system
+for file in /var/lib/predator-pm-study/r-async-d1225-20261029-*.txt; do if test -f "$file"; then printf '\nARTIFACT=%s\n' "$file"; cat "$file"; fi; done
+journalctl --boot='b223cb35a02b4417a3db569ad986cd4b' -u 'predator-pm-r-async-d1225-20261029'.service -u systemd-suspend.service --no-pager -o short-iso-precise
+journalctl --boot='b223cb35a02b4417a3db569ad986cd4b' -k --no-pager -o short-monotonic
+timedatectl status
+timedatectl timesync-status
+zpool status
+findmnt -rn -t zfs -o SOURCE,TARGET
+cat /sys/power/pm_async /sys/power/suspend_stats/success /sys/power/suspend_stats/fail
+
+stderr:

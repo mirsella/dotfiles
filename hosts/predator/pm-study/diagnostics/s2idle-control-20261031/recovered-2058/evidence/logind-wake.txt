@@ -1,0 +1,194 @@
+[   21.256752] predator systemd[1]: Starting User Login Management...
+[   21.461360] predator systemd-logind[1547]: New seat seat0.
+[   21.473739] predator systemd-logind[1547]: Watching system buttons on /dev/input/event1 (Lid Switch)
+[   21.474085] predator systemd-logind[1547]: Watching system buttons on /dev/input/event4 (Power Button)
+[   21.474120] predator systemd-logind[1547]: Watching system buttons on /dev/input/event3 (Sleep Button)
+[   21.474142] predator systemd-logind[1547]: Watching system buttons on /dev/input/event0 (AT Translated Set 2 keyboard)
+[   21.486871] predator systemd[1]: Started User Login Management.
+[   21.579980] predator systemd-logind[1547]: New session '1' of user 'mirsella' with class 'manager' and type 'unspecified'.
+[  911.798132] predator systemd-logind[1547]: New session '2' of user 'mirsella' with class 'user' and type 'tty'.
+[  912.415222] predator systemd-logind[1547]: Session 2 logged out. Waiting for processes to exit.
+[  912.417024] predator systemd-logind[1547]: Removed session 2.
+[  984.657785] predator systemd-logind[1547]: New session '3' of user 'mirsella' with class 'user' and type 'tty'.
+[  994.813875] predator systemd-logind[1547]: Session 3 logged out. Waiting for processes to exit.
+[  994.815464] predator systemd-logind[1547]: Removed session 3.
+[  995.341343] predator systemd-logind[1547]: New session '4' of user 'mirsella' with class 'user' and type 'tty'.
+[  995.729093] predator systemd-logind[1547]: Session 4 logged out. Waiting for processes to exit.
+[  995.731149] predator systemd-logind[1547]: Removed session 4.
+[  996.130503] predator systemd-logind[1547]: New session '5' of user 'mirsella' with class 'user' and type 'tty'.
+[  997.474189] predator systemd-logind[1547]: Session 5 logged out. Waiting for processes to exit.
+[  997.476043] predator systemd-logind[1547]: Removed session 5.
+[ 1349.023748] predator systemd-logind[1547]: New session '6' of user 'mirsella' with class 'user' and type 'tty'.
+[ 1349.258362] predator systemd-logind[1547]: Session 6 logged out. Waiting for processes to exit.
+[ 1349.260136] predator systemd-logind[1547]: Removed session 6.
+[ 1364.394906] predator systemd-logind[1547]: New session '7' of user 'mirsella' with class 'user' and type 'tty'.
+[ 1365.008733] predator systemd-logind[1547]: Session 7 logged out. Waiting for processes to exit.
+[ 1365.009288] predator systemd-logind[1547]: Removed session 7.
+[ 1365.490065] predator systemd-logind[1547]: New session '8' of user 'mirsella' with class 'user' and type 'tty'.
+[ 1366.385901] predator systemd-logind[1547]: Session 8 logged out. Waiting for processes to exit.
+[ 1366.387835] predator systemd-logind[1547]: Removed session 8.
+[ 3069.821467] predator systemd-logind[1547]: New session '9' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3078.747724] predator systemd-logind[1547]: Session 9 logged out. Waiting for processes to exit.
+[ 3078.748922] predator systemd-logind[1547]: Removed session 9.
+[ 3079.590521] predator systemd-logind[1547]: New session '10' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3079.985481] predator systemd-logind[1547]: Session 10 logged out. Waiting for processes to exit.
+[ 3079.987408] predator systemd-logind[1547]: Removed session 10.
+[ 3442.817899] predator systemd-logind[1547]: New session '11' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3461.311466] predator systemd-logind[1547]: Session 11 logged out. Waiting for processes to exit.
+[ 3461.313268] predator systemd-logind[1547]: Removed session 11.
+[ 3461.710163] predator systemd-logind[1547]: New session '12' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3462.020986] predator systemd-logind[1547]: Session 12 logged out. Waiting for processes to exit.
+[ 3462.021617] predator systemd-logind[1547]: Removed session 12.
+[ 3533.197519] predator systemd-logind[1547]: New session '13' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3542.531131] predator systemd-logind[1547]: Session 13 logged out. Waiting for processes to exit.
+[ 3542.533424] predator systemd-logind[1547]: Removed session 13.
+[ 3629.535415] predator systemd-logind[1547]: New session '14' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3637.251052] predator systemd-logind[1547]: Session 14 logged out. Waiting for processes to exit.
+[ 3637.252768] predator systemd-logind[1547]: Removed session 14.
+[ 3667.219183] predator systemd-logind[1547]: New session '15' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3667.479869] predator systemd-logind[1547]: Session 15 logged out. Waiting for processes to exit.
+[ 3667.482055] predator systemd-logind[1547]: Removed session 15.
+[ 3890.652386] predator systemd-logind[1547]: New session '16' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3890.840260] predator systemd-logind[1547]: Session 16 logged out. Waiting for processes to exit.
+[ 3890.842150] predator systemd-logind[1547]: Removed session 16.
+[ 3891.344498] predator systemd-logind[1547]: New session '17' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3891.743047] predator systemd-logind[1547]: Session 17 logged out. Waiting for processes to exit.
+[ 3891.744750] predator systemd-logind[1547]: Removed session 17.
+[ 3892.107089] predator systemd-logind[1547]: New session '18' of user 'mirsella' with class 'user' and type 'tty'.
+[ 3892.583173] predator systemd-logind[1547]: Session 18 logged out. Waiting for processes to exit.
+[ 3892.585060] predator systemd-logind[1547]: Removed session 18.
+[ 4345.672739] predator systemd-logind[1547]: suspend requested from client PID 33537 ('busctl') (unit predator-pm-s2idle-s2idle-20261031.service)...
+[ 4345.676983] predator systemd-logind[1547]: The system will suspend now!
+[ 4388.958502] predator systemd-logind[1547]: Lid opened.
+[ 4388.958729] predator systemd-logind[1547]: Power key pressed short.
+[ 4389.275517] predator systemd-logind[1547]: Operation 'suspend' finished.
+[ 4391.334928] predator systemd-logind[1547]: Removed session 1.
+[ 4391.388527] predator systemd[1]: Stopping User Login Management...
+[ 4391.421276] predator systemd[1]: systemd-logind.service: Deactivated successfully.
+[ 4391.422059] predator systemd[1]: Stopped User Login Management.
+[ 4391.424178] predator systemd[1]: systemd-logind.service: Consumed 24.313s CPU time over 1h 12min 50.164s wall clock time, 5M memory peak, 936K read from disk.
+[ 4426.714105] predator systemd[1]: systemd-poweroff.service: Deactivated successfully.
+[ 4426.714170] predator systemd[1]: Finished System Power Off.
+name		active_count	event_count	wakeup_count	expire_count	active_since	total_time	max_time	last_change	prevent_suspend_time
+0000:03:00.1	0		0		0		0		0		0		0		0		0
+SYNA7DB5:01 	0		0		0		0		0		0		0		0		0
+INT33A1:00  	0		0		0		0		0		0		0		0		0
+INT3F0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C14:02  	0		0		0		0		0		0		0		0		0
+PNP0C14:01  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	0		0		0		0		0		0		0		0		0
+PNP0C0C:00  	0		0		0		0		0		0		0		0		0
+INT345D:00  	0		0		0		0		0		0		0		0		0
+alarmtimer.0.auto	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0A:00  	0		0		0		0		0		0		0		0		0
+PNP0B00:00  	1		2		0		0		0		0		0		23333		0
+PNP0B00:00  	0		0		0		0		0		0		0		0		0
+ACAD        	1		1		0		0		0		0		0		13665		0
+ACPI0003:00 	0		0		0		0		0		0		0		0		0
+PNP0C14:00  	0		0		0		0		0		0		0		0		0
+PNP0C0E:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+PNP0C0D:00  	0		0		0		0		0		0		0		0		0
+ACPI000C:00 	0		0		0		0		0		0		0		0		0
+mmc0        	0		0		0		0		0		0		0		0		0
+0000:00:14.0	0		0		0		0		0		0		0		0		0
+LNXPWRBN:00 	0		0		0		0		0		0		0		0		0
+PNP0A08:00  	0		0		0		0		0		0		0		0		0
+device:41   	0		0		0		0		0		0		0		0		0
+device:3f   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:00 	0		0		0		0		0		0		0		0		0
+device:19   	0		0		0		0		0		0		0		0		0
+device:39   	0		0		0		0		0		0		0		0		0
+device:18   	0		0		0		0		0		0		0		0		0
+device:17   	0		0		0		0		0		0		0		0		0
+0000:00:1c.3	0		0		0		0		0		0		0		0		0
+device:40   	0		0		0		0		0		0		0		0		0
+0000:00:1c.0	0		0		0		0		0		0		0		0		0
+device:3e   	0		0		0		0		0		0		0		0		0
+device:6a   	0		0		0		0		0		0		0		0		0
+device:81   	0		0		0		0		0		0		0		0		0
+device:7e   	0		0		0		0		0		0		0		0		0
+device:7d   	0		0		0		0		0		0		0		0		0
+device:1b   	0		0		0		0		0		0		0		0		0
+LNXVIDEO:01 	0		0		0		0		0		0		0		0		0
+device:00   	0		0		0		0		0		0		0		0		0
+deleted     	0		0		0		0		0		0		0		0		0
+# /etc/systemd/system/systemd-logind.service -> /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/example/systemd/system/systemd-logind.service
+#  SPDX-License-Identifier: LGPL-2.1-or-later
+#
+#  This file is part of systemd.
+#
+#  systemd is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
+#  (at your option) any later version.
+
+[Unit]
+Description=User Login Management
+Documentation=man:sd-login(3)
+Documentation=man:systemd-logind.service(8)
+Documentation=man:logind.conf(5)
+Documentation=man:org.freedesktop.login1(5)
+
+Wants=user.slice modprobe@drm.service
+After=nss-user-lookup.target user.slice modprobe@drm.service
+
+# Ask for the dbus socket.
+Wants=dbus.socket
+After=dbus.socket
+
+[Service]
+BusName=org.freedesktop.login1
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_MAC_ADMIN CAP_AUDIT_CONTROL CAP_CHOWN CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE CAP_FOWNER CAP_SYS_TTY_CONFIG CAP_LINUX_IMMUTABLE
+DeviceAllow=block-* r
+DeviceAllow=char-/dev/console rw
+DeviceAllow=char-drm rw
+DeviceAllow=char-hidraw rw
+DeviceAllow=char-hvc rw
+DeviceAllow=char-input rw
+DeviceAllow=char-tty rw
+DeviceAllow=char-vcs rw
+ExecStart=/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-logind
+FileDescriptorStoreMax=768
+IPAddressDeny=any
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+# We don't use ProtectProc= since we need to look for usernames and tty for wall messages
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectSystem=strict
+ReadWritePaths=/etc /run
+Restart=always
+RestartSec=0
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RuntimeDirectory=systemd/sessions systemd/seats systemd/users systemd/inhibit systemd/shutdown
+RuntimeDirectoryPreserve=yes
+StateDirectory=systemd/linger
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
+SystemCallFilter=@system-service
+Type=notify-reload
+WatchdogSec=3min
+
+# Increase the default a bit in order to allow many simultaneous logins since
+# we keep one fd open per session.
+LimitNOFILE=524288
+
+# /nix/store/ffl7cjrskkbhmp130csb37bvkm4p6s0a-system-units/systemd-logind.service.d/overrides.conf -> /nix/store/7fvrp2igjcafrwn2kb3af9pxizwk7zz7-unit-systemd-logind.service/systemd-logind.service
+[Unit]
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/6awpfcv4lkmk67qf6ca73m076zcfbczp-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="PATH=/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/bin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/bin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/bin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/sbin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/sbin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/sbin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/sbin"
+Environment="TZDIR=/nix/store/fsrw69w5mx838p7xydbdvywhwl6wnbjw-tzdata-2026e/share/zoneinfo"
+X-ReloadIfChanged=true

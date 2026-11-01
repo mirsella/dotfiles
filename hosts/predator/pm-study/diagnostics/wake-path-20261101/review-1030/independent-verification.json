@@ -1,0 +1,178 @@
+{
+  "ACPI_counters": [
+    {
+      "after": 22,
+      "before": 20,
+      "counter": "ff_rt_clk",
+      "delta": 2
+    },
+    {
+      "after": 0,
+      "before": 0,
+      "counter": "ff_pwr_btn",
+      "delta": 0
+    },
+    {
+      "after": 0,
+      "before": 0,
+      "counter": "ff_slp_btn",
+      "delta": 0
+    },
+    {
+      "after": 170,
+      "before": 170,
+      "counter": "gpe14",
+      "delta": 0
+    },
+    {
+      "after": 15,
+      "before": 12,
+      "counter": "gpe66",
+      "delta": 3
+    },
+    {
+      "after": 207,
+      "before": 202,
+      "counter": "sci",
+      "delta": 5
+    },
+    {
+      "after": 4,
+      "before": 4,
+      "counter": "sci_not",
+      "delta": 0
+    },
+    {
+      "after": 185,
+      "before": 182,
+      "counter": "gpe_all",
+      "delta": 3
+    },
+    {
+      "after": 0,
+      "before": 0,
+      "counter": "error",
+      "delta": 0
+    }
+  ],
+  "PCI_ACPI_entry_evidence": [
+    {
+      "message": "r8169 0000:03:00.1: PME# enabled",
+      "source_mono_us": 46393181949
+    },
+    {
+      "message": "pcieport 0000:00:1c.3: Wakeup enabled by ACPI",
+      "source_mono_us": 46393181989
+    },
+    {
+      "message": "r8169 0000:03:00.1: PCI PM: Suspend power state: D3hot",
+      "source_mono_us": 46393194491
+    },
+    {
+      "message": "pcieport 0000:00:1c.3: PCI PM: Suspend power state: D0",
+      "source_mono_us": 46393221824
+    }
+  ],
+  "Pi_baseline_is_result_prefix": true,
+  "cumulative_success_after": 2,
+  "cumulative_success_before": 1,
+  "full_pass": false,
+  "interval_microseconds_separate_domains": {
+    "_SOURCE_BOOTTIME_TIMESTAMP": 1157024765,
+    "_SOURCE_MONOTONIC_TIMESTAMP": 1157024765,
+    "__MONOTONIC_TIMESTAMP": 126,
+    "__REALTIME_TIMESTAMP": 127
+  },
+  "kernel_phases": [
+    {
+      "_SOURCE_BOOTTIME_TIMESTAMP": 46391322191,
+      "_SOURCE_MONOTONIC_TIMESTAMP": 46391322191,
+      "__MONOTONIC_TIMESTAMP": 45255075516,
+      "__REALTIME_TIMESTAMP": 1793520912182851,
+      "message": "PM: suspend entry (s2idle)"
+    },
+    {
+      "_SOURCE_BOOTTIME_TIMESTAMP": 46422106201,
+      "_SOURCE_MONOTONIC_TIMESTAMP": 46422106201,
+      "__MONOTONIC_TIMESTAMP": 45289594362,
+      "__REALTIME_TIMESTAMP": 1793522103735087,
+      "message": "PM: suspend-to-idle"
+    },
+    {
+      "_SOURCE_BOOTTIME_TIMESTAMP": 47579130966,
+      "_SOURCE_MONOTONIC_TIMESTAMP": 47579130966,
+      "__MONOTONIC_TIMESTAMP": 45289594488,
+      "__REALTIME_TIMESTAMP": 1793522103735214,
+      "message": "PM: resume from suspend-to-idle"
+    },
+    {
+      "_SOURCE_BOOTTIME_TIMESTAMP": 47582724228,
+      "_SOURCE_MONOTONIC_TIMESTAMP": 47582724228,
+      "__MONOTONIC_TIMESTAMP": 45289745593,
+      "__REALTIME_TIMESTAMP": 1793522103886319,
+      "message": "PM: suspend exit"
+    }
+  ],
+  "new_cycles": 1,
+  "old_kernel_records_preserved": 2102,
+  "original_artifacts_verified": 24,
+  "original_owner_mode": "root:0600; extracted copies owned by local user",
+  "owner_reported_watts": 6,
+  "physical_sleep_seconds": null,
+  "result": "RTC_FALLBACK_WINDOW_RETURN",
+  "root_port_interpretation": "PME status/pending already set before entry; requester changes 0201 to NIC 0301 after return. No event timing or sleeping-packet receipt proven.",
+  "root_port_status": [
+    {
+      "PME_pending": true,
+      "PME_status": true,
+      "native_PME_interrupt_enable": false,
+      "requester_id_hex": "0x0201",
+      "root_status_hex": "0x00030201",
+      "snapshot": "armed"
+    },
+    {
+      "PME_pending": true,
+      "PME_status": true,
+      "native_PME_interrupt_enable": false,
+      "requester_id_hex": "0x0301",
+      "root_status_hex": "0x00030301",
+      "snapshot": "raw_return"
+    }
+  ],
+  "rtc_before_helper": {
+    "STA_UNSYNC": false,
+    "alarm_epoch": 1793522100,
+    "armed_epoch": 1793520911,
+    "return_epoch": 1793522104,
+    "rtc_matches_realtime": true
+  },
+  "verification": "PASS",
+  "wake_attribution": "strongly supported RTC alarm via ACPI fixed event/IRQ9 and RTC fixed-event counter change; exact fixed-event status bit not captured at wake",
+  "wakeup_source_changes": [
+    {
+      "after": [
+        25,
+        47,
+        0,
+        0,
+        0,
+        0,
+        0,
+        45290860,
+        0
+      ],
+      "before": [
+        23,
+        43,
+        0,
+        0,
+        0,
+        0,
+        0,
+        45254897,
+        0
+      ],
+      "source": "PNP0B00:00#0"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+2026-10-31T08:31:32+01:00
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+50699.42 393597.00
+btime 1793381193
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+running
+No jobs running.
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+/sys/power/suspend_stats/success=9
+/sys/power/suspend_stats/fail=0
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/power/mem_sleep=s2idle [deep]
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/module/pm_stage/parameters/last_action=0
+/sys/module/pm_stage/parameters/last_value=0
+/sys/module/pm_stage/parameters/last_start=N
+/sys/class/rtc/rtc0/wakealarm=/sys/class/power_supply/AC0/online=

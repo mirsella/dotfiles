@@ -1,0 +1,8 @@
+670442a614727e6bed14ecac534550d08a24a78f7919e4c72923cfc2610788c6  .scratch/pm-efi-compact-20261101/used-source/boundary-compact.c
+a58175fc09005fe0aece7be94512aa7ef85d63c1abf329ce31410f21e3696c6d  .scratch/pm-efi-compact-20261101/used-source/boundary-compact.nix
+ae1878407dd68c46507ba4ba7a42b84c4ea6dd8db54852842ad0a336d58f40a1  .scratch/pm-efi-compact-20261101/used-source/operate
+1fd9ebf47e79e989ed06cfda6ea7260ec7d99d39f4a9429a2365d095a1a4a20d  .scratch/pm-efi-compact-20261101/used-source/operate.rs
+e2f1366aa5e55826aa5abec7f026c4a7bab3094574e994de9dcfaf7a14726d23  .scratch/pm-efi-compact-20261101/used-source/operator-pins.sha256
+ad997f88bbda2dd378ab2bb74091172549cdec72ca5d965b494babdac1b044cf  .scratch/pm-efi-compact-20261101/used-source/pins.sha256
+43eb36cc5e866676b72bbc465ed52e59b7849aca286a16c9a0b8e956409b78f4  .scratch/pm-efi-compact-20261101/used-source/verify
+8aab0386ee6877b4459b6f48c36602b8b83894d4cc91b0cdf900c82c860cd828  .scratch/pm-efi-compact-20261101/used-source/verify.rs

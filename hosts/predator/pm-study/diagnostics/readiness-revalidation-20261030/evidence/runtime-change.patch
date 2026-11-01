@@ -1,0 +1,584 @@
+--- /home/mirsella/dev/dotfiles/.scratch/pm-diagnostic-readiness-20261030/diagnostic-before.rs	2026-10-30 20:02:27.221909618 +0100
++++ /home/mirsella/dev/dotfiles/.scratch/pm-diagnostic-readiness-20261030/diagnostic-deployed.rs	2026-10-30 20:13:37.411826037 +0100
+@@ -16,6 +16,7 @@
+ const STATE: &str = "/var/lib/predator-pm-diagnostic";
+ const LEVELS: [&str; 5] = ["freezer", "devices", "platform", "processors", "core"];
+ const DELAY: &str = "PM: suspend debug: Waiting for 5 second(s).";
++const LAN_UUID: &str = "c4e6863b-7f76-4a4d-9a48-9937af0b5a36";
+ 
+ fn require(ok: bool, reason: impl Into<String>) -> Result<()> {
+     if ok {
+@@ -130,12 +131,18 @@
+             "ec",
+             "logged_in_users",
+         ];
++        let version2 = values.get("schema").map(String::as_str) == Some("pm-test-2");
+         require(
+-            values.len() == keys.len() && keys.iter().all(|k| values.contains_key(*k)),
++            values.len() == keys.len() + usize::from(version2)
++                && keys.iter().all(|k| values.contains_key(*k))
++                && (!version2 || values.contains_key("previous_kind")),
+             "unknown/missing diagnostic keys",
+         )?;
++        require(
++            version2 || values["schema"] == "pm-test-1",
++            "unsupported diagnostic schema",
++        )?;
+         for (key, expected) in [
+-            ("schema", "pm-test-1"),
+             ("pm_async", "0"),
+             ("pm_trace", "0"),
+             ("recorder", "off"),
+@@ -187,6 +194,19 @@
+             "invalid diagnostic time window",
+         )?;
+         let ordinal = values["ordinal"].parse()?;
++        if version2 {
++            require(
++                if ordinal == 1 {
++                    values["previous_kind"] == "none"
++                } else {
++                    matches!(
++                        values["previous_kind"].as_str(),
++                        "completed" | "revalidated"
++                    )
++                },
++                "invalid explicit predecessor kind",
++            )?;
++        }
+         require(
+             (1..=20).contains(&ordinal),
+             "diagnostic ordinal out of range",
+@@ -267,20 +287,43 @@
+         if self.ordinal == 1 {
+             return Ok(());
+         }
+-        let path = format!("{STATE}/{}-completed.txt", self.get("previous_id"));
++        let kind = if self.get("schema") == "pm-test-2" {
++            self.get("previous_kind")
++        } else {
++            "completed"
++        };
++        let path = format!("{STATE}/{}-{kind}.txt", self.get("previous_id"));
+         require(
+             hash(Path::new(&path))? == self.get("previous_sha"),
+             "predecessor hash changed",
+         )?;
+         let prior = fields(&root_file(Path::new(&path))?)?;
++        self.validate_predecessor_record(&prior, kind)
++    }
++    fn validate_predecessor_record(
++        &self,
++        prior: &BTreeMap<String, String>,
++        kind: &str,
++    ) -> Result<()> {
+         for key in ["boot", "generation", "kernel", "modules", "runtime"] {
+             require(
+                 prior.get(key).map(String::as_str) == Some(self.get(key)),
+                 format!("predecessor {key} mismatch"),
+             )?;
+         }
++        let (expected_result, time_key) = if kind == "revalidated" {
++            require(
++                prior.get("original_completion").map(String::as_str) == Some("absent"),
++                "revalidation must preserve original missing completion",
++            )?;
++            ("DIAGNOSTIC_RETURN_REVALIDATED", "validated_epoch")
++        } else {
++            ("DIAGNOSTIC_RETURN_VERIFIED", "completed_epoch")
++        };
+         require(
+-            prior.get("result").map(String::as_str) == Some("DIAGNOSTIC_RETURN_VERIFIED"),
++            prior.get("result").map(String::as_str) == Some(expected_result)
++                && prior.get("real_s3").map(String::as_str) == Some("false")
++                && prior.get("id").map(String::as_str) == Some(self.get("previous_id")),
+             "predecessor was not verified",
+         )?;
+         require(
+@@ -294,7 +337,7 @@
+         )?;
+         require(
+             prior
+-                .get("completed_epoch")
++                .get(time_key)
+                 .ok_or("missing prior time")?
+                 .parse::<u64>()?
+                 < self.due,
+@@ -510,7 +553,7 @@
+         output(
+             "nmcli",
+             &["-g", "GENERAL.CON-UUID", "device", "show", "enp3s0f1"],
+-        )? == "c4e6863b-7f76-4a4d-9a48-9937af0b5a36",
++        )? == LAN_UUID,
+         "LAN profile changed",
+     )?;
+     require(
+@@ -619,6 +662,118 @@
+     (journal, outcome)
+ }
+ 
++fn network_ready(snapshot: &str) -> Result<bool> {
++    let value = |key: &str| snapshot.lines().find_map(|l| l.strip_prefix(key));
++    let state: u32 = value("GENERAL.STATE:")
++        .ok_or("missing LAN state")?
++        .split_whitespace()
++        .next()
++        .ok_or("empty LAN state")?
++        .parse()?;
++    require(
++        matches!(
++            state,
++            0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100 | 110 | 120
++        ),
++        "unknown LAN state",
++    )?;
++    require(
++        !matches!(state, 0 | 10 | 120),
++        "LAN unknown/unmanaged/failed",
++    )?;
++    let uuid = value("GENERAL.CON-UUID:").ok_or("missing LAN UUID field")?;
++    if state != 100 {
++        return Ok(false);
++    }
++    require(
++        uuid == LAN_UUID,
++        format!("connected LAN profile mismatch: {uuid}"),
++    )?;
++    Ok(snapshot
++        .lines()
++        .any(|l| l.starts_with("IP4.DNS[") && l.ends_with(":192.168.1.1")))
++}
++
++// Subscribe before checking. A final snapshot closes subscription/event races;
++// no periodic polling and no attempt to change the network configuration.
++fn receive_network(
++    rx: &mpsc::Receiver<()>,
++    timeout: Duration,
++    mut snapshot: impl FnMut() -> Result<String>,
++) -> (String, Result<()>) {
++    let until = Instant::now() + timeout;
++    let mut evidence = String::new();
++    let result = (|| loop {
++        let current = snapshot()?;
++        evidence.push_str(&format!(
++            "elapsed_ms={}\n{current}\n",
++            timeout
++                .saturating_sub(until.saturating_duration_since(Instant::now()))
++                .as_millis()
++        ));
++        if network_ready(&current)? {
++            return Ok(());
++        }
++        let remaining = until.saturating_duration_since(Instant::now());
++        if remaining.is_zero() || rx.recv_timeout(remaining).is_err() {
++            let final_state = snapshot()?;
++            evidence.push_str(&format!("final_snapshot\n{final_state}\n"));
++            require(
++                network_ready(&final_state)?,
++                "LAN readiness deadline/monitor ended before expected profile and DNS",
++            )?;
++            return Ok(());
++        }
++    })();
++    (evidence, result)
++}
++
++fn wait_network(plan: &Plan, suffix: &str) -> Result<()> {
++    let mut child = Command::new("busctl").args([
++        "--system", "--no-pager",
++        "--match=type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged'",
++        "monitor", "org.freedesktop.NetworkManager",
++    ]).stdout(Stdio::piped()).stderr(Stdio::null()).spawn()?;
++    let pipe = child.stdout.take().expect("piped network monitor");
++    let (tx, rx) = mpsc::channel();
++    let reader = std::thread::spawn(move || {
++        for line in BufReader::new(pipe).lines() {
++            match line {
++                Ok(line) if line.contains("Member=PropertiesChanged") => {
++                    if tx.send(()).is_err() {
++                        break;
++                    }
++                }
++                Ok(_) => (),
++                Err(_) => break,
++            }
++        }
++    });
++    let (captured, result) = receive_network(&rx, Duration::from_secs(30), || {
++        output(
++            "timeout",
++            &[
++                "5s",
++                "nmcli",
++                "-t",
++                "-f",
++                "GENERAL.STATE,GENERAL.CON-UUID,IP4.DNS",
++                "device",
++                "show",
++                "enp3s0f1",
++            ],
++        )
++    });
++    let stop = child.kill();
++    let reaped = child.wait();
++    let joined = reader.join();
++    plan.save(suffix, &format!("epoch={}\nreadiness={result:?}\nstop={stop:?}\nreaped={reaped:?}\nreader_joined={}\n{captured}", now()?, joined.is_ok()))?;
++    stop?;
++    reaped?;
++    require(joined.is_ok(), "network monitor reader panicked")?;
++    result
++}
++
+ fn restoration_allowed(state: &str, pid: &str, jobs: &str) -> Result<()> {
+     require(
+         state == "inactive" && pid == "0",
+@@ -800,6 +955,7 @@
+     operation?;
+     cleanup?;
+     plan.save("after-kernel", &plan.journal()?)?;
++    wait_network(plan, "network-readiness")?;
+     health(plan, plan.ordinal, false)?;
+     require(
+         now()? <= plan.due + 180,
+@@ -826,11 +982,196 @@
+     ))
+ }
+ 
++fn validate_retained_return(
++    plan: &Plan,
++    returned: &str,
++    outcome: &str,
++    observed: &str,
++) -> Result<u64> {
++    let returned = fields(returned)?;
++    for (key, expected) in [
++        ("boot", plan.get("boot")),
++        ("request_and_return", "Ok(())"),
++        ("stop", "Ok(())"),
++        ("reaped", "Ok(ExitStatus(unix_wait_status(9)))"),
++        ("reader_joined", "true"),
++    ] {
++        require(
++            returned.get(key).map(String::as_str) == Some(expected),
++            format!("unverified original return: {key}"),
++        )?;
++    }
++    let epoch: u64 = returned
++        .get("epoch")
++        .ok_or("missing original return time")?
++        .parse()?;
++    require(
++        (plan.due..=plan.due + 180).contains(&epoch),
++        "original return outside bound",
++    )?;
++    let outcome = fields(outcome)?;
++    for key in ["operation", "cleanup"] {
++        require(
++            outcome.get(key).map(String::as_str) == Some("Ok(())"),
++            format!("original {key} failed"),
++        )?;
++    }
++    require(
++        diagnostic_cycles(observed)? == 1
++            && observed.contains("System returned from sleep operation")
++            && (observed.contains("systemd[1]: Finished System Suspend.")
++                || observed
++                    .contains("systemd[1]: Finished systemd-suspend.service - System Suspend.")),
++        "original cycle/service return incomplete",
++    )?;
++    require(
++        observed.contains(&format!(
++            "DIAG BEGIN id={} boot={} level=freezer ordinal=1",
++            plan.get("id"),
++            plan.get("boot")
++        )),
++        "original phase marker mismatch",
++    )?;
++    Ok(epoch)
++}
++
++// Explicit audited transition for the known v1 first-freezer post-LAN-check
++// failure. It never backdates or writes the missing original completed file.
++fn revalidate(mut plan: Plan, original_sha: &str, raw: &str) -> Result<()> {
++    require(
++        plan.get("schema") == "pm-test-1" && plan.ordinal == 1 && plan.get("level") == "freezer",
++        "revalidation supports only the reviewed v1 first-freezer return",
++    )?;
++    let old_runtime = plan.get("runtime").to_owned();
++    let old_runtime_sha = hash(Path::new(&old_runtime))?;
++    require(
++        old_runtime_sha == "f1a3981959b6ea5eae30fa1e668b62cb15c7c21620529bfd3e777b59c68944d9",
++        "unreviewed original runtime",
++    )?;
++    let file = |suffix: &str| format!("{STATE}/{}-{suffix}.txt", plan.get("id"));
++    require(
++        !Path::new(&file("completed")).exists() && !Path::new(&file("revalidated")).exists(),
++        "original completion/checkpoint already exists",
++    )?;
++    require(
++        now()? >= plan.get("window_start").parse()? && now()? < plan.end,
++        "revalidation outside original observation window",
++    )?;
++    let mut evidence = String::new();
++    for suffix in [
++        "requested",
++        "before",
++        "before-kernel",
++        "cursor",
++        "observed-journal",
++        "return",
++        "outcome",
++        "after-kernel",
++    ] {
++        root_file(Path::new(&file(suffix)))?;
++        evidence.push_str(&format!(
++            "original_{suffix}_sha={}\n",
++            hash(Path::new(&file(suffix)))?
++        ));
++    }
++    require(
++        root_file(Path::new(&file("requested")))? == raw,
++        "original request differs from manifest",
++    )?;
++    require(
++        diagnostic_cycles(&root_file(Path::new(&file("before-kernel")))?)? == 0
++            && diagnostic_cycles(&root_file(Path::new(&file("after-kernel")))?)? == 1,
++        "original before/after history mismatch",
++    )?;
++    let returned_epoch = validate_retained_return(
++        &plan,
++        &root_file(Path::new(&file("return")))?,
++        &root_file(Path::new(&file("outcome")))?,
++        &root_file(Path::new(&file("observed-journal")))?,
++    )?;
++    let service = format!("predator-pm-diagnostic-{}.service", plan.get("id"));
++    let journal = output(
++        "journalctl",
++        &[
++            "-b",
++            &plan.get("boot").replace('-', ""),
++            "-u",
++            &service,
++            "--no-pager",
++            "-o",
++            "cat",
++        ],
++    )?;
++    let errors: Vec<_> = journal
++        .lines()
++        .filter(|l| l.starts_with("Error:"))
++        .collect();
++    require(
++        errors == ["Error: \"LAN profile changed\""],
++        "original service failure is not the reviewed LAN post-check error",
++    )?;
++    let current = env::current_exe()?
++        .to_str()
++        .ok_or("non-UTF8 runtime")?
++        .to_owned();
++    plan.values.insert("runtime".into(), current);
++    plan.identity()?;
++    let label = format!("revalidation-{}", now()?);
++    plan.save(&format!("{label}-original-service"), &journal)?;
++    wait_network(&plan, &format!("{label}-network"))?;
++    health(&plan, 1, false)?;
++    require(
++        output("systemctl", &["list-jobs", "--no-legend", "--plain"])?.is_empty(),
++        "jobs active during revalidation",
++    )?;
++    let current_history = plan.journal()?;
++    require(
++        diagnostic_cycles(&current_history)? == 1,
++        "intervening cycle before revalidation",
++    )?;
++    plan.save(&format!("{label}-kernel"), &current_history)?;
++    plan.save(
++        &format!("{label}-health"),
++        &format!(
++            "epoch={}\nboot={}\nchecked_cycles=1\n{}\n{}\n{}\n",
++            now()?,
++            plan.get("boot"),
++            output(
++                "nmcli",
++                &[
++                    "-g",
++                    "GENERAL.STATE,GENERAL.CON-UUID,IP4.DNS",
++                    "device",
++                    "show",
++                    "enp3s0f1"
++                ]
++            )?,
++            output("timedatectl", &["timesync-status"])?,
++            output("zpool", &["status"])?
++        ),
++    )?;
++    let record = format!(
++        "result=DIAGNOSTIC_RETURN_REVALIDATED\nid={}\nboot={}\ngeneration={}\nkernel={}\nmodules={}\nruntime={}\nlevel=freezer\nordinal=1\nvalidated_epoch={}\noriginal_return_epoch={returned_epoch}\noriginal_manifest_sha={original_sha}\noriginal_runtime={old_runtime}\noriginal_runtime_sha={old_runtime_sha}\noriginal_completion=absent\noriginal_failure=LAN profile changed\nreal_s3=false\nphysical_sleep_seconds=not-applicable\n{evidence}",
++        plan.get("id"),
++        plan.get("boot"),
++        plan.get("generation"),
++        plan.get("kernel"),
++        plan.get("modules"),
++        plan.get("runtime"),
++        now()?
++    );
++    plan.save("revalidated", &record)?;
++    marker(&format!(
++        "DIAG REVALIDATED id={} original_return_epoch={returned_epoch} original_completion=absent real_s3=false",
++        plan.get("id")
++    ))
++}
++
+ fn main() -> Result<()> {
+     let args: Vec<String> = env::args().collect();
+     require(
+         args.len() == 4,
+-        "usage: predator-pm-diagnostic check|run|restore MANIFEST SHA256",
++        "usage: predator-pm-diagnostic check|run|restore|revalidate MANIFEST SHA256",
+     )?;
+     let (plan, raw) = Plan::load(&args[2], &args[3])?;
+     match args[1].as_str() {
+@@ -853,6 +1194,7 @@
+             ))
+         }
+         "run" => attempt(&plan, &raw),
++        "revalidate" => revalidate(plan, &args[3], &raw),
+         "restore" => {
+             require(
+                 Path::new(&format!("{STATE}/{}-requested.txt", plan.get("id"))).exists(),
+@@ -867,6 +1209,135 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    fn connected() -> String {
++        format!(
++            "GENERAL.STATE:100 (connected)\nGENERAL.CON-UUID:{LAN_UUID}\nIP4.DNS[1]:192.168.1.1"
++        )
++    }
++    const RECONNECTING: &str = "GENERAL.STATE:30 (disconnected)\nGENERAL.CON-UUID:--";
++    #[test]
++    fn network_readiness_waits_for_connection_and_dns_but_rejects_wrong_profile() {
++        assert!(!network_ready(RECONNECTING).unwrap());
++        assert!(network_ready(&connected()).unwrap());
++        assert!(!network_ready(&connected().replace("IP4.DNS[1]:192.168.1.1", "")).unwrap());
++        assert!(network_ready(&connected().replace(LAN_UUID, "wrong-uuid")).is_err());
++        assert!(network_ready("GENERAL.STATE:120 (failed)\nGENERAL.CON-UUID:--").is_err());
++    }
++    #[test]
++    fn readiness_events_and_final_snapshot_cover_reconnection_and_missed_events() {
++        let (tx, rx) = mpsc::channel();
++        tx.send(()).unwrap();
++        let mut samples = [RECONNECTING.to_owned(), connected()].into_iter();
++        let (saved, result) =
++            receive_network(&rx, Duration::from_secs(1), || Ok(samples.next().unwrap()));
++        result.unwrap();
++        assert!(saved.contains("disconnected") && saved.contains(LAN_UUID));
++        let (_tx, rx) = mpsc::channel();
++        let mut samples = [RECONNECTING.to_owned(), connected()].into_iter();
++        let (saved, result) = receive_network(&rx, Duration::from_millis(2), || {
++            Ok(samples.next().unwrap())
++        });
++        result.unwrap();
++        assert!(saved.contains("final_snapshot"));
++    }
++    #[test]
++    fn readiness_deadline_preserves_unready_state_and_never_accepts_wrong_uuid() {
++        let (_tx, rx) = mpsc::channel();
++        let (saved, result) =
++            receive_network(&rx, Duration::from_millis(2), || Ok(RECONNECTING.into()));
++        assert!(result.is_err() && saved.contains("final_snapshot"));
++        let (saved, result) = receive_network(&rx, Duration::from_secs(1), || {
++            Ok(connected().replace(LAN_UUID, "wrong"))
++        });
++        assert!(result.is_err() && saved.contains("wrong"));
++    }
++    #[test]
++    fn revalidation_requires_genuine_original_return_cleanup_and_bounded_time() {
++        let plan = Plan::parse(&manifest()).unwrap();
++        let returned = format!(
++            "epoch=3227\nboot={}\nrequest_and_return=Ok(())\nstop=Ok(())\nreaped=Ok(ExitStatus(unix_wait_status(9)))\nreader_joined=true",
++            plan.get("boot")
++        );
++        let outcome = "epoch=3227\noperation=Ok(())\ncleanup=Ok(())";
++        let observed = format!(
++            "DIAG BEGIN id=diag-freezer boot={} level=freezer ordinal=1\n{CYCLE}System returned from sleep operation\nsystemd[1]: Finished System Suspend.\n",
++            plan.get("boot")
++        );
++        assert_eq!(
++            validate_retained_return(&plan, &returned, outcome, &observed).unwrap(),
++            3227
++        );
++        for bad in [
++            returned.replace("epoch=3227", "epoch=9999"),
++            returned.replace("reader_joined=true", "reader_joined=false"),
++            returned.replace("request_and_return=Ok(())", "request_and_return=Err(x)"),
++        ] {
++            assert!(validate_retained_return(&plan, &bad, outcome, &observed).is_err());
++        }
++        assert!(
++            validate_retained_return(
++                &plan,
++                &returned,
++                &outcome.replace("cleanup=Ok(())", "cleanup=Err(x)"),
++                &observed
++            )
++            .is_err()
++        );
++        assert!(
++            validate_retained_return(
++                &plan,
++                &returned,
++                outcome,
++                &(observed + "Timekeeping suspended for 900 seconds\n")
++            )
++            .is_err()
++        );
++    }
++    #[test]
++    fn explicit_revalidated_predecessor_does_not_impersonate_original_completion() {
++        let next = manifest()
++            .replace("schema=pm-test-1", "schema=pm-test-2")
++            .replace("ordinal=1", "ordinal=2")
++            .replace("level=freezer", "level=devices")
++            .replace("previous_id=none", "previous_id=prior-freezer")
++            .replace(
++                "previous_sha=none",
++                &format!("previous_sha={}", "a".repeat(64)),
++            )
++            + "\nprevious_kind=revalidated";
++        let plan = Plan::parse(&next).unwrap();
++        let mut record = BTreeMap::new();
++        for key in ["boot", "generation", "kernel", "modules", "runtime"] {
++            record.insert(key.into(), plan.get(key).into());
++        }
++        for (key, value) in [
++            ("id", "prior-freezer"),
++            ("level", "freezer"),
++            ("ordinal", "1"),
++            ("result", "DIAGNOSTIC_RETURN_REVALIDATED"),
++            ("original_completion", "absent"),
++            ("real_s3", "false"),
++            ("validated_epoch", "3100"),
++        ] {
++            record.insert(key.into(), value.into());
++        }
++        plan.validate_predecessor_record(&record, "revalidated")
++            .unwrap();
++        assert!(
++            plan.validate_predecessor_record(&record, "completed")
++                .is_err()
++        );
++        record.insert("validated_epoch".into(), "9999".into());
++        assert!(
++            plan.validate_predecessor_record(&record, "revalidated")
++                .is_err()
++        );
++        assert!(
++            Plan::parse(&next.replace("previous_kind=revalidated", "previous_kind=anything"))
++                .is_err()
++        );
++        assert!(Plan::parse(&(manifest() + "\nprevious_kind=revalidated")).is_err());
++    }
+     #[test]
+     fn cleanup_cannot_enable_real_s3_while_sleep_is_active_or_queued() {
+         restoration_allowed("inactive", "0", "").unwrap();

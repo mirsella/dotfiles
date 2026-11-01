@@ -1,0 +1,19 @@
+2026-10-31T22:02:01+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+       Server: 195.154.185.215 (2.debian.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: 52402AB9
+    Precision: 1us (-23)
+Root distance: 38.603ms (max: 5s)
+       Offset: +322us
+        Delay: 9.615ms
+       Jitter: 976us
+ Packet count: 613
+    Frequency: -13.514ppm
+active
+/home/mirsella/wol_predator.py: OK
+[ 5999.503145] WAKE READY id=wake-20261031 nonce=wake-20261031-1793481300
+fd60ed790026c2f21c602a04069d5710d4185c0c26d114b0e800642a732ce363  /home/mirsella/dev/predator-pm-debug/.agents-local/wake-20261031-baseline.log

@@ -1,0 +1,93 @@
+2026-10-31T22:48:26+01:00
+Id=systemd-suspend.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+
+Id=predator-pm-wake-wake-20261031.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+No jobs running.
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+/sys/bus/acpi/drivers/tpm_crb
+TPM_CRB_and_Acer_exclusions_and_all_HOLD_checks=PASS
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:          0         36          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+/sys/firmware/acpi/interrupts/ff_rt_clk=      12         disabled     unmasked
+/sys/firmware/acpi/interrupts/ff_pwr_btn=       0  EN     enabled      unmasked
+/sys/firmware/acpi/interrupts/ff_slp_btn=       0         invalid      unmasked
+ec6d9a401a59064512c56c035894715d4123ef69ee301cc83297a373c9a83b7d  /var/lib/predator-pm-study/f9b45aa6-b820-4ab5-b18c-9324d8d53087-boot-rtc.txt
+280573317fc03a7338ca233c367593ff2fac0163eb8cfe70fabc375f4648fd08  /var/lib/predator-pm-study/last-completed.txt
+7851bcb034541c585c6385dcedd970a0e1f2fa2f3c6b0c0d93d4f1c241370ddc  /var/lib/predator-pm-diagnostic/d-core-03-20261030-completed.txt
+2333c0af7c6fa351a53ad5202189df7b469963590245485cb386ae7f6b6227ed  /var/lib/predator-pm-instrumented/rtc-cal-core-r3-20261031-completed.txt
+aa5be693e84beca952edddf18a7594169c3b08e3885bf61caaf4ca68d1ba5fa9  /var/lib/predator-pm-instrumented/rtc-s3-20261031-plan.conf
+f22e464bb3aae8404d25ec05f7b4ae3002ba0c757a9d5e69f1199195f13a5820  /var/lib/predator-pm-s2idle/s2idle-20261031-plan.conf
+da403c1d125532c0d8f9d0935c64a9f868a2ddacbf6bcc031fd75ad936b26269  /var/lib/predator-pm-s2idle/s2idle-20261031-raw-return.txt
+743a5546ccf6e13d401de82c934691efb75b92c9e4103e12a1c15091966086fc  /nix/store/y5x8nw8lvhjjmxp9m1aiy4hkgsfsrr7g-predator-pm-study-0.1.0/bin/predator-pm-wake-validation
+b8d111d32b28e900a2a1a7c620fa4a4590b2ba1e6bfcdf19cf3758038433090b  /nix/store/qzs6qmgvvka19nv4dyihz9rc8mbybkkv-predator-pm-study-0.1.0/bin/predator-pm-study
+/var/lib/predator-pm-wake-validation/wake-20261031-after-kernel.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-alarm-armed.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-alarm-intent.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-before-kernel.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-before.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-clock-handoff.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-completed.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-cursor.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-mutating.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-observed-journal.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-outcome.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-plan.conf root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-raw-return.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-request-call.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-requested.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-request-ok.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-restored.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-return.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-sleep-config.txt root 600
+/var/lib/predator-pm-wake-validation/wake-20261031-wake-before.txt root 600
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+ba69e2d85eaefe8590aad80f41de79cabc1ea6d5152b9af08fd026598ba55378  hosts/predator/pm-study/README.md
+e7c5377f65a7e1718b2b4ca1807324e10dbb0e4403808fe43ab2e120a7b0e2b9  hosts/predator/pm-study/diagnostics/README.md
+08a4194a5e258fc9a6747774336ee40360faa3c32bbf71ec4d0aaff5248011be  hosts/predator/pm-study/diagnostics/s2idle-wake-validation-20261031/README.md
+6074d8e9863e8d35819a85a84222551cef7c8c3344209f2aaffaa283ab7b4040  pkgs/predator-pm-study/wake_validation.rs
+d84db2b41c3f89279938dcc959690d5f41e6a619848dfebeb3864ca31d9f4648  pkgs/predator-pm-study/wake_timing.rs
+0a28b1851b4fe42d13d921a2467c4d6d45c831d128c5b502a66971b6135930dd  pkgs/predator-pm-study/network.rs
+2026-10-31T22:48:27+01:00
+final_read_only_state_capture=PASS

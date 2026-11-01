@@ -1,0 +1,20 @@
+{
+  "schema": "s3-owner-power-observation-1",
+  "recordedAtLocal": "2026-11-01T14:49:29+01:00",
+  "trial": "s3-efi-v2-20261101",
+  "quote": "the power graph is ~27w, it didn't sleep i think ?",
+  "reportedWattsApproximate": 27,
+  "source": "owner description of power graph",
+  "underlyingDatedGraphReceived": false,
+  "sustainedThroughoutTrialConfirmed": false,
+  "softwareSuspendResumeReturnVerified": true,
+  "physicalOutcome": "OWNER_REPORTED_HIGH_POWER_LOW_POWER_NOT_DEMONSTRATED",
+  "physicalSleepSeconds": null,
+  "fullPhysicalPass": false,
+  "exactWakeCauseVerified": false,
+  "ownerInteractionConfirmed": false,
+  "newMachineActions": 0,
+  "newPowerTestAuthorized": false,
+  "sealedReviewModified": false,
+  "remoteSynchronization": "pending"
+}

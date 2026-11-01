@@ -1,0 +1,58 @@
+2026-10-31T09:14:21+01:00
+1e7247c6e7e90a22fa41d022afb9e45001bf1328e69ec1440641f1c919518ee4  /nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study
+NEXT                           LEFT LAST                              PASSED UNIT                 ACTIVATES
+Sat 2026-10-31 09:17:28 CET 3min 7s Sat 2026-10-31 09:12:28 CET 1min 52s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+ActiveState=inactive
+ExecMainStartTimestamp=Sat 2026-10-31 09:12:30 CET
+ExecMainExitTimestamp=Sat 2026-10-31 09:12:31 CET
+TimersMonotonic={ OnUnitActiveUSec=5min ; next_elapse=14h 50min 46.259190s }
+TimersMonotonic={ OnBootUSec=5min ; next_elapse=5min }
+NextElapseUSecMonotonic=14h 50min 46.259190s
+# /etc/systemd/system/predator-pm-preserve-rtc.service -> /nix/store/gianbrr1ksqwyvhz9nmm7mzn7n3znlc7-unit-predator-pm-preserve-rtc.service/predator-pm-preserve-rtc.service
+[Unit]
+After=local-fs.target systemd-journald.service
+Before=systemd-timesyncd.service
+DefaultDependencies=false
+Description=Preserve suspend phase RTC evidence before clock synchronization
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/6awpfcv4lkmk67qf6ca73m076zcfbczp-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="PATH=/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/bin:/nix/store/avshcbcrykiffn4vlhmz848ab69wbp9n-systemd-262/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/bin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/bin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/bin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/bin:/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/sbin:/nix/store/avshcbcrykiffn4vlhmz848ab69wbp9n-systemd-262/sbin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/sbin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/sbin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/sbin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/sbin"
+Environment="TZDIR=/nix/store/fsrw69w5mx838p7xydbdvywhwl6wnbjw-tzdata-2026e/share/zoneinfo"
+X-RestartIfChanged=false
+ExecStart=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study preserve-rtc
+RemainAfterExit=true
+Type=oneshot
+
+[Install]
+WantedBy=sysinit.target
+
+# /etc/systemd/system/predator-pm-clock-handoff.service -> /nix/store/0r5n29rbbkqc7d7p4dmrsv3iwxlwk6sg-unit-predator-pm-clock-handoff.service/predator-pm-clock-handoff.service
+[Unit]
+After=network-online.target NetworkManager.service NetworkManager-ensure-profiles.service predator-pm-preserve-rtc.service
+Description=Restore NTP after initrd networkd hands the LAN to NetworkManager
+Wants=network-online.target
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/6awpfcv4lkmk67qf6ca73m076zcfbczp-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="PATH=/nix/store/55w48cr7iihfw70692fs95pf43jkc080-networkmanager-1.58.1/bin:/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/bin:/nix/store/avshcbcrykiffn4vlhmz848ab69wbp9n-systemd-262/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/bin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/bin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/bin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/bin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/bin:/nix/store/55w48cr7iihfw70692fs95pf43jkc080-networkmanager-1.58.1/sbin:/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/sbin:/nix/store/avshcbcrykiffn4vlhmz848ab69wbp9n-systemd-262/sbin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/cb987zkxvsv0490753ilrvn5yk7ylgxi-coreutils-9.12/sbin:/nix/store/99v13ig4382mngi6ggf0csqi7rfa04j5-findutils-4.11.0/sbin:/nix/store/c3f45pxlb81gzz4w1nym7lpznfypva7s-gnugrep-3.12/sbin:/nix/store/9wc73n5izv0m7ppjbibi4hbr68rba1lj-gnused-4.10/sbin:/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/sbin"
+Environment="TZDIR=/nix/store/fsrw69w5mx838p7xydbdvywhwl6wnbjw-tzdata-2026e/share/zoneinfo"
+ExecStart=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study clock-handoff
+RemainAfterExit=true
+TimeoutStartSec=2min
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target
+2026-10-31T09:02:31.446249+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+2026-10-31T09:02:31.447606+01:00 predator systemd[1]: nextcloud-cron.service: Consumed 1.653s CPU time over 2.616s wall clock time, 64.2M memory peak, 23.5M read from disk, 64K written to disk.
+2026-10-31T09:07:28.885320+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-31T09:07:30.609252+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-31T09:07:31.615012+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+2026-10-31T09:07:31.616954+01:00 predator systemd[1]: nextcloud-cron.service: Consumed 1.763s CPU time over 2.730s wall clock time, 64M memory peak, 24.5M read from disk, 64K written to disk.
+2026-10-31T09:12:28.938056+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-31T09:12:30.300475+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-31T09:12:31.220564+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+2026-10-31T09:12:31.221900+01:00 predator systemd[1]: nextcloud-cron.service: Consumed 1.358s CPU time over 2.282s wall clock time, 63.9M memory peak, 23.4M read from disk, 64K written to disk.

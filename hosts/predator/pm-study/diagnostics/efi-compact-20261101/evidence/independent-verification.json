@@ -1,0 +1,1 @@
+{"independentVerification":"PASS","originalModuleAudit":"ESTALE_DYNAMIC_MAX_REVIEWED","phase":"AWAKE_TRANSPORT","sequence":1,"recordBytes":64,"freeBefore":7498,"freeAfter":7342,"netStoreDecrease":156,"kernelReserve":5120,"extraMargin":1024,"writeDurationNs":47637358,"retentionAcrossResetVerified":false,"suspendedContextVerified":false}

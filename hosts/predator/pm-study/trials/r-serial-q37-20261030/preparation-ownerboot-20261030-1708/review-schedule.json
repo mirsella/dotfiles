@@ -1,0 +1,12 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-serial-q37-review-20261030-1811",
+  "title": "Predator serial Q37 review 2026-10-30 18:11 CET",
+  "enabled": true,
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "schedule": {"type": "fixed_time", "timeOfDay": "18:11", "weekdays": [5]},
+  "nextRunAt": "2026-10-30T17:11:00.000Z",
+  "selfDeleteAtStart": true,
+  "machineActionGuard": "2026-10-30 Europe/Paris, 18:11 <= local time < 23:00",
+  "standingInstruction": "automatically do that, always schedule the next test",
+  "scope": "Review strict boot-bound technical and dated physical evidence, then actually prepare/schedule one justified eligible next test. Preserve exact ages/ordinal/reset/runtime and 08..23 window. No hung-host recovery, fabricated PASS/bounds, automatic runtime changes or unconditional power cycles. Q never primes E."
+}

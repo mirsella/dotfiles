@@ -1,0 +1,4 @@
+2026-10-31T11:52:26+01:00
+/home/mirsella/dev/dotfiles/.scratch/pm-s2idle-control-20261031/runtime-root
+27c4152e2577d3569027fa479a412cb08e63f41a63d99755b45a6e17eaad5a33  /nix/store/glb3dymq7hxaym5dg6602m1h3isjf17n-predator-pm-study-0.1.0/bin/predator-pm-s2idle
+Timex { modes: 0, offset: 116216, freq: 195190, maxerror: 708000, esterror: 0, status: 8193, constant: 7, precision: 1, tolerance: 32768000, time: [1793443946, 443450388], tick: 10000, ppsfreq: 0, jitter: 0, shift: 0, stabil: 0, jitcnt: 0, calcnt: 0, errcnt: 0, stbcnt: 0, tai: 0, reserved: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }

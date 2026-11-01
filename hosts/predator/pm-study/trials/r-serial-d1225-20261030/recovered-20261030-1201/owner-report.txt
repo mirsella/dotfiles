@@ -1,0 +1,9 @@
+Recorded 2026-10-30, during the review beginning 12:01:49 CET.
+Owner message: "i force rebooted it, it was 15w. learn from it, and schedule the next useful test."
+Trial: r-serial-d1225-20261030
+Classification: owner-confirmed HANG, approximately 15 W reported.
+Recovery: owner-reported forced reboot. Exact button sequence, power-off duration and subsequent startup method were not supplied.
+New boot observed at 12:02:06 CET: 8b7a173d-8406-4072-aebc-c85c8b4989e7, btime 1793358004 (2026-10-30 12:00:04 CET).
+This new boot is recovery, not the trial's resume. The dated power graph is still missing.
+Learning: a long-age first suspend failed with pm_async=0 as well as with pm_async=1 on the pinned 6.18.58 baseline. Async callback execution is not necessary for the observed failure; neither age dependence nor a particular driver is established.
+Next authorized action: one fixed-serial short-age control on this healthy recovered boot, subject to full preflight, within the existing observation window. No E primer is available.

@@ -1,0 +1,40 @@
+2026-10-29T09:48:44+01:00
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+2026-10-29T09:37:02.556565+0100 raspberrypi systemd[1]: Starting predator-pm-r-async-d1225-20261029-wake.service - /usr/bin/python3 /home/mirsella/wol_predator.py...
+2026-10-29T09:37:02.651632+0100 raspberrypi python3[79411]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-29T09:37:02.668215+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-wake.service: Deactivated successfully.
+2026-10-29T09:37:02.668577+0100 raspberrypi systemd[1]: Finished predator-pm-r-async-d1225-20261029-wake.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-29T09:37:02.669208+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-wake.service: Triggering OnSuccess= dependencies.
+2026-10-29T09:48:44.109481+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-wake.service: Failed to open /run/systemd/transient/predator-pm-r-async-d1225-20261029-wake.service: No such file or directory
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+2026-10-29T09:37:32.560558+0100 raspberrypi systemd[1]: Starting predator-pm-r-async-d1225-20261029-retry.service - /usr/bin/python3 /home/mirsella/wol_predator.py...
+2026-10-29T09:37:32.655601+0100 raspberrypi python3[79417]: WOL sent to 98:29:a6:3a:a7:50 via 192.168.1.255:9
+2026-10-29T09:37:32.672163+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-retry.service: Deactivated successfully.
+2026-10-29T09:37:32.672528+0100 raspberrypi systemd[1]: Finished predator-pm-r-async-d1225-20261029-retry.service - /usr/bin/python3 /home/mirsella/wol_predator.py.
+2026-10-29T09:37:32.673137+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-retry.service: Triggering OnSuccess= dependencies.
+2026-10-29T09:48:44.146061+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-retry.service: Failed to open /run/systemd/transient/predator-pm-r-async-d1225-20261029-retry.service: No such file or directory
+Result=exit-code
+ExecMainStartTimestamp=Thu 2026-10-29 09:38:32 CET
+ExecMainExitTimestamp=Thu 2026-10-29 09:38:35 CET
+ExecMainStatus=1
+2026-10-29T09:38:32.552635+0100 raspberrypi systemd[1]: Starting predator-pm-r-async-d1225-20261029-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19...
+2026-10-29T09:38:35.654804+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-probe.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-29T09:38:35.655537+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-probe.service: Failed with result 'exit-code'.
+2026-10-29T09:38:35.656679+0100 raspberrypi systemd[1]: Failed to start predator-pm-r-async-d1225-20261029-probe.service - /usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19.
+2026-10-29T09:38:35.657924+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-probe.service: Triggering OnFailure= dependencies.
+Result=success
+ExecMainStartTimestamp=
+ExecMainExitTimestamp=
+ExecMainStatus=0
+2026-10-29T09:40:02.552639+0100 raspberrypi systemd[1]: Starting predator-pm-r-async-d1225-20261029-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-async-d1225-20261029-result.log...
+2026-10-29T09:40:02.563353+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-snapshot.service: Deactivated successfully.
+2026-10-29T09:40:02.564782+0100 raspberrypi systemd[1]: Finished predator-pm-r-async-d1225-20261029-snapshot.service - /usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-async-d1225-20261029-result.log.
+2026-10-29T09:40:02.566008+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-snapshot.service: Triggering OnSuccess= dependencies.
+2026-10-29T09:48:44.219789+0100 raspberrypi systemd[1]: predator-pm-r-async-d1225-20261029-snapshot.service: Failed to open /run/systemd/transient/predator-pm-r-async-d1225-20261029-snapshot.service: No such file or directory

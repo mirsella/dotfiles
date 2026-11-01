@@ -1,0 +1,19 @@
+2026-11-01T08:49:32+01:00
+path-d3-20261101-plan.conf root 600
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+/nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/example/systemd/system/systemd-suspend.service
+/sys/bus/acpi/drivers/tpm_crb
+/sys/devices/pci0000:00/0000:00:1c.3/0000:03:00.1
+/sys/kernel/debug/dynamic_debug/control
+/sys/devices/pci0000:00/0000:00:1c.3/0000:03:00.1/d3cold_allowed
+ActiveState=inactive
+MainPID=0
+1
+0
+/run/current-system/sw/bin/strace
+d61d7b6686710bae2451f5a7525c5f19864d936d4bb56cb20704de3cf3c76ce3  /var/lib/predator-pm-wake-path/path-d3-20261101-plan.conf

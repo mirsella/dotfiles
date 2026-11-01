@@ -1,0 +1,5 @@
+696401f0719da3b239d54c9f2320f45c554270fbf9efa720df3b2a784bf0a19c  pkgs/predator-pm-study/boundary-compact.c
+a58175fc09005fe0aece7be94512aa7ef85d63c1abf329ce31410f21e3696c6d  pkgs/predator-pm-study/boundary-compact.nix
+5bd8bd622dc0de4d20cb394bc58fc0ebec0b8deb7a4029569b0ccfd408fabbcd  .scratch/pm-efi-compact-20261101/verify.rs
+774eb2c9e560544fcb7652339819d43b4d949743c2641b7e854a3ff296df6f30  .scratch/pm-efi-compact-20261101/operate.rs
+c8f956b93317b5f418b386359736e664c90395acad59536aa65d886db31fd6e4  .scratch/pm-efi-compact-20261101/runtime-root-v2/lib/modules/6.18.58/extra/pm_boundary_compact.ko.xz

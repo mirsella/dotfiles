@@ -1,0 +1,85 @@
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-wake.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/python3 /home/mirsella/wol_predator.py
+
+[Timer]
+OnCalendar=@1793346400
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-wake.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/python3 /home/mirsella/wol_predator.py
+
+[Service]
+Type=oneshot
+ExecStart=
+ExecStart="/usr/bin/python3" "/home/mirsella/wol_predator.py"
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-retry.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/python3 /home/mirsella/wol_predator.py
+
+[Timer]
+OnCalendar=@1793346430
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-retry.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/python3 /home/mirsella/wol_predator.py
+
+[Service]
+Type=oneshot
+ExecStart=
+ExecStart="/usr/bin/python3" "/home/mirsella/wol_predator.py"
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-probe.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19
+
+[Timer]
+OnCalendar=@1793346490
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-probe.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19
+
+[Service]
+Type=oneshot
+TimeoutStartSec=20s
+ExecStart=
+ExecStart="/usr/bin/timeout" "15s" "/usr/bin/ssh-keyscan" "-T" "5" "-t" "ed25519" "192.168.1.19"
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-snapshot.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log
+
+[Timer]
+OnCalendar=@1793346580
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-snapshot.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log
+
+[Service]
+Type=oneshot
+ExecStart=
+ExecStart="/usr/bin/cp" "--no-clobber" "/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log" "/home/mirsella/dev/predator-pm-debug/.agents-local/r-serial-d1225-20261030-result.log"

@@ -1,0 +1,10 @@
+result=RTC_CORE_CALIBRATION_VERIFIED
+id=rtc-cal-core-r3-20261031
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+runtime=/nix/store/jzmh15h5pf69b7xcz6g61xm2584f4ybp-predator-pm-study-0.1.0/bin/predator-pm-instrumented
+completed_epoch=1793435719
+markers_after=56
+success_after=10
+real_s3=false
+physical_sleep_seconds=not-applicable
+full_pass=false

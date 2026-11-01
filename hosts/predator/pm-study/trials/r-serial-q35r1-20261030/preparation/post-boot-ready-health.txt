@@ -1,0 +1,252 @@
+2026-10-30T13:40:09+01:00
+BOOT=3c1873e4-b866-41e1-b411-702168ef90cf
+btime 1793363873
+135.55 908.39
+running
+fast: boot used authenticated slot 2; late-phase token 0 rejected
+root: boot used authenticated slot 2; late-phase token 0 rejected
+tank1: boot used authenticated slot 4; late-phase token 0 rejected
+tank2: boot used authenticated slot 4; late-phase token 0 rejected
+tank3: boot used authenticated slot 2; late-phase token 0 rejected
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+No jobs running.
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+/sys/power/pm_debug_messages=1
+/sys/power/pm_print_times=1
+/sys/power/mem_sleep=s2idle [deep]
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/module/kernel/parameters/initcall_debug=Y
+/sys/class/power_supply/ACAD/online=1
+/sys/class/graphics/fb0/blank=4
+crw------- 1 root root  10,   224 Oct 30 13:38 /dev/tpm0
+crw------- 1 root root 252, 65536 Oct 30 13:38 /dev/tpmrm0
+/sys/bus/acpi/drivers/tpm_crb
+netconsole             49152  0
+pm_stage               12288  0
+acer_wireless          16384  0
+configfs               65536  2 netconsole
+-- No entries --
+state:      closed
+Settings for enp3s0f1:
+	Supported ports: [ TP	 MII ]
+	Supported link modes:   10baseT/Half 10baseT/Full
+	                        100baseT/Half 100baseT/Full
+	                        1000baseT/Full
+	Supported pause frame use: Symmetric Receive-only
+	Supports auto-negotiation: Yes
+	Supported FEC modes: Not reported
+	Advertised link modes:  10baseT/Half 10baseT/Full
+	                        100baseT/Half 100baseT/Full
+	                        1000baseT/Full
+	Advertised pause frame use: Symmetric Receive-only
+	Advertised auto-negotiation: Yes
+	Advertised FEC modes: Not reported
+	Link partner advertised link modes:  10baseT/Half 10baseT/Full
+	                                     100baseT/Half 100baseT/Full
+	                                     1000baseT/Full
+	Link partner advertised pause frame use: Symmetric Receive-only
+	Link partner advertised auto-negotiation: Yes
+	Link partner advertised FEC modes: Not reported
+	Speed: 1000Mb/s
+	Duplex: Full
+	Auto-negotiation: on
+	master-slave cfg: preferred slave
+	master-slave status: slave
+	Port: Twisted Pair
+	PHYAD: 0
+	Transceiver: external
+	MDI-X: Unknown
+	Supports Wake-on: pumbg
+	Wake-on: g
+	Link detected: yes
+yes
+       Server: 82.66.203.162 (0.nixos.pool.ntp.org)
+Poll interval: 2min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 1
+    Reference: PPS
+    Precision: 1us (-24)
+Root distance: 22us (max: 5s)
+       Offset: +200us
+        Delay: 9.036ms
+       Jitter: 292us
+ Packet count: 3
+    Frequency: -2.342ppm
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+FragmentPath=/etc/systemd/system/predator-pm-clock-handoff.service
+Result=success
+ExecStart={ path=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study clock-handoff ; ignore_errors=no ; start_time=[Fri 2026-10-30 13:38:20 CET] ; stop_time=[Fri 2026-10-30 13:38:22 CET] ; pid=2256 ; code=exited ; status=0 }
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:04:10 with 0 errors on Sat Oct  3 14:19:29 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: resilvered 132K in 00:00:01 with 0 errors on Sun Oct  4 01:20:38 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+fast/ncdata /var/lib/nextcloud/data
+fast/data /srv/data/fast
+tank/backup /srv/backup
+tank/archive /srv/data/archive
+tank/backup/recovery /srv/backup/recovery
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+immich_redis Up About a minute (healthy)
+immich_ml Up About a minute (healthy)
+immich_postgres Up About a minute (healthy)
+immich_server Up About a minute (healthy)
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+active_maintenance=
+USB /sys/bus/usb/devices/1-2
+busnum=1
+devpath=2
+idVendor=05e3
+idProduct=0610
+manufacturer=GenesysLogic
+product=USB2.1 Hub
+speed=480
+power/control=auto
+power/runtime_status=suspended
+USB /sys/bus/usb/devices/1-2.1
+busnum=1
+devpath=2.1
+idVendor=05e3
+idProduct=0610
+manufacturer=GenesysLogic
+product=USB2.1 Hub
+speed=480
+power/control=auto
+power/runtime_status=suspended
+USB /sys/bus/usb/devices/1-7
+busnum=1
+devpath=7
+idVendor=04ca
+idProduct=3016
+speed=12
+power/control=auto
+power/runtime_status=suspended
+USB /sys/bus/usb/devices/1-9
+busnum=1
+devpath=9
+idVendor=0408
+idProduct=a060
+manufacturer=Generic
+product=HD WebCam
+serial=200901010001
+speed=480
+power/control=auto
+power/runtime_status=suspended
+USB /sys/bus/usb/devices/2-2
+busnum=2
+devpath=2
+idVendor=05e3
+idProduct=0626
+manufacturer=GenesysLogic
+product=USB3.1 Hub
+speed=5000
+power/control=auto
+power/runtime_status=active
+USB /sys/bus/usb/devices/2-2.1
+busnum=2
+devpath=2.1
+idVendor=05e3
+idProduct=0626
+manufacturer=GenesysLogic
+product=USB3.1 Hub
+speed=5000
+power/control=auto
+power/runtime_status=suspended
+USB /sys/bus/usb/devices/2-2.2
+busnum=2
+devpath=2.2
+idVendor=174c
+idProduct=1153
+manufacturer=Ugreen
+product=Ugreen Storage Device
+serial=26A1EE8339CB
+speed=5000
+power/control=on
+power/runtime_status=active
+USB /sys/bus/usb/devices/2-2.3
+busnum=2
+devpath=2.3
+idVendor=1058
+idProduct=2647
+manufacturer=Western Digital
+product=easystore 2647
+serial=5758443241343139434C4338
+speed=5000
+power/control=on
+power/runtime_status=active
+USB /sys/bus/usb/devices/2-2.4
+busnum=2
+devpath=2.4
+idVendor=174c
+idProduct=1153
+manufacturer=Ugreen
+product=Ugreen Storage Device
+serial=26A1EE8313F8
+speed=5000
+power/control=on
+power/runtime_status=active
+USB /sys/bus/usb/devices/usb1
+busnum=1
+devpath=0
+idVendor=1d6b
+idProduct=0002
+manufacturer=Linux 6.18.58 xhci-hcd
+product=xHCI Host Controller
+serial=0000:00:14.0
+speed=480
+power/control=auto
+power/runtime_status=suspended
+USB /sys/bus/usb/devices/usb2
+busnum=2
+devpath=0
+idVendor=1d6b
+idProduct=0003
+manufacturer=Linux 6.18.58 xhci-hcd
+product=xHCI Host Controller
+serial=0000:00:14.0
+speed=5000
+power/control=auto
+power/runtime_status=active

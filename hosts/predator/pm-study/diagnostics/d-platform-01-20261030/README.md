@@ -1,0 +1,11 @@
+# First platform checkpoint
+
+**DIAGNOSTIC_RETURN_VERIFIED**, completed **21:08:49 CET**, epoch1793390929. Due21:08:32 October30, epoch1793390912, levelplatform/ordinal4 on boot`f8eb6e44-85ae-4e56-bc00-587876699945`, btime1793381192, planned age9720seconds. Same frozen system/kernel/modules and gqgwph5fdwycdl019dl2gwg6x32mvhan diagnostic runtime. Completed predecessor d-devices-02-20261030 SHA256`1d9133c27ce95c04b84af2e76a932e564792a3729327180cd9c04afae956f126`.
+
+Manifest SHA256`a11f6c641261914f0217777e3b95320c941b02c2efa57d42498b663ed9a67397`, strict pm-test-2/serial0/trace0/recorderoff/deep/delay5/TPMinitialized/rawECnot-run/inhibitors/window18–23. Typeexec/runtime180/start-stop30/safe restore, nonpersistent accuracy1s/random0. Pinned checks/actual cron forecast/zero failed units and jobs passed. Only this phase is armed. Pi read-only probe21:10:32, frozen snapshot21:12:32, review event21:13:32; journal-wide bounded follower matches only the exact marker, with PID/reaping recorded. No reboot or WoL.
+
+This adds late/noirq device callbacks and platform preparation, not only firmware. Require one current cycle and cumulative counters4/0, exact boot/artifacts/full health/reader cleanup/normal modes and genuine completed record before the second platform phase. Unexpected actual S3 or an incomplete/unsafe operation stops the ladder. Two prior devices returns do not exclude intermittent failures.
+
+Review21:13 validated3340 exact-boot kernel records, four cumulative cycles and one current diagnostic cycle, no actual S3 resume/duration. Request/return, operation/cleanup and both readers verified; network readiness3107ms to original UUID/DNS. Counters4/0, normal modes/markers, no jobs/failed units, healthy NTP/storage/five mounts/apps. Original ordinary completion unchanged. Root completed SHA256`0c5f6a3ef042e00ba0b5464ba249f86625389120f8a77004fb8a65763cb0697a`.
+
+Pi probe succeeded21:10:32.938750, snapshot21:12:32.589028; full **2,550,582bytes**, SHA256`475bf97c6305114448e3ca92a0dee68892a8a011a73f5b3703b29e62410601ac`. Review marker21:13:32.572119 was received by the corrected journal-wide follower, PID103490, which was reaped at21:13:33. This review had no observer timeout. Evidence is in review-20261030-2113; preparation remains immutable.

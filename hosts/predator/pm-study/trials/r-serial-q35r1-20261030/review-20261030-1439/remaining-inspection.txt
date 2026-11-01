@@ -1,0 +1,515 @@
+2026-10-30T14:42:40+01:00
+2026-10-30T14:12:56.983699+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T14:12:57.439108+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T14:12:58.381263+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+-- No entries --
+/var/lib/predator-pm-study/r-serial-q35r1-20261030-before.txt 111457 2026-10-30 14:12:57.054082872 +0100
+1d0f9c53b2d0181239f77d801f5958f3dd4b5581d1f2d48366e640907ded3d8c  /var/lib/predator-pm-study/r-serial-q35r1-20261030-before.txt
+/var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf 648 2026-10-30 13:41:04.733904940 +0100
+3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e  /var/lib/predator-pm-study/r-serial-q35r1-20261030-plan.conf
+/var/lib/predator-pm-study/r-serial-q35r1-20261030-recovery.txt 1787 2026-10-30 14:12:57.272084604 +0100
+1a42862af572fdbfa6d0461253b1146f493eec08ed3eed91d0ad587289aa74cf  /var/lib/predator-pm-study/r-serial-q35r1-20261030-recovery.txt
+/var/lib/predator-pm-study/r-serial-q35r1-20261030-requested.txt 648 2026-10-30 14:12:53.767056695 +0100
+3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e  /var/lib/predator-pm-study/r-serial-q35r1-20261030-requested.txt
+/var/lib/predator-pm-study/r-serial-q35r1-20261030-result.txt 185 2026-10-30 14:12:57.273084611 +0100
+b40541f57713269918bb2514520b016bfc8ef1f71e838c3044e18f0088b9798e  /var/lib/predator-pm-study/r-serial-q35r1-20261030-result.txt
+/var/lib/predator-pm-study/last-completed.txt 91 2026-10-18 21:16:05.560077419 +0200
+280573317fc03a7338ca233c367593ff2fac0163eb8cfe70fabc375f4648fd08  /var/lib/predator-pm-study/last-completed.txt
+ABSENT /var/lib/predator-pm-study/r-serial-q35r1-20261030-return.txt
+ABSENT /var/lib/predator-pm-study/r-serial-q35r1-20261030-after-kernel.txt
+ABSENT /var/lib/predator-pm-study/r-serial-q35r1-20261030-after-service.txt
+ABSENT /var/lib/predator-pm-study/r-serial-q35r1-20261030-verification-kernel.txt
+ABSENT /var/lib/predator-pm-study/r-serial-q35r1-20261030-verification.txt
+ABSENT /var/lib/predator-pm-study/r-serial-q35r1-20261030-kernel-completed.txt
+ABSENT /var/lib/predator-pm-study/r-serial-q35r1-20261030-completed.txt
+boot=5271820b-0d2c-4232-a00e-ebd0bf5c34d2
+successes=1
+markers=0
+completed_epoch=1792350965
+yes
+       Server: 82.66.203.162 (0.nixos.pool.ntp.org)
+Poll interval: 34min 8s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 1
+    Reference: PPS
+    Precision: 1us (-24)
+Root distance: 22us (max: 5s)
+       Offset: +3.197ms
+        Delay: 10.059ms
+       Jitter: 1.423ms
+ Packet count: 7
+    Frequency: +2.399ppm
+2026-10-30T13:38:14.346310+01:00 predator systemd[1]: Starting Network Time Synchronization...
+2026-10-30T13:38:14.514930+01:00 predator systemd[1]: Started Network Time Synchronization.
+2026-10-30T13:38:21.597267+01:00 predator systemd[1]: Stopping Network Time Synchronization...
+2026-10-30T13:38:21.609072+01:00 predator systemd[1]: systemd-timesyncd.service: Deactivated successfully.
+2026-10-30T13:38:21.609526+01:00 predator systemd[1]: Stopped Network Time Synchronization.
+2026-10-30T13:38:21.614903+01:00 predator systemd[1]: Starting Network Time Synchronization...
+2026-10-30T13:38:21.725345+01:00 predator systemd[1]: Started Network Time Synchronization.
+2026-10-30T13:38:21.755576+01:00 predator systemd-timesyncd[2612]: Contacted time server 82.66.203.162:123 (0.nixos.pool.ntp.org).
+2026-10-30T13:38:21.755679+01:00 predator systemd-timesyncd[2612]: Initial clock synchronization to Fri 2026-10-30 13:38:21.647177 CET.
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:04:10 with 0 errors on Sat Oct  3 14:19:29 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: resilvered 132K in 00:00:01 with 0 errors on Sun Oct  4 01:20:38 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+fast/ncdata /var/lib/nextcloud/data
+fast/data /srv/data/fast
+tank/backup /srv/backup
+tank/archive /srv/data/archive
+tank/backup/recovery /srv/backup/recovery
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+active
+immich_redis Up About an hour (healthy)
+immich_ml Up About an hour (healthy)
+immich_postgres Up About an hour (healthy)
+immich_server Up About an hour (healthy)
+    PID    PPID ELAPSED COMMAND
+      1       0    3887 /run/current-system/systemd/lib/systemd/systemd --switched-root --system --deserialize=28
+      2       0    3887 [kthreadd]
+      3       2    3887 [pool_workqueue_release]
+      4       2    3887 [kworker/R-rcu_gp]
+      5       2    3887 [kworker/R-sync_wq]
+      6       2    3887 [kworker/R-kvfree_rcu_reclaim]
+      7       2    3887 [kworker/R-slub_flushwq]
+      8       2    3887 [kworker/R-netns]
+     10       2    3887 [kworker/0:0H-events_highpri]
+     12       2    3887 [kworker/u32:0-kcryptd-254:0-1]
+     13       2    3887 [kworker/R-mm_percpu_wq]
+     14       2    3887 [kworker/u32:1-kcryptd-254:0-1]
+     15       2    3887 [ksoftirqd/0]
+     16       2    3887 [rcu_preempt]
+     17       2    3887 [rcu_exp_par_gp_kthread_worker/0]
+     18       2    3887 [rcu_exp_gp_kthread_worker]
+     19       2    3887 [migration/0]
+     20       2    3887 [idle_inject/0]
+     21       2    3887 [cpuhp/0]
+     22       2    3887 [cpuhp/1]
+     23       2    3887 [idle_inject/1]
+     24       2    3887 [migration/1]
+     25       2    3887 [ksoftirqd/1]
+     27       2    3887 [kworker/1:0H-events_highpri]
+     28       2    3887 [cpuhp/2]
+     29       2    3887 [idle_inject/2]
+     30       2    3887 [migration/2]
+     31       2    3887 [ksoftirqd/2]
+     33       2    3887 [kworker/2:0H-events_highpri]
+     34       2    3887 [cpuhp/3]
+     35       2    3887 [idle_inject/3]
+     36       2    3887 [migration/3]
+     37       2    3887 [ksoftirqd/3]
+     39       2    3887 [kworker/3:0H-events_highpri]
+     40       2    3887 [cpuhp/4]
+     41       2    3887 [idle_inject/4]
+     42       2    3887 [migration/4]
+     43       2    3887 [ksoftirqd/4]
+     45       2    3887 [kworker/4:0H-events_highpri]
+     46       2    3887 [cpuhp/5]
+     47       2    3887 [idle_inject/5]
+     48       2    3887 [migration/5]
+     49       2    3887 [ksoftirqd/5]
+     51       2    3887 [kworker/5:0H-events_highpri]
+     52       2    3887 [cpuhp/6]
+     53       2    3887 [idle_inject/6]
+     54       2    3887 [migration/6]
+     55       2    3887 [ksoftirqd/6]
+     57       2    3887 [kworker/6:0H-events_highpri]
+     58       2    3887 [cpuhp/7]
+     59       2    3887 [idle_inject/7]
+     60       2    3887 [migration/7]
+     61       2    3887 [ksoftirqd/7]
+     63       2    3887 [kworker/7:0H-events_highpri]
+     64       2    3887 [kdevtmpfs]
+     65       2    3887 [kworker/R-inet_frag_wq]
+     66       2    3887 [rcu_tasks_kthread]
+     67       2    3887 [rcu_tasks_rude_kthread]
+     68       2    3887 [rcu_tasks_trace_kthread]
+     69       2    3887 [kauditd]
+     70       2    3887 [khungtaskd]
+     71       2    3887 [oom_reaper]
+     72       2    3887 [kworker/R-writeback]
+     73       2    3887 [kworker/u32:2-kcryptd-254:0-1]
+     74       2    3887 [kcompactd0]
+     75       2    3887 [ksmd]
+     76       2    3887 [khugepaged]
+     77       2    3887 [kworker/R-kblockd]
+     78       2    3887 [kworker/R-blkcg_punt_bio]
+     79       2    3887 [kworker/R-kintegrityd]
+     81       2    3887 [irq/9-acpi]
+     85       2    3887 [kworker/R-tpm_dev_wq]
+     86       2    3887 [kworker/R-devfreq_wq]
+     89       2    3887 [kworker/R-quota_events_unbound]
+     90       2    3887 [kworker/4:1H-kblockd]
+     91       2    3887 [kswapd0]
+     92       2    3887 [kworker/R-kthrotld]
+     93       2    3887 [hwrng]
+     95       2    3887 [kworker/R-mld]
+     96       2    3887 [kworker/R-ipv6_addrconf]
+     97       2    3887 [kworker/6:1H-kblockd]
+     98       2    3887 [kworker/R-kstrp]
+     99       2    3887 [kworker/u33:0-hci0]
+    100       2    3887 [kworker/u32:3-kcryptd-254:0-1]
+    102       2    3887 [kworker/0:1H-kblockd]
+    103       2    3887 [kworker/2:1H-kblockd]
+    104       2    3887 [kworker/1:1H-kblockd]
+    106       2    3887 [kworker/3:1H-kblockd]
+    122       2    3886 [kworker/5:1H-kblockd]
+    127       2    3886 [kworker/7:1H-kblockd]
+    214       2    3886 [kworker/R-ata_sff]
+    217       2    3886 [scsi_eh_0]
+    218       2    3886 [kworker/R-scsi_tmf_0]
+    220       2    3886 [scsi_eh_1]
+    221       2    3886 [kworker/R-scsi_tmf_1]
+    222       2    3886 [scsi_eh_2]
+    223       2    3886 [kworker/R-scsi_tmf_2]
+    224       2    3886 [kworker/u32:4-kcryptd-254:0-1]
+    225       2    3886 [kworker/u32:5-kcryptd-254:0-1]
+    227       2    3886 [kworker/u32:7-kcryptd-254:0-1]
+    239       2    3883 [kworker/R-kdmflush/254:0]
+    240       2    3883 [kworker/R-kcryptd_io-254:0-1]
+    241       2    3883 [kworker/R-kcryptd-254:0-1]
+    242       2    3883 [dmcrypt_write/254:0]
+    252       2    3883 [jbd2/dm-0-8]
+    253       2    3883 [kworker/R-ext4-rsv-conversion]
+    437       2    3878 [psimon]
+    456       1    3878 /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-journald
+    470       2    3878 [kworker/R-tls-strp]
+    471       2    3878 [spl_system_task]
+    472       2    3878 [spl_delay_taskq]
+    473       2    3878 [spl_dynamic_tas]
+    474       2    3878 [spl_kmem_cache]
+    502       1    3878 /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-udevd
+    508       2    3878 [psimon]
+    573       2    3877 [kworker/R-acpi_thermal_pm]
+    576       2    3877 [zvol_tq-0]
+    577       2    3877 [zvol_tq-1]
+    581       1    3877 /run/current-system/sw/bin/mount.envfs none /usr/bin -o rw,bind-mount=/bin,fallback-path=/nix/store/y1nbzpk72qqbx4g12129civs3n4n6m05-fallback-path
+    584       2    3877 [arc_prune]
+    585       2    3877 [arc_evict]
+    586       2    3877 [arc_evict]
+    587       2    3877 [arc_evict]
+    588       2    3877 [arc_flush]
+    589       2    3877 [arc_evict]
+    590       2    3877 [arc_reap]
+    591       2    3877 [dbu_evict]
+    592       2    3877 [dbuf_evict]
+    596       2    3877 [watchdogd]
+    598       2    3877 [irq/134-mei_me]
+    599       2    3877 [z_vdev_file]
+    600       2    3877 [irq/135-SYNA7DB5:01]
+    601       2    3877 [scsi_eh_3]
+    602       2    3877 [kworker/R-scsi_tmf_3]
+    603       2    3877 [usb-storage]
+    607       2    3877 [l2arc_feed]
+    610       2    3877 [kworker/R-cfg80211]
+    614       2    3877 [kworker/R-uas]
+    618       2    3877 [scsi_eh_4]
+    619       2    3877 [kworker/R-scsi_tmf_4]
+    620       2    3877 [scsi_eh_5]
+    621       2    3877 [kworker/R-scsi_tmf_5]
+    633       1    3877 /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-oomd
+    637       2    3876 [kworker/R-ttm]
+    649       2    3876 [card1-crtc0]
+    650       2    3876 [card1-crtc1]
+    651       2    3876 [card1-crtc2]
+    652       2    3876 [kworker/u33:1-hci0]
+    673       2    3876 [kworker/R-ath10k_wq]
+    674       2    3876 [kworker/R-ath10k_aux_wq]
+    675       2    3876 [kworker/R-ath10k_tx_complete_wq]
+    738       2    3876 [kworker/u32:8-kcryptd-254:0-1]
+    783       2    3876 [kworker/R-kdmflush/254:1]
+    784       2    3876 [kworker/R-kcryptd_io-254:1-2]
+    785       2    3876 [kworker/R-kcryptd-254:1-2]
+    786       2    3876 [dmcrypt_write/254:1]
+    996       2    3875 [z_null_iss]
+    997       2    3875 [z_null_int]
+    998       2    3875 [z_rd_iss]
+    999       2    3875 [z_rd_int_0]
+   1000       2    3875 [z_rd_int_1]
+   1001       2    3875 [z_wr_iss]
+   1002       2    3875 [z_wr_int_0]
+   1003       2    3875 [z_wr_int_1]
+   1004       2    3875 [z_fr_iss_0]
+   1005       2    3875 [z_fr_iss_1]
+   1006       2    3875 [z_fr_int]
+   1007       2    3875 [z_cl_iss]
+   1008       2    3875 [z_cl_int]
+   1009       2    3875 [z_flush_iss]
+   1010       2    3875 [z_flush_int]
+   1011       2    3875 [z_trim_iss]
+   1012       2    3875 [z_trim_int]
+   1013       2    3875 [z_zvol]
+   1014       2    3875 [z_metaslab]
+   1015       2    3875 [z_prefetch]
+   1016       2    3875 [z_upgrade]
+   1019       2    3875 [dp_sync_taskq]
+   1020       2    3875 [dp_sync_taskq]
+   1021       2    3875 [dp_zil_clean_ta]
+   1022       2    3875 [dp_zil_clean_ta]
+   1023       2    3875 [dp_zil_clean_ta]
+   1024       2    3875 [dp_zil_clean_ta]
+   1025       2    3875 [dp_zil_clean_ta]
+   1026       2    3875 [dp_zil_clean_ta]
+   1027       2    3875 [dp_zil_clean_ta]
+   1028       2    3875 [dp_zil_clean_ta]
+   1029       2    3875 [z_zrele]
+   1030       2    3875 [z_unlinked_drai]
+   1049       2    3875 [txg_quiesce]
+   1050       2    3875 [txg_sync]
+   1051       2    3875 [mmp]
+   1052       2    3875 [z_rd_iss]
+   1054       2    3875 [z_wr_iss]
+   1055       2    3875 [z_wr_iss]
+   1060       2    3875 [z_wr_iss]
+   1061       2    3875 [z_wr_iss]
+   1062       2    3875 [raidz_expand]
+   1063       2    3875 [z_indirect_cond]
+   1064       2    3875 [z_livelist_dest]
+   1065       2    3875 [z_livelist_cond]
+   1066       2    3875 [z_checkpoint_di]
+   1068       2    3875 [z_metaslab]
+   1070       2    3875 [z_metaslab]
+   1085       2    3872 [kworker/R-kdmflush/254:2]
+   1086       2    3872 [kworker/R-kcryptd_io-254:2-3]
+   1087       2    3872 [kworker/R-kcryptd-254:2-3]
+   1088       2    3872 [dmcrypt_write/254:2]
+   1094       2    3872 [kworker/R-kdmflush/254:3]
+   1095       2    3872 [kworker/R-kcryptd_io-254:3-4]
+   1096       2    3872 [kworker/R-kcryptd-254:3-4]
+   1097       2    3872 [dmcrypt_write/254:3]
+   1109       2    3872 [kworker/R-kdmflush/254:4]
+   1110       2    3872 [kworker/R-kcryptd_io-254:4-5]
+   1111       2    3872 [kworker/R-kcryptd-254:4-5]
+   1112       2    3872 [dmcrypt_write/254:4]
+   1304       2    3870 [z_null_iss]
+   1305       2    3870 [z_null_int]
+   1306       2    3870 [z_rd_iss]
+   1307       2    3870 [z_rd_int_0]
+   1308       2    3870 [z_rd_int_1]
+   1309       2    3870 [z_wr_iss]
+   1310       2    3870 [z_wr_int_0]
+   1311       2    3870 [z_wr_int_1]
+   1312       2    3870 [z_fr_iss_0]
+   1313       2    3870 [z_fr_iss_1]
+   1314       2    3870 [z_fr_int]
+   1315       2    3870 [z_cl_iss]
+   1316       2    3870 [z_cl_int]
+   1317       2    3870 [z_flush_iss]
+   1318       2    3870 [z_flush_int]
+   1319       2    3870 [z_trim_iss]
+   1320       2    3870 [z_trim_int]
+   1321       2    3870 [z_zvol]
+   1322       2    3870 [z_metaslab]
+   1323       2    3870 [z_prefetch]
+   1324       2    3870 [z_upgrade]
+   1333       2    3870 [z_rd_int_0]
+   1334       2    3870 [z_rd_int_1]
+   1335       2    3870 [z_rd_int_1]
+   1336       2    3870 [dp_sync_taskq]
+   1337       2    3870 [dp_sync_taskq]
+   1338       2    3870 [dp_zil_clean_ta]
+   1339       2    3870 [dp_zil_clean_ta]
+   1340       2    3870 [dp_zil_clean_ta]
+   1341       2    3870 [dp_zil_clean_ta]
+   1342       2    3870 [dp_zil_clean_ta]
+   1343       2    3870 [dp_zil_clean_ta]
+   1344       2    3870 [dp_zil_clean_ta]
+   1345       2    3870 [dp_zil_clean_ta]
+   1346       2    3870 [z_zrele]
+   1347       2    3870 [z_unlinked_drai]
+   1369       2    3870 [z_wr_iss]
+   1370       2    3870 [z_wr_int_1]
+   1384       2    3869 [z_rd_int_0]
+   1397       2    3869 [txg_quiesce]
+   1398       2    3869 [txg_sync]
+   1399       2    3869 [mmp]
+   1401       2    3869 [z_wr_iss]
+   1402       2    3869 [z_wr_iss]
+   1403       2    3869 [z_wr_iss]
+   1405       2    3869 [z_wr_int_1]
+   1406       2    3869 [z_wr_int_0]
+   1407       2    3869 [z_wr_iss]
+   1408       2    3869 [raidz_expand]
+   1409       2    3869 [z_indirect_cond]
+   1410       2    3869 [z_livelist_dest]
+   1411       2    3869 [z_livelist_cond]
+   1412       2    3869 [z_checkpoint_di]
+   1415       2    3868 [z_metaslab]
+   1416       2    3868 [z_metaslab]
+   1417       2    3868 [z_metaslab]
+   1427       2    3868 [spl_system_task]
+   1480       1    3866 /nix/store/j4kphp6bqs9vq8czsrv89n0rmh91g2qw-dbus-broker-37/bin/dbus-broker-launch --scope system --audit
+   1483    1480    3866 dbus-broker --log 11 --controller 10 --machine-id c0f5916edc2c45d484796af366ec6e88 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+   1485       1    3866 /nix/store/qbl3r2cr4rbijyscyf2cwyv42jk0p111-acpid-2.0.34/bin/acpid --foreground --netlink --confdir /nix/store/r2x2qgnb7sw3qigyhav3c34gybsi9xa7-acpi-events
+   1527       1    3866 /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-logind
+   1540       1    3866 /nix/store/lr2c5f2y7q62pzfrkclgsy5yj31hsn5l-nodejs-22.23.4/bin/node /nix/store/j1jhhaxn2sjdwnhsr0xpswfychzampgd-camofox-browser-1.18.1/lib/camofox-browser/server.js
+   1545       1    3866 /nix/store/z4xf4pp7sjgk44y63br5pq3ng4x23b9x-host-tools-0.1.0/bin/host-tools browser-control --config /nix/store/4v9zyyzxmnvg1q1h01p2901gp492zpxv-hermes-browser-control.json
+   1636       1    3866 /nix/store/55w48cr7iihfw70692fs95pf43jkc080-networkmanager-1.58.1/sbin/NetworkManager --no-daemon
+   1651       1    3866 wpa_supplicant -s -u -Dnl80211,wext -c /etc/wpa_supplicant/imperative.conf
+   1673       1    3866 /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd --user
+   1709    1673    3866 (sd-pam)
+   1734       1    3866 nix-daemon --daemon
+   1783       1    3865 /nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14 /nix/store/rh5vpba7v90dg9bq81wyv8b4l7nddkp5-fail2ban-1.1.1/bin/.fail2ban-server-wrapped -xf start
+   1800       1    3865 sshd: /nix/store/gksybc3b64irpkf84k30qphb44yjwqiw-openssh-10.6p1/bin/sshd -D -f /etc/ssh/sshd_config [listener] 0 of 10-100 startups
+   1824    1673    3865 /nix/store/8s2p4wcwda0bfbh8d5cx3akr047n5ipy-atuin-18.24.2/bin/atuin daemon start
+   1828       1    3865 /nix/store/5mrbrhpw14amk3mqmizf285g1gy0v1sw-gnome-keyring-50.0/bin/gnome-keyring-daemon --foreground --unlock --components=secrets
+   1831    1673    3865 /nix/store/7h6n70jh2s0sfjgwpm1djn57b7i6q76z-lspmux-0.3.0/bin/lspmux server
+   1835       1    3865 /nix/store/f85my1360gpf4xjilp0rljcf9q5vv6km-redis-8.10.2/bin/redis-server unixsocket:/run/redis-nextcloud/redis.sock
+   1836    1673    3865 /home/mirsella/.local/bin/opencode serve --service --hostname 127.0.0.1 --port 14096
+   1840    1673    3865 /home/mirsella/.t3/runtime/versions/0.0.46-nightly.20261013.3053/t3 __service-launcher
+   1844    1673    3865 /nix/store/j4kphp6bqs9vq8czsrv89n0rmh91g2qw-dbus-broker-37/bin/dbus-broker-launch --scope user
+   1884       1    3865 /nix/store/yzkzb48wf1jj4b1hwg56ichrj9fqwj7a-postgresql-and-plugins-17.11/bin/postgres
+   1906    1844    3865 dbus-broker --log 11 --controller 10 --machine-id c0f5916edc2c45d484796af366ec6e88 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+   1947       1    3865 nginx: master process /nix/store/bpcwls9sj5ba12i8p5j3wmsm2hvzyqcw-nginx-1.30.6/bin/nginx -c /nix/store/yc7svlh7fq5x2h1wi0gcgazy79idcmvs-nginx.conf
+   1958    1884    3864 postgres: checkpointer 
+   1959    1884    3864 postgres: background writer 
+   1962    1884    3864 postgres: walwriter 
+   1963    1884    3864 postgres: autovacuum launcher 
+   1964    1884    3864 postgres: logical replication launcher 
+   1972    1947    3864 nginx: worker process
+   1973    1947    3864 nginx: worker process
+   1974    1947    3864 nginx: worker process
+   1975    1947    3864 nginx: worker process
+   1977    1947    3864 nginx: worker process
+   1978    1947    3864 nginx: worker process
+   1979    1947    3864 nginx: worker process
+   1980    1947    3864 nginx: worker process
+   2079       2    3863 [z_wr_iss]
+   2080       2    3863 [z_wr_int_1]
+   2081       2    3863 [z_wr_int_0]
+   2095    1540    3862 sh /nix/store/j1jhhaxn2sjdwnhsr0xpswfychzampgd-camofox-browser-1.18.1/lib/camofox-browser/plugins/vnc/vnc-watcher.sh
+   2100    2095    3862 /nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14 /nix/store/dc2s38gh1244fqdb4c8ricrmx503mz6a-python3.14-websockify-0.13.0/bin/.websockify-wrapped --web /nix/store/7wchdshzfq7l327l7d2a9jy04lprb8a8-novnc-1.7.0/share/webapps/novnc 127.0.0.1:6080 127.0.0.1:5900
+   2111    1840    3862 /home/mirsella/.t3/runtime/versions/0.1.1-nightly.20261018.3285/t3 serve
+   2206       1    3861 /nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/bin/agetty --login-program /nix/store/82qxn7mh0g7wdfg7a82ndpnsai03bk5y-shadow-4.20.3/bin/login --issue-file /etc/issue:/etc/issue.d:/run/issue:/run/issue.d --noclear --keep-baud tty1 115200,38400,9600 linux
+   2243    2111    3860 /home/mirsella/.t3/runtime/versions/0.1.1-nightly.20261018.3285/resource-monitor/linux-x64/t3-resource-monitor
+   2246       1    3860 /nix/store/g04984yzjbzahc08hm6nyx1h3h0byd20-beszel-0.21.0/bin/beszel-agent
+   2248       1    3860 /nix/store/alr44iwcy6yl3lq2nbf3ixs9whslandq-caddy-2.11.7/bin/caddy run --config /etc/caddy/caddy_config --adapter caddyfile
+   2257       1    3860 /nix/store/9kvzxqfi7n33m922vhdd6qsidpgzm48i-sleev-1.8.8/libexec/sleev/sleeve-gateway.bin --config /home/mirsella/.config/sleev/gateway.json --db-path /home/mirsella/.local/share/sleev/sleeve.sqlite --host 127.0.0.1 --port 17321
+   2259       1    3860 /nix/store/4pymry73phykljdfalvwfqhk872c6s0l-smartmontools-7.5/sbin/smartd --no-fork --configfile=/nix/store/sdnays84xjb5sv5g7yw457rm5sbjna7w-smartd.conf
+   2263       1    3860 /nix/store/8c0s973jlszp1a46s46p7m2f767lvsf6-zfs-user-2.4.4/sbin/zed -F
+   2343       1    3860 /nix/store/nwpda76gh7ryhaw1y7y03nns59fdbjx0-hermes-agent-env/bin/python3.14 /nix/store/nwpda76gh7ryhaw1y7y03nns59fdbjx0-hermes-agent-env/bin/hermes gateway
+   2378       1    3860 /nix/store/nwpda76gh7ryhaw1y7y03nns59fdbjx0-hermes-agent-env/bin/python3.14 /nix/store/nwpda76gh7ryhaw1y7y03nns59fdbjx0-hermes-agent-env/bin/hermes dashboard --host 127.0.0.1 --port 9119 --no-open --skip-build
+   2526       1    3860 /nix/store/yw0bbhjxlcz5yzmwfi3pa2m8q96s5yav-nsncd-1.5.3/bin/nsncd
+   2612       1    3859 /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-timesyncd
+   2704       1    3859 /nix/store/g04984yzjbzahc08hm6nyx1h3h0byd20-beszel-0.21.0/bin/beszel-hub serve --http=127.0.0.1:8090
+   2865       1    3858 /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/libexec/podman/aardvark-dns --config /run/containers/networks/aardvark-dns -p 53 run
+   2893       1    3858 /nix/store/nx0r8yw512v7y9f4p13va6rc9v8awr4b-podman-helper-binary-wrapper/bin/conmon --api-version 1 -c 7c287e39488ad761ff84cddc6bb9a8f859d0cdc807247481e7b9d79d9901ce38 -u 7c287e39488ad761ff84cddc6bb9a8f859d0cdc807247481e7b9d79d9901ce38 -r /nix/store/nx0r8yw512v7y9f4p13va6rc9v8awr4b-podman-helper-binary-wrapper/bin/crun -b /var/lib/containers/storage/overlay-containers/7c287e39488ad761ff84cddc6bb9a8f859d0cdc807247481e7b9d79d9901ce38/userdata -p /run/containers/storage/overlay-containers/7c287e39488ad761ff84cddc6bb9a8f859d0cdc807247481e7b9d79d9901ce38/userdata/pidfile -n immich_postgres --exit-dir /run/libpod/exits --persist-dir /run/libpod/persist/7c287e39488ad761ff84cddc6bb9a8f859d0cdc807247481e7b9d79d9901ce38 --full-attach -s -l journald --log-level warning --syslog --runtime-arg --log-format=json --runtime-arg --log --runtime-arg=/run/containers/storage/overlay-containers/7c287e39488ad761ff84cddc6bb9a8f859d0cdc807247481e7b9d79d9901ce38/userdata/oci-log --conmon-pidfile /run/containers/storage/overlay-containers/7c287e39488ad761ff84cddc6bb9a8f859d0cdc807247481e7b9d79d9901ce38/userdata/conmon.pid --exit-command /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/.podman-wrapped --exit-command-arg --root --exit-command-arg /var/lib/containers/storage --exit-command-arg --runroot --exit-command-arg /run/containers/storage --exit-command-arg --log-level --exit-command-arg warning --exit-command-arg --cgroup-manager --exit-command-arg systemd --exit-command-arg --tmpdir --exit-command-arg /run/libpod --exit-command-arg --network-config-dir --exit-command-arg  --exit-command-arg --network-backend --exit-command-arg netavark --exit-command-arg --volumepath --exit-command-arg /var/lib/containers/storage/volumes --exit-command-arg --db-backend --exit-command-arg sqlite --exit-command-arg --transient-store=false --exit-command-arg --hooks-dir --exit-command-arg /usr/share/containers/oci/hooks.d --exit-command-arg --runtime --exit-command-arg crun --exit-command-arg --storage-driver --exit-command-arg overlay --exit-command-arg --events-backend --exit-command-arg journald --exit-command-arg container --exit-command-arg cleanup --exit-command-arg --stopped-only --exit-command-arg --rm --exit-command-arg 7c287e39488ad761ff84cddc6bb9a8f859d0cdc807247481e7b9d79d9901ce38
+   2898    2893    3858 postgres -c config_file=/etc/postgresql/postgresql.conf
+   2957       1    3858 /nix/store/nx0r8yw512v7y9f4p13va6rc9v8awr4b-podman-helper-binary-wrapper/bin/conmon --api-version 1 -c 03e8559624c15dc5a769ad9fd069b74f63a83d37a06c938c7f1a397b8ec4c102 -u 03e8559624c15dc5a769ad9fd069b74f63a83d37a06c938c7f1a397b8ec4c102 -r /nix/store/nx0r8yw512v7y9f4p13va6rc9v8awr4b-podman-helper-binary-wrapper/bin/crun -b /var/lib/containers/storage/overlay-containers/03e8559624c15dc5a769ad9fd069b74f63a83d37a06c938c7f1a397b8ec4c102/userdata -p /run/containers/storage/overlay-containers/03e8559624c15dc5a769ad9fd069b74f63a83d37a06c938c7f1a397b8ec4c102/userdata/pidfile -n immich_ml --exit-dir /run/libpod/exits --persist-dir /run/libpod/persist/03e8559624c15dc5a769ad9fd069b74f63a83d37a06c938c7f1a397b8ec4c102 --full-attach -s -l journald --log-level warning --syslog --runtime-arg --log-format=json --runtime-arg --log --runtime-arg=/run/containers/storage/overlay-containers/03e8559624c15dc5a769ad9fd069b74f63a83d37a06c938c7f1a397b8ec4c102/userdata/oci-log --conmon-pidfile /run/containers/storage/overlay-containers/03e8559624c15dc5a769ad9fd069b74f63a83d37a06c938c7f1a397b8ec4c102/userdata/conmon.pid --exit-command /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/.podman-wrapped --exit-command-arg --root --exit-command-arg /var/lib/containers/storage --exit-command-arg --runroot --exit-command-arg /run/containers/storage --exit-command-arg --log-level --exit-command-arg warning --exit-command-arg --cgroup-manager --exit-command-arg systemd --exit-command-arg --tmpdir --exit-command-arg /run/libpod --exit-command-arg --network-config-dir --exit-command-arg  --exit-command-arg --network-backend --exit-command-arg netavark --exit-command-arg --volumepath --exit-command-arg /var/lib/containers/storage/volumes --exit-command-arg --db-backend --exit-command-arg sqlite --exit-command-arg --transient-store=false --exit-command-arg --hooks-dir --exit-command-arg /usr/share/containers/oci/hooks.d --exit-command-arg --runtime --exit-command-arg crun --exit-command-arg --storage-driver --exit-command-arg overlay --exit-command-arg --events-backend --exit-command-arg journald --exit-command-arg container --exit-command-arg cleanup --exit-command-arg --stopped-only --exit-command-arg --rm --exit-command-arg 03e8559624c15dc5a769ad9fd069b74f63a83d37a06c938c7f1a397b8ec4c102
+   2961    2957    3858 tini -- python -m immich_ml
+   2965       1    3858 /nix/store/nx0r8yw512v7y9f4p13va6rc9v8awr4b-podman-helper-binary-wrapper/bin/conmon --api-version 1 -c 3a27a14c7066f4d07b80e91c8a538709f07dd74beaae75a0377bf87b82298071 -u 3a27a14c7066f4d07b80e91c8a538709f07dd74beaae75a0377bf87b82298071 -r /nix/store/nx0r8yw512v7y9f4p13va6rc9v8awr4b-podman-helper-binary-wrapper/bin/crun -b /var/lib/containers/storage/overlay-containers/3a27a14c7066f4d07b80e91c8a538709f07dd74beaae75a0377bf87b82298071/userdata -p /run/containers/storage/overlay-containers/3a27a14c7066f4d07b80e91c8a538709f07dd74beaae75a0377bf87b82298071/userdata/pidfile -n immich_redis --exit-dir /run/libpod/exits --persist-dir /run/libpod/persist/3a27a14c7066f4d07b80e91c8a538709f07dd74beaae75a0377bf87b82298071 --full-attach -s -l journald --log-level warning --syslog --runtime-arg --log-format=json --runtime-arg --log --runtime-arg=/run/containers/storage/overlay-containers/3a27a14c7066f4d07b80e91c8a538709f07dd74beaae75a0377bf87b82298071/userdata/oci-log --conmon-pidfile /run/containers/storage/overlay-containers/3a27a14c7066f4d07b80e91c8a538709f07dd74beaae75a0377bf87b82298071/userdata/conmon.pid --exit-command /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/.podman-wrapped --exit-command-arg --root --exit-command-arg /var/lib/containers/storage --exit-command-arg --runroot --exit-command-arg /run/containers/storage --exit-command-arg --log-level --exit-command-arg warning --exit-command-arg --cgroup-manager --exit-command-arg systemd --exit-command-arg --tmpdir --exit-command-arg /run/libpod --exit-command-arg --network-config-dir --exit-command-arg  --exit-command-arg --network-backend --exit-command-arg netavark --exit-command-arg --volumepath --exit-command-arg /var/lib/containers/storage/volumes --exit-command-arg --db-backend --exit-command-arg sqlite --exit-command-arg --transient-store=false --exit-command-arg --hooks-dir --exit-command-arg /usr/share/containers/oci/hooks.d --exit-command-arg --runtime --exit-command-arg crun --exit-command-arg --storage-driver --exit-command-arg overlay --exit-command-arg --events-backend --exit-command-arg journald --exit-command-arg container --exit-command-arg cleanup --exit-command-arg --stopped-only --exit-command-arg --rm --exit-command-arg 3a27a14c7066f4d07b80e91c8a538709f07dd74beaae75a0377bf87b82298071
+   2967    2965    3858 tini -- docker-entrypoint.sh valkey-server
+   2996    2967    3858 valkey-server *:6379
+   3031    2961    3858 python -m immich_ml
+   3086    2898    3857 postgres: vectors 
+   3089    2898    3857 postgres: checkpointer 
+   3090    2898    3857 postgres: background writer 
+   3091    2898    3857 postgres: walwriter 
+   3092    2898    3857 postgres: autovacuum launcher 
+   3093    2898    3857 postgres: stats collector 
+   3094    2898    3857 postgres: logical replication launcher 
+   3160    3031    3856 python -m gunicorn immich_ml.main:app -k immich_ml.config.CustomUvicornWorker -c /usr/src/immich_ml/gunicorn_conf.py -b [::]:3003 -w 1 -t 300 --log-config-json /usr/src/immich_ml/log_conf.json --keep-alive 2 --graceful-timeout 10 --no-control-socket
+   3222    3160    3854 python -m gunicorn immich_ml.main:app -k immich_ml.config.CustomUvicornWorker -c /usr/src/immich_ml/gunicorn_conf.py -b [::]:3003 -w 1 -t 300 --log-config-json /usr/src/immich_ml/log_conf.json --keep-alive 2 --graceful-timeout 10 --no-control-socket
+   3225       1    3854 php-fpm: master process (/nix/store/nrfcj4ynb77mj8wl4kbxmyq3s2kyhdzk-phpfpm-nextcloud.conf)
+   3518    2111    3837 /home/mirsella/.t3/tools/cloudflared/2026.10.0/linux-x64/cloudflared tunnel --no-autoupdate --loglevel info --output default --metrics 127.0.0.1:0 run
+   3746       1    3826 /nix/store/nx0r8yw512v7y9f4p13va6rc9v8awr4b-podman-helper-binary-wrapper/bin/conmon --api-version 1 -c 40fea64e701723541d8ccd21d6be3470247715c2db56d96cd6fb5d72b473add3 -u 40fea64e701723541d8ccd21d6be3470247715c2db56d96cd6fb5d72b473add3 -r /nix/store/nx0r8yw512v7y9f4p13va6rc9v8awr4b-podman-helper-binary-wrapper/bin/crun -b /var/lib/containers/storage/overlay-containers/40fea64e701723541d8ccd21d6be3470247715c2db56d96cd6fb5d72b473add3/userdata -p /run/containers/storage/overlay-containers/40fea64e701723541d8ccd21d6be3470247715c2db56d96cd6fb5d72b473add3/userdata/pidfile -n immich_server --exit-dir /run/libpod/exits --persist-dir /run/libpod/persist/40fea64e701723541d8ccd21d6be3470247715c2db56d96cd6fb5d72b473add3 --full-attach -s -l journald --log-level warning --syslog --runtime-arg --log-format=json --runtime-arg --log --runtime-arg=/run/containers/storage/overlay-containers/40fea64e701723541d8ccd21d6be3470247715c2db56d96cd6fb5d72b473add3/userdata/oci-log --conmon-pidfile /run/containers/storage/overlay-containers/40fea64e701723541d8ccd21d6be3470247715c2db56d96cd6fb5d72b473add3/userdata/conmon.pid --exit-command /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/.podman-wrapped --exit-command-arg --root --exit-command-arg /var/lib/containers/storage --exit-command-arg --runroot --exit-command-arg /run/containers/storage --exit-command-arg --log-level --exit-command-arg warning --exit-command-arg --cgroup-manager --exit-command-arg systemd --exit-command-arg --tmpdir --exit-command-arg /run/libpod --exit-command-arg --network-config-dir --exit-command-arg  --exit-command-arg --network-backend --exit-command-arg netavark --exit-command-arg --volumepath --exit-command-arg /var/lib/containers/storage/volumes --exit-command-arg --db-backend --exit-command-arg sqlite --exit-command-arg --transient-store=false --exit-command-arg --hooks-dir --exit-command-arg /usr/share/containers/oci/hooks.d --exit-command-arg --runtime --exit-command-arg crun --exit-command-arg --storage-driver --exit-command-arg overlay --exit-command-arg --events-backend --exit-command-arg journald --exit-command-arg container --exit-command-arg cleanup --exit-command-arg --stopped-only --exit-command-arg --rm --exit-command-arg 40fea64e701723541d8ccd21d6be3470247715c2db56d96cd6fb5d72b473add3
+   3748    3746    3826 tini -- /bin/bash -c start.sh
+   3751    3748    3826 immich
+   3813    3751    3822 immich-api
+   3866       2    3814 [z_wr_int_0]
+   3867       2    3814 [z_wr_int_0]
+   3887       2    3808 [z_metaslab]
+   9736    3225    3021 php-fpm: pool nextcloud
+   9770    3225    3020 php-fpm: pool nextcloud
+  11069       2    2818 [kworker/u32:6-kcryptd-254:0-1]
+  18872       2    1666 [kworker/0:3-cgroup_release]
+  20099       2    1481 [kworker/7:2-cgroup_free]
+  22436       2    1129 [kworker/6:1-events]
+  23190       2    1019 [kworker/3:3-events]
+  23676       1     943 /nix/store/r9rs5rxszs5s316nz5f54qd2hdphd29v-fwupd-2.1.8/libexec/fwupd/fwupd
+  23687       1     943 /nix/store/10jchvkq0fnq8yxk044slc63ylxijl4b-udisks-2.11.2/libexec/udisks2/udisksd
+  23692       1     943 /nix/store/grzwvihb641bhhbkw21jm92iq35jxm83-polkit-127/lib/polkit-1/polkitd --no-debug --log-level=notice
+  23715       2     940 [kworker/5:0-cgroup_release]
+  24049       2     895 [kworker/4:2-events]
+  25053       2     741 [kworker/7:0-mm_percpu_wq]
+  25135       2     726 [kworker/1:1-events]
+  25473       2     679 [kworker/0:2-events]
+  25876       2     617 [kworker/4:3-cgroup_release]
+  25971       2     602 [kworker/5:2-cgroup_release]
+  26089       2     586 [kworker/6:0-cgroup_release]
+  26905       2     462 [kworker/1:3-cgroup_free]
+  27100       2     431 [kworker/3:1-cgroup_free]
+  27219       2     410 [kworker/7:1-cgroup_release]
+  27518       2     369 [kworker/2:1-cgroup_release]
+  27519       2     369 [kworker/2:2-mm_percpu_wq]
+  28027       2     290 [kworker/4:0-cgroup_release]
+  28139       2     276 [kworker/6:2-mm_percpu_wq]
+  28341       2     246 [kworker/4:1-events]
+  28760       2     185 [kworker/7:3-cgroup_free]
+  28965       2     154 [kworker/0:0-events]
+  28969       2     154 [kworker/5:1-events]
+  29183       2     123 [kworker/1:0-cgroup_free]
+  29836       2      30 [kworker/2:0-cgroup_release]
+  29838       2      30 [kworker/2:3-events]
+  29949       1       5 /nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman --log-level=info system service
+  29983    1800       1 sshd-session: mirsella [postauth]
+  30016   29983       0 sshd-session: mirsella@notty
+  30024   30016       0 nu -c sudo -n bash -s
+  30051   30024       0 /nix/store/1x9bnv0f62nxm35z64lcgx13n36ds230-sudo-1.9.17p2/bin/sudo -n bash -s
+  30056   30051       0 bash -s
+  30057       2       0 [kworker/3:0-events]
+  30064       2       0 [kworker/5:3-events]
+  30082       1       0 /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-timedated
+  30101   30056       0 ps -eo pid,ppid,etimes,args
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+96ef830a3b28f7848f22ceddadc4bde1d3c547ae4ed188c115b2f6a4baaa8d18  hosts/predator/pm-study/README.md
+3aba80f8aeb39de2054ff918215a20aa113856b0a40560ee2909141e9928d164  hosts/predator/pm-study/trials/r-serial-q35r1-20261030/README.md
+dc626ff76f258e1dd36f5f0bef4285ee0951482b135dccccf0333ca8bb779d86  pkgs/predator-pm-study/trial.rs

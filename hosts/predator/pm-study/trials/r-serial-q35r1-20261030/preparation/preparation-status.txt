@@ -1,0 +1,11 @@
+Preparation completed October 30, 2026, before the 14:12:53 CET request deadline.
+Only pending real trial: r-serial-q35r1-20261030, fresh boot3c1873e4-b866-41e1-b411-702168ef90cf, first serial suspend after nominal2100s awake.
+Manifest SHA2563d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e.
+New instrumentation runtime5gqrh1r71xnl127sj8dv83nnlk1nf6vs; existing system/kernel/modules unchanged. All24tests and Nixpackagebuild passed.
+Stage, rehearsal, arm, notification-status succeeded. Final independent primary proof13:43:55 and observerproof13:43:57 confirmed schedule, no request yet, zero cycles/markers and restored async1.
+The final-observer per-unit inspection accidentally queried a nonexistent wake-retry.timer; the actual unit is retry.timer. The complete timer listing and original arming proof used the correct unit, and final-retry-proof.txt independently confirms it active/waiting at14:29:23. No timer was changed by that inspection.
+Startup's first health read found system starting and stopped. A bounded systemctl readiness wait succeeded before full health was accepted; no starting state was silently treated as healthy.
+Review task scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-serial-q35r1-review-20261030-1439 enabled; nextRunAt2026-10-30T13:39:00.000Z independently compared with expected value at creation. Dated self-delete and review-only scope.
+Telegram setup88788, owner notification88789(epoch1793364397) acknowledged. Requested dated14:12–14:33 graph. PriorQ35 owner3W report preserved separately; no old result/completion overwritten or synthesized.
+No E, additional reset, recovery wake, security experiment, commit/push or background process. Original missing STATE.md/PLAN.md remain missing. Unrelated shared-repository edits preserved.
+Archive includes raw captures, exact source snapshots/patch/checksums, build/test/transfer/import evidence, reset/health proofs and review schedule. Cargo target and exported NAR stay in scratch; the immutable installed package remains GC-rooted on both machines.

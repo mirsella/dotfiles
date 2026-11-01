@@ -1,0 +1,148 @@
+2026-10-28T10:29:47+01:00
+9c19e8c7-a404-454c-813e-ced03d90a71c
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/lzw3aij1nckap2iwdylhybla25kaz4nz-nixos-system-predator-26.11.20261001.c59305b
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+6.18.54
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+No jobs running.
+MemoryCurrent=13778944
+MemoryMax=3221225472
+MemorySwapMax=1073741824
+FragmentPath=/etc/systemd/system/predator-pm-clock-handoff.service
+Result=success
+ExecStart={ path=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study clock-handoff ; ignore_errors=no ; start_time=[Wed 2026-10-28 10:26:29 CET] ; stop_time=[Wed 2026-10-28 10:26:30 CET] ; pid=225211 ; code=exited ; status=0 }
+Result=success
+ExecMainExitTimestamp=Wed 2026-10-28 10:26:22 CET
+ExecMainStatus=0
+active
+active
+active
+active
+active
+active
+active
+active
+immich_postgres Up 3 minutes (healthy) ghcr.io/immich-app/postgres@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+immich_redis Up 3 minutes (healthy) docker.io/valkey/valkey@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d
+immich_ml Up 2 minutes (healthy) ghcr.io/immich-app/immich-machine-learning@sha256:5b28c9352c8374b8a1ed96fbdd8d6755fea6e43510ec43fdf6538aa02ea40f56
+immich_server Up 2 minutes (healthy) ghcr.io/immich-app/immich-server@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6
+NTPSynchronized=yes
+       Server: 79.143.250.33 (0.nixos.pool.ntp.org)
+Poll interval: 4min 16s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 1
+    Reference: PPS
+    Precision: 4us (-18)
+Root distance: 0 (max: 5s)
+       Offset: +1.395ms
+        Delay: 9.051ms
+       Jitter: 1.314ms
+ Packet count: 3
+    Frequency: -4.084ppm
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+all pools are healthy
+fast/ncdata /var/lib/nextcloud/data
+fast/data /srv/data/fast
+tank/archive /srv/data/archive
+tank/backup /srv/backup
+tank/backup/recovery /srv/backup/recovery
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+0
+0
+N
+System:
+      Firmware: UEFI 2.50 (INSYDE Corp. 22097.4183)
+ Firmware Arch: x64
+   Secure Boot: enabled (user)
+  TPM2 Support: yes
+  Measured UKI: yes
+   Measured OS: yes
+  Boot into FW: supported
+ Platform Lang: en_US.UTF-8
+
+Current Boot Loader:
+        Product: systemd-boot 261.3
+       Features: ✓ Boot counting
+                 ✓ Menu timeout control
+                 ✓ One-shot menu timeout control
+                 ✓ Default entry control
+                 ✓ One-shot entry control
+                 ✓ Support for XBOOTLDR partition
+                 ✓ Support for passing random seed to OS
+                 ✓ Load drop-in drivers
+                 ✓ Support Type #1 sort-key field
+                 ✓ Support @saved pseudo-entry
+                 ✓ Support Type #1 devicetree field
+                 ✓ Enroll SecureBoot keys
+                 ✓ Retain SHIM protocols
+                 ✓ Menu can be disabled
+                 ✓ Multi-Profile UKIs are supported
+                 ✓ Loader reports network boot URL
+                 ✓ Support Type #1 uki field
+                 ✓ Support Type #1 uki-url field
+                 ✓ Loader reports active TPM2 PCR banks
+                 ✓ Loader reports firmware keyboard layout
+                 ✓ Loader measures SMBIOS information
+      Partition: /dev/disk/by-partuuid/2c438867-e111-45ed-b4c5-bb7f627c4cae
+         Loader: └─/boot//EFI/BOOT/BOOTX64.EFI
+Keyboard Layout: n/a (not reported by firmware)
+  Current Entry: nixos-generation-166-tqtge74b4wnzb2jalg574h43pkvccl43intyj7iuphawwsblytqq.efi
+  Default Entry: nixos-generation-151-ocyvrfhwu74f6aolyhx4ipbiv2royxrvaisbrtc67fgjph2n2cmq.efi
+
+Current Stub:
+        Product: lanzastub 1.1.0
+       Features: ✓ Stub reports loader partition information
+                 ✗ Stub reports stub partition information
+                 ✗ Stub reports network boot URL
+                 ✗ Picks up credentials from boot partition
+                 ✗ Picks up system extension images from boot partition
+                 ✗ Picks up configuration extension images from boot partition
+                 ✗ Measures kernel+command line+sysexts
+                 ✗ Support for passing random seed to OS
+                 ✗ Pick up .cmdline from addons
+                 ✗ Pick up .cmdline from SMBIOS Type 11
+                 ✗ Pick up .dtb from addons
+                 ✗ Stub understands profile selector
+                 ✗ Stub measures SMBIOS information
+
+Random Seed:
+ System Token: set
+       Exists: yes
+
+Available Boot Loaders on ESP:
+          ESP: /boot (/dev/disk/by-partuuid/2c438867-e111-45ed-b4c5-bb7f627c4cae)
+         File: ├─/boot//EFI/systemd/systemd-bootx64.efi (systemd-boot 262)
+               └─/boot//EFI/BOOT/BOOTX64.EFI (systemd-boot 262)
+
+Boot Loaders Listed in EFI Variables:
+        Title: Linux Boot Manager
+           ID: 0x0001
+       Status: active, boot-order
+    Partition: /dev/disk/by-partuuid/2c438867-e111-45ed-b4c5-bb7f627c4cae
+         File: └─/boot//EFI/systemd/systemd-bootx64.efi
+
+Boot Loader Entry Locations:
+          ESP: /boot (/dev/disk/by-partuuid/2c438867-e111-45ed-b4c5-bb7f627c4cae, $BOOT)
+       config: /boot//loader/loader.conf
+        token: nixos
+
+Default Boot Loader Entry:
+         type: Boot Loader Specification Type #2 (UKI, .efi)
+        title: NixOS Zokor 26.11.20261023.3ec6363 (Linux 6.18.58) (Generation 167, 2026-10-28)
+           id: nixos-generation-167-o7mzz3pnl4dj6n4ajwtxp6rhpuc6k4pbdzfggpkl3govxscp665q.efi
+       source: /boot//EFI/Linux/nixos-generation-167-o7mzz3pnl4dj6n4ajwtxp6rhpuc6k4pbdzfggpkl3govxscp665q.efi (on the EFI System Partition)
+     sort-key: lanza
+      version: Generation 167, 2026-10-28
+        linux: /boot//EFI/Linux/nixos-generation-167-o7mzz3pnl4dj6n4ajwtxp6rhpuc6k4pbdzfggpkl3govxscp665q.efi
+      profile: 0
+      options: init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf

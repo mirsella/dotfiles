@@ -1,0 +1,17 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-rtc-s3-review-20261031-1021",
+  "enabled": true,
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "nextRunAt": "2026-10-31T09:21:00.000Z",
+  "dateGuard": "2026-10-31",
+  "timezone": "Europe/Paris",
+  "selfDeleteExactTaskAtStart": true,
+  "trialId": "rtc-s3-20261031",
+  "entry": "2026-10-31T09:55:00+01:00",
+  "wake": "2026-10-31T10:11:00+01:00",
+  "retry": "2026-10-31T10:11:30+01:00",
+  "probe": "2026-10-31T10:12:30+01:00",
+  "snapshot": "2026-10-31T10:14:00+01:00",
+  "review": "2026-10-31T10:21:00+01:00",
+  "scope": "one instrumented S3 trial; no automatic repeat; physical sleep proof pending dated graph"
+}

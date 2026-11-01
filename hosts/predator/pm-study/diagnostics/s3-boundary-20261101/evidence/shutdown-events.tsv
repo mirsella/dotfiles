@@ -1,0 +1,22 @@
+1793530730641123	reboot requested from client PID 368527 ('systemctl') (unit session-86.scope)...
+1793530730641651	System is rebooting.
+1793530730654171	The system will reboot now!
+1793530730934156	2026/11/01 11:58:50 INFO Shutting down cause="terminated signal received"
+1793530731654366	Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy3-energy_performance_preference.service/start is destructive (systemd-reboot.service has 'start' job queued, but 'stop' is included in transaction).
+1793530731654584	nixos-sysfs@sys-devices-system-cpu-cpufreq-policy3-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy3-energy_performance_preference.service/start is destructive (systemd-reboot.service has 'start' job queued, but 'stop' is included in transaction).
+1793530731656095	Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy4-energy_performance_preference.service/start is destructive (systemd-reboot.service has 'start' job queued, but 'stop' is included in transaction).
+1793530731656249	nixos-sysfs@sys-devices-system-cpu-cpufreq-policy4-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy4-energy_performance_preference.service/start is destructive (systemd-reboot.service has 'start' job queued, but 'stop' is included in transaction).
+1793530731659382	Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy0-energy_performance_preference.service/start is destructive (systemd-reboot.service has 'start' job queued, but 'stop' is included in transaction).
+1793530731659553	nixos-sysfs@sys-devices-system-cpu-cpufreq-policy0-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy0-energy_performance_preference.service/start is destructive (systemd-reboot.service has 'start' job queued, but 'stop' is included in transaction).
+1793530731661510	Requested transaction contradicts existing jobs: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy6-energy_performance_preference.service/start is destructive (reboot.target has 'start' job queued, but 'stop' is included in transaction).
+1793530731661683	nixos-sysfs@sys-devices-system-cpu-cpufreq-policy6-energy_performance_preference.path: Failed to queue unit startup job: Transaction for nixos-sysfs@sys-devices-system-cpu-cpufreq-policy6-energy_performance_preference.service/start is destructive (reboot.target has 'start' job queued, but 'stop' is included in transaction).
+1793530731776128	Requested transaction contradicts existing jobs: Transaction for run-p368676-i368677.scope/start is destructive (systemd-reboot.service has 'start' job queued, but 'stop' is included in transaction).
+1793530731819979	Requested transaction contradicts existing jobs: Transaction for run-p368702-i368703.scope/start is destructive (reboot.target has 'start' job queued, but 'stop' is included in transaction).
+1793530731846723	Requested transaction contradicts existing jobs: Transaction for run-p368709-i368710.scope/start is destructive (reboot.target has 'start' job queued, but 'stop' is included in transaction).
+1793530731866611	/shutdown -> /nix/store/6qqq5prql4952z0wfm5ymjfr7cx4ab7z-systemd-262/lib/systemd/systemd-shutdown
+1793530731872091	Requested transaction contradicts existing jobs: Transaction for run-p368715-i368716.scope/start is destructive (reboot.target has 'start' job queued, but 'stop' is included in transaction).
+1793530732506915	Shutting down gRPC server...
+1793530740606003	systemd-reboot.service: Deactivated successfully.
+1793530740606171	Finished System Reboot.
+1793530740607547	Reached target System Reboot.
+1793530740608902	Shutting down.

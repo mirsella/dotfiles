@@ -1,0 +1,7 @@
+boot=f8eb6e44-85ae-4e56-bc00-587876699945
+validated_kernel_records=3340
+diagnostic_cycles=4
+current_cycle_verified=true
+result=DIAGNOSTIC_RETURN_VERIFIED
+completed_sha=0c5f6a3ef042e00ba0b5464ba249f86625389120f8a77004fb8a65763cb0697a
+ordinary_last_completed=unchanged

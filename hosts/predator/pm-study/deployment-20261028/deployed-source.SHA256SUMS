@@ -1,0 +1,7 @@
+28ffe7f5a756e59480b80375fbfbb039161da6b80772b99db0fca9baee9689a5  hosts/predator/acer-wmi-ph31751.c
+4f8169d73e89e27e735757682e72034830eb4eedccacebf05c0a2e3e819c9714  hosts/predator/acer-wmi.nix
+fd9d58385cda71d88b7afa915db34ad388ad663520572eacbf990f28210b1357  hosts/predator/default.nix
+e4091f3e6f72202d9167114f7260d9fb72285d33919f19bb9f73257391f7dc66  hosts/predator/pm-study.nix
+514f6decbb43eba685775429fb8a48da74bd573033b2067ee03f36fc3f107e63  pkgs/predator-pm-study/main.rs
+85621bb757de532eee42c1ef459a00e1f0bf2174636ec9b687c91382d88d53e0  pkgs/predator-pm-study/module.nix
+0196d788c0ca465d6c37dcdf6159cf13645b3f89c0685fe3f567fae9e0048aa3  pkgs/predator-pm-study/trial.rs

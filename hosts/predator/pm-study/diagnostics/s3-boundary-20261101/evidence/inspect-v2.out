@@ -1,0 +1,657 @@
+2026-11-01T11:14:35,454052693+01:00
+f9b45aa6-b820-4ab5-b18c-9324d8d53087
+btime 1793474520
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+running
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:03:02 with 0 errors on Sun Nov  1 10:10:39 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: scrub repaired 0B in 00:44:29 with 0 errors on Sun Nov  1 10:52:07 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+ActiveState=inactive
+SubState=dead
+Result=success
+NEXT                                 LEFT LAST                               PASSED UNIT                                                                                    ACTIVATES
+Sun 2026-11-01 11:14:47 CET           12s Sun 2026-11-01 11:14:17 CET       18s ago 27fcb9904e9fb2be3933a160d155d4e05e7348c1715f2672ddebc5de6990469b-41e72419cc510810.timer 27fcb9904e9fb2be3933a160d155d4e05e7348c1715f2672ddebc5de6990469b-41e72419cc510810.service
+Sun 2026-11-01 11:14:51 CET           15s Sun 2026-11-01 11:14:21 CET       14s ago e1495dd677827bc331988a528dc0a18e6ede7eb7b39d6e6529ff549a09787127-a4fef1c05a53262.timer  e1495dd677827bc331988a528dc0a18e6ede7eb7b39d6e6529ff549a09787127-a4fef1c05a53262.service
+Sun 2026-11-01 11:14:51 CET           15s Sun 2026-11-01 11:14:21 CET       14s ago ec2dcebac2bcd92665f1f26be9eeaa7f89500fe6d1f447f8866c0f3f85fe1c1a-8520db8bb6201a3.timer  ec2dcebac2bcd92665f1f26be9eeaa7f89500fe6d1f447f8866c0f3f85fe1c1a-8520db8bb6201a3.service
+Sun 2026-11-01 11:14:51 CET           15s Sun 2026-11-01 11:14:21 CET       14s ago 7284e3a99cd08434197627e04170ef78a0d0d01a730c011ffc30ac27a0a9835c-7d1fc8177e0e2cf1.timer 7284e3a99cd08434197627e04170ef78a0d0d01a730c011ffc30ac27a0a9835c-7d1fc8177e0e2cf1.service
+Sun 2026-11-01 11:15:16 CET           40s Sun 2026-11-01 11:14:16 CET       19s ago storage-alerts.timer                                                                    storage-alerts.service
+Sun 2026-11-01 11:15:41 CET       1min 6s Sun 2026-11-01 11:10:41 CET  3min 53s ago nextcloud-cron.timer                                                                    nextcloud-cron.service
+Sun 2026-11-01 11:20:27 CET          5min Sun 2026-11-01 10:58:11 CET     16min ago fwupd-refresh.timer                                                                     fwupd-refresh.service
+Sun 2026-11-01 11:37:36 CET         23min Tue 2026-10-27 18:18:00 CET             - zpool-trim.timer                                                                        zpool-trim.service
+Sun 2026-11-01 11:47:01 CET         32min Tue 2026-10-27 18:34:57 CET             - fstrim.timer                                                                            fstrim.service
+Sun 2026-11-01 12:00:00 CET         45min Sun 2026-11-01 11:00:04 CET     14min ago logrotate.timer                                                                         logrotate.service
+Sun 2026-11-01 21:15:14 CET           10h Sat 2026-10-31 20:37:00 CET       13h ago systemd-tmpfiles-clean.timer                                                            systemd-tmpfiles-clean.service
+Sun 2026-11-01 23:00:00 CET           11h Sat 2026-10-31 23:00:03 CET       11h ago db-backup.timer                                                                         db-backup.service
+Sun 2026-11-01 23:10:00 CET           11h Tue 2026-10-27 18:07:00 CET             - recovery-backup.timer                                                                   recovery-backup.service
+Sun 2026-11-01 23:20:00 CET           12h Sat 2026-10-31 23:20:00 CET       11h ago hermes-backup.timer                                                                     hermes-backup.service
+Sun 2026-11-01 23:30:00 CET           12h Sat 2026-10-31 23:30:03 CET       11h ago sanoid.timer                                                                            sanoid.service
+Sun 2026-11-01 23:50:00 CET           12h Sat 2026-10-31 23:50:04 CET       11h ago restic-backups-fast.timer                                                               restic-backups-fast.service
+Mon 2026-11-02 00:00:00 CET           12h Sun 2026-11-01 00:00:04 CET       10h ago nix-gc.timer                                                                            nix-gc.service
+Thu 2026-11-05 05:00:00 CET        3 days Sun 2026-10-18 12:53:30 CEST            - restic-check.timer                                                                      restic-check.service
+Tue 2026-12-01 10:03:52 CET 4 weeks 1 day Sun 2026-11-01 10:07:37 CET   1h 6min ago zfs-scrub.timer                                                                         zfs-scrub.service
+-                                       - -                                       - night-suspend.timer                                                                     night-suspend.service
+-                                       - -                                       - nixos-upgrade.timer                                                                     nixos-upgrade.service
+-                                       - -                                       - predator-pm-next.timer                                                                  predator-pm-next.service
+
+22 timers listed.
+/sys/power/mem_sleep=s2idle [deep]
+/sys/power/pm_async=1
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/power/pm_trace=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/class/rtc/rtc0/wakealarm=
+CAPTURE CONFIG
+CONFIG_IKCONFIG=y
+CONFIG_IKCONFIG_PROC=y
+CONFIG_KEXEC_CORE=y
+CONFIG_KEXEC=y
+CONFIG_KEXEC_FILE=y
+# CONFIG_KEXEC_SIG is not set
+CONFIG_KEXEC_JUMP=y
+CONFIG_KEXEC_HANDOVER=y
+# CONFIG_KEXEC_HANDOVER_DEBUG is not set
+CONFIG_KEXEC_HANDOVER_DEBUGFS=y
+CONFIG_ACPI_APEI=y
+CONFIG_ACPI_APEI_GHES=y
+CONFIG_ACPI_APEI_PCIEAER=y
+# CONFIG_ACPI_APEI_MEMORY_FAILURE is not set
+CONFIG_ACPI_APEI_EINJ=m
+CONFIG_ACPI_APEI_EINJ_CXL=y
+CONFIG_ACPI_APEI_ERST_DEBUG=m
+CONFIG_KPROBES=y
+CONFIG_KPROBES_ON_FTRACE=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+# CONFIG_DEVTMPFS_SAFE is not set
+CONFIG_EFI_VARS_PSTORE=y
+# CONFIG_EFI_VARS_PSTORE_DEFAULT_DISABLE is not set
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_DEPRECATED_OPTIONS=y
+CONFIG_SERIAL_8250_PNP=y
+# CONFIG_SERIAL_8250_16550A_VARIANTS is not set
+# CONFIG_SERIAL_8250_FINTEK is not set
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_SERIAL_8250_DMA=y
+CONFIG_SERIAL_8250_PCILIB=y
+CONFIG_SERIAL_8250_PCI=m
+CONFIG_SERIAL_8250_EXAR=m
+CONFIG_SERIAL_8250_CS=m
+CONFIG_SERIAL_8250_MEN_MCB=m
+CONFIG_SERIAL_8250_NR_UARTS=32
+CONFIG_SERIAL_8250_RUNTIME_UARTS=4
+CONFIG_SERIAL_8250_EXTENDED=y
+CONFIG_SERIAL_8250_MANY_PORTS=y
+CONFIG_SERIAL_8250_PCI1XXXX=m
+CONFIG_SERIAL_8250_SHARE_IRQ=y
+CONFIG_SERIAL_8250_DETECT_IRQ=y
+CONFIG_SERIAL_8250_RSA=y
+CONFIG_SERIAL_8250_DWLIB=y
+CONFIG_SERIAL_8250_DFL=m
+CONFIG_SERIAL_8250_DW=m
+# CONFIG_SERIAL_8250_RT288X is not set
+CONFIG_SERIAL_8250_LPSS=m
+CONFIG_SERIAL_8250_MID=m
+CONFIG_SERIAL_8250_PERICOM=m
+CONFIG_SERIAL_8250_NI=m
+CONFIG_PSTORE=y
+CONFIG_PSTORE_DEFAULT_KMSG_BYTES=10240
+CONFIG_PSTORE_COMPRESS=y
+# CONFIG_PSTORE_CONSOLE is not set
+# CONFIG_PSTORE_PMSG is not set
+# CONFIG_PSTORE_FTRACE is not set
+CONFIG_PSTORE_RAM=m
+CONFIG_PSTORE_ZONE=m
+CONFIG_PSTORE_BLK=m
+CONFIG_PSTORE_BLK_BLKDEV=""
+CONFIG_PSTORE_BLK_KMSG_SIZE=64
+CONFIG_PSTORE_BLK_MAX_REASON=2
+CONFIG_MAGIC_SYSRQ=y
+CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE=0x1
+CONFIG_MAGIC_SYSRQ_SERIAL=y
+CONFIG_MAGIC_SYSRQ_SERIAL_SEQUENCE=""
+CONFIG_FTRACE=y
+CONFIG_FUNCTION_TRACER=y
+CONFIG_FTRACE_SYSCALLS=y
+CONFIG_FTRACE_MCOUNT_USE_CC=y
+# CONFIG_FTRACE_RECORD_RECURSION is not set
+# CONFIG_FTRACE_VALIDATE_RCU_IS_WATCHING is not set
+# CONFIG_FTRACE_STARTUP_TEST is not set
+# CONFIG_FTRACE_SORT_STARTUP_TEST is not set
+
+PSTORE STATE
+TARGET         SOURCE FSTYPE OPTIONS
+/sys/fs/pstore none   pstore rw,nosuid,nodev,noexec,relatime
+absent directory: /var/lib/systemd/pstore
+/sys/module/pstore/parameters/backend=efi_pstore
+/sys/module/pstore/parameters/compress=deflate
+/sys/module/pstore/parameters/kmsg_bytes=10240
+/sys/module/pstore/parameters/update_ms=-1
+/sys/module/efi_pstore/parameters/pstore_disable=N
+/sys/module/efi_pstore/parameters/record_size=1024
+name:           pstore
+filename:       (builtin)
+license:        GPL
+file:           fs/pstore/pstore
+description:    Persistent Storage - platform driver interface
+author:         Tony Luck <tony.luck@intel.com>
+parm:           update_ms:milliseconds before pstore updates its content (default is -1, which means runtime updates are disabled; enabling this option may not be safe; it may lead to further corruption on Oopses) (int)
+parm:           backend:specific backend to use (charp)
+parm:           compress:compression to use (charp)
+parm:           kmsg_bytes:amount of kernel log to snapshot (in bytes) (uint)
+filename:       /run/booted-system/kernel-modules/lib/modules/6.18.58/kernel/fs/pstore/ramoops.ko.xz
+description:    RAM Oops/Panic logger/driver
+author:         Marco Stornelli <marco.stornelli@gmail.com>
+license:        GPL
+alias:          of:N*T*CramoopsC*
+alias:          of:N*T*Cramoops
+depends:        reed_solomon
+intree:         Y
+name:           ramoops
+retpoline:      Y
+vermagic:       6.18.58 SMP preempt mod_unload 
+sig_id:         PKCS#7
+signer:         
+sig_key:        
+sig_hashalgo:   unknown
+signature:      
+parm:           record_size:size of each dump done on oops/panic (ulong)
+parm:           console_size:size of kernel console log (ulong)
+parm:           ftrace_size:size of ftrace log (ulong)
+parm:           pmsg_size:size of user space message log (ulong)
+parm:           mem_address:start of reserved RAM used to store oops/panic logs (ullong)
+parm:           mem_name:name of kernel param that holds addr (charp)
+parm:           mem_size:size of reserved RAM used to store oops/panic logs (ulong)
+parm:           mem_type:memory type: 0=write-combined (default), 1=unbuffered, 2=cached (uint)
+parm:           max_reason:maximum reason for kmsg dump (default 2: Oops and Panic)  (int)
+parm:           ecc:int
+parm:           ramoops_ecc:if non-zero, the option enables ECC support and specifies ECC buffer size in bytes (1 is a special value, means 16 bytes ECC)
+parm:           dump_oops:(deprecated: use max_reason instead) set to 1 to dump oopses & panics, 0 to only dump panics (int)
+name:           efi_pstore
+filename:       (builtin)
+alias:          platform:efivars
+license:        GPL
+file:           drivers/firmware/efi/efi-pstore
+description:    EFI variable backend for pstore
+import_ns:      EFIVAR
+parm:           record_size:size of each pstore UEFI var (in bytes, min/default=1024) (uint)
+parm:           pstore_disable:bool
+filename:       /run/booted-system/kernel-modules/lib/modules/6.18.58/kernel/fs/pstore/pstore_blk.ko.xz
+description:    pstore backend for block devices
+author:         Kees Cook <keescook@chromium.org>
+author:         WeiXiong Liao <liaoweixiong@allwinnertech.com>
+license:        GPL
+depends:        pstore_zone
+intree:         Y
+name:           pstore_blk
+retpoline:      Y
+vermagic:       6.18.58 SMP preempt mod_unload 
+sig_id:         PKCS#7
+signer:         
+sig_key:        
+sig_hashalgo:   unknown
+signature:      
+parm:           kmsg_size:kmsg dump record size in kbytes (long)
+parm:           max_reason:maximum reason for kmsg dump (default 2: Oops and Panic) (int)
+parm:           pmsg_size:pmsg size in kbytes (long)
+parm:           console_size:console size in kbytes (long)
+parm:           ftrace_size:ftrace size in kbytes (long)
+parm:           best_effort:use best effort to write (i.e. do not require storage driver pstore support, default: off) (bool)
+parm:           blkdev:block device for pstore storage (string)
+modinfo: ERROR: Module erst not found.
+
+SERIAL AND TABLES
+serinfo:1.0 driver revision:
+0: uart:unknown port:000003F8 irq:4
+1: uart:unknown port:000002F8 irq:3
+2: uart:unknown port:000003E8 irq:4
+3: uart:unknown port:000002E8 irq:3
+crw-rw---- 1 root dialout 4, 64 Oct 31 12:07 /dev/ttyS0
+crw-rw---- 1 root dialout 4, 65 Oct 31 12:07 /dev/ttyS1
+crw-rw---- 1 root dialout 4, 66 Oct 31 12:07 /dev/ttyS2
+crw-rw---- 1 root dialout 4, 67 Oct 31 12:07 /dev/ttyS3
+SSDT4 671
+DBGP1 52
+MCFG 60
+ASF! 165
+APIC 188
+SSDT2 12563
+TPM2 52
+BOOT 40
+SSDT18 394
+SSDT16 1628
+SSDT14 1023
+SSDT17 407
+SSDT15 1617
+SSDT9 1310
+NHLT 45
+DSDT 130089
+SSDT7 3806
+WSMT 40
+SSDT12 838
+LPIT 148
+SSDT5 12290
+UEFI1 66
+DBGP2 52
+DBG2 84
+ASPT 52
+SSDT10 444
+SSDT3 3016
+DMAR 240
+FACP 268
+FPDT 68
+SSDT1 70
+MSDM 85
+SSDT8 22721
+SSDT13 1219
+HPET 56
+SSDT6 4202
+UEFI2 566
+FACS 64
+BGRT 56
+SSDT11 18300
+[    1.353591] predator kernel: Command line: init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+[    1.353643] predator kernel: BIOS-e820: [mem 0x0000000000058000-0x0000000000058fff] reserved
+[    1.353675] predator kernel: BIOS-e820: [mem 0x000000000009e000-0x00000000000fffff] reserved
+[    1.353723] predator kernel: BIOS-e820: [mem 0x0000000061d3e000-0x0000000061d3efff] reserved
+[    1.353741] predator kernel: BIOS-e820: [mem 0x0000000079bfe000-0x000000007a78dfff] reserved
+[    1.353801] predator kernel: BIOS-e820: [mem 0x000000007aeff000-0x000000007fffffff] reserved
+[    1.353812] predator kernel: BIOS-e820: [mem 0x00000000e0000000-0x00000000efffffff] reserved
+[    1.353826] predator kernel: BIOS-e820: [mem 0x00000000fd000000-0x00000000fe7fffff] reserved
+[    1.353841] predator kernel: BIOS-e820: [mem 0x00000000fec00000-0x00000000fec00fff] reserved
+[    1.353851] predator kernel: BIOS-e820: [mem 0x00000000fed00000-0x00000000fed00fff] reserved
+[    1.353861] predator kernel: BIOS-e820: [mem 0x00000000fed10000-0x00000000fed19fff] reserved
+[    1.353871] predator kernel: BIOS-e820: [mem 0x00000000fed84000-0x00000000fed84fff] reserved
+[    1.353887] predator kernel: BIOS-e820: [mem 0x00000000fee00000-0x00000000fee00fff] reserved
+[    1.353904] predator kernel: BIOS-e820: [mem 0x00000000ffa00000-0x00000000ffffffff] reserved
+[    1.353957] predator kernel: efi: EFI v2.5 by INSYDE Corp.
+[    1.353970] predator kernel: efi: ACPI 2.0=0x7aefd014 SMBIOS=0x79f9a000 SMBIOS 3.0=0x79f98000 ESRT=0x79f967d8 MEMATTR=0x6a4ec018 RNG=0x7aeaaf98 INITRD=0x639f96d8 TPMEventLog=0x7aea1018 
+[    1.354021] predator kernel: efi: Remove mem44: MMIO range=[0xe0000000-0xefffffff] (256MB) from e820 map
+[    1.354035] predator kernel: e820: remove [mem 0xe0000000-0xefffffff] reserved
+[    1.354045] predator kernel: efi: Remove mem45: MMIO range=[0xfd000000-0xfe7fffff] (24MB) from e820 map
+[    1.354056] predator kernel: e820: remove [mem 0xfd000000-0xfe7fffff] reserved
+[    1.354069] predator kernel: efi: Not removing mem46: MMIO range=[0xfec00000-0xfec00fff] (4KB) from e820 map
+[    1.354084] predator kernel: efi: Not removing mem47: MMIO range=[0xfed00000-0xfed00fff] (4KB) from e820 map
+[    1.354102] predator kernel: efi: Not removing mem48: MMIO range=[0xfed10000-0xfed19fff] (40KB) from e820 map
+[    1.354117] predator kernel: efi: Not removing mem49: MMIO range=[0xfed84000-0xfed84fff] (4KB) from e820 map
+[    1.354132] predator kernel: efi: Not removing mem50: MMIO range=[0xfee00000-0xfee00fff] (4KB) from e820 map
+[    1.354156] predator kernel: efi: Remove mem51: MMIO range=[0xffa00000-0xffffffff] (6MB) from e820 map
+[    1.354171] predator kernel: e820: remove [mem 0xffa00000-0xffffffff] reserved
+[    1.354287] predator kernel: e820: update [mem 0x00000000-0x00000fff] usable ==> reserved
+[    1.354420] predator kernel: Secure boot enabled
+[    1.357444] predator kernel: e820: update [mem 0x6a265000-0x6a358fff] usable ==> reserved
+[    1.357902] predator kernel: Kernel command line: init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+[    1.358692] predator kernel: Console: colour dummy device 80x25
+[    1.358710] predator kernel: printk: legacy console [tty0] enabled
+[    1.360353] predator kernel: LSM: initializing lsm=lockdown,capability,landlock,yama,bpf,ima
+[    1.361212] predator kernel: Memory: 7855980K/8269412K available (18186K kernel code, 5431K rwdata, 13716K rodata, 6720K init, 3992K bss, 376780K reserved, 0K cma-reserved)
+[    1.361502] predator kernel: efi: Freeing EFI boot services memory: 61436K
+[    1.361638] predator kernel: fbcon: Taking over console
+[    1.389152] predator kernel: system 00:00: [mem 0xfd000000-0xfdabffff] has been reserved
+[    1.389460] predator kernel: system 00:00: [mem 0xfdad0000-0xfdadffff] has been reserved
+[    1.389765] predator kernel: system 00:00: [mem 0xfdb00000-0xfdffffff] has been reserved
+[    1.390080] predator kernel: system 00:00: [mem 0xfe000000-0xfe01ffff] has been reserved
+[    1.390379] predator kernel: system 00:00: [mem 0xfe036000-0xfe03bfff] has been reserved
+[    1.390673] predator kernel: system 00:00: [mem 0xfe03d000-0xfe3fffff] has been reserved
+[    1.390952] predator kernel: system 00:00: [mem 0xfe410000-0xfe7fffff] has been reserved
+[    1.391275] predator kernel: system 00:01: [io  0x2000-0x20fe] has been reserved
+[    1.391577] predator kernel: system 00:02: [io  0x0680-0x069f] has been reserved
+[    1.391861] predator kernel: system 00:02: [io  0xfd60-0xfd63] has been reserved
+[    1.392167] predator kernel: system 00:02: [io  0xffff] has been reserved
+[    1.392466] predator kernel: system 00:02: [io  0xffff] has been reserved
+[    1.392734] predator kernel: system 00:02: [io  0xffff] has been reserved
+[    1.393042] predator kernel: system 00:02: [io  0x1800-0x18fe] could not be reserved
+[    1.393322] predator kernel: system 00:02: [io  0x164e-0x164f] has been reserved
+[    1.393599] predator kernel: system 00:03: [io  0x0800-0x087f] has been reserved
+[    1.393916] predator kernel: system 00:06: [mem 0xfed10000-0xfed17fff] has been reserved
+[    1.394199] predator kernel: system 00:06: [mem 0xfed18000-0xfed18fff] has been reserved
+[    1.394484] predator kernel: system 00:06: [mem 0xfed19000-0xfed19fff] has been reserved
+[    1.394811] predator kernel: system 00:06: [mem 0xe0000000-0xefffffff] has been reserved
+[    1.395122] predator kernel: system 00:06: [mem 0xfed20000-0xfed3ffff] has been reserved
+[    1.395413] predator kernel: system 00:06: [mem 0xfed90000-0xfed93fff] could not be reserved
+[    1.395736] predator kernel: system 00:06: [mem 0xfed45000-0xfed8ffff] could not be reserved
+[    1.396054] predator kernel: system 00:06: [mem 0xff000000-0xff000fff] has been reserved
+[    1.396344] predator kernel: system 00:06: [mem 0xff010000-0xffffffff] has been reserved
+[    1.396650] predator kernel: system 00:06: [mem 0xfee00000-0xfeefffff] could not be reserved
+[    1.396951] predator kernel: system 00:06: [mem 0x80000000-0x8001ffff] has been reserved
+[    1.403315] predator kernel: Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    1.403335] predator kernel: usbcore: registered new interface driver usbserial_generic
+[    1.403342] predator kernel: usbserial: USB Serial support registered for generic
+[    1.403547] predator kernel: Console: switching to colour frame buffer device 240x67
+[    1.403715] predator kernel: pstore: Using crash dump compression: deflate
+[    1.403725] predator kernel: pstore: Registered efi_pstore as persistent store backend
+[    1.403826] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403841] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403855] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403868] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403881] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403894] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403910] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403923] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403936] predator kernel: integrity: Error adding keys to platform keyring UEFI:db
+[    1.403943] predator kernel: integrity: Loading X.509 certificate: UEFI:db
+[    1.403955] predator kernel: integrity: Error adding keys to platform keyring UEFI:db
+[    1.404573] predator systemd[1]: Started Dispatch Password Requests to Console Directory Watch.
+[    1.712785] predator kernel: usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.714379] predator kernel: usb usb1: SerialNumber: 0000:00:14.0
+[    1.721404] predator kernel: usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.722574] predator kernel: usb usb2: SerialNumber: 0000:00:14.0
+[    2.090964] predator kernel: usb 1-2: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.221138] predator kernel: usb 2-2: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.454526] predator kernel: usb 1-7: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+[    2.653846] predator kernel: usb 1-2.1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.737532] predator kernel: usb 2-2.1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.983715] predator kernel: usb 1-9: New USB device strings: Mfr=3, Product=1, SerialNumber=2
+[    2.985329] predator kernel: usb 1-9: SerialNumber: 200901010001
+[    3.046327] predator kernel: usb 2-2.2: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    3.048967] predator kernel: usb 2-2.2: SerialNumber: 26A1EE8339CB
+[    3.132528] predator kernel: usb 2-2.3: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    3.134252] predator kernel: usb 2-2.3: SerialNumber: 5758443241343139434C4338
+[    3.219026] predator kernel: usb 2-2.4: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    3.220791] predator kernel: usb 2-2.4: SerialNumber: 26A1EE8313F8
+[   12.032274] predator systemd[1]: Started Dispatch Password Requests to Console Directory Watch.
+[   12.032875] predator systemd[1]: Listening on Console Output Muting Service Socket.
+[   12.033235] predator systemd[1]: Load Kernel Module efi_pstore skipped, unmet condition check ConditionKernelModuleLoaded=!efi_pstore
+[   14.821294] predator kernel: Console: switching to colour dummy device 80x25
+[   14.836023] predator kernel: i915 0000:00:02.0: vgaarb: deactivate vga console
+[   14.902245] predator kernel: Console: switching to colour frame buffer device 240x67
+[   30.383413] predator kernel: netconsole: netconsole: local port 6665
+[   30.383480] predator kernel: netconsole: netconsole: local IPv4 address 192.168.1.19
+[   30.383503] predator kernel: netconsole: netconsole: interface name 'enp3s0f1'
+[   30.383522] predator kernel: netconsole: netconsole: local ethernet address 'ff:ff:ff:ff:ff:ff'
+[   30.385037] predator kernel: netconsole: netconsole: remote port 16666
+[   30.385094] predator kernel: netconsole: netconsole: remote IPv4 address 192.168.1.166
+[   30.385115] predator kernel: netconsole: netconsole: remote ethernet address dc:a6:32:0d:3e:c8
+[   30.396539] predator kernel: printk: legacy console [netcon0] enabled
+[   30.396574] predator kernel: netconsole: network logging started
+[ 6846.504799] predator kernel: port serial8250:0.3: PM: calling pm_runtime_force_suspend @ 50180, parent: serial8250:0
+[ 6846.505112] predator kernel: port serial8250:0.3: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+[ 6846.505369] predator kernel: port serial8250:0.2: PM: calling pm_runtime_force_suspend @ 50180, parent: serial8250:0
+[ 6846.505634] predator kernel: port serial8250:0.2: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+[ 6846.505881] predator kernel: port serial8250:0.1: PM: calling pm_runtime_force_suspend @ 50180, parent: serial8250:0
+[ 6846.506195] predator kernel: port serial8250:0.1: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+[ 6846.506480] predator kernel: port serial8250:0.0: PM: calling pm_runtime_force_suspend @ 50180, parent: serial8250:0
+[ 6846.506747] predator kernel: port serial8250:0.0: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+[ 6846.511192] predator kernel: serial8250 serial8250: PM: calling platform_pm_suspend @ 50180, parent: platform
+[ 6846.511637] predator kernel: serial8250 serial8250: PM: platform_pm_suspend returned 0 after 1 usecs
+[ 6846.745411] predator kernel: serial8250 serial8250: PM: calling platform_pm_resume @ 50180, parent: platform
+[ 6846.745665] predator kernel: serial8250 serial8250: PM: platform_pm_resume returned 0 after 0 usecs
+[ 6846.745902] predator kernel: port serial8250:0.0: PM: calling pm_runtime_force_resume @ 50180, parent: serial8250:0
+[ 6846.746225] predator kernel: port serial8250:0.0: PM: pm_runtime_force_resume returned 0 after 0 usecs
+[ 6846.746496] predator kernel: port serial8250:0.1: PM: calling pm_runtime_force_resume @ 50180, parent: serial8250:0
+[ 6846.746774] predator kernel: port serial8250:0.1: PM: pm_runtime_force_resume returned 0 after 0 usecs
+[ 6846.747081] predator kernel: port serial8250:0.2: PM: calling pm_runtime_force_resume @ 50180, parent: serial8250:0
+[ 6846.747359] predator kernel: port serial8250:0.2: PM: pm_runtime_force_resume returned 0 after 0 usecs
+[ 6846.747635] predator kernel: port serial8250:0.3: PM: calling pm_runtime_force_resume @ 50180, parent: serial8250:0
+[ 6846.747913] predator kernel: port serial8250:0.3: PM: pm_runtime_force_resume returned 0 after 0 usecs
+[45289.443731] predator kernel: port serial8250:0.3: PM: calling pm_runtime_force_suspend @ 308322, parent: serial8250:0
+[45289.444175] predator kernel: port serial8250:0.3: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+[45289.444535] predator kernel: port serial8250:0.2: PM: calling pm_runtime_force_suspend @ 308322, parent: serial8250:0
+[45289.444902] predator kernel: port serial8250:0.2: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+[45289.445262] predator kernel: port serial8250:0.1: PM: calling pm_runtime_force_suspend @ 308322, parent: serial8250:0
+[45289.445612] predator kernel: port serial8250:0.1: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+[45289.446088] predator kernel: port serial8250:0.0: PM: calling pm_runtime_force_suspend @ 308322, parent: serial8250:0
+[45289.446462] predator kernel: port serial8250:0.0: PM: pm_runtime_force_suspend returned 0 after 0 usecs
+[45289.446797] predator kernel: serial8250 serial8250: PM: calling platform_pm_suspend @ 308322, parent: platform
+[45289.447140] predator kernel: serial8250 serial8250: PM: platform_pm_suspend returned 0 after 1 usecs
+[45289.701474] predator kernel: serial8250 serial8250: PM: calling platform_pm_resume @ 308322, parent: platform
+[45289.701737] predator kernel: serial8250 serial8250: PM: platform_pm_resume returned 0 after 0 usecs
+[45289.701997] predator kernel: port serial8250:0.0: PM: calling pm_runtime_force_resume @ 308322, parent: serial8250:0
+[45289.702321] predator kernel: port serial8250:0.0: PM: pm_runtime_force_resume returned 0 after 0 usecs
+[45289.702627] predator kernel: port serial8250:0.1: PM: calling pm_runtime_force_resume @ 308322, parent: serial8250:0
+[45289.702905] predator kernel: port serial8250:0.1: PM: pm_runtime_force_resume returned 0 after 0 usecs
+[45289.703195] predator kernel: port serial8250:0.2: PM: calling pm_runtime_force_resume @ 308322, parent: serial8250:0
+[45289.703471] predator kernel: port serial8250:0.2: PM: pm_runtime_force_resume returned 0 after 0 usecs
+[45289.703744] predator kernel: port serial8250:0.3: PM: calling pm_runtime_force_resume @ 308322, parent: serial8250:0
+[45289.704099] predator kernel: port serial8250:0.3: PM: pm_runtime_force_resume returned 0 after 0 usecs
+
+MEMORY RESERVATIONS
+00000000-00000fff : Reserved
+00001000-00057fff : System RAM
+00058000-00058fff : Reserved
+00059000-0009dfff : System RAM
+0009e000-000fffff : Reserved
+  000a0000-000fffff : PCI Bus 0000:00
+    000c0000-000dffff : 0000:00:02.0
+    000f0000-000fffff : System ROM
+00100000-61d3cfff : System RAM
+61d3d000-61d3dfff : ACPI Non-volatile Storage
+61d3e000-61d3efff : Reserved
+61d3f000-6a264fff : System RAM
+6a265000-6a358fff : Reserved
+6a359000-79bfdfff : System RAM
+79bfe000-7a78dfff : Reserved
+7a78e000-7ae7dfff : ACPI Non-volatile Storage
+7ae7e000-7aefdfff : ACPI Tables
+7aefe000-7aefefff : System RAM
+7aeff000-7fffffff : Reserved
+  7c000000-7fffffff : Graphics Stolen Memory
+80000000-dfffffff : PCI Bus 0000:00
+  80000000-8001ffff : pnp 00:06
+  90000000-a1ffffff : PCI Bus 0000:01
+    90000000-9fffffff : 0000:01:00.0
+    a0000000-a1ffffff : 0000:01:00.0
+  a2000000-a2ffffff : 0000:00:02.0
+  a3000000-a40fffff : PCI Bus 0000:01
+    a3000000-a3ffffff : 0000:01:00.0
+    a4000000-a4003fff : 0000:01:00.1
+      a4000000-a4003fff : ICH HD audio
+    a4080000-a40fffff : 0000:01:00.0
+  a4200000-a43fffff : PCI Bus 0000:02
+    a4200000-a43fffff : 0000:02:00.0
+      a4200000-a43fffff : ath
+  a4400000-a44fffff : PCI Bus 0000:03
+    a4400000-a4403fff : 0000:03:00.1
+    a4404000-a4404fff : 0000:03:00.1
+      a4404000-a4404fff : r8169
+    a4405000-a4405fff : 0000:03:00.0
+      a4405000-a4405fff : rtsx_pci
+    a4410000-a441ffff : 0000:03:00.0
+  a4500000-a450ffff : 0000:00:14.0
+    a4500000-a450ffff : xhci-hcd
+  a4510000-a451ffff : 0000:00:1f.3
+  a4520000-a4523fff : 0000:00:1f.3
+    a4520000-a4523fff : ICH HD audio
+  a4524000-a4527fff : 0000:00:1f.2
+  a4528000-a4529fff : 0000:00:17.0
+    a4528000-a4529fff : ahci
+  a452a000-a452afff : 0000:00:14.2
+    a452a000-a452afff : Intel PCH thermal driver
+  a452b000-a452bfff : 0000:00:15.0
+    a452b000-a452b1ff : lpss_dev
+      a452b000-a452b1ff : i2c_designware.0 lpss_dev
+    a452b200-a452b2ff : lpss_priv
+    a452b800-a452bfff : idma64.0
+      a452b800-a452bfff : idma64.0 idma64.0
+  a452c000-a452cfff : 0000:00:15.1
+    a452c000-a452c1ff : lpss_dev
+      a452c000-a452c1ff : i2c_designware.1 lpss_dev
+    a452c200-a452c2ff : lpss_priv
+    a452c800-a452cfff : idma64.1
+      a452c800-a452cfff : idma64.1 idma64.1
+  a452d000-a452dfff : 0000:00:16.0
+    a452d000-a452dfff : mei_me
+  a452e000-a452e7ff : 0000:00:17.0
+    a452e000-a452e7ff : ahci
+  a452f000-a452f0ff : 0000:00:1f.4
+    a452f000-a452f0ff : i801_smbus
+  a4530000-a45300ff : 0000:00:17.0
+    a4530000-a45300ff : ahci
+  b0000000-bfffffff : 0000:00:02.0
+e0000000-efffffff : PCI ECAM 0000 [bus 00-ff]
+  e0000000-efffffff : pnp 00:06
+fd000000-fe7fffff : PCI Bus 0000:00
+  fd000000-fdabffff : pnp 00:00
+  fdac0000-fdacffff : INT345D:00
+    fdac0000-fdacffff : INT345D:00 INT345D:00
+  fdad0000-fdadffff : pnp 00:00
+  fdae0000-fdaeffff : INT345D:00
+    fdae0000-fdaeffff : INT345D:00 INT345D:00
+  fdaf0000-fdafffff : INT345D:00
+    fdaf0000-fdafffff : INT345D:00 INT345D:00
+  fdb00000-fdffffff : pnp 00:00
+    fdc6000c-fdc6000f : iTCO_wdt
+      fdc6000c-fdc6000f : iTCO_wdt iTCO_wdt
+  fe000000-fe01ffff : pnp 00:00
+  fe036000-fe03bfff : pnp 00:00
+  fe03d000-fe3fffff : pnp 00:00
+  fe410000-fe7fffff : pnp 00:00
+fec00000-fec00fff : Reserved
+  fec00000-fec003ff : IOAPIC 0
+fed00000-fed00fff : Reserved
+  fed00000-fed003ff : HPET 0
+    fed00000-fed003ff : PNP0103:00
+fed10000-fed19fff : Reserved
+  fed10000-fed17fff : pnp 00:06
+  fed18000-fed18fff : pnp 00:06
+  fed19000-fed19fff : pnp 00:06
+fed20000-fed3ffff : pnp 00:06
+fed40000-fed40fff : MSFT0101:00
+  fed40000-fed40fff : MSFT0101:00
+fed84000-fed84fff : Reserved
+fed90000-fed90fff : dmar0
+fed91000-fed91fff : dmar1
+fee00000-fee00fff : Reserved
+ff000000-ff000fff : pnp 00:06
+ff010000-ffffffff : INT0800:00
+  ff010000-ffffffff : pnp 00:06
+100000000-27effffff : System RAM
+  10a200000-10b3c291f : Kernel code
+  10b400000-10c164fff : Kernel rodata
+  10c200000-10c74dfbf : Kernel data
+  10d21a000-10d5fffff : Kernel bss
+27f000000-27fffffff : RAM buffer
+
+FROZEN ROOTS
+/nix/var/nix/gcroots/predator-pm-tpm-on-matched-20261016 -> /nix/store/wqjpcch9axzfapjdcm572318c7zrcgia-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-recorder-off-repeat-20261015 -> /nix/store/i8zdghm8i97j1yb5r7kvn4899hrz2ra6-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-clock-unit-20261015 -> /nix/store/px1y2lfa859zxbz6h0zhbr33y6z2dzzf-predator-pm-clock-handoff.service
+/nix/var/nix/gcroots/predator-pm-clock-unit-20261013 -> /nix/store/yxwmy2lvipcg3h29lysyrvhwjv7c5v4f-unit-predator-pm-clock-handoff.service
+/nix/var/nix/gcroots/predator-pm-fetch-fix -> /nix/store/8njmvd7jglzd9p3j5n5335bsni1r9hv6-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-ec-off-short-service-20261012 -> /nix/store/yadv4fvsmk4g5rlvv7a076kvsbha0bcb-unit-predator-pm-next.service
+/nix/var/nix/gcroots/predator-pm-o2-20261017 -> /nix/store/1bpx6if8xy33cfy6vydhz0xwyf5vggw0-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-e7-20261017 -> /nix/store/bvazqp3f6gwywix8zi2jkbd8ql3015zw-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-secured-20261013 -> /nix/store/9akcl0kkqqbbfc9nz0a6qlxsmnbcs7sd-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-recorder-off-now-20261015 -> /nix/store/bck0nr6nlqw3538fnzrpaxcf1rpyaigr-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-recorder-off-20261014 -> /nix/store/pgikzrai5d2dw1dh4c3y8gjjm030yyxr-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-colemak-20261015-old-profile -> /nix/store/r9486zx41l7kzaylpg86k0p14c37rnxy-nixos-system-predator-pm-study-26.11.20261001.c59305b
+/nix/var/nix/gcroots/predator-pm-serial-m-20261016 -> /nix/store/nv5zl1fsibd196zjz76435bzl160yhsr-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-colemak-20261015-initrd -> /nix/store/frgh9yx0vfyw36agl4phkdgjhznqmbk1-initrd-linux-6.18.54
+/nix/var/nix/gcroots/current-system -> /run/current-system
+/nix/var/nix/gcroots/predator-pm-tpm-off-evening-20261015 -> /nix/store/wqjpcch9axzfapjdcm572318c7zrcgia-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-wake-path-20261101 -> /nix/store/qar5vnhq2bk1vs3rr7g1z8kwa31bnwn4-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-clock-runtime-20261015 -> /nix/store/wqjpcch9axzfapjdcm572318c7zrcgia-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-next-timer-20261010 -> /nix/store/3c6nqv7nq22x5z12513k5pqa6hqwmvm4-unit-predator-pm-next.timer
+/nix/var/nix/gcroots/predator-pm-tpm-ec-20261009 -> /nix/store/bvwiwiziaym7qzypyw67r4svl5ai1fgl-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-colemak-20261015-profile -> /nix/store/zzz04n8j6lzliymw77yddrl6r4p0gsbj-boot.json
+/nix/var/nix/gcroots/predator-pm-ec-off-short-timer-20261012 -> /nix/store/gq8jdg1mh5hlq7hnahka5i8bq11irvwj-unit-predator-pm-next.timer
+/nix/var/nix/gcroots/predator-pm-wake-path-20261101-v2 -> /nix/store/fgxkwdijv3z3n7iwkn7hv111xhydr8ax-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-secured-10min-20261013 -> /nix/store/iiy0i00ymbwlz6kxfap2wp10w9bvrhwh-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-schema2-15min -> /nix/store/igqgfnnxy3padsnzlxnxlbrv1j8z8i9x-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-isolation-20261010 -> /nix/store/9d2srl30gchm3lkwkidh4xknd589lraw-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/auto/x0gbj3a6pkrf8pgp1jflh7r8qf98kaf4 -> /home/mirsella/dev/predator-pm-debug/pm-repeat-system-20261010
+/nix/var/nix/gcroots/auto/4frnv6r49zqbvq589inla74b5s1388py -> /home/mirsella/dev/predator-pm-debug/pm-ec-on-system-20261011
+/nix/var/nix/gcroots/auto/gd675v650q47l58l4j64s4ggynya0809 -> /home/mirsella/.cache/nix/flake-registry.json
+/nix/var/nix/gcroots/auto/5vsmvx4y8jh25agry1yi9517m59j7v55 -> /nix/var/nix/gcroots/predator-usb-study-20261008
+/nix/var/nix/gcroots/auto/flyfwqkyfmd16i8db61bap5awmbxzm9l -> /home/mirsella/dev/dotfiles/.scratch/pm-instrumented-execution-20261031/runtime-r3-root
+/nix/var/nix/gcroots/auto/2y9py04la5yh1lvqz5gjwzyfdvx7mrdr -> /home/mirsella/dev/predator-pm-debug/pm-ec-off-system-20261012
+/nix/var/nix/gcroots/auto/764ylxj1xsws01529hqp86xn475c2z0k -> /nix/var/nix/gcroots/predator-pm-duration-20261018
+/nix/var/nix/gcroots/auto/pd5bm9zvnplpp3nzkg6svyfc0r1ill23 -> /home/mirsella/dev/dotfiles/.scratch/pm-s2idle-recovery-20261031-2058/clockfix-runtime-root
+/nix/var/nix/gcroots/auto/s1xpk2nlhzzbg5bkxcjz2s26sjwnasys -> /home/mirsella/dev/dotfiles/.scratch/pm-s2idle-rtc-fallback-20261031-2145/runtime-root
+/nix/var/nix/gcroots/auto/8pmi3k1qiapvgsaslqf48mc9b1jl7dcq -> /home/mirsella/result
+/nix/var/nix/gcroots/auto/h2714q9xsy6qil4vxzlxasrnpcql4zxk -> /home/mirsella/dev/dotfiles/.scratch/pm-instrumented-execution-20261031/runtime-root
+/nix/var/nix/gcroots/auto/hd3z4mpya68wchk223swmd731p4x2kmv -> /nix/var/nix/profiles/system-167-link
+/nix/var/nix/gcroots/auto/iiw2h0ql1bf6w8z1x0nfcm8lnf26k3wz -> /home/mirsella/dev/predator-pm-debug/pm-repeat-system-latest-20261010
+/nix/var/nix/gcroots/auto/738jl6q99241nggaymzcx5g5vg3hwpl6 -> /home/mirsella/dev/dotfiles/.scratch/pm-core-timekeeping-check-20261030/runtime-root
+/nix/var/nix/gcroots/auto/kgi89pp5xh16yj6q07xf7kilx5lsv53j -> /home/mirsella/dev/predator-pm-debug/pm-ec-off-short-units-20261012
+/nix/var/nix/gcroots/auto/2m8wm8j83xbdp2b6wmrgd0bgy8qd4r75 -> /root/.cache/nix/flake-registry.json
+/nix/var/nix/gcroots/auto/320i6h0axxci5s1lg9hxfs0rwfkladf1 -> /home/mirsella/.local/state/agent-tools/installed
+/nix/var/nix/gcroots/auto/pl5s7f3ffd2nbsis3yrgyrsahkrf56xq -> /nix/var/nix/gcroots/predator-pm-schema2-15min
+/nix/var/nix/gcroots/auto/i327rfklsi3rp7fnmimszgcmqk6l8l90 -> /nix/var/nix/gcroots/predator-pm-fetch-fix
+/nix/var/nix/gcroots/auto/fcj6m6yfxkjnbdbsxmrx22bb7w23k2d4 -> /home/mirsella/.local/state/agent-tools/bootstrap
+/nix/var/nix/gcroots/auto/zc42wi22lw8f2g5h7qmfpzm23fijp447 -> /nix/var/nix/gcroots/predator-pm-wake-path-20261101
+/nix/var/nix/gcroots/auto/64qr1iwfraiz7wdzmjvqbb5zfazqn172 -> /home/mirsella/dev/predator-pm-debug/pm-ec-off-short-units-20261012-1
+/nix/var/nix/gcroots/auto/h6bkw9k311cjbyy00lhqz22lmzlx2myz -> /home/mirsella/dev/dotfiles/result
+/nix/var/nix/gcroots/auto/45z0cpqgjk1gywayd5kdwm2yvgw409sn -> /home/mirsella/dev/dotfiles/.scratch/pm-serial-q35r1-20261030/runtime-root
+/nix/var/nix/gcroots/auto/0fbs6qwxb12qy5bg6yhllr7r7cmfafz4 -> /home/mirsella/.local/state/home-manager/gcroots/current-home
+/nix/var/nix/gcroots/auto/cg4h8f3ckfyzxvfcwb5angx51g0hz38s -> /nix/var/nix/gcroots/predator-pm-wake-path-20261101-v2
+/nix/var/nix/gcroots/auto/1kzs93y0083j4hqgdiiw4dm7bpgz3p4x -> /home/mirsella/dev/predator-pm-debug/pm-study-system-20261009
+/nix/var/nix/gcroots/auto/ijf6ca66scm9kms834c3dw4ijjq63ma2 -> /home/mirsella/dev/dotfiles/.scratch/pm-diagnostic-readiness-20261030/runtime-root
+/nix/var/nix/gcroots/auto/7dfpklp53hfnvwxb6vqa3ijbafxrxaa1 -> /nix/var/nix/profiles/system-166-link
+/nix/var/nix/gcroots/auto/i4bgldhv4d13hyhl60r5ghrar158kpgp -> /home/mirsella/dev/predator-pm-debug/clock-handoff-unit-20261013
+/nix/var/nix/gcroots/auto/kgql85llkn7zdyy5mijgg72rajiny2m1 -> /home/mirsella/dev/dotfiles/.scratch/pm-s2idle-control-20261031/runtime-root
+/nix/var/nix/gcroots/auto/yffnc5n7v5k5xs8qm6kvja38awdi9y2s -> /home/mirsella/dev/dotfiles/.scratch/pm-phase-diagnostics-20261030/runtime-root
+/nix/var/nix/gcroots/auto/w0rq4k5spai2d73x0wlp1dknq8sqb9cg -> /home/mirsella/.local/state/opencode-v2/extensions
+/nix/var/nix/gcroots/auto/g51h97llkgy1hczkay830y5f27nipi2b -> /nix/var/nix/gcroots/predator-pm-d12
+/nix/var/nix/gcroots/predator-pm-next-service-20261010 -> /nix/store/ic1qz0s57l3mrxr39ks6sc9v9lii3k7s-unit-predator-pm-next.service
+/nix/var/nix/gcroots/predator-usb-study-20261008 -> /nix/store/vzszr8a8vhicy9d73jmdqj3d4b44ii0q-predator-usb-study-20261008
+/nix/var/nix/gcroots/predator-pm-d12 -> /nix/store/iaz4kbmaylajj4zd7gg8d3rl7ckdg9xc-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-duration-20261018 -> /nix/store/5qjb1am045yn7wxqgz24cr919amdza28-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/predator-pm-colemak-20261015-keymap -> /nix/store/xnkkq4g1m7rgn7ki65ilvzjddfzm3j97-xkb-console-keymap
+/nix/var/nix/gcroots/predator-pm-recorder-off-morning-20261014 -> /nix/store/i8zdghm8i97j1yb5r7kvn4899hrz2ra6-predator-pm-study-0.1.0
+/nix/var/nix/gcroots/booted-system -> /run/booted-system
+
+REMOTE REVIEW PREIMAGES
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_path.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+2a824aa24193e5d1c3264c4dd313958db0746ef22dedd5e9d7f4062e2055277c  hosts/predator/pm-study/README.md
+678c83b871243f97ba03b5c92b29ee260722371b4ae309d1b4ee045e7aa054c1  hosts/predator/pm-study/diagnostics/README.md
+afd512a3dfe31f75a4e6687a75c5b9ae9ce744b7eda28a17f619dbd158ddabbc  pkgs/predator-pm-study/wake_path.rs
+6074d8e9863e8d35819a85a84222551cef7c8c3344209f2aaffaa283ab7b4040  pkgs/predator-pm-study/wake_validation.rs
+69bdd984ae587f0d152baae8877315e4acbe705c87b5122ec7626ba71868d75d  pkgs/predator-pm-study/pm_stage.c
+2026-11-01T11:14:35,958906180+01:00

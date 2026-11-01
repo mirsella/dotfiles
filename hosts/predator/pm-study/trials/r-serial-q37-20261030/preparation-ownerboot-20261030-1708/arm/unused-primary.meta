@@ -1,0 +1,7 @@
+host=192.168.1.19
+status=exit status: 0
+script:
+set -eu
+test "$(systemctl show 'predator-pm-r-serial-q37-20261030'.timer -p LoadState --value)" = not-found
+
+stderr:

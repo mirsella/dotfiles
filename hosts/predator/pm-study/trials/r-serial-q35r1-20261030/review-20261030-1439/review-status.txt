@@ -1,0 +1,23 @@
+Trial: r-serial-q35r1-20261030
+Review task deleted successfully at start: scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-serial-q35r1-review-20261030-1439
+Dated guard passed 2026-10-30T14:39:32+01:00, within 14:39..23:00 Europe/Paris.
+Manifest SHA256: 3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e
+Expected and observed boot: 3c1873e4-b866-41e1-b411-702168ef90cf
+Frozen system/kernel/modules and new runtime /nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0 unchanged.
+Collector exit=0; notification-status exit=0; collection issues=[].
+Classification: ABORTED_BEFORE_SUSPEND_MAINTENANCE
+Final preflight refused nextcloud-cron.service activating condition start at 14:12:57. The cron service started activating 14:12:56.983699, started 14:12:57.439108, completed successfully 14:12:58.381263.
+Initial reported awake age=2100s; final common preflight marker reported 2103s before schema-2 maintenance refusal.
+Result epoch=1793365977, Err(request/entry/return failed: active maintenance ...; clock=Ok(())).
+No BEGIN, logind request, deep entry, resume, exit or measured sleep; every one of 1221 kernel-export records matched expected boot.
+Counters=0/0; recorder=N; markers=0; ordinary pm_async=1; trace=0; clock/storage/applications healthy.
+Present: plan, requested, before, recovery, result. Requested is a preflight marker, not a submitted suspend request.
+Absent: return, after-kernel, after-service, verification-kernel, verification, kernel-completed, completed. New bounded resume verifier was not exercised.
+Last-completed is stale October 18 boot5271820b-0d2c-4232-a00e-ebd0bf5c34d2, epoch1792350965; no anchor synthesized.
+Frozen Pi result size=2155775 bytes; SHA256=49e883270e262898167ef6e9602f6143fea0be4ccece80371df6a6aaa18b6eaa.
+Both planned wake commands ran; probe/snapshot succeeded. SSH reachability is not a resume.
+Review notice acknowledged: message88796, epoch1793367866. Dated14:12..14:33 power graph requested, missing. Prior Q35 owner3W report is separate.
+First supplementary inspection stopped on a dashed journal boot-ID argument. Partial stdout/stderr retained; compact-ID continuation and full export succeeded. No missing output was treated as evidence of absence.
+Recommendation only: fresh first serialQ37 at2220s, explicitly adjusted age within Q range, against observed cron timing; keep maintenance guard, corrected runtime and documented controlled startup. Current boot has aged out of Q. No automatic test/reset or polling replacement.
+No runtime/baseline edit, recovery action, commit/push or delegate. No reconstruction of missing original STATE.md/PLAN.md. Preserve unrelated edits and all prior evidence.
+The controller's new notification-status text included the private recipient ID in API acknowledgements. It was redacted before archival; redaction-audit.txt retains the original/new text hashes and replacement count without the private value. No token was present, no old capture was changed, and complete Pi/technical evidence is unchanged.

@@ -1,0 +1,33 @@
+2026-10-30T17:16:51+01:00
+614a8318-dc72-4308-ae89-d4680fafac4e
+572.45 4261.61
+65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a  /var/lib/predator-pm-study/r-serial-q37-20261030-plan.conf
+ActiveState=active
+SubState=waiting
+TimersCalendar={ OnCalendar=2026-10-30 16:44:18 UTC ; next_elapse=Fri 2026-10-30 17:44:18 CET }
+NextElapseUSecRealtime=Fri 2026-10-30 17:44:18 CET
+AccuracyUSec=1s
+RandomizedDelayUSec=0
+Persistent=no
+ActiveState=inactive
+TimeoutStartUSec=25min
+ExecStart={ path=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study attempt-trial /var/lib/predator-pm-study/r-serial-q37-20261030-plan.conf 65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+ExecStopPost={ path=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study ; argv[]=/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0/bin/predator-pm-study restore-trial /var/lib/predator-pm-study/r-serial-q37-20261030-plan.conf 65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+/sys/power/suspend_stats/success=0
+/sys/power/suspend_stats/fail=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/power/pm_async=1
+/sys/power/pm_trace=0
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+No jobs running.
+NTPSynchronized=yes
+NEXT                         LEFT LAST                              PASSED UNIT                                    ACTIVATES
+Fri 2026-10-30 17:17:20 CET   28s Fri 2026-10-30 17:12:20 CET 4min 31s ago nextcloud-cron.timer                    nextcloud-cron.service
+Fri 2026-10-30 17:44:18 CET 27min -                                      - predator-pm-r-serial-q37-20261030.timer predator-pm-r-serial-q37-20261030.service
+-                               - -                                      - night-suspend.timer                     night-suspend.service
+-                               - -                                      - predator-pm-next.timer                  predator-pm-next.service
+
+4 timers listed.

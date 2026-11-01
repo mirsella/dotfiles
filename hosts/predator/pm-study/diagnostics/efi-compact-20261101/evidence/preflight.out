@@ -1,0 +1,51 @@
+2026-11-01T12:40:15,672594486+01:00
+Filesystem      1B-blocks      Used Available Use% Mounted on
+/dev/sdb1      1071624192 210669568 860954624  20% /boot
+efivarfs           163752    156254      2378  99% /sys/firmware/efi/efivars
+Id=zfs-scrub.service
+ActiveState=inactive
+Result=success
+
+Id=nextcloud-cron.service
+ActiveState=inactive
+Result=success
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+A  pkgs/predator-pm-study/boundary-probe.c
+A  pkgs/predator-pm-study/boundary-probe.nix
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_path.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+ae0a8a05c1f52bceac7e5ced8c9668f90ef26b30cd37bbcb5b6c3295a8fb4163  hosts/predator/pm-study.nix
+c379c8e9a9634a26f5a8e1b192e69281ff0491849b993f242c1402f5bb246097  pkgs/predator-pm-study/boundary-probe.c
+7071bfd7b5f4c39ab1e69d7165adddd244032485089108dad5668b2862c9f021  pkgs/predator-pm-study/boundary-probe.nix
+327600518aae7eb6603e9e9623def971e348c6569e1e4a3677c6a19c5b15f5aa  hosts/predator/pm-study/README.md
+7cf8310a8c206ab41502a176c2483019afa6d373b1db640c24ca53d9ae3dc495  hosts/predator/pm-study/diagnostics/README.md
+compact_probe_preflight=PASS

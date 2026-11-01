@@ -1,0 +1,9 @@
+Starting [systemd-run] /nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-plan.conf 91e1616b734ee77a0077bccd130cecfe5621dfa0fba8b2326207e1064a8f4484...
+Started [systemd-run] /nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0/bin/predator-pm-diagnostic run /var/lib/predator-pm-diagnostic/d-freezer-02-20261030-plan.conf 91e1616b734ee77a0077bccd130cecfe5621dfa0fba8b2326207e1064a8f4484.
+DIAG BEGIN id=d-freezer-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 level=freezer ordinal=1 age_since_boot=3422 pm_async=0 test_delay=5 real_s3=forbidden
+DIAG CLEANUP id=d-freezer-02-20261030 pm_test=none pm_async=1
+Error: "LAN profile changed"
+predator-pm-diagnostic-d-freezer-02-20261030.service: Main process exited, code=exited, status=1/FAILURE
+DIAG CLEANUP id=d-freezer-02-20261030 pm_test=none pm_async=1
+predator-pm-diagnostic-d-freezer-02-20261030.service: Failed with result 'exit-code'.
+predator-pm-diagnostic-d-freezer-02-20261030.service: Consumed 1.207s CPU time over 7.260s wall clock time, 11.8M memory peak, 232K read from disk, 480K written to disk.

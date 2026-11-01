@@ -1,0 +1,6 @@
+6074d8e9863e8d35819a85a84222551cef7c8c3344209f2aaffaa283ab7b4040  pkgs/predator-pm-study/wake_validation.rs
+d84db2b41c3f89279938dcc959690d5f41e6a619848dfebeb3864ca31d9f4648  pkgs/predator-pm-study/wake_timing.rs
+618ecaee583e6b2a2a1489649418731ddbfcad3c65f2e9d109772f4c6db602df  pkgs/predator-pm-study/s2idle.rs
+947f45892c8c052553938d4df5e7dbfb36db83d367e7ffde76e14db4156dea87  pkgs/predator-pm-study/instrumented.rs
+61143dbe75133ad76af9f57cd4962d652041237ef7ef558a2d52aca46bb55fd5  pkgs/predator-pm-study/diagnostic.rs
+0a28b1851b4fe42d13d921a2467c4d6d45c831d128c5b502a66971b6135930dd  pkgs/predator-pm-study/network.rs

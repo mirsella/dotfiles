@@ -1,0 +1,22 @@
+{
+  "consumedScheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-s2idle-control-20261031-1145",
+  "exactTaskDeletedAtStart": true,
+  "dateGuardPassedAt": "2026-10-31T11:45:23+01:00",
+  "boot": "ae29f675-9167-4975-a884-01885468bc38",
+  "btime": 1793440484,
+  "before": {"diagnosticCycles": 0, "actualS3Attempts": 0, "s2idleAttempts": 0, "markers": 0},
+  "runtime": "/nix/store/glb3dymq7hxaym5dg6602m1h3isjf17n-predator-pm-study-0.1.0/bin/predator-pm-s2idle",
+  "binarySHA256": "27c4152e2577d3569027fa479a412cb08e63f41a63d99755b45a6e17eaad5a33",
+  "sourceSHA256": "618ecaee583e6b2a2a1489649418731ddbfcad3c65f2e9d109772f4c6db602df",
+  "manifestSHA256": "f22e464bb3aae8404d25ec05f7b4ae3002ba0c757a9d5e69f1199195f13a5820",
+  "softwareTestsPassed": 55,
+  "newProtocolTestsPassed": 9,
+  "nixBuild": "passed",
+  "flakeEvaluation": "passed",
+  "systemActivation": false,
+  "maximumPowerTransitions": 1,
+  "automaticDeepRetry": false,
+  "trialDirectory": "s2idle-20261031",
+  "armingEvidence": "s2idle-20261031/primary-arm.out and observer-arm.out, when created",
+  "hardwareResult": "pending scheduled operation and independent review"
+}

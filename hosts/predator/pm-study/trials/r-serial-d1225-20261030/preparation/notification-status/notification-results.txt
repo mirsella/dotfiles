@@ -1,0 +1,59 @@
+2026-10-29T20:11:02+01:00
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+2026-10-29T20:10:28.059836+0100 raspberrypi systemd[1]: Starting predator-pm-r-serial-d1225-20261030-notice-setup.service - Predator study Telegram notice...
+2026-10-29T20:10:28.284166+0100 raspberrypi curl[84560]: {"ok":true,"result":{"message_id":88755,"from":{"id":1257621125,"is_bot":true,"first_name":"mirsellabot","username":"mirsellabot"},"chat":{"id":932980505,"first_name":"mirsella","type":"private"},"date":1793301028,"text":"Predator / r-serial-d1225-20261030 / Pi observer\nNotifications enabled. Test window: 2026-10-30 08:30:40 CET; first wake 08:46:40 CET, retry +30s. Keep the power graph. Schedule notices do not prove sleep entry."}}
+2026-10-29T20:10:28.284956+0100 raspberrypi systemd[1]: predator-pm-r-serial-d1225-20261030-notice-setup.service: Deactivated successfully.
+2026-10-29T20:10:28.285319+0100 raspberrypi systemd[1]: Finished predator-pm-r-serial-d1225-20261030-notice-setup.service - Predator study Telegram notice.
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --
+Result=success
+ExecMainStatus=0
+LoadState=loaded
+ActiveState=inactive
+-- No entries --

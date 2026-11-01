@@ -1,0 +1,67 @@
+2026-11-01T08:45:01+01:00
+/etc/profiles/per-user/mirsella/bin/nix-store
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+3cad125f3d7e2951755d56251ceade6a4839b2fa9f9526f5c0e2d43e998bb5dc  pkgs/predator-pm-study/Cargo.toml
+6074d8e9863e8d35819a85a84222551cef7c8c3344209f2aaffaa283ab7b4040  pkgs/predator-pm-study/wake_validation.rs
+d84db2b41c3f89279938dcc959690d5f41e6a619848dfebeb3864ca31d9f4648  pkgs/predator-pm-study/wake_timing.rs
+[package]
+name = "predator-pm-study"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "predator-pm-study"
+path = "main.rs"
+
+[[bin]]
+name = "predator-pm-control"
+path = "control.rs"
+
+[[bin]]
+name = "predator-pm-diagnostic"
+path = "diagnostic.rs"
+
+[[bin]]
+name = "predator-pm-instrumented"
+path = "instrumented.rs"
+
+[[bin]]
+name = "predator-pm-s2idle"
+path = "s2idle.rs"
+
+[[bin]]
+name = "predator-pm-wake-validation"
+path = "wake_validation.rs"
+
+[dependencies]
+serde_json = "=1.0.151"

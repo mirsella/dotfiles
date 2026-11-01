@@ -1,0 +1,10 @@
+2026-11-01T08:52:50,095265774+01:00
+active
+/home/mirsella/wol_predator.py: OK
+NEXT                        LEFT       LAST PASSED UNIT                                                  ACTIVATES
+Sun 2026-11-01 09:31:00 CET 38min left -    -      predator-pm-path-path-d3-v2-20261101-wake.timer       predator-pm-path-path-d3-v2-20261101-wake.service
+Sun 2026-11-01 09:31:30 CET 38min left -    -      predator-pm-path-path-d3-v2-20261101-wake-retry.timer predator-pm-path-path-d3-v2-20261101-wake-retry.service
+Sun 2026-11-01 09:36:30 CET 43min left -    -      predator-pm-path-path-d3-v2-20261101-probe.timer      predator-pm-path-path-d3-v2-20261101-probe.service
+Sun 2026-11-01 09:38:00 CET 45min left -    -      predator-pm-path-path-d3-v2-20261101-snapshot.timer   predator-pm-path-path-d3-v2-20261101-snapshot.service
+
+4 timers listed.

@@ -1,0 +1,3 @@
+    PID    PPID     ELAPSED COMMAND
+  21684   21678       04:22 /run/current-system/sw/bin/nix-store --import
+/nix/store/za1xbc473dx1931i13cdphmr8nkjcl4w-nix-2.34.9/bin/nix

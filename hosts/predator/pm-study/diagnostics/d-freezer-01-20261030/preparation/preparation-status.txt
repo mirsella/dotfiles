@@ -1,0 +1,13 @@
+Owner explicitly approved pm_test phase-isolation series and prioritizes information per manual reboot. Exact authorization is preserved in Q37 recovered-20261030-1827/owner-report.txt.
+No agent reset/power/WoL. Healthy owner-recovery boot f8eb6e44-85ae-4e56-bc00-587876699945, btime1793381192.
+Separate source diagnostic.rs and Cargo binary entry; existing ordinary S3 main/trial/controller source unchanged. Kernel/system/TPM/storage unchanged. No system activation.
+Initial build cx78af7cxf8md4xnz8iajnjdz5x75019 was superseded locally after explicit Paris timezone, safe-restoration regression, RTCalarm and final timing guards. Only final package krqqddfkhqipb8dzw02z56b24v9nnljp imported/rooted/armed. Final31 tests and Nix build passed. Package imported administratively with sudo nix-store --import; no trust-policy changes. Local/remote store hashes matched.
+New diagnostic source indexed for Git-backed Nix evaluation only. No commit/push. Other shared changes untouched.
+Stage/check18:51:56 passed. Primary harmless rehearsal stopped; Pi combined stop exit5 because its never-run service was already unloaded. Independent18:53:02 proof confirmed bothPi rehearsalunitsinactive/not-found and timerstopped. No test executed in rehearsal.
+BaselinePi2455085bytes SHA51976dd5042b2bea51bcf70163142fac83a4274cc18f503a89c2c4036f03c91f, exactexpectedboot capture nonce1793382790 received.
+Only d-freezer-01-20261030 armed at18:53:42, due1793383412=19:03:32; plannedage2220, ordinal1/freezer/predecessornone. Manifest9f2e4cbe873f8f5c5a8ead91f707deafcda8d7d260228cec54c7a43e6590c874.
+Pi read-onlyprobe19:05:32 andsnapshot19:07:32. No wakepacket scheduled. Review19:09 verifiedUTC18:09Z, exactselfdeletingtask inreview-schedule.json.
+Independentfinalproofs18:58: expectedboot, primarywaiting/serviceinactive, counters0/0, markers0, recorderN, pm_testnone/async1, norequestedartifact/jobs/failedunits,NTPyes; expectedobserverwaiting/receiveractive/NTPyes.
+Owner notification88813, epoch1793383121, sanitizedackonly. Private token/recipient not archived.
+Archive excludes disposabletarget/, runtime-export.nar andruntime-root symlink; retains source/build/test/import/hash/manifest/health/rehearsal/timer/notification/review evidence. FullPi archived.
+No checkoutTMPDIR override, delegates, commits/pushes or unfinishedbackgroundcommand. Ordinary last-completed remains unrelatedOctober18; diagnostic protocol never writes it. MissingoriginalSTATE/PLAN remainmissing.

@@ -1,0 +1,27 @@
+2026-10-30T18:58:41+01:00
+active
+NTPSynchronized=yes
+NEXT                        LEFT      LAST                         PASSED            UNIT                                                        ACTIVATES
+Fri 2026-10-30 19:05:32 CET 6min left -                            -                 predator-pm-diagnostic-d-freezer-01-20261030-probe.timer    predator-pm-diagnostic-d-freezer-01-20261030-probe.service
+Fri 2026-10-30 19:07:32 CET 8min left -                            -                 predator-pm-diagnostic-d-freezer-01-20261030-snapshot.timer predator-pm-diagnostic-d-freezer-01-20261030-snapshot.service
+-                           -         Thu 2026-10-29 09:21:02 CET  1 day 9h ago      predator-pm-r-async-d1225-20261029-notice-start.timer       predator-pm-r-async-d1225-20261029-notice-start.service
+-                           -         Sat 2026-10-17 18:00:00 CEST 1 week 6 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer        predator-pm-r-async-e7o2-20261017-notice-start.service
+-                           -         Tue 2026-10-20 20:24:11 CEST 1 week 2 days ago predator-pm-r-async-h8-20261020-notice-start.timer          predator-pm-r-async-h8-20261020-notice-start.service
+-                           -         Sun 2026-10-18 21:00:30 CEST 1 week 4 days ago predator-pm-r-async-q30-20261018-notice-start.timer         predator-pm-r-async-q30-20261018-notice-start.service
+-                           -         Fri 2026-10-30 08:30:40 CET  10h ago           predator-pm-r-serial-d1225-20261030-notice-start.timer      predator-pm-r-serial-d1225-20261030-notice-start.service
+-                           -         Sat 2026-10-17 21:24:00 CEST 1 week 5 days ago predator-pm-r-serial-m15-20261017-notice-start.timer        predator-pm-r-serial-m15-20261017-notice-start.service
+-                           -         Fri 2026-10-30 12:35:04 CET  6h ago            predator-pm-r-serial-q35-20261030-notice-start.timer        predator-pm-r-serial-q35-20261030-notice-start.service
+-                           -         Fri 2026-10-30 14:12:53 CET  4h 45min ago      predator-pm-r-serial-q35r1-20261030-notice-start.timer      predator-pm-r-serial-q35r1-20261030-notice-start.service
+-                           -         Fri 2026-10-30 17:44:18 CET  1h 14min ago      predator-pm-r-serial-q37-20261030-notice-start.timer        predator-pm-r-serial-q37-20261030-notice-start.service
+
+11 timers listed.
+NextElapseUSecRealtime=Fri 2026-10-30 19:05:32 CET
+AccuracyUSec=1s
+Persistent=no
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=Fri 2026-10-30 19:07:32 CET
+AccuracyUSec=1s
+Persistent=no
+ActiveState=active
+SubState=waiting

@@ -1,0 +1,29 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+date --iso-8601=seconds
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-setup'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-setup'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-start'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-start'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-wake-ok'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-wake-ok'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-wake-failed'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-wake-failed'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-retry-ok'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-retry-ok'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-retry-failed'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-retry-failed'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-probe-ok'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-probe-ok'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-probe-failed'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-probe-failed'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-snapshot-ok'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-snapshot-ok'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-snapshot-failed'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-snapshot-failed'.service --no-pager -o short-iso-precise
+systemctl show 'predator-pm-r-serial-q35r1-20261030-notice-canceled'.service -p LoadState -p ActiveState -p Result -p ExecMainStatus
+journalctl -u 'predator-pm-r-serial-q35r1-20261030-notice-canceled'.service --no-pager -o short-iso-precise
+
+stderr:

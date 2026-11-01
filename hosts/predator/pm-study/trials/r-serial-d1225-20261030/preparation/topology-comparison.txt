@@ -1,0 +1,1 @@
+All captured USB paths, identities, serials, speeds, power controls and runtime-status snapshots match the prior async D preparation. Reset histories remain nonidentical.

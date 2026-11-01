@@ -1,0 +1,5 @@
+operation=Ok(Cycle { start: Stamp { source_mono: 46422106201, source_boot: 46422106201, receipt_mono: 45289594362, receipt_real: 1793522103735087 }, end: Stamp { source_mono: 47579130966, source_boot: 47579130966, receipt_mono: 45289594488, receipt_real: 1793522103735214 } })
+reader_stop=Ok(())
+reader_reap=Ok(ExitStatus(unix_wait_status(9)))
+reader_joined=true
+pre_restore_epoch=1793522104

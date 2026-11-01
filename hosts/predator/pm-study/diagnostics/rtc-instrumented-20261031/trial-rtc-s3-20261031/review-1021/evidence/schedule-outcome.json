@@ -1,0 +1,14 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-rtc-s3-review-20261031-1021",
+  "deletedAtStart": true,
+  "dateGuardPassedAt": "2026-10-31T10:21:20+01:00",
+  "collectorInvocations": 1,
+  "classification": "UNREACHABLE_AFTER_S3_ENTRY_AND_SCHEDULED_WOL",
+  "primaryRetrieval": "SSH exit255, No route to host; artifacts not retrieved, not proven absent",
+  "newPowerOperationsDuringReview": 0,
+  "repeatTrialAuthorized": false,
+  "nextScheduledTask": null,
+  "powerGraph": "not provided",
+  "manualRecovery": "requested, not yet observed",
+  "remoteDocumentationSync": "blocked by Predator unreachability; local reviewed archive pending sync after recovery"
+}

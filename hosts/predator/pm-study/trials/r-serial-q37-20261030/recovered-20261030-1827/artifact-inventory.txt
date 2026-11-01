@@ -1,0 +1,46 @@
+2026-10-30T18:44:02+01:00
+r-serial-q37-20261030-before.txt 110803 2026-10-30T17:44:21.0810244800
+85eab59c48a7e258b3577b5a267aceef66e4fedc100bd579b9bccb2e65a270be  /var/lib/predator-pm-study/r-serial-q37-20261030-before.txt
+r-serial-q37-20261030-plan.conf 646 2026-10-30T17:11:26.1245966890
+65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a  /var/lib/predator-pm-study/r-serial-q37-20261030-plan.conf
+r-serial-q37-20261030-requested.txt 646 2026-10-30T17:44:18.4960119910
+65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a  /var/lib/predator-pm-study/r-serial-q37-20261030-requested.txt
+boot=5271820b-0d2c-4232-a00e-ebd0bf5c34d2
+successes=1
+markers=0
+completed_epoch=1792350965
+ABSENT=return
+ABSENT=after-kernel
+ABSENT=after-service
+ABSENT=recovery
+ABSENT=result
+ABSENT=verification-kernel
+ABSENT=verification
+ABSENT=kernel-completed
+ABSENT=completed
+NEXT                            LEFT LAST                              PASSED UNIT                 ACTIVATES
+Fri 2026-10-30 18:46:37 CET 2min 35s Fri 2026-10-30 18:41:37 CET 2min 24s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+TimersMonotonic={ OnUnitActiveUSec=5min ; next_elapse=20min 5.002989s }
+TimersMonotonic={ OnBootUSec=5min ; next_elapse=5min }
+NextElapseUSecMonotonic=20min 5.002989s
+LastTriggerUSec=Fri 2026-10-30 18:41:37 CET
+AccuracyUSec=1min
+2026-10-30T18:31:37.424140+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T18:31:37.896093+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T18:31:39.589383+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+2026-10-30T18:31:39.590805+01:00 predator systemd[1]: nextcloud-cron.service: Consumed 1.049s CPU time over 2.165s wall clock time, 53.4M memory peak, 1.9M read from disk, 232K written to disk.
+2026-10-30T18:36:37.732725+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T18:36:38.124115+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T18:36:38.892213+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+2026-10-30T18:41:37.783229+01:00 predator systemd[1]: Starting nextcloud-cron.service...
+2026-10-30T18:41:38.202264+01:00 predator systemd[1]: Started nextcloud-cron.service.
+2026-10-30T18:41:39.034722+01:00 predator systemd[1]: nextcloud-cron.service: Deactivated successfully.
+000000 44 42 47 32 54 00 00 00 00 2f 41 43 52 53 59 53  >DBG2T..../ACRSYS<
+000010 41 43 52 50 52 44 43 54 02 00 00 00 31 30 32 35  >ACRPRDCT....1025<
+000020 00 00 04 00 2c 00 00 00 01 00 00 00 00 28 00 01  >....,........(..<
+000030 02 00 26 00 00 00 00 00 00 80 00 00 00 00 16 00  >..&.............<
+000040 22 00 01 08 00 00 f8 03 00 00 00 00 00 00 20 00  >"............. .<
+000050 00 00 2e 00                                      >....<
+000054

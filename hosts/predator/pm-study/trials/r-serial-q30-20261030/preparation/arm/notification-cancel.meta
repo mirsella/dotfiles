@@ -1,0 +1,7 @@
+host=192.168.1.166
+status=exit status: 0
+script:
+set -eu
+if test "$(systemctl show 'predator-pm-r-serial-q30-20261030-notice-start'.timer -p LoadState --value)" != not-found; then systemctl stop 'predator-pm-r-serial-q30-20261030-notice-start'.timer; systemctl start 'predator-pm-r-serial-q30-20261030-notice-canceled'.service; fi
+
+stderr:

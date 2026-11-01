@@ -1,0 +1,23 @@
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-rehearsal.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /run/current-system/sw/bin/true
+
+[Timer]
+OnCalendar=@1793301578
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-r-serial-d1225-20261030-rehearsal.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=[systemd-run] /run/current-system/sw/bin/true
+
+[Service]
+Type=oneshot
+ExecStart=
+ExecStart="/run/current-system/sw/bin/true"
+ActiveState=inactive
+SubState=dead

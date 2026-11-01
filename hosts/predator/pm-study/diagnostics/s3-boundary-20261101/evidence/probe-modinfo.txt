@@ -1,0 +1,21 @@
+filename:       /home/mirsella/dev/dotfiles/.scratch/pm-s3-boundary-20261101/probe-root/lib/modules/6.18.58/extra/pm_boundary_probe.ko.xz
+description:    One-write awake EFI transport probe; no suspend or RTC operation
+license:        GPL
+import_ns:      EFIVAR
+depends:        
+name:           pm_boundary_probe
+retpoline:      Y
+vermagic:       6.18.58 SMP preempt mod_unload 
+sig_id:         PKCS#7
+signer:         ko
+sig_key:        43:68:1D:EF:47:9D:53:92:B0:37:54:B0:C4:A6:B7:40:2F
+sig_hashalgo:   sha256
+signature:      30:45:02:20:1B:6E:0A:15:EA:6E:E8:9C:A8:7B:53:B8:96:62:7C:6B:
+		92:09:9C:D7:D6:57:7A:5B:27:AC:F0:76:6F:4A:BF:A2:02:21:00:EC:
+		92:7A:06:12:53:FE:59:19:43:C2:5F:27:DA:EC:05:10:00:C4:4D:56:
+		0A:82:CA:E5:1E:CB:93:09:38:AE:C0
+parm:           nonce:charp
+parm:           boot_id:charp
+parm:           last_errno:int
+parm:           last_efi_status:ulong
+parm:           duration_ns:ulong

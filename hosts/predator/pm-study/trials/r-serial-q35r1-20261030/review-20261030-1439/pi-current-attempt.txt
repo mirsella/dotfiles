@@ -1,0 +1,39 @@
+[ 2100.379225] CAPTURE CHECK boot=3c1873e4-b866-41e1-b411-702168ef90cf active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793365973
+# recv 2026-10-30T14:12:53+0100
+[ 2100.379272] 
+# recv 2026-10-30T14:12:54+0100
+[ 2100.797328] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T14:12:54+0100
+[ 2100.797332] PREFLIGHT boot=3c1873e4-b866-41e1-b411-702168ef90cf uptime=2100.69 16176.83 awake_since_verified_return=2100s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+# recv 2026-10-30T14:12:54+0100
+[ 2100.797351] 
+# recv 2026-10-30T14:12:55+0100
+[ 2102.308233] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T14:12:55+0100
+[ 2102.308244] WARMED /dev/disk/by-id/wwn-0x5000c500aa3cc143-part1
+# recv 2026-10-30T14:12:55+0100
+[ 2102.308297] 
+# recv 2026-10-30T14:12:56+0100
+[ 2102.626502] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T14:12:56+0100
+[ 2102.626514] WARMED /dev/disk/by-id/wwn-0x500003961228993f-part1
+# recv 2026-10-30T14:12:56+0100
+[ 2102.626595] 
+# recv 2026-10-30T14:12:56+0100
+[ 2102.644596] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T14:12:56+0100
+[ 2102.644607] WARMED /dev/disk/by-id/wwn-0x50014ee26a2aa7c6-part1
+# recv 2026-10-30T14:12:56+0100
+[ 2102.644680] 
+# recv 2026-10-30T14:12:57+0100
+[ 2103.810948] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T14:12:57+0100
+[ 2103.810970] PREFLIGHT boot=3c1873e4-b866-41e1-b411-702168ef90cf uptime=2103.70 16198.09 awake_since_verified_return=2103s prior_successes=0 prior_markers=0 active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 TPM=initialized raw-EC=not-run deep=1 fast=tank=healthy
+# recv 2026-10-30T14:12:57+0100
+[ 2103.811592] 
+# recv 2026-10-30T14:12:57+0100
+[ 2103.906587] pm-debug: tpm-ec-study-20261009 
+# recv 2026-10-30T14:12:57+0100
+[ 2103.906591] TRIAL CLEANUP id=r-serial-q35r1-20261030 pm_async=1 timesyncd=started
+# recv 2026-10-30T14:12:57+0100
+[ 2103.907279] 

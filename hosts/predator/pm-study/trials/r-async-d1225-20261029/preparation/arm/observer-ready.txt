@@ -1,0 +1,4 @@
+active
+[  341.881105] CAPTURE CHECK boot=b223cb35-a02b-4417-a3db-569ad986cd4b active_generation=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363 nonce=1793217703
+2142644e-84db-40ae-b1b9-9e8c71265cf7
+2026-10-28T21:01:44+01:00

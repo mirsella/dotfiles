@@ -1,6 +1,6 @@
 # r-async-h8-20261020: owner-confirmed hang
 
-Testing is paused at the owner's request on October 21. All study schedules have been removed. Wait for the owner to report that someone has booted Predator and request resumption; do not automatically probe, recover, prepare or arm another trial.
+The owner paused testing on October 21, then reported Predator online and requested deployment and resumed scheduling on October 27. This trial remains an owner-confirmed HANG. See the study README for the current plan.
 
 Review at 20:51 to 20:54 CEST on October 20 established an executed suspend attempt, not a canceled timer or preflight refusal. The owner subsequently confirmed a hang and said nobody was home to reboot it, recorded at 23:26. Detailed wattage, the full dated graph and the exact failure phase remain unavailable. No compliant PASS can be claimed.
 
@@ -29,7 +29,7 @@ The final visible message is `[29103.718187] i2c_designware i2c_designware.1: PM
 
 Pi journals confirm both scheduled WoL sends succeeded at 20:40:11 and 20:40:41. That proves transmission, not receipt by Predator. The scheduled LAN SSH probe failed at 20:41:44. A fresh read-only WAN SSH check at the review returned `No route to host`; the Pi neighbor was FAILED and its additional read-only LAN probe returned no host key.
 
-There is no resume, measured sleep duration or verified completion for this trial in the frozen Pi excerpt. Predator's own result, kernel journal, counters, NTP and storage recovery state remain unavailable. Network loss alone does not distinguish failed entry, failed wake or failed return.
+There is no resume, measured sleep duration or verified completion for this trial in the frozen Pi excerpt. At the original review, Predator's own artifacts were inaccessible. The October 27 collection below recovers its retained pre-entry records and journal. Network loss alone does not distinguish failed entry, failed wake or failed return.
 
 ## Complete observer evidence
 
@@ -50,10 +50,18 @@ Current status is HANG, confirmed by the owner. This does not establish whether 
 
 At 23:26 on October 20, the owner asked whether draining the battery by switching off AC, restoring AC and sending WoL could recover it. That message was a question, not a reported power action or authorization for agent recovery. On October 21 the owner subsequently reported that the battery reached 0% and WoL did not boot Predator, then requested pausing the schedules until someone boots it. The owner's explanation that wake configuration was lost has not been verified by inspecting firmware or the NIC. No agent plug operation, extra WoL or other recovery command was performed.
 
-There is no scheduled follow-up while the study is paused. No agent restart, extra WoL recovery, power toggle, unlock, TPM/LUKS/keyslot/firmware change, new suspend or new preparation reboot was performed. Booting Predator is the owner's action. After the owner reports recovery and requests resumption, preserve any retained old-boot artifacts before another preparation.
+No follow-up ran during the pause. No agent restart, extra WoL recovery, power toggle, unlock, TPM/LUKS/keyslot/firmware change or suspend was used to recover this hang. The owner reported the machine online on October 27; the agent collected the retained old-boot artifacts before deployment.
 
 The spent 20:51 review, 21:15 follow-up and October 21 09:30 and 17:00 checks were deleted. The remaining October 22 `pm H recovery Thu` task was also deleted at the owner's request. The scheduler was checked afterward and contained no tasks bound to this thread. No polling, preparation or real trial is scheduled.
 
 An additional Pi review notification was attempted using its existing private curl configuration, without reading or displaying credentials. It failed with Telegram API connection timeout, curl exit 28. This is recorded in `review-2051/review-notice.*`; delivery must not be claimed. The earlier probe-failure and snapshot messages did succeed.
 
-When the owner requests resumption after recovery, first collect retained H artifacts and establish actual boot identity and health. The unfinished sequence is fresh async D, then matched fresh serial D and controlled repeat E with identical serial D primers. Do not silently substitute ages, reboot an armed or stuck machine, or discard an eligible recovered boot. New preparation requires working access/storage, fresh health gates and the full 09:00 to 21:30 observation window.
+Recovery collection and deployment were completed on October 28; see the current study README for the scheduled preparation. The unfinished sequence is fresh async D, then matched fresh serial D and controlled repeat E with identical serial D primers. Do not silently substitute ages, reboot an armed or stuck machine, or discard an eligible recovered boot. New preparation requires working access/storage and fresh health gates. On October 28 the owner expanded the observation window to 08:00–23:00 Europe/Paris; the full trial and evidence review must fit it.
+
+## Retained evidence recovered October 27
+
+`recovered-20261027/` contains the byte-exact retained `before`, `plan` and `requested` files, the complete available old-boot kernel journal, the trial and suspend service journal, and the initial Predator/Pi health observations. `SHA256SUMS` covers these files. The plan and request both hash to `ef84699fe4007f6c9a749a045a2dabd8ecf015f48182e5c44164802c465fcd4e`; the pre-entry capture hashes to `57f2c59318ff06c83bb9efec2d3d20216ff5541f9df20174e9e25b4c443166fa`.
+
+The retained journal ends at `PM: suspend entry (deep)` at kernel time `29103.694056`. The directory contains no H return, result or completion artifact. This adds persistent-journal evidence but does not identify the failing callback or establish whether physical sleep occurred. The Pi's frozen H snapshot still has its original verified hash. Numeric power readings and the dated H graph remain missing.
+
+Predator's new boot is `9c19e8c7-a404-454c-813e-ced03d90a71c`, with boot epoch `1793120798` and initial counters 0/0. The owner has not described the exact physical recovery procedure. Both pools and all five mounts were healthy. The inherited LAN connection lacked DNS; the existing declared profile restored DNS and fresh NTP before the deployment build.

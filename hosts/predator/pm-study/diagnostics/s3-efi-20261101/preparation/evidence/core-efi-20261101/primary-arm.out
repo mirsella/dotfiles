@@ -1,0 +1,12 @@
+2026-11-01T13:34:32,744601362+01:00
+BOUNDARY READY id=core-efi-20261101 nonce=core1101a boot=39d7579b-b86d-4d30-b910-131943e550c8
+ActiveState=inactive
+Restart=no
+RuntimeMaxUSec=15min
+MainPID=0
+ExecStart={ path=/nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0/bin/predator-pm-boundary-trial ; argv[]=/nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0/bin/predator-pm-boundary-trial run /var/lib/predator-pm-efi-s3/core-efi-20261101-plan.conf 95344780cda5a343d3bbe5c757456aff0408d5ae027587d5da0d4215f7f3e5e3 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+ExecStopPost={ path=/nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0/bin/predator-pm-boundary-trial ; argv[]=/nix/store/5142bjnrl7jnyh2b9zb8ac8ki40xmpzm-predator-pm-study-0.1.0/bin/predator-pm-boundary-trial restore /var/lib/predator-pm-efi-s3/core-efi-20261101-plan.conf 95344780cda5a343d3bbe5c757456aff0408d5ae027587d5da0d4215f7f3e5e3 ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+NEXT                         LEFT LAST PASSED UNIT                                         ACTIVATES
+Sun 2026-11-01 13:45:00 CET 10min -         - predator-pm-boundary-core-efi-20261101.timer predator-pm-boundary-core-efi-20261101.service
+
+1 timers listed.

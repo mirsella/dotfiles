@@ -1,0 +1,4 @@
+# /etc/systemd/sleep.conf -> /nix/store/s92zvg3p116x5jdyvb149b2kxrzngncq-etc-systemd-sleep.conf
+[Sleep]
+AllowHibernation=false
+AllowSuspend=true

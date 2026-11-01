@@ -1,0 +1,10 @@
+boot=356dd395-0874-4edd-93a5-bf3e0e316fee
+due=1791698400
+wake=1791700200
+tpm=initialized
+raw_ec=boot-writes
+min_awake_seconds=64800
+requested_epoch=1791698400
+cmdline=init=/nix/store/vyn5590sm8rark2k3mwnxq38a0dr23p0-nixos-system-predator-pm-study-ec-on-26.11.20261001.c59305b/init consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+booted_generation=/nix/store/vyn5590sm8rark2k3mwnxq38a0dr23p0-nixos-system-predator-pm-study-ec-on-26.11.20261001.c59305b
+active_generation=/nix/store/a4f7h0kp099rqm667sw6hsyb3jgn0x5g-nixos-system-predator-26.11.20261001.c59305b

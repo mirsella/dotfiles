@@ -1,0 +1,106 @@
+2026-10-30T14:58:59+01:00
+active
+/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log 2181931 2026-10-30 14:53:34.742530279 +0100
+# recv 2026-10-30T14:53:34+0100
+[ 4540.970544] usb usb1-port3: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4540.971331] usb usb1-port2: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4540.972104] usb usb1-port1: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4540.972932] hub 1-0:1.0: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4540.973720] rtsx_pci_sdmmc rtsx_pci_sdmmc.0: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4540.974469] atkbd serio0: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4540.976847] i8042 i8042: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4540.978168] tpm tpm0: shutdown_pre
+# recv 2026-10-30T14:53:34+0100
+[ 4541.264024] serial8250 serial8250: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.264851] pcie_bwctrl 0000:00:1c.3:pcie010: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.265634] pcie_bwctrl 0000:00:1c.0:pcie010: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.266401] pcie_bwctrl 0000:00:01.0:pcie010: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.267159] platform pcspkr: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.267917] snd_hda_intel 0000:01:00.1: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.293220] snd_hda_intel 0000:01:00.1: calling  nv_msi_ht_cap_quirk_leaf+0x0/0x30 @ 1
+# recv 2026-10-30T14:53:34+0100
+[ 4541.294072] snd_hda_intel 0000:01:00.1: nv_msi_ht_cap_quirk_leaf+0x0/0x30 took 6 usecs
+# recv 2026-10-30T14:53:34+0100
+[ 4541.297733] system 00:06: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.298582] system 00:05: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.299382] i8042 kbd 00:04: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.300159] system 00:03: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.300945] system 00:02: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.301768] system 00:01: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.302569] system 00:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.303334] platform efivars.0: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.304117] platform rtc-efi.0: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.304892] platform 10251229:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.305677] acpi-fan PNP0C0B:04: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.306482] acpi-fan PNP0C0B:03: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.307225] acpi-fan PNP0C0B:02: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.307954] acpi-fan PNP0C0B:01: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.308689] acpi-fan PNP0C0B:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.309405] platform MSFT0101:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.310188] acpi-button PNP0C0C:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.310998] intel_pmc_core INT33A1:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.311791] processor_aggregator ACPI000C:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.312561] acpi-wmi PNP0C14:02: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.313301] acpi-button PNP0C0E:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.314042] acpi-wmi PNP0C14:01: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.314771] acpi-wmi PNP0C14:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.315514] sunrisepoint-pinctrl INT345D:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.316224] acpi-button PNP0C0D:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.316971] ac ACPI0003:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.317718] platform PNP0C0A:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.318524] platform PNP0C09:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.319281] intel_oc_wdt INT3F0D:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.320048] rtc_cmos PNP0B00:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.321082] platform PNP0C04:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.321831] platform PNP0103:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.322588] platform INT0800:00: shutdown
+# recv 2026-10-30T14:53:34+0100
+[ 4541.323329] r8169 0000:03:00.1: shutdown
+192.168.1.19 dev wlan0 lladdr 98:29:a6:3a:a7:50 STALE 
+LAN_KEYSCAN_EXIT=1
+192.168.1.19 dev wlan0 lladdr 98:29:a6:3a:a7:50 DELAY 

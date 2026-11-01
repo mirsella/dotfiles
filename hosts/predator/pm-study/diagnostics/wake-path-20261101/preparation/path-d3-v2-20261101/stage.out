@@ -1,0 +1,9 @@
+2026-11-01T08:51:50,980373614+01:00
+NEXT                            LEFT LAST                         PASSED UNIT                 ACTIVATES
+Sun 2026-11-01 08:56:17 CET 4min 26s Sun 2026-11-01 08:51:17 CET 33s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+ActiveState=inactive
+ExecMainStartTimestamp=Sun 2026-11-01 08:51:17 CET
+ExecMainExitTimestamp=Sun 2026-11-01 08:51:18 CET
+WAKEPATH READY id=path-d3-v2-20261101 nonce=path-d3-v2-20261101-1793520900

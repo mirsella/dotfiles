@@ -1,0 +1,18 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-wol-rtc-review-20261031-2245",
+  "enabled": true,
+  "boundThreadId": "309aecdf-080d-5358-9ce9-8360afbd7c4d",
+  "nextRunAt": "2026-10-31T21:45:00.000Z",
+  "timezone": "Europe/Paris",
+  "dateGuard": "2026-10-31",
+  "selfDeleteExactTaskAtStart": true,
+  "entry": "2026-10-31T22:15:00+01:00",
+  "wol": "2026-10-31T22:31:00+01:00",
+  "wolRetry": "2026-10-31T22:31:30+01:00",
+  "rtcFallback": "2026-10-31T22:35:00+01:00",
+  "probe": "2026-10-31T22:36:30+01:00",
+  "snapshot": "2026-10-31T22:38:00+01:00",
+  "review": "2026-10-31T22:45:00+01:00",
+  "scope": "Read-only review of one s2idle WoL/RTC-fallback trial; no additional power transition",
+  "physicalDurationProof": "pending dated22:13..22:40 graph"
+}

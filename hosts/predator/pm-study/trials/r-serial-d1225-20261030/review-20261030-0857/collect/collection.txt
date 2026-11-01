@@ -1,0 +1,4 @@
+trial=r-serial-d1225-20261030
+epoch=1793347281
+issues=["result-predator failed: exit status: 255; preserved \"/home/mirsella/dev/dotfiles/.scratch/pm-serial-review-20261030-0857/collect/result-predator.txt\""]
+classification=requires_power_graph_and_boot_bound_review

@@ -1,0 +1,14 @@
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling predator-pm-study v0.1.0 (/home/mirsella/dev/dotfiles/pkgs/predator-pm-study)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.96s
+     Running unittests control.rs (.scratch/pm-wake-path-20261101-0830/target/debug/build/predator-pm-study/e6d3602a745bcc53/out/predator_pm_control-e6d3602a745bcc53)
+     Running unittests diagnostic.rs (.scratch/pm-wake-path-20261101-0830/target/debug/build/predator-pm-study/b591c73fe0c54c86/out/predator_pm_diagnostic-b591c73fe0c54c86)
+     Running unittests instrumented.rs (.scratch/pm-wake-path-20261101-0830/target/debug/build/predator-pm-study/c6566977a1a533e5/out/predator_pm_instrumented-c6566977a1a533e5)
+     Running unittests s2idle.rs (.scratch/pm-wake-path-20261101-0830/target/debug/build/predator-pm-study/7c29cc99ca48d1e7/out/predator_pm_s2idle-7c29cc99ca48d1e7)
+     Running unittests main.rs (.scratch/pm-wake-path-20261101-0830/target/debug/build/predator-pm-study/ebeff98817f411d6/out/predator_pm_study-ebeff98817f411d6)
+     Running unittests wake_path.rs (.scratch/pm-wake-path-20261101-0830/target/debug/build/predator-pm-study/e597a7ab3c38911a/out/predator_pm_wake_path-e597a7ab3c38911a)
+     Running unittests wake_validation.rs (.scratch/pm-wake-path-20261101-0830/target/debug/build/predator-pm-study/c5ece21e7c26f204/out/predator_pm_wake_validation-c5ece21e7c26f204)

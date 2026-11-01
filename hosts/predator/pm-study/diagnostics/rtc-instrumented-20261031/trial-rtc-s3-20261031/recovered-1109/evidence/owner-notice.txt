@@ -1,0 +1,5 @@
+Predator recovered and is healthy. Recorded your report: 15 W hang, followed by forced reboot. The retained RTC marker points to ACPI S3 low-level entry; no return marker was retained. That narrows the boundary but does not identify the faulty component.
+
+Scheduled October 31 at 11:45 CET: prepare, validate and run ONE instrumented s2idle control with Pi WoL. It tests suspend/resume without entering firmware S3. Actual entry, wake and review times will be sent before arming, after the new protocol and health checks pass. No new sleep timer is armed yet.
+
+Please retain the dated power graph. S2idle can draw more than the usual 3 W S3 sleep, so its wattage must be interpreted together with whether it wakes and restores normally.

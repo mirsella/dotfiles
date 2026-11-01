@@ -1,0 +1,325 @@
+2026-10-30T13:07:58+01:00
+Id=podman.service
+Triggers=
+TriggeredBy=podman.socket
+ActiveState=inactive
+SubState=dead
+Result=success
+ExecMainStatus=0
+
+Id=podman.socket
+Triggers=podman.service
+TriggeredBy=
+ActiveState=active
+SubState=listening
+Result=success
+active
+active
+active
+active
+2026-10-30T12:51:42.161664+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:51:42.188889+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:51:42.240032+01:00 predator podman[18765]: time="2026-10-30T12:51:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:51:42.240032+01:00 predator podman[18765]: time="2026-10-30T12:51:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:51:42.241836+01:00 predator podman[18765]: time="2026-10-30T12:51:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:51:42.248227+01:00 predator podman[18765]: time="2026-10-30T12:51:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:51:42.248902+01:00 predator podman[18765]: time="2026-10-30T12:51:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:51:42.316832+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:51:42.340880+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1674 "" "Docker-Client/"
+2026-10-30T12:51:42.341566+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1688 "" "Docker-Client/"
+2026-10-30T12:51:42.341566+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1685 "" "Docker-Client/"
+2026-10-30T12:51:42.343923+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2236 "" "Docker-Client/"
+2026-10-30T12:51:42.363858+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9317 "" "Docker-Client/"
+2026-10-30T12:51:42.363858+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10306 "" "Docker-Client/"
+2026-10-30T12:51:42.364981+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8394 "" "Docker-Client/"
+2026-10-30T12:51:42.366348+01:00 predator podman[18765]: @ - - [30/Oct/2026:12:51:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6292 "" "Docker-Client/"
+2026-10-30T12:51:57.365305+01:00 predator podman[18765]: time="2026-10-30T12:51:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=18765
+2026-10-30T12:51:57.376532+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T12:52:42.157957+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:52:42.186666+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:52:42.241120+01:00 predator podman[19177]: time="2026-10-30T12:52:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:52:42.241120+01:00 predator podman[19177]: time="2026-10-30T12:52:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:52:42.242381+01:00 predator podman[19177]: time="2026-10-30T12:52:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:52:42.248391+01:00 predator podman[19177]: time="2026-10-30T12:52:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:52:42.249065+01:00 predator podman[19177]: time="2026-10-30T12:52:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:52:42.314522+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:52:42.335351+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1676 "" "Docker-Client/"
+2026-10-30T12:52:42.335764+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2236 "" "Docker-Client/"
+2026-10-30T12:52:42.335950+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1687 "" "Docker-Client/"
+2026-10-30T12:52:42.336645+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1670 "" "Docker-Client/"
+2026-10-30T12:52:42.355197+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9317 "" "Docker-Client/"
+2026-10-30T12:52:42.362315+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8393 "" "Docker-Client/"
+2026-10-30T12:52:42.362570+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6292 "" "Docker-Client/"
+2026-10-30T12:52:42.363376+01:00 predator podman[19177]: @ - - [30/Oct/2026:12:52:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10306 "" "Docker-Client/"
+2026-10-30T12:52:57.357200+01:00 predator podman[19177]: time="2026-10-30T12:52:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=19177
+2026-10-30T12:52:57.365752+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T12:53:42.153125+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:53:42.166003+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:53:42.185176+01:00 predator podman[19558]: time="2026-10-30T12:53:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:53:42.185176+01:00 predator podman[19558]: time="2026-10-30T12:53:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:53:42.186039+01:00 predator podman[19558]: time="2026-10-30T12:53:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:53:42.188608+01:00 predator podman[19558]: time="2026-10-30T12:53:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:53:42.188885+01:00 predator podman[19558]: time="2026-10-30T12:53:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:53:42.231505+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:53:42.252363+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1670 "" "Docker-Client/"
+2026-10-30T12:53:42.252363+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2236 "" "Docker-Client/"
+2026-10-30T12:53:42.252363+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1688 "" "Docker-Client/"
+2026-10-30T12:53:42.252363+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1676 "" "Docker-Client/"
+2026-10-30T12:53:42.269780+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6291 "" "Docker-Client/"
+2026-10-30T12:53:42.270647+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10305 "" "Docker-Client/"
+2026-10-30T12:53:42.274168+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9317 "" "Docker-Client/"
+2026-10-30T12:53:42.274372+01:00 predator podman[19558]: @ - - [30/Oct/2026:12:53:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8392 "" "Docker-Client/"
+2026-10-30T12:53:57.270821+01:00 predator podman[19558]: time="2026-10-30T12:53:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=19558
+2026-10-30T12:53:57.281429+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T12:54:42.159128+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:54:42.189754+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:54:42.237391+01:00 predator podman[19958]: time="2026-10-30T12:54:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:54:42.237391+01:00 predator podman[19958]: time="2026-10-30T12:54:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:54:42.238646+01:00 predator podman[19958]: time="2026-10-30T12:54:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:54:42.244246+01:00 predator podman[19958]: time="2026-10-30T12:54:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:54:42.244803+01:00 predator podman[19958]: time="2026-10-30T12:54:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:54:42.311658+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:54:42.331433+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1670 "" "Docker-Client/"
+2026-10-30T12:54:42.333905+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2236 "" "Docker-Client/"
+2026-10-30T12:54:42.334124+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1675 "" "Docker-Client/"
+2026-10-30T12:54:42.345915+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1688 "" "Docker-Client/"
+2026-10-30T12:54:42.353227+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6290 "" "Docker-Client/"
+2026-10-30T12:54:42.355474+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10305 "" "Docker-Client/"
+2026-10-30T12:54:42.361162+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9317 "" "Docker-Client/"
+2026-10-30T12:54:42.362381+01:00 predator podman[19958]: @ - - [30/Oct/2026:12:54:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8391 "" "Docker-Client/"
+2026-10-30T12:54:57.355126+01:00 predator podman[19958]: time="2026-10-30T12:54:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=19958
+2026-10-30T12:54:57.365661+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T12:55:42.159825+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:55:42.192479+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:55:42.240297+01:00 predator podman[20357]: time="2026-10-30T12:55:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:55:42.240297+01:00 predator podman[20357]: time="2026-10-30T12:55:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:55:42.241569+01:00 predator podman[20357]: time="2026-10-30T12:55:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:55:42.247349+01:00 predator podman[20357]: time="2026-10-30T12:55:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:55:42.247983+01:00 predator podman[20357]: time="2026-10-30T12:55:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:55:42.313076+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:55:42.332563+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1676 "" "Docker-Client/"
+2026-10-30T12:55:42.332979+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2235 "" "Docker-Client/"
+2026-10-30T12:55:42.332979+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1688 "" "Docker-Client/"
+2026-10-30T12:55:42.338199+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1686 "" "Docker-Client/"
+2026-10-30T12:55:42.355149+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6291 "" "Docker-Client/"
+2026-10-30T12:55:42.356278+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9316 "" "Docker-Client/"
+2026-10-30T12:55:42.358314+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10306 "" "Docker-Client/"
+2026-10-30T12:55:42.358314+01:00 predator podman[20357]: @ - - [30/Oct/2026:12:55:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8392 "" "Docker-Client/"
+2026-10-30T12:55:57.358538+01:00 predator podman[20357]: time="2026-10-30T12:55:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=20357
+2026-10-30T12:55:57.368937+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T12:56:42.160558+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:56:42.194129+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:56:42.248149+01:00 predator podman[20766]: time="2026-10-30T12:56:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:56:42.248149+01:00 predator podman[20766]: time="2026-10-30T12:56:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:56:42.249411+01:00 predator podman[20766]: time="2026-10-30T12:56:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:56:42.254956+01:00 predator podman[20766]: time="2026-10-30T12:56:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:56:42.255392+01:00 predator podman[20766]: time="2026-10-30T12:56:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:56:42.318866+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:56:42.339271+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T12:56:42.340259+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1670 "" "Docker-Client/"
+2026-10-30T12:56:42.340259+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1688 "" "Docker-Client/"
+2026-10-30T12:56:42.341926+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1676 "" "Docker-Client/"
+2026-10-30T12:56:42.363359+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10306 "" "Docker-Client/"
+2026-10-30T12:56:42.363732+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9316 "" "Docker-Client/"
+2026-10-30T12:56:42.365219+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8393 "" "Docker-Client/"
+2026-10-30T12:56:42.368298+01:00 predator podman[20766]: @ - - [30/Oct/2026:12:56:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6293 "" "Docker-Client/"
+2026-10-30T12:56:57.364994+01:00 predator podman[20766]: time="2026-10-30T12:56:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=20766
+2026-10-30T12:56:57.374567+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T12:57:42.160468+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:57:42.192220+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:57:42.236727+01:00 predator podman[21171]: time="2026-10-30T12:57:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:57:42.236727+01:00 predator podman[21171]: time="2026-10-30T12:57:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:57:42.237843+01:00 predator podman[21171]: time="2026-10-30T12:57:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:57:42.243584+01:00 predator podman[21171]: time="2026-10-30T12:57:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:57:42.244194+01:00 predator podman[21171]: time="2026-10-30T12:57:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:57:42.307509+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:57:42.331361+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1670 "" "Docker-Client/"
+2026-10-30T12:57:42.331361+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1687 "" "Docker-Client/"
+2026-10-30T12:57:42.331361+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T12:57:42.331361+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1677 "" "Docker-Client/"
+2026-10-30T12:57:42.353563+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9315 "" "Docker-Client/"
+2026-10-30T12:57:42.355588+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10305 "" "Docker-Client/"
+2026-10-30T12:57:42.355880+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8392 "" "Docker-Client/"
+2026-10-30T12:57:42.355880+01:00 predator podman[21171]: @ - - [30/Oct/2026:12:57:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6292 "" "Docker-Client/"
+2026-10-30T12:57:57.355214+01:00 predator podman[21171]: time="2026-10-30T12:57:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=21171
+2026-10-30T12:57:57.365670+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T12:58:42.158754+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:58:42.186583+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:58:42.234683+01:00 predator podman[21573]: time="2026-10-30T12:58:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:58:42.234683+01:00 predator podman[21573]: time="2026-10-30T12:58:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:58:42.235730+01:00 predator podman[21573]: time="2026-10-30T12:58:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:58:42.242441+01:00 predator podman[21573]: time="2026-10-30T12:58:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:58:42.243930+01:00 predator podman[21573]: time="2026-10-30T12:58:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:58:42.305826+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:58:42.325712+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1678 "" "Docker-Client/"
+2026-10-30T12:58:42.325964+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1688 "" "Docker-Client/"
+2026-10-30T12:58:42.325964+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T12:58:42.330915+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1670 "" "Docker-Client/"
+2026-10-30T12:58:42.346183+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6292 "" "Docker-Client/"
+2026-10-30T12:58:42.346978+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9315 "" "Docker-Client/"
+2026-10-30T12:58:42.348947+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8393 "" "Docker-Client/"
+2026-10-30T12:58:42.350804+01:00 predator podman[21573]: @ - - [30/Oct/2026:12:58:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10304 "" "Docker-Client/"
+2026-10-30T12:58:57.347694+01:00 predator podman[21573]: time="2026-10-30T12:58:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=21573
+2026-10-30T12:58:57.357448+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T12:59:42.157065+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T12:59:42.192475+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T12:59:42.238120+01:00 predator podman[21974]: time="2026-10-30T12:59:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T12:59:42.238120+01:00 predator podman[21974]: time="2026-10-30T12:59:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T12:59:42.239274+01:00 predator podman[21974]: time="2026-10-30T12:59:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T12:59:42.245194+01:00 predator podman[21974]: time="2026-10-30T12:59:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T12:59:42.245915+01:00 predator podman[21974]: time="2026-10-30T12:59:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T12:59:42.311224+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/json HTTP/1.1" 200 6672 "" "Docker-Client/"
+2026-10-30T12:59:42.333158+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1678 "" "Docker-Client/"
+2026-10-30T12:59:42.333158+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T12:59:42.333544+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1687 "" "Docker-Client/"
+2026-10-30T12:59:42.333984+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1668 "" "Docker-Client/"
+2026-10-30T12:59:42.352374+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9315 "" "Docker-Client/"
+2026-10-30T12:59:42.353125+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8393 "" "Docker-Client/"
+2026-10-30T12:59:42.358535+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6292 "" "Docker-Client/"
+2026-10-30T12:59:42.359810+01:00 predator podman[21974]: @ - - [30/Oct/2026:12:59:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10304 "" "Docker-Client/"
+2026-10-30T12:59:57.354166+01:00 predator podman[21974]: time="2026-10-30T12:59:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=21974
+2026-10-30T12:59:57.364921+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T13:00:42.159717+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T13:00:42.184230+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T13:00:42.229524+01:00 predator podman[22425]: time="2026-10-30T13:00:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T13:00:42.229524+01:00 predator podman[22425]: time="2026-10-30T13:00:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T13:00:42.230570+01:00 predator podman[22425]: time="2026-10-30T13:00:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T13:00:42.236037+01:00 predator podman[22425]: time="2026-10-30T13:00:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T13:00:42.236604+01:00 predator podman[22425]: time="2026-10-30T13:00:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T13:00:42.301189+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/json HTTP/1.1" 200 6681 "" "Docker-Client/"
+2026-10-30T13:00:42.323562+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1678 "" "Docker-Client/"
+2026-10-30T13:00:42.323966+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1671 "" "Docker-Client/"
+2026-10-30T13:00:42.323966+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1688 "" "Docker-Client/"
+2026-10-30T13:00:42.329661+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T13:00:42.345307+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6293 "" "Docker-Client/"
+2026-10-30T13:00:42.346241+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9315 "" "Docker-Client/"
+2026-10-30T13:00:42.348942+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10304 "" "Docker-Client/"
+2026-10-30T13:00:42.352281+01:00 predator podman[22425]: @ - - [30/Oct/2026:13:00:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8394 "" "Docker-Client/"
+2026-10-30T13:00:57.346787+01:00 predator podman[22425]: time="2026-10-30T13:00:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=22425
+2026-10-30T13:00:57.350742+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T13:01:42.162868+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T13:01:42.189737+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T13:01:42.239180+01:00 predator podman[22769]: time="2026-10-30T13:01:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T13:01:42.239180+01:00 predator podman[22769]: time="2026-10-30T13:01:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T13:01:42.240573+01:00 predator podman[22769]: time="2026-10-30T13:01:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T13:01:42.245771+01:00 predator podman[22769]: time="2026-10-30T13:01:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T13:01:42.246308+01:00 predator podman[22769]: time="2026-10-30T13:01:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T13:01:42.311404+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/json HTTP/1.1" 200 6684 "" "Docker-Client/"
+2026-10-30T13:01:42.330829+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1678 "" "Docker-Client/"
+2026-10-30T13:01:42.331886+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T13:01:42.334198+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1689 "" "Docker-Client/"
+2026-10-30T13:01:42.334198+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1671 "" "Docker-Client/"
+2026-10-30T13:01:42.354353+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6293 "" "Docker-Client/"
+2026-10-30T13:01:42.354598+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8393 "" "Docker-Client/"
+2026-10-30T13:01:42.355888+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9314 "" "Docker-Client/"
+2026-10-30T13:01:42.357126+01:00 predator podman[22769]: @ - - [30/Oct/2026:13:01:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10304 "" "Docker-Client/"
+2026-10-30T13:01:57.355926+01:00 predator podman[22769]: time="2026-10-30T13:01:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=22769
+2026-10-30T13:01:57.363431+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T13:02:42.157751+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T13:02:42.188476+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T13:02:42.235734+01:00 predator podman[23174]: time="2026-10-30T13:02:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T13:02:42.235734+01:00 predator podman[23174]: time="2026-10-30T13:02:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T13:02:42.236964+01:00 predator podman[23174]: time="2026-10-30T13:02:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T13:02:42.241953+01:00 predator podman[23174]: time="2026-10-30T13:02:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T13:02:42.242535+01:00 predator podman[23174]: time="2026-10-30T13:02:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T13:02:42.307625+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/json HTTP/1.1" 200 6684 "" "Docker-Client/"
+2026-10-30T13:02:42.326875+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1678 "" "Docker-Client/"
+2026-10-30T13:02:42.327135+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1690 "" "Docker-Client/"
+2026-10-30T13:02:42.330516+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1671 "" "Docker-Client/"
+2026-10-30T13:02:42.331262+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T13:02:42.347787+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9315 "" "Docker-Client/"
+2026-10-30T13:02:42.348721+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6293 "" "Docker-Client/"
+2026-10-30T13:02:42.349952+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10303 "" "Docker-Client/"
+2026-10-30T13:02:42.351168+01:00 predator podman[23174]: @ - - [30/Oct/2026:13:02:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8392 "" "Docker-Client/"
+2026-10-30T13:02:57.349306+01:00 predator podman[23174]: time="2026-10-30T13:02:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=23174
+2026-10-30T13:02:57.359301+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T13:03:42.149535+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T13:03:42.161169+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T13:03:42.180247+01:00 predator podman[23571]: time="2026-10-30T13:03:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T13:03:42.180247+01:00 predator podman[23571]: time="2026-10-30T13:03:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T13:03:42.180794+01:00 predator podman[23571]: time="2026-10-30T13:03:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T13:03:42.183791+01:00 predator podman[23571]: time="2026-10-30T13:03:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T13:03:42.184037+01:00 predator podman[23571]: time="2026-10-30T13:03:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T13:03:42.228878+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/json HTTP/1.1" 200 6684 "" "Docker-Client/"
+2026-10-30T13:03:42.250431+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1690 "" "Docker-Client/"
+2026-10-30T13:03:42.250754+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T13:03:42.251712+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1677 "" "Docker-Client/"
+2026-10-30T13:03:42.252756+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1689 "" "Docker-Client/"
+2026-10-30T13:03:42.271355+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8392 "" "Docker-Client/"
+2026-10-30T13:03:42.271355+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6291 "" "Docker-Client/"
+2026-10-30T13:03:42.274452+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9317 "" "Docker-Client/"
+2026-10-30T13:03:42.274827+01:00 predator podman[23571]: @ - - [30/Oct/2026:13:03:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10304 "" "Docker-Client/"
+2026-10-30T13:03:57.272548+01:00 predator podman[23571]: time="2026-10-30T13:03:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=23571
+2026-10-30T13:03:57.279746+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T13:04:42.149670+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T13:04:42.169518+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T13:04:42.189982+01:00 predator podman[24005]: time="2026-10-30T13:04:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T13:04:42.189982+01:00 predator podman[24005]: time="2026-10-30T13:04:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T13:04:42.190728+01:00 predator podman[24005]: time="2026-10-30T13:04:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T13:04:42.193787+01:00 predator podman[24005]: time="2026-10-30T13:04:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T13:04:42.194118+01:00 predator podman[24005]: time="2026-10-30T13:04:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T13:04:42.245532+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/json HTTP/1.1" 200 6684 "" "Docker-Client/"
+2026-10-30T13:04:42.264584+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T13:04:42.264831+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1678 "" "Docker-Client/"
+2026-10-30T13:04:42.268383+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1672 "" "Docker-Client/"
+2026-10-30T13:04:42.272139+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1690 "" "Docker-Client/"
+2026-10-30T13:04:42.291282+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8394 "" "Docker-Client/"
+2026-10-30T13:04:42.292246+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6291 "" "Docker-Client/"
+2026-10-30T13:04:42.292627+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9318 "" "Docker-Client/"
+2026-10-30T13:04:42.293825+01:00 predator podman[24005]: @ - - [30/Oct/2026:13:04:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10304 "" "Docker-Client/"
+2026-10-30T13:04:57.293925+01:00 predator podman[24005]: time="2026-10-30T13:04:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=24005
+2026-10-30T13:04:57.305068+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T13:05:42.158979+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T13:05:42.191831+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T13:05:42.238389+01:00 predator podman[24488]: time="2026-10-30T13:05:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T13:05:42.238389+01:00 predator podman[24488]: time="2026-10-30T13:05:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T13:05:42.239572+01:00 predator podman[24488]: time="2026-10-30T13:05:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T13:05:42.245525+01:00 predator podman[24488]: time="2026-10-30T13:05:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T13:05:42.246104+01:00 predator podman[24488]: time="2026-10-30T13:05:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T13:05:42.308900+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/json HTTP/1.1" 200 6684 "" "Docker-Client/"
+2026-10-30T13:05:42.328166+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1678 "" "Docker-Client/"
+2026-10-30T13:05:42.328418+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T13:05:42.334362+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1673 "" "Docker-Client/"
+2026-10-30T13:05:42.334958+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1689 "" "Docker-Client/"
+2026-10-30T13:05:42.352156+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6292 "" "Docker-Client/"
+2026-10-30T13:05:42.353603+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8393 "" "Docker-Client/"
+2026-10-30T13:05:42.356389+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9318 "" "Docker-Client/"
+2026-10-30T13:05:42.357735+01:00 predator podman[24488]: @ - - [30/Oct/2026:13:05:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10306 "" "Docker-Client/"
+2026-10-30T13:05:57.353612+01:00 predator podman[24488]: time="2026-10-30T13:05:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=24488
+2026-10-30T13:05:57.364730+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T13:06:42.156066+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T13:06:42.188479+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T13:06:42.234975+01:00 predator podman[24897]: time="2026-10-30T13:06:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T13:06:42.234975+01:00 predator podman[24897]: time="2026-10-30T13:06:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T13:06:42.236088+01:00 predator podman[24897]: time="2026-10-30T13:06:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T13:06:42.241126+01:00 predator podman[24897]: time="2026-10-30T13:06:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T13:06:42.241529+01:00 predator podman[24897]: time="2026-10-30T13:06:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T13:06:42.305919+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/json HTTP/1.1" 200 6684 "" "Docker-Client/"
+2026-10-30T13:06:42.327427+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1678 "" "Docker-Client/"
+2026-10-30T13:06:42.328964+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1688 "" "Docker-Client/"
+2026-10-30T13:06:42.329267+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1673 "" "Docker-Client/"
+2026-10-30T13:06:42.333468+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T13:06:42.348496+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6293 "" "Docker-Client/"
+2026-10-30T13:06:42.349784+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8393 "" "Docker-Client/"
+2026-10-30T13:06:42.351808+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9318 "" "Docker-Client/"
+2026-10-30T13:06:42.352385+01:00 predator podman[24897]: @ - - [30/Oct/2026:13:06:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10306 "" "Docker-Client/"
+2026-10-30T13:06:57.350720+01:00 predator podman[24897]: time="2026-10-30T13:06:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=24897
+2026-10-30T13:06:57.355247+01:00 predator systemd[1]: podman.service: Deactivated successfully.
+2026-10-30T13:07:42.161380+01:00 predator systemd[1]: Starting Podman API Service...
+2026-10-30T13:07:42.188194+01:00 predator systemd[1]: Started Podman API Service.
+2026-10-30T13:07:42.231998+01:00 predator podman[25301]: time="2026-10-30T13:07:42+01:00" level=info msg="/nix/store/gzfsvp7lwll2sgq8awmd1vwp0fd3402w-podman-5.8.9/bin/podman filtering at log level info"
+2026-10-30T13:07:42.231998+01:00 predator podman[25301]: time="2026-10-30T13:07:42+01:00" level=info msg="Setting parallel job count to 25"
+2026-10-30T13:07:42.233049+01:00 predator podman[25301]: time="2026-10-30T13:07:42+01:00" level=info msg="Using sqlite as database backend"
+2026-10-30T13:07:42.238505+01:00 predator podman[25301]: time="2026-10-30T13:07:42+01:00" level=info msg="Using systemd socket activation to determine API endpoint"
+2026-10-30T13:07:42.239207+01:00 predator podman[25301]: time="2026-10-30T13:07:42+01:00" level=info msg="API service listening on \"/run/podman/podman.sock\". URI: \"unix:///run/podman/podman.sock\""
+2026-10-30T13:07:42.302148+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/json HTTP/1.1" 200 6684 "" "Docker-Client/"
+2026-10-30T13:07:42.327492+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/ac52ecb0aabf/stats?stream=0&one-shot=1 HTTP/1.1" 200 1673 "" "Docker-Client/"
+2026-10-30T13:07:42.327492+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/a6befa4edf3f/stats?stream=0&one-shot=1 HTTP/1.1" 200 1689 "" "Docker-Client/"
+2026-10-30T13:07:42.327492+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/492afc7682a2/stats?stream=0&one-shot=1 HTTP/1.1" 200 2237 "" "Docker-Client/"
+2026-10-30T13:07:42.327492+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/3a3566605de1/stats?stream=0&one-shot=1 HTTP/1.1" 200 1677 "" "Docker-Client/"
+2026-10-30T13:07:42.346545+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/492afc7682a2/json HTTP/1.1" 200 10306 "" "Docker-Client/"
+2026-10-30T13:07:42.347452+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/a6befa4edf3f/json HTTP/1.1" 200 9317 "" "Docker-Client/"
+2026-10-30T13:07:42.352006+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/3a3566605de1/json HTTP/1.1" 200 6293 "" "Docker-Client/"
+2026-10-30T13:07:42.352903+01:00 predator podman[25301]: @ - - [30/Oct/2026:13:07:42 +0100] "GET /containers/ac52ecb0aabf/json HTTP/1.1" 200 8393 "" "Docker-Client/"
+2026-10-30T13:07:57.347817+01:00 predator podman[25301]: time="2026-10-30T13:07:57+01:00" level=info msg="Received shutdown.Stop(), terminating!" PID=25301
+2026-10-30T13:07:57.358598+01:00 predator systemd[1]: podman.service: Deactivated successfully.

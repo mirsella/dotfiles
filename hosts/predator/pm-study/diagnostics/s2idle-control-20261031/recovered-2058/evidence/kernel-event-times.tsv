@@ -1,0 +1,6 @@
+4345785231	4345800418	PM: suspend entry (s2idle)
+4385627438	4389352062	PM: suspend-to-idle
+18943791364	4389352085	PM: Triggering wakeup from IRQ 9
+18943800433	4389352160	ACPI: PM: Wakeup after ACPI Notify sync
+18943800437	4389352183	PM: resume from suspend-to-idle
+18947387797	4389474630	PM: suspend exit

@@ -1,0 +1,4 @@
+
+thread 'main' (2714488) panicked at main.rs:218:5:
+assertion failed: restored.contains("s2idle [deep]")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

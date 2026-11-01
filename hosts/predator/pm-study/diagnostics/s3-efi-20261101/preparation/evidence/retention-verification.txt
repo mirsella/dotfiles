@@ -1,0 +1,1 @@
+retention_through_planned_normal_reboot=PASS; exact_attributes_and_64_bytes_unchanged

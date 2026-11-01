@@ -1,0 +1,20 @@
+2026-10-27T18:37:37+01:00
+raspberrypi
+active
+ca4666560dc9cd468f3b9b6c4c68a7dcb2675b561844ca5ef6a89fa9944722e8  /home/mirsella/wol_predator.py
+d2c1ba165c52d45efaf9d7beb8e0583a5d1d09b722d7508bfc52c35a7b5eb8ed  /home/mirsella/dev/predator-pm-debug/.agents-local/r-async-h8-20261020-result.log
+bytes=1317273 mtime=2026-10-27 18:07:46.253271137 +0100 file=/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log
+NEXT LEFT LAST                         PASSED            UNIT                                                 ACTIVATES
+-    -    Sat 2026-10-17 18:00:00 CEST 1 week 3 days ago predator-pm-r-async-e7o2-20261017-notice-start.timer predator-pm-r-async-e7o2-20261017-notice-start.service
+-    -    Tue 2026-10-20 20:24:11 CEST 6 days ago        predator-pm-r-async-h8-20261020-notice-start.timer   predator-pm-r-async-h8-20261020-notice-start.service
+-    -    Sun 2026-10-18 21:00:30 CEST 1 week 1 day ago  predator-pm-r-async-q30-20261018-notice-start.timer  predator-pm-r-async-q30-20261018-notice-start.service
+-    -    Sat 2026-10-17 21:24:00 CEST 1 week 2 days ago predator-pm-r-serial-m15-20261017-notice-start.timer predator-pm-r-serial-m15-20261017-notice-start.service
+
+4 timers listed.
+               Local time: Tue 2026-10-27 18:37:38 CET
+           Universal time: Tue 2026-10-27 17:37:38 UTC
+                 RTC time: n/a
+                Time zone: Europe/Paris (CET, +0100)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no

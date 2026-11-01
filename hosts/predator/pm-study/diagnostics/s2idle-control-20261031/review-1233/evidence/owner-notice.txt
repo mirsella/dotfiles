@@ -1,0 +1,5 @@
+Predator s2idle control, October 31: the Pi recorded suspend entry (s2idle) at 12:07:10 CET, then sent the scheduled WoL packets at 12:23:00 and 12:23:30. The 12:24:30 LAN probe failed; the 12:33 review SSH attempt also failed. No return is visible in the frozen capture. The Pi is healthy and its evidence is saved.
+
+This does not yet distinguish a hang from s2idle failing to wake via WoL. The final NIC log line is a logging boundary, not driver blame. Host artifacts, RTC marker, current counters and health could not be retrieved. No extra wake, reset or repeat test was issued.
+
+Please report current watts and retain the dated 12:05 to 12:27 power graph. S2idle may draw more than S3, so 15W alone does not establish a hang. If it remains unresponsive, please recover it manually and report the exact time, method and off duration. The existing early-boot RTC capture may then show how far this attempt progressed. No further test is scheduled.

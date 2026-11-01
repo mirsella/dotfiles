@@ -1,0 +1,149 @@
+2026-11-01T11:13:32,155198639+01:00
+f9b45aa6-b820-4ab5-b18c-9324d8d53087
+btime 1793474520
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage
+/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules
+init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+running
+  pool: fast
+ state: ONLINE
+  scan: scrub repaired 0B in 00:03:02 with 0 errors on Sun Nov  1 10:10:39 2026
+config:
+
+	NAME                                                               STATE     READ WRITE CKSUM
+	fast                                                               ONLINE       0     0     0
+	  dm-uuid-CRYPT-LUKS2-bb91c85c38c24d24b33180f57ef50d68-fast-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+
+  pool: tank
+ state: ONLINE
+  scan: scrub repaired 0B in 00:44:29 with 0 errors on Sun Nov  1 10:52:07 2026
+config:
+
+	NAME                                                                  STATE     READ WRITE CKSUM
+	tank                                                                  ONLINE       0     0     0
+	  raidz1-0                                                            ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-e2eef868fc6e4f7b864d8c8235c7df37-tank1-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-16c6cbcd79fd4dbdbdfefc94ef3d3221-tank2-crypt  ONLINE       0     0     0
+	    dm-uuid-CRYPT-LUKS2-cbbf3def5ffb4d70b369a033995e5224-tank3-crypt  ONLINE       0     0     0
+
+errors: No known data errors
+ActiveState=inactive
+SubState=dead
+Result=success
+NEXT                                 LEFT LAST                               PASSED UNIT                                                                                    ACTIVATES
+Sun 2026-11-01 11:13:45 CET           13s Sun 2026-11-01 11:13:15 CET       17s ago 27fcb9904e9fb2be3933a160d155d4e05e7348c1715f2672ddebc5de6990469b-41e72419cc510810.timer 27fcb9904e9fb2be3933a160d155d4e05e7348c1715f2672ddebc5de6990469b-41e72419cc510810.service
+Sun 2026-11-01 11:13:49 CET           16s Sun 2026-11-01 11:13:19 CET       13s ago ec2dcebac2bcd92665f1f26be9eeaa7f89500fe6d1f447f8866c0f3f85fe1c1a-8520db8bb6201a3.timer  ec2dcebac2bcd92665f1f26be9eeaa7f89500fe6d1f447f8866c0f3f85fe1c1a-8520db8bb6201a3.service
+Sun 2026-11-01 11:13:49 CET           16s Sun 2026-11-01 11:13:19 CET       13s ago e1495dd677827bc331988a528dc0a18e6ede7eb7b39d6e6529ff549a09787127-a4fef1c05a53262.timer  e1495dd677827bc331988a528dc0a18e6ede7eb7b39d6e6529ff549a09787127-a4fef1c05a53262.service
+Sun 2026-11-01 11:13:49 CET           16s Sun 2026-11-01 11:13:19 CET       13s ago 7284e3a99cd08434197627e04170ef78a0d0d01a730c011ffc30ac27a0a9835c-7d1fc8177e0e2cf1.timer 7284e3a99cd08434197627e04170ef78a0d0d01a730c011ffc30ac27a0a9835c-7d1fc8177e0e2cf1.service
+Sun 2026-11-01 11:14:15 CET           42s Sun 2026-11-01 11:13:15 CET       17s ago storage-alerts.timer                                                                    storage-alerts.service
+Sun 2026-11-01 11:15:41 CET       2min 9s Sun 2026-11-01 11:10:41 CET  2min 50s ago nextcloud-cron.timer                                                                    nextcloud-cron.service
+Sun 2026-11-01 11:20:27 CET          6min Sun 2026-11-01 10:58:11 CET     15min ago fwupd-refresh.timer                                                                     fwupd-refresh.service
+Sun 2026-11-01 11:37:36 CET         24min Tue 2026-10-27 18:18:00 CET             - zpool-trim.timer                                                                        zpool-trim.service
+Sun 2026-11-01 11:47:01 CET         33min Tue 2026-10-27 18:34:57 CET             - fstrim.timer                                                                            fstrim.service
+Sun 2026-11-01 12:00:00 CET         46min Sun 2026-11-01 11:00:04 CET     13min ago logrotate.timer                                                                         logrotate.service
+Sun 2026-11-01 21:15:14 CET           10h Sat 2026-10-31 20:37:00 CET       13h ago systemd-tmpfiles-clean.timer                                                            systemd-tmpfiles-clean.service
+Sun 2026-11-01 23:00:00 CET           11h Sat 2026-10-31 23:00:03 CET       11h ago db-backup.timer                                                                         db-backup.service
+Sun 2026-11-01 23:10:00 CET           11h Tue 2026-10-27 18:07:00 CET             - recovery-backup.timer                                                                   recovery-backup.service
+Sun 2026-11-01 23:20:00 CET           12h Sat 2026-10-31 23:20:00 CET       11h ago hermes-backup.timer                                                                     hermes-backup.service
+Sun 2026-11-01 23:30:00 CET           12h Sat 2026-10-31 23:30:03 CET       11h ago sanoid.timer                                                                            sanoid.service
+Sun 2026-11-01 23:50:00 CET           12h Sat 2026-10-31 23:50:04 CET       11h ago restic-backups-fast.timer                                                               restic-backups-fast.service
+Mon 2026-11-02 00:00:00 CET           12h Sun 2026-11-01 00:00:04 CET       10h ago nix-gc.timer                                                                            nix-gc.service
+Thu 2026-11-05 05:00:00 CET        3 days Sun 2026-10-18 12:53:30 CEST            - restic-check.timer                                                                      restic-check.service
+Tue 2026-12-01 10:03:52 CET 4 weeks 1 day Sun 2026-11-01 10:07:37 CET   1h 5min ago zfs-scrub.timer                                                                         zfs-scrub.service
+-                                       - -                                       - night-suspend.timer                                                                     night-suspend.service
+-                                       - -                                       - nixos-upgrade.timer                                                                     nixos-upgrade.service
+-                                       - -                                       - predator-pm-next.timer                                                                  predator-pm-next.service
+
+22 timers listed.
+/sys/power/mem_sleep=s2idle [deep]
+/sys/power/pm_async=1
+/sys/power/pm_test=[none] core processors platform devices freezer
+/sys/power/pm_trace=0
+/sys/module/pm_stage/parameters/armed=N
+/sys/module/pm_stage/parameters/markers=0
+/sys/class/rtc/rtc0/wakealarm=
+CAPTURE CONFIG
+CONFIG_IKCONFIG=y
+CONFIG_IKCONFIG_PROC=y
+CONFIG_KEXEC_CORE=y
+CONFIG_KEXEC=y
+CONFIG_KEXEC_FILE=y
+# CONFIG_KEXEC_SIG is not set
+CONFIG_KEXEC_JUMP=y
+CONFIG_KEXEC_HANDOVER=y
+# CONFIG_KEXEC_HANDOVER_DEBUG is not set
+CONFIG_KEXEC_HANDOVER_DEBUGFS=y
+CONFIG_ACPI_APEI=y
+CONFIG_ACPI_APEI_GHES=y
+CONFIG_ACPI_APEI_PCIEAER=y
+# CONFIG_ACPI_APEI_MEMORY_FAILURE is not set
+CONFIG_ACPI_APEI_EINJ=m
+CONFIG_ACPI_APEI_EINJ_CXL=y
+CONFIG_ACPI_APEI_ERST_DEBUG=m
+CONFIG_KPROBES=y
+CONFIG_KPROBES_ON_FTRACE=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+# CONFIG_DEVTMPFS_SAFE is not set
+CONFIG_EFI_VARS_PSTORE=y
+# CONFIG_EFI_VARS_PSTORE_DEFAULT_DISABLE is not set
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_DEPRECATED_OPTIONS=y
+CONFIG_SERIAL_8250_PNP=y
+# CONFIG_SERIAL_8250_16550A_VARIANTS is not set
+# CONFIG_SERIAL_8250_FINTEK is not set
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_SERIAL_8250_DMA=y
+CONFIG_SERIAL_8250_PCILIB=y
+CONFIG_SERIAL_8250_PCI=m
+CONFIG_SERIAL_8250_EXAR=m
+CONFIG_SERIAL_8250_CS=m
+CONFIG_SERIAL_8250_MEN_MCB=m
+CONFIG_SERIAL_8250_NR_UARTS=32
+CONFIG_SERIAL_8250_RUNTIME_UARTS=4
+CONFIG_SERIAL_8250_EXTENDED=y
+CONFIG_SERIAL_8250_MANY_PORTS=y
+CONFIG_SERIAL_8250_PCI1XXXX=m
+CONFIG_SERIAL_8250_SHARE_IRQ=y
+CONFIG_SERIAL_8250_DETECT_IRQ=y
+CONFIG_SERIAL_8250_RSA=y
+CONFIG_SERIAL_8250_DWLIB=y
+CONFIG_SERIAL_8250_DFL=m
+CONFIG_SERIAL_8250_DW=m
+# CONFIG_SERIAL_8250_RT288X is not set
+CONFIG_SERIAL_8250_LPSS=m
+CONFIG_SERIAL_8250_MID=m
+CONFIG_SERIAL_8250_PERICOM=m
+CONFIG_SERIAL_8250_NI=m
+CONFIG_PSTORE=y
+CONFIG_PSTORE_DEFAULT_KMSG_BYTES=10240
+CONFIG_PSTORE_COMPRESS=y
+# CONFIG_PSTORE_CONSOLE is not set
+# CONFIG_PSTORE_PMSG is not set
+# CONFIG_PSTORE_FTRACE is not set
+CONFIG_PSTORE_RAM=m
+CONFIG_PSTORE_ZONE=m
+CONFIG_PSTORE_BLK=m
+CONFIG_PSTORE_BLK_BLKDEV=""
+CONFIG_PSTORE_BLK_KMSG_SIZE=64
+CONFIG_PSTORE_BLK_MAX_REASON=2
+CONFIG_MAGIC_SYSRQ=y
+CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE=0x1
+CONFIG_MAGIC_SYSRQ_SERIAL=y
+CONFIG_MAGIC_SYSRQ_SERIAL_SEQUENCE=""
+CONFIG_FTRACE=y
+CONFIG_FUNCTION_TRACER=y
+CONFIG_FTRACE_SYSCALLS=y
+CONFIG_FTRACE_MCOUNT_USE_CC=y
+# CONFIG_FTRACE_RECORD_RECURSION is not set
+# CONFIG_FTRACE_VALIDATE_RCU_IS_WATCHING is not set
+# CONFIG_FTRACE_STARTUP_TEST is not set
+# CONFIG_FTRACE_SORT_STARTUP_TEST is not set
+
+PSTORE STATE
+TARGET         SOURCE FSTYPE OPTIONS
+/sys/fs/pstore none   pstore rw,nosuid,nodev,noexec,relatime

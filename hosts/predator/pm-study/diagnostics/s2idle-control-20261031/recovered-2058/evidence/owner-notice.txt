@@ -1,0 +1,7 @@
+Predator recovery: the old s2idle attempt DID resume. Recovered logs show IRQ9/ACPI wake, lid opening and a short power-key press, followed by normal Linux poweroff. The final RTC marker confirms the return. Your 3-1W observation fits a low-power state, unlike the earlier 15W S3 failure. The scheduled Pi WoL packets did not establish a return; the exact WoL failure remains unproven.
+
+The old test's 0.000121-second loop result was a timestamp bug: those were journal receipt times. Kernel source timestamps span about 4h02m38s, not a measured low-power interval. The uncorrected post-return clock must not be used to call it an early wake. Shutdown interrupted clock/network restoration.
+
+I repaired the current failed clock-handoff service and verified fresh NTP/RTC. The event-driven network-readiness fix passed all 59 tests, Nix build and flake evaluation, and the new helper ran successfully on Predator. It is rooted for the next test; the frozen system was not activated.
+
+Next workflow scheduled today at 21:45 CET: one validated s2idle test with Pi WoL at +16min and a separately armed RTC-alarm fallback at +20min. The RTC phase logger will stay off so it cannot corrupt the alarm or clock. Exact entry/wake/review times will be sent before arming; everything must finish before 23:00. Please retain its dated power graph. No new sleep or wake operation has been armed in this recovery turn.

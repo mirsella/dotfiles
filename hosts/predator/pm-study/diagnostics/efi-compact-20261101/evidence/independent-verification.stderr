@@ -1,0 +1,1 @@
+Reviewed original audit_errno=-116: the deployed module incorrectly required an unchanged maximum-variable-size value. All independent storage, budget, reserve, payload and checksum checks passed; the original failure remains preserved.

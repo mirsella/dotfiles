@@ -1,0 +1,7 @@
+2026-11-01T14:05:48,475727764+01:00
+active
+NEXT                        LEFT       LAST PASSED UNIT                                                   ACTIVATES
+Sun 2026-11-01 14:26:30 CET 20min left -    -      predator-pm-boundary-s3-efi-v2-20261101-probe.timer    predator-pm-boundary-s3-efi-v2-20261101-probe.service
+Sun 2026-11-01 14:28:00 CET 22min left -    -      predator-pm-boundary-s3-efi-v2-20261101-snapshot.timer predator-pm-boundary-s3-efi-v2-20261101-snapshot.service
+
+2 timers listed.

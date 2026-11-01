@@ -1,0 +1,18 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:bc08a214-b602-4fa3-9d4e-6f808b4422d0:schedule-task:predator-s2idle-review-20261031-1233",
+  "exactTaskDeletedAtStart": true,
+  "dateGuardPassedAt": "2026-10-31T12:33:26+01:00",
+  "collectorInvocations": 1,
+  "classification": "UNREACHABLE_AFTER_S2IDLE_ENTRY_AND_SCHEDULED_WOL",
+  "primarySshExitStatus": 255,
+  "primarySshError": "No route to host",
+  "primaryArtifacts": "unretrieved, not proven absent",
+  "s2idleLoopReached": "unverified beyond netconsole transport boundary",
+  "physicalSleepSeconds": null,
+  "powerGraph": "not provided",
+  "ownerRecovery": "requested, not observed",
+  "newPowerOperationsDuringReview": 0,
+  "automaticRetestAuthorized": false,
+  "nextScheduledTask": null,
+  "remoteDocumentationSync": "blocked while Predator is unreachable"
+}

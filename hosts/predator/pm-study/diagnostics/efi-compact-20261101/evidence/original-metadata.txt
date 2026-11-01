@@ -1,0 +1,10 @@
+drwx------ root/root         0 2026-11-01 12:40 compact-20261101-a/
+-rw------- root/root       155 2026-11-01 12:40 compact-20261101-a/readback.txt
+-rw------- root/root       331 2026-11-01 12:40 compact-20261101-a/status-before.txt
+-rw------- root/root       518 2026-11-01 12:40 compact-20261101-a/before.txt
+-rw------- root/root        82 2026-11-01 12:40 compact-20261101-a/write-result.txt
+-rw------- root/root       518 2026-11-01 12:40 compact-20261101-a/after-write.txt
+-rw------- root/root         7 2026-11-01 12:40 compact-20261101-a/load-result.txt
+-rw------- root/root       104 2026-11-01 12:40 compact-20261101-a/outcome.txt
+-rw------- root/root       506 2026-11-01 12:40 compact-20261101-a/request.txt
+-rw------- root/root       346 2026-11-01 12:40 compact-20261101-a/status-after.txt

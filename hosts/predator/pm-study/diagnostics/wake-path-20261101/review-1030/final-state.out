@@ -1,0 +1,180 @@
+2026-11-01T10:33:14+01:00
+Id=systemd-suspend.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+
+Id=predator-pm-path-path-d3-v2-20261101.service
+ActiveState=inactive
+MainPID=0
+Result=success
+ExecMainStatus=0
+0000:03:00.1/d3cold_allowed=1
+0000:03:00.1/power_state=D0
+0000:03:00.1/power/wakeup=enabled
+0000:03:00.1/power/control=on
+0000:03:00.1/power/runtime_status=active
+0000:03:00.0/d3cold_allowed=1
+0000:03:00.0/power_state=D0
+0000:03:00.0/power/wakeup=disabled
+0000:03:00.0/power/control=auto
+0000:03:00.0/power/runtime_status=active
+0000:00:1c.3/d3cold_allowed=1
+0000:00:1c.3/power_state=D0
+0000:00:1c.3/power/wakeup=enabled
+0000:00:1c.3/power/control=auto
+0000:00:1c.3/power/runtime_status=active
+drivers/pci/pci.c:2513 [pci]pci_pme_active =_ "PME# %s\n"
+drivers/pci/pci-driver.c:923 [pci_driver]pci_pm_suspend_noirq =_ "PCI PM: Suspend power state: %s\n"
+drivers/pci/pci-driver.c:938 [pci_driver]pci_pm_suspend_noirq =_ "PCI PM: Skipped\n"
+drivers/acpi/device_pm.c:956 [acpi]acpi_pm_set_device_wakeup =_ "ACPI companion missing in %s!\n"
+drivers/acpi/device_pm.c:965 [acpi]acpi_pm_set_device_wakeup =_ "Wakeup disabled by ACPI\n"
+drivers/acpi/device_pm.c:971 [acpi]acpi_pm_set_device_wakeup =_ "Wakeup enabled by ACPI\n"
+crw------- 1 root root  10,   224 Oct 31 12:07 /dev/tpm0
+crw------- 1 root root 252, 65536 Oct 31 12:07 /dev/tpmrm0
+TPM_CRB_Acer_rawEC_HOLD_and_restored_owned_settings=PASS
+ff_rt_clk=      24         disabled     unmasked
+ff_pwr_btn=       0  EN     enabled      unmasked
+ff_slp_btn=       0         invalid      unmasked
+gpe14=     178  EN     enabled      unmasked
+gpe66=      16  EN     enabled      unmasked
+sci=     218
+sci_not=       4
+            CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+   0:         37          0          0          0          0          0          0          0 IR-IO-APIC    2-edge      timer
+   1:          0          0          0          0          0         28          0          0 IR-IO-APIC    1-edge      i8042
+   8:          0          0          0          0          0          0          0          0 IR-IO-APIC    8-edge      rtc0
+   9:          0        222          0          0          0          0          0          0 IR-IO-APIC    9-fasteoi   acpi
+  14:          0          0          2          0          0          0          0          0 IR-IO-APIC   14-fasteoi   INT345D:00
+  16:          0          0          0          0          6          0          0          0 IR-IO-APIC   16-fasteoi   idma64.0, i2c_designware.0, i801_smbus
+  17:          0          0          0          0          0       1332          0          0 IR-IO-APIC   17-fasteoi   idma64.1, i2c_designware.1, snd_hda_intel:card0
+ 120:          0          0          3          0          0          0          0          0 IR-PCI-MSI-0000:00:01.0    0-edge      PCIe bwctrl
+ 121:          0          0          0          1          0          0          0          0 IR-PCI-MSI-0000:00:1c.0    0-edge      PCIe bwctrl
+ 122:          0          0          0          0          1          0          0          0 IR-PCI-MSI-0000:00:1c.3    0-edge      PCIe bwctrl
+ 123:          0          0          0          0          0          0          7          0 IR-PCI-MSI-0000:03:00.0    0-edge      rtsx_pci
+ 124:          0          0          0          0          0          0          0    2229498 IR-PCI-MSI-0000:00:14.0    0-edge      xhci_hcd
+ 132:    1310706          0          0          0          0          0          0          0 IR-PCI-MSIX-0000:03:00.1    0-edge      enp3s0f1
+ 133:          0          0          0          0          0          0          0    1233791 IR-PCI-MSI-0000:00:17.0    0-edge      ahci[0000:00:17.0]
+ 134:          0          0          0         31          0          0          0          0 IR-PCI-MSI-0000:00:16.0    0-edge      mei_me
+ 135:          0          0          2          0          0          0          0          0 intel-gpio   27  SYNA7DB5:01
+ 136:          0          0          0          0          0          0        171          0 IR-PCI-MSI-0000:00:02.0    0-edge      i915
+ 137:          0          0          0          0          0          0          0     256835 IR-PCI-MSI-0000:02:00.0    0-edge      ath10k_pci
+ 138:        627          0          0          0          0          0          0          0 IR-PCI-MSI-0000:00:1f.3    0-edge      snd_hda_intel:card1
+ NMI:        102         87         82         81         78         79         77         82   Non-maskable interrupts
+ LOC:    7043679    5846884    5779695    5756556    5683123    5687126    5556981    6034112   Local timer interrupts
+ SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+ PMI:        102         87         82         81         78         79         77         82   Performance monitoring interrupts
+ IWI:         10          8          0          1          7          0         35          0   IRQ work interrupts
+ RTR:          0          0          0          0          0          0          0          0   APIC ICR read retries
+ RES:      71355      57729      56301      56069      52748      54325      52853      51540   Rescheduling interrupts
+ CAL:     871176     714557     656195     640826     642534     635443     639301     740722   Function call interrupts
+ TLB:     492078     478128     461107     461027     475739     470807     483877     471848   TLB shootdowns
+ TRM:       1528       1528       1528       1528       1528       1528       1528       1528   Thermal event interrupts
+ THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+ DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+ MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+ MCP:        149        150        150        150        150        150        150        150   Machine check polls
+ ERR:          0
+ MIS:          0
+ PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+ NPI:          0          0          0          0          0          0          0          0   Nested posted-interrupt event
+ PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-after-kernel.txt root 600 2274020
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-alarm-armed.txt root 600 12040
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-alarm-intent.txt root 600 23
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-before-kernel.txt root 600 1542163
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-before.txt root 600 706
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-clock-handoff.txt root 600 946
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-completed.txt root 600 1084
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-cursor.txt root 600 125
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-debug-intent.txt root 600 47
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-debug-original.txt root 600 525
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-intervention.txt root 600 9244
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-measurement.txt root 600 99
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-mutating.txt root 600 123
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-observed-journal.txt root 600 736217
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-outcome.txt root 600 308
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-plan.conf root 600 1428
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-raw-return.txt root 600 12029
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-request-call.txt root 600 59
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-requested.txt root 600 1427
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-request-ok.txt root 600 5
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-restored.txt root 600 1029
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-return.txt root 600 392
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-sleep-config.txt root 600 144
+/var/lib/predator-pm-wake-path/path-d3-v2-20261101-wake-before.txt root 600 12029
+4eb4a9cc1172ecd51c5957bc21f27500922f9af5cf0fc3d9eeed6980977baf57  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-after-kernel.txt
+5ab09140e0b0166d087fe3706d923b15a5354cd1122b9e4c463c6f42feec1a8c  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-alarm-armed.txt
+1e4eeee34888e02300b2471b587b99d65fbc6726596622aa824f217facc1d1b9  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-alarm-intent.txt
+fb7d2159e5d9e899a0d369dd47253babc3bfeab7eb556fb5ae4b83ace83f825c  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-before-kernel.txt
+679a641be0395e944e0990628abd2f46c9a1f72ee6f4b2b98f41b6f2a4c884ff  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-before.txt
+dfc5362be495bf3daa12602d2da79be1608853677a73a00d37c14fcff7faae6f  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-clock-handoff.txt
+584492d7d63f6224de4aa3543559962ae41e49fe118252608d111155fe25e222  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-completed.txt
+48d4981c9e3c0bab9178c4f31acb983f729c7fa1e70db72ca021802f44e8fb78  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-cursor.txt
+8dd19041316aaea0f745b73660a0c9ad4e374d72a2f974a7ee0a7c83d5533102  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-debug-intent.txt
+797452c95f4603f3478a3d3f9d3997a3f276c41f18b87a633abee5b506bd064b  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-debug-original.txt
+278f987fb0f2e188d4dd0b4f26937ddd782cd8a498665f22ff77419bf75fc038  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-intervention.txt
+b565ce41b5bc7a07471eed5b5b0c0dae143c2e0d12acfd33b09fcefd303bc86c  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-measurement.txt
+1bec0d72a21501dfcec583717615619cf4b3b6c4e7c5957474141b0617f92e72  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-mutating.txt
+bd7f0c6ea1deac9fd9736009936b97d01e1956b2729553dafc0fa19716cdd1e9  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-observed-journal.txt
+da6cd48ec907011814ea6e3402700f9ee1fabf3603d011a67abaecfaff8fc3da  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-outcome.txt
+ab8a52f58f39a2dddb7363a0b8d3290a346856c6d9d2dbf9991124be522ea653  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-plan.conf
+0e8f8db21756ea22929ec81737e95506f4e9d9aeb84eb63bf34d95ec59aa83bb  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-raw-return.txt
+8c9ba75e61bf94801758618d9df1f8daa26c2ae10cecff776999045f4a95e858  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-request-call.txt
+e257f13123c8cd3296417043819bfc1cbc3df3046aec74f271767f9118b3bc98  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-requested.txt
+a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-request-ok.txt
+796f3e98a347b152c4dd6480786d87902ddf76c87856dbb9b9dd176f24f7d6e2  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-restored.txt
+c9dcffa3591a72c93f96d061052bf6cb7503a92d6417da75ae4704d582d9ddef  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-return.txt
+60db964ae935beb2b69f94cea07010b315fe2e4fce6ffa76544b875c4533c68e  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-sleep-config.txt
+430ecfa4eb00b057e4709a2e621402b177ca3fe9a3deae4964331443c349a763  /var/lib/predator-pm-wake-path/path-d3-v2-20261101-wake-before.txt
+2026-11-01T09:15:12.049289+01:00 predator systemd-logind[1551]: suspend requested from client PID 308319 ('busctl') (unit predator-pm-path-path-d3-v2-20261101.service)...
+2026-11-01T09:15:12.054615+01:00 predator systemd-logind[1551]: The system will suspend now!
+2026-11-01T09:35:03.623327+01:00 predator systemd-logind[1551]: Operation 'suspend' finished.
+NEXT LEFT LAST PASSED UNIT                   ACTIVATES
+-       - -         - night-suspend.timer    night-suspend.service
+-       - -         - predator-pm-next.timer predator-pm-next.service
+
+2 timers listed.
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/Cargo.lock
+ M pkgs/predator-pm-study/Cargo.toml
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? .scratch/
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/diagnostics/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35r1-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q37-20261030/
+?? pkgs/predator-pm-study/diagnostic.rs
+?? pkgs/predator-pm-study/instrumented.rs
+?? pkgs/predator-pm-study/network.rs
+?? pkgs/predator-pm-study/s2idle.rs
+?? pkgs/predator-pm-study/wake_path.rs
+?? pkgs/predator-pm-study/wake_timing.rs
+?? pkgs/predator-pm-study/wake_validation.rs
+58db33f0bc4372f3f928835c4db1433212c18379be51420a90bd6e57f5ceb065  flake.lock
+afd512a3dfe31f75a4e6687a75c5b9ae9ce744b7eda28a17f619dbd158ddabbc  pkgs/predator-pm-study/wake_path.rs
+6074d8e9863e8d35819a85a84222551cef7c8c3344209f2aaffaa283ab7b4040  pkgs/predator-pm-study/wake_validation.rs
+d84db2b41c3f89279938dcc959690d5f41e6a619848dfebeb3864ca31d9f4648  pkgs/predator-pm-study/wake_timing.rs
+0a28b1851b4fe42d13d921a2467c4d6d45c831d128c5b502a66971b6135930dd  pkgs/predator-pm-study/network.rs
+ed90d85d04fbbba2d1f0e7703fa83a84298c0791ae1619691756715e47466f90  hosts/predator/pm-study/README.md
+395d8359dfd74235651e6de643ea05cbed84a8f0cefca049fdf775cdc0729e2e  hosts/predator/pm-study/diagnostics/README.md
+02d1b61f0ec11f81d8063ae80c474205dde0d8321db0ca520afb09da7146e269  hosts/predator/pm-study/diagnostics/wake-path-20261101/README.md
+f12c3cc10fe9ebecdcc0a23f760370e67173b2d619b73894878d276625ddc0fc  hosts/predator/pm-study/diagnostics/wake-path-20261101/schedule.json
+d97e85aa4be0b3f6d92738f86ae4d5103b056bdd01925b797005861c97619e33  hosts/predator/pm-study/diagnostics/s2idle-wake-validation-20261031/README.md
+2026-11-01T10:33:15+01:00

@@ -1,0 +1,17 @@
+{
+  "scheduledTaskId": "scheduled-task:command:mcp:ec3a1d16-3127-4eb3-a89b-dcdd45951c21:schedule-task:predator-serial-d-preparation-20261029-2000",
+  "title": "Predator serial D preparation Oct29 20:00",
+  "enabled": true,
+  "schedule": {
+    "type": "fixed_time",
+    "timeOfDay": "20:00",
+    "weekdays": [4]
+  },
+  "nextRunAt": "2026-10-29T19:00:00.000Z",
+  "timezone": "Europe/Paris",
+  "dateGuard": "2026-10-29 20:00 through 21:00 CET",
+  "exactSelfDeletionEmbedded": true,
+  "realTrialArmed": false,
+  "nextTrial": "fresh serial D, ordinal 1, 44700 seconds awake, pm_async=0",
+  "conditionalRepeat": "async E, ordinal 2, completed_epoch+25500, only after a verified serial D primer with owner physical evidence"
+}

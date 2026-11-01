@@ -1,0 +1,96 @@
+Connection successfully activated (D-Bus active path: /org/freedesktop/NetworkManager/ActiveConnection/4)
+c4e6863b-7f76-4a4d-9a48-9937af0b5a36
+192.168.1.1
+       Server: 82.64.131.93 (0.nixos.pool.ntp.org)
+Poll interval: 1min 4s (min: 32s; max 34min 8s)
+         Leap: normal
+      Version: 4
+      Stratum: 2
+    Reference: C134B86A
+    Precision: 1us (-23)
+Root distance: 19.683ms (max: 5s)
+       Offset: +7.749ms
+        Delay: 16.596ms
+       Jitter: 0
+ Packet count: 1
+    Frequency: +0.000ppm
+ActiveState=active
+Result=success
+ActiveState=inactive
+UnitFileState=enabled
+[EXTENDED]   /etc/systemd/system/ModemManager.service → /etc/systemd/system/ModemManager.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/NetworkManager-dispatcher.service → /etc/systemd/system/NetworkManager-dispatcher.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/NetworkManager-wait-online.service → /etc/systemd/system/NetworkManager-wait-online.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/NetworkManager.service → /etc/systemd/system/NetworkManager.service.d/NetworkManager-ovs.conf
+[EXTENDED]   /etc/systemd/system/NetworkManager.service → /etc/systemd/system/NetworkManager.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/caddy.service → /etc/systemd/system/caddy.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/container-getty@.service → /etc/systemd/system/container-getty@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/dbus-broker.service → /etc/systemd/system/dbus-broker.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/dbus.service → /etc/systemd/system/dbus.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/fail2ban.service → /etc/systemd/system/fail2ban.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/fail2ban.socket → /etc/systemd/system/fail2ban.socket.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/fstrim.timer → /etc/systemd/system/fstrim.timer.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/fwupd-refresh.service → /etc/systemd/system/fwupd-refresh.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/fwupd-refresh.timer → /etc/systemd/system/fwupd-refresh.timer.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/fwupd.service → /etc/systemd/system/fwupd.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/getty.target → /etc/systemd/system/getty.target.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/getty@.service → /etc/systemd/system/getty@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/kmod-static-nodes.service → /etc/systemd/system/kmod-static-nodes.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/lastlog2-import.service → /etc/systemd/system/lastlog2-import.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/local-fs.target → /etc/systemd/system/local-fs.target.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/modprobe@.service → /etc/systemd/system/modprobe@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/multi-user.target → /etc/systemd/system/multi-user.target.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/network.target → /etc/systemd/system/network.target.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/nix-daemon.service → /etc/systemd/system/nix-daemon.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/nix-daemon.socket → /etc/systemd/system/nix-daemon.socket.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/podman.service → /etc/systemd/system/podman.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/podman.socket → /etc/systemd/system/podman.socket.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/polkit-agent-helper.socket → /etc/systemd/system/polkit-agent-helper.socket.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/polkit-agent-helper@.service → /etc/systemd/system/polkit-agent-helper@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/polkit.service → /etc/systemd/system/polkit.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/remote-fs.target → /etc/systemd/system/remote-fs.target.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/serial-getty@.service → /etc/systemd/system/serial-getty@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-backlight@.service → /etc/systemd/system/systemd-backlight@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-bless-boot.service → /etc/systemd/system/systemd-bless-boot.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-boot-random-seed.service → /etc/systemd/system/systemd-boot-random-seed.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-fsck@.service → /etc/systemd/system/systemd-fsck@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-hostnamed.service → /etc/systemd/system/systemd-hostnamed.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-importd.service → /etc/systemd/system/systemd-importd.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-journal-flush.service → /etc/systemd/system/systemd-journal-flush.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-journald-audit.socket → /etc/systemd/system/systemd-journald-audit.socket.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-journald.service → /etc/systemd/system/systemd-journald.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-journald@.service → /etc/systemd/system/systemd-journald@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-localed.service → /etc/systemd/system/systemd-localed.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-logind.service → /etc/systemd/system/systemd-logind.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-modules-load.service → /etc/systemd/system/systemd-modules-load.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-nspawn@.service → /etc/systemd/system/systemd-nspawn@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-oomd.service → /etc/systemd/system/systemd-oomd.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-pcrphase-sysinit.service → /etc/systemd/system/systemd-pcrphase-sysinit.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-pcrphase.service → /etc/systemd/system/systemd-pcrphase.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-pstore.service → /etc/systemd/system/systemd-pstore.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-random-seed.service → /etc/systemd/system/systemd-random-seed.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-remount-fs.service → /etc/systemd/system/systemd-remount-fs.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-sysctl.service → /etc/systemd/system/systemd-sysctl.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-time-wait-sync.service → /etc/systemd/system/systemd-time-wait-sync.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-timedated.service → /etc/systemd/system/systemd-timedated.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-timesyncd.service → /etc/systemd/system/systemd-timesyncd.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-udevd.service → /etc/systemd/system/systemd-udevd.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-update-utmp.service → /etc/systemd/system/systemd-update-utmp.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/systemd-user-sessions.service → /etc/systemd/system/systemd-user-sessions.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/user-runtime-dir@.service → /etc/systemd/system/user-runtime-dir@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/user.slice → /etc/systemd/system/user.slice.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/user@.service → /etc/systemd/system/user@.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/zfs-import.target → /etc/systemd/system/zfs-import.target.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/zfs-mount.service → /etc/systemd/system/zfs-mount.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/zfs-share.service → /etc/systemd/system/zfs-share.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/zfs-zed.service → /etc/systemd/system/zfs-zed.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/system/zfs.target → /etc/systemd/system/zfs.target.d/overrides.conf
+[EXTENDED]   /etc/systemd/user/dbus-broker.service → /etc/systemd/user/dbus-broker.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/user/dbus.service → /etc/systemd/user/dbus.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/user/dbus.socket → /etc/systemd/user/dbus.socket.d/overrides.conf
+[EXTENDED]   /etc/systemd/user/podman.service → /etc/systemd/user/podman.service.d/overrides.conf
+[EXTENDED]   /etc/systemd/user/podman.socket → /etc/systemd/user/podman.socket.d/overrides.conf
+[EXTENDED]   /etc/systemd/user/systemd-tmpfiles-clean.timer → /etc/systemd/user/systemd-tmpfiles-clean.timer.d/overrides.conf
+[EXTENDED]   /etc/systemd/user/systemd-tmpfiles-setup.service → /etc/systemd/user/systemd-tmpfiles-setup.service.d/overrides.conf
+
+74 overridden configuration files found.

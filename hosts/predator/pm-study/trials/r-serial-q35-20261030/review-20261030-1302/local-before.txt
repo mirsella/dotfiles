@@ -1,0 +1,27 @@
+2026-10-30T13:02:46+01:00
+47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5  .scratch/pm-serial-q35-20261030/plan.conf
+2c37e28f7fbfefc60a432c1b6d6d3ebe9b584b165626c1dc726d5ada5d2a91f5  .scratch/pm-resume-20261028/remote/ssh
+75b08f9ac2124becb377e2e3f787df870975eefd407209648e45273fce70c1bd  .scratch/pm-resume-20261028/ssh-wan.rs
+/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363
+ M AGENTS.md
+ M dotfiles/private_dot_config/opencode/skills/demo/SKILL.md
+ M dotfiles/private_dot_config/opencode/skills/recommendations/SKILL.md
+ M dotfiles/private_dot_config/t3code/private_portable-settings.json
+ M hosts/predator/acer-wmi-ph31751.c
+ M hosts/predator/acer-wmi.nix
+ M hosts/predator/default.nix
+ M hosts/predator/pm-study.nix
+ M hosts/predator/pm-study/README.md
+ M hosts/predator/pm-study/trials/r-async-h8-20261020/README.md
+ M pkgs/predator-pm-study/main.rs
+ M pkgs/predator-pm-study/module.nix
+ M pkgs/predator-pm-study/trial.rs
+?? hosts/predator/pm-study/deployment-20261027/
+?? hosts/predator/pm-study/deployment-20261028/
+?? hosts/predator/pm-study/preparation-20261028/
+?? hosts/predator/pm-study/preparation-20261029/
+?? hosts/predator/pm-study/trials/r-async-d1225-20261029/
+?? hosts/predator/pm-study/trials/r-async-h8-20261020/recovered-20261027/
+?? hosts/predator/pm-study/trials/r-serial-d1225-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q30-20261030/
+?? hosts/predator/pm-study/trials/r-serial-q35-20261030/

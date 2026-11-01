@@ -1,0 +1,13 @@
+expected_boot=3c1873e4b86641e1b411702168ef90cf
+validated_export_records=1221
+BEGIN trial=r-serial-q35r1-20261030: count=0
+SUSPEND REQUEST: count=0
+PM: suspend entry (deep): count=0
+Low-level resume complete: count=0
+PM: suspend exit: count=0
+Timekeeping suspended for: count=0
+VERIFIED: count=0
+classification=ABORTED_BEFORE_SUSPEND_MAINTENANCE
+new_resume_verifier_exercised=false
+completion_available=false
+full_pass=false

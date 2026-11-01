@@ -1,0 +1,7 @@
+NextElapseUSecRealtime=Fri 2026-10-30 14:29:23 CET
+AccuracyUSec=1s
+RandomizedDelayUSec=0
+Persistent=no
+Id=predator-pm-r-serial-q35r1-20261030-retry.timer
+ActiveState=active
+SubState=waiting

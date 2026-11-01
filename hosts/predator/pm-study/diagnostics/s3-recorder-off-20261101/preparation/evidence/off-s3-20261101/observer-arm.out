@@ -1,0 +1,7 @@
+2026-11-01T15:55:34,642424355+01:00
+active
+NEXT                        LEFT       LAST PASSED UNIT                                                    ACTIVATES
+Sun 2026-11-01 16:21:30 CET 25min left -    -      predator-pm-recorder-off-off-s3-20261101-probe.timer    predator-pm-recorder-off-off-s3-20261101-probe.service
+Sun 2026-11-01 16:23:00 CET 27min left -    -      predator-pm-recorder-off-off-s3-20261101-snapshot.timer predator-pm-recorder-off-off-s3-20261101-snapshot.service
+
+2 timers listed.

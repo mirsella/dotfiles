@@ -1,0 +1,43 @@
+set -euo pipefail
+date --iso-8601=seconds
+test "$(cat /proc/sys/kernel/random/boot_id)" = f9b45aa6-b820-4ab5-b18c-9324d8d53087
+test -z "$(systemctl list-timers --all --no-legend 'predator-pm-*' night-suspend.timer | awk '$1 != "-" {print}')"
+systemctl list-timers --all --no-pager nextcloud-cron.timer
+systemctl show nextcloud-cron.service -p ActiveState -p ExecMainStartTimestamp -p ExecMainExitTimestamp
+systemctl list-jobs --no-legend
+install -d -m0700 /var/lib/predator-pm-wake-validation
+umask 077
+set -o noclobber
+cat > /var/lib/predator-pm-wake-validation/wake-20261031-plan.conf <<'PLAN'
+schema=s2idle-wol-rtc-1
+id=wake-20261031
+boot=f9b45aa6-b820-4ab5-b18c-9324d8d53087
+runtime=/nix/store/y5x8nw8lvhjjmxp9m1aiy4hkgsfsrr7g-predator-pm-study-0.1.0/bin/predator-pm-wake-validation
+runtime_sha=743a5546ccf6e13d401de82c934691efb75b92c9e4103e12a1c15091966086fc
+source_sha=6074d8e9863e8d35819a85a84222551cef7c8c3344209f2aaffaa283ab7b4040
+timing_sha=d84db2b41c3f89279938dcc959690d5f41e6a619848dfebeb3864ca31d9f4648
+handoff_sha=b8d111d32b28e900a2a1a7c620fa4a4590b2ba1e6bfcdf19cf3758038433090b
+due=1793481300
+wake=1793482260
+rtc_fallback=1793482500
+review=1793483100
+window_end=1793484000
+btime=1793474520
+historical_btime=1793474520
+success_before=0
+markers_before=0
+kind=s2idle-wake-validation
+recovery_sha=ec6d9a401a59064512c56c035894715d4123ef69ee301cc83297a373c9a83b7d
+pm_async=0
+pm_trace=0
+pm_test=none
+mem_sleep=s2idle
+recorder=off-normal-utc-rtc-alarm
+tpm=initialized
+ec=not-run
+measurement=dated-power-graph-required
+reset_provenance=owner-forced-reboot-method-off-duration-unspecified
+nonce=wake-20261031-1793481300
+PLAN
+/nix/store/y5x8nw8lvhjjmxp9m1aiy4hkgsfsrr7g-predator-pm-study-0.1.0/bin/predator-pm-wake-validation check /var/lib/predator-pm-wake-validation/wake-20261031-plan.conf 767cd2aff3f22cc1b8691ae63e3435d83279f7952b763870a53e0b680214b942
+journalctl --sync

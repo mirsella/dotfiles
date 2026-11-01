@@ -1,0 +1,12 @@
+authorization=owner requested compact breadcrumb and awake write/readback
+boot=bf51c3ac-164e-4bfa-b56c-7b71df526b7f
+nonce=20261101-a
+module=/nix/store/3dzvzp3hg82n7gkrmrbac2svplh4xlzb-predator-pm-boundary-compact-20261101/lib/modules/6.18.58/extra/pm_boundary_compact.ko.xz
+module_sha256=39650a6e0654a280a775e3a75ad982539a4ebc60ba184389aad1f4e704be3e00
+write_attempt_limit=1
+record_bytes=64
+allocation_budget_bytes=1024
+linux_reserve_bytes=5120
+extra_margin_bytes=1024
+suspend_requests=0
+reboot_requests=0

@@ -1,0 +1,8 @@
+runtime=/nix/store/bjpzwsx60fw6vf47yyakfqhgna8nkfqy-predator-pm-study-0.1.0/bin/predator-pm-instrumented
+binary_sha256=a597160b303d59c49aaaf7e4a7716788adda32ad3a7fa9a62eb2bee8bfc3e56a
+source_sha256=a14827f71d316a807d9e4b6e552dd624f4975ef633d0ec67a03f72985afed01b
+status=deployed-rooted-read-only-preflight-failed
+manifest=rtc-cal-core-20261031
+pm_operations=0
+superseded_reason=journalctl-requires-compact-boot-ID-for-match
+failed_manifest_retained=true

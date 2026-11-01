@@ -1,0 +1,50 @@
+2026-10-30T19:12:23+01:00
+active
+[ 2749.544622] DIAG CAPTURE id=d-freezer-02-20261030 boot=f8eb6e44-85ae-4e56-bc00-587876699945 nonce=1793383960
+/home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-02-20261030-baseline.log 2456189 2026-10-30 19:12:23.868714505 +0100
+391a7d6f5e41599e3b7cc609e6a8ed952e9300ec279ea14f71a657cce786d90e  /home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-02-20261030-baseline.log
+# /run/systemd/transient/predator-pm-diagnostic-d-freezer-02-20261030-probe.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19
+
+[Timer]
+OnCalendar=@1793384732
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-diagnostic-d-freezer-02-20261030-probe.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/timeout 15s /usr/bin/ssh-keyscan -T 5 -t ed25519 192.168.1.19
+
+[Service]
+Type=oneshot
+TimeoutStartSec=20s
+ExecStart=
+ExecStart="/usr/bin/timeout" "15s" "/usr/bin/ssh-keyscan" "-T" "5" "-t" "ed25519" "192.168.1.19"
+
+# /run/systemd/transient/predator-pm-diagnostic-d-freezer-02-20261030-snapshot.timer
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-02-20261030-result.log
+
+[Timer]
+OnCalendar=@1793384852
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=no
+RemainAfterElapse=no
+
+# /run/systemd/transient/predator-pm-diagnostic-d-freezer-02-20261030-snapshot.service
+# This is a transient unit file, created programmatically via the systemd API. Do not edit.
+[Unit]
+Description=/usr/bin/cp --no-clobber /home/mirsella/dev/predator-pm-debug/netconsole-20261006.log /home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-02-20261030-result.log
+
+[Service]
+Type=oneshot
+TimeoutStartSec=30s
+ExecStart=
+ExecStart="/usr/bin/cp" "--no-clobber" "/home/mirsella/dev/predator-pm-debug/netconsole-20261006.log" "/home/mirsella/dev/predator-pm-debug/.agents-local/d-freezer-02-20261030-result.log"

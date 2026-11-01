@@ -1,0 +1,121 @@
+2026-11-01T12:41:43,919163336+01:00
+ActiveState=inactive
+MainPID=0
+Result=success
+0
+0
+root 600 155 readback.txt
+root 600 331 status-before.txt
+root 600 518 before.txt
+root 600 82 write-result.txt
+root 600 518 after-write.txt
+root 600 7 load-result.txt
+root 600 104 outcome.txt
+root 600 506 request.txt
+root 600 346 status-after.txt
+2b73b7954de87763b1c1bbf9acfac72aa128e187691284ffe12b021578d99622  /var/lib/predator-pm-boundary/compact-20261101-a/after-write.txt
+7ef91c9d8a39e38d71ab77c263c050d112e310e49ba978da76a87bfd4512d8b7  /var/lib/predator-pm-boundary/compact-20261101-a/before.txt
+3ec0cf39608d05af42b7a5af385a34c12f8bfa057711594fb2b3dc4f0c42ea46  /var/lib/predator-pm-boundary/compact-20261101-a/load-result.txt
+8227ef4532bc254585630aed00def583c35fd2ac3f3e287e8ae3e560466467d7  /var/lib/predator-pm-boundary/compact-20261101-a/outcome.txt
+53b5c44d28e515400eea0cfdd53135c622d3612fa9548356504604708ba9663c  /var/lib/predator-pm-boundary/compact-20261101-a/readback.txt
+06a6d7a45a5e9e90bf9b424dd3f539408689a30b2dfe37ad10147720c7f9bb97  /var/lib/predator-pm-boundary/compact-20261101-a/request.txt
+ba3de9d56886c365b608b49f16a9bde252ebb1f4fa4aaad564184d9ce0c9f69d  /var/lib/predator-pm-boundary/compact-20261101-a/status-after.txt
+6e15401a91984e97c681a854746f2833a9cb51b7d019b721f2afb0075ba35753  /var/lib/predator-pm-boundary/compact-20261101-a/status-before.txt
+3aa9105d238fbc627ee465f7cc3e3ad4331d051978308f364b973653e80ee130  /var/lib/predator-pm-boundary/compact-20261101-a/write-result.txt
+
+file=request.txt
+authorization=owner requested compact breadcrumb and awake write/readback
+boot=bf51c3ac-164e-4bfa-b56c-7b71df526b7f
+nonce=20261101-a
+module=/nix/store/3dzvzp3hg82n7gkrmrbac2svplh4xlzb-predator-pm-boundary-compact-20261101/lib/modules/6.18.58/extra/pm_boundary_compact.ko.xz
+module_sha256=39650a6e0654a280a775e3a75ad982539a4ebc60ba184389aad1f4e704be3e00
+write_attempt_limit=1
+record_bytes=64
+allocation_budget_bytes=1024
+linux_reserve_bytes=5120
+extra_margin_bytes=1024
+suspend_requests=0
+reboot_requests=0
+
+file=before.txt
+date=2026-11-01T12:40:48,830139060+01:00
+boot=bf51c3ac-164e-4bfa-b56c-7b71df526b7f
+cmdline=init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+taint=12289
+Filesystem     1B-blocks   Used Available Use% Mounted on
+efivarfs          163752 156254      2378  99% /sys/firmware/efi/efivars
+2026-11-01 12:40:48.839771+01:00
+LocalRTC=no
+NTPSynchronized=yes
+
+file=load-result.txt
+Ok("")
+
+file=status-before.txt
+schema=compact-efi-probe-1
+attempted=0
+write_errno=-115
+audit_errno=-115
+efi_status=0
+reserve_bytes=5120
+margin_bytes=1024
+allocation_budget_bytes=1024
+charged_bytes=96
+before_storage_bytes=163752
+before_remaining_bytes=7498
+before_max_bytes=7438
+after_storage_bytes=0
+after_remaining_bytes=0
+after_max_bytes=0
+write_duration_ns=0
+
+file=write-result.txt
+Err(Os { code: 116, kind: StaleNetworkFileHandle, message: "Stale file handle" })
+
+file=status-after.txt
+schema=compact-efi-probe-1
+attempted=1
+write_errno=0
+audit_errno=-116
+efi_status=0
+reserve_bytes=5120
+margin_bytes=1024
+allocation_budget_bytes=1024
+charged_bytes=96
+before_storage_bytes=163752
+before_remaining_bytes=7498
+before_max_bytes=7438
+after_storage_bytes=163752
+after_remaining_bytes=7342
+after_max_bytes=7282
+write_duration_ns=47637358
+
+file=readback.txt
+attributes=7 bytes=64
+hex=504d5333424e443202004000010000000100000000000000bf51c3ac164e4bfab56c7b71df526b7f32303236313130312d6100000000000000000000748a255c
+not present: readback-error.txt
+
+file=after-write.txt
+date=2026-11-01T12:40:49,499586483+01:00
+boot=bf51c3ac-164e-4bfa-b56c-7b71df526b7f
+cmdline=init=/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363/init predator.authenticated-boot=1 consoleblank=0 no_console_suspend nohibernate root=fstab loglevel=7 lsm=landlock,yama,bpf
+taint=12289
+Filesystem     1B-blocks   Used Available Use% Mounted on
+efivarfs          163752 156410      2222  99% /sys/firmware/efi/efivars
+2026-11-01 12:40:49.519145+01:00
+LocalRTC=no
+NTPSynchronized=yes
+
+file=outcome.txt
+attempt=Err(Os { code: 116, kind: StaleNetworkFileHandle, message: "Stale file handle" })
+unload=Ok(())
+Filesystem      1B-blocks      Used Available Use% Mounted on
+/dev/sdb1      1071624192 210669568 860954624  20% /boot
+efivarfs           163752    156410      2222  99% /sys/firmware/efi/efivars
+LocalRTC=no
+NTPSynchronized=yes
+2026-11-01 12:41:44.209339+01:00
+2026-11-01T12:40:49.082887+01:00 predator kernel: pm_boundary_compact: ready nonce=20261101-a record=64 charged=96 free=7498; no write yet
+2026-11-01T12:40:49.475872+01:00 predator kernel: pm_boundary_compact: nonce=20261101-a write_errno=0 audit_errno=-116 efi=0x0 free_before=7498 free_after=7342 duration_ns=47637358; record retained
+2026-11-01T12:40:50.133933+01:00 predator kernel: pm_boundary_compact: unloaded attempted=1 write_errno=0 audit_errno=-116; no erase
+running

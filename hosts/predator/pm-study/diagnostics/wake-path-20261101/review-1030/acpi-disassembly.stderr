@@ -1,0 +1,181 @@
+File appears to be binary: found 41367 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file DSDT, Length 0x1FC29 (130089) bytes
+ACPI: DSDT 0x0000000000000000 01FC29 (v02 ACRSYS ACRPRDCT 00000000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT8, Length 0x58C1 (22721) bytes
+ACPI: SSDT 0x0000000000000000 0058C1 (v01 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT7, Length 0xEDE (3806) bytes
+ACPI: SSDT 0x0000000000000000 000EDE (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT6, Length 0x106A (4202) bytes
+ACPI: SSDT 0x0000000000000000 00106A (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT5, Length 0x3002 (12290) bytes
+ACPI: SSDT 0x0000000000000000 003002 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT4, Length 0x29F (671) bytes
+ACPI: SSDT 0x0000000000000000 00029F (v02 ACRSYS ACRPRDCT 00000000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT3, Length 0xBC8 (3016) bytes
+ACPI: SSDT 0x0000000000000000 000BC8 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT2, Length 0x3113 (12563) bytes
+ACPI: SSDT 0x0000000000000000 003113 (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT13, Length 0x4C3 (1219) bytes
+ACPI: SSDT 0x0000000000000000 0004C3 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT12, Length 0x346 (838) bytes
+ACPI: SSDT 0x0000000000000000 000346 (v01 ACRSYS ACRPRDCT 00000000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT11, Length 0x477C (18300) bytes
+ACPI: SSDT 0x0000000000000000 00477C (v01 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT10, Length 0x1BC (444) bytes
+ACPI: SSDT 0x0000000000000000 0001BC (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Input file SSDT1, Length 0x46 (70) bytes
+ACPI: SSDT 0x0000000000000000 000046 (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+Pass 1 parse of [SSDT]
+Pass 2 parse of [SSDT]
+Pass 1 parse of [DSDT]
+ACPI Error: ^^WMID.FEBC: Path has too many parent prefixes (^) (20251212/nsaccess-603)
+ACPI Error: AE_NOT_FOUND, During name lookup/catalog (20251212/psobject-372)
+ACPI Error: ^^PEG0.PEGP: Path has too many parent prefixes (^) (20251212/nsaccess-603)
+ACPI Error: AE_NOT_FOUND, During name lookup/catalog (20251212/psobject-372)
+ACPI Error: ^^PEG1.PEGP: Path has too many parent prefixes (^) (20251212/nsaccess-603)
+ACPI Error: AE_NOT_FOUND, During name lookup/catalog (20251212/psobject-372)
+Pass 2 parse of [DSDT]
+ACPI Error: ^^WMID.FEBC: Path has too many parent prefixes (^) (20251212/nsaccess-603)
+ACPI Error: AE_NOT_FOUND, During name lookup/catalog (20251212/psobject-372)
+ACPI Error: ^^PEG0.PEGP: Path has too many parent prefixes (^) (20251212/nsaccess-603)
+ACPI Error: AE_NOT_FOUND, During name lookup/catalog (20251212/psobject-372)
+ACPI Error: ^^PEG1.PEGP: Path has too many parent prefixes (^) (20251212/nsaccess-603)
+ACPI Error: AE_NOT_FOUND, During name lookup/catalog (20251212/psobject-372)
+Parsing Deferred Opcodes (Methods/Buffers/Packages/Regions)
+
+Parsing completed
+ Warning - Emitting ASL code "External (BNUM)"
+           This is a conflicting declaration with some other declaration within the ASL code.
+           This external declaration may need to be deleted in order to recompile the dsl file.
+
+File appears to be binary: found 22 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT1, Length 0x46 (70) bytes
+ACPI: SSDT 0x0000000000000000 000046 (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 133 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT10, Length 0x1BC (444) bytes
+ACPI: SSDT 0x0000000000000000 0001BC (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 5469 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT11, Length 0x477C (18300) bytes
+ACPI: SSDT 0x0000000000000000 00477C (v01 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 236 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT12, Length 0x346 (838) bytes
+ACPI: SSDT 0x0000000000000000 000346 (v01 ACRSYS ACRPRDCT 00000000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 471 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT13, Length 0x4C3 (1219) bytes
+ACPI: SSDT 0x0000000000000000 0004C3 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 4141 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT2, Length 0x3113 (12563) bytes
+ACPI: SSDT 0x0000000000000000 003113 (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 718 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT3, Length 0xBC8 (3016) bytes
+ACPI: SSDT 0x0000000000000000 000BC8 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 228 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT4, Length 0x29F (671) bytes
+ACPI: SSDT 0x0000000000000000 00029F (v02 ACRSYS ACRPRDCT 00000000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 2003 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT5, Length 0x3002 (12290) bytes
+ACPI: SSDT 0x0000000000000000 003002 (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 482 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT6, Length 0x106A (4202) bytes
+ACPI: SSDT 0x0000000000000000 00106A (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 901 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT7, Length 0xEDE (3806) bytes
+ACPI: SSDT 0x0000000000000000 000EDE (v02 ACRSYS ACRPRDCT 00003000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 15083 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT8, Length 0x58C1 (22721) bytes
+ACPI: SSDT 0x0000000000000000 0058C1 (v01 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)
+File appears to be binary: found 579 non-ASCII characters, disassembling
+Binary file appears to be a valid ACPI table, disassembling
+Input file SSDT9, Length 0x51E (1310) bytes
+ACPI: SSDT 0x0000000000000000 00051E (v02 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Input file SSDT8, Length 0x58C1 (22721) bytes
+ACPI: SSDT 0x0000000000000000 0058C1 (v01 ACRSYS ACRPRDCT 00001000 1025 00040000)
+Pass 1 parse of [SSDT]
+ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20251212/psobject-372)

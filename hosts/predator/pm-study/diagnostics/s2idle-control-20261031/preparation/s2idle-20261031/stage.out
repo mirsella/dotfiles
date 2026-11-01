@@ -1,0 +1,9 @@
+2026-10-31T11:53:37+01:00
+NEXT                            LEFT LAST                              PASSED UNIT                 ACTIVATES
+Sat 2026-10-31 11:54:49 CET 1min 11s Sat 2026-10-31 11:49:49 CET 3min 48s ago nextcloud-cron.timer nextcloud-cron.service
+
+1 timers listed.
+ActiveState=inactive
+ExecMainStartTimestamp=Sat 2026-10-31 11:49:49 CET
+ExecMainExitTimestamp=Sat 2026-10-31 11:49:50 CET
+S2IDLE READY id=s2idle-20261031 nonce=s2idle-20261031-1793444820

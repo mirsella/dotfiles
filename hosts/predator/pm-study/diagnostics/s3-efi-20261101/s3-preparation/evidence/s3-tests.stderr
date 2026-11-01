@@ -1,0 +1,3 @@
+   Compiling predator-pm-study v0.1.0 (/home/mirsella/dev/dotfiles/pkgs/predator-pm-study)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.84s
+     Running unittests boundary_s3.rs (.scratch/pm-s3-rtc-20261101/target/debug/build/predator-pm-study/afc08aa1ac84168d/out/predator_pm_boundary_s3-afc08aa1ac84168d)

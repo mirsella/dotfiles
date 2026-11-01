@@ -1,0 +1,22 @@
+Owner report, received October 28 before the 20:59 CET inspection:
+"weird it was just powered off, i sent a WoL and it woken up"
+
+Agent requested one ordinary systemctl reboot at 19:36:29 CET from healthy boot
+9c19e8c7-a404-454c-813e-ced03d90a71c, with zero suspend cycles. The old journal
+records systemd-reboot.service and System Reboot, then shutdown. Netconsole
+ends at NIC shutdown; it does not show why the machine remained powered off.
+
+The owner reports finding it powered off and sending WoL. The agent did not
+send recovery WoL, toggle power or request another reboot. Current boot is
+b223cb35-a02b-4417-a3db-569ad986cd4b, btime1793217362, October28 20:56:02 CET.
+No intermediate boot appears in the retained journal. Exact physical off-state,
+power-off duration and WoL transmission time were not independently measured.
+
+This is a fresh first-suspend baseline following an owner-reported power-off
+and owner WoL, not the originally intended uninterrupted warm reboot. Preserve
+this eligible boot. A later serial D must document comparable reset conditions;
+do not call the pair reset-matched merely because kernel and age agree.
+
+Read-only boot-and-shutdown.txt collection exited127 at missing lsusb after
+collecting both journals, maintenance status and lsblk. USB sysfs topology,
+sessions and inhibitors are collected separately in topology.txt.
