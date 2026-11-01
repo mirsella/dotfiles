@@ -86,6 +86,7 @@ in
           [cache]
           local_max_size = "150GiB"
           cache_executables = false
+          explain_miss = true
         '';
       };
     }
