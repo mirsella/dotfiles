@@ -7,7 +7,6 @@ let
       "fallback"
     ];
     linux-cachyos = [ "default" ];
-    linux-lts612 = [ "default" ];
   };
   image =
     kernel: preset: "arch-${kernel}${lib.optionalString (preset == "fallback") "-fallback"}.efi";
@@ -18,7 +17,7 @@ let
       kernels = lib.mapAttrs (kernel: presets: map (image kernel) presets) kernels;
     };
     "etc/kernel/cmdline" = ''
-      rd.luks.name=${rootUuid}=root rd.luks.options=${rootUuid}=tpm2-device=auto root=/dev/mapper/root rootflags=subvol=@ rw rootfstype=btrfs zswap.enabled=0 resume=/dev/mapper/root resume_offset=57190605
+      rd.luks.name=${rootUuid}=root rd.luks.options=${rootUuid}=tpm2-device=auto,discard root=/dev/mapper/root rootflags=subvol=@ rw rootfstype=btrfs zswap.enabled=0 resume=/dev/mapper/root resume_offset=57190605
     '';
     "etc/kernel/uki.conf" = ''
       [UKI]
