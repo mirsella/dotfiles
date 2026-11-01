@@ -124,7 +124,10 @@ in
     serviceConfig.WorkingDirectory = flakeDir;
     serviceConfig.ExecStartPre = "${pkgs.util-linux}/bin/runuser -u mirsella -- ${config.nix.package}/bin/nix flake update nixpkgs";
   };
-  services.fstrim.interval = "Sun 11:00";
+  services.fstrim = {
+    enable = true;
+    interval = "Sun 11:00";
+  };
 
   # Order secret installation first without stopping user sessions on rotation.
   systemd.services."user@" = {

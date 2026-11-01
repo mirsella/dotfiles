@@ -323,6 +323,10 @@ assert lib.assertMsg (lib.all
   (builtins.attrValues desktops)
 ) "The desktops must be TPM2-unlocked XFS with LUKS-backed hibernation";
 assert lib.assertMsg (
+  server.boot.initrd.luks.devices."crypt-root".allowDiscards
+  && server.services.fstrim.enable
+) "Predator must discard on its LUKS root and run the fstrim timer";
+assert lib.assertMsg (
   lib.all (
     name:
     let
