@@ -312,6 +312,10 @@ struct hotkey_function_type_aa {
 #define ACER_CAP_PWM			BIT(12)
 #define ACER_CAP_KBD_BACKLIGHT		BIT(13)
 
+#define ACER_KBD_BACKLIGHT_EC_STATE	0x30
+#define ACER_KBD_BACKLIGHT_EC_MIRROR	0x31
+#define ACER_KBD_BACKLIGHT_MASK		BIT(0)
+
 /*
  * Interface type flags
  */
@@ -1860,21 +1864,6 @@ static int WMID_gaming_get_misc_setting(enum acer_wmi_gaming_misc_setting settin
 static acpi_status get_u32(u32 *value, u32 cap)
 {
 	acpi_status status = AE_ERROR;
-	u8 tmp;
-
-	/*
-	 * EC-RAM quirks bypass the WMI transport entirely: on these models
-	 * the firmware exposes the state through the EC's own memory rather
-	 * than through any WMI method, so this works on every interface type
-	 * (notably WMID_v2 without WMID_GUID2, where no WMI method dispatch
-	 * is available at all).
-	 */
-	if (cap == ACER_CAP_KBD_BACKLIGHT && quirks->kbd_backlight == 1) {
-		if (ec_read(0x30, &tmp))
-			return AE_ERROR;
-		*value = tmp & 0x1;
-		return AE_OK;
-	}
 
 	switch (interface->type) {
 	case ACER_AMW0:
@@ -1907,19 +1896,6 @@ static acpi_status set_u32(u32 value, u32 cap)
 	acpi_status status;
 
 	if (interface->capability & cap) {
-		/* EC-RAM quirks bypass the WMI transport, see get_u32(). */
-		if (cap == ACER_CAP_KBD_BACKLIGHT && quirks->kbd_backlight == 1) {
-			if (value > 1)
-				return AE_BAD_PARAMETER;
-			/*
-			 * The EC mirrors the backlight state in both 0x30
-			 * and 0x31 (Fn+F9 flips both together); write both
-			 * to reproduce the firmware's own states.
-			 */
-			if (ec_write(0x30, value) || ec_write(0x31, value))
-				return AE_ERROR;
-			return AE_OK;
-		}
 		switch (interface->type) {
 		case ACER_AMW0:
 			return AMW0_set_u32(value, cap);
@@ -1974,7 +1950,7 @@ static void __init acer_commandline_init(void)
 }
 
 /*
- * LED device (Mail LED only, no other LEDs known yet)
+ * Mail LED device
  */
 static void mail_led_set(struct led_classdev *led_cdev,
 enum led_brightness value)
@@ -1999,41 +1975,38 @@ static void acer_led_exit(void)
 }
 
 /*
- * Keyboard backlight LED device (single-zone on/off models where the EC
- * tracks the state in its own RAM instead of answering WMI)
+ * No WMI method drives this keyboard backlight. Fn+F9 changes both EC
+ * registers, so write both to reproduce the firmware's on/off states.
  */
-static int kbd_backlight_led_set(struct led_classdev *led_cdev,
-				 enum led_brightness value)
+static int kbd_led_set(struct led_classdev *led_cdev,
+		       enum led_brightness brightness)
 {
-	return ACPI_FAILURE(set_u32(value, ACER_CAP_KBD_BACKLIGHT)) ? -EIO : 0;
+	u8 value = brightness == LED_OFF ? 0 : ACER_KBD_BACKLIGHT_MASK;
+	int ret;
+
+	ret = ec_write(ACER_KBD_BACKLIGHT_EC_STATE, value);
+	if (ret)
+		return ret;
+
+	return ec_write(ACER_KBD_BACKLIGHT_EC_MIRROR, value);
 }
 
-static enum led_brightness kbd_backlight_led_get(struct led_classdev *led_cdev)
+static enum led_brightness kbd_led_get(struct led_classdev *led_cdev)
 {
-	u32 value;
+	u8 value;
 
-	if (ACPI_FAILURE(get_u32(&value, ACER_CAP_KBD_BACKLIGHT)))
+	if (ec_read(ACER_KBD_BACKLIGHT_EC_STATE, &value))
 		return LED_OFF;
-	return value ? LED_ON : LED_OFF;
+
+	return value & ACER_KBD_BACKLIGHT_MASK ? LED_ON : LED_OFF;
 }
 
-static struct led_classdev kbd_backlight_led = {
+static struct led_classdev kbd_led = {
 	.name = "acer-wmi::kbd_backlight",
-	.brightness_set_blocking = kbd_backlight_led_set,
-	.brightness_get = kbd_backlight_led_get,
-	.max_brightness = 1,
+	.brightness_set_blocking = kbd_led_set,
+	.brightness_get = kbd_led_get,
+	.max_brightness = LED_ON,
 };
-
-static int acer_kbd_led_init(struct device *dev)
-{
-	return led_classdev_register(dev, &kbd_backlight_led);
-}
-
-static void acer_kbd_led_exit(void)
-{
-	set_u32(LED_OFF, ACER_CAP_KBD_BACKLIGHT);
-	led_classdev_unregister(&kbd_backlight_led);
-}
 
 /*
  * Backlight device
@@ -2888,7 +2861,7 @@ static int acer_platform_probe(struct platform_device *device)
 	}
 
 	if (has_cap(ACER_CAP_KBD_BACKLIGHT)) {
-		err = acer_kbd_led_init(&device->dev);
+		err = devm_led_classdev_register(&device->dev, &kbd_led);
 		if (err)
 			goto error_kbd_led;
 	}
@@ -2903,8 +2876,6 @@ error_rfkill:
 	if (has_cap(ACER_CAP_BRIGHTNESS))
 		acer_backlight_exit();
 error_brightness:
-	if (has_cap(ACER_CAP_KBD_BACKLIGHT))
-		acer_kbd_led_exit();
 	if (has_cap(ACER_CAP_MAILLED))
 		acer_led_exit();
 error_mailled:
@@ -2913,8 +2884,6 @@ error_mailled:
 
 static void acer_platform_remove(struct platform_device *device)
 {
-	if (has_cap(ACER_CAP_KBD_BACKLIGHT))
-		acer_kbd_led_exit();
 	if (has_cap(ACER_CAP_MAILLED))
 		acer_led_exit();
 	if (has_cap(ACER_CAP_BRIGHTNESS))

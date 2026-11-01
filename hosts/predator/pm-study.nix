@@ -10,10 +10,15 @@ let
   tools = pkgs.predator-pm-study;
 in
 {
+  # Built separately for the bounded awake transport probe; never auto-loaded.
+  system.build.predator-pm-boundary-probe =
+    config.boot.kernelPackages.callPackage ../../pkgs/predator-pm-study/boundary-probe.nix { };
+  system.build.predator-pm-boundary-compact =
+    config.boot.kernelPackages.callPackage ../../pkgs/predator-pm-study/boundary-compact.nix { };
+  system.build.predator-pm-boundary-stage =
+    config.boot.kernelPackages.callPackage ../../pkgs/predator-pm-study/boundary-stage.nix { };
   boot.extraModulePackages = [
-    (pkgs.callPackage ../../pkgs/predator-pm-study/module.nix {
-      kernel = config.boot.kernelPackages.kernel;
-    })
+    (config.boot.kernelPackages.callPackage ../../pkgs/predator-pm-study/module.nix { })
   ];
   boot.blacklistedKernelModules = [
     "acer_wmi"

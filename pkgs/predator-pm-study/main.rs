@@ -11,6 +11,7 @@ use std::{
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 mod automatic;
+mod network;
 mod trial;
 const STATE: &str = "/var/lib/predator-pm-study";
 fn not_held() -> Result<()> {
@@ -457,15 +458,21 @@ fn capture() -> Result<()> {
     ))
 }
 fn preflight(boot: &str, tpm: TpmState, ec_state: EcState) -> Result<Baseline> {
-    preflight_pm(boot, tpm, ec_state, "1")
+    preflight_pm(boot, tpm, ec_state, "1", KERNEL)
 }
-fn preflight_pm(boot: &str, tpm: TpmState, ec_state: EcState, pm_async: &str) -> Result<Baseline> {
+fn preflight_pm(
+    boot: &str,
+    tpm: TpmState,
+    ec_state: EcState,
+    pm_async: &str,
+    kernel: &str,
+) -> Result<Baseline> {
     check(
         text("/proc/sys/kernel/random/boot_id")? == boot,
         "boot changed",
     )?;
     check(
-        fs::canonicalize("/run/booted-system/kernel")? == Path::new(KERNEL),
+        fs::canonicalize("/run/booted-system/kernel")? == Path::new(kernel),
         "kernel image changed",
     )?;
     let excluded = text("/proc/cmdline")?.split_whitespace().any(|p| {
@@ -784,37 +791,9 @@ fn clock_handoff() -> Result<()> {
             ],
         )?;
     }
-    check(
-        output(
-            "nmcli",
-            &["-g", "GENERAL.CON-UUID", "device", "show", "enp3s0f1"],
-        )? == LAN_UUID
-            && output("nmcli", &["-g", "IP4.DNS", "device", "show", "enp3s0f1"])? == "192.168.1.1",
-        "study LAN profile did not restore expected DNS",
-    )?;
-    check(
-        output(
-            "systemctl",
-            &[
-                "show",
-                "NetworkManager.service",
-                "-p",
-                "ActiveState",
-                "--value",
-            ],
-        )? == "active"
-            && output(
-                "nmcli",
-                &["-g", "GENERAL.STATE", "device", "show", "enp3s0f1"],
-            )?
-            .starts_with("100")
-            && !output(
-                "nmcli",
-                &["-g", "IP4.GATEWAY", "device", "show", "enp3s0f1"],
-            )?
-            .is_empty(),
-        "NetworkManager has not completed the LAN handoff",
-    )?;
+    // nmcli activation can return before the final device-state notification.
+    // Wait for the declared profile, gateway and DNS without periodic polling.
+    network::wait()?;
     let state = Path::new("/run/systemd/netif/state");
     match fs::symlink_metadata(state) {
         Ok(meta) => {
@@ -1228,18 +1207,14 @@ mod tests {
     #[test]
     fn return_verification_distinguishes_disabled_and_completed_recording() {
         assert!(Recorder::Off.validate_return(0, 0, "0", "0", "N").is_ok());
-        assert!(
-            Recorder::Off
-                .validate_return(0, 60, "17", "3", "N")
-                .is_err()
-        );
+        assert!(Recorder::Off
+            .validate_return(0, 60, "17", "3", "N")
+            .is_err());
         assert!(Recorder::Rtc.validate_return(0, 60, "17", "3", "N").is_ok());
         assert!(Recorder::Rtc.validate_return(0, 0, "17", "3", "N").is_err());
-        assert!(
-            Recorder::Rtc
-                .validate_return(0, 60, "10", "3", "Y")
-                .is_err()
-        );
+        assert!(Recorder::Rtc
+            .validate_return(0, 60, "10", "3", "Y")
+            .is_err());
     }
 
     #[test]
@@ -1266,13 +1241,11 @@ mod tests {
         assert!(ec_boot_writes(&success).is_ok());
         assert!(ec_boot_writes(&start).is_err());
         assert!(ec_boot_writes(&format!("{success}{success}")).is_err());
-        assert!(
-            ec_boot_writes(&format!(
-                "{start}{}",
-                record("39f53479d3a045ac8e11786248231fbf", 301_000_000)
-            ))
-            .is_err()
-        );
+        assert!(ec_boot_writes(&format!(
+            "{start}{}",
+            record("39f53479d3a045ac8e11786248231fbf", 301_000_000)
+        ))
+        .is_err());
         assert_eq!(EcState::from_plan("due=1\n").unwrap(), EcState::NotRun);
         assert_eq!(
             EcState::from_plan("ec=boot-writes\n").unwrap(),

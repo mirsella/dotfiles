@@ -13,6 +13,7 @@ use std::{
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const STATE: &str = "/var/lib/predator-pm-instrumented";
 const BOOT: &str = "f8eb6e44-85ae-4e56-bc00-587876699945";
+const JOURNAL_BOOT: &str = "f8eb6e4485ae4e56bc00587876699945";
 const SYSTEM: &str =
     "/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363";
 const KERNEL: &str = "/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage";
@@ -173,7 +174,14 @@ fn marker(s: &str) -> Result<()> {
 fn journal() -> Result<String> {
     out(
         "journalctl",
-        &["-k", "-b", BOOT, "--no-pager", "-o", "short-monotonic"],
+        &[
+            "-k",
+            "-b",
+            JOURNAL_BOOT,
+            "--no-pager",
+            "-o",
+            "short-monotonic",
+        ],
     )
 }
 fn sleep_inactive() -> Result<()> {
@@ -373,7 +381,7 @@ impl Plan {
         let btime = m["btime"].parse::<u64>()?;
         require(
             due > btime
-                && due >= 1793420400
+                && due >= 1793430000
                 && end == 1793484000
                 && wake
                     == due
@@ -628,7 +636,7 @@ fn health(p: &Plan, after: bool) -> Result<()> {
         "journalctl",
         &[
             "-b",
-            BOOT,
+            JOURNAL_BOOT,
             "-u",
             "predator-kbd-backlight-off.service",
             "--no-pager",
@@ -819,8 +827,9 @@ fn receive(rx: &mpsc::Receiver<std::io::Result<String>>, cal: bool) -> (String, 
         let l = rx.recv_timeout(left)??;
         s.push_str(&l);
         s.push('\n');
-        if l.contains("Finished System Suspend.")
-            || l.contains("Finished systemd-suspend.service - System Suspend.")
+        if (s.contains("Finished System Suspend.")
+            || s.contains("Finished systemd-suspend.service - System Suspend."))
+            && s.contains("PM: suspend exit")
         {
             return cycle(&s, cal);
         }
@@ -854,7 +863,7 @@ fn run(p: &Plan, raw: &str) -> Result<()> {
     )?;
     let cursor = out(
         "journalctl",
-        &["-b", BOOT, "-n", "0", "--show-cursor", "--no-pager"],
+        &["-b", JOURNAL_BOOT, "-n", "0", "--show-cursor", "--no-pager"],
     )?;
     let cursor = cursor
         .lines()
@@ -864,7 +873,7 @@ fn run(p: &Plan, raw: &str) -> Result<()> {
     let mut child = Command::new("journalctl")
         .args([
             "-b",
-            BOOT,
+            JOURNAL_BOOT,
             "--after-cursor",
             cursor,
             "-f",
@@ -1081,6 +1090,20 @@ mod tests {
             true
         )
         .is_err());
+    }
+    #[test]
+    fn receiver_waits_for_late_kernel_exit_after_service_finish() {
+        let (tx, rx) = mpsc::channel();
+        for l in [
+            "PM: suspend entry (deep)",
+            "Low-level resume complete",
+            "System returned from sleep operation",
+            "Finished System Suspend.",
+            "PM: suspend exit",
+        ] {
+            tx.send(Ok(l.into())).unwrap();
+        }
+        receive(&rx, false).1.unwrap();
     }
     #[test]
     fn retained_rtc_requires_actual_calendar_and_new_marker() {

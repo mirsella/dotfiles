@@ -104,8 +104,12 @@ in
     ];
   };
 
-  # Builds run on this box: cap the daemon so a hungry compile fails instead of wedging the system.
-  systemd.services.nix-daemon.serviceConfig.MemoryMax = "6G";
+  # Leave room for resident services; build large closures on another host.
+  # Bound swap as well so memory-heavy builds cannot spend hours thrashing.
+  systemd.services.nix-daemon.serviceConfig = {
+    MemoryMax = "3G";
+    MemorySwapMax = "1G";
+  };
 
   # Swap remains inside the encrypted root filesystem.
   swapDevices = [ { device = "/swapfile"; size = 8 * 1024; } ];

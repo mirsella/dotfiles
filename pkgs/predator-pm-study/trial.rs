@@ -3,7 +3,12 @@
 //! Ordinal 1 is the boot's first suspend, aged from boot; ordinal 2 is a repeat
 //! on the same boot, aged from the last verified completion.
 use super::*;
-use std::{collections::BTreeMap, os::unix::fs::MetadataExt};
+use std::{
+    collections::BTreeMap,
+    os::unix::fs::MetadataExt,
+    sync::mpsc,
+    time::{Duration, Instant},
+};
 
 struct Plan {
     values: BTreeMap<String, String>,
@@ -196,6 +201,7 @@ impl Plan {
             TpmState::Initialized,
             EcState::NotRun,
             self.get("pm_async"),
+            self.get("kernel"),
         )?;
         let ordinal: u64 = self.get("ordinal").parse()?;
         check(
@@ -326,6 +332,92 @@ fn verified_sleep_seconds(journal: &str, ordinal: u64) -> Result<f64> {
     Ok(seconds)
 }
 
+fn receive_kernel_history(
+    lines: &mpsc::Receiver<std::io::Result<String>>,
+    ordinal: u64,
+    timeout: Duration,
+) -> (String, Result<()>) {
+    let deadline = Instant::now() + timeout;
+    let mut kernel = String::new();
+    let result = (|| loop {
+        let line = match lines.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+            Ok(line) => line?,
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                return Err("timed out waiting for complete kernel suspend history".into());
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                return Err("kernel journal ended before the expected suspend exit".into());
+            }
+        };
+        let exit = line.contains("PM: suspend exit");
+        kernel.push_str(&line);
+        kernel.push('\n');
+        if exit {
+            let cycles = completed_cycles(&kernel)?;
+            check(cycles <= ordinal, "unexpected extra kernel suspend cycle")?;
+            if cycles == ordinal {
+                return Ok(());
+            }
+        }
+        check(
+            Instant::now() < deadline,
+            "kernel history deadline exceeded",
+        )?;
+    })();
+    (kernel, result)
+}
+
+fn complete_kernel_history(plan: &Plan, ordinal: u64) -> Result<String> {
+    // The systemd return message can precede journald's ingestion of the kernel
+    // exit. Keep after-kernel immutable and follow this exact boot until the
+    // ordered current cycle arrives, with a fixed deadline even under log load.
+    plan.identity()?;
+    let boot = plan.get("boot").replace('-', "");
+    let mut child = Command::new("journalctl")
+        .args([
+            "-k",
+            "-b",
+            &boot,
+            "--no-pager",
+            "-o",
+            "short-monotonic",
+            "--follow",
+            "--lines=all",
+        ])
+        .stdout(Stdio::piped())
+        .spawn()?;
+    let stdout = child.stdout.take().expect("piped journalctl stdout");
+    let (sender, receiver) = mpsc::channel();
+    let reader = std::thread::spawn(move || {
+        for line in BufReader::new(stdout).lines() {
+            let failed = line.is_err();
+            if sender.send(line).is_err() || failed {
+                break;
+            }
+        }
+    });
+    let (kernel, result) = receive_kernel_history(&receiver, ordinal, Duration::from_secs(30));
+    // Kill the direct child, not a timeout wrapper that could orphan journalctl.
+    // Reap and join on every outcome before saving or propagating any error.
+    let stopped = child.kill();
+    let reaped = child.wait();
+    let joined = reader.join();
+    plan.save("verification-kernel", &kernel)?;
+    plan.save(
+        "verification",
+        &format!(
+            "boot={}\nordinal={ordinal}\ntimeout_seconds=30\nresult={result:?}\nstop={stopped:?}\nreap={reaped:?}\nreader_joined={}\n",
+            plan.get("boot"), joined.is_ok()
+        ),
+    )?;
+    stopped?;
+    reaped?;
+    check(joined.is_ok(), "kernel journal reader panicked")?;
+    result?;
+    plan.identity()?;
+    Ok(kernel)
+}
+
 fn attempt(plan: &Plan, data: &str) -> Result<()> {
     let ordinal: u64 = plan.get("ordinal").parse()?;
     plan.save("requested", data)?; // create_new is the duplicate-attempt guard.
@@ -407,7 +499,7 @@ fn attempt(plan: &Plan, data: &str) -> Result<()> {
             && text("/sys/power/suspend_stats/fail")? == "0",
         format!("kernel did not complete suspend cycle {ordinal} successfully"),
     )?;
-    let kernel = text(format!("{STATE}/{}-after-kernel.txt", plan.get("trial_id")))?;
+    let kernel = complete_kernel_history(plan, ordinal)?;
     check(
         completed_cycles(&kernel)? == ordinal,
         "kernel cycle incomplete",
@@ -595,12 +687,10 @@ mod tests {
             format!("[ 1942.478482] predator kernel: Timekeeping suspended for {seconds} seconds\n")
         };
         assert_eq!(verified_sleep_seconds(&line("900.000"), 1).unwrap(), 900.0);
-        assert!(
-            verified_sleep_seconds(&line("897.522"), 1)
-                .unwrap_err()
-                .to_string()
-                .starts_with("SHORT_SLEEP:")
-        );
+        assert!(verified_sleep_seconds(&line("897.522"), 1)
+            .unwrap_err()
+            .to_string()
+            .starts_with("SHORT_SLEEP:"));
         assert_eq!(
             verified_sleep_seconds(&(line("897.522") + &line("957.100")), 2).unwrap(),
             957.1
@@ -615,6 +705,62 @@ mod tests {
             assert!(verified_sleep_seconds(&(line("957.100") + &line(invalid)), 2).is_err());
         }
         assert!(verified_sleep_seconds("Timekeeping suspended for 957.100 minutes", 1).is_err());
+    }
+    // Relevant messages from the immutable October 30 Q35 capture. The exit
+    // reached journald 29 ms after after-kernel was saved. Keep this incomplete
+    // prefix: validating only that raw snapshot must still reject it.
+    const Q35_EARLY: &str = "[ 2103.802681] predator kernel: PM: suspend entry (deep)\n\
+[ 2109.838989] predator kernel: ACPI: PM: Low-level resume complete\n\
+[ 2109.839162] predator kernel: Timekeeping suspended for 954.773 seconds\n\
+[ 2109.917172] predator kernel: scsi host0: PM: scsi_bus_resume [scsi_mod] returned 0 after 0 usecs\n";
+    const Q35_EXIT: &str = "[ 2109.947126] predator kernel: PM: suspend exit";
+
+    #[test]
+    fn later_kernel_exit_completes_the_preserved_early_snapshot() {
+        assert!(completed_cycles(Q35_EARLY).is_err());
+        let (sender, receiver) = mpsc::channel();
+        for line in Q35_EARLY.lines() {
+            sender.send(Ok(line.into())).unwrap();
+        }
+        sender.send(Ok(Q35_EXIT.into())).unwrap();
+        let (kernel, result) = receive_kernel_history(&receiver, 1, Duration::from_secs(1));
+        result.unwrap();
+        assert!(kernel.starts_with(Q35_EARLY));
+        assert_eq!(completed_cycles(&kernel).unwrap(), 1);
+        assert_eq!(verified_sleep_seconds(&kernel, 1).unwrap(), 954.773);
+    }
+
+    #[test]
+    fn missing_kernel_exit_times_out_and_preserves_partial_evidence() {
+        let (sender, receiver) = mpsc::channel();
+        for line in Q35_EARLY.lines() {
+            sender.send(Ok(line.into())).unwrap();
+        }
+        let (kernel, result) = receive_kernel_history(&receiver, 1, Duration::from_millis(20));
+        assert_eq!(kernel, Q35_EARLY);
+        assert!(result.unwrap_err().to_string().contains("timed out"));
+        drop(sender);
+    }
+
+    #[test]
+    fn previous_cycle_cannot_satisfy_repeat_or_closed_journal() {
+        let (sender, receiver) = mpsc::channel();
+        for line in Q35_EARLY.lines().chain([Q35_EXIT]).chain(Q35_EARLY.lines()) {
+            sender.send(Ok(line.into())).unwrap();
+        }
+        drop(sender);
+        let (kernel, result) = receive_kernel_history(&receiver, 2, Duration::from_secs(1));
+        assert!(result.unwrap_err().to_string().contains("ended before"));
+        assert!(completed_cycles(&kernel).is_err());
+    }
+
+    #[test]
+    fn kernel_follow_rejects_misordered_exit() {
+        let (sender, receiver) = mpsc::channel();
+        sender.send(Ok(Q35_EXIT.into())).unwrap();
+        let (kernel, result) = receive_kernel_history(&receiver, 1, Duration::from_secs(1));
+        assert!(result.unwrap_err().to_string().contains("exit without"));
+        assert_eq!(kernel, format!("{Q35_EXIT}\n"));
     }
     #[test]
     fn age_guard_distinguishes_prepare_from_entry_and_rejects_missed_windows() {

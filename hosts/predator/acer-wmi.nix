@@ -10,21 +10,30 @@
   boot.extraModulePackages = [
     (config.boot.kernelPackages.callPackage
       (
-        { stdenv, kernel }:
+        {
+          stdenv,
+          kernel,
+          kernelModuleMakeFlags,
+        }:
         stdenv.mkDerivation {
           pname = "acer-wmi-ph31751";
           version = "0.1";
           src = ./acer-wmi-ph31751.c;
           dontUnpack = true;
           nativeBuildInputs = kernel.moduleBuildDependencies;
-          buildPhase = ''
+          preBuild = ''
             cp $src acer-wmi-ph31751.c
             echo "obj-m += acer-wmi-ph31751.o" > Makefile
-            make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$PWD modules
           '';
-          installPhase = ''
-            install -D acer-wmi-ph31751.ko $out/lib/modules/${kernel.modDirVersion}/extra/acer-wmi-ph31751.ko
-          '';
+          makeFlags = kernelModuleMakeFlags ++ [
+            "-C"
+            "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
+            "M=$(PWD)"
+            "INSTALL_MOD_PATH=${placeholder "out"}"
+            "INSTALL_MOD_DIR=extra"
+          ];
+          buildTargets = [ "modules" ];
+          installTargets = [ "modules_install" ];
         }
       )
       { })
