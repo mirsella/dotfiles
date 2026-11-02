@@ -58,7 +58,7 @@ Faces.SensorFace {
         return false
     }
 
-    // Disk usage charts use a single filesystem sensor. Draw 7d, 24h and 1h
+    // Disk usage charts use a single filesystem sensor. Draw 7d and 24h
     // histories together and replace the regular legend with a compact
     // timeframe key plus the current used fraction.
     readonly property string diskUsageSensorId: {
@@ -88,12 +88,8 @@ Faces.SensorFace {
     property bool powerUnsupported: false
     property var diskSamples: []
     readonly property int diskSampleInterval: 60000
-    readonly property color diskColor24: {
-        const configured = root.controller.sensorColors[root.diskUsageSensorId]
-        return configured !== undefined && configured !== null ? configured : "#3daee9"
-    }
-    readonly property color diskColor7d: "#2ecc71"
-    readonly property color diskColor1: "#f67400"
+    readonly property color diskColor24: "#f67400"
+    readonly property color diskColor7d: "#3daee9"
 
     onShowDiskTimeframesChanged: {
         if (showDiskTimeframes) {
@@ -575,7 +571,6 @@ Faces.SensorFace {
 
                         paintSeries(root.diskSamples, 604800000, root.diskColor7d, root.diskSampleInterval)
                         paintSeries(root.diskSamples, 86400000, root.diskColor24, root.diskSampleInterval)
-                        paintSeries(root.diskSamples, 3600000, root.diskColor1, root.diskSampleInterval)
                     }
                 }
 
@@ -674,7 +669,6 @@ Faces.SensorFace {
 
                 Repeater {
                     model: [
-                        { label: "1h", color: root.diskColor1 },
                         { label: "24h", color: root.diskColor24 },
                         { label: "7d", color: root.diskColor7d }
                     ]
