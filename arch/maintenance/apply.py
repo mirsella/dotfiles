@@ -163,6 +163,14 @@ def main() -> None:
     else:
         print("fail2ban not installed; skipping SSH brute-force jail")
 
+    udev_changed = write_if_changed(
+        Path("/etc/udev/rules.d/60-ioschedulers.rules"),
+        (ROOT / "modules" / "60-ioschedulers.rules").read_text(),
+    )
+    if udev_changed:
+        run("udevadm", "control", "--reload")
+        run("udevadm", "trigger", "--subsystem-match=block", "--action=change")
+
     for name in unit_names:
         for suffix in ("service", "timer"):
             unit = f"{name}.{suffix}"

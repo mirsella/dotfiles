@@ -55,6 +55,7 @@
   services.power-profiles-daemon.enable = true;
   services.printing.enable = true;
   services.fstrim.enable = true;
+  services.udev.extraRules = builtins.readFile ../../modules/60-ioschedulers.rules;
   services.xserver.xkb = {
     layout = "us";
     variant = "colemak_dh_iso";
