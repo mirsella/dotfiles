@@ -6,8 +6,9 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     url = "https://github.com/psimaker/codexbar-plasmoid/archive/refs/tags/v${finalAttrs.version}.tar.gz";
     hash = "sha256-GZwb0OJblh0aBtZzgs24Z7RGWvydl2mLrJNGPRigYSE=";
   };
-  # Show the CLI pace verdict on every rate window, not only weekly, and keep
-  # Codex's credit balance from being listed twice.
+  # Show a pace verdict on every rate window from the moment it resets, not
+  # only weekly and not only after the CLI's 3%-elapsed delay, and keep Codex's
+  # credit balance from being listed twice.
   # Tracked upstream: https://github.com/psimaker/codexbar-plasmoid/issues/76
   patches = [
     ./pace-all-windows.patch

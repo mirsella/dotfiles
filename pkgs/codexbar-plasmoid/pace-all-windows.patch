@@ -23,7 +23,7 @@ index 4a764bc..c6c98fb 100644
          }
          // Kimi's transport slots are inverted. Keep legacy ordering for every
 diff --git a/contents/ui/code/catalog.js b/contents/ui/code/catalog.js
-index fc73b88..3811746 100644
+index fc73b88..ba98e07 100644
 --- a/contents/ui/code/catalog.js
 +++ b/contents/ui/code/catalog.js
 @@ -494,14 +494,14 @@ function windowBarFill(w, showUsed) {
@@ -43,20 +43,51 @@ index fc73b88..3811746 100644
          return ""
  
      var resetMs = Date.parse(win.resetsAt)
-@@ -515,7 +515,7 @@ function paceLine(pace, win, windowMinutes, nowMs, providerId) {
-     if (elapsed === 0 && actual > 0)
+@@ -512,29 +512,29 @@ function paceLine(pace, win, windowMinutes, nowMs, providerId) {
+ 
+     var elapsed = Math.max(0, Math.min(durationMs, durationMs - timeUntilReset))
+     var actual = Math.max(0, Math.min(100, Number(win.usedPercent)))
+-    if (elapsed === 0 && actual > 0)
++    if (elapsed === 0)
          return ""
++    // CodexBarCore suppresses the verdict until 3% of the window has elapsed,
++    // which leaves a weekly window blank for its first five hours; project from
++    // the window's start instead.
      var expected = (elapsed / durationMs) * 100
 -    // CodexBarCore hides pace until enough of the weekly window has elapsed.
-+    // CodexBarCore hides pace until enough of the window has elapsed.
-     if (expected < 3 && actual < 100)
-         return ""
+-    if (expected < 3 && actual < 100)
+-        return ""
      var delta = actual - expected
+     var deltaDisplay = Math.round(Math.abs(delta))
+-    var left = (Math.abs(delta) <= 2 || deltaDisplay === 0)
++    var left = Math.abs(delta) <= 2
+         ? "On pace"
+         : deltaDisplay + "% " + (delta > 0 ? "in deficit" : "in reserve")
+ 
+-    var right = ""
++    var right
+     if (actual >= 100) {
+         right = "Runs out now"
+-    } else if (elapsed > 0 && actual > 0) {
++    } else if (actual === 0) {
++        right = "Lasts until reset"
++    } else {
+         var etaMs = (100 - actual) / (actual / elapsed)
+         right = etaMs >= timeUntilReset ? "Lasts until reset"
+                                          : "Runs out in " + duration(Math.ceil(etaMs / 1000))
+-    } else if (elapsed > 0 && actual === 0) {
+-        right = "Lasts until reset"
+     }
+-    return "Pace: " + left + (right !== "" ? " · " + right : "")
++    return "Pace: " + left + " · " + right
+ }
+ 
+ // Section title for a rate window ("Session", "Weekly", "Monthly", or a custom title)
 diff --git a/tests/test-catalog.js b/tests/test-catalog.js
-index bbe4d81..e115147 100644
+index bbe4d81..e62bcb1 100644
 --- a/tests/test-catalog.js
 +++ b/tests/test-catalog.js
-@@ -95,8 +95,34 @@ const sessionMinutes = catalog.effectiveWindowMinutes(
+@@ -95,8 +95,59 @@ const sessionMinutes = catalog.effectiveWindowMinutes(
      sessionExtra, "codex", "extra"
  )
  assert.equal(sessionMinutes, 300)
@@ -88,6 +119,31 @@ index bbe4d81..e115147 100644
 +assert.equal(
 +    catalog.paceLine(null, { usedPercent: 10, resetsAt: "2026-09-01T00:00:00Z" },
 +        0, now, "codex"),
++    ""
++)
++// CodexBarCore withholds the verdict until 3% of the window has elapsed, which
++// blanks a weekly window for over five hours after a reset. A fresh window gets
++// the projection immediately, even when it reads as ahead of schedule.
++function freshWeekly(usedPercent) {
++    return {
++        usedPercent: usedPercent,
++        windowMinutes: 10080,
++        resetsAt: "2026-09-06T12:00:00Z",
++    }
++}
++const earlyInWindow = Date.parse("2026-08-30T15:00:00Z")
++assert.equal(
++    catalog.paceLine(null, freshWeekly(4), 10080, earlyInWindow, "claude"),
++    "Pace: 2% in deficit · Runs out in 3d"
++)
++assert.equal(
++    catalog.paceLine(null, freshWeekly(1), 10080, earlyInWindow, "claude"),
++    "Pace: On pace · Lasts until reset"
++)
++// Nothing can be projected at the instant the window opens.
++assert.equal(
++    catalog.paceLine(null, freshWeekly(0), 10080,
++        Date.parse("2026-08-30T12:00:00Z"), "claude"),
      ""
  )
  
