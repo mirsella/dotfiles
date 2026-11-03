@@ -49,6 +49,9 @@ enum Commands {
         /// Run one discovery/connection attempt, then exit.
         #[arg(long)]
         once: bool,
+        /// Turn Wireless debugging off after this many minutes without device traffic.
+        #[arg(long)]
+        idle_minutes: Option<u64>,
     },
     FanControl {
         #[command(subcommand)]
@@ -205,7 +208,17 @@ enum Commands {
 
 fn run() -> Result<()> {
     match Cli::parse().command {
-        Commands::AdbWatch { adb, serial, once } => adb::run(&adb, &serial, once),
+        Commands::AdbWatch {
+            adb,
+            serial,
+            once,
+            idle_minutes,
+        } => adb::run(
+            &adb,
+            &serial,
+            once,
+            idle_minutes.map(|minutes| std::time::Duration::from_secs(minutes.saturating_mul(60))),
+        ),
         Commands::FanControl { action } => fan_control::run(action),
         Commands::OpencodeClientEnv { config, command } => opencode::client_env(&config, &command),
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),

@@ -1,22 +1,33 @@
-//! Retry missed ADB mDNS connections without retaining an obsolete IP or port.
+//! Retry missed ADB mDNS connections without retaining an obsolete IP or port,
+//! drop a transport once the phone stops advertising it, and turn Wireless
+//! debugging off once the phone has been idle for a while.
 
 use crate::util;
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 use std::{
     io::{self, Read, Write},
     net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream},
     os::fd::AsRawFd,
     process::{Command, Stdio},
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 const SERVICE_TYPE: &str = "_adb-tls-connect._tcp";
 const RETRY_INTERVAL: Duration = Duration::from_secs(2);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+/// While connected, re-check mDNS this often so a transport the phone no longer
+/// advertises is dropped even when ADB reports no device change.
+const MDNS_POLL_MS: i32 = 5_000;
+/// A missing mDNS advertisement alone is not proof of a dead transport: cache
+/// expiry and Wi-Fi roams look the same, so wait this long before dropping one.
+const ABSENT_GRACE: Duration = Duration::from_secs(15);
+/// How often the idle window reads the device socket's counters. This bounds how
+/// stale the last-traffic estimate can be without polling anything every minute.
+const SAMPLE_INTERVAL: Duration = Duration::from_secs(600);
 const SERVER: AdbServer = AdbServer(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5037)));
 
-pub fn run(adb: &str, serial: &str, once: bool) -> Result<()> {
+pub fn run(adb: &str, serial: &str, once: bool, idle: Option<Duration>) -> Result<()> {
     ensure!(
         !serial.is_empty()
             && serial
@@ -27,47 +38,123 @@ pub fn run(adb: &str, serial: &str, once: bool) -> Result<()> {
     // Spawn the SDK client only to start/check the server, never for routine queries.
     // `-H`/`-P` make adb treat the server as remote: it then refuses to spawn one
     // ("cannot start server on remote host") and can only connect when one already
-    // runs. Start the default local socket instead, clearing anything that could
-    // redirect it, and let adb wait for the daemon it spawns.
+    // runs. Start the default local socket instead, and let adb wait for the daemon.
     util::command_output(
-        Command::new("timeout")
-            .args(["--foreground", "--kill-after=2s", "10s", adb])
+        client(adb)
             .arg("start-server")
-            .env("ADB_MDNS_AUTO_CONNECT", "adb-tls-connect")
-            .env_remove("ADB_SERVER_SOCKET")
-            .env_remove("ANDROID_ADB_SERVER_ADDRESS")
-            .env_remove("ANDROID_ADB_SERVER_PORT")
-            .stdin(Stdio::null()),
+            .env("ADB_MDNS_AUTO_CONNECT", "adb-tls-connect"),
     )
     .context("start the local ADB server")?;
     // Subscribe before querying, so a disconnect during reconciliation is not missed.
     // A broken subscription exits; systemd owns restart and backoff.
     let mut tracker = SERVER.request("host:track-devices")?;
     let mut devices = read_frame(&mut tracker)?;
-    let mut previous = String::new();
+    let mut last_message = String::new();
+    // The transport this watcher holds. A failed query says nothing about it, so
+    // only a completed reconciliation replaces it.
+    let mut connection: Option<Connection> = None;
+    // Idle window: it opens whenever the connection changes, and `baseline` holds
+    // the device socket's payload bytes then, which only real ADB use changes.
+    let mut idle_since = Instant::now();
+    let mut sampled = Instant::now();
+    let mut baseline = None;
+    let mut unreadable = false;
+    // Set while the phone advertises nothing; see `ABSENT_GRACE`.
+    let mut missing_since = None;
     loop {
-        let result = reconcile(serial, &devices, |service| SERVER.query(service));
-        let connected = matches!(result, Ok(Some(_)));
-        let message = match result {
-            Ok(Some(address)) => format!("{serial} connected at {address}"),
+        let result = reconcile(
+            serial,
+            &devices,
+            connection.as_ref(),
+            &mut missing_since,
+            |service| SERVER.query(service),
+        );
+        let message = match &result {
+            Ok(Some(connection)) => format!("{serial} connected at {}", connection.address),
             Ok(None) => format!("waiting for {serial} to advertise Wireless debugging on the LAN"),
-            Err(error) if once => return Err(error),
-            Err(error) => format!("{error:#}; retrying in 2s"),
+            Err(error) => format!("{error:#}; retrying in {}s", RETRY_INTERVAL.as_secs()),
         };
         if once {
-            println!("{message}");
-            return Ok(());
+            if result.is_ok() {
+                println!("{message}");
+            }
+            return result.map(|_| ());
         }
-        if message != previous {
+        if message != last_message {
             eprintln!("adb-watch: {message}");
-            previous = message;
+            last_message = message;
+        }
+        let connected = matches!(&result, Ok(Some(_)));
+        if let Ok(reached) = result {
+            if reached != connection {
+                connection = reached;
+                idle_since = Instant::now();
+                sampled = Instant::now();
+                unreadable = false;
+                baseline = connection
+                    .as_ref()
+                    .and_then(|connection| transport_bytes(&connection.address));
+            }
+        }
+        if let (Some(idle), Some(connection)) = (idle, &connection) {
+            // Only payload counts: keepalive probes are empty segments, so the
+            // counters of an idle phone stay put even while ADB keeps probing it.
+            if sampled.elapsed() >= SAMPLE_INTERVAL {
+                sampled = Instant::now();
+                match transport_bytes(&connection.address) {
+                    Some(bytes) => {
+                        unreadable = false;
+                        if baseline != Some(bytes) {
+                            idle_since = Instant::now();
+                        }
+                        baseline = Some(bytes);
+                    }
+                    None if !unreadable => {
+                        unreadable = true;
+                        eprintln!(
+                            "adb-watch: cannot read the device socket to {}; not treating it as idle",
+                            connection.address
+                        );
+                    }
+                    None => {}
+                }
+            }
+            if idle_since.elapsed() >= idle {
+                idle_since = Instant::now();
+                // The phone only pays for this transport, so stop holding it until
+                // it is used again; enabling Wireless debugging is a phone-side tap.
+                match disable_wireless(adb, &connection.serial) {
+                    Ok(()) => eprintln!(
+                        "adb-watch: turned Wireless debugging off after {} minutes without ADB activity",
+                        idle.as_secs() / 60
+                    ),
+                    Err(error) => eprintln!("adb-watch: {error:#}"),
+                }
+            }
         }
         if !connected {
             // Rate-limit failures even when our own attempts generate device events.
             thread::sleep(RETRY_INTERVAL);
         }
-        update_devices(&mut tracker, &mut devices, if connected { -1 } else { 0 })?;
+        update_devices(
+            &mut tracker,
+            &mut devices,
+            if connected { MDNS_POLL_MS } else { 0 },
+        )?;
     }
+}
+
+/// The SDK client under a hard timeout, with any server redirection removed so it
+/// talks to the local server this watcher uses.
+fn client(adb: &str) -> Command {
+    let mut command = Command::new("timeout");
+    command
+        .args(["--foreground", "--kill-after=2s", "10s", adb])
+        .env_remove("ADB_SERVER_SOCKET")
+        .env_remove("ANDROID_ADB_SERVER_ADDRESS")
+        .env_remove("ANDROID_ADB_SERVER_PORT")
+        .stdin(Stdio::null());
+    command
 }
 
 /// ADB's length-prefixed smart-socket protocol on loopback, shared with the SDK.
@@ -194,14 +281,142 @@ fn matching_devices<'a>(
     })
 }
 
+/// Device entries named after this phone's mDNS service, however they are spelled.
+fn stale_transports<'a>(devices: &'a str, serial: &str) -> impl Iterator<Item = &'a str> {
+    let prefix = format!("adb-{serial}-");
+    devices.lines().filter_map(move |line| {
+        let name = line.split_whitespace().next()?;
+        (name.starts_with(&prefix) && name.trim_end_matches('.').ends_with(SERVICE_TYPE))
+            .then_some(name)
+    })
+}
+
+/// Disconnecting a transport that is already gone reaches the same end state.
+fn disconnect(query: &mut impl FnMut(&str) -> Result<String>, name: &str) -> Result<()> {
+    match query(&format!("host:disconnect:{name}")) {
+        Ok(_) => Ok(()),
+        Err(error) => {
+            // ADB answers `no such device` for a gone address and `couldn't parse`
+            // for a gone mDNS name, which it cannot read as a socket spec.
+            let message = format!("{error:#}");
+            if message.contains("no such device") || message.contains("couldn't parse") {
+                Ok(())
+            } else {
+                Err(error).with_context(|| format!("disconnect {name}"))
+            }
+        }
+    }
+}
+
+/// Payload bytes moved on the device socket to `address`, from `ss` TCP info.
+/// Keepalive probes carry no payload, so unchanged bytes mean no ADB use.
+fn transport_bytes(address: &str) -> Option<u64> {
+    let output = Command::new("ss").args(["-tnHi"]).output().ok()?;
+    bytes_for_peer(&String::from_utf8_lossy(&output.stdout), address)
+}
+
+fn bytes_for_peer(text: &str, address: &str) -> Option<u64> {
+    let wanted = address.replace(['[', ']'], "");
+    let mut matched = false;
+    for line in text.lines() {
+        if !line.starts_with('\t') {
+            matched = line
+                .split_whitespace()
+                .nth(4)
+                .is_some_and(|peer| peer.replace(['[', ']'], "") == wanted);
+            continue;
+        }
+        if !matched {
+            continue;
+        }
+        // Both counters together are the whole payload of the device socket.
+        let field = |name: &str| -> Option<u64> {
+            line.split_whitespace()
+                .find_map(|field| Some(field.strip_prefix(name)?.parse().ok()?))
+        };
+        return Some(field("bytes_sent:")? + field("bytes_received:")?);
+    }
+    None
+}
+
+/// Turn Wireless debugging off on the phone; only the phone can turn it back on.
+fn disable_wireless(adb: &str, serial: &str) -> Result<()> {
+    util::command_output(client(adb).args([
+        "-s",
+        serial,
+        "shell",
+        "settings",
+        "put",
+        "global",
+        "adb_wifi_enabled",
+        "0",
+    ]))
+    .with_context(|| format!("turn Wireless debugging off on {serial}"))
+    .map(|_| ())
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct Connection {
+    /// Serial for `adb -s`: the advertised mDNS name or the address.
+    serial: String,
+    /// Address the service advertises, which is also the device socket's peer.
+    address: String,
+}
+
+fn listed(devices: &str, name: &str) -> bool {
+    devices
+        .lines()
+        .any(|line| line.split_whitespace().next() == Some(name))
+}
+
+/// Bring the phone's transport in line with what it advertises: connect when it
+/// is missing or stale, drop what nothing advertises, and return the transport
+/// the watcher now holds.
 fn reconcile(
     serial: &str,
     devices: &str,
+    held: Option<&Connection>,
+    missing_since: &mut Option<Instant>,
     mut query: impl FnMut(&str) -> Result<String>,
-) -> Result<Option<String>> {
+) -> Result<Option<Connection>> {
     let services = discover(&query("host:mdns:services")?, serial)?;
     if services.is_empty() {
+        // Cache expiry and a Wi-Fi roam look exactly like a phone that left, so a
+        // quiet mDNS list alone must not cut the transport: wait for the grace
+        // period, during which the transport is reported as still held.
+        let since = missing_since.get_or_insert_with(Instant::now);
+        if let Some(held) = held.filter(|held| listed(devices, &held.serial)) {
+            if since.elapsed() < ABSENT_GRACE {
+                return Ok(Some(held.clone()));
+            }
+            disconnect(&mut query, &held.serial)?;
+        }
         return Ok(None);
+    }
+    *missing_since = None;
+    // A phone that reboots under a new instance name or moves to another port
+    // leaves its transport in `device` state, because TCP cannot tell a silent
+    // peer from a slow one until it gives up (tcp_retries2, many minutes) and
+    // every command waits on that. Drop what nothing advertises.
+    let mut stale = stale_transports(devices, serial)
+        .filter(|name| {
+            !services
+                .iter()
+                .any(|service| service.name.trim_end_matches('.') == name.trim_end_matches('.'))
+        })
+        .collect::<Vec<_>>();
+    // An address-named transport outlives the port it was opened on.
+    if let Some(held) = held {
+        if held.serial.parse::<SocketAddr>().is_ok()
+            && !services
+                .iter()
+                .any(|service| service.address == held.serial)
+        {
+            stale.push(&held.serial);
+        }
+    }
+    for name in stale {
+        disconnect(&mut query, name)?;
     }
     // Offline snapshots can outlive their transports; refresh before disconnecting.
     let current = if services
@@ -214,16 +429,21 @@ fn reconcile(
     };
     let devices = current.as_deref().unwrap_or(devices);
     for service in &services {
-        if matching_devices(devices, service).any(|(_, state)| state == "device") {
-            return Ok(Some(service.address.clone()));
+        if let Some((serial, _)) =
+            matching_devices(devices, service).find(|(_, state)| *state == "device")
+        {
+            return Ok(Some(Connection {
+                serial: serial.to_owned(),
+                address: service.address.clone(),
+            }));
         }
     }
     let mut errors = Vec::new();
     for service in services {
-        let attempt = (|| -> Result<()> {
+        let attempt = (|| -> Result<String> {
             // Clear only this phone's stale transport. USB and other phones are untouched.
             for (name, _) in matching_devices(devices, &service) {
-                query(&format!("host:disconnect:{name}"))?;
+                disconnect(&mut query, name)?;
             }
             let response = query(&format!("host:connect:{}", service.address))?;
             ensure!(
@@ -234,15 +454,23 @@ fn reconcile(
             );
             // "Already connected" does not guarantee an online transport.
             let devices = query("host:devices")?;
-            ensure!(
-                matching_devices(&devices, &service).any(|(_, state)| state == "device"),
-                "{} is not online yet (check pairing if this persists)",
-                service.address
-            );
-            Ok(())
+            matching_devices(&devices, &service)
+                .find(|(_, state)| *state == "device")
+                .map(|(serial, _)| serial.to_owned())
+                .ok_or_else(|| {
+                    anyhow!(
+                        "{} is not online yet (check pairing if this persists)",
+                        service.address
+                    )
+                })
         })();
         match attempt {
-            Ok(()) => return Ok(Some(service.address)),
+            Ok(serial) => {
+                return Ok(Some(Connection {
+                    serial,
+                    address: service.address,
+                }));
+            }
             Err(error) => errors.push(format!("{}: {error:#}", service.address)),
         }
     }
@@ -255,9 +483,44 @@ mod tests {
 
     const DISCOVERY: &str = "List of discovered mdns services\nadb-phone-new _adb-tls-connect._tcp 192.168.1.76:41325\nadb-phone-new _adb-tls-pairing._tcp 192.168.1.76:39999\nadb-other-new _adb-tls-connect._tcp 192.168.1.77:44444\nadb-phone2-new _adb-tls-connect._tcp 192.168.1.78:44444\n";
 
-    fn cycle(devices: &str, steps: &[(&str, &str)]) -> Result<Option<String>> {
+    fn cycle(devices: &str, steps: &[(&str, &str)]) -> Result<Option<Connection>> {
+        from(None, devices, steps)
+    }
+
+    fn connection(serial: &str, address: &str) -> Connection {
+        Connection {
+            serial: serial.to_owned(),
+            address: address.to_owned(),
+        }
+    }
+
+    fn from(
+        held: Option<&Connection>,
+        devices: &str,
+        steps: &[(&str, &str)],
+    ) -> Result<Option<Connection>> {
+        reconcile_with(None, held, devices, steps)
+    }
+
+    /// Run one reconciliation as if the phone had been absent past the grace period.
+    fn after_grace(
+        held: Option<&Connection>,
+        devices: &str,
+        steps: &[(&str, &str)],
+    ) -> Result<Option<Connection>> {
+        let since = Instant::now().checked_sub(ABSENT_GRACE + Duration::from_secs(1));
+        reconcile_with(since, held, devices, steps)
+    }
+
+    fn reconcile_with(
+        missing_since: Option<Instant>,
+        held: Option<&Connection>,
+        devices: &str,
+        steps: &[(&str, &str)],
+    ) -> Result<Option<Connection>> {
+        let mut missing_since = missing_since;
         let mut steps = steps.iter();
-        let result = reconcile("phone", devices, |service| {
+        let result = reconcile("phone", devices, held, &mut missing_since, |service| {
             let &(expected, response) = steps.next().expect("unexpected ADB request");
             assert_eq!(service, expected);
             Ok(response.to_owned())
@@ -283,7 +546,12 @@ mod tests {
             ],
         )
         .unwrap();
-        assert_eq!(address.as_deref(), Some("192.168.1.76:41325"));
+        assert_eq!(
+            address
+                .as_ref()
+                .map(|connection| connection.address.as_str()),
+            Some("192.168.1.76:41325")
+        );
     }
 
     #[test]
@@ -339,7 +607,12 @@ mod tests {
             ],
         )
         .unwrap();
-        assert_eq!(address.as_deref(), Some("192.168.1.76:41325"));
+        assert_eq!(
+            address
+                .as_ref()
+                .map(|connection| connection.address.as_str()),
+            Some("192.168.1.76:41325")
+        );
 
         let address = cycle(
             "192.168.1.76:41325 offline\n",
@@ -349,7 +622,12 @@ mod tests {
             ],
         )
         .unwrap();
-        assert_eq!(address.as_deref(), Some("192.168.1.76:41325"));
+        assert_eq!(
+            address
+                .as_ref()
+                .map(|connection| connection.address.as_str()),
+            Some("192.168.1.76:41325")
+        );
     }
 
     #[test]
@@ -370,6 +648,176 @@ mod tests {
                 .to_string()
                 .contains("failed to authenticate")
         );
+    }
+
+    #[test]
+    fn finds_the_device_sockets_payload_bytes() {
+        let text = "ESTAB 0 0 192.168.1.2:50000 192.168.1.76:41325\n\
+                    \t cubic rto:204 bytes_sent:1200 bytes_retrans:0 bytes_acked:1200 bytes_received:340\n\
+                    ESTAB 0 0 192.168.1.2:50001 192.168.1.76:9999\n\
+                    \t cubic bytes_sent:7 bytes_received:9\n";
+        assert_eq!(bytes_for_peer(text, "192.168.1.76:41325"), Some(1540));
+        assert_eq!(bytes_for_peer(text, "192.168.1.76:4242"), None);
+        // Counters that cannot be read must not look like an idle socket.
+        assert_eq!(
+            bytes_for_peer("ESTAB 0 0 1.2.3.4:1 1.2.3.5:2\n\t cubic\n", "1.2.3.5:2"),
+            None
+        );
+        assert_eq!(
+            bytes_for_peer(
+                "ESTAB 0 0 [::ffff:1.2.3.4]:50000 [::ffff:1.2.3.5]:40000\n\t bytes_sent:5 bytes_received:6\n",
+                "[::ffff:1.2.3.5]:40000"
+            ),
+            Some(11)
+        );
+    }
+
+    #[test]
+    fn only_this_phones_mdns_transports_are_candidates() {
+        let devices = "adb-phone-new._adb-tls-connect._tcp device\n\
+                       adb-phone-new._adb-tls-pairing._tcp device\n\
+                       adb-phone2-old._adb-tls-connect._tcp device\n\
+                       USB123 device\n\
+                       192.168.1.76:41325 device\n";
+        assert_eq!(
+            stale_transports(devices, "phone").collect::<Vec<_>>(),
+            ["adb-phone-new._adb-tls-connect._tcp"]
+        );
+    }
+
+    #[test]
+    fn drops_the_transport_of_a_phone_that_stopped_advertising() {
+        let devices = "adb-phone-new._adb-tls-connect._tcp device\n\
+                       adb-other-new._adb-tls-connect._tcp device\n\
+                       emulator-5554 device\n";
+        let held = connection("adb-phone-new._adb-tls-connect._tcp", "192.168.1.76:41325");
+        let address = after_grace(
+            Some(&held),
+            devices,
+            &[
+                ("host:mdns:services", "List of discovered mdns services\n"),
+                (
+                    "host:disconnect:adb-phone-new._adb-tls-connect._tcp",
+                    "disconnected adb-phone-new._adb-tls-connect._tcp\n",
+                ),
+            ],
+        )
+        .unwrap();
+        assert_eq!(address, None);
+    }
+
+    #[test]
+    fn keeps_the_held_transport_while_mdns_is_just_quiet() {
+        let devices = "adb-phone-new._adb-tls-connect._tcp device\n";
+        let held = connection("adb-phone-new._adb-tls-connect._tcp", "192.168.1.76:41325");
+        let address = from(
+            Some(&held),
+            devices,
+            &[("host:mdns:services", "List of discovered mdns services\n")],
+        )
+        .unwrap();
+        assert_eq!(address, Some(held));
+    }
+
+    #[test]
+    fn drops_an_advertised_transport_that_changed_its_instance_name() {
+        cycle(
+            "adb-phone-old._adb-tls-connect._tcp device\n",
+            &[
+                ("host:mdns:services", DISCOVERY),
+                (
+                    "host:disconnect:adb-phone-old._adb-tls-connect._tcp",
+                    "disconnected adb-phone-old._adb-tls-connect._tcp\n",
+                ),
+                (
+                    "host:connect:192.168.1.76:41325",
+                    "connected to 192.168.1.76:41325\n",
+                ),
+                ("host:devices", "192.168.1.76:41325 device\n"),
+            ],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn forgets_the_address_transport_once_the_phone_stops_advertising() {
+        let held = connection("192.168.1.76:41325", "192.168.1.76:41325");
+        let address = after_grace(
+            Some(&held),
+            "192.168.1.76:41325 device\n",
+            &[
+                ("host:mdns:services", "List of discovered mdns services\n"),
+                (
+                    "host:disconnect:192.168.1.76:41325",
+                    "disconnected 192.168.1.76:41325\n",
+                ),
+            ],
+        )
+        .unwrap();
+        assert_eq!(address, None);
+    }
+
+    #[test]
+    fn forgets_an_address_transport_left_on_the_previous_port() {
+        let held = connection("192.168.1.76:30000", "192.168.1.76:30000");
+        let address = from(
+            Some(&held),
+            "192.168.1.76:30000 device\n",
+            &[
+                ("host:mdns:services", DISCOVERY),
+                (
+                    "host:disconnect:192.168.1.76:30000",
+                    "disconnected 192.168.1.76:30000\n",
+                ),
+                (
+                    "host:connect:192.168.1.76:41325",
+                    "connected to 192.168.1.76:41325\n",
+                ),
+                ("host:devices", "192.168.1.76:41325 device\n"),
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            address
+                .as_ref()
+                .map(|connection| connection.address.as_str()),
+            Some("192.168.1.76:41325")
+        );
+    }
+
+    #[test]
+    fn tolerates_a_transport_that_vanished_before_the_disconnect() {
+        let held = connection("192.168.1.76:41325", "192.168.1.76:41325");
+        let mut missing_since = Instant::now().checked_sub(ABSENT_GRACE + Duration::from_secs(1));
+        let mut query = |request: &str| -> Result<String> {
+            Ok(match request {
+                "host:mdns:services" => "List of discovered mdns services\n".to_owned(),
+                _ => bail!("no such device '192.168.1.76:41325'"),
+            })
+        };
+        assert_eq!(
+            reconcile(
+                "phone",
+                "192.168.1.76:41325 device\n",
+                Some(&held),
+                &mut missing_since,
+                &mut query
+            )
+            .unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn treats_a_vanished_mdns_name_as_already_disconnected() {
+        let mut query = |request: &str| -> Result<String> {
+            assert_eq!(
+                request,
+                "host:disconnect:adb-phone-new._adb-tls-connect._tcp"
+            );
+            bail!("couldn't parse 'adb-phone-new._adb-tls-connect._tcp'")
+        };
+        disconnect(&mut query, "adb-phone-new._adb-tls-connect._tcp").unwrap();
     }
 
     #[test]
