@@ -4,6 +4,7 @@ let
   adb = if isNixOS then "${pkgs.android-tools}/bin/adb"
     else "${config.home.homeDirectory}/.local/share/android/sdk/platform-tools/adb";
   idleMinutes = config.services.adb-wireless.idleMinutes;
+  serials = config.services.adb-wireless.serials;
   # The ADB server binds its mDNS responder to the interfaces that exist when
   # it starts. A login that beats the Wi-Fi lease leaves discovery dead until
   # the server is restarted, so wait for a default route before starting it.
@@ -17,13 +18,22 @@ let
   '';
 in
 {
+  options.services.adb-wireless.serials = lib.mkOption {
+    type = lib.types.nonEmptyListOf (lib.types.strMatching "[A-Za-z0-9-]+");
+    default = [ "188b31ee" ];
+    description = ''
+      Android serial numbers (ro.serialno) to keep connected through mDNS.
+      Add a phone only on hosts paired with it: ADB reports authentication
+      errors for a serial the host does not know.
+    '';
+  };
   options.services.adb-wireless.idleMinutes = lib.mkOption {
     type = lib.types.nullOr lib.types.ints.positive;
     default = null;
     description = ''
-      Turn Wireless debugging off on the phone after this many minutes without
-      ADB traffic. The setting lives on the phone, so leave it unset on hosts
-      that share the phone with another host running this service.
+      Turn Wireless debugging off on each watched phone after this many minutes
+      without ADB traffic. The setting lives on the phone, so leave it unset on
+      hosts that share the phone with another host running this service.
     '';
   };
   config.systemd.user.services.adb-wireless = {
@@ -31,7 +41,8 @@ in
     Service = {
       Type = "simple";
       ExecStartPre = "${waitForNetwork}";
-      ExecStart = "${lib.getExe pkgs.host-tools} adb-watch --adb ${adb} --serial 188b31ee"
+      ExecStart = "${lib.getExe pkgs.host-tools} adb-watch --adb ${adb}"
+        + lib.concatMapStrings (serial: " --serial ${serial}") serials
         + lib.optionalString (idleMinutes != null) " --idle-minutes ${toString idleMinutes}";
       # `ss` reports the payload bytes of the device socket, which decide idleness.
       Environment = "PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.iproute2 ]}";

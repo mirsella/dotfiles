@@ -43,9 +43,9 @@ enum Commands {
     AdbWatch {
         #[arg(long, default_value = "adb")]
         adb: String,
-        /// Android ro.serialno, without the changing mDNS suffix.
-        #[arg(long)]
-        serial: String,
+        /// Android ro.serialno values, without the changing mDNS suffix; repeat for each phone.
+        #[arg(long, required = true, value_name = "SERIAL")]
+        serial: Vec<String>,
         /// Run one discovery/connection attempt, then exit.
         #[arg(long)]
         once: bool,

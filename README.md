@@ -444,8 +444,9 @@ GGUF model. Builds can also trigger GC below 10 GiB free, targeting 20 GiB free.
 ## Android wireless debugging
 
 `adb-wireless.service` starts at login on the workstations. It subscribes to ADB's
-device-change notifications and reconnects phone `188b31ee` using its current IP
-and port from mDNS. While connected it re-checks mDNS every five seconds and
+device-change notifications and reconnects each configured phone (`188b31ee` on
+every workstation, plus the FP3 `A20AAFYS0202` on the laptop) using its current
+IP and port from mDNS. While connected it re-checks mDNS every five seconds and
 samples the device socket's payload counters every ten minutes, but otherwise
 waits without running anything else. A disconnect wakes it immediately; while
 disconnected it retries discovery every two seconds through ADB's local server at
@@ -456,20 +457,21 @@ It waits up to 90 seconds for a default route before starting: the ADB server
 binds its mDNS responder to the interfaces that exist when it starts, so a login
 that beats the Wi-Fi lease would otherwise leave discovery dead until restart.
 ADB enables `SO_KEEPALIVE` with a one-second idle and probe interval on each
-device socket, so the phone is woken once a second while a transport is open.
-The watcher holds that connection only while it is wanted. It drops the transport
-once the phone has stopped advertising for fifteen seconds, which keeps an mDNS
-cache expiry or a Wi-Fi roam from cutting a live connection, and on the laptop,
-after two hours without payload traffic (`services.adb-wireless.idleMinutes`), it
-runs `settings put global adb_wifi_enabled 0`. That turns Wireless debugging off
-on the phone and ends the connection; keepalive probes carry no payload, so they
+device socket, so each connected phone is woken once a second while a transport
+is open. The watcher holds that connection only while it is wanted. It drops a
+transport once its phone has stopped advertising for fifteen seconds, which
+keeps an mDNS cache expiry or a Wi-Fi roam from cutting a live connection, and on
+the laptop, after two hours without payload traffic
+(`services.adb-wireless.idleMinutes`), it runs
+`settings put global adb_wifi_enabled 0`. That turns Wireless debugging off on
+that phone and ends the connection; keepalive probes carry no payload, so they
 never postpone the deadline, and idle accounting reads the socket counters with
 `ss`, which is why the unit's PATH carries `iproute2`. Nothing reaches the phone
-while it is off. Enabling Wireless debugging again on the phone itself, from a
-Quick Settings tile or Developer options, makes it advertise and the watcher
-reconnects within seconds. Only the laptop turns it off: the setting lives on the
-phone, so a second workstation idle for two hours would otherwise disable it
-under an active one.
+while it is off.
+Enabling Wireless debugging again on the phone itself, from a Quick Settings tile
+or Developer options, makes it advertise and the watcher reconnects within
+seconds. Only the laptop turns it off: the setting lives on the phone, so a second
+workstation idle for two hours would otherwise disable it under an active one.
 
 On Arch it uses Android Studio's SDK at
 `~/.local/share/android/sdk/platform-tools/adb`; NixOS uses `android-tools`.
@@ -487,9 +489,10 @@ journalctl --user -u adb-wireless.service -f
 adb devices -l
 ```
 
-Stop `adb-wireless.service` before intentionally disconnecting the phone, otherwise
-it reconnects when ADB reports the disconnect. The phone serial is set in
-`modules/home/adb-wireless.nix`.
+Stop `adb-wireless.service` before intentionally disconnecting a watched phone,
+otherwise it reconnects when ADB reports the disconnect. Watched serials default
+in `modules/home/adb-wireless.nix`; a host adds phones it is paired with, as the
+laptop does for the FP3.
 
 ## Workstation build memory
 

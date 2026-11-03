@@ -1,10 +1,11 @@
 //! Retry missed ADB mDNS connections without retaining an obsolete IP or port,
-//! drop a transport once the phone stops advertising it, and turn Wireless
-//! debugging off once the phone has been idle for a while.
+//! drop a transport once its phone stops advertising it, and turn Wireless
+//! debugging off once a phone has been idle for a while.
 
 use crate::util;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use std::{
+    collections::HashSet,
     io::{self, Read, Write},
     net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream},
     os::fd::AsRawFd,
@@ -27,14 +28,25 @@ const ABSENT_GRACE: Duration = Duration::from_secs(15);
 const SAMPLE_INTERVAL: Duration = Duration::from_secs(600);
 const SERVER: AdbServer = AdbServer(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5037)));
 
-pub fn run(adb: &str, serial: &str, once: bool, idle: Option<Duration>) -> Result<()> {
+pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) -> Result<()> {
     ensure!(
-        !serial.is_empty()
-            && serial
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '-'),
-        "expected an Android serial number, not an IP address or mDNS service name"
+        !serials.is_empty(),
+        "expected at least one Android serial number"
     );
+    let mut unique = HashSet::new();
+    for serial in serials {
+        ensure!(
+            !serial.is_empty()
+                && serial
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-'),
+            "expected an Android serial number, not an IP address or mDNS service name: {serial}"
+        );
+        ensure!(
+            unique.insert(serial.as_str()),
+            "duplicate Android serial number: {serial}"
+        );
+    }
     // Spawn the SDK client only to start/check the server, never for routine queries.
     // `-H`/`-P` make adb treat the server as remote: it then refuses to spawn one
     // ("cannot start server on remote host") and can only connect when one already
@@ -49,98 +61,170 @@ pub fn run(adb: &str, serial: &str, once: bool, idle: Option<Duration>) -> Resul
     // A broken subscription exits; systemd owns restart and backoff.
     let mut tracker = SERVER.request("host:track-devices")?;
     let mut devices = read_frame(&mut tracker)?;
-    let mut last_message = String::new();
-    // The transport this watcher holds. A failed query says nothing about it, so
-    // only a completed reconciliation replaces it.
-    let mut connection: Option<Connection> = None;
-    // Idle window: it opens whenever the connection changes, and `baseline` holds
-    // the device socket's payload bytes then, which only real ADB use changes.
-    let mut idle_since = Instant::now();
-    let mut sampled = Instant::now();
-    let mut baseline = None;
-    let mut unreadable = false;
-    // Set while the phone advertises nothing; see `ABSENT_GRACE`.
-    let mut missing_since = None;
+    let mut phones = serials
+        .iter()
+        .map(|serial| Phone::new(serial))
+        .collect::<Vec<_>>();
     loop {
-        let result = reconcile(
-            serial,
-            &devices,
-            connection.as_ref(),
-            &mut missing_since,
-            |service| SERVER.query(service),
-        );
-        let message = match &result {
-            Ok(Some(connection)) => format!("{serial} connected at {}", connection.address),
-            Ok(None) => format!("waiting for {serial} to advertise Wireless debugging on the LAN"),
-            Err(error) => format!("{error:#}; retrying in {}s", RETRY_INTERVAL.as_secs()),
-        };
+        let mut all_connected = true;
+        let mut failure = None;
+        for phone in &mut phones {
+            match phone.sync(&devices, !once) {
+                Ok(connected) => all_connected &= connected,
+                Err(error) => {
+                    all_connected = false;
+                    failure.get_or_insert(error);
+                }
+            }
+        }
         if once {
-            if result.is_ok() {
-                println!("{message}");
-            }
-            return result.map(|_| ());
-        }
-        if message != last_message {
-            eprintln!("adb-watch: {message}");
-            last_message = message;
-        }
-        let connected = matches!(&result, Ok(Some(_)));
-        if let Ok(reached) = result {
-            if reached != connection {
-                connection = reached;
-                idle_since = Instant::now();
-                sampled = Instant::now();
-                unreadable = false;
-                baseline = connection
-                    .as_ref()
-                    .and_then(|connection| transport_bytes(&connection.address));
-            }
-        }
-        if let (Some(idle), Some(connection)) = (idle, &connection) {
-            // Only payload counts: keepalive probes are empty segments, so the
-            // counters of an idle phone stay put even while ADB keeps probing it.
-            if sampled.elapsed() >= SAMPLE_INTERVAL {
-                sampled = Instant::now();
-                match transport_bytes(&connection.address) {
-                    Some(bytes) => {
-                        unreadable = false;
-                        if baseline != Some(bytes) {
-                            idle_since = Instant::now();
-                        }
-                        baseline = Some(bytes);
-                    }
-                    None if !unreadable => {
-                        unreadable = true;
-                        eprintln!(
-                            "adb-watch: cannot read the device socket to {}; not treating it as idle",
-                            connection.address
-                        );
-                    }
-                    None => {}
+            let Some(error) = failure else {
+                for phone in &phones {
+                    println!("{}", phone.last_message);
                 }
-            }
-            if idle_since.elapsed() >= idle {
-                idle_since = Instant::now();
-                // The phone only pays for this transport, so stop holding it until
-                // it is used again; enabling Wireless debugging is a phone-side tap.
-                match disable_wireless(adb, &connection.serial) {
-                    Ok(()) => eprintln!(
-                        "adb-watch: turned Wireless debugging off after {} minutes without ADB activity",
-                        idle.as_secs() / 60
-                    ),
-                    Err(error) => eprintln!("adb-watch: {error:#}"),
-                }
+                return Ok(());
+            };
+            return Err(error);
+        }
+        if let Some(idle) = idle {
+            for phone in &mut phones {
+                phone.enforce_idle(adb, idle);
             }
         }
-        if !connected {
+        if !all_connected {
             // Rate-limit failures even when our own attempts generate device events.
             thread::sleep(RETRY_INTERVAL);
         }
         update_devices(
             &mut tracker,
             &mut devices,
-            if connected { MDNS_POLL_MS } else { 0 },
+            if all_connected { MDNS_POLL_MS } else { 0 },
         )?;
+    }
+}
+
+/// One watched phone: the transport it holds and the state that decides idleness.
+struct Phone {
+    serial: String,
+    /// A failed query says nothing about it, so only a reconciliation replaces it.
+    connection: Option<Connection>,
+    last_message: String,
+    /// Set while the phone advertises nothing; see `ABSENT_GRACE`.
+    missing_since: Option<Instant>,
+    /// The idle window opens whenever the connection changes, and `baseline`
+    /// holds the device socket's payload bytes then, which only real ADB use changes.
+    idle_since: Instant,
+    sampled: Instant,
+    baseline: Option<u64>,
+    unreadable: bool,
+}
+
+impl Phone {
+    fn new(serial: &str) -> Self {
+        let now = Instant::now();
+        Self {
+            serial: serial.to_owned(),
+            connection: None,
+            last_message: String::new(),
+            missing_since: None,
+            idle_since: now,
+            sampled: now,
+            baseline: None,
+            unreadable: false,
+        }
+    }
+
+    /// Bring the held transport in line with what this phone advertises, logging
+    /// changes when `announce` is set, and report whether it is online.
+    fn sync(&mut self, devices: &str, announce: bool) -> Result<bool> {
+        let result = reconcile(
+            &self.serial,
+            devices,
+            self.connection.as_ref(),
+            &mut self.missing_since,
+            |service| SERVER.query(service),
+        );
+        let message = match &result {
+            Ok(Some(connection)) => format!("{} connected at {}", self.serial, connection.address),
+            Ok(None) => format!(
+                "waiting for {} to advertise Wireless debugging on the LAN",
+                self.serial
+            ),
+            Err(error) => format!(
+                "{}: {error:#}; retrying in {}s",
+                self.serial,
+                RETRY_INTERVAL.as_secs()
+            ),
+        };
+        if message != self.last_message {
+            if announce {
+                eprintln!("adb-watch: {message}");
+            }
+            self.last_message = message;
+        }
+        let reached = result?;
+        let connected = reached.is_some();
+        // A failed query says nothing about the transport, so only a completed
+        // reconciliation replaces it.
+        if reached != self.connection {
+            self.connection = reached;
+            self.reset_idle();
+        }
+        Ok(connected)
+    }
+
+    /// Restart the idle window after the held transport changes.
+    fn reset_idle(&mut self) {
+        let now = Instant::now();
+        self.idle_since = now;
+        self.sampled = now;
+        self.unreadable = false;
+        self.baseline = self
+            .connection
+            .as_ref()
+            .and_then(|connection| transport_bytes(&connection.address));
+    }
+
+    /// Turn Wireless debugging off after `idle` without device traffic.
+    fn enforce_idle(&mut self, adb: &str, idle: Duration) {
+        let Some(connection) = &self.connection else {
+            return;
+        };
+        // Only payload counts: keepalive probes are empty segments, so the
+        // counters of an idle phone stay put even while ADB keeps probing it.
+        if self.sampled.elapsed() >= SAMPLE_INTERVAL {
+            self.sampled = Instant::now();
+            match transport_bytes(&connection.address) {
+                Some(bytes) => {
+                    self.unreadable = false;
+                    if self.baseline != Some(bytes) {
+                        self.idle_since = Instant::now();
+                    }
+                    self.baseline = Some(bytes);
+                }
+                None if !self.unreadable => {
+                    self.unreadable = true;
+                    eprintln!(
+                        "adb-watch: cannot read the device socket to {}; not treating it as idle",
+                        connection.address
+                    );
+                }
+                None => {}
+            }
+        }
+        if self.idle_since.elapsed() >= idle {
+            self.idle_since = Instant::now();
+            // The phone only pays for this transport, so stop holding it until
+            // it is used again; enabling Wireless debugging is a phone-side tap.
+            match disable_wireless(adb, &connection.serial) {
+                Ok(()) => eprintln!(
+                    "adb-watch: turned Wireless debugging off on {} after {} minutes without ADB activity",
+                    self.serial,
+                    idle.as_secs() / 60
+                ),
+                Err(error) => eprintln!("adb-watch: {error:#}"),
+            }
+        }
     }
 }
 
