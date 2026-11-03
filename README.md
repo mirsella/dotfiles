@@ -453,6 +453,12 @@ if it exits and logs state changes and connection errors to the user journal.
 It waits up to 90 seconds for a default route before starting: the ADB server
 binds its mDNS responder to the interfaces that exist when it starts, so a login
 that beats the Wi-Fi lease would otherwise leave discovery dead until restart.
+ADB enables `SO_KEEPALIVE` with a one-second idle and probe interval on each
+device socket, probing the phone once a second; the unit and login shells export
+`ADB_TCP_KEEPALIVE_INTERVAL=0`, which disables keepalive instead. The server
+owns the device socket, so it inherits the setting from whichever client forked
+it. Without keepalive, a phone that disappears silently keeps its transport in
+`device` state until a command fails, and only then does the watcher reconnect.
 
 On Arch it uses Android Studio's SDK at
 `~/.local/share/android/sdk/platform-tools/adb`; NixOS uses `android-tools`.

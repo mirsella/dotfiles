@@ -14,15 +14,24 @@ let
     done
     echo "adb-wireless: no default route after 90s, starting ADB anyway" >&2
   '';
+  # ADB sets SO_KEEPALIVE with a one-second idle and probe interval on every
+  # device socket, so the phone is woken and probed continuously. Zero turns
+  # SO_KEEPALIVE off instead. The server is the process that owns the device
+  # socket, so it must inherit the variable when it is forked.
+  keepalive = "ADB_TCP_KEEPALIVE_INTERVAL=0";
 in
 {
+  # Any client starts the server when none runs, so give interactive shells the
+  # same policy; the unit below covers the service-started server.
+  home.sessionVariables.ADB_TCP_KEEPALIVE_INTERVAL = "0";
+
   systemd.user.services.adb-wireless = {
     Unit.Description = "Reconnect the paired Android phone through mDNS";
     Service = {
       Type = "simple";
       ExecStartPre = "${waitForNetwork}";
       ExecStart = "${lib.getExe pkgs.host-tools} adb-watch --adb ${adb} --serial 188b31ee";
-      Environment = "PATH=${lib.makeBinPath [ pkgs.coreutils ]}";
+      Environment = [ "PATH=${lib.makeBinPath [ pkgs.coreutils ]}" keepalive ];
       Restart = "on-failure";
       RestartSec = "2s";
     };
