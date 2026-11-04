@@ -18,6 +18,13 @@ recipients = [
 command = "t3-settings"
 args = ["capture", "--if-configured"]
 
+[hooks.apply.post]
+command = "sh"
+args = [
+	"-c",
+	"if command -v t3-settings >/dev/null 2>&1; then exec t3-settings apply --if-running; fi",
+]
+
 [git]
 	autoCommit = true
 	autoPush = true

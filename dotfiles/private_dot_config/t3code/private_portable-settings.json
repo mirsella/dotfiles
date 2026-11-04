@@ -1,9 +1,34 @@
 {
   "version": 1,
   "client": {
+    "appearanceContrast": 100,
+    "boringSidebarEnabled": false,
     "boringSidebarMultilineRows": true,
+    "browserAutoShowFloatingPreview": true,
+    "browserCustomSearchUrl": "",
+    "browserDefaultAppearance": "system",
+    "browserDefaultViewport": {
+      "_tag": "fill"
+    },
+    "browserDefaultZoomFactor": 1,
+    "browserLinkTarget": "system",
+    "browserRecordingFrameRate": 30,
     "browserRecordingShowKeyPresses": true,
     "browserRecordingShowMousePresses": true,
+    "browserSearchEngine": "duckduckgo",
+    "chatWidth": "comfortable",
+    "composerRichTextEnabled": true,
+    "confirmQuit": "hold",
+    "confirmThreadArchive": false,
+    "confirmThreadDelete": true,
+    "confirmThreadUnpin": false,
+    "contextWindowMeterEnabled": false,
+    "diffColorScheme": "red-green",
+    "diffFilesCollapsed": true,
+    "diffIgnoreWhitespace": true,
+    "diffLayout": "stacked",
+    "effortDisplay": "label",
+    "environmentIdentificationMode": "artwork",
     "favorites": [
       {
         "model": "opencode-go/step-5-preview-free",
@@ -11,11 +36,36 @@
       }
     ],
     "followUpBehavior": "queue",
+    "fontFamilyCode": "",
+    "fontFamilyComposer": "",
+    "fontFamilySans": "",
+    "fontFamilyTerminal": "",
+    "fontSizeCode": 13,
+    "fontSizeInterface": 16,
+    "fontSizePrompt": 14,
+    "fontSizeTerminal": 12,
+    "fontSmoothing": true,
+    "glassOpacity": 80,
     "inAppNotificationsEnabled": true,
+    "legacySidebarEnabled": false,
+    "loadBalancingEnabled": false,
     "mathRenderingEnabled": true,
     "notificationMode": "notifications",
+    "panelAnimationDurationMs": 0,
     "persistComposerContextStrip": true,
+    "planModeEnabled": false,
+    "proactivePanelsEnabled": false,
+    "pullRequestLinksOpenInApp": true,
+    "sendShortcut": "enter",
+    "showSkillsInSlashMenu": true,
+    "sidebarProjectGroupingMode": "repository",
+    "sidebarProjectSortOrder": "updated_at",
+    "sidebarThreadSortOrder": "updated_at",
+    "sidebarWorkingShelfEnabled": true,
+    "snapShotAnimations": true,
     "snapShotEnabled": true,
+    "snapShotFlash": true,
+    "snapShotIncludeAccessibility": true,
     "snapShotPlaySound": false,
     "snapShotShortcut": {
       "altKey": false,
@@ -25,10 +75,12 @@
       "modKey": false,
       "shiftKey": true
     },
+    "snapShotSound": "soft-pop",
     "threadDetailsItems": {
       "context": true,
-      "usage": true
+      "openIn": false
     },
+    "threadDetailsUsageEnabled": false,
     "timestampFormat": "24-hour",
     "wordWrap": false
   },
@@ -36,10 +88,11 @@
     "addProjectBaseDirectory": "~/dev",
     "autoResumeLimitedThreads": true,
     "branchNamePrefix": "",
+    "compactIdleThreads": true,
     "defaultAutoPull": true,
     "defaultModelSelection": {
       "instanceId": "opencode",
-      "model": "claude-agent/opus",
+      "model": "openai/gpt-6.1-sol",
       "options": [
         {
           "id": "variant",
@@ -50,7 +103,13 @@
     "defaultThreadEnvMode": "local",
     "fallbackModelSelection": {
       "instanceId": "opencode",
-      "model": "opencode-go/deepseek-v4.1-flash"
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "options": [
+        {
+          "id": "variant",
+          "value": "max"
+        }
+      ]
     },
     "favorites": [
       {
@@ -76,10 +135,14 @@
       {
         "model": "claude-agent/opus",
         "provider": "opencode"
+      },
+      {
+        "model": "claude-opus-5-5",
+        "provider": "claudeAgent"
       }
     ],
     "guestSharingEnabled": true,
-    "idleCompaction": "onReturn",
+    "idleCompaction": "beforeCacheExpires",
     "linkedEnvironmentsEnabled": true,
     "providerModelPreferences": {
       "acpRegistry_opencode": {
@@ -357,11 +420,6 @@
     "simlockDeviceHostsEnabled": true,
     "snoozePresets": [
       {
-        "day": "today",
-        "kind": "at",
-        "time": "18:00"
-      },
-      {
         "kind": "after",
         "minutes": 30
       },
@@ -371,20 +429,21 @@
       },
       {
         "kind": "after",
+        "minutes": 120
+      },
+      {
+        "kind": "after",
         "minutes": 180
+      },
+      {
+        "day": "today",
+        "kind": "at",
+        "time": "18:00"
       },
       {
         "day": "tomorrow",
         "kind": "at",
         "time": "09:00"
-      },
-      {
-        "kind": "after",
-        "minutes": 120
-      },
-      {
-        "kind": "after",
-        "minutes": 1440
       },
       {
         "day": "monday",
@@ -395,7 +454,7 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeSettledAfterDays": 4
+      "worktreeSettledAfterDays": 0
     },
     "textGenerationModelSelection": {
       "instanceId": "opencode",
@@ -875,17 +934,6 @@
         "title": "computer-use-mcp"
       },
       "settings": {}
-    },
-    {
-      "workspace_root": "~/dev/discord-bot",
-      "attributes": {
-        "faviconPath": null,
-        "projectIcon": null,
-        "title": "discord-bot"
-      },
-      "settings": {
-        "defaultThreadEnvMode": "worktree"
-      }
     },
     {
       "workspace_root": "~/dev/dotfiles",

@@ -1,22 +1,46 @@
 ---
 name: land
-description: Commit and land this session's branch on main, or queue it when another session blocks landing. Use ONLY when the user explicitly requests landing.
+description: Commit and land only this agent's own changes from the current session across all projects it changed, or queue blocked work. Use ONLY when the user explicitly requests landing.
 ---
 
-If uncommitted changes remain, follow commit skill.
-Create a task branch if HEAD is detached.
-Rebase onto local main, resolving conflicts while preserving both branches' intended changes,
-then merge into its checkout with `git merge --ff-only --no-autostash`.
-Repeat if main gains new commits.
+Land only changes made by this agent in the current thread/session, including
+work it explicitly delegated for this task. Include all projects where it made
+those changes unless the user narrows the scope. Read-only visits do not count.
 
-Keep checks proportional and reuse valid results already obtained.
+Inspect this session's own changes and task branches/worktrees for unlanded
+work. Check whether its changes already landed; do not inventory unrelated
+branches or worktrees as additional landing candidates.
 
-Main may hold another session's work; merge around it if Git permits, never stashing, committing, or discarding it. If it blocks, leave main alone.
+Other sessions' work is out of scope even in the same project or checkout.
+Leave it untouched without asking whether to review, include or land it, unless
+the user explicitly requests that scope. If ownership is uncertain, exclude the
+change; ask only if that uncertainty prevents isolating or landing this agent's
+own changes.
 
-If the user mention "settle" its in t3 code to settle your own thread when done with this.
-Only settle if fully merged/landed, and there isn't any uncommitted changes. otherwise the worktree is not gonna get cleaned up.
-Ask the user if he wants to include the uncommitted changes or delete them.
+For each included project:
+- Follow commit skill for uncommitted changes.
+- Create a task branch if HEAD is detached.
+- Rebase onto local main, preserving both branches' intended changes,
+  then merge into its checkout with `git merge --ff-only --no-autostash`.
+- Repeat if main advances, then push main. Respect dependencies between projects.
+- Preserve other sessions' work. Merge around it if Git permits; never stash,
+  commit or discard it. If blocked, leave it untouched and report the blocker.
 
-Git push main after.
+Keep checks proportional and reuse valid results. Deployment requires a
+separate request.
 
-Briefly report landed or queued, branch/commits, and checks.
+After successful landing and pushing, clean up temporary manual worktrees:
+- Leave T3-managed worktrees to T3 settlement and use other tools' own lifecycle.
+  Identify management from metadata, not directory names alone.
+- Remove only worktrees created by this session, with all work landed/pushed,
+  no remaining changes or valuable untracked/ignored files, and no active use.
+- Move outside the worktree first; use `git worktree remove` without
+  force, never recursive deletion.
+- Retain worktrees when ownership, contents or active use are uncertain.
+  Preserve primary checkouts, branches and worktrees containing skipped work.
+
+Settle the thread only when requested, all included work
+is landed and its worktrees are clean. Never discard work to enable settlement.
+
+Briefly report each project's landed commits, checks, removed worktrees, and
+skipped, retained or blocked work. Do not claim full landing after partial success.
