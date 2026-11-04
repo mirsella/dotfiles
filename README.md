@@ -189,9 +189,12 @@ drop-in puts `~/.local/bin` first in T3's PATH while preserving existing shell
 exports without overriding T3's temporary directory. Bootstrap installers also
 use their default temporary directories. T3 owns its
 background-service unit and updater state. Bootstrap installs the T3 service
-when a user manager is available; setup finishes on the next user login otherwise.
-T3's own updater repoints its tracked CLI launchers and restarts the service, so
-Home Manager runs no settings watcher and no CLI-alignment unit.
+when a user manager is available; otherwise the next Home Manager activation
+retries. `t3 update` repoints T3's tracked CLI launchers and restarts the
+service; desktop-app updates do not update `~/.local/bin/t3`. `t3-settings`
+runs the running server's own runtime CLI, so a stale launcher does not break
+capture or sync. Home Manager runs no settings watcher and no CLI-alignment
+unit.
 
 Chezmoi stores portable T3 preferences and project registrations in
 `~/.config/t3code/portable-settings.json`. The Nix-built `t3-settings` helper
@@ -222,9 +225,9 @@ caching the result under `~/.local/state/agent-tools/t3-settings-defaults/`.
 An upgraded app is a new cache key, and so is a changed helper. Capture and
 manual sync stop when the app image's version differs from the running server's
 `serverVersion`, so a not-yet-restarted update cannot prune or publish values
-using another build's defaults; `capture --if-configured --if-running` (used by
-the chezmoi hook) skips with a warning when this machine has no T3 userdata or
-the server is not running. `--allow-version-mismatch` continues without
+using another build's defaults; `capture --if-running` (used by the chezmoi
+hook) skips with a warning when no live T3 server is available or the versions
+differ. `--allow-version-mismatch` continues without
 pruning and keeps every allowlisted value until the versions match. If the
 bundle layout or its exported constants change, capture keeps
 every allowlisted value and warns instead of failing. `T3_SETTINGS_NODE`
@@ -243,16 +246,17 @@ local edit.
 
 Preferences changed in the app are captured into the portable bundle when
 `chezmoi re-add` runs. Repository changes reach T3 when `chezmoi apply` (or
-`chezmoi update`) runs the `apply` post-hook: `t3-settings sync --if-running`
-reconciles the bundle with live settings. When only one side changed since the
-last sync, that side wins; when both changed, sync stops with both diffs and
-leaves settings unchanged. Resolve a conflict with
-`t3-settings sync --force-capture` (live wins) or `--force-apply` (bundle wins).
-The hook skips when no T3 server is running. There is no background watcher.
-Every overwrite, adoption, and conflict is archived with before/after snapshots
-under `~/.local/state/agent-tools/t3-settings-history/` for recovery. Because
-the hook runs for every `chezmoi apply`, capture local T3 changes with `re-add`
-before applying unrelated dotfiles if the bundle also changed.
+`chezmoi update`) runs the `apply` post-hook: `t3-settings sync --if-running
+--no-capture` applies bundle changes but never writes live-only changes back
+into the chezmoi-managed bundle. When both sides changed, sync stops with both
+diffs and leaves settings unchanged. Resolve a conflict with
+`t3-settings sync --force-capture` (live wins) or `--force-apply` (bundle wins);
+after a live-wins capture, run `chezmoi re-add` to save it to the source. The
+hook skips when no T3 server is running and passes `--dry-run` when chezmoi is
+previewing. There is no background watcher. Every overwrite, adoption, and
+conflict is archived with before/after snapshots under
+`~/.local/state/agent-tools/t3-settings-history/` for recovery. If apply reports
+live-only changes, run `re-add` to save them.
 
 To capture and commit the bundle to Git:
 
@@ -261,18 +265,19 @@ chezmoi re-add ~/.config/t3code/portable-settings.json
 git diff -- dotfiles/private_dot_config/t3code/private_portable-settings.json
 ```
 
-The `re-add` pre-hook runs `t3-settings capture --if-configured --if-running` to
-refresh the local portable bundle before chezmoi copies it into the source.
-Machines without T3 userdata, and captures attempted while T3 is stopped, skip
-with a diagnostic; capture errors stop `re-add`.
+The `re-add` pre-hook runs `t3-settings capture --if-running` to refresh the
+local portable bundle before chezmoi copies it into the source. Captures
+attempted with no live T3 server skip with a diagnostic; capture errors stop
+`re-add`.
 The hook also runs for targeted and dry-run invocations: it refreshes the local
 bundle, while chezmoi controls which files are saved. To save only T3 settings,
 use `chezmoi re-add ~/.config/t3code/portable-settings.json`.
-The `apply` post-hook runs `t3-settings sync --if-running` after chezmoi writes
-managed files, so a normal `chezmoi apply` or `chezmoi update` reconciles the
-repository bundle with live T3. A conflict stops the hook and leaves both sides
-unchanged; resolve it with the force flags and rerun. Chezmoi's usual automatic
-commit and push apply.
+The `apply` post-hook runs `t3-settings sync --if-running --no-capture` after
+chezmoi writes managed files, so a normal `chezmoi apply` or `chezmoi update`
+applies repository changes without modifying the portable bundle. Live-only
+changes are reported and left for `chezmoi re-add`; a conflict stops the hook
+and leaves both sides unchanged. Resolve it with the force flags, then run
+`re-add` if live settings won. Chezmoi's usual automatic commit and push apply.
 Review other repository changes before `re-add`; the captured bundle includes
 project script commands and URLs.
 Do not `chezmoi add` the live T3 settings files.

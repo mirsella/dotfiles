@@ -43,9 +43,12 @@ The flake discovers these directories and sets hostnames automatically.
   processes and requires their v2 API.
 - T3's portable settings (`~/.config/t3code/portable-settings.json`) live in
   chezmoi; `t3-settings` captures them on `chezmoi re-add` (skipping when T3 is
-  stopped) and syncs them on `chezmoi apply` (one-sided changes win; conflicts
-  need a force flag). T3's own updater keeps its CLI launcher and service
-  current; there is no settings watcher. Apply refuses a CLI whose version
+  stopped) and applies repository changes on `chezmoi apply` without capturing
+  live-only changes. Conflicts need a force flag, then `re-add` to save a
+  live-wins capture. `t3 update` repoints T3's tracked CLI launchers and the
+  service; desktop-app updates do not update `~/.local/bin/t3`. `t3-settings`
+  runs the server's runtime CLI, so sync does not depend on the launcher and
+  there is no settings watcher. Apply refuses a fallback CLI whose version
   doesn't match the server because it would migrate the newer database; an
   unreadable version only warns.
 - OpenCode's skill files are the canonical prompts, owned by chezmoi. Edit them

@@ -22,7 +22,7 @@ args = ["capture", "--if-running"]
 command = "sh"
 args = [
 	"-c",
-	"if command -v t3-settings >/dev/null 2>&1; then exec t3-settings sync --if-running; fi",
+	"if command -v t3-settings >/dev/null 2>&1; then dry=; case \" $CHEZMOI_ARGS \" in *\" --dry-run\"*|*\" -n\"*) dry=--dry-run;; esac; exec t3-settings sync --if-running --no-capture $dry; fi",
 ]
 
 [git]

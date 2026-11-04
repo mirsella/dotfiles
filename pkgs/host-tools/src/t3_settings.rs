@@ -19,10 +19,7 @@ pub enum Operation {
     Capture {
         #[arg(long)]
         output: Option<PathBuf>,
-        /// Skip capture if this machine has no T3 userdata (for the chezmoi hook).
-        #[arg(long)]
-        if_configured: bool,
-        /// Skip capture when T3 is not running (for the chezmoi hook).
+        /// Skip capture unless T3 is running and its versions match (for the chezmoi hook).
         #[arg(long)]
         if_running: bool,
         /// Capture even while the desktop app and server versions differ.
@@ -43,8 +40,9 @@ pub enum Operation {
     ///
     /// When only one side changed since the last sync, that side wins. When
     /// both changed, sync does nothing and exits nonzero; resolve it with
-    /// --force-apply (bundle wins) or --force-capture (live wins). Every
-    /// overwrite and conflict is archived under
+    /// --force-apply (bundle wins) or --force-capture (live wins). With
+    /// --no-capture, live-only changes are reported and left for `chezmoi
+    /// re-add`. Every overwrite and conflict is archived under
     /// ~/.local/state/agent-tools/t3-settings-history/ for recovery.
     Sync {
         #[arg(long)]
@@ -60,6 +58,9 @@ pub enum Operation {
         /// Sync even while the desktop app and server versions differ (no default pruning).
         #[arg(long)]
         allow_version_mismatch: bool,
+        /// Do not write live changes into the portable bundle (for the chezmoi apply hook).
+        #[arg(long, conflicts_with = "force_capture")]
+        no_capture: bool,
         /// Skip sync when T3 is not running (for the chezmoi apply hook).
         #[arg(long)]
         if_running: bool,
@@ -263,6 +264,7 @@ impl Policy {
         false
     }
 
+    #[cfg(test)]
     fn merge_section(&self, name: &str, current: &mut Value, saved: &Value) {
         self.merge_section_with(name, current, saved, false);
     }
@@ -448,15 +450,23 @@ fn json_bytes(value: &impl Serialize) -> Result<Vec<u8>> {
 // Like T3's own project CLI, use a short-lived scoped local session and revoke it.
 struct Session {
     base_dir: PathBuf,
+    cli: PathBuf,
     origin: String,
     id: String,
     authorization: String,
     agent: ureq::Agent,
 }
 
-fn cli(base_dir: &Path, args: &[&str]) -> Result<Vec<u8>> {
-    let program =
-        PathBuf::from(std::env::var_os("HOME").context("HOME is unset")?).join(".local/bin/t3");
+/// Prefer the running server's own runtime CLI over a possibly stale launcher.
+fn server_cli(runtime: &Value, home: &Path, base_dir: &Path) -> PathBuf {
+    runtime["serverVersion"]
+        .as_str()
+        .map(|version| base_dir.join("runtime/versions").join(version).join("t3"))
+        .filter(|path| path.is_file())
+        .unwrap_or_else(|| home.join(".local/bin/t3"))
+}
+
+fn cli(program: &Path, base_dir: &Path, args: &[&str]) -> Result<Vec<u8>> {
     let result = Command::new(program)
         .args(args)
         .arg("--base-dir")
@@ -546,11 +556,15 @@ fn kill_group(child: &mut std::process::Child) {
 /// One whose version cannot be determined is reported but allowed, since it may
 /// be a wrapper.
 fn ensure_cli_matches_server(runtime: &Value, home: &Path, base_dir: &Path) -> Result<()> {
+    let link = home.join(".local/bin/t3");
+    // The server's own runtime CLI cannot be older than the server.
+    if server_cli(runtime, home, base_dir) != link {
+        return Ok(());
+    }
     let Some(server_version) = runtime["serverVersion"].as_str() else {
         eprintln!("t3-settings: T3 runtime has no server version; skipping the CLI version check");
         return Ok(());
     };
-    let link = home.join(".local/bin/t3");
     let Some(cli_version) =
         native_cli_version(home, base_dir)?.or_else(|| reported_cli_version(&link))
     else {
@@ -612,7 +626,16 @@ pub(crate) fn server_runtime(base_dir: &Path) -> Result<Value> {
 /// Whether T3's published runtime names a live server process.
 fn server_is_running(base_dir: &Path) -> Result<bool> {
     let runtime = read_server_runtime(&base_dir.join("userdata/server-runtime.json"))?;
-    Ok(matches!(runtime.as_ref(), Some(runtime) if runtime_is_live(runtime)))
+    Ok(runtime.as_ref().is_some_and(runtime_is_live))
+}
+
+/// Report and skip a best-effort operation when no live T3 server is available.
+fn skip_when_stopped(if_running: bool, base_dir: &Path, action: &str) -> Result<bool> {
+    if !if_running || server_is_running(base_dir)? {
+        return Ok(false);
+    }
+    eprintln!("t3-settings: T3 is not running; skipping {action}");
+    Ok(true)
 }
 
 pub(crate) fn resolve_base_dir(home: &Path, base_dir: Option<PathBuf>) -> PathBuf {
@@ -635,6 +658,7 @@ impl Session {
             "T3 runtime must expose a local HTTP endpoint"
         );
         ensure_cli_matches_server(&runtime, home, base_dir)?;
+        let cli_path = server_cli(&runtime, home, base_dir);
         let mut args = vec![
             "auth",
             "session",
@@ -650,10 +674,11 @@ impl Session {
         if write {
             args.extend(["--scope", "orchestration:operate"]);
         }
-        let issued: Value =
-            serde_json::from_slice(&cli(base_dir, &args)?).context("Parsing scoped T3 session")?;
+        let issued: Value = serde_json::from_slice(&cli(&cli_path, base_dir, &args)?)
+            .context("Parsing scoped T3 session")?;
         Ok(Self {
             base_dir: base_dir.to_owned(),
+            cli: cli_path,
             origin,
             id: issued["sessionId"]
                 .as_str()
@@ -711,7 +736,11 @@ impl Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
-        if let Err(error) = cli(&self.base_dir, &["auth", "session", "revoke", &self.id]) {
+        if let Err(error) = cli(
+            &self.cli,
+            &self.base_dir,
+            &["auth", "session", "revoke", &self.id],
+        ) {
             eprintln!(
                 "Could not revoke the short-lived T3 session; it expires in five minutes: {error}"
             );
@@ -1577,6 +1606,7 @@ fn sync(
     force_apply: bool,
     force_capture: bool,
     allow_version_mismatch: bool,
+    no_capture: bool,
 ) -> Result<()> {
     let bundle_path = input.unwrap_or_else(|| home.join(".config/t3code/portable-settings.json"));
     let Some(mut bundle) = read_bundle_file(&bundle_path)? else {
@@ -1706,7 +1736,8 @@ fn sync(
             }
             // Drop defaults that older bundles still spell out even when no
             // setting changed, so every machine converges on the pruned form.
-            if write_bundle_file(&bundle_path, base_dir, &bundle)? {
+            // The apply hook must not modify its chezmoi-managed bundle.
+            if !no_capture && write_bundle_file(&bundle_path, base_dir, &bundle)? {
                 println!("t3-settings sync: normalized the portable bundle");
             }
             // Refresh stale records (manual capture/apply converge the sides
@@ -1761,6 +1792,19 @@ fn sync(
             let live = live_bundle.context("t3-settings sync: live T3 settings vanished")?;
             let live_v = live_val.context("t3-settings sync: live T3 settings vanished")?;
             let diff = diff_summary(&bundle_val, &live_v);
+            if no_capture {
+                if dry_run {
+                    println!(
+                        "t3-settings sync: would leave live-only changes uncaptured because --no-capture was given (dry run)"
+                    );
+                } else {
+                    eprintln!(
+                        "t3-settings sync: live T3 settings changed; leaving the portable bundle unchanged because --no-capture was given. Run `chezmoi re-add ~/.config/t3code/portable-settings.json` to capture them"
+                    );
+                }
+                print_diff(&diff);
+                return Ok(());
+            }
             if dry_run {
                 println!(
                     "t3-settings sync: would capture live settings into the portable bundle (dry run)"
@@ -1784,6 +1828,11 @@ fn sync(
                 "t3-settings sync: captured live T3 settings into {}",
                 bundle_path.display()
             );
+            if force_capture {
+                println!(
+                    "t3-settings sync: live settings won the conflict; run `chezmoi re-add ~/.config/t3code/portable-settings.json` to save them to the source"
+                );
+            }
             Ok(())
         }
         Decision::ApplyBundle | Decision::AdoptBundle => {
@@ -1890,19 +1939,10 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
     match operation {
         Operation::Capture {
             output,
-            if_configured,
             if_running,
             allow_version_mismatch,
         } => {
-            if if_configured && !base_dir.join("userdata").try_exists()? {
-                eprintln!(
-                    "t3-settings: skipping capture; no T3 userdata at {}",
-                    base_dir.display()
-                );
-                return Ok(());
-            }
-            if if_running && !server_is_running(&base_dir)? {
-                eprintln!("t3-settings: T3 is not running; skipping capture");
+            if skip_when_stopped(if_running, &base_dir, "capture")? {
                 return Ok(());
             }
             let output = output.unwrap_or(default_bundle);
@@ -1915,7 +1955,7 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
                             "t3-settings: T3 app {app} and server {server} versions differ; capturing without default pruning"
                         );
                         None
-                    } else if if_configured {
+                    } else if if_running {
                         eprintln!(
                             "t3-settings: skipping capture; T3 app {app} and server {server} versions differ. Restart T3 and run again"
                         );
@@ -1979,10 +2019,10 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
             force_apply,
             force_capture,
             allow_version_mismatch,
+            no_capture,
             if_running,
         } => {
-            if if_running && !server_is_running(&base_dir)? {
-                eprintln!("t3-settings: T3 is not running; skipping sync");
+            if skip_when_stopped(if_running, &base_dir, "sync")? {
                 return Ok(());
             }
             sync(
@@ -1994,6 +2034,7 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
                 force_apply,
                 force_capture,
                 allow_version_mismatch,
+                no_capture,
             )?;
         }
     }
@@ -2062,14 +2103,14 @@ mod tests {
             &base_dir,
         )?;
         let error = ensure_cli_matches_server(
-            &json!({"serverVersion": "0.1.3-nightly.1"}),
+            &json!({"serverVersion": "0.1.5-nightly.3"}),
             &home,
             &base_dir,
         )
         .unwrap_err()
         .to_string();
         assert!(error.contains("0.1.4-nightly.2"), "{error}");
-        assert!(error.contains("0.1.3-nightly.1"), "{error}");
+        assert!(error.contains("0.1.5-nightly.3"), "{error}");
 
         fs::remove_file(&link)?;
         let broken = home.join("broken-t3");
@@ -2077,10 +2118,18 @@ mod tests {
         fs::set_permissions(&broken, fs::Permissions::from_mode(0o755))?;
         symlink(&broken, &link)?;
         ensure_cli_matches_server(
-            &json!({"serverVersion": "0.1.3-nightly.1"}),
+            &json!({"serverVersion": "0.1.6-nightly.4"}),
             &home,
             &base_dir,
         )?;
+
+        // A stale launcher is harmless when the running server ships its own CLI.
+        let newer = base_dir.join("runtime/versions/0.1.4-nightly.2/t3");
+        fs::create_dir_all(newer.parent().unwrap())?;
+        fs::write(&newer, "")?;
+        let runtime = json!({"serverVersion": "0.1.4-nightly.2"});
+        assert_eq!(server_cli(&runtime, &home, &base_dir), newer);
+        ensure_cli_matches_server(&runtime, &home, &base_dir)?;
         Ok(())
     }
 
@@ -2507,6 +2556,21 @@ mod tests {
 
         fs::write(&runtime, json!({"pid": i32::MAX}).to_string()).unwrap();
         assert!(!server_is_running(dir.path()).unwrap());
+    }
+
+    #[test]
+    fn if_running_skips_only_when_the_server_is_stopped() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("userdata")).unwrap();
+        assert!(!skip_when_stopped(false, dir.path(), "sync").unwrap());
+        assert!(skip_when_stopped(true, dir.path(), "sync").unwrap());
+
+        let runtime = dir.path().join("userdata/server-runtime.json");
+        fs::write(&runtime, json!({"pid": std::process::id()}).to_string()).unwrap();
+        assert!(!skip_when_stopped(true, dir.path(), "sync").unwrap());
+
+        fs::write(&runtime, json!({"pid": i32::MAX}).to_string()).unwrap();
+        assert!(skip_when_stopped(true, dir.path(), "sync").unwrap());
     }
 
     #[test]
