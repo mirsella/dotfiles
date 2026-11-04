@@ -148,11 +148,8 @@ assert lib.assertMsg (
         flake.homeConfigurations.main.config.systemd.user.services.${name}
         == flake.homeConfigurations.laptop.config.systemd.user.services.${name}
       )
-      [
-        "agent-tools-setup"
-        "openchamber"
-      ]
-) "Agent setup and OpenChamber must share the workstation configuration; Predator must not run OpenCode or OpenChamber services";
+      [ "openchamber" ]
+) "OpenChamber must share the workstation configuration; Predator must not run OpenCode or OpenChamber services";
 assert lib.assertMsg (
   lib.hasPrefix "2." flake.packages.x86_64-linux.openchamber.version
   && lib.all (home: lib.any (

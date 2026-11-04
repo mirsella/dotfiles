@@ -43,41 +43,12 @@ in
     home.activation.agentTools = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       run ${lib.getExe config.programs.agent-tools.package}
     '';
-    home.activation.agentToolsSetup = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
+    home.activation.agentToolsTimers = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
       if ${pkgs.systemd}/bin/systemctl --user show-environment >/dev/null 2>&1; then
         run ${pkgs.systemd}/bin/systemctl --user start --no-block \
-          agent-tools-setup.service agent-tools-setup.path agent-tools-backups.timer \
-          scratch-prune.timer
+          agent-tools-backups.timer scratch-prune.timer
       fi
     '';
-    systemd.user.services.agent-tools-setup = {
-      Unit = {
-        Description = "Reconcile portable agent preferences with live T3 settings";
-        After = [ "t3code.service" ];
-        Wants = [ "t3code.service" ];
-      };
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${lib.getExe pkgs.host-tools} agent-tools-setup";
-        Environment = "PATH=${lib.makeBinPath [ pkgs.systemd ]}:${config.home.homeDirectory}/.local/bin T3_SETTINGS_NODE=${lib.getExe pkgs.nodejs}";
-        TimeoutStartSec = "120s";
-      };
-      Install.WantedBy = [ "default.target" ];
-    };
-    systemd.user.paths.agent-tools-setup = {
-      Unit.Description = "Sync agent settings when their local inputs change";
-      Path.PathChanged = [
-        "%h/.config/t3code/portable-settings.json"
-        "%h/.config/opencode/service.json"
-        "%h/.local/bin/t3"
-        "%h/.t3/userdata/server-runtime.json"
-        "%h/.t3/userdata/client-settings.json"
-        "%h/.t3/userdata/settings.json"
-        "%h/.t3/userdata/desktop-settings.json"
-        "%h/.t3/userdata/keybindings.json"
-      ];
-      Install.WantedBy = [ "default.target" ];
-    };
     systemd.user.services.agent-tools-backups = {
       Unit.Description = "Prune enrolled migration backups beyond retention";
       Service = {

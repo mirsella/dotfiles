@@ -72,7 +72,6 @@ enum Commands {
     BootstrapAgentTools {
         package: PathBuf,
     },
-    AgentToolsSetup,
     AgentToolsBackups {
         #[command(subcommand)]
         action: migration_backups::Operation,
@@ -224,7 +223,6 @@ fn run() -> Result<()> {
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
         Commands::BootstrapAgentTools { package } => agent_tools::bootstrap(&package),
-        Commands::AgentToolsSetup => agent_tools::setup(),
         Commands::AgentToolsBackups { action } => migration_backups::run(action),
         Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),
         Commands::ArchUki { config } => uki::run(&config),

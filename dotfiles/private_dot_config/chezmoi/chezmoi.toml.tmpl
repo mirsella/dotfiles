@@ -16,13 +16,13 @@ recipients = [
 
 [hooks.re-add.pre]
 command = "t3-settings"
-args = ["capture", "--if-configured"]
+args = ["capture", "--if-configured", "--if-running"]
 
 [hooks.apply.post]
 command = "sh"
 args = [
 	"-c",
-	"if command -v t3-settings >/dev/null 2>&1; then exec t3-settings apply --if-running; fi",
+	"if command -v t3-settings >/dev/null 2>&1; then exec t3-settings sync --if-running; fi",
 ]
 
 [git]

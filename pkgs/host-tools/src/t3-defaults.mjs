@@ -127,33 +127,37 @@ function copyTree(node, dest, write) {
   }
 }
 
-function findBundle(dist) {
-  const name = fs.readdirSync(dist).find((file) => /^binCli-.*\.mjs$/.test(file));
-  if (!name) throw new Error('server dist has no binCli bundle');
-  return path.join(dist, name);
+function findDefaultModule(dist) {
+  for (const name of fs.readdirSync(dist).filter((file) => file.endsWith('.mjs'))) {
+    const file = path.join(dist, name);
+    const source = fs.readFileSync(file, 'utf8');
+    const decoded = [...source.matchAll(/const\s+(\w+)\s*=\s*decodeSync\((\w+)\)\(\{\}\)/g)].map(
+      ([, name]) => name,
+    );
+    const clients = decoded.filter((name) => /CLIENT/.test(name));
+    const servers = decoded.filter((name) => /SERVER/.test(name));
+    if (clients.length === 1 && servers.length === 1) {
+      return { file, source, client: clients[0], server: servers[0] };
+    }
+  }
+  throw new Error('server dist has no module defining both client and server defaults');
 }
 
 function importDefaults(dist) {
-  const source = fs.readFileSync(findBundle(dist), 'utf8');
-  const decoded = [...source.matchAll(/const\s+(\w+)\s*=\s*decodeSync\((\w+)\)\(\{\}\)/g)].map(
-    ([, name]) => name,
+  // Defaults moved out of binCli into a shared server chunk. Find whichever
+  // module defines both constants instead of assuming the CLI bundle owns them.
+  const { file, source, client, server } = findDefaultModule(dist);
+  // A copy with exported constants can be imported for its schema defaults.
+  const probe = path.join(path.dirname(file), 'defaults-probe.mjs');
+  fs.writeFileSync(
+    probe,
+    `${source}\nexport { ${client} as __t3DefaultClient, ${server} as __t3DefaultServer };\n`,
   );
-  const pick = (pattern) => {
-    const names = decoded.filter((name) => pattern.test(name));
-    if (names.length !== 1) throw new Error(`cannot identify the ${pattern} default constant`);
-    return names[0];
-  };
-  const client = pick(/CLIENT/);
-  const server = pick(/SERVER/);
-  // The bundle defines the CLI but only runs it from bin.mjs, so a copy with
-  // exported constants can be imported for its schema defaults.
-  const probe = path.join(dist, 'defaults-probe.mjs');
-  fs.writeFileSync(probe, `${source}\nexport { ${client}, ${server} };\n`);
-  const runner = path.join(dist, 'defaults-run.mjs');
+  const runner = path.join(path.dirname(file), 'defaults-run.mjs');
   fs.writeFileSync(
     runner,
-    `import { ${client}, ${server} } from './${path.basename(probe)}';\n` +
-      `process.stdout.write(JSON.stringify({ client: ${client}, server: ${server} }));\n`,
+    `import { __t3DefaultClient as client, __t3DefaultServer as server } from './${path.basename(probe)}';\n` +
+      `process.stdout.write(JSON.stringify({ client, server }));\n`,
   );
   const run = spawnSync(process.execPath, [runner], {
     cwd: dist,

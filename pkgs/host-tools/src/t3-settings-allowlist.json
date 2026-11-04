@@ -168,6 +168,8 @@
     "createdAt": false,
     "updatedAt": false,
     "deletedAt": false,
+    "pinnedAt": false,
+    "archivedAt": false,
     "title": true,
     "defaultModelSelection": false,
     "defaultThreadEnvMode": false,

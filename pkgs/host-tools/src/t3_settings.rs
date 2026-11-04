@@ -22,6 +22,9 @@ pub enum Operation {
         /// Skip capture if this machine has no T3 userdata (for the chezmoi hook).
         #[arg(long)]
         if_configured: bool,
+        /// Skip capture when T3 is not running (for the chezmoi hook).
+        #[arg(long)]
+        if_running: bool,
         /// Capture even while the desktop app and server versions differ.
         #[arg(long)]
         allow_version_mismatch: bool,
@@ -57,6 +60,9 @@ pub enum Operation {
         /// Sync even while the desktop app and server versions differ (no default pruning).
         #[arg(long)]
         allow_version_mismatch: bool,
+        /// Skip sync when T3 is not running (for the chezmoi apply hook).
+        #[arg(long)]
+        if_running: bool,
     },
 }
 
@@ -603,12 +609,10 @@ pub(crate) fn server_runtime(base_dir: &Path) -> Result<Value> {
     })
 }
 
-/// Wait for a runtime record whose server process is still alive.
-pub(crate) fn running_server_runtime(base_dir: &Path) -> Result<Value> {
-    let path = base_dir.join("userdata/server-runtime.json");
-    util::wait_for_file(&path, std::time::Duration::from_secs(60), || {
-        Ok(read_server_runtime(&path)?.filter(runtime_is_live))
-    })
+/// Whether T3's published runtime names a live server process.
+fn server_is_running(base_dir: &Path) -> Result<bool> {
+    let runtime = read_server_runtime(&base_dir.join("userdata/server-runtime.json"))?;
+    Ok(matches!(runtime.as_ref(), Some(runtime) if runtime_is_live(runtime)))
 }
 
 pub(crate) fn resolve_base_dir(home: &Path, base_dir: Option<PathBuf>) -> PathBuf {
@@ -1887,6 +1891,7 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
         Operation::Capture {
             output,
             if_configured,
+            if_running,
             allow_version_mismatch,
         } => {
             if if_configured && !base_dir.join("userdata").try_exists()? {
@@ -1894,6 +1899,10 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
                     "t3-settings: skipping capture; no T3 userdata at {}",
                     base_dir.display()
                 );
+                return Ok(());
+            }
+            if if_running && !server_is_running(&base_dir)? {
+                eprintln!("t3-settings: T3 is not running; skipping capture");
                 return Ok(());
             }
             let output = output.unwrap_or(default_bundle);
@@ -1970,7 +1979,12 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
             force_apply,
             force_capture,
             allow_version_mismatch,
+            if_running,
         } => {
+            if if_running && !server_is_running(&base_dir)? {
+                eprintln!("t3-settings: T3 is not running; skipping sync");
+                return Ok(());
+            }
             sync(
                 &policy,
                 &home,
@@ -2212,6 +2226,34 @@ mod tests {
         assert!(!error.contains("secret"));
     }
 
+    #[test]
+    fn project_pin_and_archive_timestamps_are_device_local() {
+        let policy = Policy::new();
+        let source = json!({
+            "id": "project",
+            "workspaceRoot": "/home/user/repo",
+            "title": "repo",
+            "pinnedAt": "2026-11-04T09:00:00.000Z",
+            "archivedAt": null,
+            "createdAt": "2026-10-01T09:00:00.000Z",
+            "updatedAt": "2026-11-04T09:00:00.000Z",
+            "deletedAt": null
+        });
+        let mut excluded = ExcludedFields::default();
+        let selected = policy
+            .select(
+                &source,
+                &policy.0["project"],
+                "projects.project",
+                &mut excluded,
+            )
+            .unwrap();
+        assert_eq!(selected, json!({"title": "repo"}));
+        assert!(excluded.unknown.is_empty());
+        assert!(excluded.ignored.contains("projects.project.pinnedAt"));
+        assert!(excluded.ignored.contains("projects.project.archivedAt"));
+    }
+
     fn assert_portable(policy: &Policy, section: &str, saved: Value) {
         let selected = policy.capture(section, &saved, section).unwrap();
         assert_eq!(selected, saved);
@@ -2451,6 +2493,20 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn detects_a_running_or_stopped_server() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("userdata")).unwrap();
+        assert!(!server_is_running(dir.path()).unwrap());
+
+        let runtime = dir.path().join("userdata/server-runtime.json");
+        fs::write(&runtime, json!({"pid": std::process::id()}).to_string()).unwrap();
+        assert!(server_is_running(dir.path()).unwrap());
+
+        fs::write(&runtime, json!({"pid": i32::MAX}).to_string()).unwrap();
+        assert!(!server_is_running(dir.path()).unwrap());
     }
 
     #[test]

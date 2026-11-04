@@ -42,11 +42,12 @@ The flake discovers these directories and sets hostnames automatically.
   and T3 watchdog commands. The OpenCode side discovers only `opencode serve`
   processes and requires their v2 API.
 - T3's portable settings (`~/.config/t3code/portable-settings.json`) live in
-  chezmoi; `t3-settings` captures or applies them. The Home Manager
-  `agent-tools-setup` path unit keeps `~/.local/bin/t3` on the running
-  `serverVersion` from `~/.t3/userdata/server-runtime.json`, so do not repoint
-  it by hand. Sync refuses a CLI whose version doesn't match the server because
-  it would migrate the newer database; an unreadable version only warns.
+  chezmoi; `t3-settings` captures them on `chezmoi re-add` (skipping when T3 is
+  stopped) and syncs them on `chezmoi apply` (one-sided changes win; conflicts
+  need a force flag). T3's own updater keeps its CLI launcher and service
+  current; there is no settings watcher. Apply refuses a CLI whose version
+  doesn't match the server because it would migrate the newer database; an
+  unreadable version only warns.
 - OpenCode's skill files are the canonical prompts, owned by chezmoi. Edit them
   in `~/.config/opencode/skills` and use `chezmoi re-add` to save edits. Home Manager
   links `~/.agents/skills` to that directory for Codex and Hermes, and links each
