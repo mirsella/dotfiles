@@ -11,7 +11,7 @@ rustPlatform.buildRustPackage rec {
   cargoHash = "sha256-wgBi4CqPgab15O6y0n0re2aZ5QV02LbIlktQVlD8rVQ=";
   # Keep the stable engine; evaluate scheduler/2.0 changes separately.
   # README.md records upstream provenance and regression coverage.
-  patches = [ ./local-cache-fixes.patch ];
+  patches = [ ./local-cache-fixes.patch ./failure-diagnostics.patch ];
   nativeBuildInputs = [ pkg-config ];
   nativeCheckInputs = [ git cacert ];
   doCheck = true;
@@ -20,6 +20,8 @@ rustPlatform.buildRustPackage rec {
   cargoCheckType = "debug";
   cargoTestFlags = [ "--workspace" "--lib" "--bins" ];
   preCheck = ''
+    # Keep filesystem/deadline tests from saturating a shared build host.
+    export RUST_TEST_THREADS=2
     export HOME="$TMPDIR/kache-test-home"
     mkdir -p "$HOME"
     export SSL_CERT_FILE="${cacert}/etc/ssl/certs/ca-bundle.crt"

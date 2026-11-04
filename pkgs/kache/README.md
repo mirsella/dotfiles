@@ -18,6 +18,15 @@ engine. `local-cache-fixes.patch` contains these fixes and their regressions:
 - Update tests for indexed corruption removal and home-abbreviated paths;
   serialize the default version-memo cache test as in #1646.
 
+`failure-diagnostics.patch` records the emitting engine's executable path and
+BLAKE3 digest on compiler failures and build-script bypasses. This distinguishes
+pinned build-script engines that survive a package upgrade. Bypass reasons keep
+the failing stage and OS error kind/code without copying inner paths into the
+event. Compiler failures include their exit code and compile duration. These
+optional fields use event schema 27; older events remain readable. Successful
+hits do not hash the engine. Diagnostics do not record arguments, environment
+values or compiler output, and do not change scheduler or cache-key policy.
+
 The Nix build runs workspace library/binary tests. Also run the complete
 workspace integration/doc suite with the repository's resource guard, a clean
 Cargo configuration, wrapper disabled, and its pinned Rust toolchain. Some
