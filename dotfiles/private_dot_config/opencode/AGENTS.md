@@ -22,3 +22,11 @@
 - Use `~/dev` for permanent projects. Keep tool-managed worktrees in their configured locations.
 - `/tmp` is RAM-backed. Keep builds, large downloads and large generated files on disk. Small tool-managed temporary files may use their normal temporary directory.
 - Keep task scratch files in `.scratch/` at the checkout root, or the session's existing scratch directory; outside a checkout, use `~/dev/scratch/`. Do not set `TMPDIR` to a checkout/worktree scratch directory. Preserve tool-managed temporary environments, and never remove a temporary root while processes still use it.
+
+## Worktrees
+
+When your session, or the main thread you work for, runs in a T3 worktree (`~/.t3/worktrees/...`):
+
+- Put extra worktrees inside it: `git worktree add -b <branch> <t3 worktree>/.scratch/worktrees/<name>`. Settling the thread then deletes them.
+- Do not use `opencode.worktree_create` or `session_move`: they put worktrees outside the thread.
+- Settling deletes nested worktrees without checking for changes. Before ending a turn, commit work you want to keep to the worktree's branch, never a detached HEAD.
