@@ -26,6 +26,7 @@ mod tests;
 mod theme;
 mod uki;
 mod util;
+mod worktree_prune;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -149,7 +150,7 @@ enum Commands {
     Backup {
         config: PathBuf,
     },
-    /// Remove task scratch directories untouched for more than N days.
+    /// Remove task scratch directories and landed OpenCode worktrees untouched for more than N days.
     ScratchPrune {
         #[arg(long, default_value_t = scratch::DEFAULT_MAX_AGE_DAYS)]
         max_age_days: u64,
