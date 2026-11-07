@@ -20,6 +20,11 @@ in
   # the local pace patch applies until upstream ships it.
   home.packages = [ pkgs.codexbar-plasmoid ] ++ lib.optionals isNixOS [ pkgs.codexbar-cli ];
 
+  # Plasma can search /usr/share before the Nix profile, selecting an unpatched
+  # distro copy. Its user data directory always takes precedence.
+  xdg.dataFile."plasma/plasmoids/com.github.psimaker.codexbar".source =
+    "${pkgs.codexbar-plasmoid}/share/plasma/plasmoids/com.github.psimaker.codexbar";
+
   home.file.".local/bin/codexbar" = {
     source = launcher;
     force = true;
