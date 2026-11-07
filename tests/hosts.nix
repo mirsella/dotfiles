@@ -113,6 +113,40 @@ assert lib.assertMsg (
   lib.all (unit: lib.hasInfix "StartLimitIntervalSec=0" unit.text) [ cooling watch ]
 ) "Fan units must disable the start rate limit: fan and watcher failsafes have to keep retrying instead of staying dead";
 assert lib.assertMsg (
+  let
+    off = main.systemd.units."main-rgb.service";
+    resumeTargets = [
+      "suspend.target"
+      "hibernate.target"
+      "hybrid-sleep.target"
+      "suspend-then-hibernate.target"
+    ];
+    detectors = (lib.importJSON main.environment.etc."main-rgb/OpenRGB.json".source).Detectors.detectors;
+  in
+  main.hardware.i2c.enable
+  && lib.elem "i2c-piix4" main.boot.kernelModules
+  && off.wantedBy == [ "graphical.target" ] ++ resumeTargets
+  && lib.hasInfix "After=${lib.concatStringsSep " " resumeTargets}" off.text
+  && !(main.systemd.units ? "main-rgb-sleep.service")
+  && detectors."Glorious Model D / D-" == false
+  && detectors."Wooting 60HE+" == false
+  && lib.all (text: lib.hasInfix text off.text) [
+    "Type=oneshot"
+    "--mode Custom --color 000000"
+    "--mode Off"
+    "set sync color off"
+    "WorkingDirectory=/var/lib/main-rgb"
+    "/etc/main-rgb/OpenRGB.json /var/lib/main-rgb/OpenRGB.json"
+  ]
+  && lib.all (text: !(lib.hasInfix text off.text)) [
+    "Rainbow"
+    "ExecStart=-"
+    "ExecStop"
+    "RemainAfterExit="
+  ]
+  && lib.all (host: !(host.systemd.units ? "main-rgb.service")) [ laptop server ]
+) "Only main may configure RAM/Aura lighting, applying saved black only at boot and after wake";
+assert lib.assertMsg (
   laptop.hardware.cpu.amd.ryzen-smu.enable
   && laptop.systemd.services ? ryzenadj-laptop
   && !(main.systemd.services ? ryzenadj-laptop)

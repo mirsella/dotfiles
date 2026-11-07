@@ -965,3 +965,36 @@ Keep `lm_sensors` explicitly installed.
 
 After editing the Arch configuration, reinstall the JSON file and restart
 `fancontrol.service`. Home Manager does not own these system services.
+
+## Main's RGB lighting
+
+`hosts/main/main-rgb.service` keeps the Corsair Vengeance RGB Pro DIMMs and
+ASUS Aura lighting off. RAM uses saved Custom black, not Direct black, which
+leaves the previous hardware animation intact. Liquidctl also blanks all Aura
+channels, including ARGB zones not sized in OpenRGB. Fan speeds are unchanged.
+
+The oneshot runs at boot and after the suspend, hibernate, hybrid-sleep and
+suspend-then-hibernate targets complete. It exits after each run so the next
+wake can start it again. No lighting commands run before sleep or during
+shutdown, no effect is restored, and no RGB daemon runs.
+A separate Corsair USB lighting hub has not been detected; lighting on an
+undetected controller is not covered.
+
+NixOS installs the unit from `hosts/main/default.nix`. On Arch, keep the
+existing `openrgb` and `liquidctl` packages and install the shared unit:
+
+```sh
+sudo install -m 0644 hosts/main/main-rgb.service /etc/systemd/system/
+sudo install -Dm0644 hosts/main/OpenRGB.json /etc/main-rgb/OpenRGB.json
+sudo systemctl daemon-reload
+sudo systemctl enable --now main-rgb.service
+```
+
+The dedicated configuration retains the disabled keyboard/mouse detectors from
+main's working OpenRGB settings. Default detection crashes OpenRGB 1.0 in
+hidapi cleanup on main. The configuration is copied into the private
+state directory before each start; the interactive OpenRGB settings stay separate.
+Arch's existing `rgb-off.service` remains responsible for blanking other
+peripherals at boot, before the saved-black job. Actual standby darkness still
+needs a physical check; motherboard firmware can have separate standby-lighting
+settings.

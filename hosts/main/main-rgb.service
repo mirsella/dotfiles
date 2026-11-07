@@ -1,0 +1,24 @@
+[Unit]
+Description=Keep main's RAM and Aura lighting off
+# Arch's existing rgb-off service first blanks the other peripherals. It runs
+# after multi-user.target, so start this unit with graphical.target instead.
+After=systemd-modules-load.service rgb-off.service
+# These targets complete after the sleep operation returns.
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+
+[Service]
+Type=oneshot
+StateDirectory=main-rgb
+WorkingDirectory=/var/lib/main-rgb
+ExecStartPre=/usr/bin/cp /etc/main-rgb/OpenRGB.json /var/lib/main-rgb/OpenRGB.json
+# Custom black replaces the RAM's saved hardware effect; Direct black does not.
+ExecStart=/usr/bin/openrgb --noautoconnect --config /var/lib/main-rgb --device "Corsair Vengeance RGB Pro DDR4" --mode Custom --color 000000 --device "ASUS ROG STRIX X570-F GAMING" --mode Off
+# Also address every Aura channel, including ARGB zones not sized in OpenRGB.
+ExecStart=/usr/bin/liquidctl --match "ASUS Aura LED Controller" set sync color off
+TimeoutStartSec=45s
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+[Install]
+WantedBy=graphical.target suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
