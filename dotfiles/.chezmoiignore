@@ -47,6 +47,9 @@ kde shortcuts.kksrc
 # Home Manager loads CodexBar's SOPS key without putting credentials in its editable config.
 .local/bin/codexbar
 .config/codexbar/opencode.env
+# Home Manager selects the patched widget ahead of the system-installed copy.
+.local/share/plasma/plasmoids/com.github.psimaker.codexbar
+.local/share/plasma/plasmoids/com.github.psimaker.codexbar/**
 # Home Manager owns the portable settings helper.
 .local/bin/t3-settings
 .local/bin/hex-settings
