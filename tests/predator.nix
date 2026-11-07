@@ -225,6 +225,11 @@ assert lib.assertMsg (
   && lib.elem "hermes-agent-setup" server.system.activationScripts.hermes-settings.deps
   && lib.hasInfix "runuser -u mirsella -g hermes-private" server.system.activationScripts.hermes-settings.text
   && lib.hasInfix "hermes-configure" server.system.activationScripts.hermes-settings.text
+  && lib.all (unit: lib.hasInfix "hermes refresh-context" server.systemd.services.${unit}.preStart)
+    [ "hermes-agent" "hermes-backend" ]
+  && server.services.hermes-agent.environment.HERMES_RUNTIME_DIR == toString pkgs.emptyDirectory
+  && server.services.hermes-agent.environment.HERMES_MEDIA_ALLOW_DIRS == "/var/lib/hermes/workspace"
+  && !server.services.hermes-agent.settings.security.allow_lazy_installs
   && server.systemd.services.hermes-agent.environment.HOME == "/home/mirsella"
   && server.systemd.services.hermes-agent.environment.HERMES_MANAGED == "false"
   && server.services.hermes-agent.environment.OPENCODE_GO_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/opencode-go"

@@ -113,6 +113,7 @@ let
     mkdir -p "$out/bin"
     makeWrapper ${package}/bin/hermes "$out/bin/hermes" \
       --set HERMES_HOME ${state}/.hermes --set HERMES_MANAGED false \
+      --set HERMES_RUNTIME_DIR ${pkgs.emptyDirectory} \
       ${lib.concatMapStringsSep " \\\n      " (name: "--unset ${name}") blockedInferenceEnvironment}
   '';
   hardening = {
@@ -157,6 +158,9 @@ let
   renderEnvironment = ''
     test -r ${lib.escapeShellArg config.sops.secrets.hermes_gateway_env.path}
     ${gatewayEnvironment} ${state}/.hermes/.env 0600 ${lib.escapeShellArgs config.services.hermes-agent.environmentFiles}
+    ${pkgs.host-tools}/bin/host-tools hermes refresh-context \
+      --home ${state}/.hermes \
+      --revision ${builtins.hashString "sha256" "${managedState}:${package}"}
   '';
   # Activation updates mutable files without changing either service's command.
   managedState = pkgs.writeText "hermes-managed-state" (
@@ -249,6 +253,12 @@ in {
       extraPackages = [ tools ];
       environment = {
         HERMES_MANAGED = "false";
+        # Nix supplies the runtime dependencies. Do not activate leftover PM
+        # downloads from an older install in the owner's mutable Hermes home.
+        HERMES_RUNTIME_DIR = "${pkgs.emptyDirectory}";
+        # The native delivery policy otherwise rejects our /var/lib workspace.
+        # Keep the exception below the state root, away from auth and history.
+        HERMES_MEDIA_ALLOW_DIRS = "${state}/workspace";
         OPENCODE_GO_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/opencode-go";
         CAMOFOX_URL = "http://127.0.0.1:9378";
         CAMOFOX_USER_ID = "home-browser";
@@ -262,6 +272,7 @@ in {
       settings = {
         browser = { backend = "browserbase"; cloud_provider = "camofox"; };
         approvals.mode = "off";
+        security.allow_lazy_installs = false;
         agent.disabled_toolsets = [ "browser-unsupported" ];
         agent.reasoning_overrides."deepseek-v4.1-flash" = "max";
         plugins.enabled = [ "browser-policy" ];
