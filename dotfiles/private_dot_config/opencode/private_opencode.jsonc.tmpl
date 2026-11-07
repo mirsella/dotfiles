@@ -129,13 +129,9 @@
     },
     {{- end }}
     "openai": {
-      "headers": {
-        "sleev-provider": "codex",
-        "sleev-harness": "opencode"
-      },
       "settings": {
         "chunkTimeout": 180000,
-        "baseURL": "http://127.0.0.1:17321"
+        "baseURL": "http://127.0.0.1:17321/sleev/opencode/codex"
       },
       "models": {
         "gpt-6-luna": {},
@@ -143,33 +139,34 @@
         "gpt-6-sol": {}
       }
     },
-    // OpenCode's free-tier fraud detection rejects gateway traffic, so the
-    // opencode provider connects directly. Keep it free of sleev headers and
-    // baseURL overrides; only openai and opencode-go route through the gateway.
+    // Keep OpenCode's free models direct; Sleev support remains unverified.
+    // Keep opencode free of Sleev headers and baseURL overrides; openai,
+    // opencode-go and claude-agent still route through the gateway.
     "opencode-go": {
-      "headers": {
-        "sleev-provider": "opencode-go",
-        "sleev-harness": "opencode"
-      },
       "settings": {
-        "baseURL": "http://127.0.0.1:17321"
+        "baseURL": "http://127.0.0.1:17321/sleev/opencode/opencode-go"
       },
       "models": {
         "deepseek-v4.1-flash": {
           "settings": {
-            "baseURL": "http://127.0.0.1:17321"
+            "baseURL": "http://127.0.0.1:17321/sleev/opencode/opencode-go"
           }
         },
         "muse-spark-1.3-contributor": {
           "settings": {
-            "baseURL": "http://127.0.0.1:17321"
+            "baseURL": "http://127.0.0.1:17321/sleev/opencode/opencode-go"
           }
         },
         "beam-free": {
           "settings": {
-            "baseURL": "http://127.0.0.1:17321"
+            "baseURL": "http://127.0.0.1:17321/sleev/opencode/opencode-go"
           }
         }
+      }
+    },
+    "claude-agent": {
+      "settings": {
+        "baseURL": "http://127.0.0.1:17321/sleev/opencode/anthropic"
       }
     }
   }

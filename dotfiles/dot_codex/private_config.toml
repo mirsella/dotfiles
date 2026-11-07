@@ -1,7 +1,7 @@
 model = "gpt-6-astra"
 model_reasoning_effort = "low"
 service_tier = "default"
-model_provider = "sleev"
+openai_base_url = "http://127.0.0.1:17321/sleev/chatgpt/codex/v1"
 
 [projects."/home/mirsella/dev/mightyminions/main"]
 trust_level = "trusted"
@@ -96,17 +96,6 @@ enabled = true
 
 [plugins."computer-use@computer-use-mcp"]
 enabled = false
-
-[model_providers.sleev]
-name = "Sleev"
-base_url = "http://127.0.0.1:17321/v1"
-wire_api = "responses"
-supports_websockets = true
-requires_openai_auth = true
-
-[model_providers.sleev.http_headers]
-"sleev-provider" = "codex"
-"sleev-harness" = "chatgpt"
 
 [hooks.state]
 
