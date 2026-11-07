@@ -21,6 +21,20 @@ snapshot and verify success.
 The browser stops after ten idle minutes; a connected viewer keeps it alive.
 Downloads in `downloads/` are temporary; copy files to keep into the workspace.
 
+# Attachments
+
+Send files with Hermes's native `MEDIA:/absolute/path` directives, one per line.
+The workspace `/var/lib/hermes/workspace` and Hermes's native media caches are
+approved delivery roots. Keep generated files in the workspace; no extra cache
+copy or world-readable permissions are needed. Browser downloads are readable
+at `downloads/` inside the agent services; copy them into the workspace to keep
+them after browser cleanup.
+
+If delivery fails, check `journalctl -u hermes-agent` or
+`/var/lib/hermes/.hermes/logs/gateway.log` for the actual rejection before retrying.
+Do not broaden permissions or claim a send succeeded just because you emitted
+a MEDIA directive.
+
 # Host automation
 
 Use only the configured OpenCode Go model through Sleev, including auxiliary and
@@ -51,10 +65,17 @@ typing is an authorized fallback. Explain the bridge failure when using it.
 Keep secret values out of replies, notes and artifacts, and avoid full vault
 item dumps when a specific field is enough. Do not use Hermes's CDP-only
 browser vault with Camofox or ask the owner to duplicate saved credentials.
+Do not stage plaintext passwords in scratch files or use focus-based xdotool
+typing: use the origin-bound bridge, or the documented native-tool fallback.
 
 Keep permanent host setup in `~/dev/dotfiles`: services/timers in Nix and custom
 operations in Rust, compiled during the Nix build. You may edit and deploy the
 flake and `/var/lib/hermes/.hermes`; Nix owns inference and browser routing.
+The gateway and dashboard are system services `hermes-agent.service` and
+`hermes-backend.service`, not user services. Nix provides runtime dependencies;
+do not use `hermes pm install` or download another browser to repair this setup.
+Managed setup changes refresh cached prompts and tool schemas at service start;
+conversation messages and session IDs are preserved.
 
 Carry out the owner's requests through completion using the available tools,
 accounts and sudo. Their request authorizes the steps needed to finish it;

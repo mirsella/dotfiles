@@ -23,6 +23,13 @@ const BACKUP_TIMESTAMP_FORMAT: &str = "%Y%m%dT%H%M%S%.9fZ";
 
 #[derive(clap::Subcommand)]
 pub enum Operation {
+    /// Refresh live sessions after managed instructions or capabilities change.
+    RefreshContext {
+        #[arg(long)]
+        home: PathBuf,
+        #[arg(long)]
+        revision: String,
+    },
     Status,
     Logs,
     Start,
@@ -33,6 +40,50 @@ pub enum Operation {
         #[arg(long)]
         archive: PathBuf,
     },
+}
+
+fn refresh_context(home: &Path, revision: &str) -> Result<()> {
+    ensure!(!revision.is_empty(), "Hermes context revision is empty");
+    let lock = fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(home.join("managed-context.lock"))?;
+    // Gateway and dashboard can start together; publish the revision only once.
+    lock.lock()?;
+    let marker = home.join("managed-context-revision");
+    match fs::read_to_string(&marker) {
+        Ok(current) if current == revision => return Ok(()),
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    let database = home.join("state.db");
+    if database.try_exists()? {
+        // Hermes deliberately pins prompts AND tools across process restarts.
+        // Clear both derived caches, never transcripts, routing or ended sessions.
+        // Keep this schema-coupled adapter explicit: a changed schema must fail
+        // startup rather than silently keep obsolete instructions/capabilities.
+        let output = Command::new("sqlite3")
+            .args(["-bail", "-cmd", ".timeout 5000"])
+            .arg(&database)
+            .arg("BEGIN IMMEDIATE; UPDATE sessions SET system_prompt = NULL, system_prompt_hash = NULL, tool_names = NULL WHERE ended_at IS NULL AND (system_prompt IS NOT NULL OR system_prompt_hash IS NOT NULL OR tool_names IS NOT NULL); SELECT changes(); COMMIT;")
+            .output()
+            .context("Cannot refresh Hermes context caches")?;
+        ensure!(
+            output.status.success(),
+            "Hermes context refresh failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+        let count: usize = String::from_utf8(output.stdout)?.trim().parse()?;
+        println!(
+            "Refreshed cached instructions and tools for {count} live Hermes sessions; messages preserved"
+        );
+    }
+    crate::util::atomic_write(&marker, revision.as_bytes())?;
+    Ok(())
 }
 
 fn fill_defaults(current: &mut Value, defaults: &Value) -> bool {
@@ -571,6 +622,9 @@ pub fn operations(action: Operation) -> Result<()> {
         );
         Ok(())
     };
+    if let Operation::RefreshContext { home, revision } = &action {
+        return refresh_context(home, revision);
+    }
     if matches!(action, Operation::Status) {
         return systemctl("status", &UNITS);
     }
@@ -706,8 +760,8 @@ pub fn operations(action: Operation) -> Result<()> {
             );
             Ok(())
         }
-        Operation::Status | Operation::Logs => {
-            unreachable!("read-only operations returned before the administrator lock")
+        Operation::Status | Operation::Logs | Operation::RefreshContext { .. } => {
+            unreachable!("non-administrative operations returned before the administrator lock")
         }
     }
 }
@@ -715,6 +769,77 @@ pub fn operations(action: Operation) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn context_refresh_only_invalidates_live_caches_when_the_revision_changes() {
+        let directory = tempfile::tempdir().unwrap();
+        let home = directory.path();
+        let database = home.join("state.db");
+        let sql = |query: &str| {
+            let output = Command::new("sqlite3")
+                .arg(&database)
+                .arg(query)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{:?}", output.stderr);
+            String::from_utf8(output.stdout).unwrap()
+        };
+        sql(
+            "CREATE TABLE sessions (id TEXT PRIMARY KEY, ended_at REAL, system_prompt TEXT, system_prompt_hash TEXT, tool_names TEXT); CREATE TABLE messages (session_id TEXT, content TEXT); INSERT INTO sessions VALUES ('live', NULL, 'old', 'hash', 'tools'), ('ended', 1, 'old', 'hash', 'tools'); INSERT INTO messages VALUES ('live', 'keep this conversation');",
+        );
+        refresh_context(home, "first").unwrap();
+        assert_eq!(
+            sql("SELECT id FROM sessions WHERE system_prompt IS NOT NULL;"),
+            "ended\n"
+        );
+        assert_eq!(
+            sql(
+                "SELECT count(*) FROM sessions WHERE id = 'live' AND system_prompt_hash IS NULL AND tool_names IS NULL;"
+            ),
+            "1\n"
+        );
+        assert_eq!(
+            sql("SELECT content FROM messages;"),
+            "keep this conversation\n"
+        );
+        sql(
+            "UPDATE sessions SET system_prompt = 'fresh', system_prompt_hash = 'fresh-hash', tool_names = 'fresh-tools' WHERE id = 'live';",
+        );
+        refresh_context(home, "first").unwrap();
+        assert_eq!(
+            sql("SELECT system_prompt FROM sessions WHERE id = 'live';"),
+            "fresh\n"
+        );
+        refresh_context(home, "second").unwrap();
+        assert_eq!(
+            sql(
+                "SELECT count(*) FROM sessions WHERE id = 'live' AND system_prompt IS NULL AND tool_names IS NULL;"
+            ),
+            "1\n"
+        );
+        assert_eq!(
+            sql("SELECT content FROM messages;"),
+            "keep this conversation\n"
+        );
+        assert_eq!(
+            fs::read_to_string(home.join("managed-context-revision")).unwrap(),
+            "second"
+        );
+    }
+
+    #[test]
+    fn context_refresh_handles_first_boot_and_does_not_acknowledge_schema_errors() {
+        let directory = tempfile::tempdir().unwrap();
+        let home = directory.path();
+        refresh_context(home, "first").unwrap();
+        fs::write(home.join("state.db"), b"not a database").unwrap();
+        assert!(refresh_context(home, "second").is_err());
+        assert_eq!(
+            fs::read_to_string(home.join("managed-context-revision")).unwrap(),
+            "first"
+        );
+        assert!(refresh_context(home, "").is_err());
+    }
 
     #[test]
     fn credential_capture_drains_stdout_and_discards_stderr_while_sending_large_input() {
