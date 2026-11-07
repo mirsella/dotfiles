@@ -8,6 +8,8 @@ mod browser_secret;
 mod fan_control;
 mod hardware;
 mod hermes;
+mod hex_model;
+mod hex_settings;
 mod maintenance;
 mod memory;
 mod migration_backups;
@@ -70,6 +72,16 @@ enum Commands {
         action: t3_settings::Operation,
     },
     BootstrapAgentTools {
+    /// Capture or merge Hex's portable preferences without copying private state.
+    HexSettings {
+        #[command(subcommand)]
+        action: hex_settings::Operation,
+    },
+    /// Install the selected Hex model; exit unsuccessfully until it is ready.
+    HexModel {
+        #[arg(long)]
+        hex: String,
+    },
         package: PathBuf,
     },
     AgentToolsBackups {
@@ -223,6 +235,8 @@ fn run() -> Result<()> {
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
         Commands::BootstrapAgentTools { package } => agent_tools::bootstrap(&package),
+        Commands::HexSettings { action } => hex_settings::run(action),
+        Commands::HexModel { hex } => hex_model::run(&hex),
         Commands::AgentToolsBackups { action } => migration_backups::run(action),
         Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),
         Commands::ArchUki { config } => uki::run(&config),

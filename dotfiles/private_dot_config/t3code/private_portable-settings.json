@@ -25,6 +25,7 @@
       "modKey": false,
       "shiftKey": true
     },
+    "speechLanguage": "en",
     "threadDetailsItems": {
       "context": true,
       "openIn": false
@@ -33,6 +34,7 @@
     "wordWrap": false
   },
   "server": {
+    "speechModelId": "handy-computer/cohere-transcribe-03-2026-gguf",
     "addProjectBaseDirectory": "~/dev",
     "autoResumeLimitedThreads": true,
     "branchNamePrefix": "",

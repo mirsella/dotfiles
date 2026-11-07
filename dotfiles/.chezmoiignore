@@ -49,6 +49,10 @@ kde shortcuts.kksrc
 .config/codexbar/opencode.env
 # Home Manager owns the portable settings helper.
 .local/bin/t3-settings
+.local/bin/hex-settings
+.local/bin/hex
+.config/autostart/anomaly.hex.desktop
+.local/share/applications/anomaly.hex.desktop
 # The Nix bootstrap and native updaters own these agent installs.
 .local/bin/codex
 .local/bin/codex-code-mode-host
@@ -102,6 +106,15 @@ kde shortcuts.kksrc
 .t3/**
 .config/t3code-v2/
 .config/t3code-v2/**
+
+# Hex's portable bundle is separate from credentials, recordings and local devices.
+.local/share/hex/
+.local/share/hex/**
+.local/state/hex-settings/
+.local/state/hex-settings/**
+{{- if not (or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop")) }}
+.config/hex/portable-settings.json
+{{- end }}
 
 # Never manage dependency trees.
 node_modules/

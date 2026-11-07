@@ -103,7 +103,7 @@ sudo "$toplevel/bin/switch-to-configuration" switch
 
 For the current Arch installations, use `homeConfigurations.main` or
 `homeConfigurations.laptop` with standalone Home Manager. Pacman/AUR still own
-their application binaries, except the writable agent installs below. NixOS
+their application binaries, except Hex and the writable agent installs below. NixOS
 supplies other binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
@@ -321,6 +321,54 @@ projects outside the bundle are preserved. Saved server exposure and local
 environment preferences apply too. Close the settings editor while restoring,
 then restart the desktop to reload client preferences. Neither command clones
 repositories or restores authentication. Connections must be paired locally.
+
+### Hex voice dictation
+
+`modules/home/hex.nix` starts Hex with the graphical session on main and laptop.
+Home Manager owns `hex.service` and a hidden XDG autostart entry so the app's
+Launch at login toggle cannot create a second login launcher. `hex-model.service`
+installs the selected model if needed. Home Manager installs the stable release
+from `pkgs/hex` on both Arch and NixOS, including matching Mesa Vulkan drivers.
+Nix unpacks and patches the official release binary; it does not compile Hex.
+The CLI and desktop launcher use that same Nix package. The flake's package
+updater tracks stable Hex releases; activate Home Manager after updating the
+pin to install them. On Arch, restart `hex.service` after activation to use the
+new release immediately. Hex does not replace the Nix-owned executable itself.
+
+Chezmoi tracks `~/.config/hex/portable-settings.json`, captured from the current
+preferences with `hex-settings capture`. The bundle selects Cohere Transcribe,
+English transcription and UI, Meta+Space dictation, Ctrl+Alt+V paste-last,
+toggle recording, the current Labs switches and five-minute idle unloading.
+T3's portable settings also select Cohere and English. Both applications use the
+same checksum-verified Q8_0 model: Home Manager links T3's model cache entry to
+Hex's downloaded file. There is one 2.41 GB download per machine, outside Git and
+the Nix store. Loading it in both apps can still use separate RAM/GPU memory.
+The allowlist in `pkgs/host-tools/src/hex-settings-allowlist.json` includes
+shortcuts, output modes, rewrite prompts and vocabulary. Review personal text
+in those preferences before saving it to Git.
+
+Microphone names, local folders, keyboard input-source IDs, model recents,
+calendar identifiers, capture routing and migration state stay on each device.
+Credentials, portal tokens, recordings, history and model downloads never enter
+the bundle. Do not add `~/.local/share/hex` to chezmoi.
+
+`chezmoi re-add` captures preferences before saving the portable file. Apply
+merges bundle changes without replacing private fields; Hex reloads the file
+while idle. Local-only edits remain untouched until capture. Conflicting edits
+stop sync: choose `hex-settings capture` for live settings or
+`hex-settings sync --force-apply` for the bundle, then re-add after capture.
+The helper keeps a baseline and the last overwritten settings file, mode 0600,
+under `~/.local/state/hex-settings`. It has no background watcher.
+
+```sh
+chezmoi re-add ~/.config/hex/portable-settings.json
+hex-settings sync --dry-run
+```
+
+Chezmoi auto-commits and pushes; review unrelated staged changes before re-add.
+On a new workstation, apply the portable file and chezmoi hook configuration,
+then activate Home Manager. Portal approvals and microphone selection remain
+device-local.
 
 ### Workstation memory
 

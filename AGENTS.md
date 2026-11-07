@@ -70,7 +70,8 @@ The flake discovers these directories and sets hostnames automatically.
   bootstrapped by `programs.agent-tools`; activation only seeds missing installs
   and never replaces or downgrades them, and T3 can update the native agent
   binaries. On Arch,
-  pacman/AUR own other application binaries; the HM profiles install config
+  pacman/AUR own other application binaries except Hex, which Home Manager installs
+  from this flake on both Arch and NixOS. The HM profiles install config
   and services, and kache from the flake so the daemon and cargo wrapper always
   match. On NixOS, rebuild the system target, never activate a standalone
   HM profile for the same user. The standalone homes remain available for Arch.

@@ -74,7 +74,7 @@
       customPackages = (import ./pkgs pkgs) // { inherit (pkgs) context7-account-broker; };
       # nix-update follows each package's own versioning: npm lockfiles are regenerated,
       # stable releases use the stable version, and VCS packages track their branch.
-      stableVersionPackages = [ "electron-fuses" "helium" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
+      stableVersionPackages = [ "electron-fuses" "helium" "hex" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
       # These build from this checkout or pin their own sources; nix-update
       # cannot derive a release version for them. llama-vulkan is a symlinkJoin
       # around an override, so nix-update cannot see its llama.cpp source.

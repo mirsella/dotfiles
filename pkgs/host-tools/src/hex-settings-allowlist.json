@@ -1,0 +1,55 @@
+{
+  "definitions": {
+    "hotkey": {"keys": [{"modifier": true, "side": true, "code": true, "label": true}]},
+    "vocabulary": {"term": true, "sounds_like": [true]},
+    "mode": {
+      "name": true, "applications": [true], "browser_hosts": [true],
+      "replacements": [{"matched_phrase": true, "output": true}],
+      "transformations": [true], "vocabulary": ["vocabulary"],
+      "post_processing": {"enabled": true, "prompt": true, "model": true, "variant": true, "deadline_seconds": true}
+    }
+  },
+  "settings": {
+    "release_microphone_while_idle": true,
+    "sound_effects": true, "sound_effect_volume": true, "sound_theme": true,
+    "avoid_bluetooth_microphone": true,
+    "recording_audio_behavior": true, "recording_duck_volume": true, "pause_browser_media": true,
+    "double_tap_lock": true, "double_tap_only": true, "shortcut_mode": true,
+    "dictation_hotkey": "hotkey", "paste_last_hotkey": "hotkey",
+    "raw_dictation_hotkey": "hotkey", "second_dictation_hotkey": "hotkey",
+    "show_dock_icon": true,
+    "transcription": {"model": true, "language": true},
+    "transcription_device": true,
+    "dictation_processing": {"default_mode": "mode", "modes": ["mode"]},
+    "history_retention": true,
+    "meetings": {
+      "enabled": true, "summarize_with_apple_intelligence": true, "summarize_with_opencode": true,
+      "show_recording_indicator": true, "recording_indicator_corner": true, "retention": true,
+      "providers": [{"key": true, "label": true, "policy": true}],
+      "calendar": {"remind": true, "lead_minutes": true}
+    },
+    "capture": {
+      "enabled": true, "hotkey": "hotkey", "transcriber": true,
+      "media_days": true, "bundle_days": true,
+      "show_overlays_in_recordings": true, "capsule_flow": true
+    },
+    "experimental": {
+      "hex_microphone": true, "hex_microphone_mode": true,
+      "hex_microphone_comfort_noise": true, "hex_microphone_strength": true
+    },
+    "labs": {
+      "live_text": true, "live_chapters": true, "playground": true, "vocabulary_biasing": true,
+      "mouse_shortcuts": true, "unload_idle": true, "unload_idle_minutes": true,
+      "restore_shortcut_default": true, "keep_on_clipboard": true, "copy_only": true,
+      "spoken_formatting": true, "filler_words": true, "subtitle_export": true,
+      "second_dictation_shortcut": true, "smart_spacing": true, "spoken_symbols": true,
+      "picker_sort_filter": true, "sided_modifier_chords": true, "tap_or_hold": true,
+      "benchmark_details": true, "parakeet_ultra": true, "standalone_special_keys": true,
+      "history_stats": true, "recent_dictations": true, "skip_pauses": true,
+      "stop_when_call_ends": true, "output_fixes": true
+    },
+    "enable_on_launch": true, "paste_with_shift": true, "gnome_keyboard_shortcuts": true,
+    "share_dictation_shortcut": true, "ui_language": true, "indicator_position": true,
+    "updates": {"channel": true}, "vocabulary": ["vocabulary"], "vocabulary_boost": true
+  }
+}
