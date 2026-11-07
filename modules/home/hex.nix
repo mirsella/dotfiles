@@ -1,8 +1,8 @@
 { config, lib, pkgs, ... }:
 let
   executable = lib.getExe pkgs.hex;
-  settings = "${pkgs.host-tools}/bin/host-tools hex-settings";
   supportDir = "${config.xdg.dataHome}/hex";
+  model = "cohere-transcribe-03-2026-Q8_0.gguf";
   desktop = pkgs.makeDesktopItem {
     name = "anomaly.hex";
     desktopName = "Hex";
@@ -19,18 +19,25 @@ let
   };
 in
 {
-  home.packages = [ pkgs.hex ];
+  # Upstream's Home Manager module (flake input `hex`) owns hex.service.
+  programs.hex = {
+    enable = true;
+    autostart = true;
+    package = pkgs.hex;
+  };
+
   home.file.".local/bin/hex".source = executable;
   home.file.".local/bin/hex-settings".source = pkgs.writeShellScript "hex-settings" ''
-    exec ${settings} "$@"
+    exec ${pkgs.host-tools}/bin/host-tools hex-settings "$@"
   '';
   # Both applications verify the same Cohere Q8_0 artifact. Keep one copy on disk.
-  home.file.".t3/userdata/speech/models/cohere-transcribe-03-2026-Q8_0.gguf".source =
-    config.lib.file.mkOutOfStoreSymlink "${supportDir}/models/cohere-transcribe-03-2026-Q8_0.gguf";
+  home.file.".t3/userdata/speech/models/${model}".source =
+    config.lib.file.mkOutOfStoreSymlink "${supportDir}/models/${model}";
 
   xdg.dataFile."applications/anomaly.hex.desktop".source = "${desktop}/share/applications/anomaly.hex.desktop";
 
-  # One login owner. Hex deliberately leaves foreign/symlinked entries alone.
+  # hex.service starts Hex at login. Hex's own Launch at login entry would run
+  # the unwrapped store binary, so keep it disabled.
   xdg.configFile."autostart/anomaly.hex.desktop".text = ''
     [Desktop Entry]
     Type=Application
@@ -38,49 +45,13 @@ in
     Hidden=true
   '';
 
-  systemd.user.services.hex = {
-    Unit = {
-      Description = "Hex voice dictation";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      StartLimitIntervalSec = 60;
-      StartLimitBurst = 5;
-    };
-    Service = {
-      Type = "notify";
-      NotifyAccess = "main";
-      ExecStartPre = "${settings} sync --no-capture --if-present";
-      ExecStart = "${executable} service";
-      Environment = [ "HEX_APPLICATION_SUPPORT_DIR=${supportDir}" ];
-      EnvironmentFile = "-${supportDir}/session.env";
-      Restart = "on-failure";
-      RestartSec = 3;
-      TimeoutStartSec = 35;
-      TimeoutStopSec = 30;
-      UMask = "0077";
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  # The selected model is device-local data, not a file to put in Git.
-  systemd.user.services.hex-model = {
-    Unit = {
-      Description = "Ensure Hex's selected speech model is installed";
-      After = [ "hex.service" ];
-      Wants = [ "hex.service" ];
-      PartOf = [ "graphical-session.target" "hex.service" ];
-      StartLimitIntervalSec = 0;
-    };
-    Service = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.host-tools}/bin/host-tools hex-model --hex ${executable}";
-      Environment = [ "HEX_APPLICATION_SUPPORT_DIR=${supportDir}" ];
-      Restart = "on-failure";
-      RestartSec = 60;
-      RemainAfterExit = true;
-      TimeoutStartSec = 600;
-      UMask = "0077";
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
+  # One 2.4 GB download per machine. Hex writes the marker once the file is verified.
+  home.activation.hexModel = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
+    if [ ! -e ${lib.escapeShellArg "${supportDir}/models/${model}.verified.json"} ]; then
+      if ! run ${pkgs.coreutils}/bin/env HEX_APPLICATION_SUPPORT_DIR=${lib.escapeShellArg supportDir} \
+        ${executable} model install cohere_transcribe --language en; then
+        warnEcho "Hex didn't install its model; run: hex model install cohere_transcribe --language en"
+      fi
+    fi
+  '';
 }
