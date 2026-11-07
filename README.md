@@ -1020,14 +1020,17 @@ After editing the Arch configuration, reinstall the JSON file and restart
 ## Main's RGB lighting
 
 `hosts/main/main-rgb.service` keeps the Corsair Vengeance RGB Pro DIMMs and
-ASUS Aura lighting off. RAM uses saved Custom black, not Direct black, which
-leaves the previous hardware animation intact. Liquidctl also blanks all Aura
-channels, including ARGB zones not sized in OpenRGB. Fan speeds are unchanged.
+ASUS Aura lighting off. OpenRGB controls only the RAM, using a saved Color
+Pulse effect with both colors black and brightness zero. Custom black leaves
+these DIMMs white; Direct black does not replace the saved effect. Liquidctl
+blanks all Aura RGB/ARGB channels. The private OpenRGB configuration disables
+Aura detection to avoid opening the same USB controller twice. Fan speeds are
+unchanged.
 
 The oneshot runs at boot and after the suspend, hibernate, hybrid-sleep and
 suspend-then-hibernate targets complete. It exits after each run so the next
 wake can start it again. No lighting commands run before sleep or during
-shutdown, no effect is restored, and no RGB daemon runs.
+shutdown, and no RGB daemon runs.
 A separate Corsair USB lighting hub has not been detected; lighting on an
 undetected controller is not covered.
 
@@ -1046,6 +1049,6 @@ main's working OpenRGB settings. Default detection crashes OpenRGB 1.0 in
 hidapi cleanup on main. The configuration is copied into the private
 state directory before each start; the interactive OpenRGB settings stay separate.
 Arch's existing `rgb-off.service` remains responsible for blanking other
-peripherals at boot, before the saved-black job. Actual standby darkness still
+peripherals at boot, before this job. Actual standby darkness still
 needs a physical check; motherboard firmware can have separate standby-lighting
 settings.

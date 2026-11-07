@@ -2,6 +2,7 @@
   "Detectors": {
     "detectors": {
       "ASUS Aura Core": false,
+      "ASUS Aura Motherboard": false,
       "ASUS Aura SMBus Motherboard": false,
       "Glorious Model D / D-": false,
       "Wooting 60HE": false,

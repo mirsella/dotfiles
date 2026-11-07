@@ -142,25 +142,26 @@ assert lib.assertMsg (
   && lib.elem "i2c-piix4" main.boot.kernelModules
   && off.wantedBy == [ "graphical.target" ] ++ resumeTargets
   && lib.hasInfix "After=${lib.concatStringsSep " " resumeTargets}" off.text
-  && !(main.systemd.units ? "main-rgb-sleep.service")
+  && detectors."ASUS Aura Motherboard" == false
   && detectors."Glorious Model D / D-" == false
   && detectors."Wooting 60HE+" == false
   && lib.all (text: lib.hasInfix text off.text) [
     "Type=oneshot"
-    "--mode Custom --color 000000"
-    "--mode Off"
-    "set sync color off"
+    "--device \"Corsair Vengeance RGB Pro DDR4\""
+    "--mode \"Color Pulse\" --color 000000,000000 --brightness 0"
+    "--match \"ASUS Aura LED Controller\" set sync color off"
     "WorkingDirectory=/var/lib/main-rgb"
     "/etc/main-rgb/OpenRGB.json /var/lib/main-rgb/OpenRGB.json"
   ]
   && lib.all (text: !(lib.hasInfix text off.text)) [
     "Rainbow"
+    "--mode Custom"
     "ExecStart=-"
     "ExecStop"
     "RemainAfterExit="
   ]
   && lib.all (host: !(host.systemd.units ? "main-rgb.service")) [ laptop server ]
-) "Only main may configure RAM/Aura lighting, applying saved black only at boot and after wake";
+) "Only main may configure RAM/Aura lighting, applying saved zero brightness only at boot and after wake";
 assert lib.assertMsg (
   laptop.hardware.cpu.amd.ryzen-smu.enable
   && laptop.systemd.services ? ryzenadj-laptop
