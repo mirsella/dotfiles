@@ -1,0 +1,32 @@
+{
+  "minimum_duty": 20,
+  "start_duty": 30,
+  "start_hysteresis": 3,
+  "case_fans": {
+    "channels": [1, 3, 4],
+    "minimum_duty": 30,
+    "gpu": {
+      "minimum_temperature": 50,
+      "maximum_temperature": 80
+    }
+  },
+  "interval": 1,
+  "average": 3,
+  "profiles": {
+    "power-saver": {
+      "minimum_temperature": 70,
+      "maximum_temperature": 85,
+      "maximum_duty": 100
+    },
+    "balanced": {
+      "minimum_temperature": 65,
+      "maximum_temperature": 85,
+      "maximum_duty": 100
+    },
+    "performance": {
+      "minimum_temperature": 65,
+      "maximum_temperature": 80,
+      "maximum_duty": 100
+    }
+  }
+}

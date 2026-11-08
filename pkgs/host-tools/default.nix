@@ -23,6 +23,7 @@ rustPlatform.buildRustPackage {
   };
   cargoLock.lockFile = ./Cargo.lock;
   env.HOST_TOOLS_TEST_SHELL = runtimeShell;
+  env.HOST_TOOLS_TEST_DBUS_DAEMON = "${dbus}/bin/dbus-daemon";
   nativeBuildInputs = [
     makeWrapper
     pkg-config
