@@ -2,7 +2,7 @@
 let
   mounts = [
     { name = "Fast"; path = "/srv/data/fast"; users = [ "mirsella" "admin" ]; }
-    { name = "Archive"; path = "/srv/data/archive"; users = [ "mirsella" "admin" ]; }
+    { name = "Tank"; path = "/srv/data/archive"; users = [ "mirsella" "admin" ]; }
     { name = "TankBackup"; path = "/srv/backup"; users = [ "admin" ]; }
   ];
   sharing = pkgs.writers.writeJSON "nextcloud-sharing.json" { apps.core = {
