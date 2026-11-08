@@ -1,8 +1,8 @@
 {
     "KPackageStructure": "KWin/Script",
     "KPlugin": {
-        "Name": "Helium Attention Silencer",
-        "Description": "Prevents Helium Browser from keeping an auto-hidden panel visible",
+        "Name": "Browser Attention Silencer",
+        "Description": "Prevents Helium and Chromium from keeping an auto-hidden panel visible",
         "Icon": "preferences-system-windows",
         "Authors": [
             {
@@ -10,7 +10,7 @@
             }
         ],
         "Id": "helium-attention-silencer",
-        "Version": "1.1.0",
+        "Version": "1.2.0",
         "License": "MIT"
     },
     "X-Plasma-API": "javascript",

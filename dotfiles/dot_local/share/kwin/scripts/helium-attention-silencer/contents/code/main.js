@@ -1,14 +1,14 @@
-const TARGET_RESOURCE_CLASS = "helium";
+const TARGET_RESOURCE_CLASSES = ["helium", "chromium"];
 const ATTENTION_DELAY_MS = 2000;
 
 function clearAttention(window) {
-    if (window.resourceClass === TARGET_RESOURCE_CLASS && window.demandsAttention) {
+    if (TARGET_RESOURCE_CLASSES.includes(window.resourceClass) && window.demandsAttention) {
         window.demandsAttention = false;
     }
 }
 
 function watchWindow(window) {
-    if (window.resourceClass !== TARGET_RESOURCE_CLASS) {
+    if (!TARGET_RESOURCE_CLASSES.includes(window.resourceClass)) {
         return;
     }
 

@@ -155,5 +155,5 @@ MaxLuminance=390
 Reference=390
 
 [Xwayland]
-Scale=1.5
+Scale=1
 XwaylandEisNoPromptApps=xdotool

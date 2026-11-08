@@ -12,6 +12,10 @@
     ],
     "followUpBehavior": "queue",
     "inAppNotificationsEnabled": true,
+    "loadBalancingWeights": {
+      "020898b6-4a15-44cb-ae04-0ef53d75919f": 100,
+      "1dcfc905-4f7e-4119-a60d-c27753b77241": 25
+    },
     "mathRenderingEnabled": true,
     "notificationMode": "notifications",
     "persistComposerContextStrip": true,
@@ -25,6 +29,7 @@
       "modKey": false,
       "shiftKey": true
     },
+    "speechLanguage": "en",
     "threadDetailsItems": {
       "context": true,
       "openIn": false
@@ -51,7 +56,7 @@
     "defaultThreadEnvMode": "local",
     "fallbackModelSelection": {
       "instanceId": "opencode",
-      "model": "opencode-go/deepseek-v4.1-flash",
+      "model": "opencode/deepseek-v4.1-flash-free",
       "options": [
         {
           "id": "variant",
@@ -399,18 +404,33 @@
         "time": "09:00"
       }
     ],
-    "storageCleanup": {
-      "browserArtifactsAfterDays": 8,
-      "logsAfterDays": 8,
-      "worktreeSettledAfterDays": 0
-    },
-    "textGenerationModelSelection": {
+    "speechModelId": "handy-computer/cohere-transcribe-03-2026-gguf",
+    "speechPostProcessingModelSelection": {
       "instanceId": "opencode",
-      "model": "opencode-go/deepseek-v4.1-flash",
+      "model": "opencode/deepseek-v4.1-flash-free",
       "options": [
         {
           "id": "variant",
           "value": "high"
+        }
+      ]
+    },
+    "storageCleanup": {
+      "browserArtifactsAfterDays": 8,
+      "logsAfterDays": 8,
+      "worktreeAfterDays": 4,
+      "worktreeOnDelete": true,
+      "worktreeOnMerge": true,
+      "worktreeSettledAfterDays": 0,
+      "worktreeUnchanged": true
+    },
+    "textGenerationModelSelection": {
+      "instanceId": "opencode",
+      "model": "opencode/deepseek-v4.1-flash-free",
+      "options": [
+        {
+          "id": "variant",
+          "value": "low"
         }
       ]
     }
@@ -866,6 +886,15 @@
   ],
   "projects": [
     {
+      "workspace_root": "~/Documents/xiaomi-mom",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "xiaomi-mom"
+      },
+      "settings": {}
+    },
+    {
       "workspace_root": "~/dev/browser-mcp",
       "attributes": {
         "faviconPath": null,
@@ -964,7 +993,7 @@
     {
       "workspace_root": "~/dev/voxride-dashboard",
       "attributes": {
-        "faviconPath": "~/dev/voxride-dashboard/src/app/icon.svg",
+        "faviconPath": null,
         "projectIcon": null,
         "title": "voxride-dashboard"
       },
@@ -975,7 +1004,7 @@
     {
       "workspace_root": "~/dev/voxride-website",
       "attributes": {
-        "faviconPath": "~/dev/voxride-website/public/favicon.ico",
+        "faviconPath": null,
         "projectIcon": null,
         "title": "voxride-website"
       },

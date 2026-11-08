@@ -41,8 +41,9 @@ source = "https://github.com/mirsella/computer-use-mcp.git"
 ref = "release/latest"
 
 [marketplaces.browser-mcp]
-source_type = "local"
-source = "/home/mirsella/.local/share/browser-mcp/2.0.4"
+source_type = "git"
+source = "https://github.com/mirsella/browser-mcp.git"
+ref = "release/latest"
 
 [mcp_servers.context7-broker]
 command = "/home/mirsella/.local/bin/context7-account-broker"

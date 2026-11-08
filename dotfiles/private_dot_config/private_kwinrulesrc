@@ -1,5 +1,5 @@
 [General]
-Order=fc9c0a8c-85d7-4dba-a2b6-35075c9f989b
+Order=steam,fc9c0a8c-85d7-4dba-a2b6-35075c9f989b
 
 [fc9c0a8c-85d7-4dba-a2b6-35075c9f989b]
 Description=Window settings for Qemu-system-x86_64

@@ -1,0 +1,1497 @@
+diff --git a/crates/kache-store/src/opcounts.rs b/crates/kache-store/src/opcounts.rs
+index 60dafe77..5ad7d842 100644
+--- a/crates/kache-store/src/opcounts.rs
++++ b/crates/kache-store/src/opcounts.rs
+@@ -7,6 +7,54 @@ static REFLINKED_BYTES: AtomicU64 = AtomicU64::new(0);
+ static HARDLINKED_BYTES: AtomicU64 = AtomicU64::new(0);
+ static COPIED_BYTES: AtomicU64 = AtomicU64::new(0);
+ 
++/// Existing absent/miss fallbacks, not additional retries. `contains_*` counts
++/// SQLite errors hidden by the committed-entry probe; a missing row is normal.
++/// `lookup_fallback_other` can also include non-database local lookup errors.
++#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
++pub struct IndexReadEvidence {
++    #[serde(default)]
++    pub contains_busy: u64,
++    #[serde(default)]
++    pub contains_other: u64,
++    #[serde(default)]
++    pub lookup_fallback_busy: u64,
++    #[serde(default)]
++    pub lookup_fallback_other: u64,
++}
++
++static CONTAINS_BUSY: AtomicU64 = AtomicU64::new(0);
++static CONTAINS_OTHER: AtomicU64 = AtomicU64::new(0);
++static LOOKUP_FALLBACK_BUSY: AtomicU64 = AtomicU64::new(0);
++static LOOKUP_FALLBACK_OTHER: AtomicU64 = AtomicU64::new(0);
++
++pub fn record_contains_failure(busy: bool) {
++    (if busy {
++        &CONTAINS_BUSY
++    } else {
++        &CONTAINS_OTHER
++    })
++    .fetch_add(1, Ordering::Relaxed);
++}
++
++pub fn record_lookup_fallback(busy: bool) {
++    (if busy {
++        &LOOKUP_FALLBACK_BUSY
++    } else {
++        &LOOKUP_FALLBACK_OTHER
++    })
++    .fetch_add(1, Ordering::Relaxed);
++}
++
++pub fn index_read_evidence() -> Option<IndexReadEvidence> {
++    let evidence = IndexReadEvidence {
++        contains_busy: CONTAINS_BUSY.load(Ordering::Relaxed),
++        contains_other: CONTAINS_OTHER.load(Ordering::Relaxed),
++        lookup_fallback_busy: LOOKUP_FALLBACK_BUSY.load(Ordering::Relaxed),
++        lookup_fallback_other: LOOKUP_FALLBACK_OTHER.load(Ordering::Relaxed),
++    };
++    (evidence != IndexReadEvidence::default()).then_some(evidence)
++}
++
+ thread_local! {
+     static THREAD_REFLINKED: Cell<u64> = const { Cell::new(0) };
+     static THREAD_COPIED: Cell<u64> = const { Cell::new(0) };
+diff --git a/crates/kache-store/src/store.rs b/crates/kache-store/src/store.rs
+index 66760124..9fa91bfd 100644
+--- a/crates/kache-store/src/store.rs
++++ b/crates/kache-store/src/store.rs
+@@ -11,6 +11,23 @@ use std::time::Duration;
+ 
+ use crate::config::Config;
+ 
++fn contains_result(result: rusqlite::Result<bool>) -> bool {
++    match result {
++        Ok(committed) => committed,
++        Err(SqlError::QueryReturnedNoRows) => false,
++        Err(error) => {
++            let busy = matches!(&error, SqlError::SqliteFailure(code, _)
++                if matches!(code.code, ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked));
++            crate::opcounts::record_contains_failure(busy);
++            tracing::debug!(
++                busy,
++                "committed-entry query failed; preserving absent fallback"
++            );
++            false
++        }
++    }
++}
++
+ #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+ pub struct StorePutResult {
+     pub output_blobs: u32,
+@@ -2434,13 +2451,11 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+         }
+ 
+         // Check if it's committed in the database
+-        self.db
+-            .query_row(
+-                "SELECT committed FROM entries WHERE cache_key = ?1",
+-                params![cache_key],
+-                |row| row.get::<_, bool>(0),
+-            )
+-            .unwrap_or(false)
++        contains_result(self.db.query_row(
++            "SELECT committed FROM entries WHERE cache_key = ?1",
++            params![cache_key],
++            |row| row.get::<_, bool>(0),
++        ))
+     }
+ 
+     /// An entry's `meta.json` as written, with none of [`Store::get`]'s work:
+diff --git a/crates/kache-store/src/store/tests.rs b/crates/kache-store/src/store/tests.rs
+index 7df9730b..ea1b73fc 100644
+--- a/crates/kache-store/src/store/tests.rs
++++ b/crates/kache-store/src/store/tests.rs
+@@ -6,6 +6,26 @@ fn lock_polls_back_off_from_a_millisecond_to_the_interval() {
+     assert_eq!(naps, vec![1, 2, 4, 8, 16, 32, 64, 100, 100, 100]);
+ }
+ 
++#[test]
++fn contains_observations_preserve_absence_and_classify_hidden_query_errors() {
++    assert!(contains_result(Ok(true)));
++    assert!(!contains_result(Ok(false)));
++    assert!(!contains_result(Err(SqlError::QueryReturnedNoRows)));
++    let before = crate::opcounts::index_read_evidence().unwrap_or_default();
++    assert!(!contains_result(Err(SqlError::SqliteFailure(
++        rusqlite::ffi::Error::new(5),
++        None
++    ))));
++    assert!(!contains_result(Err(SqlError::SqliteFailure(
++        rusqlite::ffi::Error::new(6),
++        None
++    ))));
++    assert!(!contains_result(Err(SqlError::InvalidQuery)));
++    let after = crate::opcounts::index_read_evidence().unwrap();
++    assert!(after.contains_busy >= before.contains_busy + 2);
++    assert!(after.contains_other > before.contains_other);
++}
++
+ /// Opening an index runs its DDL once: the second open finds the schema
+ /// generation current and skips every statement (each would otherwise
+ /// take the write lock), while an index from before the stamp still
+diff --git a/src/cli/tests.rs b/src/cli/tests.rs
+index 06044217..0ae59b10 100644
+--- a/src/cli/tests.rs
++++ b/src/cli/tests.rs
+@@ -6117,6 +6117,10 @@ fn build_event(
+         crate_name: crate_name.to_string(),
+         version: "0.1.0".to_string(),
+         engine: None,
++        scheduler_observation_id: None,
++        scheduler_decisions: Vec::new(),
++        scheduler_decisions_dropped: 0,
++        index_read: None,
+         result,
+         elapsed_ms,
+         compile_time_ms,
+diff --git a/src/events.rs b/src/events.rs
+index 2afe444a..aa348b32 100644
+--- a/src/events.rs
++++ b/src/events.rs
+@@ -56,6 +56,10 @@ pub struct EngineIdentity {
+     pub blake3: String,
+ }
+ 
++fn zero_decisions_dropped(value: &u32) -> bool {
++    *value == 0
++}
++
+ /// A single build event logged by the wrapper.
+ #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+ pub struct BuildEvent {
+@@ -72,6 +76,16 @@ pub struct BuildEvent {
+     pub version: String,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     pub engine: Option<EngineIdentity>,
++    /// Local schema 28: observations of the stable scheduler's actual decisions.
++    /// Fields, not a shared upstream schema number, identify these diagnostics.
++    #[serde(default, skip_serializing_if = "Vec::is_empty")]
++    pub scheduler_decisions: Vec<crate::scheduler::evidence::Decision>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub scheduler_observation_id: Option<String>,
++    #[serde(default, skip_serializing_if = "zero_decisions_dropped")]
++    pub scheduler_decisions_dropped: u32,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub index_read: Option<kache_store::opcounts::IndexReadEvidence>,
+     pub result: EventResult,
+     /// Wall time cargo waited for this wrapper process (ms). From schema 17
+     /// it is anchored at process start, so `startup_ms` lies inside it;
+@@ -120,6 +134,7 @@ pub struct BuildEvent {
+     /// 25 = reasons for compiled results that were not stored.
+     /// 26 = successful compilation outputs and captured package identity.
+     /// 27 = exact failure-engine provenance; compiler errors carry exit codes.
++    /// 28 = local stable-scheduler observations and local-lookup fallback counters.
+     #[serde(default)]
+     pub schema: u32,
+     /// Build session this event belongs to (kunobi-ninja/kache#583 P0.5).
+@@ -1997,6 +2012,10 @@ impl BuildEvent {
+             root: "/work/tree".to_string(),
+             version: "0.0.0".to_string(),
+             engine: None,
++            scheduler_observation_id: None,
++            scheduler_decisions: Vec::new(),
++            scheduler_decisions_dropped: 0,
++            index_read: None,
+             session_id: String::new(),
+             demands: Vec::new(),
+             result,
+@@ -2156,6 +2175,38 @@ mod tests {
+         )
+     }
+ 
++    #[test]
++    fn scheduler_diagnostics_roundtrip_without_requiring_them_in_older_events() {
++        let mut event = BuildEvent::new_for_test("unit", EventResult::LocalHit);
++        let empty = serde_json::to_value(&event).unwrap();
++        assert!(empty.get("scheduler_decisions").is_none());
++        assert!(empty.get("scheduler_decisions_dropped").is_none());
++        assert!(empty.get("scheduler_observation_id").is_none());
++        assert!(empty.get("index_read").is_none());
++        for schema in [26, 27] {
++            let mut legacy = empty.clone();
++            legacy["schema"] = schema.into();
++            let legacy: BuildEvent = serde_json::from_value(legacy).unwrap();
++            assert!(legacy.scheduler_decisions.is_empty());
++            assert!(legacy.index_read.is_none());
++        }
++        event.schema = 28;
++        event.scheduler_observation_id = Some("fixture-invocation".to_string());
++        event
++            .scheduler_decisions
++            .push(crate::scheduler::evidence::Decision::new(
++                crate::scheduler::evidence::Phase::Capacity,
++            ));
++        event.scheduler_decisions_dropped = 2;
++        event.index_read = Some(kache_store::opcounts::IndexReadEvidence {
++            contains_busy: 1,
++            ..Default::default()
++        });
++        let decoded: BuildEvent =
++            serde_json::from_str(&serde_json::to_string(&event).unwrap()).unwrap();
++        assert_eq!(decoded, event);
++    }
++
+     #[test]
+     fn test_log_and_read_events() {
+         let dir = tempfile::tempdir().unwrap();
+@@ -2167,6 +2218,10 @@ mod tests {
+             root: "/work/tree".to_string(),
+             version: "1.0.210".to_string(),
+             engine: None,
++            scheduler_observation_id: None,
++            scheduler_decisions: Vec::new(),
++            scheduler_decisions_dropped: 0,
++            index_read: None,
+             session_id: String::new(),
+             demands: Vec::new(),
+             result: EventResult::LocalHit,
+diff --git a/src/opcounts.rs b/src/opcounts.rs
+index 3a1234d6..557d42cf 100644
+--- a/src/opcounts.rs
++++ b/src/opcounts.rs
+@@ -126,6 +126,27 @@ static DEP_INFO_RUNS: AtomicU32 = AtomicU32::new(0);
+ static FLIGHT_WAIT_US: AtomicU64 = AtomicU64::new(0);
+ static PERMIT_WAIT_US: AtomicU64 = AtomicU64::new(0);
+ 
++static SCHEDULER_EVIDENCE: std::sync::Mutex<crate::scheduler::evidence::Evidence> =
++    std::sync::Mutex::new(crate::scheduler::evidence::Evidence {
++        invocation_id: None,
++        decisions: Vec::new(),
++        dropped: 0,
++    });
++
++pub(crate) fn record_scheduler_decision(decision: crate::scheduler::evidence::Decision) {
++    SCHEDULER_EVIDENCE
++        .lock()
++        .expect("scheduler evidence mutex poisoned")
++        .record(decision);
++}
++
++pub(crate) fn scheduler_evidence() -> crate::scheduler::evidence::Evidence {
++    SCHEDULER_EVIDENCE
++        .lock()
++        .expect("scheduler evidence mutex poisoned")
++        .clone()
++}
++
+ /// Pin the process start. Called first thing in `main`, before argv handling
+ /// or config load, so `startup_ms` covers everything that runs before the
+ /// wrapper's first cache decision. A second call changes nothing.
+@@ -217,6 +238,118 @@ fn ms_from_micros(micros: u64) -> u64 {
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn scheduler_evidence_integration_uses_an_isolated_process() {
++        let output = std::process::Command::new(std::env::current_exe().unwrap())
++            .args([
++                "--exact",
++                "opcounts::tests::scheduler_evidence_child",
++                "--ignored",
++                "--nocapture",
++            ])
++            .output()
++            .unwrap();
++        assert!(
++            output.status.success(),
++            "{}{}",
++            String::from_utf8_lossy(&output.stdout),
++            String::from_utf8_lossy(&output.stderr)
++        );
++    }
++
++    #[test]
++    #[ignore = "isolated process-state fixture, run by scheduler_evidence_integration_uses_an_isolated_process"]
++    fn scheduler_evidence_child() {
++        use crate::scheduler::{
++            self,
++            evidence::{Decision, Outcome, Phase},
++        };
++        let dir = tempfile::tempdir().unwrap();
++        assert_eq!(scheduler_evidence(), Default::default());
++        scheduler::pressure::set_enabled(false);
++        assert_eq!(
++            scheduler::pressure::now_observed(),
++            (false, None, scheduler::evidence::PressureState::Disabled)
++        );
++        scheduler::pressure::set_enabled(true);
++        drop(scheduler::begin_keyless_compile(
++            dir.path(),
++            false,
++            "disabled",
++            false,
++            None,
++        ));
++        assert_eq!(scheduler_evidence(), Default::default());
++        let blocked = dir.path().join("blocked");
++        std::fs::write(&blocked, "file").unwrap();
++        drop(scheduler::begin_keyless_compile(
++            &blocked, true, "bad", false, None,
++        ));
++        assert_eq!(
++            scheduler_evidence().decisions[0].outcome,
++            Outcome::Unavailable
++        );
++        let lease = scheduler::acquire_test_lease(
++            dir.path(),
++            2,
++            scheduler::TestWant::Fixed(1),
++            Duration::from_secs(1),
++        )
++        .unwrap();
++        assert_eq!(
++            scheduler_evidence().decisions.len(),
++            1,
++            "test leases are not compile admission"
++        );
++        drop(scheduler::begin_keyless_compile(
++            dir.path(),
++            true,
++            "covered",
++            false,
++            Some(lease.marker_path()),
++        ));
++        assert_eq!(
++            scheduler_evidence().decisions[1].outcome,
++            Outcome::LeaseCovered
++        );
++        assert_eq!(scheduler_evidence().decisions[1].requested_slots, None);
++        drop(lease);
++        scheduler::pressure::force(Some(true));
++        drop(scheduler::begin_keyless_compile(
++            dir.path(),
++            true,
++            "pressured",
++            false,
++            None,
++        ));
++        scheduler::pressure::force(None);
++        let evidence = scheduler_evidence();
++        let capacity = &evidence.decisions[2];
++        assert_eq!(capacity.outcome, Outcome::Admitted);
++        assert_eq!(capacity.weight_slots, Some(1));
++        assert_eq!(capacity.requested_slots, capacity.pool_slots);
++        assert_eq!(capacity.pressured_scans, 1);
++        assert_eq!(capacity.scans, 1);
++        assert_eq!(
++            capacity.pressure_state,
++            Some(scheduler::evidence::PressureState::Forced)
++        );
++        assert_eq!(capacity.admitted_slots, capacity.pool_slots);
++        assert_eq!(capacity.unobserved_pressure_scans, 1);
++        assert_eq!(evidence.invocation_id.as_ref().unwrap().len(), 32);
++        assert!(
++            capacity.psi.is_none(),
++            "a forced bool is not a numeric sample"
++        );
++        assert_eq!(scheduler_evidence(), evidence, "snapshots do not drain");
++        for _ in 0..17 {
++            record_scheduler_decision(Decision::new(Phase::Discovery));
++        }
++        assert_eq!(scheduler_evidence().decisions.len(), 16);
++        assert_eq!(scheduler_evidence().dropped, 4);
++        assert_eq!(scheduler_evidence().invocation_id, evidence.invocation_id);
++    }
++
+     // The counters are process-global and only ever increment (no
+     // reset), so these assertions are safe under parallel test
+     // execution: `after > before` holds regardless of what other
+diff --git a/src/report/tests.rs b/src/report/tests.rs
+index 14fe2bd3..a37c2406 100644
+--- a/src/report/tests.rs
++++ b/src/report/tests.rs
+@@ -413,6 +413,10 @@ fn test_event(
+         root: String::new(),
+         version: "0.1.0".to_string(),
+         engine: None,
++        scheduler_observation_id: None,
++        scheduler_decisions: Vec::new(),
++        scheduler_decisions_dropped: 0,
++        index_read: None,
+         result,
+         elapsed_ms,
+         compile_time_ms,
+diff --git a/src/scheduler.rs b/src/scheduler.rs
+index 651d2316..2d331e26 100644
+--- a/src/scheduler.rs
++++ b/src/scheduler.rs
+@@ -31,8 +31,10 @@
+ //! is covered by the test's slots and takes none of its own; see
+ //! [`lease_covers`].
+ 
++pub(crate) mod evidence;
+ pub(crate) mod pressure;
+ use anyhow::Result;
++use evidence::{Decision, Outcome, Phase};
+ use std::fs;
+ use std::io::Write;
+ use std::ops::Range;
+@@ -77,12 +79,23 @@ pub(crate) struct DiscoveryFlight {
+ /// Errors and timeout leave the ordinary key/compile path available.
+ pub(crate) fn join_discovery_flight(cache_dir: &Path, identity: &str) -> DiscoveryFlight {
+     let _trace = crate::phase_trace::phase("discovery_flight_wait");
++    let started = std::time::Instant::now();
++    let decision = Decision::new(Phase::Discovery);
+     let path = cache_dir
+         .join("scheduler/discovery")
+         .join(blake3::hash(identity.as_bytes()).to_hex().as_str());
+     match acquire_discovery(&path, WAIT_TIMEOUT, POLL_INTERVAL) {
+-        Ok((lock, waited)) => DiscoveryFlight { lock, waited },
++        Ok((lock, waited)) => {
++            let outcome = match (lock.is_some(), waited) {
++                (true, false) => Outcome::Admitted,
++                (true, true) => Outcome::PeerCompleted,
++                (false, _) => Outcome::TimeoutFallback,
++            };
++            decision.record(outcome, started.elapsed());
++            DiscoveryFlight { lock, waited }
++        }
+         Err(error) => {
++            decision.record(Outcome::Unavailable, started.elapsed());
+             tracing::debug!("discovery flight unavailable: {error:#}");
+             DiscoveryFlight {
+                 lock: None,
+@@ -292,6 +305,7 @@ pub fn begin_miss(
+     let scheduler = match Scheduler::open(cache_dir) {
+         Ok(scheduler) => scheduler,
+         Err(error) => {
++            Decision::new(Phase::Capacity).record(Outcome::Unavailable, Duration::ZERO);
+             tracing::debug!("scheduler unusable ({error:#}); compiling without a permit");
+             return BeginMiss::Compile(MissGuard::empty());
+         }
+@@ -318,6 +332,7 @@ pub fn begin_keyless_compile(
+     match Scheduler::open(cache_dir) {
+         Ok(scheduler) => scheduler.keyless_compile(crate_name, is_link, lease),
+         Err(error) => {
++            Decision::new(Phase::Capacity).record(Outcome::Unavailable, Duration::ZERO);
+             tracing::debug!("scheduler unusable ({error:#}); compiling without a permit");
+             MissGuard::empty()
+         }
+@@ -386,6 +401,7 @@ impl Scheduler {
+         match self.join_flight(identity) {
+             FlightJoin::Owner(flight) => {
+                 let permit = if lease_covers(lease, &self.root) {
++                    Decision::new(Phase::Capacity).record(Outcome::LeaseCovered, Duration::ZERO);
+                     None
+                 } else {
+                     self.acquire_permit(self.weight_for(crate_name, is_link))
+@@ -399,6 +415,7 @@ impl Scheduler {
+ 
+     fn keyless_compile(&self, crate_name: &str, is_link: bool, lease: Option<&Path>) -> MissGuard {
+         let permit = if lease_covers(lease, &self.root) {
++            Decision::new(Phase::Capacity).record(Outcome::LeaseCovered, Duration::ZERO);
+             None
+         } else {
+             self.acquire_permit(self.weight_for(crate_name, is_link))
+@@ -412,9 +429,14 @@ impl Scheduler {
+ 
+     fn join_flight(&self, identity: &FlightIdentity) -> FlightJoin {
+         let _trace = crate::phase_trace::phase("flight_join");
++        let started = std::time::Instant::now();
++        let decision = Decision::new(Phase::Flight);
+         let path = self.flight_path(identity);
+         match StoreLock::try_acquire(&path) {
+-            Ok(Some(lock)) => FlightJoin::Owner(lock),
++            Ok(Some(lock)) => {
++                decision.record(Outcome::Admitted, started.elapsed());
++                FlightJoin::Owner(lock)
++            }
+             Ok(None) => {
+                 tracing::debug!(
+                     compiler = %identity.compiler,
+@@ -427,8 +449,12 @@ impl Scheduler {
+                 let outcome = wait_for_lock(&path, self.wait_timeout, self.poll_interval);
+                 crate::opcounts::record_flight_wait(waited.elapsed());
+                 match outcome {
+-                    Ok(true) => FlightJoin::Waited,
++                    Ok(true) => {
++                        decision.record(Outcome::PeerCompleted, started.elapsed());
++                        FlightJoin::Waited
++                    }
+                     Ok(false) => {
++                        decision.record(Outcome::TimeoutFallback, started.elapsed());
+                         tracing::debug!(
+                             crate_name = %identity.crate_name,
+                             "flight wait timed out; compiling without a permit"
+@@ -436,6 +462,7 @@ impl Scheduler {
+                         FlightJoin::FailOpen
+                     }
+                     Err(error) => {
++                        decision.record(Outcome::Unavailable, started.elapsed());
+                         tracing::debug!(
+                             "scheduler flight wait failed ({error:#}); compiling without a permit"
+                         );
+@@ -444,6 +471,7 @@ impl Scheduler {
+                 }
+             }
+             Err(error) => {
++                decision.record(Outcome::Unavailable, started.elapsed());
+                 tracing::debug!(
+                     "scheduler flight lock failed ({error:#}); compiling without a permit"
+                 );
+@@ -466,11 +494,36 @@ impl Scheduler {
+     fn acquire_permit(&self, weight: u32) -> Option<Permit> {
+         let _trace = crate::phase_trace::phase("permit_wait");
+         let started = std::time::Instant::now();
+-        let slots = self.wait_for_permit(0..self.pool_size, |waited| {
+-            let weight = pressure::weight(weight, self.pool_size, pressure::now());
+-            compile_need(weight, self.pool_size, waited, || tests_held(&self.root))
+-        });
+-        crate::opcounts::record_permit_wait(started.elapsed());
++        let mut decision = Decision::new(Phase::Capacity);
++        decision.pool_slots = Some(self.pool_size);
++        decision.weight_slots = Some(weight);
++        let decision = std::cell::RefCell::new(decision);
++        let slots = self.wait_for_permit(
++            0..self.pool_size,
++            |waited| {
++                let (pressured, reading, state) = pressure::now_observed();
++                let weighted = pressure::weight(weight, self.pool_size, pressured);
++                let need = compile_need(weighted, self.pool_size, waited, || {
++                    let held = tests_held(&self.root);
++                    let mut decision = decision.borrow_mut();
++                    if held == u32::MAX {
++                        decision.tests_held_unavailable = true;
++                    } else {
++                        decision.tests_held_max =
++                            Some(decision.tests_held_max.unwrap_or(0).max(held));
++                    }
++                    held
++                });
++                decision.borrow_mut().pressure(pressured, reading, state);
++                need
++            },
++            |need, free, outcome| decision.borrow_mut().scan(need, free, outcome),
++        );
++        let elapsed = started.elapsed();
++        crate::opcounts::record_permit_wait(elapsed);
++        let decision = decision.into_inner();
++        let outcome = decision.outcome;
++        decision.record(outcome, elapsed);
+         slots.map(|slots| Permit { _slots: slots })
+     }
+ 
+@@ -481,16 +534,22 @@ impl Scheduler {
+         &self,
+         range: Range<u32>,
+         need: impl Fn(bool) -> u32,
++        mut observe: impl FnMut(u32, Option<u32>, Option<Outcome>),
+     ) -> Option<Vec<(u32, StoreLock)>> {
+         let start = std::time::Instant::now();
+         let mut attempt = 0;
+         let mut waited = false;
+         loop {
+             // A need of zero would never be met.
+-            match try_collect_slots(self, range.clone(), need(waited).max(1) as usize) {
+-                Ok(Some(slots)) => return Some(slots),
+-                Ok(None) => {}
++            let requested = need(waited).max(1);
++            match try_collect_slots(self, range.clone(), requested as usize) {
++                Ok(SlotScan::Ready(slots)) => {
++                    observe(requested, Some(slots.len() as u32), Some(Outcome::Admitted));
++                    return Some(slots);
++                }
++                Ok(SlotScan::Busy(free)) => observe(requested, Some(free), None),
+                 Err(error) => {
++                    observe(requested, None, Some(Outcome::Unavailable));
+                     tracing::debug!(
+                         "scheduler permit lock failed ({error:#}); running without a permit"
+                     );
+@@ -498,6 +557,7 @@ impl Scheduler {
+                 }
+             }
+             if start.elapsed() >= self.wait_timeout {
++                observe(requested, None, Some(Outcome::TimeoutFallback));
+                 tracing::debug!("scheduler permit wait timed out; running without a permit");
+                 return None;
+             }
+@@ -524,7 +584,7 @@ impl Scheduler {
+             return None;
+         }
+         let range = reserve_for(self.pool_size)..self.pool_size;
+-        let mut slots = self.wait_for_permit(range.clone(), |_| need)?;
++        let mut slots = self.wait_for_permit(range.clone(), |_| need, |_, _, _| {})?;
+         if elastic {
+             slots.extend(self.take_free_slots(range));
+         }
+@@ -718,25 +778,26 @@ fn tests_dir(root: &Path) -> PathBuf {
+     root.join("tests")
+ }
+ 
+-fn try_collect_slots(
+-    scheduler: &Scheduler,
+-    range: Range<u32>,
+-    need: usize,
+-) -> Result<Option<Vec<(u32, StoreLock)>>> {
++enum SlotScan {
++    Ready(Vec<(u32, StoreLock)>),
++    Busy(u32),
++}
++
++fn try_collect_slots(scheduler: &Scheduler, range: Range<u32>, need: usize) -> Result<SlotScan> {
+     let mut slots = Vec::with_capacity(need);
+     for index in range {
+         match StoreLock::try_acquire(&scheduler.permit_path(index)) {
+             Ok(Some(lock)) => {
+                 slots.push((index, lock));
+                 if slots.len() == need {
+-                    return Ok(Some(slots));
++                    return Ok(SlotScan::Ready(slots));
+                 }
+             }
+             Ok(None) => {}
+             Err(error) => return Err(error),
+         }
+     }
+-    Ok(None)
++    Ok(SlotScan::Busy(slots.len() as u32))
+ }
+ 
+ pub(crate) fn scheduler_root(cache_dir: &Path) -> PathBuf {
+@@ -1439,6 +1500,86 @@ mod tests {
+     use std::process::Command;
+     use std::sync::{Arc, Mutex};
+ 
++    #[test]
++    fn capacity_observation_distinguishes_admission_saturation_and_unavailable_locks() {
++        let dir = temp_cache();
++        let mut scheduler = test_scheduler(dir.path(), 2);
++        scheduler.wait_timeout = Duration::ZERO;
++        let mut decision = Decision::new(Phase::Capacity);
++        let slots = scheduler
++            .wait_for_permit(
++                0..2,
++                |_| 2,
++                |need, free, outcome| decision.scan(need, free, outcome),
++            )
++            .unwrap();
++        assert_eq!(decision.outcome, Outcome::Admitted);
++        assert_eq!(decision.requested_slots, Some(2));
++        assert_eq!(decision.available_slots, Some(2));
++        for index in 0..2 {
++            assert!(
++                StoreLock::try_acquire(&scheduler.permit_path(index))
++                    .unwrap()
++                    .is_none(),
++                "observation must not release an admitted lock"
++            );
++        }
++        let mut busy = Decision::new(Phase::Capacity);
++        assert!(
++            scheduler
++                .wait_for_permit(
++                    0..2,
++                    |_| 1,
++                    |need, free, outcome| busy.scan(need, free, outcome)
++                )
++                .is_none()
++        );
++        assert_eq!(busy.outcome, Outcome::TimeoutFallback);
++        assert_eq!(busy.available_slots, Some(0));
++        drop(slots);
++        fs::remove_file(scheduler.permit_path(0)).unwrap();
++        fs::create_dir(scheduler.permit_path(0)).unwrap();
++        let mut unavailable = Decision::new(Phase::Capacity);
++        assert!(
++            scheduler
++                .wait_for_permit(
++                    0..2,
++                    |_| 1,
++                    |need, free, outcome| unavailable.scan(need, free, outcome)
++                )
++                .is_none()
++        );
++        assert_eq!(unavailable.outcome, Outcome::Unavailable);
++        assert_eq!(
++            unavailable.available_slots, None,
++            "failed scans are not a zero-capacity measurement"
++        );
++    }
++
++    #[test]
++    fn a_failed_partial_scan_reports_free_locks_and_releases_them() {
++        let dir = temp_cache();
++        let scheduler = test_scheduler(dir.path(), 3);
++        let held = StoreLock::try_acquire(&scheduler.permit_path(1))
++            .unwrap()
++            .unwrap();
++        assert!(matches!(
++            try_collect_slots(&scheduler, 0..3, 3).unwrap(),
++            SlotScan::Busy(2)
++        ));
++        assert!(
++            StoreLock::try_acquire(&scheduler.permit_path(0))
++                .unwrap()
++                .is_some()
++        );
++        assert!(
++            StoreLock::try_acquire(&scheduler.permit_path(2))
++                .unwrap()
++                .is_some()
++        );
++        drop(held);
++    }
++
+     struct TraceWriter(Arc<Mutex<Vec<u8>>>);
+ 
+     impl std::io::Write for TraceWriter {
+diff --git a/src/scheduler/pressure.rs b/src/scheduler/pressure.rs
+index d1427fec..27205cce 100644
+--- a/src/scheduler/pressure.rs
++++ b/src/scheduler/pressure.rs
+@@ -17,6 +17,9 @@
+ //!   limit rather than the host's.
+ //! - Elsewhere, and when nothing can be read: no pressure.
+ 
++#[cfg(any(test, target_os = "linux", target_os = "macos"))]
++use super::evidence::{PressureSource, unix_ms};
++use super::evidence::{PressureState, Reading};
+ use std::sync::atomic::{AtomicBool, Ordering};
+ use std::time::{Duration, Instant};
+ 
+@@ -49,30 +52,55 @@ pub(crate) fn force(pressured: Option<bool>) {
+ }
+ 
+ /// Whether admission should hold back now.
++#[cfg(test)]
+ pub(crate) fn now() -> bool {
++    now_observed().0
++}
++
++/// The same policy answer as before, with evidence from the existing read.
++/// Forced test answers and the opt-out never fabricate a numeric observation.
++pub(crate) fn now_observed() -> (bool, Option<Reading>, PressureState) {
+     if !ENABLED.load(Ordering::Relaxed) {
+-        return false;
++        return (false, None, PressureState::Disabled);
+     }
+     #[cfg(test)]
+     if let Some(pressured) = FORCED.with(std::cell::Cell::get) {
+-        return pressured;
++        return (pressured, None, PressureState::Forced);
+     }
+-    sampled(Instant::now(), under_pressure)
++    let (pressured, reading) = sampled_observed(Instant::now(), read_pressure);
++    let state = if reading.is_some() {
++        PressureState::Sampled
++    } else if cfg!(any(target_os = "linux", target_os = "macos")) {
++        PressureState::Unavailable
++    } else {
++        PressureState::Unsupported
++    };
++    (pressured, reading, state)
+ }
+ 
+ thread_local! {
+-    static LAST: std::cell::Cell<Option<(Instant, bool)>> = const { std::cell::Cell::new(None) };
++    static LAST: std::cell::Cell<Option<(Instant, bool, Option<Reading>)>> = const { std::cell::Cell::new(None) };
+ }
+ 
+ /// The reading taken within [`SAMPLE_FOR`] of `now`, else a new one from
+ /// `read`.
++#[cfg(test)]
+ pub(crate) fn sampled(now: Instant, read: impl FnOnce() -> bool) -> bool {
++    sampled_observed(now, || (read(), None)).0
++}
++
++fn sampled_observed(
++    now: Instant,
++    read: impl FnOnce() -> (bool, Option<Reading>),
++) -> (bool, Option<Reading>) {
+     LAST.with(|last| match last.get() {
+-        Some((at, pressured)) if now.saturating_duration_since(at) < SAMPLE_FOR => pressured,
++        Some((at, pressured, reading)) if now.saturating_duration_since(at) < SAMPLE_FOR => {
++            (pressured, reading)
++        }
+         _ => {
+-            let pressured = read();
+-            last.set(Some((now, pressured)));
+-            pressured
++            let (pressured, reading) = read();
++            last.set(Some((now, pressured, reading)));
++            (pressured, reading)
+         }
+     })
+ }
+@@ -92,19 +120,28 @@ pub(crate) fn macos_pressured(level: i32) -> bool {
+ 
+ /// Whether a PSI file's `some avg10` is at or over [`PSI_SOME_AVG10`].
+ /// `None` when the text has no such line.
+-#[cfg(any(test, target_os = "linux"))]
++#[cfg(test)]
+ pub(crate) fn psi_pressured(text: &str) -> Option<bool> {
+-    let some = text.lines().find(|line| line.starts_with("some "))?;
+-    let avg10 = some
++    Some(psi_avg10(text, "some ")? >= PSI_SOME_AVG10)
++}
++
++#[cfg(any(test, target_os = "linux"))]
++fn psi_avg10(text: &str, kind: &str) -> Option<f64> {
++    text.lines()
++        .find(|line| line.starts_with(kind))?
+         .split_whitespace()
+         .find_map(|field| field.strip_prefix("avg10="))?
+         .parse::<f64>()
+-        .ok()?;
+-    Some(avg10 >= PSI_SOME_AVG10)
++        .ok()
+ }
+ 
+-#[cfg(target_os = "macos")]
++#[cfg(test)]
+ fn under_pressure() -> bool {
++    read_pressure().0
++}
++
++#[cfg(target_os = "macos")]
++fn read_pressure() -> (bool, Option<Reading>) {
+     let mut level: libc::c_int = 0;
+     let mut size = std::mem::size_of::<libc::c_int>();
+     // SAFETY: the name is NUL-terminated, and `level`/`size` describe a
+@@ -118,11 +155,23 @@ fn under_pressure() -> bool {
+             0,
+         )
+     };
+-    rc == 0 && macos_pressured(level)
++    if rc != 0 {
++        return (false, None);
++    }
++    (
++        macos_pressured(level),
++        Some(Reading {
++            source: PressureSource::Macos,
++            at_unix_ms: unix_ms(),
++            some_avg10: None,
++            full_avg10: None,
++            macos_level: Some(level),
++        }),
++    )
+ }
+ 
+ #[cfg(target_os = "linux")]
+-fn under_pressure() -> bool {
++fn read_pressure() -> (bool, Option<Reading>) {
+     use std::path::{Path, PathBuf};
+     use std::sync::OnceLock;
+     static CGROUP: OnceLock<Option<PathBuf>> = OnceLock::new();
+@@ -133,33 +182,103 @@ fn under_pressure() -> bool {
+         )
+         .map(|domain| domain.current.join("memory.pressure"))
+     });
+-    pressured_from(cgroup.as_deref(), Path::new("/proc/pressure/memory"))
++    observed_from(cgroup.as_deref(), Path::new("/proc/pressure/memory"))
+ }
+ 
+ /// The cgroup's own PSI reading when `cgroup` names a readable one, else the
+ /// host's; no pressure when neither can be read.
+-#[cfg(any(test, target_os = "linux"))]
++#[cfg(test)]
+ pub(crate) fn pressured_from(cgroup: Option<&std::path::Path>, host: &std::path::Path) -> bool {
+-    let read = |path: &std::path::Path| {
+-        std::fs::read_to_string(path)
+-            .ok()
+-            .and_then(|text| psi_pressured(&text))
++    observed_from(cgroup, host).0
++}
++
++#[cfg(any(test, target_os = "linux"))]
++fn observed_from(
++    cgroup: Option<&std::path::Path>,
++    host: &std::path::Path,
++) -> (bool, Option<Reading>) {
++    let read = |path: &std::path::Path, source| {
++        std::fs::read_to_string(path).ok().and_then(|text| {
++            let some = psi_avg10(&text, "some ")?;
++            let full = psi_avg10(&text, "full ");
++            Some((
++                some >= PSI_SOME_AVG10,
++                Some(Reading {
++                    source,
++                    at_unix_ms: unix_ms(),
++                    some_avg10: some.is_finite().then_some(some),
++                    full_avg10: full.filter(|n| n.is_finite()),
++                    macos_level: None,
++                }),
++            ))
++        })
+     };
+     cgroup
+-        .and_then(read)
+-        .or_else(|| read(host))
+-        .unwrap_or(false)
++        .and_then(|path| read(path, PressureSource::Cgroup))
++        .or_else(|| read(host, PressureSource::Host))
++        .unwrap_or((false, None))
+ }
+ 
+ #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+-fn under_pressure() -> bool {
+-    false
++fn read_pressure() -> (bool, Option<Reading>) {
++    (false, None)
+ }
+ 
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn numeric_observations_use_the_existing_source_fallback_and_threshold() {
++        let dir = tempfile::tempdir().unwrap();
++        let cgroup = dir.path().join("cgroup");
++        let host = dir.path().join("host");
++        std::fs::write(&cgroup, "some avg10=9.99\nfull avg10=99.0\n").unwrap();
++        std::fs::write(&host, "some avg10=10.0\nfull avg10=3.0\n").unwrap();
++        let (pressured, reading) = observed_from(Some(&cgroup), &host);
++        assert!(
++            !pressured,
++            "full PSI does not change the old some-only policy"
++        );
++        let reading = reading.unwrap();
++        assert_eq!(reading.source, PressureSource::Cgroup);
++        assert_eq!(reading.full_avg10, Some(99.0));
++        std::fs::write(&cgroup, "full avg10=99.0\n").unwrap();
++        let (pressured, reading) = observed_from(Some(&cgroup), &host);
++        assert!(pressured);
++        assert_eq!(reading.unwrap().source, PressureSource::Host);
++        std::fs::write(&host, "some avg10=0.0\n").unwrap();
++        assert_eq!(observed_from(None, &host).1.unwrap().full_avg10, None);
++        std::fs::remove_file(&host).unwrap();
++        assert_eq!(observed_from(None, &host), (false, None));
++    }
++
++    #[test]
++    fn cached_numeric_readings_keep_the_actual_observation_timestamp() {
++        LAST.with(|last| last.set(None));
++        let start = Instant::now();
++        let reading = Reading {
++            source: PressureSource::Host,
++            at_unix_ms: 123,
++            some_avg10: Some(12.0),
++            full_avg10: None,
++            macos_level: None,
++        };
++        assert_eq!(
++            sampled_observed(start, || (true, Some(reading))),
++            (true, Some(reading))
++        );
++        assert_eq!(
++            sampled_observed(start + Duration::from_millis(249), || panic!("cached")),
++            (true, Some(reading))
++        );
++        assert_eq!(
++            sampled_observed(start + Duration::from_millis(250), || (false, None)),
++            (false, None)
++        );
++        LAST.with(|last| last.set(None));
++    }
++
+     #[test]
+     fn pressure_takes_the_whole_pool() {
+         assert_eq!(weight(2, 8, false), 2);
+@@ -255,5 +374,6 @@ mod tests {
+         assert!(!sampled(start + SAMPLE_FOR, || false));
+         assert!(!sampled(start + SAMPLE_FOR, || panic!("reused")));
+         assert_eq!(SAMPLE_FOR, Duration::from_millis(250));
++        LAST.with(|last| last.set(None));
+     }
+ }
+diff --git a/src/tui/tests.rs b/src/tui/tests.rs
+index b2beba97..bf91c569 100644
+--- a/src/tui/tests.rs
++++ b/src/tui/tests.rs
+@@ -1437,6 +1437,10 @@ fn sample_build_event(
+         crate_name: crate_name.to_string(),
+         version: "0.1.0".to_string(),
+         engine: None,
++        scheduler_observation_id: None,
++        scheduler_decisions: Vec::new(),
++        scheduler_decisions_dropped: 0,
++        index_read: None,
+         result,
+         elapsed_ms,
+         compile_time_ms: elapsed_ms,
+diff --git a/src/wrapper.rs b/src/wrapper.rs
+index 824d6bac..682c250a 100644
+--- a/src/wrapper.rs
++++ b/src/wrapper.rs
+@@ -1077,6 +1077,7 @@ fn lookup_or_miss_with_clock<T>(
+         }
+         step = (step * 2).min(LOOKUP_BUSY_PAUSE_MAX);
+     };
++    crate::opcounts::record_lookup_fallback(crate::blob_heal::is_index_busy(&error));
+     tracing::warn!(
+         "local store lookup failed for {crate_name} after {:?}: {error:#}; compiling it as a miss",
+         elapsed()
+@@ -8711,12 +8712,21 @@ pub(crate) fn build_event_details(config: &Config, inputs: EventInputs<'_>) -> B
+     };
+     let key_diff = explain_miss_diff(config, root, crate_name, result, cache_key, &key_fields);
+     let miss_reason = events::MissReason::classify(&passthrough_reason);
++    let scheduler = if config.scheduler {
++        crate::opcounts::scheduler_evidence()
++    } else {
++        Default::default()
++    };
+     BuildEvent {
+         ts: Utc::now(),
+         crate_name: crate_name.to_string(),
+         root: root.to_string(),
+         version: crate::VERSION.to_string(),
+         engine,
++        scheduler_observation_id: scheduler.invocation_id,
++        scheduler_decisions: scheduler.decisions,
++        scheduler_decisions_dropped: scheduler.dropped,
++        index_read: crate::opcounts::index_read_evidence(),
+         result,
+         elapsed_ms,
+         compile_time_ms,
+@@ -8727,7 +8737,7 @@ pub(crate) fn build_event_details(config: &Config, inputs: EventInputs<'_>) -> B
+             .then(|| cache_key.to_string()),
+         rebuilt_path: rebuilt.primary,
+         rebuilt_paths: rebuilt.paths,
+-        schema: 27,
++        schema: 28,
+         demands: crate::demand::take(),
+         session_id,
+         key_ms,
+diff --git a/src/wrapper/tests.rs b/src/wrapper/tests.rs
+index 971c3cf0..c6ce31bf 100644
+--- a/src/wrapper/tests.rs
++++ b/src/wrapper/tests.rs
+@@ -41,7 +41,7 @@ fn failed_compiler_event_keeps_exit_code_cost_and_engine_without_output_text() {
+     assert_eq!(event.result, EventResult::Error);
+     assert_eq!(event.exit_code, Some(42));
+     assert_eq!(event.compile_time_ms, 7);
+-    assert_eq!(event.schema, 27);
++    assert_eq!(event.schema, 28);
+     assert!(event.engine.is_some());
+     let mut value = serde_json::to_value(&event).unwrap();
+     assert!(value.get("stdout").is_none());
+@@ -8051,7 +8051,7 @@ fn local_hit_demand_reaches_event_without_remote_wait() {
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     assert_eq!(events.len(), 1);
+-    assert_eq!(events[0].schema, 27);
++    assert_eq!(events[0].schema, 28);
+     let demands = &events[0].demands;
+     assert_eq!(demands.len(), 1);
+     assert_eq!(demands[0].cache_key, "local-demand-key");
+@@ -8100,7 +8100,7 @@ fn log_event_with_store_stats_persists_timing_hash_and_store_fields() {
+     assert_eq!(event.compile_time_ms, 20);
+     assert_eq!(event.size, 30);
+     assert_eq!(event.cache_key, "cache-key");
+-    assert_eq!(event.schema, 27);
++    assert_eq!(event.schema, 28);
+     assert_eq!(event.key_ms, 40);
+     assert_eq!(event.key_hash_hits, 4);
+     assert_eq!(event.key_hash_misses, 5);
+@@ -8218,7 +8218,7 @@ fn log_event_records_the_wrapper_phase_accumulators() {
+ 
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     let event = &events[0];
+-    assert_eq!(event.schema, 27);
++    assert_eq!(event.schema, 28);
+     // Whatever other tests add is real time, far under the next band.
+     for (name, value, floor, fed) in [
+         ("startup_ms", event.startup_ms, before[0], STARTUP_MS),
+@@ -8343,7 +8343,7 @@ fn log_event_persists_same_key_lookup_rejection() {
+     let event = &events[0];
+     assert_eq!(event.result, EventResult::Miss);
+     assert_eq!(event.cache_key, "same-key");
+-    assert_eq!(event.schema, 27);
++    assert_eq!(event.schema, 28);
+     assert_eq!(
+         event.lookup_rejection,
+         "matching entry lacks dep-info required by this invocation"
+@@ -8371,7 +8371,7 @@ fn log_event_persists_verify_compare_class_on_hit() {
+             .keyed("hit-key", 0, FileHashStats::default()),
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+-    assert_eq!(events[0].schema, 27);
++    assert_eq!(events[0].schema, 28);
+     assert_eq!(events[0].result, EventResult::LocalHit);
+     assert!(
+         events[0].verify_compare.is_empty(),
+@@ -8389,7 +8389,7 @@ fn log_event_persists_verify_compare_class_on_hit() {
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     assert_eq!(events.len(), 2);
+-    assert_eq!(events[1].schema, 27);
++    assert_eq!(events[1].schema, 28);
+     assert_eq!(
+         events[1].verify_compare,
+         "content: libfoo.rlib (byte mismatch)"
+@@ -11201,7 +11201,7 @@ fn a_passthrough_reason_is_classified_on_the_event() {
+         EventInputs::new("/repo", "foo.c", EventResult::Passthrough, 10)
+             .passthrough_reason("unsupported|cc link mode".to_string()),
+     );
+-    assert_eq!(event.schema, 27);
++    assert_eq!(event.schema, 28);
+     assert_eq!(event.miss_reason, crate::events::MissReason::Unsupported);
+     let hit = super::build_event_details(
+         &config,
+@@ -11458,7 +11458,7 @@ fn rebuilt_event_uses_actual_outputs_for_success_even_without_store() {
+                 .store_error("cannot store".into())
+                 .rebuilt(true, &artifacts, Some("cargo-package-name".into())),
+         );
+-        assert_eq!(event.schema, 27);
++        assert_eq!(event.schema, 28);
+         assert_eq!(event.rebuilt_package.as_deref(), Some("cargo-package-name"));
+         assert_eq!(
+             event.rebuilt_fingerprint.as_deref(),
+diff --git a/tests/fallback_recovery_test.rs b/tests/fallback_recovery_test.rs
+index a55fb48e..07ea1726 100644
+--- a/tests/fallback_recovery_test.rs
++++ b/tests/fallback_recovery_test.rs
+@@ -146,7 +146,7 @@ fn failed_fallback_retries_once_preserving_compiler_inputs_and_events() {
+         assert!(stderr.contains("kache: warning: fallback"));
+         assert!(stderr.contains("compiling directly without fallback"));
+         let event = fixture.event();
+-        assert_eq!(event["schema"], 27);
++        assert_eq!(event["schema"], 28);
+         assert_eq!(event["exit_code"], 0);
+         assert_ne!(event["fallback"], true);
+         assert_eq!(event["fallback_attempt"]["outcome"], "failed");
+diff --git a/src/scheduler/evidence.rs b/src/scheduler/evidence.rs
+new file mode 100644
+index 00000000..7aa4d48e
+--- /dev/null
++++ b/src/scheduler/evidence.rs
+@@ -0,0 +1,331 @@
++//! Bounded observations of the existing scheduler, not a scheduling policy.
++use serde::{Deserialize, Serialize};
++use std::time::{Duration, SystemTime, UNIX_EPOCH};
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case")]
++pub enum Phase {
++    Flight,
++    Discovery,
++    Capacity,
++    #[serde(other)]
++    Unknown,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case")]
++pub enum Outcome {
++    Admitted,
++    /// The peer's flight lock was released. This does not prove publication
++    /// or successful compilation; the caller still has to recheck the cache.
++    PeerCompleted,
++    TimeoutFallback,
++    Unavailable,
++    LeaseCovered,
++    #[serde(other)]
++    Unknown,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case")]
++pub enum PressureSource {
++    Cgroup,
++    Host,
++    Macos,
++    #[serde(other)]
++    Unknown,
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case")]
++pub enum PressureState {
++    Disabled,
++    Sampled,
++    Unavailable,
++    Unsupported,
++    Forced,
++    #[serde(other)]
++    Unknown,
++}
++
++/// A reading's timestamp is its actual observation time, including on cache reuse.
++/// No cgroup path or process inventory is recorded.
++#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
++pub struct Reading {
++    pub source: PressureSource,
++    pub at_unix_ms: u64,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub some_avg10: Option<f64>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub full_avg10: Option<f64>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub macos_level: Option<i32>,
++}
++
++/// Extrema retain their own timestamps and sources. They are not simultaneous
++/// observations and do not imply continuous pressure between samples.
++#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
++pub struct PressureSummary {
++    pub first: Reading,
++    pub last: Reading,
++    pub samples: u32,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub max_some: Option<Reading>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub max_full: Option<Reading>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub max_macos: Option<Reading>,
++}
++
++impl PressureSummary {
++    fn new(reading: Reading) -> Self {
++        Self {
++            first: reading,
++            last: reading,
++            samples: 1,
++            max_some: reading.some_avg10.map(|_| reading),
++            max_full: reading.full_avg10.map(|_| reading),
++            max_macos: reading.macos_level.map(|_| reading),
++        }
++    }
++
++    fn observe(&mut self, reading: Reading) {
++        if self.last == reading {
++            return;
++        }
++        self.last = reading;
++        self.samples = self.samples.saturating_add(1);
++        if reading.some_avg10.is_some_and(|value| {
++            self.max_some
++                .and_then(|r| r.some_avg10)
++                .is_none_or(|max| value > max)
++        }) {
++            self.max_some = Some(reading);
++        }
++        if reading.full_avg10.is_some_and(|value| {
++            self.max_full
++                .and_then(|r| r.full_avg10)
++                .is_none_or(|max| value > max)
++        }) {
++            self.max_full = Some(reading);
++        }
++        if reading.macos_level.is_some_and(|value| {
++            self.max_macos
++                .and_then(|r| r.macos_level)
++                .is_none_or(|max| value > max)
++        }) {
++            self.max_macos = Some(reading);
++        }
++    }
++}
++
++#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
++pub struct Decision {
++    pub phase: Phase,
++    pub outcome: Outcome,
++    pub started_unix_ms: u64,
++    pub elapsed_ms: u64,
++    /// Maximum requested count across scans, not necessarily the final ask.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub requested_slots: Option<u32>,
++    /// Minimum observed free count. Successful scans stop once enough locks
++    /// are held, so this is a lower bound, not a full-pool availability census.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub available_slots: Option<u32>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub pool_slots: Option<u32>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub weight_slots: Option<u32>,
++    /// Exact number retained by the successful scan, not the largest ask.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub admitted_slots: Option<u32>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub pressure_state: Option<PressureState>,
++    /// Scans without numeric evidence, including opt-out and test overrides.
++    #[serde(default)]
++    pub unobserved_pressure_scans: u32,
++    #[serde(default)]
++    pub scans: u32,
++    #[serde(default)]
++    pub pressured_scans: u32,
++    /// Only observations the existing compile_need path already requested.
++    /// The existing u32::MAX unreadable sentinel is recorded separately.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub tests_held_max: Option<u32>,
++    #[serde(default)]
++    pub tests_held_unavailable: bool,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub psi: Option<PressureSummary>,
++}
++
++impl Decision {
++    pub fn new(phase: Phase) -> Self {
++        Self {
++            phase,
++            outcome: Outcome::Unknown,
++            started_unix_ms: unix_ms(),
++            elapsed_ms: 0,
++            requested_slots: None,
++            available_slots: None,
++            pool_slots: None,
++            weight_slots: None,
++            admitted_slots: None,
++            pressure_state: None,
++            unobserved_pressure_scans: 0,
++            scans: 0,
++            pressured_scans: 0,
++            tests_held_max: None,
++            tests_held_unavailable: false,
++            psi: None,
++        }
++    }
++
++    pub fn pressure(&mut self, pressured: bool, reading: Option<Reading>, state: PressureState) {
++        self.scans = self.scans.saturating_add(1);
++        self.pressured_scans = self.pressured_scans.saturating_add(u32::from(pressured));
++        self.pressure_state = Some(state);
++        self.unobserved_pressure_scans = self
++            .unobserved_pressure_scans
++            .saturating_add(u32::from(reading.is_none()));
++        if let Some(reading) = reading {
++            match self.psi.as_mut() {
++                Some(summary) => summary.observe(reading),
++                None => self.psi = Some(PressureSummary::new(reading)),
++            }
++        }
++    }
++
++    pub fn scan(&mut self, need: u32, free: Option<u32>, outcome: Option<Outcome>) {
++        self.requested_slots = Some(self.requested_slots.unwrap_or(0).max(need));
++        if let Some(free) = free {
++            self.available_slots = Some(self.available_slots.map_or(free, |old| old.min(free)));
++        }
++        if let Some(outcome) = outcome {
++            self.outcome = outcome;
++            if outcome == Outcome::Admitted {
++                self.admitted_slots = free;
++            }
++        }
++    }
++
++    pub fn record(mut self, outcome: Outcome, elapsed: Duration) {
++        if outcome == Outcome::Unknown {
++            tracing::warn!(phase = ?self.phase, "scheduler decision completed without a supported outcome");
++            debug_assert_ne!(outcome, Outcome::Unknown);
++        }
++        self.outcome = outcome;
++        self.elapsed_ms = u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX);
++        crate::opcounts::record_scheduler_decision(self);
++    }
++}
++
++pub fn unix_ms() -> u64 {
++    SystemTime::now()
++        .duration_since(UNIX_EPOCH)
++        .map(|duration| u64::try_from(duration.as_millis()).unwrap_or(u64::MAX))
++        .unwrap_or_else(|error| {
++            tracing::warn!(%error, "scheduler observation predates Unix epoch; timestamp unavailable (0)");
++            0
++        })
++}
++
++/// One process handles one compile. Retain at most 16 decisions even if a
++/// caller repeatedly rejoins a flight. Snapshotting never drains evidence:
++/// rebuilding an event after a declined daemon handoff must retain it.
++#[derive(Debug, Default, Clone, PartialEq)]
++pub struct Evidence {
++    /// Shared across reconstructed/secondary events in this wrapper. Consumers
++    /// deduplicate decisions by (invocation_id, index), not event count.
++    pub invocation_id: Option<String>,
++    pub decisions: Vec<Decision>,
++    pub dropped: u32,
++}
++
++impl Evidence {
++    pub fn record(&mut self, decision: Decision) {
++        self.invocation_id.get_or_insert_with(|| {
++            use std::hash::BuildHasher;
++            // Per-instance randomized stdlib hash seeds avoid a dependency or
++            // exposing process identifiers in telemetry.
++            let nonce = || std::collections::hash_map::RandomState::new().hash_one(());
++            format!("{:016x}{:016x}", nonce(), nonce())
++        });
++        if self.decisions.len() < 16 {
++            self.decisions.push(decision);
++        } else {
++            self.dropped = self.dropped.saturating_add(1);
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn bounded_evidence_snapshots_retain_the_first_decisions_and_count_overflow() {
++        let mut evidence = Evidence::default();
++        for i in 0..19 {
++            let mut decision = Decision::new(Phase::Flight);
++            decision.elapsed_ms = i;
++            evidence.record(decision);
++        }
++        assert_eq!(evidence.decisions.len(), 16);
++        assert_eq!(evidence.dropped, 3);
++        assert_eq!(
++            evidence
++                .decisions
++                .iter()
++                .map(|d| d.elapsed_ms)
++                .collect::<Vec<_>>(),
++            (0..16).collect::<Vec<_>>()
++        );
++        evidence.dropped = u32::MAX - 1;
++        evidence.record(Decision::new(Phase::Flight));
++        evidence.record(Decision::new(Phase::Flight));
++        assert_eq!(evidence.dropped, u32::MAX);
++    }
++
++    #[test]
++    fn pressure_extrema_keep_actual_sources_times_and_do_not_count_cached_reuse() {
++        let first = Reading {
++            source: PressureSource::Cgroup,
++            at_unix_ms: 10,
++            some_avg10: Some(12.0),
++            full_avg10: Some(1.0),
++            macos_level: None,
++        };
++        let later = Reading {
++            source: PressureSource::Host,
++            at_unix_ms: 260,
++            some_avg10: Some(9.0),
++            full_avg10: Some(4.0),
++            ..first
++        };
++        let mut decision = Decision::new(Phase::Capacity);
++        decision.pressure(true, Some(first), PressureState::Sampled);
++        decision.pressure(true, Some(first), PressureState::Sampled);
++        decision.pressure(false, Some(later), PressureState::Sampled);
++        decision.scan(8, Some(0), None);
++        decision.scan(2, Some(2), Some(Outcome::Admitted));
++        let summary = decision.psi.unwrap();
++        assert_eq!(summary.samples, 2);
++        assert_eq!(summary.max_some, Some(first));
++        assert_eq!(summary.max_full, Some(later));
++        assert_eq!(summary.last, later);
++        assert_eq!(decision.pressured_scans, 2);
++        assert_eq!(decision.requested_slots, Some(8));
++        assert_eq!(decision.available_slots, Some(0));
++        assert_eq!(decision.admitted_slots, Some(2));
++    }
++
++    #[test]
++    fn future_outcomes_and_phases_are_readable_without_claiming_old_policy_support() {
++        let mut value = serde_json::to_value(Decision::new(Phase::Flight)).unwrap();
++        value["phase"] = "future_phase".into();
++        value["outcome"] = "recovery_admitted".into();
++        let decision: Decision = serde_json::from_value(value).unwrap();
++        assert_eq!(decision.phase, Phase::Unknown);
++        assert_eq!(decision.outcome, Outcome::Unknown);
++    }
++}

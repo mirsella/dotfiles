@@ -15,14 +15,14 @@ recipients = [
 	]
 
 [hooks.re-add.pre]
-command = "t3-settings"
-args = ["capture", "--if-running"]
+command = "sh"
+args = ["-ec", "if command -v t3-settings >/dev/null 2>&1; then t3-settings capture --if-running; fi; if command -v hex-settings >/dev/null 2>&1; then hex-settings capture --if-present; fi"]
 
 [hooks.apply.post]
 command = "sh"
 args = [
-	"-c",
-	"if command -v t3-settings >/dev/null 2>&1; then dry=; case \" $CHEZMOI_ARGS \" in *\" --dry-run\"*|*\" -n\"*) dry=--dry-run;; esac; exec t3-settings sync --if-running --no-capture $dry; fi",
+	"-ec",
+	"dry=; case \" $CHEZMOI_ARGS \" in *\" --dry-run\"*|*\" -n\"*) dry=--dry-run;; esac; if command -v t3-settings >/dev/null 2>&1; then t3-settings sync --if-running --no-capture $dry; fi; if command -v hex-settings >/dev/null 2>&1; then hex-settings sync --if-present --no-capture $dry; fi",
 ]
 
 [git]
