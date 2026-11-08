@@ -404,7 +404,7 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeSettledAfterDays": 0
+      "worktreeSettledAfterDays": 4
     },
     "textGenerationModelSelection": {
       "instanceId": "opencode",
