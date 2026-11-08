@@ -1,0 +1,35 @@
+{
+  "browserPackage": "@mirsella/browser-mcp",
+  "servers": {
+    "context7-broker": {
+      "type": "stdio",
+      "command": "/home/mirsella/.local/bin/context7-account-broker",
+      "args": ["mcp"],
+      "enabled": true,
+      "toolTimeoutSec": 30
+    },
+    "composio": {
+      "type": "http",
+      "url": "https://backend.composio.dev/tool_router/trs_uiw6Hb4fJ8rr/mcp",
+      "headers": {
+        "x-org-id": "ok_UWjDVhCpLy46",
+        "x-project-id": "pr_ZEY9cNibczW1"
+      },
+      "headersHelper": "/home/mirsella/.local/bin/composio-mcp-headers",
+      "enabled": true,
+      "oauth": false
+    },
+    "blender-mcp": {
+      "type": "stdio",
+      "command": "/home/mirsella/.local/bin/uvx",
+      "args": ["blender-mcp"],
+      "env": { "BLENDER_HOST": "localhost", "BLENDER_PORT": "9876" },
+      "enabled": false
+    },
+    "planetscale": {
+      "type": "http",
+      "url": "https://mcp.pscale.dev/mcp/planetscale",
+      "enabled": false
+    }
+  }
+}

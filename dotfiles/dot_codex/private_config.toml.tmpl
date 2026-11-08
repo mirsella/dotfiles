@@ -45,28 +45,35 @@ source_type = "git"
 source = "https://github.com/mirsella/browser-mcp.git"
 ref = "release/latest"
 
-[mcp_servers.context7-broker]
-command = "/home/mirsella/.local/bin/context7-account-broker"
-args = ["mcp"]
-enabled = true
-tool_timeout_sec = 30
-
-[mcp_servers.blender-mcp]
-command = "/home/mirsella/.local/bin/uvx"
-args = ["blender-mcp"]
-enabled = false
-env = { BLENDER_HOST = "localhost", BLENDER_PORT = "9876" }
-
-[mcp_servers.composio]
-url = "https://backend.composio.dev/tool_router/trs_uiw6Hb4fJ8rr/mcp"
-enabled = true
-http_headers = { x-org-id = "ok_UWjDVhCpLy46", x-project-id = "pr_ZEY9cNibczW1" }
-http_headers_helper = "/home/mirsella/.local/bin/composio-mcp-headers"
-
-[mcp_servers.planetscale]
-url = "https://mcp.pscale.dev/mcp/planetscale"
-enabled = false
-
+{{ $mcp := include "private_dot_config/agent-tools/mcp.json" | fromJson -}}
+{{ range $name, $server := $mcp.servers }}
+[mcp_servers.{{ $name }}]
+{{ if eq $server.type "stdio" -}}
+command = {{ $server.command | toJson }}
+args = {{ $server.args | toJson }}
+{{ else -}}
+url = {{ $server.url | toJson }}
+{{ end -}}
+enabled = {{ $server.enabled }}
+{{ if hasKey $server "toolTimeoutSec" -}}
+tool_timeout_sec = {{ $server.toolTimeoutSec }}
+{{ end -}}
+{{ if hasKey $server "headersHelper" -}}
+http_headers_helper = {{ $server.headersHelper | toJson }}
+{{ end -}}
+{{ if hasKey $server "env" }}
+[mcp_servers.{{ $name }}.env]
+{{ range $key, $value := $server.env -}}
+{{ $key }} = {{ $value | toJson }}
+{{ end -}}
+{{ end -}}
+{{ if hasKey $server "headers" }}
+[mcp_servers.{{ $name }}.http_headers]
+{{ range $key, $value := $server.headers -}}
+{{ $key }} = {{ $value | toJson }}
+{{ end -}}
+{{ end -}}
+{{ end }}
 
 [plugins."browser@openai-bundled"]
 enabled = false

@@ -10,6 +10,8 @@ let
   skillDirs = lib.filterAttrs (_: type: type == "directory") (builtins.readDir skillsDir);
 in
 {
+  imports = [ ./agent-mcp.nix ];
+
   options.programs.agent-tools.package = lib.mkOption {
     type = lib.types.package;
     default = pkgs.agent-tools.override { inherit isNixOS; };

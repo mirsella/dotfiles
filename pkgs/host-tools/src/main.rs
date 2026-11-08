@@ -5,6 +5,7 @@ mod backup;
 mod boot_keys;
 mod browser;
 mod browser_secret;
+mod claude_hook;
 mod fan_control;
 mod hardware;
 mod hermes;
@@ -58,6 +59,9 @@ enum Commands {
         action: fan_control::Operation,
     },
     ComposioMcpHeaders,
+    ClaudeBrowserHook {
+        browser_mcp: PathBuf,
+    },
     OpencodeClientEnv {
         config: PathBuf,
         #[arg(required = true, num_args = 1.., trailing_var_arg = true)]
@@ -221,6 +225,7 @@ fn run() -> Result<()> {
         Commands::FanControl { action } => fan_control::run(action),
         Commands::OpencodeClientEnv { config, command } => opencode::client_env(&config, &command),
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
+        Commands::ClaudeBrowserHook { browser_mcp } => claude_hook::run(&browser_mcp),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
         Commands::BootstrapAgentTools { package } => agent_tools::bootstrap(&package),
         Commands::AgentToolsBackups { action } => migration_backups::run(action),
