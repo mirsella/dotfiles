@@ -2276,6 +2276,55 @@ mod tests {
     }
 
     #[test]
+    fn tool_call_visibility_is_portable() {
+        let policy = Policy::new();
+        let client = json!({"toolCallVisibility": "showAll"});
+        let mut excluded = ExcludedFields::default();
+        let selected = policy
+            .select(&client, &policy.0["client"], "client", &mut excluded)
+            .unwrap();
+        assert_eq!(selected, client);
+        assert!(excluded.unknown.is_empty());
+        policy.validate("client", &selected).unwrap();
+    }
+
+    #[test]
+    fn dictation_preferences_are_portable_but_microphone_is_device_local() {
+        let policy = Policy::new();
+        let client = json!({
+            "speechCorrectionWord": "correct",
+            "speechCustomWords": ["OpenCode"],
+            "speechLanguage": "auto",
+            "speechPostProcessingPrompt": {"mode": "custom", "customInstructions": "Keep punctuation"},
+            "speechRemoveFillerWords": true,
+            "speechSilenceFiltering": true,
+            "speechTranslateToEnglish": false,
+            "voiceShortcutMode": "auto",
+            "voiceMicrophone": "device-specific-id"
+        });
+        let mut excluded = ExcludedFields::default();
+        let selected = policy
+            .select(&client, &policy.0["client"], "client", &mut excluded)
+            .unwrap();
+        let mut expected = client;
+        expected.as_object_mut().unwrap().remove("voiceMicrophone");
+        assert_eq!(selected, expected);
+        assert!(excluded.unknown.is_empty());
+        assert!(excluded.ignored.contains("client.voiceMicrophone"));
+        policy.validate("client", &selected).unwrap();
+        policy
+            .validate(
+                "server",
+                &json!({"speechPostProcessingModelSelection": {
+                    "instanceId": "opencode",
+                    "model": "example",
+                    "options": [{"id": "variant", "value": "high"}]
+                }}),
+            )
+            .unwrap();
+    }
+
+    #[test]
     fn project_pin_and_archive_timestamps_are_device_local() {
         let policy = Policy::new();
         let source = json!({

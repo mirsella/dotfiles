@@ -467,6 +467,11 @@
   },
   "keybindings": [
     {
+      "command": "composer.dictation",
+      "key": "mod+shift+d",
+      "when": "!terminalFocus"
+    },
+    {
       "command": "workspace.focusNext",
       "key": "f6"
     },

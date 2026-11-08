@@ -85,7 +85,16 @@
     "snapShotFlash": true,
     "snapShotAnimations": true,
     "wordWrap": true,
-    "mathRenderingEnabled": true
+    "mathRenderingEnabled": true,
+    "voiceMicrophone": false,
+    "toolCallVisibility": true,
+    "speechCorrectionWord": true,
+    "speechCustomWords": [true],
+    "speechPostProcessingPrompt": {"mode": true, "customInstructions": true},
+    "speechRemoveFillerWords": true,
+    "speechSilenceFiltering": true,
+    "speechTranslateToEnglish": true,
+    "voiceShortcutMode": true
   },
   "server": {
     "providerInstances": false,
@@ -138,6 +147,7 @@
     "snoozePresets": ["$snoozePreset"],
     "idleCompaction": true,
     "compactIdleThreads": true,
+    "speechPostProcessingModelSelection": "$model",
     "responseStreamingMode": true
   },
   "desktop": {
