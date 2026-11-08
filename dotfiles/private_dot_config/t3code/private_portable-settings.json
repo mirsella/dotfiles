@@ -421,7 +421,7 @@
       "worktreeAfterDays": 4,
       "worktreeOnDelete": true,
       "worktreeOnMerge": true,
-      "worktreeSettledAfterDays": 4,
+      "worktreeSettledAfterDays": 0,
       "worktreeUnchanged": true
     },
     "textGenerationModelSelection": {
@@ -433,6 +433,18 @@
           "value": "low"
         }
       ]
+    },
+    "usageModelAliases": {
+      "deepseek-v4.1-flash-free": "deepseek-v4.1-flash",
+      "haiku": "claude-haiku-5-5",
+      "opus": "claude-opus-5-5"
+    },
+    "usagePriceOverrides": {
+      "deepseek-v4.1-flash": {
+        "cacheReadCostPerMillionTokens": 0.006,
+        "inputCostPerMillionTokens": 0.3,
+        "outputCostPerMillionTokens": 1.2
+      }
     }
   },
   "desktop": {
@@ -891,6 +903,15 @@
   ],
   "projects": [
     {
+      "workspace_root": "~/.t3/projects/wiko",
+      "attributes": {
+        "faviconPath": "~/.t3/projects/wiko/assets/icon.svg",
+        "projectIcon": null,
+        "title": "wiko"
+      },
+      "settings": {}
+    },
+    {
       "workspace_root": "~/Documents/xiaomi-mom",
       "attributes": {
         "faviconPath": null,
@@ -998,7 +1019,7 @@
     {
       "workspace_root": "~/dev/voxride-dashboard",
       "attributes": {
-        "faviconPath": null,
+        "faviconPath": "~/dev/voxride-dashboard/src/app/icon.svg",
         "projectIcon": null,
         "title": "voxride-dashboard"
       },
@@ -1009,7 +1030,7 @@
     {
       "workspace_root": "~/dev/voxride-website",
       "attributes": {
-        "faviconPath": null,
+        "faviconPath": "~/dev/voxride-website/public/favicon.ico",
         "projectIcon": null,
         "title": "voxride-website"
       },
