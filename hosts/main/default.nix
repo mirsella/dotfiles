@@ -1,27 +1,4 @@
 { lib, pkgs, ... }:
-let
-  fanUnit =
-    file:
-    lib.replaceStrings
-      [
-        "/usr/local/libexec/host-tools"
-        "/usr/bin/fancontrol"
-        "/etc/main-fan-control.json"
-        "/usr/bin:/usr/sbin"
-      ]
-      [
-        "${pkgs.host-tools}/bin/host-tools"
-        "${pkgs.lm_sensors}/bin/fancontrol"
-        "${./fan-control.json}"
-        (lib.makeBinPath [
-          pkgs.coreutils
-          pkgs.gnugrep
-          pkgs.gnused
-          pkgs.systemd
-        ])
-      ]
-      (builtins.readFile file);
-in
 {
   imports = [ ../../modules/nixos/desktop.nix ];
 
@@ -39,11 +16,16 @@ in
   # NCT6798 motherboard fan controller.
   boot.kernelModules = [ "nct6775" ];
   systemd.units."fancontrol.service" = {
-    text = fanUnit ./fancontrol.service;
-    wantedBy = [ "multi-user.target" ];
-  };
-  systemd.units."fan-profile-watch.service" = {
-    text = fanUnit ./fan-profile-watch.service;
+    text = lib.replaceStrings
+      [
+        "/usr/local/libexec/host-tools"
+        "/etc/main-fan-control.json"
+      ]
+      [
+        "${pkgs.host-tools}/bin/host-tools"
+        "${./fan-control.json}"
+      ]
+      (builtins.readFile ./fancontrol.service);
     wantedBy = [ "multi-user.target" ];
   };
 

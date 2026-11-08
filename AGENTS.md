@@ -22,13 +22,16 @@ The flake discovers these directories and sets hostnames automatically.
 - Each host directory becomes a complete `nixosModules.<hostname>` and
   `nixosConfigurations.<hostname>`, including its required `hardware-configuration.nix`.
   See `README.md` for installation and rebuild commands.
-- Main uses lm-sensors fancontrol and an event-driven power-profile watcher.
-  Save its ramps in `hosts/main/fan-control.json`; its system units in the same
-  directory are shared by NixOS and Arch. Keep CPU die temperature as the source.
-  Never order the fan units after power-profiles-daemon: it is ordered after
+- Main uses one Rust CPU/GPU fan daemon with D-Bus profile/resume handling.
+  Save its ramps in `hosts/main/fan-control.json`; its `fancontrol.service` unit
+  is shared by NixOS and Arch. Keep CPU die temperature as the CPU source.
+  Preserve independent motherboard automatic ExecStopPost recovery and the
+  systemd watchdog. Leave firmware sensor selections and Smart Fan IV curves
+  intact so automatic control can take over on every exit or watchdog failure.
+  Never order the fan unit after power-profiles-daemon: it is ordered after
   multi-user.target, so ordering after it is a boot ordering cycle that makes
-  systemd delete the fan start jobs. Keep their start rate limit disabled
-  (`StartLimitIntervalSec=0`): a fan or watcher failsafe has to keep retrying
+  systemd delete the fan start job. Keep its start rate limit disabled
+  (`StartLimitIntervalSec=0`): the fan failsafe has to keep retrying
   instead of staying dead.
 - Chezmoi owns editable app configuration. Home Manager owns packages, generated
   Git/SSH settings, user services and SOPS wiring. Keep each path under one

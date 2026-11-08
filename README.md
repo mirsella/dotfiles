@@ -10,7 +10,7 @@ exposes the standalone Arch `homeConfigurations.<hostname>`.
 
 | Host | NixOS role | Machine-specific settings |
 | --- | --- | --- |
-| `main` | Plasma desktop | lm-sensors fancontrol and NCT6798 driver |
+| `main` | Plasma desktop | Rust CPU/GPU fan controller and NCT6798 driver |
 | `laptop` | Plasma desktop | Framework RyzenAdj limits and Bluetooth audio watcher |
 | `predator` | Headless server | Secure Boot, encrypted storage, ZFS, server services and scheduled suspend |
 
@@ -911,57 +911,84 @@ the recovery.
 
 ## Main's fan configuration
 
-Main uses the standard lm-sensors `fancontrol` service. A small `host-tools`
-helper follows power-profile changes over D-Bus, regenerates its configuration,
-and restarts it; when the watcher itself starts it restarts `fancontrol` only if
-the ramp it prepared no longer matches the active profile, avoiding a redundant
-restart at boot. The helper also reapplies settings after resume. It waits on
-events; `fancontrol` samples Ryzen die temperature every three seconds and
-averages three readings.
+Main runs one Rust daemon, `host-tools fan-control run`, under
+`fancontrol.service`. It reads Ryzen die temperature, AMD GPU edge temperature
+and fan feedback directly from hwmon every second. The same process follows
+power-profile changes and resume events over D-Bus. Profile changes update the
+curve without restarting or reinitializing PWM; resume rediscovers sensor paths
+and restores manual control. No Bash controller, GPU helper process or separate
+profile watcher is involved.
 
-`hosts/main/fan-control.json` defines linear ramps for the four connected
-motherboard fans. All start at 20%, the lowest duty at which these fans keep
-spinning (they stall below it):
+`hosts/main/fan-control.json` defines the four controlled channels. Three
+readings are averaged; a raw CPU or GPU reading at its upper threshold bypasses
+averaging and immediately requests maximum cooling. Reloading clears the history.
 
-- Power saver holds 20% through 70°C and reaches its 40% maximum at 90°C.
-- Balanced holds 20% through 50°C and reaches its 80% maximum at 90°C.
-- Performance holds 20% through 45°C and reaches 100% at 80°C.
+The CPU group stops below its threshold. `start_hysteresis` adds 3°C before
+stopped fans start again; spinning fans stay on until the stop threshold.
+The minimum spinning duty is 20%, with a nonblocking 30% start kick for one second.
 
-The NCT6798's hardware curve engine cannot select its separate Ryzen TSI input
-through this driver. Software control retains the actual die temperature instead
-of substituting the lower socket or PECI reading. Each start discovers sensor
-paths and checks their labels. Stopping the service sets its fans to full speed,
-and a failed process is restarted automatically; the fan units disable systemd's
-start rate limit so a cooling failsafe keeps retrying instead of staying dead.
-A start that fails before `fancontrol` takes over still runs the stop job, which
-forces full speed. Each start also clears `fancontrol`'s stale pid file, left
-behind by a killed process, which would otherwise block the next start.
+- Power Saver stops at 70°C, starts at 73°C and reaches 100% at 85°C.
+- Balanced stops at 65°C, starts at 68°C and reaches 100% at 85°C.
+- Performance stops at 65°C, starts at 68°C and reaches 100% at 80°C.
 
-The controller and channel arguments live in `hosts/main/fancontrol.service`.
-Full-speed recovery does not parse the curve file, so invalid curve edits cannot
-block it.
+`case_fans.channels` retains a 30% minimum. These channels follow whichever
+requests more airflow: the CPU curve or GPU edge temperature, rising from 30%
+at 50°C to 100% at 80°C in every profile. GPU demand is mapped onto the CPU
+curve's scale before taking the maximum and averaging. The CPU group follows
+only CPU temperature; the GPU keeps control of its own fans.
 
-The units deliberately carry no dependency on `power-profiles-daemon.service`,
-and must not gain one: that daemon is ordered after `multi-user.target`, while
-the fan units are wanted by `multi-user.target` and therefore started before it,
-so ordering after the daemon is a boot ordering cycle that makes systemd delete
-both fan start jobs. The initial profile read D-Bus-activates the daemon, and
-the watcher restarts `fancontrol` whenever the daemon appears.
+The explicit role assignment uses channel 2 for the usual ASUS/Nuvoton CPU_FAN
+mapping and channels 1, 3 and 4 for case airflow. Individual PWM/RPM control was
+checked, but Linux exposes no physical header labels on this board. The reported
+wiring puts the NH-D15 on CPU_OPT and the rear case fan on CPU_FAN. Those headers
+share control, so that rear fan follows the CPU group's stop/start curve too.
+Confirm the cabling when changing fans and update the case channel list if needed.
 
-`hosts/main/default.nix` installs the shared units and loads `nct6775` on NixOS;
-profile edits change the unit and take effect on rebuild. Arch's enabled
-`lm_sensors.service` loads `nct6775` from `/etc/conf.d/lm_sensors`. Build
-`host-tools` with the command above, then install the same files on Arch:
+Each start validates the sensor labels and curve. Invalid or missing sensor data,
+invalid fan feedback, failed writes or a fan reporting zero RPM for five seconds
+while commanded to spin fail the daemon. Normal exits restore motherboard
+automatic control through a Rust recovery guard. Independently, systemd's `ExecStopPost` runs
+`host-tools fan-control automatic`, which needs neither the JSON curve nor
+Linux temperature providers or D-Bus. It switches each controlled channel to
+NCT6798 Smart Fan IV (PWM enable mode 5), using the firmware's existing sensor
+selection and hardware curve. The daemon leaves those settings intact. Stopping
+the service, including during shutdown, therefore hands control to the motherboard.
+
+The daemon sends systemd a watchdog heartbeat only after a successful control
+sample. A stalled loop is killed after ten seconds, then the independent recovery
+hook runs. Unrequested exits restart after two seconds, with the start rate limit
+disabled so recovery keeps retrying. An explicit systemctl stop leaves the
+motherboard in control. This protects against a hung process as well as an exit;
+it cannot keep running after an operating-system or hardware failure.
+
+Keep CPU die temperature as the daemon's source: this board's NCT6798 hardware
+curve engine cannot select its separate Ryzen TSI input through the driver.
+The motherboard fallback uses its firmware-selected sensor instead; its readings
+and curve differ from the daemon's CPU/GPU control. The retained firmware curve
+on channels 1–4 rises from 60% at 30°C to 100% at 70°C on that sensor.
+
+`hosts/main/fancontrol.service` holds the controller and channel arguments.
+It must not depend on `power-profiles-daemon.service`: that daemon is ordered
+after `multi-user.target`, while the fan service starts before that target.
+Adding the dependency creates a boot ordering cycle. The Rust daemon reads and
+subscribes to power profiles over D-Bus, retrying startup if the provider is not ready.
+
+`hosts/main/default.nix` installs the shared unit and loads `nct6775` on NixOS.
+Arch's `lm_sensors.service` loads the module from `/etc/conf.d/lm_sensors`;
+keep that package for driver loading and diagnostics. Build `host-tools` with
+the command above, then install on Arch:
 
 ```sh
 sudo install -m 0755 pkgs/host-tools/target/release/host-tools /usr/local/libexec/host-tools
 sudo install -m 0644 hosts/main/fan-control.json /etc/main-fan-control.json
-sudo install -m 0644 hosts/main/fancontrol.service hosts/main/fan-profile-watch.service /etc/systemd/system/
+sudo install -m 0644 hosts/main/fancontrol.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now fancontrol.service fan-profile-watch.service
+sudo systemctl enable --now fancontrol.service
 ```
 
-Keep `lm_sensors` explicitly installed.
-
-After editing the Arch configuration, reinstall the JSON file and restart
-`fancontrol.service`. Home Manager does not own these system services.
+After editing the Arch curve, reinstall the JSON and run
+`sudo systemctl reload fancontrol.service`. Systemd sends SIGHUP; the daemon
+acknowledges completion after validating and applying the new configuration.
+Restart the service after replacing its binary or unit. Current profile, raw
+temperatures, requested PWM and sampled RPM are available in the root-only
+`/run/main-fan-control/status.json`. Home Manager does not own this system service.

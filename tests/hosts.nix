@@ -8,7 +8,6 @@ let
   main = hosts.main;
   laptop = hosts.laptop;
   cooling = main.systemd.units."fancontrol.service";
-  watch = main.systemd.units."fan-profile-watch.service";
   workstationHomes = lib.concatMap (name: [
     desktops.${name}.home-manager.users.mirsella
     flake.homeConfigurations.${name}.config
@@ -86,10 +85,14 @@ assert lib.assertMsg (
 ) "Hermes and its browser must stay on Predator";
 assert lib.assertMsg (
   builtins.elem "nct6775" main.boot.kernelModules
-  && lib.hasInfix "fan-control prepare" cooling.text
-  && lib.hasInfix "fan-control full-speed" cooling.text
-  && lib.hasInfix "/bin/fancontrol /run/main-fan-control/fancontrol.conf" cooling.text
-  && lib.hasInfix "fan-control watch /run/main-fan-control/fancontrol.conf" watch.text
+  && lib.hasInfix "ExecStopPost=" cooling.text
+  && lib.hasInfix "fan-control automatic" cooling.text
+  && lib.hasInfix "fan-control run " cooling.text
+  && lib.hasInfix "Type=notify-reload" cooling.text
+  && lib.hasInfix "WatchdogSec=10s" cooling.text
+  && lib.hasInfix "WatchdogSignal=SIGKILL" cooling.text
+  && lib.hasInfix "Restart=always" cooling.text
+  && !(main.systemd.units ? "fan-profile-watch.service")
   &&
     lib.all
       (
@@ -100,18 +103,18 @@ assert lib.assertMsg (
         laptop
         server
       ]
-) "Only main may run die-temperature fancontrol and its power-profile watcher";
+) "Only main may run the single Rust CPU/GPU fan service, with independent motherboard automatic recovery and a watchdog";
 assert lib.assertMsg (
   lib.all (
     unit:
     !lib.hasInfix "power-profiles-daemon" (
       lib.concatStrings (lib.filter (line: !(lib.hasPrefix "#" line)) (lib.splitString "\n" unit.text))
     )
-  ) [ cooling watch ]
+  ) [ cooling ]
 ) "Fan units must not depend on power-profiles-daemon: the daemon is itself ordered after multi-user.target, so ordering after it is a boot ordering cycle that makes systemd delete the fan start jobs";
 assert lib.assertMsg (
-  lib.all (unit: lib.hasInfix "StartLimitIntervalSec=0" unit.text) [ cooling watch ]
-) "Fan units must disable the start rate limit: fan and watcher failsafes have to keep retrying instead of staying dead";
+  lib.hasInfix "StartLimitIntervalSec=0" cooling.text
+) "The fan controller must disable the start rate limit so automatic recovery keeps retrying";
 assert lib.assertMsg (
   laptop.hardware.cpu.amd.ryzen-smu.enable
   && laptop.systemd.services ? ryzenadj-laptop
