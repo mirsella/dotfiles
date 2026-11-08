@@ -11,7 +11,7 @@ rustPlatform.buildRustPackage rec {
   cargoHash = "sha256-wgBi4CqPgab15O6y0n0re2aZ5QV02LbIlktQVlD8rVQ=";
   # Keep the stable engine; evaluate scheduler/2.0 changes separately.
   # README.md records upstream provenance and regression coverage.
-  patches = [ ./local-cache-fixes.patch ./failure-diagnostics.patch ];
+  patches = [ ./local-cache-fixes.patch ./failure-diagnostics.patch ./admission-diagnostics.patch ];
   nativeBuildInputs = [ pkg-config ];
   nativeCheckInputs = [ git cacert ];
   doCheck = true;

@@ -1,7 +1,7 @@
 # Local Kache fixes
 
-The package stays on v1.2.2 rather than adopting the 2.0 release-candidate
-engine. `local-cache-fixes.patch` contains these fixes and their regressions:
+The package stays on v1.2.2 rather than adopting the 2.0 scheduler.
+`local-cache-fixes.patch` contains these fixes and their regressions:
 
 - Probe the underlying compiler with `-vV`, check its exit status and require
   a compiler identity and nonempty host. Refresh older incomplete version
@@ -23,9 +23,41 @@ BLAKE3 digest on compiler failures and build-script bypasses. This distinguishes
 pinned build-script engines that survive a package upgrade. Bypass reasons keep
 the failing stage and OS error kind/code without copying inner paths into the
 event. Compiler failures include their exit code and compile duration. These
-optional fields use event schema 27; older events remain readable. Successful
+optional fields were introduced in local event schema 27. Successful
 hits do not hash the engine. Diagnostics do not record arguments, environment
 values or compiler output, and do not change scheduler or cache-key policy.
+
+`admission-diagnostics.patch` adds optional local schema 28 observations of the
+existing flight, discovery and capacity decisions. It retains at most 16 decisions
+per wrapper, counts overflow and snapshots without draining on event reconstruction.
+The per-wrapper observation ID and decision index allow consumers to deduplicate
+decisions if a wrapper emits a secondary event.
+Capacity evidence distinguishes base weight, maximum request and minimum observed
+free slots. Successful lock scans stop early, so availability is a lower bound;
+extrema need not occur together. The actual admitted count is recorded separately.
+Unreadable test-marker observations do not hide measured occupancy counts.
+A peer-completed flight means lock release, not successful compilation or publication.
+Test-lease acquisition is not reported as
+compile admission, and scheduler-disabled events omit these decisions.
+
+Pressure evidence reuses the existing 250 ms sample and file reads, retaining the
+source and actual observation timestamps. Disabled, unsupported and unavailable
+monitoring are distinguished from numeric samples. Full PSI is observational only;
+Linux's some-PSI threshold, macOS policy, cgroup fallback and opt-out remain unchanged.
+No background sampler, paths, arguments, environment values or compiler output are
+added. Normal hits do not probe pressure. Counters expose errors swallowed by the
+committed-entry query and terminal local-lookup miss fallbacks without changing
+those fallbacks or their retry policy. A missing row is not an error.
+
+Local and upstream event schema numbers can diverge. Readers should identify these
+optional fields by their presence, not assume that an upstream schema number means
+the same thing. Older event files and daemon handoffs remain readable.
+
+Scheduler policy adoption remains gated on a bounded real-Cargo comparison on a
+dedicated host. It must record pressure, successful foreground latency and failure
+counts, throughput and resource bounds with matched source/configuration. A policy
+replay or passing scheduler unit tests is not a throughput or latency comparison.
+Do not induce pressure on the shared laptop or change capacity to qualify a policy.
 
 The Nix build runs workspace library/binary tests. Also run the complete
 workspace integration/doc suite with the repository's resource guard, a clean
