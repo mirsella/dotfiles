@@ -284,6 +284,35 @@ in {
         auth.adopt_external_logins = false;
         skills.external_dirs = [ "${ownerHome}/.agents/skills" "${ownerHome}/.codex/skills" ];
         skills.disabled = [ "personal-accounts" ];
+        # This is user-account access, independent of the Slack bot gateway.
+        # Client credentials come from SOPS; refreshable user tokens stay in
+        # Hermes's private, native MCP token cache.
+        mcp_servers.slack = {
+          url = "https://mcp.slack.com/mcp";
+          auth = "oauth";
+          oauth = {
+            client_id = "\${SLACK_MCP_CLIENT_ID}";
+            client_secret = "\${SLACK_MCP_CLIENT_SECRET}";
+            token_endpoint_auth_method = "client_secret_post";
+            redirect_host = "localhost";
+            redirect_port = 27890;
+            timeout = 600;
+            # All user scopes advertised by Slack's official MCP. These do
+            # not grant workspace-admin privileges or enable a bot identity.
+            scope = lib.concatStringsSep " " [
+              "canvases:read" "canvases:write"
+              "channels:history" "channels:read" "channels:write"
+              "chat:write" "emoji:read" "files:read" "files:write"
+              "groups:history" "groups:read" "groups:write"
+              "im:history" "im:read" "im:write" "lists:read" "lists:write"
+              "mpim:history" "mpim:read" "mpim:write"
+              "reactions:read" "reactions:write"
+              "search:read.files" "search:read.im" "search:read.mpim"
+              "search:read.private" "search:read.public" "search:read.users"
+              "users:read" "users:read.email"
+            ];
+          };
+        };
       };
     };
     system.activationScripts.hermes-settings = lib.stringAfter [ "hermes-agent-setup" ] ''

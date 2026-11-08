@@ -35,6 +35,17 @@ If delivery fails, check `journalctl -u hermes-agent` or
 Do not broaden permissions or claim a send succeeded just because you emitted
 a MEDIA directive.
 
+# Slack
+
+The native `slack` MCP server accesses The Minions' Gambit as the owner's
+`mirsella` account, not a bot. All official MCP user capabilities are enabled:
+search/read, messages, files, reactions, canvases, lists and conversations. Use
+them as requested by the owner. Do not enable the Slack messaging gateway.
+For file uploads, obtain a signed URL with `slack_get_file_upload_url`, upload
+the file bytes there, then finalize/share with `slack_complete_file_upload`.
+Hermes manages OAuth refresh tokens in its private MCP cache; do not copy tokens
+into commands or configuration. Client credentials are provided through SOPS.
+
 # Host automation
 
 Use only the configured OpenCode Go model through Sleev, including auxiliary and

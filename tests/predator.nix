@@ -198,8 +198,36 @@ assert lib.assertMsg (
     { services.hermes-agent.documents."AGENTS.md" = lib.mkForce "Restart test instructions"; }
     { services.hermes-agent.hermesHomeFiles."SOUL.md" = lib.mkForce "Restart test personality"; }
     { services.hermes-agent.extraPlugins = lib.mkForce []; }
+    { services.hermes-agent.settings.mcp_servers.slack.oauth.timeout = lib.mkForce 601; }
   ]
 ) "Managed Hermes config, instructions, personality and plugin changes must restart both services";
+assert lib.assertMsg (
+  let
+    slack = server.services.hermes-agent.settings.mcp_servers.slack;
+    scopes = lib.splitString " " slack.oauth.scope;
+    expectedScopes = [
+      "canvases:read" "canvases:write"
+      "channels:history" "channels:read" "channels:write"
+      "chat:write" "emoji:read" "files:read" "files:write"
+      "groups:history" "groups:read" "groups:write"
+      "im:history" "im:read" "im:write" "lists:read" "lists:write"
+      "mpim:history" "mpim:read" "mpim:write"
+      "reactions:read" "reactions:write"
+      "search:read.files" "search:read.im" "search:read.mpim"
+      "search:read.private" "search:read.public" "search:read.users"
+      "users:read" "users:read.email"
+    ];
+  in slack.url == "https://mcp.slack.com/mcp"
+  && slack.auth == "oauth"
+  && slack.oauth.client_id == "\${SLACK_MCP_CLIENT_ID}"
+  && slack.oauth.client_secret == "\${SLACK_MCP_CLIENT_SECRET}"
+  && slack.oauth.token_endpoint_auth_method == "client_secret_post"
+  && slack.oauth.redirect_host == "localhost"
+  && slack.oauth.redirect_port == 27890
+  && lib.sort builtins.lessThan scopes == lib.sort builtins.lessThan expectedScopes
+  && !lib.hasInfix "admin:" slack.oauth.scope
+  && !((server.services.hermes-agent.settings.platforms or {}) ? slack)
+) "Hermes Slack must grant all official MCP user scopes with secret references and no bot gateway";
 assert lib.assertMsg (
   server.services.hermes-agent.user == "mirsella"
   && server.services.hermes-agent.group == "hermes-private"
