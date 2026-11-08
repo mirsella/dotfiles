@@ -9,6 +9,7 @@ mod claude_hook;
 mod fan_control;
 mod hardware;
 mod hermes;
+mod hex_model;
 mod hex_settings;
 mod maintenance;
 mod memory;
@@ -79,6 +80,11 @@ enum Commands {
     HexSettings {
         #[command(subcommand)]
         action: hex_settings::Operation,
+    },
+    /// Install the selected Hex model; exit unsuccessfully until it is ready.
+    HexModel {
+        #[arg(long)]
+        hex: String,
     },
     BootstrapAgentTools {
         package: PathBuf,
@@ -235,6 +241,7 @@ fn run() -> Result<()> {
         Commands::ClaudeBrowserHook { browser_mcp } => claude_hook::run(&browser_mcp),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
         Commands::HexSettings { action } => hex_settings::run(action),
+        Commands::HexModel { hex } => hex_model::run(&hex),
         Commands::BootstrapAgentTools { package } => agent_tools::bootstrap(&package),
         Commands::AgentToolsBackups { action } => migration_backups::run(action),
         Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),

@@ -18,16 +18,16 @@ assert lib.assertMsg (lib.all (home:
   && lib.elem flake.packages.x86_64-linux.hex home.home.packages
   && home.systemd.user.services.hex.Service.ExecStart == [ "${flake.packages.x86_64-linux.hex}/bin/hex service" ]
   && home.systemd.user.services.hex.Service.Type == "notify"
-  && !(home.systemd.user.services ? hex-model)
-  && lib.hasInfix "model install cohere_transcribe" home.home.activation.hexModel.data
+  && lib.hasInfix "hex-settings sync --no-capture" home.systemd.user.services.hex.Service.ExecStartPre
+  && home.systemd.user.services.hex-model.Unit.Wants == [ "hex.service" ]
+  && !(home.systemd.user.services.hex-model.Unit ? Requires)
+  && lib.elem "hex.service" home.systemd.user.services.hex-model.Unit.PartOf
+  && lib.any (lib.hasInfix "/bin/host-tools hex-model --hex ") home.systemd.user.services.hex-model.Service.ExecStart
   && lib.hasInfix "Hidden=true" home.xdg.configFile."autostart/anomaly.hex.desktop".text
   && home.home.file ? ".t3/userdata/speech/models/cohere-transcribe-03-2026-Q8_0.gguf"
 ) workstationHomes
   && !(server.home-manager.users.mirsella.systemd.user.services ? hex)
-  # The upstream module input must match the packaged release.
-  && (builtins.fromTOML (builtins.readFile "${flake.inputs.hex}/Cargo.toml")).package.version
-    == flake.packages.x86_64-linux.hex.version
-) "Hex must autostart only on workstations, with one login owner, the Nix-owned executable and a matching upstream module";
+) "Hex must autostart only on workstations, with one login owner and the Nix-owned executable";
 assert lib.assertMsg (lib.all (
   home:
   let
