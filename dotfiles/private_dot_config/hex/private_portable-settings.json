@@ -52,7 +52,7 @@
   "experimental": {
     "hex_microphone": true,
     "hex_microphone_comfort_noise": true,
-    "hex_microphone_mode": "muffled",
+    "hex_microphone_mode": "muted",
     "hex_microphone_strength": 1.0
   },
   "gnome_keyboard_shortcuts": false,
@@ -92,7 +92,7 @@
       "lead_minutes": 1,
       "remind": true
     },
-    "enabled": false,
+    "enabled": true,
     "providers": [],
     "recording_indicator_corner": "top_right",
     "show_recording_indicator": true,
@@ -127,7 +127,7 @@
   "show_dock_icon": true,
   "sound_effect_volume": 0.5,
   "sound_effects": true,
-  "sound_theme": "classic",
+  "sound_theme": "signature",
   "transcription": {
     "language": "en",
     "model": "cohere_transcribe"
@@ -137,6 +137,23 @@
   "updates": {
     "channel": null
   },
-  "vocabulary": [],
+  "vocabulary": [
+    "wasm",
+    "vercel",
+    "cloudflare",
+    "spine",
+    "posthog",
+    "bevy",
+    "cargo",
+    "rust",
+    "leptos",
+    "svelte",
+    "sveltekit",
+    "tailwind",
+    "pnpm",
+    "npm",
+    "seaorm",
+    "voxride"
+  ],
   "vocabulary_boost": "normal"
 }
