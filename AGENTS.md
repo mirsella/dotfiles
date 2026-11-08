@@ -100,7 +100,11 @@ The flake discovers these directories and sets hostnames automatically.
 - Use Git-backed flake references (`.`, `.#package` or the checkout's absolute
   path without `path:`) so Nix excludes `.agents-local/`. Add new source files to
   the Git index before evaluating; they do not need to be committed.
-- `nix flake check . --no-build --no-update-lock-file` evaluates all profiles
+- Run `nix eval .#ci.drvPath --raw --no-update-lock-file` before
+  `nix flake check . --no-build --no-update-lock-file`, especially on a cold
+  store or after GC: the check is read-only, but Hermes reads metadata from
+  generated, filtered source paths. The eval materializes those sources without
+  building the CI packages. The flake check evaluates all profiles
   and runs the host-isolation and Predator boot/storage invariants through `checks`. GitHub Actions builds
   `.#ci` on pushes to `main`: every declared check, host-tools with its Rust tests,
   and camofox-browser. Format `pkgs/host-tools` with the flake's pinned
