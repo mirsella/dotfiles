@@ -109,6 +109,8 @@
     "observability": false,
     "sourceControlHosts": false,
     "usageLimitSources": false,
+    "usageModelAliases": {"*": true},
+    "usagePriceOverrides": {"*": {"inputCostPerMillionTokens": true, "outputCostPerMillionTokens": true, "cacheReadCostPerMillionTokens": true, "cacheWriteCostPerMillionTokens": true}},
     "worktreesDirectory": false,
     "previousWorktreesDirectories": false,
     "favorites": "$favorites",
