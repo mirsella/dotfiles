@@ -2,6 +2,7 @@
 
 - Make invariant violations obvious. Do not silently fall back from an impossible state; justify and log any necessary fallback.
 - Never rotate credentials or secrets solely because an agent read or displayed them; sessions are private.
+- When comparing source checkouts, give each checkout its own Cargo target/build directories, including baseline worktrees; reuse the shared Kache cache instead of sharing Cargo outputs.
 
 ## Background commands
 
