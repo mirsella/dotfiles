@@ -1,4 +1,5 @@
-//! Prune task scratch directories left under ~/dev/scratch and ~/.t3/scratch.
+//! Prune task scratch directories left under ~/dev/scratch and ~/.t3/scratch,
+//! and landed OpenCode worktrees.
 use anyhow::{Context, Result, ensure};
 use std::{
     fs,
@@ -9,7 +10,7 @@ use std::{
 pub const DEFAULT_MAX_AGE_DAYS: u64 = 8;
 
 /// Newest modification time anywhere below a scratch entry, without following symlinks.
-fn last_touched(path: &Path) -> Result<SystemTime> {
+pub(crate) fn last_touched(path: &Path) -> Result<SystemTime> {
     let mut newest = fs::symlink_metadata(path)?.modified()?;
     let mut pending = vec![path.to_path_buf()];
     while let Some(directory) = pending.pop() {
@@ -89,6 +90,25 @@ pub fn run(max_age_days: u64, dry_run: bool) -> Result<()> {
             Ok(removed) => println!(
                 "Scratch: {removed} entries untouched for {max_age_days}d under {}",
                 root.display()
+            ),
+            Err(error) => failures.push(format!("{error:#}")),
+        }
+    }
+    let worktrees = home.join(".local/share/opencode/worktree");
+    if worktrees.exists() {
+        let now = SystemTime::now();
+        let result = (|| -> Result<usize> {
+            let mut in_use = crate::worktree_prune::process_cwds()?;
+            in_use.extend(crate::worktree_prune::recent_session_dirs(
+                &home.join(".local/share/opencode/opencode.db"),
+                now - max_age,
+            )?);
+            crate::worktree_prune::prune(&worktrees, now, max_age, &in_use, dry_run)
+        })();
+        match result {
+            Ok(removed) => println!(
+                "Worktrees: {removed} landed and untouched for {max_age_days}d under {}",
+                worktrees.display()
             ),
             Err(error) => failures.push(format!("{error:#}")),
         }

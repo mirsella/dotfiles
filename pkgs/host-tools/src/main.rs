@@ -9,6 +9,7 @@ mod claude_hook;
 mod fan_control;
 mod hardware;
 mod hermes;
+mod hex_settings;
 mod maintenance;
 mod memory;
 mod migration_backups;
@@ -26,6 +27,7 @@ mod tests;
 mod theme;
 mod uki;
 mod util;
+mod worktree_prune;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -72,6 +74,11 @@ enum Commands {
         base_dir: Option<PathBuf>,
         #[command(subcommand)]
         action: t3_settings::Operation,
+    },
+    /// Capture or merge Hex's portable preferences without copying private state.
+    HexSettings {
+        #[command(subcommand)]
+        action: hex_settings::Operation,
     },
     BootstrapAgentTools {
         package: PathBuf,
@@ -147,7 +154,7 @@ enum Commands {
     Backup {
         config: PathBuf,
     },
-    /// Remove task scratch directories untouched for more than N days.
+    /// Remove task scratch directories and landed OpenCode worktrees untouched for more than N days.
     ScratchPrune {
         #[arg(long, default_value_t = scratch::DEFAULT_MAX_AGE_DAYS)]
         max_age_days: u64,
@@ -227,6 +234,7 @@ fn run() -> Result<()> {
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
         Commands::ClaudeBrowserHook { browser_mcp } => claude_hook::run(&browser_mcp),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
+        Commands::HexSettings { action } => hex_settings::run(action),
         Commands::BootstrapAgentTools { package } => agent_tools::bootstrap(&package),
         Commands::AgentToolsBackups { action } => migration_backups::run(action),
         Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),

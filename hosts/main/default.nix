@@ -13,8 +13,8 @@
   };
   boot.tmp.tmpfsSize = "32G";
 
-  # NCT6798 motherboard fan controller.
-  boot.kernelModules = [ "nct6775" ];
+  # NCT6798 fan controller and the AMD SMBus used by the RAM lighting.
+  boot.kernelModules = [ "nct6775" "i2c-piix4" ];
   systemd.units."fancontrol.service" = {
     text = lib.replaceStrings
       [
@@ -27,6 +27,30 @@
       ]
       (builtins.readFile ./fancontrol.service);
     wantedBy = [ "multi-user.target" ];
+  };
+
+  hardware.i2c.enable = true;
+  environment.etc."main-rgb/OpenRGB.json".source = ./OpenRGB.json;
+  systemd.units."main-rgb.service" = {
+    text = lib.replaceStrings
+      [
+        "/usr/bin/openrgb"
+        "/usr/bin/cp"
+        "/usr/bin/liquidctl"
+      ]
+      [
+        "${pkgs.openrgb}/bin/openrgb"
+        "${pkgs.coreutils}/bin/cp"
+        "${pkgs.liquidctl}/bin/liquidctl"
+      ]
+      (builtins.readFile ./main-rgb.service);
+    wantedBy = [
+      "graphical.target"
+      "suspend.target"
+      "hibernate.target"
+      "hybrid-sleep.target"
+      "suspend-then-hibernate.target"
+    ];
   };
 
   system.stateVersion = "26.05";

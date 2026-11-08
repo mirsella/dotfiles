@@ -22,6 +22,7 @@ in
     ./adb-wireless.nix
     ./codexbar.nix
     ./reverse-engineering.nix
+    ./hex.nix
   ];
 
   programs.git.settings.commit.gpgsign = true;

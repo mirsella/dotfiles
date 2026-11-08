@@ -421,7 +421,7 @@
       "worktreeAfterDays": 4,
       "worktreeOnDelete": true,
       "worktreeOnMerge": true,
-      "worktreeSettledAfterDays": 0,
+      "worktreeSettledAfterDays": 4,
       "worktreeUnchanged": true
     },
     "textGenerationModelSelection": {

@@ -30,6 +30,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-overlay.url = "github:oxalica/rust-overlay/892c035d7c2ff75acd5da10424a47ab454e1f3dc";
     };
+    # Only its Home Manager module; pkgs/hex packages the release binary.
+    # Keep the tag equal to pkgs/hex's version (tests/hosts.nix checks it).
+    hex = {
+      url = "github:anomalyco/hex/v3.3.0";
+      flake = false;
+    };
     hermes-agent = {
       url = "github:mirsella/hermes-agent/9cee56f4b1ab445022eedab4efe22fb00d4208a0";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -74,7 +80,7 @@
       customPackages = (import ./pkgs pkgs) // { inherit (pkgs) context7-account-broker; };
       # nix-update follows each package's own versioning: npm lockfiles are regenerated,
       # stable releases use the stable version, and VCS packages track their branch.
-      stableVersionPackages = [ "electron-fuses" "helium" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
+      stableVersionPackages = [ "electron-fuses" "helium" "hex" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
       # These build from this checkout or pin their own sources; nix-update
       # cannot derive a release version for them. llama-vulkan is a symlinkJoin
       # around an override, so nix-update cannot see its llama.cpp source.
@@ -137,7 +143,7 @@
         _module.args.inputs = inputs;
         networking.hostName = hostName;
         nixpkgs.overlays = overlays;
-        home-manager.sharedModules = [ inputs.sops-nix.homeManagerModules.sops ];
+        home-manager.sharedModules = [ inputs.sops-nix.homeManagerModules.sops "${inputs.hex}/nix/hm-module.nix" ];
         home-manager.users.mirsella.imports = nixpkgs.lib.optional
           (builtins.hasAttr hostName homeModules) homeModules.${hostName};
       }) hostDirs;
@@ -175,6 +181,7 @@
             ./modules/home/common.nix
             module
             sops-nix.homeManagerModules.sops
+            "${inputs.hex}/nix/hm-module.nix"
             {
               targets.genericLinux.enable = true;
               targets.genericLinux.gpu.enable = false;

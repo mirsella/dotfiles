@@ -1,0 +1,23 @@
+{
+  "Detectors": {
+    "detectors": {
+      "ASUS Aura Core": false,
+      "ASUS Aura Motherboard": false,
+      "ASUS Aura SMBus Motherboard": false,
+      "Glorious Model D / D-": false,
+      "Wooting 60HE": false,
+      "Wooting 60HE (ARM)": false,
+      "Wooting 60HE+": false,
+      "Wooting 60HEv2": false,
+      "Wooting 80HE": false,
+      "Wooting One": false,
+      "Wooting One (Legacy)": false,
+      "Wooting Two": false,
+      "Wooting Two (Legacy)": false,
+      "Wooting Two HE": false,
+      "Wooting Two HE (ARM)": false,
+      "Wooting Two Lekker Edition": false,
+      "Wooting UwU RGB": false
+    }
+  }
+}

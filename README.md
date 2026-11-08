@@ -103,7 +103,7 @@ sudo "$toplevel/bin/switch-to-configuration" switch
 
 For the current Arch installations, use `homeConfigurations.main` or
 `homeConfigurations.laptop` with standalone Home Manager. Pacman/AUR still own
-their application binaries, except the writable agent installs below. NixOS
+their application binaries, except Hex and the writable agent installs below. NixOS
 supplies other binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
@@ -321,6 +321,57 @@ projects outside the bundle are preserved. Saved server exposure and local
 environment preferences apply too. Close the settings editor while restoring,
 then restart the desktop to reload client preferences. Neither command clones
 repositories or restores authentication. Connections must be paired locally.
+
+### Hex voice dictation
+
+`modules/home/hex.nix` enables Hex's upstream Home Manager module (flake input
+`hex`, pinned to a release tag) on main and laptop. Its `hex.service` starts Hex
+with the graphical session. A hidden XDG autostart entry keeps the app's Launch
+at login toggle off, because Hex's own entry would run the unwrapped store
+binary. Activation runs `hex model install` once, only while the model's
+verified marker is missing. Home Manager installs the stable release
+from `pkgs/hex` on both Arch and NixOS, including matching Mesa Vulkan drivers.
+Nix unpacks and patches the official release binary; it does not compile Hex.
+The CLI and desktop launcher use that same Nix package. The flake's package
+updater tracks stable Hex releases; bump the `hex` input tag to the same release
+(`tests/hosts.nix` fails until they match), then activate Home Manager. On Arch,
+restart `hex.service` after activation to use the new release immediately. Hex
+does not replace the Nix-owned executable itself.
+
+Chezmoi tracks `~/.config/hex/portable-settings.json`, captured from the current
+preferences with `hex-settings capture`. The bundle selects Cohere Transcribe,
+English transcription and UI, Meta+Space dictation, Ctrl+Alt+V paste-last,
+toggle recording, the current Labs switches and five-minute idle unloading.
+T3's portable settings also select Cohere and English. Both applications use the
+same checksum-verified Q8_0 model: Home Manager links T3's model cache entry to
+Hex's downloaded file. There is one 2.41 GB download per machine, outside Git and
+the Nix store. Loading it in both apps can still use separate RAM/GPU memory.
+The allowlist in `pkgs/host-tools/src/hex-settings-allowlist.json` includes
+shortcuts, output modes, rewrite prompts and vocabulary. Review personal text
+in those preferences before saving it to Git.
+
+Microphone names, local folders, keyboard input-source IDs, model recents,
+calendar identifiers, capture routing and migration state stay on each device.
+Credentials, portal tokens, recordings, history and model downloads never enter
+the bundle. Do not add `~/.local/share/hex` to chezmoi.
+
+`chezmoi re-add` captures preferences before saving the portable file. Apply
+merges bundle changes without replacing private fields; Hex reloads the file
+while idle. Local-only edits remain untouched until capture. Conflicting edits
+stop sync: choose `hex-settings capture` for live settings or
+`hex-settings sync --force-apply` for the bundle, then re-add after capture.
+The helper keeps a baseline and the last overwritten settings file, mode 0600,
+under `~/.local/state/hex-settings`. It has no background watcher.
+
+```sh
+chezmoi re-add ~/.config/hex/portable-settings.json
+hex-settings sync --dry-run
+```
+
+Chezmoi auto-commits and pushes; review unrelated staged changes before re-add.
+On a new workstation, apply the portable file and chezmoi hook configuration,
+then activate Home Manager. Portal approvals and microphone selection remain
+device-local.
 
 ### Workstation memory
 
@@ -992,3 +1043,39 @@ acknowledges completion after validating and applying the new configuration.
 Restart the service after replacing its binary or unit. Current profile, raw
 temperatures, requested PWM and sampled RPM are available in the root-only
 `/run/main-fan-control/status.json`. Home Manager does not own this system service.
+
+## Main's RGB lighting
+
+`hosts/main/main-rgb.service` keeps the Corsair Vengeance RGB Pro DIMMs and
+ASUS Aura lighting off. OpenRGB controls only the RAM, using a saved Color
+Pulse effect with both colors black and brightness zero. Custom black leaves
+these DIMMs white; Direct black does not replace the saved effect. Liquidctl
+blanks all Aura RGB/ARGB channels. The private OpenRGB configuration disables
+Aura detection to avoid opening the same USB controller twice. Fan speeds are
+unchanged.
+
+The oneshot runs at boot and after the suspend, hibernate, hybrid-sleep and
+suspend-then-hibernate targets complete. It exits after each run so the next
+wake can start it again. No lighting commands run before sleep or during
+shutdown, and no RGB daemon runs.
+A separate Corsair USB lighting hub has not been detected; lighting on an
+undetected controller is not covered.
+
+NixOS installs the unit from `hosts/main/default.nix`. On Arch, keep the
+existing `openrgb` and `liquidctl` packages and install the shared unit:
+
+```sh
+sudo install -m 0644 hosts/main/main-rgb.service /etc/systemd/system/
+sudo install -Dm0644 hosts/main/OpenRGB.json /etc/main-rgb/OpenRGB.json
+sudo systemctl daemon-reload
+sudo systemctl enable --now main-rgb.service
+```
+
+The dedicated configuration retains the disabled keyboard/mouse detectors from
+main's working OpenRGB settings. Default detection crashes OpenRGB 1.0 in
+hidapi cleanup on main. The configuration is copied into the private
+state directory before each start; the interactive OpenRGB settings stay separate.
+Arch's existing `rgb-off.service` remains responsible for blanking other
+peripherals at boot, before this job. Actual standby darkness still
+needs a physical check; motherboard firmware can have separate standby-lighting
+settings.

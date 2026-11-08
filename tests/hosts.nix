@@ -13,6 +13,21 @@ let
     flake.homeConfigurations.${name}.config
   ]) (builtins.attrNames desktops);
 in
+assert lib.assertMsg (lib.all (home:
+  home.systemd.user.services.hex.Install.WantedBy == [ "graphical-session.target" ]
+  && lib.elem flake.packages.x86_64-linux.hex home.home.packages
+  && home.systemd.user.services.hex.Service.ExecStart == [ "${flake.packages.x86_64-linux.hex}/bin/hex service" ]
+  && home.systemd.user.services.hex.Service.Type == "notify"
+  && !(home.systemd.user.services ? hex-model)
+  && lib.hasInfix "model install cohere_transcribe" home.home.activation.hexModel.data
+  && lib.hasInfix "Hidden=true" home.xdg.configFile."autostart/anomaly.hex.desktop".text
+  && home.home.file ? ".t3/userdata/speech/models/cohere-transcribe-03-2026-Q8_0.gguf"
+) workstationHomes
+  && !(server.home-manager.users.mirsella.systemd.user.services ? hex)
+  # The upstream module input must match the packaged release.
+  && (builtins.fromTOML (builtins.readFile "${flake.inputs.hex}/Cargo.toml")).package.version
+    == flake.packages.x86_64-linux.hex.version
+) "Hex must autostart only on workstations, with one login owner, the Nix-owned executable and a matching upstream module";
 assert lib.assertMsg (lib.all (
   home:
   let
@@ -115,6 +130,41 @@ assert lib.assertMsg (
 assert lib.assertMsg (
   lib.hasInfix "StartLimitIntervalSec=0" cooling.text
 ) "The fan controller must disable the start rate limit so automatic recovery keeps retrying";
+assert lib.assertMsg (
+  let
+    off = main.systemd.units."main-rgb.service";
+    resumeTargets = [
+      "suspend.target"
+      "hibernate.target"
+      "hybrid-sleep.target"
+      "suspend-then-hibernate.target"
+    ];
+    detectors = (lib.importJSON main.environment.etc."main-rgb/OpenRGB.json".source).Detectors.detectors;
+  in
+  main.hardware.i2c.enable
+  && lib.elem "i2c-piix4" main.boot.kernelModules
+  && off.wantedBy == [ "graphical.target" ] ++ resumeTargets
+  && lib.hasInfix "After=${lib.concatStringsSep " " resumeTargets}" off.text
+  && detectors."ASUS Aura Motherboard" == false
+  && detectors."Glorious Model D / D-" == false
+  && detectors."Wooting 60HE+" == false
+  && lib.all (text: lib.hasInfix text off.text) [
+    "Type=oneshot"
+    "--device \"Corsair Vengeance RGB Pro DDR4\""
+    "--mode \"Color Pulse\" --color 000000,000000 --brightness 0"
+    "--match \"ASUS Aura LED Controller\" set sync color off"
+    "WorkingDirectory=/var/lib/main-rgb"
+    "/etc/main-rgb/OpenRGB.json /var/lib/main-rgb/OpenRGB.json"
+  ]
+  && lib.all (text: !(lib.hasInfix text off.text)) [
+    "Rainbow"
+    "--mode Custom"
+    "ExecStart=-"
+    "ExecStop"
+    "RemainAfterExit="
+  ]
+  && lib.all (host: !(host.systemd.units ? "main-rgb.service")) [ laptop server ]
+) "Only main may configure RAM/Aura lighting, applying saved zero brightness only at boot and after wake";
 assert lib.assertMsg (
   laptop.hardware.cpu.amd.ryzen-smu.enable
   && laptop.systemd.services ? ryzenadj-laptop

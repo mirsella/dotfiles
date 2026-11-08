@@ -5,6 +5,7 @@
   makeWrapper,
   runtimeShell,
   sqlite,
+  git,
   dbus,
   pkg-config,
 }:
@@ -31,9 +32,10 @@ rustPlatform.buildRustPackage {
   nativeCheckInputs = [
     openssl
     sqlite
+    git
   ];
   postInstall = ''
-    wrapProgram "$out/bin/host-tools" --prefix PATH : "${lib.makeBinPath [ sqlite ]}"
+    wrapProgram "$out/bin/host-tools" --prefix PATH : "${lib.makeBinPath [ sqlite git ]}"
     makeWrapper "$out/bin/host-tools" "$out/bin/composio-mcp-headers" \
       --add-flags "composio-mcp-headers"
   '';
