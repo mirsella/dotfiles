@@ -94,7 +94,8 @@
     wine
     gimp
     blender
-    libreoffice
+    # Bundles the LanguageTool plugin and French/English spellcheck dictionaries.
+    onlyoffice-desktopeditors
     obs-studio
     audacity
     mpv

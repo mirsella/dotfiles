@@ -84,6 +84,7 @@
         "host-tools"
         "idle-watchdog"
         "llama-vulkan"
+        "onlyoffice-languagetool"
         "opencode-extensions"
         "predator-pm-study"
         "sleev"

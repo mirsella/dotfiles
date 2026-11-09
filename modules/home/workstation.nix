@@ -155,6 +155,14 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
+  # nixpkgs ships ONLYOFFICE 9.4 with LanguageTool built in; Arch's 10.0 does not.
+  xdg.dataFile."onlyoffice/desktopeditors/sdkjs-plugins/{7CDB02C9-A0BF-4B56-9A1A-71C860B8498F}" =
+    lib.mkIf (!isNixOS)
+      {
+        source = "${pkgs.onlyoffice-languagetool}/share/onlyoffice-languagetool";
+        force = true;
+      };
+
   # KIO browses this on demand without exposing an offline cloud mount to local trash scans.
   xdg.dataFile."remoteview/nextcloud.desktop".text = ''
     [Desktop Entry]

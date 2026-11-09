@@ -64,7 +64,12 @@ export PATH="$PATH:/opt/osxcross/target/bin"
 export WORDCHARS=${WORDCHARS/\*\?\_\-\.\[\]\~\=\/\&\;\!\#\$\%\^\(\)\{\}\<\>}
 alias -s html="$BROWSER"
 alias -s pdf="$BROWSER"
-alias -s odt='libreoffice'
+alias -s odt='onlyoffice-desktopeditors'
+alias -s ods='onlyoffice-desktopeditors'
+alias -s odp='onlyoffice-desktopeditors'
+alias -s docx='onlyoffice-desktopeditors'
+alias -s xlsx='onlyoffice-desktopeditors'
+alias -s pptx='onlyoffice-desktopeditors'
 alias psaux='ps aux | rg '
 alias journalctlerrors='journalctl -p 3 -xb'
 alias clearnotif='for i in $(seq $(notify-send -p " " -t 1) -1 0); do qdbus6 org.kde.plasmashell /org/freedesktop/Notifications org.freedesktop.Notifications.CloseNotification $i; done'
