@@ -156,10 +156,13 @@ in
   };
 
   # nixpkgs ships ONLYOFFICE 9.4 with LanguageTool built in; Arch's 10.0 does not.
-  xdg.dataFile."onlyoffice/desktopeditors/sdkjs-plugins/{7CDB02C9-A0BF-4B56-9A1A-71C860B8498F}" =
+  # The desktop app only scans real directories under data/sdkjs-plugins, so link
+  # the plugin's files individually rather than the directory.
+  xdg.dataFile."onlyoffice/desktopeditors/data/sdkjs-plugins/{7CDB02C9-A0BF-4B56-9A1A-71C860B8498F}" =
     lib.mkIf (!isNixOS)
       {
         source = "${pkgs.onlyoffice-languagetool}/share/onlyoffice-languagetool";
+        recursive = true;
         force = true;
       };
 
