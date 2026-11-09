@@ -30,6 +30,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-overlay.url = "github:oxalica/rust-overlay/892c035d7c2ff75acd5da10424a47ab454e1f3dc";
     };
+    # Hex's upstream Nix packaging, built from the dev branch. flake = false so
+    # its own nixpkgs does not enter the lock; we build it with this nixpkgs.
+    hex = {
+      url = "github:anomalyco/hex/dev";
+      flake = false;
+    };
     hermes-agent = {
       url = "github:mirsella/hermes-agent/9cee56f4b1ab445022eedab4efe22fb00d4208a0";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -41,6 +47,19 @@
   outputs =
     { self, nixpkgs, home-manager, sops-nix, ... }@inputs:
     let
+      # Packages sourced from flake inputs. Expose the same set through the
+      # overlay and packages.x86_64-linux so both stay in sync.
+      inputPackages = final: {
+        context7-account-broker = final.callPackage "${inputs.context7-account-broker}/nix/package.nix" { };
+        # Arch's ICDs refer to host libraries that a Nix executable cannot
+        # resolve. Supply matching Mesa drivers, while respecting an explicit
+        # driver override.
+        hex = (final.callPackage "${inputs.hex}/nix/package.nix" { }).overrideAttrs (previous: {
+          postFixup = previous.postFixup + ''
+            wrapProgram "$out/bin/hex" --set-default VK_DRIVER_FILES "${final.mesa}/share/vulkan/icd.d"
+          '';
+        });
+      };
       overlays = [
         inputs.neovim-nightly-overlay.overlays.default
         inputs.rust-overlay.overlays.default
@@ -62,25 +81,25 @@
           };
           python3Packages = final.python3.pkgs;
         })
-        (final: _: (import ./pkgs final) // {
-          context7-account-broker = final.callPackage "${inputs.context7-account-broker}/nix/package.nix" { };
-        })
+        (final: _: (import ./pkgs final) // inputPackages final)
       ];
       pkgs = import nixpkgs {
         system = "x86_64-linux";
         inherit overlays;
         config.allowUnfreePredicate = package: nixpkgs.lib.getName package == "sleev";
       };
-      customPackages = (import ./pkgs pkgs) // { inherit (pkgs) context7-account-broker; };
+      customPackages = (import ./pkgs pkgs) // inputPackages pkgs;
       # nix-update follows each package's own versioning: npm lockfiles are regenerated,
       # stable releases use the stable version, and VCS packages track their branch.
-      stableVersionPackages = [ "electron-fuses" "helium" "hex" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
+      stableVersionPackages = [ "electron-fuses" "helium" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
       # These build from this checkout or pin their own sources; nix-update
       # cannot derive a release version for them. llama-vulkan is a symlinkJoin
       # around an override, so nix-update cannot see its llama.cpp source.
+      # Hex tracks the flake input `hex`, which `nix flake update` advances.
       localPackages = [
         "agent-tools"
         "context7-account-broker"
+        "hex"
         "host-tools"
         "idle-watchdog"
         "llama-vulkan"

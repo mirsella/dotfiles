@@ -195,6 +195,23 @@
         "type": "github"
       }
     },
+    "hex": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794255658,
+        "narHash": "sha256-EiKjD4/LbM1e5bXVqiJk2RwZLwVVNXaNTYLpnJFn+io=",
+        "owner": "anomalyco",
+        "repo": "hex",
+        "rev": "0264d5a8e010a19c1d720ec7fbc5b5bfe3968dac",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anomalyco",
+        "ref": "dev",
+        "repo": "hex",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -459,6 +476,7 @@
         "context7-account-broker": "context7-account-broker",
         "disko": "disko",
         "hermes-agent": "hermes-agent",
+        "hex": "hex",
         "home-manager": "home-manager",
         "lanzaboote": "lanzaboote",
         "neovim-nightly-overlay": "neovim-nightly-overlay",

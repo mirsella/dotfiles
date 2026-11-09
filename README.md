@@ -329,13 +329,13 @@ Connect credentials and device pairings out of the bundle.
 `modules/home/hex.nix` starts Hex with the graphical session on main and laptop.
 Home Manager owns `hex.service` and a hidden XDG autostart entry so the app's
 Launch at login toggle cannot create a second login launcher. `hex-model.service`
-installs the selected model if needed. Home Manager installs the stable release
-from `pkgs/hex` on both Arch and NixOS, including matching Mesa Vulkan drivers.
-Nix unpacks and patches the official release binary; it does not compile Hex.
-The CLI and desktop launcher use that same Nix package. The flake's package
-updater tracks stable Hex releases; activate Home Manager after updating the
-pin to install them. On Arch, restart `hex.service` after activation to use the
-new release immediately. Hex does not replace the Nix-owned executable itself.
+installs the selected model if needed. Nix compiles Hex from the upstream `dev`
+branch with upstream's own `nix/package.nix`, through the `hex` flake input, on
+both Arch and NixOS, including matching Mesa Vulkan drivers. The CLI and desktop
+launcher use that same Nix package. `nix flake update` advances the input;
+activate Home Manager after updating it to install a newer commit. On Arch,
+restart `hex.service` after activation to use the new build immediately. Hex
+does not replace the Nix-owned executable itself.
 
 Chezmoi tracks `~/.config/hex/portable-settings.json`, captured from the current
 preferences with `hex-settings capture`. The bundle selects Cohere Transcribe,
