@@ -504,7 +504,7 @@ GGUF model. Builds can also trigger GC below 10 GiB free, targeting 20 GiB free.
 device-change notifications and reconnects each configured phone (`188b31ee` on
 every workstation, plus the FP3 `A20AAFYS0202` on the laptop) using its current
 IP and port from mDNS. While connected it re-checks mDNS every five seconds and
-samples the device socket's payload counters every ten minutes, but otherwise
+reads the device socket's local payload counters every minute, but otherwise
 waits without running anything else. A disconnect wakes it immediately; while
 disconnected it retries discovery every two seconds through ADB's local server at
 `127.0.0.1:5037`.
@@ -517,18 +517,27 @@ ADB enables `SO_KEEPALIVE` with a one-second idle and probe interval on each
 device socket, so each connected phone is woken once a second while a transport
 is open. The watcher holds that connection only while it is wanted. It drops a
 transport once its phone has stopped advertising for fifteen seconds, which
-keeps an mDNS cache expiry or a Wi-Fi roam from cutting a live connection, and on
-the laptop, after two hours without payload traffic
-(`services.adb-wireless.idleMinutes`), it runs
-`settings put global adb_wifi_enabled 0`. That turns Wireless debugging off on
-that phone and ends the connection; keepalive probes carry no payload, so they
-never postpone the deadline, and idle accounting reads the socket counters with
-`ss`, which is why the unit's PATH carries `iproute2`. Nothing reaches the phone
-while it is off.
+keeps an mDNS cache expiry or a Wi-Fi roam from cutting a live connection.
+
+The workstations share the phone's idle shutdown. When a sample shows payload
+traffic, the watcher touches `/data/local/tmp/adb-wireless/<hostname>` on the
+phone, at most every 30 minutes while the phone stays in use, and leaves that
+write out of its own accounting. Keepalive probes carry no payload, so they never
+count as use; the counters come from `ss`, which is why the unit's PATH carries
+`iproute2`. Once a watcher has seen no traffic for three hours
+(`services.adb-wireless.idleMinutes`), it reads the other workstations' marker
+ages on the phone's clock. A marker younger than the limit plus those 30 minutes
+keeps Wireless debugging on until it ages out; otherwise the watcher runs
+`settings put global adb_wifi_enabled 0`, which turns Wireless debugging off
+and ends every connection. A host that is offline or whose watcher stopped
+simply leaves its marker ageing. Use from a host whose watcher is not running is
+not recorded. Shutdown comes three to three and a half hours after the last use
+from any workstation. While all hosts are idle the phone sees only one marker
+read at each deadline. If the markers cannot be read or the shutdown fails,
+Wireless debugging stays on and the watcher asks again after 15 minutes.
 Enabling Wireless debugging again on the phone itself, from a Quick Settings tile
-or Developer options, makes it advertise and the watcher reconnects within
-seconds. Only the laptop turns it off: the setting lives on the phone, so a second
-workstation idle for two hours would otherwise disable it under an active one.
+or Developer options, makes it advertise and the watchers reconnect within
+seconds.
 
 On Arch it uses Android Studio's SDK at
 `~/.local/share/android/sdk/platform-tools/adb`; NixOS uses `android-tools`.

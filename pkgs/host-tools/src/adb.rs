@@ -1,6 +1,6 @@
 //! Retry missed ADB mDNS connections without retaining an obsolete IP or port,
 //! drop a transport once its phone stops advertising it, and turn Wireless
-//! debugging off once a phone has been idle for a while.
+//! debugging off once no workstation sharing a phone has used it for a while.
 
 use crate::util;
 use anyhow::{Context, Result, anyhow, bail, ensure};
@@ -23,9 +23,21 @@ const MDNS_POLL_MS: i32 = 5_000;
 /// A missing mDNS advertisement alone is not proof of a dead transport: cache
 /// expiry and Wi-Fi roams look the same, so wait this long before dropping one.
 const ABSENT_GRACE: Duration = Duration::from_secs(15);
-/// How often the idle window reads the device socket's counters. This bounds how
-/// stale the last-traffic estimate can be without polling anything every minute.
-const SAMPLE_INTERVAL: Duration = Duration::from_secs(600);
+/// How often the device socket's payload counters are read. They are local,
+/// so sampling costs the phone nothing, and frequent samples publish a new use
+/// before another workstation's deadline can cut it.
+const SAMPLE_INTERVAL: Duration = Duration::from_secs(60);
+/// While a phone stays in use, its marker is refreshed at most this often, so
+/// every workstation treats a marker as current for this long past the idle limit.
+const MARK_INTERVAL: Duration = Duration::from_secs(30 * 60);
+/// How long a failed marker read or shutdown waits before the phone is asked again.
+const SHUTDOWN_RETRY: Duration = Duration::from_secs(15 * 60);
+/// Lets the device socket's counters settle after our own phone command, so
+/// that command is not mistaken for use at the next sample.
+const SETTLE: Duration = Duration::from_secs(1);
+/// Workstations sharing a phone record their latest ADB use here, one file per
+/// hostname, timestamped by the phone's own clock.
+const MARKER_DIR: &str = "/data/local/tmp/adb-wireless";
 const SERVER: AdbServer = AdbServer(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5037)));
 
 pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) -> Result<()> {
@@ -36,10 +48,7 @@ pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) ->
     let mut unique = HashSet::new();
     for serial in serials {
         ensure!(
-            !serial.is_empty()
-                && serial
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || c == '-'),
+            plain_name(serial),
             "expected an Android serial number, not an IP address or mDNS service name: {serial}"
         );
         ensure!(
@@ -57,6 +66,18 @@ pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) ->
             .env("ADB_MDNS_AUTO_CONNECT", "adb-tls-connect"),
     )
     .context("start the local ADB server")?;
+    // The hostname names this workstation's ADB-use marker in a phone shell command.
+    let idle = match idle {
+        Some(idle) => {
+            let host = util::read("/proc/sys/kernel/hostname")?.trim().to_owned();
+            ensure!(
+                plain_name(&host),
+                "expected a plain hostname to name this workstation's ADB-use marker: {host:?}"
+            );
+            Some((idle, host))
+        }
+        None => None,
+    };
     // Subscribe before querying, so a disconnect during reconciliation is not missed.
     // A broken subscription exits; systemd owns restart and backoff.
     let mut tracker = SERVER.request("host:track-devices")?;
@@ -86,9 +107,9 @@ pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) ->
             };
             return Err(error);
         }
-        if let Some(idle) = idle {
+        if let Some((idle, host)) = &idle {
             for phone in &mut phones {
-                phone.enforce_idle(adb, idle);
+                phone.enforce_idle(adb, host, *idle);
             }
         }
         if !all_connected {
@@ -111,12 +132,17 @@ struct Phone {
     last_message: String,
     /// Set while the phone advertises nothing; see `ABSENT_GRACE`.
     missing_since: Option<Instant>,
-    /// The idle window opens whenever the connection changes, and `baseline`
-    /// holds the device socket's payload bytes then, which only real ADB use changes.
+    /// Restarted by each new connection and each sample that saw use.
     idle_since: Instant,
-    sampled: Instant,
+    next_sample: Instant,
+    /// The device socket's payload bytes at the last sample; only ADB use changes them.
     baseline: Option<u64>,
     unreadable: bool,
+    /// Use this workstation has not yet recorded on the phone.
+    unpublished: bool,
+    marked: Option<Instant>,
+    /// Neither marker reads nor a shutdown reach the phone before this.
+    shutdown_after: Instant,
 }
 
 impl Phone {
@@ -128,9 +154,12 @@ impl Phone {
             last_message: String::new(),
             missing_since: None,
             idle_since: now,
-            sampled: now,
+            next_sample: now,
             baseline: None,
             unreadable: false,
+            unpublished: false,
+            marked: None,
+            shutdown_after: now,
         }
     }
 
@@ -177,7 +206,7 @@ impl Phone {
     fn reset_idle(&mut self) {
         let now = Instant::now();
         self.idle_since = now;
-        self.sampled = now;
+        self.next_sample = now + SAMPLE_INTERVAL;
         self.unreadable = false;
         self.baseline = self
             .connection
@@ -185,47 +214,147 @@ impl Phone {
             .and_then(|connection| transport_bytes(&connection.address));
     }
 
-    /// Turn Wireless debugging off after `idle` without device traffic.
-    fn enforce_idle(&mut self, adb: &str, idle: Duration) {
-        let Some(connection) = &self.connection else {
+    /// Sample this workstation's use, record it on the phone for the other
+    /// workstations, and turn Wireless debugging off once none has used it for `idle`.
+    fn enforce_idle(&mut self, adb: &str, host: &str, idle: Duration) {
+        let now = Instant::now();
+        if now < self.next_sample {
+            return;
+        }
+        let Some(connection) = self.connection.clone() else {
             return;
         };
+        self.next_sample = now + SAMPLE_INTERVAL;
         // Only payload counts: keepalive probes are empty segments, so the
-        // counters of an idle phone stay put even while ADB keeps probing it.
-        if self.sampled.elapsed() >= SAMPLE_INTERVAL {
-            self.sampled = Instant::now();
-            match transport_bytes(&connection.address) {
-                Some(bytes) => {
-                    self.unreadable = false;
-                    if self.baseline != Some(bytes) {
-                        self.idle_since = Instant::now();
-                    }
-                    self.baseline = Some(bytes);
-                }
-                None if !self.unreadable => {
-                    self.unreadable = true;
-                    eprintln!(
-                        "adb-watch: cannot read the device socket to {}; not treating it as idle",
-                        connection.address
-                    );
-                }
-                None => {}
+        // counters of an idle phone stay put.
+        let Some(bytes) = transport_bytes(&connection.address) else {
+            if !self.unreadable {
+                self.unreadable = true;
+                eprintln!(
+                    "adb-watch: cannot read the device socket to {}; not treating it as idle",
+                    connection.address
+                );
             }
+            self.idle_since = now;
+            return;
+        };
+        self.unreadable = false;
+        if self.baseline.replace(bytes) != Some(bytes) {
+            self.idle_since = now;
+            self.unpublished = true;
         }
-        if self.idle_since.elapsed() >= idle {
-            self.idle_since = Instant::now();
-            // The phone only pays for this transport, so stop holding it until
-            // it is used again; enabling Wireless debugging is a phone-side tap.
-            match disable_wireless(adb, &connection.serial) {
-                Ok(()) => eprintln!(
-                    "adb-watch: turned Wireless debugging off on {} after {} minutes without ADB activity",
-                    self.serial,
-                    idle.as_secs() / 60
+        if self.unpublished
+            && self
+                .marked
+                .is_none_or(|marked| marked.elapsed() >= MARK_INTERVAL)
+        {
+            let mark = format!("mkdir -p {MARKER_DIR} && touch {MARKER_DIR}/{host}");
+            match phone_shell(adb, &connection.serial, &mark) {
+                Ok(_) => {
+                    self.unpublished = false;
+                    self.marked = Some(now);
+                }
+                Err(error) => eprintln!(
+                    "adb-watch: record ADB use on {}: {error:#}; retrying at the next sample",
+                    self.serial
                 ),
-                Err(error) => eprintln!("adb-watch: {error:#}"),
             }
+            self.rebaseline(&connection);
+        }
+        if self.idle_since.elapsed() >= idle && now >= self.shutdown_after {
+            self.expire(adb, host, &connection, idle);
         }
     }
+
+    /// Exclude our own phone command from the next sample.
+    fn rebaseline(&mut self, connection: &Connection) {
+        thread::sleep(SETTLE);
+        if let Some(bytes) = transport_bytes(&connection.address) {
+            self.baseline = Some(bytes);
+        }
+    }
+
+    /// This workstation has been idle for `idle`: wait for the newest use another
+    /// workstation recorded on the phone, or turn Wireless debugging off.
+    fn expire(&mut self, adb: &str, host: &str, connection: &Connection, idle: Duration) {
+        let list = format!(
+            "date +%s; cd {MARKER_DIR} 2>/dev/null && for f in *; do [ -f \"$f\" ] && stat -c '%Y %n' \"$f\"; done; true"
+        );
+        let newest = phone_shell(adb, &connection.serial, &list)
+            .and_then(|output| newest_use(&output, host));
+        self.rebaseline(connection);
+        // Another workstation records continued use up to MARK_INTERVAL late.
+        let window = idle + MARK_INTERVAL;
+        let error = match newest {
+            Ok(Some((age, other))) if age < window => {
+                eprintln!(
+                    "adb-watch: {other} used {} {} minutes ago; keeping Wireless debugging on",
+                    self.serial,
+                    age.as_secs() / 60
+                );
+                self.shutdown_after = Instant::now() + (window - age);
+                return;
+            }
+            Ok(_) => {
+                // Only the phone can turn it back on.
+                let result = phone_shell(
+                    adb,
+                    &connection.serial,
+                    "settings put global adb_wifi_enabled 0",
+                );
+                self.rebaseline(connection);
+                match result {
+                    Ok(_) => {
+                        self.idle_since = Instant::now();
+                        eprintln!(
+                            "adb-watch: turned Wireless debugging off on {} after {} minutes without ADB use from any workstation",
+                            self.serial,
+                            idle.as_secs() / 60
+                        );
+                        return;
+                    }
+                    Err(error) => error.context("turn Wireless debugging off"),
+                }
+            }
+            Err(error) => error.context("read shared ADB use"),
+        };
+        eprintln!(
+            "adb-watch: {}: {error:#}; keeping Wireless debugging on and retrying in {} minutes",
+            self.serial,
+            SHUTDOWN_RETRY.as_secs() / 60
+        );
+        self.shutdown_after = Instant::now() + SHUTDOWN_RETRY;
+    }
+}
+
+/// The newest ADB-use marker on the phone and its age, from `date +%s` followed
+/// by `stat -c '%Y %n'` lines for each hostname, all on the phone's clock.
+/// This workstation's own marker is skipped: its local samples are exact.
+fn newest_use(output: &str, host: &str) -> Result<Option<(Duration, String)>> {
+    let mut lines = output
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty());
+    let now: u64 = lines
+        .next()
+        .context("the phone printed no time")?
+        .parse()
+        .context("invalid phone time")?;
+    let mut newest: Option<(Duration, String)> = None;
+    for line in lines {
+        let (mtime, name) = line
+            .split_once(' ')
+            .with_context(|| format!("malformed ADB-use marker entry: {line}"))?;
+        let mtime: u64 = mtime
+            .parse()
+            .with_context(|| format!("invalid ADB-use marker time: {line}"))?;
+        // A marker from the future is a phone clock jump; read it as current use.
+        let age = Duration::from_secs(now.saturating_sub(mtime));
+        if name != host && newest.as_ref().is_none_or(|(newest, _)| age < *newest) {
+            newest = Some((age, name.to_owned()));
+        }
+    }
+    Ok(newest)
 }
 
 /// The SDK client under a hard timeout, with any server redirection removed so it
@@ -423,20 +552,16 @@ fn bytes_for_peer(text: &str, address: &str) -> Option<u64> {
     None
 }
 
-/// Turn Wireless debugging off on the phone; only the phone can turn it back on.
-fn disable_wireless(adb: &str, serial: &str) -> Result<()> {
-    util::command_output(client(adb).args([
-        "-s",
-        serial,
-        "shell",
-        "settings",
-        "put",
-        "global",
-        "adb_wifi_enabled",
-        "0",
-    ]))
-    .with_context(|| format!("turn Wireless debugging off on {serial}"))
-    .map(|_| ())
+/// Run one shell command on the phone through the local server.
+fn phone_shell(adb: &str, serial: &str, command: &str) -> Result<String> {
+    let output = util::command_output(client(adb).args(["-s", serial, "shell", command]))
+        .with_context(|| format!("run `{command}` on {serial}"))?;
+    String::from_utf8(output).with_context(|| format!("{serial} returned non-UTF-8 output"))
+}
+
+/// Serials and hostnames are spliced into ADB names and phone shell commands.
+fn plain_name(name: &str) -> bool {
+    !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -754,6 +879,25 @@ mod tests {
             ),
             Some(11)
         );
+    }
+
+    #[test]
+    fn finds_the_newest_shared_use_on_the_phones_clock() -> Result<()> {
+        let output = "1000\n700 rpi\n940 laptop\n990 main\n";
+        assert_eq!(
+            newest_use(output, "main")?,
+            Some((Duration::from_secs(60), "laptop".to_owned()))
+        );
+        assert_eq!(newest_use("1000\n990 main\n", "main")?, None);
+        assert_eq!(
+            newest_use("1000\n1200 laptop\n", "main")?,
+            Some((Duration::ZERO, "laptop".to_owned()))
+        );
+        // Unreadable output must not look like an idle phone.
+        assert!(newest_use("", "main").is_err());
+        assert!(newest_use("1000\nlaptop\n", "main").is_err());
+        assert!(newest_use("1000\nsoon laptop\n", "main").is_err());
+        Ok(())
     }
 
     #[test]

@@ -28,12 +28,13 @@ in
     '';
   };
   options.services.adb-wireless.idleMinutes = lib.mkOption {
-    type = lib.types.nullOr lib.types.ints.positive;
-    default = null;
+    type = lib.types.nullOr (lib.types.ints.between 1 (7 * 24 * 60));
+    default = 180;
     description = ''
-      Turn Wireless debugging off on each watched phone after this many minutes
-      without ADB traffic. The setting lives on the phone, so leave it unset on
-      hosts that share the phone with another host running this service.
+      Turn Wireless debugging off on each watched phone once no workstation has
+      used it for this many minutes. Each watcher records its own ADB use on the
+      phone, so every host sharing a phone should set the same value; null never
+      turns it off.
     '';
   };
   config.systemd.user.services.adb-wireless = {

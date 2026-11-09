@@ -53,8 +53,9 @@ enum Commands {
         /// Run one discovery/connection attempt, then exit.
         #[arg(long)]
         once: bool,
-        /// Turn Wireless debugging off after this many minutes without device traffic.
-        #[arg(long)]
+        /// Turn Wireless debugging off once no workstation has used the phone for
+        /// this many minutes, at most a week.
+        #[arg(long, value_parser = clap::value_parser!(u64).range(1..=7 * 24 * 60))]
         idle_minutes: Option<u64>,
     },
     FanControl {
@@ -233,7 +234,7 @@ fn run() -> Result<()> {
             &adb,
             &serial,
             once,
-            idle_minutes.map(|minutes| std::time::Duration::from_secs(minutes.saturating_mul(60))),
+            idle_minutes.map(|minutes| std::time::Duration::from_secs(minutes * 60)),
         ),
         Commands::FanControl { action } => fan_control::run(action),
         Commands::OpencodeClientEnv { config, command } => opencode::client_env(&config, &command),

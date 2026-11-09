@@ -17,7 +17,6 @@
   ];
   programs.git.settings.user.signingkey = "E88ECCA3AA187BC1";
   services.adb-wireless.serials = [ "188b31ee" "A20AAFYS0202" ];
-  services.adb-wireless.idleMinutes = 120;
   home.packages = [ pkgs.host-tools ];
 
   home.file.".local/share/arch-uki" = lib.mkIf (!isNixOS) {
