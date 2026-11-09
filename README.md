@@ -482,9 +482,8 @@ On the Arch Btrfs workstations, `/nix` and `/var/lib/docker` mount from separate
 
 The installer preserves machine-specific Nix and Timeshift settings. It schedules
 daily Nix GC with 7-day generation retention, two weekly and one monthly
-Timeshift snapshot plus two pre-upgrade snapshots, a 1 GiB journal cap, weekly
-pacman cache pruning, old Docker builder
-cache pruning, and limited Btrfs maintenance. When `fail2ban` is installed, the
+Timeshift snapshot plus two pre-upgrade snapshots, a 1 GiB journal cap, old Docker
+builder cache pruning, and limited Btrfs maintenance. When `fail2ban` is installed, the
 installer also enables its SSH jail: three failed logins ban an address for a
 minute, then five, ten, twenty minutes for repeat offenders, doubling up to a
 week, and the LAN is trusted. Arch
@@ -492,6 +491,14 @@ uses btrfs-progs' monthly scrub timer and its own balance and space-check units.
 The desktop Home Manager profile caps the kache build cache at 150 GiB. NixOS
 uses the equivalent shared Nix GC, journal and fail2ban settings, and the
 desktops trim their encrypted SSDs weekly.
+
+On Arch, `modules/home/arch-package-cache.nix` configures the native weekly
+`paccache.timer` to keep the newest cached version of each package. Home Manager
+activation requires `pacman-contrib` and passwordless sudo to install its root
+service drop-in and enable the timer on main and laptop. It does not uninstall
+packages or prune Paru's build directories. Run `sudo systemctl start
+paccache.service` to clean the cache immediately; older cached versions will no
+longer be available for offline downgrades.
 
 On Arch, Home Manager also prunes the user's Nix profiles daily with the same
 7-day retention; the root timer cannot prune profiles in the user's XDG state

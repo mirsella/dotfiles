@@ -392,6 +392,25 @@ assert lib.assertMsg (
   ) [ "main" "laptop" ]
   && !(server.home-manager.users.mirsella.systemd.user.services ? disk-alerts)
 ) "Arch workstations must monitor disk and Btrfs allocation pressure without running it on XFS hosts";
+assert lib.assertMsg (lib.all (name:
+  let
+    arch = flake.homeConfigurations.${name}.config;
+    nixos = desktops.${name}.home-manager.users.mirsella;
+    activation = arch.home.activation.archPackageCache.data;
+  in
+  arch.xdg.dataFile."arch-package-cache/paccache.conf".text == ''
+    [Service]
+    EnvironmentFile=
+    Environment=PACCACHE_ARGS=--keep=1
+  ''
+  && lib.hasInfix "/usr/bin/sudo -n /usr/bin/install -Dm644" activation
+  && lib.hasInfix "/etc/systemd/system/paccache.service.d/50-home-manager.conf" activation
+  && lib.hasInfix "enable --now paccache.timer" activation
+  && !(arch.systemd.user.timers ? paccache)
+  && !(nixos.home.activation ? archPackageCache)
+  && !(nixos.xdg.dataFile ? "arch-package-cache/paccache.conf")
+) [ "main" "laptop" ])
+  "Only Arch homes must configure the native root paccache timer to keep one cached version";
 {
   nixos = builtins.mapAttrs (_: c: c.system.build.toplevel.drvPath) desktops;
   arch = builtins.mapAttrs (_: home: home.activationPackage.drvPath) flake.homeConfigurations;

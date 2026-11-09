@@ -17,6 +17,7 @@ let
 in
 {
   imports = [
+    ./arch-package-cache.nix
     ./electron-theme.nix
     ./desktop-mcp.nix
     ./adb-wireless.nix

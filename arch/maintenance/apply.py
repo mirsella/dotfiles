@@ -142,12 +142,6 @@ def main() -> None:
     else:
         print("Timeshift not installed; skipping snapshot retention")
 
-    if shutil.which("paccache"):
-        set_values(Path("/etc/conf.d/pacman-contrib"), {"PACCACHE_ARGS": '"-k 2"'}, "=")
-        timers.append("paccache.timer")
-    else:
-        print("paccache not installed; skipping pacman cache pruning")
-
     if shutil.which("docker"):
         unit_names.append("docker-builder-prune")
     else:
