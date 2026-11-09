@@ -1963,10 +1963,7 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
     let default_bundle = home.join(".config/t3code/portable-settings.json");
     let policy = Policy::new();
     match operation {
-        Operation::Capture {
-            output,
-            if_running,
-        } => {
+        Operation::Capture { output, if_running } => {
             if skip_when_stopped(if_running, &base_dir, "capture")? {
                 return Ok(());
             }

@@ -208,6 +208,22 @@ fn dry_run_re_add_does_not_acknowledge_unsaved_t3_settings() {
 }
 
 #[test]
+fn dry_run_matching_re_add_does_not_acknowledge_settings() {
+    let fixture = Fixture::new();
+    fixture.run(&["apply"]);
+    fs::write(fixture.path("captured"), "repository\n").unwrap();
+    fixture.run(&[
+        "re-add",
+        "--dry-run",
+        fixture.target_bundle().to_str().unwrap(),
+    ]);
+    assert_eq!(
+        fixture.read("calls"),
+        "sync --if-running --no-capture\ncapture --if-running\n"
+    );
+}
+
+#[test]
 fn update_without_apply_does_not_sync_settings() {
     for flag in ["--apply=false", "-a=false"] {
         let fixture = Fixture::new();
