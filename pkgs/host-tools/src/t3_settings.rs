@@ -19,12 +19,9 @@ pub enum Operation {
     Capture {
         #[arg(long)]
         output: Option<PathBuf>,
-        /// Skip capture unless T3 is running and its versions match (for the chezmoi hook).
+        /// Skip capture unless T3 is running (for the chezmoi hook).
         #[arg(long)]
         if_running: bool,
-        /// Capture even while the desktop app and server versions differ.
-        #[arg(long)]
-        allow_version_mismatch: bool,
     },
     /// Merge a portable bundle into T3, preserving credentials and device-local state.
     Apply {
@@ -32,7 +29,7 @@ pub enum Operation {
         input: Option<PathBuf>,
         #[arg(long)]
         dry_run: bool,
-        /// Delete managed live keys missing from the bundle, resetting them to T3 defaults.
+        /// Reset missing managed keys for legacy v1 bundles (automatic for v2 snapshots).
         #[arg(long)]
         remove_absent: bool,
     },
@@ -55,7 +52,7 @@ pub enum Operation {
         /// Overwrite the bundle with live settings to resolve a conflict (live wins).
         #[arg(long, conflicts_with = "force_apply")]
         force_capture: bool,
-        /// Sync even while the desktop app and server versions differ (no default pruning).
+        /// Sync legacy v1 bundles across desktop/server version skew without default pruning.
         #[arg(long)]
         allow_version_mismatch: bool,
         /// Do not write live changes into the portable bundle (for the chezmoi apply hook).
@@ -77,6 +74,14 @@ struct Bundle {
     providers: Map<String, Value>,
     keybindings: Value,
     projects: Vec<PortableProject>,
+}
+
+const SNAPSHOT_VERSION: u32 = 2;
+
+impl Bundle {
+    fn resets_absent(&self, requested: bool) -> bool {
+        requested || self.version == SNAPSHOT_VERSION
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -779,9 +784,8 @@ fn warn_live_unknown_fields(
     Ok(())
 }
 
-// Drop values T3 supplies itself at decode time so the portable bundle only
-// records deliberate changes. `Policy::merge` removes managed keys that are
-// absent from the bundle, so applying a pruned bundle restores the default.
+// Legacy v1 comparison only. V2 snapshots retain every persisted value, and
+// reset absent managed keys on apply instead of guessing another build's defaults.
 fn prune_defaults(value: &mut Value, defaults: &Value) {
     let (Some(values), Some(defaults)) = (value.as_object_mut(), defaults.as_object()) else {
         return;
@@ -799,6 +803,9 @@ fn prune_defaults(value: &mut Value, defaults: &Value) {
 }
 
 fn normalize_bundle_value(value: &mut Value, defaults: &crate::t3_defaults::Defaults) {
+    if value["version"] == SNAPSHOT_VERSION {
+        return;
+    }
     if let Some(client) = value.get_mut("client") {
         prune_defaults(client, &defaults.client);
     }
@@ -812,6 +819,7 @@ fn capture(
     home: &Path,
     base_dir: &Path,
     defaults: Option<&Defaults>,
+    version: u32,
 ) -> Result<Bundle> {
     let dir = base_dir.join("userdata");
     let mut client = policy.capture(
@@ -831,7 +839,9 @@ fn capture(
         &SettingsFile::read(dir.join("keybindings.json"), json!([]))?.value,
         "keybindings",
     )?;
-    if let Some(defaults) = defaults {
+    if version == 1
+        && let Some(defaults) = defaults
+    {
         prune_defaults(&mut client, &defaults.client);
         prune_defaults(&mut server, &defaults.server);
     }
@@ -862,7 +872,7 @@ fn capture(
     }
     projects.sort_by(|a, b| a.workspace_root.cmp(&b.workspace_root));
     let mut bundle = Bundle {
-        version: 1,
+        version,
         client,
         server,
         desktop,
@@ -886,7 +896,7 @@ fn transform_paths(bundle: &mut Bundle, home: &Path, capture: bool) {
 
 fn validate_bundle(policy: &Policy, bundle: &Bundle) -> Result<()> {
     ensure!(
-        bundle.version == 1,
+        matches!(bundle.version, 1 | SNAPSHOT_VERSION),
         "Unsupported portable T3 bundle version"
     );
     for (name, value) in [
@@ -901,7 +911,11 @@ fn validate_bundle(policy: &Policy, bundle: &Bundle) -> Result<()> {
         policy.validate("provider", provider)?;
         validate_provider(provider, None)?;
     }
-    for binding in bundle.keybindings.as_array().unwrap() {
+    for binding in bundle
+        .keybindings
+        .as_array()
+        .context("Keybindings must be an array")?
+    {
         ensure!(
             binding.get("key").and_then(Value::as_str).is_some()
                 && binding.get("command").and_then(Value::as_str).is_some(),
@@ -1179,6 +1193,7 @@ fn apply(
     remove_absent: bool,
 ) -> Result<()> {
     validate_bundle(policy, &bundle)?;
+    let remove_absent = bundle.resets_absent(remove_absent);
     transform_paths(&mut bundle, home, false);
     let dir = base_dir.join("userdata");
     let mut client = SettingsFile::read(dir.join("client-settings.json"), object())?;
@@ -1314,8 +1329,7 @@ fn decide(load: &StateLoad, live: Option<&Value>, bundle: &Value) -> Decision {
     let Some(live) = live else {
         return Decision::Provision;
     };
-    // Agreeing sides are in sync even against a stale record: manual capture
-    // and apply rewrite one side without recording sync state.
+    // Agreeing sides are in sync even against a stale record or manual apply.
     if live == bundle {
         return Decision::InSync;
     }
@@ -1566,11 +1580,12 @@ fn sync_apply_and_snapshot(
     direction: &str,
 ) -> Result<()> {
     let before = live_val.clone().unwrap_or_else(|| json!({}));
+    let bundle_version = bundle.version;
     apply(policy, bundle, home, base_dir, false, false, false)?;
     // The common operation only needs the post-apply snapshot and the diff
     // against it; a failed re-read falls back to the intended bundle values
     // with unknown live content.
-    let live = match capture(policy, home, base_dir, defaults) {
+    let live = match capture(policy, home, base_dir, defaults, bundle_version) {
         Ok(fresh) => Some(bundle_value(&fresh)?),
         Err(error) => {
             eprintln!("warning: applied the bundle but could not re-read live settings: {error:#}");
@@ -1620,7 +1635,7 @@ fn sync(
     // Older bundles and sync records predate default pruning. Normalizing both
     // sides before comparing keeps that representation change from looking like
     // an edit on every machine that receives a pruned bundle.
-    let defaults = if base_dir.join("userdata").try_exists()? {
+    let defaults = if bundle.version == 1 && base_dir.join("userdata").try_exists()? {
         match crate::t3_defaults::load(home, base_dir) {
             DefaultsStatus::Ready(defaults) => defaults,
             DefaultsStatus::VersionMismatch { app, server } => {
@@ -1645,7 +1660,13 @@ fn sync(
     }
     let bundle_val = bundle_value(&bundle)?;
     let live_bundle = if base_dir.join("userdata").try_exists()? {
-        Some(capture(policy, home, base_dir, defaults.as_ref())?)
+        Some(capture(
+            policy,
+            home,
+            base_dir,
+            defaults.as_ref(),
+            bundle.version,
+        )?)
     } else {
         None
     };
@@ -1884,6 +1905,11 @@ fn sync(
                     (None, None)
                 }
             };
+            if bundle_base.is_some_and(|base| base["version"] != bundle_val["version"]) {
+                eprintln!(
+                    "t3-settings sync: bundle format changed; a pruned legacy baseline cannot prove which snapshot values changed. Resolve this format transition explicitly with --force-apply or --force-capture"
+                );
+            }
             let mut combined = vec!["live changes since last sync:".to_owned()];
             combined.extend(diff_summary(live_base.unwrap_or(&Value::Null), &live_v));
             combined.push("bundle changes since last sync:".to_owned());
@@ -1940,34 +1966,13 @@ pub fn run(base_dir: Option<PathBuf>, operation: Operation) -> Result<()> {
         Operation::Capture {
             output,
             if_running,
-            allow_version_mismatch,
         } => {
             if skip_when_stopped(if_running, &base_dir, "capture")? {
                 return Ok(());
             }
             let output = output.unwrap_or(default_bundle);
             let output = capture_destination(&output, &base_dir)?;
-            let defaults = match crate::t3_defaults::load(&home, &base_dir) {
-                DefaultsStatus::Ready(defaults) => defaults,
-                DefaultsStatus::VersionMismatch { app, server } => {
-                    if allow_version_mismatch {
-                        eprintln!(
-                            "t3-settings: T3 app {app} and server {server} versions differ; capturing without default pruning"
-                        );
-                        None
-                    } else if if_running {
-                        eprintln!(
-                            "t3-settings: skipping capture; T3 app {app} and server {server} versions differ. Restart T3 and run again"
-                        );
-                        return Ok(());
-                    } else {
-                        bail!(
-                            "T3 app {app} and server {server} versions differ; restart T3 and run again, or pass --allow-version-mismatch"
-                        );
-                    }
-                }
-            };
-            let bundle = capture(&policy, &home, &base_dir, defaults.as_ref())?;
+            let bundle = capture(&policy, &home, &base_dir, None, SNAPSHOT_VERSION)?;
             validate_bundle(&policy, &bundle)?;
             let new_val = bundle_value(&bundle)?;
             let before: Value = read_bundle_file(&output)
@@ -3043,5 +3048,112 @@ mod tests {
                 "keybindings": [{"key": "mod+b", "command": "sidebar.toggle"}]
             })
         );
+    }
+
+    fn snapshot(server: Value) -> Bundle {
+        serde_json::from_value(json!({
+            "version": SNAPSHOT_VERSION,
+            "client": {}, "server": server, "desktop": {},
+            "providers": {}, "keybindings": [], "projects": []
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn snapshot_retains_explicit_default_preferences() -> Result<()> {
+        let bundle = snapshot(json!({"storageCleanup": {
+            "worktreeOnDelete": false,
+            "worktreeOnMerge": false,
+            "worktreeAfterDays": null,
+            "worktreeSettledAfterDays": 4,
+            "worktreeUnchanged": false,
+            "worktreeKeepWhen": "uncommitted-changes"
+        }}));
+        validate_bundle(&Policy::new(), &bundle)?;
+        let expected = bundle_value(&bundle)?;
+        let mut normalized = expected.clone();
+        normalize_bundle_value(
+            &mut normalized,
+            &Defaults {
+                client: object(),
+                server: bundle.server.clone(),
+            },
+        );
+        assert_eq!(normalized, expected);
+        assert!(bundle.resets_absent(false));
+        Ok(())
+    }
+
+    #[test]
+    fn snapshot_resets_omitted_cleanup_rules_but_preserves_local_state() -> Result<()> {
+        let policy = Policy::new();
+        // T3 removes default-valued keys when a toggle is turned off. A snapshot
+        // must undo aggressive rules from an older bundle on the other machine.
+        let mut bundle = snapshot(json!({"storageCleanup": {"worktreeSettledAfterDays": 4}}));
+        let original = json!({
+            "storageCleanup": {
+                "worktreeOnDelete": true, "worktreeOnMerge": true,
+                "worktreeAfterDays": 4, "worktreeSettledAfterDays": 0,
+                "worktreeUnchanged": true, "futureRule": "keep"
+            },
+            "secretProviders": {"local": {"credential": "keep"}},
+            "providerInstances": {"local": {"driver": "opencode", "config": {"serverPassword": "keep"}}},
+            "futurePreference": true
+        });
+        let mut restored = original.clone();
+        restore_server(
+            &policy,
+            &mut restored,
+            &bundle,
+            &[],
+            bundle.resets_absent(false),
+        )?;
+        assert_eq!(
+            restored["storageCleanup"],
+            json!({
+                "worktreeSettledAfterDays": 4, "futureRule": "keep"
+            })
+        );
+        for key in ["secretProviders", "providerInstances", "futurePreference"] {
+            assert_eq!(restored[key], original[key], "{key}");
+        }
+        let once = restored.clone();
+        restore_server(
+            &policy,
+            &mut restored,
+            &bundle,
+            &[],
+            bundle.resets_absent(false),
+        )?;
+        assert_eq!(restored, once);
+
+        // V1 remains a sparse merge unless the caller explicitly opts in.
+        bundle.version = 1;
+        assert!(!bundle.resets_absent(false));
+        assert!(bundle.resets_absent(true));
+        let mut legacy = original.clone();
+        restore_server(
+            &policy,
+            &mut legacy,
+            &bundle,
+            &[],
+            bundle.resets_absent(false),
+        )?;
+        assert_eq!(legacy["storageCleanup"]["worktreeOnDelete"], true);
+        Ok(())
+    }
+
+    #[test]
+    fn snapshot_rejects_null_sections_and_future_versions() {
+        let policy = Policy::new();
+        let mut bundle = snapshot(object());
+        bundle.server = Value::Null;
+        assert!(validate_bundle(&policy, &bundle).is_err());
+        bundle.server = object();
+        bundle.keybindings = Value::Null;
+        assert!(validate_bundle(&policy, &bundle).is_err());
+        bundle.keybindings = json!([]);
+        bundle.version = SNAPSHOT_VERSION + 1;
+        assert!(validate_bundle(&policy, &bundle).is_err());
     }
 }

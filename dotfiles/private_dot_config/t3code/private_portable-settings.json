@@ -1,9 +1,34 @@
 {
-  "version": 1,
+  "version": 2,
   "client": {
+    "appearanceContrast": 100,
+    "boringSidebarEnabled": false,
     "boringSidebarMultilineRows": true,
+    "browserAutoShowFloatingPreview": true,
+    "browserCustomSearchUrl": "",
+    "browserDefaultAppearance": "system",
+    "browserDefaultViewport": {
+      "_tag": "fill"
+    },
+    "browserDefaultZoomFactor": 1,
+    "browserLinkTarget": "system",
+    "browserRecordingFrameRate": 30,
     "browserRecordingShowKeyPresses": true,
     "browserRecordingShowMousePresses": true,
+    "browserSearchEngine": "duckduckgo",
+    "chatWidth": "comfortable",
+    "composerRichTextEnabled": true,
+    "confirmQuit": "hold",
+    "confirmThreadArchive": false,
+    "confirmThreadDelete": true,
+    "confirmThreadUnpin": false,
+    "contextWindowMeterEnabled": false,
+    "diffColorScheme": "red-green",
+    "diffFilesCollapsed": true,
+    "diffIgnoreWhitespace": true,
+    "diffLayout": "stacked",
+    "effortDisplay": "label",
+    "environmentIdentificationMode": "artwork",
     "favorites": [
       {
         "model": "opencode-go/step-5-preview-free",
@@ -11,15 +36,41 @@
       }
     ],
     "followUpBehavior": "queue",
+    "fontFamilyCode": "",
+    "fontFamilyComposer": "",
+    "fontFamilySans": "",
+    "fontFamilyTerminal": "",
+    "fontSizeCode": 13,
+    "fontSizeInterface": 16,
+    "fontSizePrompt": 14,
+    "fontSizeTerminal": 12,
+    "fontSmoothing": true,
+    "glassOpacity": 80,
     "inAppNotificationsEnabled": true,
+    "legacySidebarEnabled": false,
+    "loadBalancingEnabled": false,
     "loadBalancingWeights": {
       "020898b6-4a15-44cb-ae04-0ef53d75919f": 100,
       "1dcfc905-4f7e-4119-a60d-c27753b77241": 25
     },
     "mathRenderingEnabled": true,
     "notificationMode": "notifications",
+    "panelAnimationDurationMs": 0,
     "persistComposerContextStrip": true,
+    "planModeEnabled": false,
+    "proactivePanelsEnabled": false,
+    "providerModelPreferences": {},
+    "pullRequestLinksOpenInApp": true,
+    "sendShortcut": "enter",
+    "showSkillsInSlashMenu": true,
+    "sidebarProjectGroupingMode": "repository",
+    "sidebarProjectSortOrder": "updated_at",
+    "sidebarThreadSortOrder": "updated_at",
+    "sidebarWorkingShelfEnabled": true,
+    "snapShotAnimations": true,
     "snapShotEnabled": true,
+    "snapShotFlash": true,
+    "snapShotIncludeAccessibility": true,
     "snapShotPlaySound": false,
     "snapShotShortcut": {
       "altKey": false,
@@ -29,12 +80,25 @@
       "modKey": false,
       "shiftKey": true
     },
+    "snapShotSound": "soft-pop",
+    "speechCorrectionWord": "",
+    "speechCustomWords": [],
     "speechLanguage": "en",
+    "speechPostProcessingPrompt": {
+      "customInstructions": "",
+      "mode": "default"
+    },
+    "speechRemoveFillerWords": true,
+    "speechSilenceFiltering": true,
+    "speechTranslateToEnglish": false,
     "threadDetailsItems": {
       "context": true,
       "openIn": false
     },
+    "threadDetailsUsageEnabled": false,
     "timestampFormat": "24-hour",
+    "toolCallVisibility": "showAll",
+    "voiceShortcutMode": "auto",
     "wordWrap": false
   },
   "server": {
@@ -418,11 +482,12 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeAfterDays": 4,
-      "worktreeOnDelete": true,
-      "worktreeOnMerge": true,
-      "worktreeSettledAfterDays": 0,
-      "worktreeUnchanged": true
+      "worktreeAfterDays": null,
+      "worktreeKeepWhen": "uncommitted-changes",
+      "worktreeOnDelete": false,
+      "worktreeOnMerge": false,
+      "worktreeSettledAfterDays": 4,
+      "worktreeUnchanged": false
     },
     "textGenerationModelSelection": {
       "instanceId": "opencode",

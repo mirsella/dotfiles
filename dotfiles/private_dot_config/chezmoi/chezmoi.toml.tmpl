@@ -18,12 +18,18 @@ recipients = [
 command = "sh"
 args = ["-ec", "if command -v t3-settings >/dev/null 2>&1; then t3-settings capture --if-running; fi; if command -v hex-settings >/dev/null 2>&1; then hex-settings capture --if-present; fi"]
 
+[hooks.re-add.post]
+command = "sh"
+args = ["-ec", "if command -v t3-settings >/dev/null 2>&1; then target=\"$CHEZMOI_DEST_DIR/.config/t3code/portable-settings.json\"; source=$(chezmoi --config \"$CHEZMOI_CONFIG_FILE\" --source \"$CHEZMOI_SOURCE_DIR\" --destination \"$CHEZMOI_DEST_DIR\" source-path \"$target\"); if cmp -s \"$source\" \"$target\"; then t3-settings sync --if-running --no-capture; fi; fi"]
+
+{{ $sync := "dry=; case \" $CHEZMOI_ARGS \" in *\" --dry-run\"*|*\" -n\"*) dry=--dry-run;; esac; if command -v t3-settings >/dev/null 2>&1; then t3-settings sync --if-running --no-capture $dry; fi; if command -v hex-settings >/dev/null 2>&1; then hex-settings sync --if-present --no-capture $dry; fi" -}}
 [hooks.apply.post]
 command = "sh"
-args = [
-	"-ec",
-	"dry=; case \" $CHEZMOI_ARGS \" in *\" --dry-run\"*|*\" -n\"*) dry=--dry-run;; esac; if command -v t3-settings >/dev/null 2>&1; then t3-settings sync --if-running --no-capture $dry; fi; if command -v hex-settings >/dev/null 2>&1; then hex-settings sync --if-present --no-capture $dry; fi",
-]
+args = {{ list "-ec" $sync | toJson }}
+
+[hooks.update.post]
+command = "sh"
+args = {{ list "-ec" (printf "case \" $CHEZMOI_ARGS \" in *' --apply=false '*|*' -a=false '*) exit 0;; esac; %s" $sync) | toJson }}
 
 [git]
 	autoCommit = true

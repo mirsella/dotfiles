@@ -8,6 +8,7 @@
   git,
   dbus,
   pkg-config,
+  chezmoi,
 }:
 rustPlatform.buildRustPackage {
   pname = "host-tools";
@@ -24,12 +25,15 @@ rustPlatform.buildRustPackage {
   cargoLock.lockFile = ./Cargo.lock;
   env.HOST_TOOLS_TEST_SHELL = runtimeShell;
   env.HOST_TOOLS_TEST_DBUS_DAEMON = "${dbus}/bin/dbus-daemon";
+  env.HOST_TOOLS_TEST_CHEZMOI = lib.getExe chezmoi;
+  env.HOST_TOOLS_TEST_CHEZMOI_TEMPLATE = "${../../dotfiles/private_dot_config/chezmoi/chezmoi.toml.tmpl}";
   nativeBuildInputs = [
     makeWrapper
     pkg-config
   ];
   buildInputs = [ dbus ];
   nativeCheckInputs = [
+    chezmoi
     openssl
     sqlite
     git
