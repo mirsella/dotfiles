@@ -108,6 +108,11 @@ supplies other binaries from Nix packages.
 Chezmoi continues to own editable application dotfiles; NixOS installation and
 fan configuration do not run chezmoi hooks.
 
+The workstation Home Manager profiles mask `akonadi_control.service`, including
+starts requested through D-Bus. KMail, KOrganizer and other KDE PIM apps are
+unused, so their Akonadi database stays off even if a package installs it again.
+Remove the mask from `modules/home/workstation.nix` before using those apps.
+
 ### CodexBar
 
 Main and laptop share the OpenCode Go key in `secrets/codexbar.yaml`, encrypted

@@ -82,6 +82,13 @@ in
         force = true;
       })
     // {
+      # KMail, calendars and contacts are unused. Mask D-Bus activation too so
+      # an installed PIM dependency cannot start Akonadi's private database.
+      "systemd/user/akonadi_control.service" = {
+        source = config.lib.file.mkOutOfStoreSymlink "/dev/null";
+        force = true;
+      };
+
       "kache/config.toml" = {
         force = true;
         text = ''
