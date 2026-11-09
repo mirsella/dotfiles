@@ -531,8 +531,8 @@ keeps Wireless debugging on until it ages out; otherwise the watcher runs
 `settings put global adb_wifi_enabled 0`, which turns Wireless debugging off
 and ends every connection. A host that is offline or whose watcher stopped
 simply leaves its marker ageing. Use from a host whose watcher is not running is
-not recorded. Shutdown comes three to three and a half hours after the last use
-from any workstation. While all hosts are idle the phone sees only one marker
+not recorded. Shutdown comes three to four hours after the last use from any
+workstation. While all hosts are idle the phone sees only one marker
 read at each deadline. If the markers cannot be read or the shutdown fails,
 Wireless debugging stays on and the watcher asks again after 15 minutes.
 Enabling Wireless debugging again on the phone itself, from a Quick Settings tile

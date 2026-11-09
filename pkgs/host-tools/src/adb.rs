@@ -30,8 +30,8 @@ const SAMPLE_INTERVAL: Duration = Duration::from_secs(60);
 /// While a phone stays in use, its marker is refreshed at most this often, so
 /// every workstation treats a marker as current for this long past the idle limit.
 const MARK_INTERVAL: Duration = Duration::from_secs(30 * 60);
-/// How long a failed marker read or shutdown waits before the phone is asked again.
-const SHUTDOWN_RETRY: Duration = Duration::from_secs(15 * 60);
+/// How long a failed phone command waits before the phone is asked again.
+const PHONE_RETRY: Duration = Duration::from_secs(15 * 60);
 /// Lets the device socket's counters settle after our own phone command, so
 /// that command is not mistaken for use at the next sample.
 const SETTLE: Duration = Duration::from_secs(1);
@@ -138,9 +138,10 @@ struct Phone {
     /// The device socket's payload bytes at the last sample; only ADB use changes them.
     baseline: Option<u64>,
     unreadable: bool,
-    /// Use this workstation has not yet recorded on the phone.
+    /// Use this workstation has not yet recorded on the phone, and the earliest
+    /// `boot_time` it may write its marker again.
     unpublished: bool,
-    marked: Option<Instant>,
+    next_mark: Duration,
     /// Neither marker reads nor a shutdown reach the phone before this.
     shutdown_after: Instant,
 }
@@ -158,7 +159,7 @@ impl Phone {
             baseline: None,
             unreadable: false,
             unpublished: false,
-            marked: None,
+            next_mark: Duration::ZERO,
             shutdown_after: now,
         }
     }
@@ -243,21 +244,22 @@ impl Phone {
             self.idle_since = now;
             self.unpublished = true;
         }
-        if self.unpublished
-            && self
-                .marked
-                .is_none_or(|marked| marked.elapsed() >= MARK_INTERVAL)
-        {
+        let boot = boot_time();
+        if self.unpublished && boot >= self.next_mark {
             let mark = format!("mkdir -p {MARKER_DIR} && touch {MARKER_DIR}/{host}");
             match phone_shell(adb, &connection.serial, &mark) {
                 Ok(_) => {
                     self.unpublished = false;
-                    self.marked = Some(now);
+                    self.next_mark = boot + MARK_INTERVAL;
                 }
-                Err(error) => eprintln!(
-                    "adb-watch: record ADB use on {}: {error:#}; retrying at the next sample",
-                    self.serial
-                ),
+                Err(error) => {
+                    eprintln!(
+                        "adb-watch: record ADB use on {}: {error:#}; retrying in {} minutes",
+                        self.serial,
+                        PHONE_RETRY.as_secs() / 60
+                    );
+                    self.next_mark = boot + PHONE_RETRY;
+                }
             }
             self.rebaseline(&connection);
         }
@@ -321,10 +323,24 @@ impl Phone {
         eprintln!(
             "adb-watch: {}: {error:#}; keeping Wireless debugging on and retrying in {} minutes",
             self.serial,
-            SHUTDOWN_RETRY.as_secs() / 60
+            PHONE_RETRY.as_secs() / 60
         );
-        self.shutdown_after = Instant::now() + SHUTDOWN_RETRY;
+        self.shutdown_after = Instant::now() + PHONE_RETRY;
     }
+}
+
+/// Time since boot including suspend, which `Instant` excludes on Linux. Marker
+/// ages on the phone include a suspended workstation's sleep, so the marker
+/// refresh interval must count it too.
+fn boot_time() -> Duration {
+    let mut now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    // SAFETY: `now` is a valid timespec for the kernel to fill.
+    let status = unsafe { libc::clock_gettime(libc::CLOCK_BOOTTIME, &mut now) };
+    assert_eq!(status, 0, "clock_gettime(CLOCK_BOOTTIME) failed");
+    Duration::new(now.tv_sec as u64, now.tv_nsec as u32)
 }
 
 /// The newest ADB-use marker on the phone and its age, from `date +%s` followed
