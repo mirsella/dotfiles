@@ -27,6 +27,7 @@ rustPlatform.buildRustPackage {
   env.HOST_TOOLS_TEST_DBUS_DAEMON = "${dbus}/bin/dbus-daemon";
   env.HOST_TOOLS_TEST_CHEZMOI = lib.getExe chezmoi;
   env.HOST_TOOLS_TEST_CHEZMOI_TEMPLATE = "${../../dotfiles/private_dot_config/chezmoi/chezmoi.toml.tmpl}";
+  env.HOST_TOOLS_TEST_CHEZMOI_IGNORE = "${../../dotfiles/.chezmoiignore}";
   nativeBuildInputs = [
     makeWrapper
     pkg-config

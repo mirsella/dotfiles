@@ -121,3 +121,5 @@ kde shortcuts.kksrc
 
 # Never manage dependency trees.
 node_modules/
+**/node_modules/
+**/node_modules/**

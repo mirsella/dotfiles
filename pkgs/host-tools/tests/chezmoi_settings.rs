@@ -22,6 +22,12 @@ impl Fixture {
         }
         fs::write(fixture.source_bundle(), "repository\n").unwrap();
         fs::write(fixture.path("source/dot_other"), "other\n").unwrap();
+        let ignore = option_env!("HOST_TOOLS_TEST_CHEZMOI_IGNORE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../dotfiles/.chezmoiignore")
+            });
+        fs::copy(ignore, fixture.path("source/.chezmoiignore")).unwrap();
         fs::write(fixture.path("captured"), "captured\n").unwrap();
         fs::write(fixture.path("config.toml"), "").unwrap();
         fixture.script(
@@ -138,6 +144,19 @@ esac
     fn read(&self, name: &str) -> String {
         fs::read_to_string(self.path(name)).unwrap()
     }
+}
+
+#[test]
+fn generated_dependencies_with_broken_links_do_not_block_sync() {
+    let fixture = Fixture::new();
+    let bin = fixture.path("source/dot_config/opencode/node_modules/.bin");
+    fs::create_dir_all(&bin).unwrap();
+    std::os::unix::fs::symlink("missing-prebuild", bin.join("download-msgpackr-prebuilds"))
+        .unwrap();
+    fixture.run(&["apply"]);
+    fixture.run(&["re-add", fixture.target_bundle().to_str().unwrap()]);
+    assert_eq!(fixture.read("live"), "captured\n");
+    assert!(bin.join("download-msgpackr-prebuilds").is_symlink());
 }
 
 #[test]
