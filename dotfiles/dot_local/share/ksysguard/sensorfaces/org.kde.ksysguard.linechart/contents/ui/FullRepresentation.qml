@@ -156,41 +156,6 @@ Faces.SensorFace {
         return NaN
     }
 
-    function diskAxis(now) {
-        let dataMinimum = Infinity
-        let dataMaximum = -Infinity
-        for (const sample of root.diskSamples) {
-            if (sample.time >= now - 604800000 && sample.time <= now
-                    && Number.isFinite(sample.value)) {
-                dataMinimum = Math.min(dataMinimum, sample.value)
-                dataMaximum = Math.max(dataMaximum, sample.value)
-            }
-        }
-        if (!Number.isFinite(dataMinimum) || !Number.isFinite(dataMaximum)) {
-            return { minimum: 0, maximum: 100, step: 25 }
-        }
-
-        // Pad the live range, then keep at least a 10% span so small
-        // fluctuations stay readable without making the chart jitter.
-        const padding = Math.max(1, (dataMaximum - dataMinimum) * 0.1)
-        let lower = dataMinimum - padding
-        let upper = dataMaximum + padding
-        const minimumSpan = 10
-        if (upper - lower < minimumSpan) {
-            const middle = (lower + upper) / 2
-            lower = middle - minimumSpan / 2
-            upper = middle + minimumSpan / 2
-        }
-        lower = Math.max(0, lower)
-        upper = Math.min(100, upper)
-
-        const span = upper - lower
-        const step = span <= 30 ? 5 : span <= 60 ? 10 : 20
-        lower = Math.max(0, Math.floor(lower / step) * step)
-        upper = Math.min(100, Math.ceil(upper / step) * step)
-        return { minimum: lower, maximum: upper, step: step }
-    }
-
     function sampleDisk() {
         const value = currentDiskPercent()
         if (!Number.isFinite(value)) {
@@ -541,11 +506,11 @@ Faces.SensorFace {
                         ctx.lineWidth = 1
 
                         const now = Date.now()
-                        const axis = root.diskAxis(now)
-                        const axisSpan = Math.max(1, axis.maximum - axis.minimum)
 
-                        for (let percent = axis.minimum; percent <= axis.maximum + 0.001; percent += axis.step) {
-                            const y = top + plotHeight * (1 - (percent - axis.minimum) / axisSpan)
+                        // The disk chart always spans the full 0-100% range so
+                        // fills are comparable at a glance.
+                        for (let percent = 0; percent <= 100; percent += 25) {
+                            const y = top + plotHeight * (1 - percent / 100)
                             ctx.beginPath()
                             ctx.globalAlpha = 0.2
                             ctx.strokeStyle = String(Kirigami.Theme.textColor)
@@ -567,8 +532,7 @@ Faces.SensorFace {
 
                             const strokeColor = String(color)
                             const xAt = time => left + plotWidth * (1 - (now - time) / windowMs)
-                            const yAt = value => top + plotHeight
-                                * (1 - (Math.max(axis.minimum, Math.min(axis.maximum, value)) - axis.minimum) / axisSpan)
+                            const yAt = value => top + plotHeight * (1 - Math.max(0, Math.min(100, value)) / 100)
                             let segment = []
 
                             const flushSegment = function() {
