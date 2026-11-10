@@ -23,6 +23,7 @@ in
     ./desktop-mcp.nix
     ./adb-wireless.nix
     ./codexbar.nix
+    ./claude-credit-router.nix
     ./kdeconnect-remote-commands.nix
     ./reverse-engineering.nix
     ./hex.nix

@@ -1,0 +1,513 @@
+use axum::body::{Body, Bytes, to_bytes};
+use axum::extract::State;
+use axum::http::{HeaderMap, Method, Request, Response, StatusCode};
+use chrono::{DateTime, Utc};
+use claude_credit_router::policy::{Mode, Route, Store, next_renewal, private_key};
+use claude_credit_router::{Billing, Config, EXHAUSTED, Router, exhausted};
+use serde_json::json;
+use std::collections::VecDeque;
+use std::os::unix::fs::PermissionsExt;
+use std::sync::{Arc, Mutex};
+
+fn date(value: &str) -> DateTime<Utc> {
+    value.parse().unwrap()
+}
+
+fn config(upstream: String) -> Config {
+    Config {
+        listen: "127.0.0.1:0".parse().unwrap(),
+        upstream,
+        api_key_file: Some("/unused-in-mock-tests".into()),
+        organization_id: "personal-org".into(),
+        renewal_anchor: date("2026-12-03T00:00:00Z"),
+        notify_send: None,
+        billing: Billing {
+            verified_at: date("2026-01-01T00:00:00Z"),
+            no_payment_method: true,
+            purchased_balance_usd: 0,
+            auto_reload: false,
+            sales_invoicing: false,
+        },
+    }
+}
+
+fn depleted() -> Reply {
+    Reply(
+        StatusCode::PAYMENT_REQUIRED,
+        json!({"type":"error", "error":{"type":"billing_error", "message":EXHAUSTED}}).to_string(),
+    )
+}
+
+struct Reply(StatusCode, String);
+
+#[derive(Clone)]
+struct Seen {
+    method: Method,
+    uri: String,
+    headers: HeaderMap,
+    body: Bytes,
+}
+
+#[derive(Clone)]
+struct Upstream {
+    responses: Arc<Mutex<VecDeque<Reply>>>,
+    seen: Arc<Mutex<Vec<Seen>>>,
+}
+
+async fn upstream(State(state): State<Upstream>, request: Request<Body>) -> Response<Body> {
+    let (parts, body) = request.into_parts();
+    let body = to_bytes(body, 129 * 1024 * 1024).await.unwrap();
+    state.seen.lock().unwrap().push(Seen {
+        method: parts.method,
+        uri: parts.uri.to_string(),
+        headers: parts.headers,
+        body,
+    });
+    let Reply(status, text) = state
+        .responses
+        .lock()
+        .unwrap()
+        .pop_front()
+        .expect("unexpected extra upstream request");
+    Response::builder()
+        .status(status)
+        .header("request-id", "unchanged-id")
+        .header("anthropic-organization-id", "personal-org")
+        .header("content-type", "text/event-stream")
+        .body(Body::from(text))
+        .unwrap()
+}
+
+struct Fixture {
+    url: String,
+    directory: tempfile::TempDir,
+    store: Store,
+    state: Upstream,
+    config: Config,
+    tasks: Vec<tokio::task::JoinHandle<()>>,
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        for task in &self.tasks {
+            task.abort();
+        }
+    }
+}
+
+impl Fixture {
+    async fn new(responses: Vec<Reply>) -> Self {
+        let state = Upstream {
+            responses: Arc::new(Mutex::new(responses.into())),
+            seen: Arc::default(),
+        };
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let config = config(format!(
+            "http://{}/sleev/opencode/anthropic",
+            listener.local_addr().unwrap()
+        ));
+        let app = axum::Router::new()
+            .fallback(upstream)
+            .with_state(state.clone());
+        let task = tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store(directory.path().join("state.json"));
+        let router = Router::new(config.clone(), store.clone(), "sk-ant-api-mock").unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let task2 = tokio::spawn(async move {
+            axum::serve(listener, router.app()).await.unwrap();
+        });
+        Self {
+            url,
+            directory,
+            store,
+            state,
+            config,
+            tasks: vec![task, task2],
+        }
+    }
+
+    async fn send(&self, body: &str) -> reqwest::Response {
+        reqwest::Client::new()
+            .post(format!("{}/v1/messages?beta=true", self.url))
+            .header("authorization", "Bearer native-subscription")
+            .header(
+                "anthropic-beta",
+                "oauth-2025-04-20,interleaved-thinking-2025-05-14",
+            )
+            .header("x-native-header", "preserved")
+            .body(body.to_owned())
+            .send()
+            .await
+            .unwrap()
+    }
+
+    fn seen(&self) -> Vec<Seen> {
+        self.state.seen.lock().unwrap().clone()
+    }
+}
+
+#[tokio::test]
+async fn available_promotional_credit_preserves_model_settings_and_history_bytes() {
+    let fixture = Fixture::new(vec![Reply(StatusCode::OK, "data: model output\n\n".into())]).await;
+    let body = r#"{ "model":"claude-opus-4-6", "thinking":{"type":"adaptive"}, "messages":[{"role":"assistant","content":[{"type":"thinking","signature":"signed-exactly"}]}] }"#;
+    let response = fixture.send(body).await;
+    assert_eq!(response.headers()["request-id"], "unchanged-id");
+    assert_eq!(response.text().await.unwrap(), "data: model output\n\n");
+    let seen = fixture.seen();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0].body, body);
+    assert_eq!(seen[0].method, Method::POST);
+    assert_eq!(
+        seen[0].uri,
+        "/sleev/opencode/anthropic/v1/messages?beta=true"
+    );
+    assert_eq!(seen[0].headers["x-api-key"], "sk-ant-api-mock");
+    assert!(!seen[0].headers.contains_key("authorization"));
+    assert_eq!(
+        seen[0].headers["anthropic-beta"],
+        "interleaved-thinking-2025-05-14"
+    );
+    assert_eq!(seen[0].headers["x-native-header"], "preserved");
+}
+
+#[tokio::test]
+async fn explicit_exhaustion_falls_back_once_and_passes_subscription_errors_unchanged() {
+    let native_error =
+        r#"{"error":{"type":"rate_limit_error","message":"subscription limit reached"}}"#;
+    let fixture = Fixture::new(vec![
+        depleted(),
+        Reply(StatusCode::TOO_MANY_REQUESTS, native_error.into()),
+        Reply(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "native retry policy owns this".into(),
+        ),
+    ])
+    .await;
+    let response = fixture.send("same-history").await;
+    assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(response.text().await.unwrap(), native_error);
+    assert_eq!(fixture.store.read().unwrap().active, Route::Subscription);
+    let seen = fixture.seen();
+    assert_eq!(seen.len(), 2);
+    assert_eq!(seen[0].body, seen[1].body);
+    assert_eq!(
+        seen[1].headers["authorization"],
+        "Bearer native-subscription"
+    );
+    assert_eq!(
+        seen[1].headers["anthropic-beta"],
+        "oauth-2025-04-20,interleaved-thinking-2025-05-14"
+    );
+    assert!(!seen[1].headers.contains_key("x-api-key"));
+    let response = fixture.send("next request").await;
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(
+        response.text().await.unwrap(),
+        "native retry policy owns this"
+    );
+    assert_eq!(fixture.seen().len(), 3);
+}
+
+#[tokio::test]
+async fn temporary_api_limits_authentication_and_spend_caps_do_not_switch() {
+    let cases = [
+        (StatusCode::TOO_MANY_REQUESTS, json!({"type":"error","error":{"type":"rate_limit_error","message":"slow down"}}).to_string()),
+        (StatusCode::TOO_MANY_REQUESTS, json!({"type":"error","error":{"type":"rate_limit_error","details":{"error_code":"enforced_spend_limit_reached"},"message":EXHAUSTED}}).to_string()),
+        (StatusCode::BAD_REQUEST, json!({"type":"error","error":{"type":"invalid_request_error","message":"You have reached your specified API usage limits"}}).to_string()),
+        (StatusCode::UNAUTHORIZED, "invalid key".into()),
+        (StatusCode::PAYMENT_REQUIRED, "Credit balance too low · Add funds: https://platform.claude.com/settings/billing".into()),
+    ];
+    for (status, body) in cases {
+        let fixture = Fixture::new(vec![Reply(status, body.clone())]).await;
+        let response = fixture.send("request").await;
+        assert_eq!(response.status(), status);
+        assert_eq!(response.text().await.unwrap(), body);
+        assert_eq!(fixture.seen().len(), 1);
+        assert_eq!(fixture.store.read().unwrap().active, Route::Promotional);
+    }
+}
+
+#[tokio::test]
+async fn partial_sse_output_is_never_parsed_replayed_or_switched() {
+    let body = format!(
+        "event: content_block_start\ndata: {{\"type\":\"tool_use\",\"name\":\"bash\"}}\n\nevent: error\ndata: {{\"message\":\"{EXHAUSTED}\"}}\n\n"
+    );
+    let fixture = Fixture::new(vec![Reply(StatusCode::OK, body.clone())]).await;
+    assert_eq!(fixture.send("request").await.text().await.unwrap(), body);
+    assert_eq!(fixture.seen().len(), 1);
+    assert_eq!(fixture.store.read().unwrap().active, Route::Promotional);
+}
+
+#[tokio::test]
+async fn concurrent_exhaustion_does_not_repeat_api_rejections() {
+    let fixture = Fixture::new(vec![
+        depleted(),
+        Reply(StatusCode::OK, "native one".into()),
+        Reply(StatusCode::OK, "native two".into()),
+    ])
+    .await;
+    let (first, second) = tokio::join!(fixture.send("one"), fixture.send("two"));
+    assert!(first.status().is_success() && second.status().is_success());
+    let seen = fixture.seen();
+    assert_eq!(seen.len(), 3);
+    assert_eq!(
+        seen.iter()
+            .filter(|item| item.headers.contains_key("x-api-key"))
+            .count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn renewal_probe_restores_promotional_route_without_an_extra_inference_probe() {
+    let fixture = Fixture::new(vec![Reply(StatusCode::OK, "renewed output".into())]).await;
+    fixture
+        .store
+        .update(|state| {
+            state.exhausted(Utc::now(), fixture.config.renewal_anchor)?;
+            state.next_probe_at = Some(Utc::now() - chrono::Duration::seconds(1));
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        fixture
+            .send("real next request")
+            .await
+            .text()
+            .await
+            .unwrap(),
+        "renewed output"
+    );
+    assert_eq!(fixture.seen().len(), 1);
+    let state = fixture.store.read().unwrap();
+    assert_eq!(state.active, Route::Promotional);
+    assert!(state.next_probe_at.is_none());
+    assert_eq!(
+        state.history.last().unwrap().reason,
+        "promotional_renewal_probe_succeeded"
+    );
+}
+
+#[tokio::test]
+async fn late_renewal_stays_on_subscription_between_bounded_probes() {
+    let fixture = Fixture::new(vec![depleted(), Reply(StatusCode::OK, "native".into())]).await;
+    fixture
+        .store
+        .update(|state| {
+            state.exhausted(Utc::now(), fixture.config.renewal_anchor)?;
+            state.next_probe_at = Some(Utc::now());
+            Ok(())
+        })
+        .unwrap();
+    fixture.send("request").await;
+    let state = fixture.store.read().unwrap();
+    assert_eq!(state.active, Route::Subscription);
+    assert_eq!(state.route(Utc::now()), Route::Subscription);
+    assert!(state.next_probe_at.unwrap() > Utc::now() + chrono::Duration::hours(5));
+    assert_eq!(
+        state.history.last().unwrap().reason,
+        "renewal_grant_not_available_yet"
+    );
+}
+
+#[tokio::test]
+async fn token_counting_and_other_automatic_endpoints_remain_native() {
+    let fixture = Fixture::new(vec![Reply(StatusCode::OK, "free token count".into())]).await;
+    reqwest::Client::new()
+        .post(format!("{}/v1/messages/count_tokens", fixture.url))
+        .header("authorization", "Bearer native")
+        .body("count this")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(fixture.seen()[0].headers["authorization"], "Bearer native");
+    assert!(!fixture.seen()[0].headers.contains_key("x-api-key"));
+}
+
+#[tokio::test]
+async fn large_unknown_billing_errors_are_forwarded_without_truncation_or_switch() {
+    let body = "x".repeat(200_000);
+    let fixture = Fixture::new(vec![Reply(StatusCode::PAYMENT_REQUIRED, body.clone())]).await;
+    assert_eq!(fixture.send("request").await.text().await.unwrap(), body);
+    assert_eq!(fixture.store.read().unwrap().active, Route::Promotional);
+}
+
+#[tokio::test]
+async fn malformed_state_never_silently_reactivates_api() {
+    let fixture = Fixture::new(vec![]).await;
+    std::fs::write(fixture.directory.path().join("state.json"), "broken").unwrap();
+    assert_eq!(
+        fixture.send("request").await.status(),
+        StatusCode::BAD_GATEWAY
+    );
+    assert!(fixture.seen().is_empty());
+}
+
+#[tokio::test]
+async fn non_billable_metadata_verifies_expected_organization() {
+    let fixture = Fixture::new(vec![
+        Reply(StatusCode::OK, "{}".into()),
+        Reply(StatusCode::OK, "{}".into()),
+    ])
+    .await;
+    let router = Router::new(
+        fixture.config.clone(),
+        fixture.store.clone(),
+        "sk-ant-api-test",
+    )
+    .unwrap();
+    router.verify_organization().await.unwrap();
+    let mut wrong = fixture.config.clone();
+    wrong.organization_id = "company-org".into();
+    let router = Router::new(wrong, fixture.store.clone(), "sk-ant-api-test").unwrap();
+    assert!(router.verify_organization().await.is_err());
+    assert!(
+        fixture
+            .seen()
+            .iter()
+            .all(|item| item.method == Method::GET && item.uri.ends_with("/v1/models?limit=1"))
+    );
+}
+
+#[test]
+fn exact_credit_error_only() {
+    let bytes =
+        json!({"type":"error", "error":{"type":"invalid_request_error", "message":EXHAUSTED}})
+            .to_string();
+    assert!(exhausted(StatusCode::BAD_REQUEST, bytes.as_bytes()));
+    assert!(!exhausted(StatusCode::TOO_MANY_REQUESTS, bytes.as_bytes()));
+    assert!(!exhausted(StatusCode::OK, bytes.as_bytes()));
+    assert!(!exhausted(StatusCode::PAYMENT_REQUIRED, b"not json"));
+}
+
+#[test]
+fn persists_restart_override_and_reason_history() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("state.json");
+    let store = Store(path.clone());
+    let now = date("2026-11-11T12:00:00Z");
+    store
+        .update(|state| {
+            state.exhausted(now, date("2026-12-03T00:00:00Z"))?;
+            Ok(())
+        })
+        .unwrap();
+    let restarted = Store(path);
+    assert_eq!(restarted.read().unwrap().route(now), Route::Subscription);
+    restarted
+        .update(|state| {
+            state.set_mode(Mode::Subscription, now);
+            state.recheck(now);
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(store.read().unwrap().route(now), Route::Promotional);
+    store
+        .update(|state| {
+            state.set_mode(Mode::Subscription, now);
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        store.read().unwrap().route(date("2027-01-01T00:00:00Z")),
+        Route::Subscription
+    );
+    assert_eq!(store.read().unwrap().history.len(), 4);
+    assert_eq!(
+        std::fs::metadata(store.0).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+}
+
+#[test]
+fn renewal_uses_subscription_anchor_and_preserves_month_end() {
+    let anchor = date("2026-12-03T00:00:00Z");
+    assert_eq!(
+        next_renewal(anchor, date("2026-11-11T00:00:00Z")).unwrap(),
+        anchor
+    );
+    assert_eq!(
+        next_renewal(anchor, anchor).unwrap(),
+        date("2027-01-03T00:00:00Z")
+    );
+    assert_eq!(
+        next_renewal(date("2026-01-31T12:00:00Z"), date("2026-02-28T13:00:00Z")).unwrap(),
+        date("2026-03-31T12:00:00Z")
+    );
+}
+
+#[test]
+fn depletion_at_the_renewal_boundary_does_not_skip_a_late_grant_for_a_month() {
+    let directory = tempfile::tempdir().unwrap();
+    let store = Store(directory.path().join("state.json"));
+    let renewal = date("2026-12-03T00:00:00Z");
+    let now = date("2026-12-03T00:01:00Z");
+    store
+        .update(|state| {
+            state.available(date("2026-12-02T23:59:00Z"));
+            state.exhausted(now, renewal)?;
+            assert_eq!(
+                state.next_probe_at.unwrap(),
+                now + chrono::Duration::hours(6)
+            );
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[tokio::test]
+async fn browser_and_unauthenticated_requests_cannot_spend_promotional_credits() {
+    let fixture = Fixture::new(vec![]).await;
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!("{}/v1/messages", fixture.url))
+        .body("request")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client
+        .post(format!("{}/v1/messages", fixture.url))
+        .header("origin", "https://untrusted.example")
+        .header("authorization", "Bearer example")
+        .body("request")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert!(fixture.seen().is_empty());
+}
+
+#[test]
+fn rejects_all_paid_billing_modes_and_non_loopback_endpoints() {
+    for index in 0..6 {
+        let mut value = config("http://127.0.0.1:17321/sleev/opencode/anthropic".into());
+        match index {
+            0 => value.billing.no_payment_method = false,
+            1 => value.billing.purchased_balance_usd = 1,
+            2 => value.billing.auto_reload = true,
+            3 => value.billing.sales_invoicing = true,
+            4 => value.listen = "0.0.0.0:17322".parse().unwrap(),
+            _ => value.upstream = "https://api.anthropic.com".into(),
+        }
+        assert!(value.validate().is_err());
+    }
+}
+
+#[test]
+fn key_must_be_private_and_never_subscription_oauth() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("key");
+    std::fs::write(&path, "sk-ant-api-test\n").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(private_key(&path).unwrap(), "sk-ant-api-test");
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(private_key(&path).is_err());
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    std::fs::write(&path, "oauth-credential").unwrap();
+    assert!(private_key(&path).is_err());
+}

@@ -103,6 +103,7 @@
       # Hex tracks the flake input `hex`, which `nix flake update` advances.
       localPackages = [
         "agent-tools"
+        "claude-credit-router"
         "context7-account-broker"
         "hex"
         "host-tools"
@@ -218,6 +219,8 @@
         predator = ./tests/predator.nix;
       } // {
         codexbar-plasmoid = pkgs.codexbar-plasmoid;
+        claude-credit-router = pkgs.claude-credit-router;
+        opencode-extensions = pkgs.opencode-extensions;
         hermes-browser-policy = pkgs.runCommand "hermes-browser-policy-tests" {
           nativeBuildInputs = [ self.nixosConfigurations.predator.config.services.hermes-agent.package.hermesVenv ];
         } ''
@@ -254,7 +257,7 @@
         name = "fmt";
         runtimeInputs = [ pkgs.rustfmt pkgs.findutils ];
         text = ''
-          find pkgs/host-tools/src -name '*.rs' -print0 | xargs -0 rustfmt --edition 2024
+          find pkgs/host-tools/src pkgs/claude-credit-router/src pkgs/claude-credit-router/tests -name '*.rs' -print0 | xargs -0 rustfmt --edition 2024
         '';
       };
       devShells.x86_64-linux.default = pkgs.mkShell {

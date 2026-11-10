@@ -115,6 +115,8 @@ kde shortcuts.kksrc
 .local/state/hex-settings/**
 {{- if not (or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop")) }}
 .config/hex/portable-settings.json
+.config/claude-credit-router/
+.config/claude-credit-router/**
 {{- end }}
 
 # Never manage dependency trees.
