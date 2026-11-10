@@ -555,7 +555,7 @@ transport once its phone has stopped advertising for fifteen seconds, which
 keeps an mDNS cache expiry or a Wi-Fi roam from cutting a live connection.
 
 The workstations share the phone's idle shutdown. When a sample shows payload
-traffic, the watcher touches `/data/local/tmp/adb-wireless/<hostname>` on the
+traffic, the watcher updates `/data/local/tmp/adb-wireless/<hostname>` on the
 phone, at most every 30 minutes while the phone stays in use, and leaves that
 write out of its own accounting. Keepalive probes carry no payload, so they never
 count as use; the counters come from `ss`, which is why the unit's PATH carries
@@ -583,6 +583,23 @@ Wireless debugging stays on and the watcher asks again after 15 minutes.
 Enabling Wireless debugging again on the phone itself, from a Quick Settings tile
 or Developer options, makes it advertise and the watchers reconnect within
 seconds.
+
+Each marker contains JSON with the latest detected activity: the watched serial
+and IP:port, detection time on the workstation, sampling interval, and previous,
+current and delta TCP byte counters, including retransmissions. It also records
+the publication time on the phone, so a delayed marker write is distinguishable
+from new traffic. The reason is `payload_changed`, `counters_decreased`,
+`unknown_baseline` or `new_session` (initialization, not detected traffic). The
+journal logs each detected change and successful marker publication. Only the
+watched device's socket counts; USB phones and local connections to the shared
+ADB server do not.
+
+These counters cannot identify a shell command, an app or intentional use, so
+`command` is explicitly `null`. This is a traffic trace, not a command audit.
+Markers replace the previous record rather than growing indefinitely; the
+journal retains earlier detections. Marker modification times still coordinate
+shutdown, and tracing adds no phone polling or extra marker writes. Reading a
+marker with `adb shell cat` is itself ADB activity.
 
 On Arch it uses Android Studio's SDK at
 `~/.local/share/android/sdk/platform-tools/adb`; NixOS uses `android-tools`.

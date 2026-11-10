@@ -11,7 +11,7 @@ use std::{
     os::fd::AsRawFd,
     process::{Command, Stdio},
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 const SERVICE_TYPE: &str = "_adb-tls-connect._tcp";
@@ -136,12 +136,12 @@ struct Phone {
     /// history after a watcher restart; changing transports never restarts it.
     idle_deadline: Option<Duration>,
     next_sample: Duration,
-    /// The device socket's payload bytes at the last sample; only ADB use changes them.
-    baseline: Option<u64>,
+    /// Counters and boot time for the last sample of this device's socket.
+    baseline: Option<SocketSample>,
     unreadable: bool,
-    /// Use this workstation has not yet recorded on the phone, and the earliest
-    /// `boot_time` it may write its marker again.
-    unpublished: bool,
+    /// Latest detection waiting for the rate-limited phone marker write.
+    pending_activity: Option<serde_json::Value>,
+    /// Earliest `boot_time` this workstation may write its marker again.
     next_mark: Duration,
     /// Neither marker reads nor a shutdown reach the phone before this.
     shutdown_after: Duration,
@@ -158,7 +158,7 @@ impl Phone {
             next_sample: Duration::ZERO,
             baseline: None,
             unreadable: false,
-            unpublished: false,
+            pending_activity: None,
             next_mark: Duration::ZERO,
             shutdown_after: Duration::ZERO,
         }
@@ -208,24 +208,48 @@ impl Phone {
     }
 
     /// Exclude connection handshakes without forgetting the last actual use.
-    fn reset_transport(&mut self, now: Duration, baseline: Option<u64>) {
+    fn reset_transport(&mut self, now: Duration, baseline: Option<SocketBytes>) {
         self.next_sample = now + SAMPLE_INTERVAL;
         self.unreadable = false;
-        self.baseline = baseline;
+        self.baseline = baseline.map(|bytes| SocketSample { bytes, at: now });
     }
 
-    fn observe(&mut self, bytes: u64, now: Duration, idle: Duration) {
-        let previous = self.baseline.replace(bytes);
-        if previous != Some(bytes) {
-            if previous.is_none() {
-                eprintln!(
-                    "adb-watch: {} socket counters recovered without a baseline; activity is unknown, restarting the idle window",
-                    self.serial
-                );
-            }
-            self.idle_deadline = Some(now + idle);
-            self.unpublished = true;
+    fn observe(&mut self, bytes: SocketBytes, peer: &str, now: Duration, idle: Duration) {
+        let previous = self.baseline.replace(SocketSample { bytes, at: now });
+        if previous.is_some_and(|sample| {
+            sample.bytes.sent == bytes.sent && sample.bytes.received == bytes.received
+        }) {
+            return;
         }
+        let reason = match previous {
+            None => "unknown_baseline",
+            Some(sample)
+                if bytes.sent < sample.bytes.sent || bytes.received < sample.bytes.received =>
+            {
+                "counters_decreased"
+            }
+            Some(_) => "payload_changed",
+        };
+        let activity = serde_json::json!({
+            "reason": reason,
+            "serial": self.serial,
+            "peer": peer,
+            "detected_at_host_unix": SystemTime::now().duration_since(UNIX_EPOCH)
+                .expect("workstation clock predates the Unix epoch").as_secs(),
+            "sample_elapsed_ms": previous.map(|sample| (now - sample.at).as_millis()),
+            "previous": previous.map(|sample| sample.bytes),
+            "current": bytes,
+            "delta": previous.map(|sample| serde_json::json!({
+                "sent": bytes.sent.checked_sub(sample.bytes.sent),
+                "received": bytes.received.checked_sub(sample.bytes.received),
+                "retransmitted": bytes.retransmitted.checked_sub(sample.bytes.retransmitted),
+            })),
+            // TCP counters cannot identify the ADB service or recover a command.
+            "command": null,
+        });
+        eprintln!("adb-watch: detected ADB activity: {activity}");
+        self.idle_deadline = Some(now + idle);
+        self.pending_activity = Some(activity);
     }
 
     /// Sample this workstation's use, record it on the phone for the other
@@ -252,11 +276,19 @@ impl Phone {
             return;
         };
         self.unreadable = false;
-        self.observe(bytes, now, idle);
-        if self.unpublished && now >= self.next_mark {
-            match mark_use(adb, &connection.serial, host) {
+        self.observe(bytes, &connection.address, now, idle);
+        if let Some(activity) = self
+            .pending_activity
+            .as_ref()
+            .filter(|_| now >= self.next_mark)
+        {
+            match mark_use(adb, &connection.serial, host, activity) {
                 Ok(_) => {
-                    self.unpublished = false;
+                    eprintln!(
+                        "adb-watch: {} wrote {host} activity marker: {activity}",
+                        self.serial
+                    );
+                    self.pending_activity = None;
                     self.next_mark = now + MARK_INTERVAL;
                 }
                 Err(error) => {
@@ -278,7 +310,10 @@ impl Phone {
     /// Exclude our own phone command from the next sample.
     fn rebaseline(&mut self, connection: &Connection) {
         thread::sleep(SETTLE);
-        self.baseline = transport_bytes(&connection.address);
+        self.baseline = transport_bytes(&connection.address).map(|bytes| SocketSample {
+            bytes,
+            at: boot_time(),
+        });
     }
 
     /// Recover all workstations' history, including our own after a restart.
@@ -296,13 +331,24 @@ impl Phone {
             if let Some(delay) = idle_delay(newest.as_ref().map(|(age, _)| *age), idle) {
                 if let Some((age, other)) = newest {
                     eprintln!(
-                        "adb-watch: {other} used {} {} minutes ago; keeping Wireless debugging on",
+                        "adb-watch: {other}'s activity marker for {} is {} minutes old; keeping Wireless debugging on",
                         self.serial,
                         age.as_secs() / 60
                     );
                 } else {
-                    mark_use(adb, &connection.serial, host).context("start ADB idle history")?;
-                    self.unpublished = false;
+                    mark_use(
+                        adb,
+                        &connection.serial,
+                        host,
+                        &serde_json::json!({
+                            "reason": "new_session",
+                            "serial": self.serial,
+                            "peer": connection.address,
+                            "command": null,
+                        }),
+                    )
+                    .context("start ADB idle history")?;
+                    self.pending_activity = None;
                     self.next_mark = boot_time() + MARK_INTERVAL;
                     eprintln!(
                         "adb-watch: started a new Wireless debugging idle window on {}",
@@ -319,7 +365,7 @@ impl Phone {
                 )
                 .context("turn Wireless debugging off")?;
                 self.idle_deadline = None;
-                self.unpublished = false;
+                self.pending_activity = None;
                 match output.trim() {
                     "" => eprintln!(
                         "adb-watch: turned Wireless debugging off on {} after {} minutes without ADB use from any workstation",
@@ -406,14 +452,24 @@ fn idle_delay(age: Option<Duration>, idle: Duration) -> Option<Duration> {
     }
 }
 
-fn mark_use(adb: &str, serial: &str, host: &str) -> Result<String> {
-    phone_shell(adb, serial, &history_command(HistoryCommand::Mark(host)))
+fn mark_use(adb: &str, serial: &str, host: &str, activity: &serde_json::Value) -> Result<String> {
+    phone_shell(
+        adb,
+        serial,
+        &history_command(HistoryCommand::Mark { host, activity }),
+    )
 }
 
 enum HistoryCommand<'a> {
     Read,
-    Mark(&'a str),
-    Shutdown { idle: Duration, port: u16 },
+    Mark {
+        host: &'a str,
+        activity: &'a serde_json::Value,
+    },
+    Shutdown {
+        idle: Duration,
+        port: u16,
+    },
 }
 
 /// Android's shell is the adapter for shared files and settings. Serialize these
@@ -429,7 +485,10 @@ fn history_command(command: HistoryCommand<'_>) -> String {
             "date +%s; for f in *; do [ -f \"$f\" ] || continue; stat -c '%Y %n' \"$f\"; done"
                 .to_owned()
         }
-        HistoryCommand::Mark(host) => format!("touch {host}"),
+        HistoryCommand::Mark { host, activity } => format!(
+            "recorded=$(date +%s)\nprintf '{{\"recorded_at_phone_unix\":%s,\"host\":\"{host}\",\"activity\":%s}}\\n' \"$recorded\" '{}' > .marker-tmp\nmv -f -- .marker-tmp {host}",
+            activity.to_string().replace('\'', "'\\''"),
+        ),
         HistoryCommand::Shutdown { idle, port } => format!(
             r#"if [ "$port" != {port} ]; then echo active; exit 0; fi
 now=$(date +%s)
@@ -627,14 +686,27 @@ fn disconnect(query: &mut impl FnMut(&str) -> Result<String>, name: &str) -> Res
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+struct SocketBytes {
+    sent: u64,
+    received: u64,
+    retransmitted: u64,
+}
+
+#[derive(Clone, Copy)]
+struct SocketSample {
+    bytes: SocketBytes,
+    at: Duration,
+}
+
 /// Payload bytes moved on the device socket to `address`, from `ss` TCP info.
 /// Keepalive probes carry no payload, so unchanged bytes mean no ADB use.
-fn transport_bytes(address: &str) -> Option<u64> {
+fn transport_bytes(address: &str) -> Option<SocketBytes> {
     let output = Command::new("ss").args(["-tnHi"]).output().ok()?;
     bytes_for_peer(&String::from_utf8_lossy(&output.stdout), address)
 }
 
-fn bytes_for_peer(text: &str, address: &str) -> Option<u64> {
+fn bytes_for_peer(text: &str, address: &str) -> Option<SocketBytes> {
     let wanted = address.replace(['[', ']'], "");
     let mut matched = false;
     for line in text.lines() {
@@ -648,12 +720,16 @@ fn bytes_for_peer(text: &str, address: &str) -> Option<u64> {
         if !matched {
             continue;
         }
-        // Both counters together are the whole payload of the device socket.
-        let field = |name: &str| -> Option<u64> {
+        let field = |name: &str| -> Option<&str> {
             line.split_whitespace()
-                .find_map(|field| Some(field.strip_prefix(name)?.parse().ok()?))
+                .find_map(|field| field.strip_prefix(name))
         };
-        return Some(field("bytes_sent:")? + field("bytes_received:")?);
+        return Some(SocketBytes {
+            sent: field("bytes_sent:")?.parse().ok()?,
+            received: field("bytes_received:")?.parse().ok()?,
+            // ss omits this field when no payload has been retransmitted.
+            retransmitted: field("bytes_retrans:").unwrap_or("0").parse().ok()?,
+        });
     }
     None
 }
@@ -971,7 +1047,14 @@ mod tests {
                     \t cubic rto:204 bytes_sent:1200 bytes_retrans:0 bytes_acked:1200 bytes_received:340\n\
                     ESTAB 0 0 192.168.1.2:50001 192.168.1.76:9999\n\
                     \t cubic bytes_sent:7 bytes_received:9\n";
-        assert_eq!(bytes_for_peer(text, "192.168.1.76:41325"), Some(1540));
+        assert_eq!(
+            bytes_for_peer(text, "192.168.1.76:41325"),
+            Some(SocketBytes {
+                sent: 1200,
+                received: 340,
+                retransmitted: 0,
+            })
+        );
         assert_eq!(bytes_for_peer(text, "192.168.1.76:4242"), None);
         // Counters that cannot be read must not look like an idle socket.
         assert_eq!(
@@ -983,8 +1066,38 @@ mod tests {
                 "ESTAB 0 0 [::ffff:1.2.3.4]:50000 [::ffff:1.2.3.5]:40000\n\t bytes_sent:5 bytes_received:6\n",
                 "[::ffff:1.2.3.5]:40000"
             ),
-            Some(11)
+            Some(SocketBytes {
+                sent: 5,
+                received: 6,
+                retransmitted: 0
+            })
         );
+        assert_eq!(
+            bytes_for_peer(
+                "ESTAB 0 0 1.2.3.4:1 1.2.3.5:2\n\t bytes_sent:8 bytes_received:9 bytes_retrans:4\n",
+                "1.2.3.5:2",
+            ),
+            Some(SocketBytes {
+                sent: 8,
+                received: 9,
+                retransmitted: 4
+            })
+        );
+        assert_eq!(
+            bytes_for_peer(
+                "ESTAB 0 0 1.2.3.4:1 1.2.3.5:2\n\t bytes_sent:8 bytes_received:9 bytes_retrans:invalid\n",
+                "1.2.3.5:2",
+            ),
+            None
+        );
+    }
+
+    fn sent(bytes: u64) -> SocketBytes {
+        SocketBytes {
+            sent: bytes,
+            received: 0,
+            retransmitted: 0,
+        }
     }
 
     #[test]
@@ -1015,24 +1128,35 @@ mod tests {
     fn reconnects_preserve_history_but_unknown_activity_is_conservative() {
         let idle = Duration::from_secs(180 * 60);
         let mut phone = Phone::new("phone");
-        phone.reset_transport(Duration::ZERO, Some(100));
-        phone.observe(200, Duration::from_secs(60), idle);
+        let peer = "192.168.1.76:41325";
+        phone.reset_transport(Duration::ZERO, Some(sent(100)));
+        phone.observe(sent(200), peer, Duration::from_secs(60), idle);
         let deadline = phone.idle_deadline;
-        assert!(phone.unpublished);
+        let pending = phone.pending_activity.clone();
+        assert!(pending.is_some());
 
         // A new socket's handshake has different counters, but is not ADB use.
-        phone.reset_transport(Duration::from_secs(600), Some(9000));
-        phone.observe(9000, Duration::from_secs(660), idle);
+        phone.reset_transport(Duration::from_secs(600), Some(sent(9000)));
+        phone.observe(
+            sent(9000),
+            "192.168.1.76:42000",
+            Duration::from_secs(660),
+            idle,
+        );
         assert_eq!(phone.idle_deadline, deadline);
-        assert!(
-            phone.unpublished,
-            "reconnect must retain unpublished actual use"
+        assert_eq!(
+            phone.pending_activity, pending,
+            "reconnect must retain the pending detection"
         );
 
         phone.reset_transport(Duration::from_secs(1200), None);
-        phone.observe(20_000, Duration::from_secs(1260), idle);
+        phone.observe(sent(20_000), peer, Duration::from_secs(1260), idle);
         assert_eq!(phone.idle_deadline, Some(Duration::from_secs(1260) + idle));
-        phone.observe(20_001, Duration::from_secs(1320), idle);
+        let unknown = phone.pending_activity.as_ref().unwrap();
+        assert_eq!(unknown["reason"], "unknown_baseline");
+        assert!(unknown["previous"].is_null());
+        assert!(unknown["delta"].is_null());
+        phone.observe(sent(20_001), peer, Duration::from_secs(1320), idle);
         assert_eq!(phone.idle_deadline, Some(Duration::from_secs(1320) + idle));
     }
 
@@ -1040,14 +1164,79 @@ mod tests {
     fn suspend_counts_toward_the_idle_deadline_and_next_sample() {
         let idle = Duration::from_secs(180 * 60);
         let mut phone = Phone::new("phone");
-        phone.reset_transport(Duration::ZERO, Some(100));
-        phone.observe(200, Duration::from_secs(60), idle);
+        let peer = "192.168.1.76:41325";
+        phone.reset_transport(Duration::ZERO, Some(sent(100)));
+        phone.observe(sent(200), peer, Duration::from_secs(60), idle);
 
         // CLOCK_BOOTTIME advances across sleep even though Instant does not.
         let resumed = Duration::from_secs(4 * 60 * 60);
-        phone.observe(200, resumed, idle);
+        phone.observe(sent(200), peer, resumed, idle);
         assert!(resumed >= phone.idle_deadline.unwrap());
         assert!(resumed >= phone.next_sample);
+    }
+
+    #[test]
+    fn activity_trace_records_device_counters_without_inventing_a_command() {
+        let mut phone = Phone::new("phone");
+        let peer = "192.168.1.76:41325";
+        phone.reset_transport(
+            Duration::from_secs(10),
+            Some(SocketBytes {
+                sent: 100,
+                received: 200,
+                retransmitted: 0,
+            }),
+        );
+        phone.observe(
+            SocketBytes {
+                sent: 120,
+                received: 250,
+                retransmitted: 5,
+            },
+            peer,
+            Duration::from_secs(70),
+            Duration::from_secs(180 * 60),
+        );
+        let trace = phone.pending_activity.as_ref().unwrap();
+        assert_eq!(trace["reason"], "payload_changed");
+        assert_eq!(trace["serial"], "phone");
+        assert_eq!(trace["peer"], peer);
+        assert_eq!(trace["sample_elapsed_ms"], 60000);
+        assert_eq!(
+            trace["delta"],
+            serde_json::json!({"sent": 20, "received": 50, "retransmitted": 5})
+        );
+        assert!(trace["detected_at_host_unix"].as_u64().unwrap() > 0);
+        assert!(trace["command"].is_null());
+
+        phone.observe(
+            sent(10),
+            peer,
+            Duration::from_secs(130),
+            Duration::from_secs(180 * 60),
+        );
+        let trace = phone.pending_activity.as_ref().unwrap();
+        assert_eq!(trace["reason"], "counters_decreased");
+        assert!(trace["delta"]["sent"].is_null());
+        assert!(trace["delta"]["received"].is_null());
+    }
+
+    #[test]
+    fn another_devices_traffic_does_not_create_an_activity_trace() {
+        let peer = "192.168.1.76:41325";
+        let mut phone = Phone::new("phone");
+        phone.reset_transport(Duration::ZERO, Some(sent(100)));
+        let text = "ESTAB 0 0 127.0.0.1:5037 127.0.0.1:50000\n\t bytes_sent:999 bytes_received:999\n\
+                    ESTAB 0 0 192.168.1.2:50001 192.168.1.77:41325\n\t bytes_sent:10000 bytes_received:20000\n\
+                    ESTAB 0 0 192.168.1.2:50002 192.168.1.76:41325\n\t bytes_sent:100 bytes_received:0\n";
+        phone.observe(
+            bytes_for_peer(text, peer).unwrap(),
+            peer,
+            Duration::from_secs(60),
+            Duration::from_secs(180 * 60),
+        );
+        assert!(phone.pending_activity.is_none());
+        assert!(phone.idle_deadline.is_none());
     }
 
     #[test]
@@ -1142,6 +1331,59 @@ settings() {{
     }
 
     #[test]
+    fn marker_contains_the_latest_trace_but_keeps_mtime_coordination() -> Result<()> {
+        let fixture = HistoryFixture::new()?;
+        fixture.expired_marker("main")?;
+        let activity = serde_json::json!({
+            "reason": "payload_changed",
+            "serial": "phone",
+            "detected_at_host_unix": 123,
+            "command": null,
+            "note": "it's literal $(touch INJECTED) `touch BACKTICK`\na second line",
+        });
+        util::command_output(&mut fixture.command(
+            HistoryCommand::Mark {
+                host: "main",
+                activity: &activity,
+            },
+            40000,
+        ))?;
+        let marker: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(fixture.0.path().join("main"))?)?;
+        assert_eq!(marker["host"], "main");
+        assert_eq!(marker["activity"], activity);
+        assert!(marker["recorded_at_phone_unix"].as_u64().unwrap() > 123);
+        for file in [".marker-tmp", "INJECTED", "BACKTICK"] {
+            assert!(!fixture.0.path().join(file).exists());
+        }
+        // Old empty markers remain readable, and an interrupted hidden write
+        // cannot look like another workstation or change its idle history.
+        fixture.expired_marker("laptop")?;
+        std::fs::write(fixture.0.path().join(".marker-tmp"), "partial")?;
+        let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 40000))?;
+        assert_eq!(
+            newest_use(std::str::from_utf8(&history)?)?.unwrap().1,
+            "main"
+        );
+
+        util::command_output(&mut fixture.command(
+            HistoryCommand::Mark {
+                host: "main",
+                activity: &serde_json::json!({"reason": "new_session", "command": null}),
+            },
+            40000,
+        ))?;
+        let marker: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(fixture.0.path().join("main"))?)?;
+        assert_eq!(marker["activity"]["reason"], "new_session");
+        assert!(
+            marker["activity"]["note"].is_null(),
+            "replace, do not append"
+        );
+        Ok(())
+    }
+
+    #[test]
     fn failed_shutdown_retains_history_and_retries_without_new_grace() -> Result<()> {
         let fixture = HistoryFixture::new()?;
         fixture.expired_marker("main")?;
@@ -1182,7 +1424,10 @@ settings() {{
                 .command(HistoryCommand::Shutdown { idle, port: 40000 }, 40000)
                 .env(
                     "RACING_MARK",
-                    fixture.script(HistoryCommand::Mark("laptop")),
+                    fixture.script(HistoryCommand::Mark {
+                        host: "laptop",
+                        activity: &serde_json::json!({}),
+                    }),
                 ),
         )?;
         assert!(fixture.0.path().join("laptop").exists());
@@ -1191,7 +1436,13 @@ settings() {{
         // A late publication cannot leak from the closing session into its next enable.
         let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 41000))?;
         assert_eq!(newest_use(std::str::from_utf8(&history)?)?, None);
-        util::command_output(&mut fixture.command(HistoryCommand::Mark("main"), 41000))?;
+        util::command_output(&mut fixture.command(
+            HistoryCommand::Mark {
+                host: "main",
+                activity: &serde_json::json!({}),
+            },
+            41000,
+        ))?;
         let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 41000))?;
         assert_eq!(
             newest_use(std::str::from_utf8(&history)?)?.unwrap().1,
@@ -1211,7 +1462,13 @@ settings() {{
         assert_eq!(output, b"active\n");
         // A port change without a closing session must preserve idle history.
         assert!(fixture.0.path().join("main").exists());
-        util::command_output(&mut fixture.command(HistoryCommand::Mark("laptop"), 40000))?;
+        util::command_output(&mut fixture.command(
+            HistoryCommand::Mark {
+                host: "laptop",
+                activity: &serde_json::json!({}),
+            },
+            40000,
+        ))?;
         let output = util::command_output(&mut fixture.command(shutdown(), 40000))?;
         assert_eq!(output, b"active\n");
         assert!(!fixture.0.path().join(".closing").exists());
