@@ -700,23 +700,35 @@ Ctrl-O opens recent sessions/projects, Ctrl-Alt-U/D scroll half a page, and
 F2/Shift-F2 cycle recent models.
 
 OpenCode v2 installs Browser MCP and Computer Use MCP from their published npm
-packages, and Codex installs the same plugins from their Git marketplaces at
-`release/latest`. A fresh setup needs no development checkout, compiler or Nix
-package to start either MCP; each harness populates its own plugin cache. Home
-Manager selects the Chromium executable through `environment.d/50-opencode.conf`.
+packages. Browser MCP is pinned in `dotfiles/private_dot_config/agent-tools/mcp.json`
+(`browser.version`, `npmIntegrity` and `codexContentHash`), so every machine runs
+the same release. Home Manager fetches that tarball into
+`~/.local/share/browser-mcp/current`, used by Claude Code's MCP, hook and skill
+and by Codex's local `browser-mcp` marketplace. A fresh setup needs no
+development checkout or compiler to start either MCP.
 
-OpenCode loads the published plugins directly and Queue from `opencode-queue@2.0.2`.
-Context7 Broker remains pinned to its published 0.4.0 release. Each release
-refreshes the Codex marketplace branches; install or update the two plugins with:
+Codex records hook trust per plugin content, so the Codex config template stores
+the pinned release's content hash next to each Browser MCP hook. The Nix build
+recomputes it with `host-tools codex-plugin-hash` and fails on a mismatch. To
+move to a new release, update `version` and `npmIntegrity`, build Home Manager,
+copy the expected hash from the error into `codexContentHash`, then activate and
+run `chezmoi apply`. Its `codex-browser-plugin` script reinstalls the plugin
+whenever the pin changes; Codex does not refresh local plugins by itself.
+
+Computer Use still installs from its Git marketplace at `release/latest`, and
+Context7 Broker remains pinned to its published 0.4.0 release. OpenCode loads
+the published plugins directly and Queue from `opencode-queue@2.0.2`. Update
+Computer Use with:
 
 ```bash
 codex plugin marketplace upgrade
-codex plugin add browser@browser-mcp
 codex plugin add computer-use@computer-use-mcp
 ```
 
 These commands populate Codex's writable plugin cache; enabling a plugin in
 `config.toml` alone does not install it. Start a new Codex session afterward.
+Home Manager selects the Chromium executable through
+`environment.d/50-opencode.conf`.
 
 Both MCPs start their own backends on demand. Computer Use's background desktop
 starts a private Wayland compositor, D-Bus, PipeWire, portals and AT-SPI from its

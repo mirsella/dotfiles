@@ -6,6 +6,7 @@ mod boot_keys;
 mod browser;
 mod browser_secret;
 mod claude_hook;
+mod codex_plugin;
 mod fan_control;
 mod hardware;
 mod hermes;
@@ -65,6 +66,10 @@ enum Commands {
     ComposioMcpHeaders,
     ClaudeBrowserHook {
         browser_mcp: PathBuf,
+    },
+    /// Print the content hash Codex records when trusting a plugin's hooks.
+    CodexPluginHash {
+        root: PathBuf,
     },
     OpencodeClientEnv {
         config: PathBuf,
@@ -240,6 +245,7 @@ fn run() -> Result<()> {
         Commands::OpencodeClientEnv { config, command } => opencode::client_env(&config, &command),
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),
         Commands::ClaudeBrowserHook { browser_mcp } => claude_hook::run(&browser_mcp),
+        Commands::CodexPluginHash { root } => codex_plugin::run(&root),
         Commands::T3Settings { base_dir, action } => t3_settings::run(base_dir, action),
         Commands::HexSettings { action } => hex_settings::run(action),
         Commands::HexModel { hex } => hex_model::run(&hex),

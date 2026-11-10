@@ -1,9 +1,24 @@
 { config, lib, pkgs, ... }:
 let
   inventory = builtins.fromJSON (builtins.readFile ../../dotfiles/private_dot_config/agent-tools/mcp.json);
-  # Follow the installed release when current moves, without fetching packages
-  # in the short-lived lifecycle hooks.
-  browserRoot = "${config.home.homeDirectory}/.local/share/browser-mcp/current";
+  # One pinned browser-mcp release for Claude, Codex and OpenCode. Codex trusts
+  # its hooks by content hash, so a release bump must update both hashes.
+  browser = inventory.browser;
+  browserRoot = pkgs.runCommand "browser-mcp-${browser.version}" {
+    src = pkgs.fetchurl {
+      url = "https://registry.npmjs.org/${browser.package}/-/browser-mcp-${browser.version}.tgz";
+      hash = browser.npmIntegrity;
+    };
+    nativeBuildInputs = [ pkgs.host-tools ];
+  } ''
+    mkdir "$out"
+    tar -xzf "$src" --strip-components=1 -C "$out"
+    actual=$(host-tools codex-plugin-hash "$out")
+    if [ "$actual" != ${lib.escapeShellArg browser.codexContentHash} ]; then
+      echo "browser-mcp ${browser.version}: Codex content hash is $actual; update codexContentHash in agent-tools/mcp.json" >&2
+      exit 1
+    fi
+  '';
   # Adapt Claude's hook envelope to the published browser hook protocol. Keep
   # Claude IDs distinct from Codex IDs and use the broker's queued cleanup.
   browserHook = "${lib.getExe pkgs.host-tools} claude-browser-hook "
@@ -35,8 +50,9 @@ in
       }];
     };
   };
-  home.file.".claude/skills/browser-automation".source =
-    config.lib.file.mkOutOfStoreSymlink "${browserRoot}/skills/browser-automation";
+  home.file.".claude/skills/browser-automation".source = "${browserRoot}/skills/browser-automation";
+  # Codex installs its plugin from this stable path (see dot_codex/private_config.toml.tmpl).
+  home.file.".local/share/browser-mcp/current".source = browserRoot;
   # Old user-scoped entries override plugin configuration. Retire only these
   # managed names; retain authentication, project state, and unrelated MCPs.
   home.activation.claudeManagedMcp = lib.hm.dag.entryAfter [ "linkGeneration" ] (

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Reinstall Codex's browser plugin when the pinned release changes. Codex does
+# not refresh local marketplace plugins by itself.
+{{- $browser := (include "private_dot_config/agent-tools/mcp.json" | fromJson).browser }}
+# browser-mcp {{ $browser.version }} {{ $browser.codexContentHash }}
+set -eu
+codex="$HOME/.local/bin/codex"
+root="$HOME/.local/share/browser-mcp/current"
+if [ ! -x "$codex" ]; then
+  echo "codex-browser-plugin: $codex is missing; rerun chezmoi apply after installing Codex" >&2
+  exit 1
+fi
+if ! grep -q '"version": "{{ $browser.version }}"' "$root/.codex-plugin/plugin.json" 2>/dev/null; then
+  echo "codex-browser-plugin: $root is not browser-mcp {{ $browser.version }}; activate Home Manager first" >&2
+  exit 1
+fi
+"$codex" plugin add browser@browser-mcp

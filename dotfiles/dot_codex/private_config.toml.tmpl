@@ -40,10 +40,10 @@ source_type = "git"
 source = "https://github.com/mirsella/computer-use-mcp.git"
 ref = "release/latest"
 
+# Home Manager links the release pinned in agent-tools/mcp.json here.
 [marketplaces.browser-mcp]
-source_type = "git"
-source = "https://github.com/mirsella/browser-mcp.git"
-ref = "release/latest"
+source_type = "local"
+source = "{{ .chezmoi.homeDir }}/.local/share/browser-mcp/current"
 
 {{ $mcp := include "private_dot_config/agent-tools/mcp.json" | fromJson -}}
 {{ range $name, $server := $mcp.servers }}
@@ -109,6 +109,8 @@ enabled = false
 
 [hooks.state."browser@browser-mcp:hooks/hooks.json:pre_tool_use:0:0"]
 trusted_hash = "sha256:bdc5f4e37abe338ba919376999ec010dabcfe49b2cc58d80ebcc275d1bdb73ad"
+trusted_content_hash = "{{ $mcp.browser.codexContentHash }}"
 
 [hooks.state."browser@browser-mcp:hooks/hooks.json:session_end:0:0"]
 trusted_hash = "sha256:46211dbcbb20c82ed96a576d78254505f7f53c2465c76dd9416d759e2d90200c"
+trusted_content_hash = "{{ $mcp.browser.codexContentHash }}"
