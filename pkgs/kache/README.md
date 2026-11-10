@@ -59,6 +59,72 @@ counts, throughput and resource bounds with matched source/configuration. A poli
 replay or passing scheduler unit tests is not a throughput or latency comparison.
 Do not induce pressure on the shared laptop or change capacity to qualify a policy.
 
+`build-script-correctness.patch` backports external native link-input tracking
+from #1864 (`43b564c0218868283bbee8618ddb3a307c3bb9df`). Its prerequisites are
+the build-unit ownership/source-link work from #1593
+(`d2932194991878df979124068f2d7d814f2b4408`) and declared-input timestamps from
+#1779 (`129a967f8676edc9fb3dd0a3c67f3b66da09bd34`). External inventories have a
+shared 1,024-entry/64 MiB bound checked before content hashing. Scripts with
+external link inputs use the ordinary run cache instead of sealed hermetic runs.
+The patch includes shared-store regressions; stable 1.2.2 does not implement the
+newer build-script readonly-store restoration feature.
+
+The same patch includes only the Git-input commits from #1874:
+`26b7e09f39774828f7b289fd802b22f8fc711bf0`,
+`bcaa10f94763a8665ee844bd4471c742a49107a0`, and
+`0805bd7a101c3c8e8761eb5cf74fbd7a6ea6f282`.
+Local regressions cover already-expanded `.git/worktrees/<id>/HEAD` paths,
+loose/packed refs, detached HEAD, and loose-ref deletion during a script run.
+Resolution watches the relevant files and parent-directory timestamps. Commit
+resolution does not cover `git describe --dirty`; scripts must declare their
+working-tree inputs separately.
+
+`scheduler-workload.patch` is opt-in through `enableWorkloadScheduler = true`.
+The default package retains the installed scheduler while its reservation changes
+remain under qualification. The patch keeps the existing pool, pressure threshold, timeout,
+test leases and fail-open behavior. Completed deferred Rust compiles join the
+publication flight without taking another capacity permit. Successful Rust and
+C-family compiles record the RSS returned by waiting for their own compiler PID;
+failed or interrupted compiles do not train estimates. Rust estimates distinguish
+toolchain, target, codegen settings, crate/output kind and incremental mode.
+C-family estimates distinguish compiler, source, target flags and codegen mode.
+The new estimate namespace starts unmeasured and does not import crate-name-only
+weights. This cold-estimate behavior also needs the dedicated-host qualification
+above before activation.
+
+`reuse-sharing.patch` backports #1874's profile-sharing commit `b9e998b2`
+and discovery-flight release `f7d7be18`. Equivalent Cargo profiles share
+generated-source identities, compiler remaps, artifacts and restored dep-info.
+The local adaptation applies profile remapping only when `OUT_DIR` is present
+and adds a scoped key marker. Unrelated compiler entries keep recipe version 32;
+affected entries miss once instead of colliding with older remapped artifacts.
+Different generated contents still produce different keys. A discovery waiter
+whose source tree cannot use the owner's prediction releases the flight before
+compiling, while a compatible waiter retains publication ownership.
+
+## Weekly reuse and disk review
+
+The package reports `1.2.2+local-reuse-20261109` in ordinary events; the opt-in
+scheduler build adds `-scheduler-trial`. Group observations by engine version,
+host and workload. Target-local build-script launchers can retain an older engine.
+
+Workstations enable `record_sessions` for bounded report and GC history in
+`~/.cache/kache/telemetry/`. Compiler events retain the existing eight-day,
+512 MiB compressed archive. Check archive coverage and dropped observations
+before interpreting a seven-day window; bounds can shorten retained history.
+
+Review expensive misses and their recorded key-field changes, repeated demand
+after eviction, duplicate publications, admission waits, hit restore time, and
+new versus already-present blob counts and copy/reflink bytes. Use successful ordinary builds separately
+from experiments and failures. Session closure is inferred from inactivity and
+does not establish complete Cargo command wall time.
+
+For disk comparisons, capture the cache and relevant target directories with
+`btrfs filesystem du -s` at both endpoints. Keep exclusive and shared extents
+separate from logical output bytes, indexed blob bytes and GC accounting.
+Reflinked targets can retain extents after cache eviction. A better hit percentage
+alone is not evidence of faster builds or lower physical disk use.
+
 The Nix build runs workspace library/binary tests. Also run the complete
 workspace integration/doc suite with the repository's resource guard, a clean
 Cargo configuration, wrapper disabled, and its pinned Rust toolchain. Some
@@ -67,8 +133,11 @@ Validate the resulting Nix binary with isolated real Clippy/Cranelift and
 build-script cache-hit fixtures before activation. Do not use the production
 cache for intentionally corrupt metadata or missing-directory tests.
 
-Wrapper and daemon must continue to select the same package. No index/key
-schema upgrade is intended. Rotation archives add optional history which the
+Wrapper and daemon must continue to select the same package. The compiler cache
+and index schemas stay unchanged. Build-script action and hermetic namespaces
+retire older records so they cannot bypass the new input checks. Existing
+target-local launchers can still pin an older engine until Cargo rebuilds them.
+Rotation archives add optional history which the
 older binary will not read; rollback does not require deleting the cache.
 The live limit remains 150 GiB while collecting a fixed-configuration baseline;
 100 GiB is a later measured trial, not an assumption from survivor statistics.

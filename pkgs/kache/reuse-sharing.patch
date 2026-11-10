@@ -1,0 +1,786 @@
+diff --git a/crates/kache-store/src/link.rs b/crates/kache-store/src/link.rs
+index 73ee7a80..6ce2d71b 100644
+--- a/crates/kache-store/src/link.rs
++++ b/crates/kache-store/src/link.rs
+@@ -1636,6 +1636,9 @@ const DEPINFO_ROOT_SENTINEL: &str = "__kache_root__/";
+ const DEPINFO_CWD_SENTINEL: &str = "__kache_cwd__/";
+ const DEPINFO_WORKSPACE_SENTINEL: &str = "__kache_workspace__/";
+ const DEPINFO_TARGET_SENTINEL: &str = "__kache_target_rule__/";
++/// Cargo's profile directory for the unit, `<target>/[<triple>/]<profile>`.
++/// It lies inside the target, so it is relativized before the target is.
++pub const DEPINFO_PROFILE_SENTINEL: &str = "__kache_profile__/";
+ 
+ /// rustc's `# env-dep:NAME=value` records carry their own escape grammar:
+ /// backslash is written `\\` (and newline/CR as `\n`/`\r`), and cargo's
+@@ -1736,6 +1739,18 @@ pub fn rewrite_rustc_depinfo_content_with_configured_roots(
+             ))
+         });
+         let target_rewritten = rewrite_rustc_depinfo_targets(content, target_dir, mode);
++        // A generated source under the unit's profile directory moves with
++        // the consumer's profile, which can differ from the producer's
++        // (`debug` against a custom profile that inherits `dev`).
++        let (profile_roots, roots): (Vec<_>, Vec<_>) = roots
++            .into_iter()
++            .partition(|(_, sentinel, ..)| sentinel == DEPINFO_PROFILE_SENTINEL);
++        let target_rewritten =
++            profile_roots
++                .into_iter()
++                .fold(target_rewritten, |rewritten, (root, sentinel, ..)| {
++                    rewrite_depinfo_content_with_exact_sentinel(&rewritten, &root, &sentinel, mode)
++                });
+         // Dependencies generated beneath Cargo's effective target directory
+         // must move with that target even when it lives inside the workspace.
+         // Otherwise the higher-ranked WORKSPACE source rule captures
+@@ -3625,6 +3640,54 @@ __kache_target_rule__/debug/build/demo/out/generated.rs\n"
+         );
+     }
+ 
++    /// A unit hit across Cargo profiles (`debug`, then a custom profile that
++    /// inherits `dev`) must watch the generated source in its own profile.
++    #[test]
++    fn generated_source_moves_to_the_consumer_profile() {
++        let workspace = PathBuf::from("/work");
++        let target = workspace.join("target");
++        let target_sentinel = DEPINFO_TARGET_SENTINEL.to_string();
++        let profile_sentinel = DEPINFO_PROFILE_SENTINEL.to_string();
++        let roots = |profile: &str| {
++            [
++                (target.join(profile), profile_sentinel.clone(), 9),
++                (workspace.clone(), DEPINFO_WORKSPACE_SENTINEL.to_string(), 4),
++                (target.clone(), target_sentinel.clone(), 3),
++            ]
++        };
++        let input = "/work/target/debug/deps/serde_core.d: \
++/work/src/lib.rs \
++/work/target/debug/build/serde_core-fe75/out/private.rs\n";
++
++        let stored = rewrite_rustc_depinfo_content_with_configured_roots(
++            input,
++            &target,
++            &workspace,
++            Some(&workspace),
++            &roots("debug"),
++            DepInfoMode::Relativize,
++        );
++        assert_eq!(
++            stored,
++            "__kache_root__/debug/deps/serde_core.d: \
++__kache_workspace__/src/lib.rs \
++__kache_profile__/build/serde_core-fe75/out/private.rs\n"
++        );
++
++        let restored = rewrite_rustc_depinfo_content_with_configured_roots(
++            &stored,
++            &target,
++            &workspace,
++            Some(&workspace),
++            &roots("alt"),
++            DepInfoMode::Expand,
++        );
++        assert!(
++            restored.ends_with(" /work/target/alt/build/serde_core-fe75/out/private.rs\n"),
++            "{restored}"
++        );
++    }
++
+     /// kunobi-ninja/kache#808: several Cargo processes can share one local
+     /// store while building the same workspace into `target_1`...`target_4`.
+     /// A generated dependency beneath an in-workspace target must follow the
+diff --git a/src/args.rs b/src/args.rs
+index 35aecf25..3a0f2d8c 100644
+--- a/src/args.rs
++++ b/src/args.rs
+@@ -834,6 +834,23 @@ impl RustcArgs {
+         self.path_normalization_root.as_deref()
+     }
+ 
++    /// Cargo's profile directory for this unit, `<target>/[<triple>/]<profile>`,
++    /// from `--out-dir`, which path normalization remaps as one root. `None`
++    /// outside Cargo's layout, when it is not inside [`Self::target_dir`], or
++    /// when the unit is not remapped and bakes the real path anyway.
++    pub(crate) fn profile_dir(&self) -> Option<PathBuf> {
++        // Restrict this backport to crates consuming build-script output. The
++        // matching recipe marker invalidates those units without retiring the
++        // entire stable compiler cache. All callers use this same decision.
++        if self.skip_path_remap() || std::env::var_os("OUT_DIR").is_none() {
++            return None;
++        }
++        let target = std::path::absolute(self.target_dir()?).ok()?;
++        let profile = crate::cargo_layout::profile_dir(self.out_dir.as_deref()?)?;
++        let profile = std::path::absolute(profile).ok()?;
++        (profile != target && profile.starts_with(&target)).then_some(profile)
++    }
++
+     /// Derive the cargo target directory (e.g. `<workspace>/target`) from
+     /// the rustc args.
+     ///
+@@ -2571,6 +2588,64 @@ mod tests {
+         assert_eq!(args.target_dir(), Some(PathBuf::from("/work/proj/target")));
+     }
+ 
++    #[test]
++    fn profile_dir_is_the_units_profile_in_every_layout() {
++        let _lock = crate::test_support::process_state_test_lock();
++        let _out = crate::config::tests::set_env_for_test(
++            "OUT_DIR",
++            Some(std::ffi::OsStr::new("/generated")),
++        );
++        let layout_path = |path: &str| std::path::absolute(path).unwrap();
++        let profile = |target: Option<&str>, out_dir: &str, extra: &[&str]| {
++            RustcArgs {
++                target: target.map(str::to_string),
++                out_dir: Some(layout_path(out_dir)),
++                codegen_opts: extra.iter().map(|opt| (opt.to_string(), None)).collect(),
++                ..Default::default()
++            }
++            .profile_dir()
++        };
++        let alt = Some(layout_path("/work/proj/target/alt"));
++        assert_eq!(profile(None, "/work/proj/target/alt/deps", &[]), alt);
++        // A legacy build-script compile anchors `target_dir` at the profile
++        // already, so there is nothing inside it to add.
++        assert_eq!(
++            profile(
++                None,
++                "/work/proj/target/alt/build/serde-0123456789abcdef",
++                &[]
++            ),
++            None
++        );
++        assert_eq!(
++            profile(
++                None,
++                "/work/proj/target/alt/build/serde/0123456789abcdef/out",
++                &[]
++            ),
++            alt
++        );
++        let triple = "x86_64-unknown-linux-gnu";
++        assert_eq!(
++            profile(
++                Some(triple),
++                "/work/proj/target/x86_64-unknown-linux-gnu/alt/deps",
++                &[]
++            ),
++            Some(layout_path(
++                "/work/proj/target/x86_64-unknown-linux-gnu/alt"
++            ))
++        );
++        assert_eq!(profile(None, "/tmp/out", &[]), None, "not Cargo's layout");
++        assert_eq!(
++            profile(None, "/work/proj/target/alt/deps", &["instrument-coverage"]),
++            None,
++            "an unremapped unit bakes the real path"
++        );
++        let _no_out = crate::config::tests::set_env_for_test("OUT_DIR", None);
++        assert_eq!(profile(None, "/work/proj/target/alt/deps", &[]), None);
++    }
++
+     #[test]
+     fn test_target_dir_new_layout_needs_both_out_and_build() {
+         // An `out` directory three levels below something other than `build`
+diff --git a/src/cache_key.rs b/src/cache_key.rs
+index d175ecd2..de6d4a31 100644
+--- a/src/cache_key.rs
++++ b/src/cache_key.rs
+@@ -2884,15 +2884,32 @@ fn resolve_key_inputs(
+             && let Some(identity) = discovery_flight_identity(args, file_hasher)
+         {
+             let flight = crate::scheduler::join_discovery_flight(cache_dir, &identity);
+-            owns_flight = flight.lock.is_some();
+-            *file_hasher.discovery_flight.borrow_mut() = flight.lock;
++            let mut lock = flight.lock;
+             // The previous owner may have published while this process
+             // waited; a flight taken at once had no owner to publish. The
+             // tree is digested again: the owner's record carries the digest
+             // from before its compile, and the tree may have changed since.
+             if flight.waited {
+                 prediction = predicted_key_inputs(args, file_hasher, &mut out.tree_guard);
++                // The owner left nothing this process can use, typically a
++                // record of another checkout's tree. Owning the flight would
++                // queue every later checkout behind this compile too, one
++                // compile at a time. Release it and key the way a peer
++                // without the flight does: a peer with the same key still
++                // waits on the compile flight and restores the entry.
++                if let Err(reason) = &prediction
++                    && lock.take().is_some()
++                {
++                    crate::phase_trace::decision("discovery_flight", "released");
++                    tracing::debug!(
++                        "[key:{}] discovery flight released: the owner's result is unusable here ({})",
++                        crate_name,
++                        reason.as_str()
++                    );
++                }
+             }
++            owns_flight = lock.is_some();
++            *file_hasher.discovery_flight.borrow_mut() = lock;
+         }
+         match prediction {
+             Ok(dep_info) => {
+@@ -3862,6 +3879,12 @@ fn compute_key_into(
+         "none".to_string()
+     } else {
+         hasher.update(b"remap:multi-prefix\n");
++        if args.profile_dir().is_some() {
++            // Profile source paths and emitted remaps changed together. Only
++            // affected generated-output units enter this local namespace;
++            // never collide with an older target-relative artifact.
++            hasher.update(b"remap:generated-profile-local-v1\n");
++        }
+         // Only the remap on/off choice is keyed (above) — it is the
+         // binary-affecting bit: coverage builds skip remapping because
+         // tarpaulin / llvm-cov need original paths in the profraw. The
+diff --git a/src/cache_key/tests.rs b/src/cache_key/tests.rs
+index e4fdf253..4d1c939d 100644
+--- a/src/cache_key/tests.rs
++++ b/src/cache_key/tests.rs
+@@ -3719,6 +3719,107 @@ fn a_flight_waiter_digests_the_tree_again() {
+     assert_eq!(tree.map(|guard| guard.digest), Some(now));
+ }
+ 
++/// Checkouts of one workspace share a unit's discovery flight. A checkout
++/// whose tree differs from the owner's cannot use the owner's record, and
++/// must not keep the flight through its own compile: every other checkout
++/// would then wait for that compile too, one checkout at a time. A checkout
++/// with the owner's tree still waits for the owner and uses its record.
++#[test]
++fn a_waiter_that_cannot_use_the_owners_record_releases_the_flight() {
++    let mut lock = key_test_lock();
++    if get_rustc_version(Path::new("rustc")).is_err() {
++        return;
++    }
++    let base = lock.enter();
++    let resolve = |args: &RustcArgs, hasher: &FileHasher<'_>| {
++        set_defer_discovery(true);
++        set_compile_while_keying(true);
++        let mut outputs = KeyOutputs::default();
++        let result = resolve_key_inputs(args, hasher, "kt", &KeyEnv::default(), &mut outputs);
++        set_compile_while_keying(false);
++        set_defer_discovery(false);
++        (result, outputs)
++    };
++
++    for changed in [false, true] {
++        let name = if changed { "changed" } else { "same" };
++        let (root, args) = workspace_invocation(&base, name, "kt");
++        std::env::set_current_dir(&root).unwrap();
++        let manifest = root.join("kt");
++        let _manifest = crate::config::tests::set_env_for_test(
++            "CARGO_MANIFEST_DIR",
++            Some(manifest.as_os_str()),
++        );
++        let _out = crate::config::tests::set_env_for_test("OUT_DIR", None);
++        write_file(&root.join("kt/src/lib.rs"), "pub fn value() -> u32 { 1 }\n");
++        let db = base.join(format!("{name}.db"));
++        let flights = base.join(format!("{name}-cache"));
++        let hasher = || {
++            FileHasher::persistent(&db)
++                .with_input_predictions(true)
++                .with_prediction_flights(Some(flights.clone()))
++        };
++        let owner = hasher();
++        let (deferred, outputs) = resolve(&args, &owner);
++        assert!(deferred.unwrap_err().is::<DeferredDiscovery>());
++        // What its compile records, under its own tree.
++        let tree = outputs
++            .tree_guard
++            .expect("a workspace unit is guarded")
++            .digest;
++        let vars: Vec<_> = std::env::vars_os().collect();
++        let roots = workspace_roots(&args, &vars).unwrap();
++        let identity = workspace_prediction_identity(&args, vars, &roots).unwrap();
++        let closure = DepInfo {
++            source_files: vec![root.join("kt/src/lib.rs")],
++            env_deps: Vec::new(),
++        };
++        let record = workspace_portable_prediction(&closure, &roots, Some(&tree)).unwrap();
++        if changed {
++            // The waiter's tree differs from the recorded owner's tree. Keeping
++            // one cwd/environment lets the stable engine exercise the same
++            // rejection without importing upstream's client-environment rewrite.
++            write_file(&root.join("kt/src/lib.rs"), "pub fn value() -> u32 { 2 }\n");
++        }
++
++        let (started, ready) = std::sync::mpsc::channel();
++        std::thread::scope(|scope| {
++            let waiter = scope.spawn(|| {
++                let hasher = hasher();
++                started.send(()).unwrap();
++                let (result, outputs) = resolve(&args, &hasher);
++                let deferred = result
++                    .as_ref()
++                    .is_err_and(|error| error.is::<DeferredDiscovery>());
++                let held = hasher.take_discovery_flight().is_some();
++                (
++                    result.ok().flatten(),
++                    outputs.used_prediction,
++                    deferred,
++                    held,
++                )
++            });
++            ready.recv().unwrap();
++            // Let the waiter find no record and the held flight before publication.
++            std::thread::sleep(std::time::Duration::from_millis(200));
++            owner.record_portable_prediction(&identity, Some("kt"), &record);
++            drop(owner.take_discovery_flight());
++
++            let (inputs, predicted, deferred, held) = waiter.join().unwrap();
++            assert!(!deferred);
++            assert_eq!(
++                predicted, !changed,
++                "only the owner's tree reuses its record"
++            );
++            assert_eq!(held, !changed, "an unusable record must release the flight");
++            assert!(
++                inputs.is_some(),
++                "the pre-pass finds the changed tree's closure"
++            );
++        });
++    }
++}
++
+ /// This checkout's rows keep the guard while it covers the closure. They are
+ /// never relocated, so a generated file naming the checkout costs nothing
+ /// here, though it keeps the row for other checkouts out.
+diff --git a/src/compiler/rustc.rs b/src/compiler/rustc.rs
+index c52c34e6..271d02be 100644
+--- a/src/compiler/rustc.rs
++++ b/src/compiler/rustc.rs
+@@ -241,6 +241,7 @@ impl RustcCompiler {
+         let workspace_root = parsed.path_normalization_root();
+         let path_normalizer = crate::path_normalizer::PathNormalizer::from_env(workspace_root)
+             .with_target_dir(parsed.target_dir().as_deref())
++            .with_profile_dir(parsed.profile_dir().as_deref())
+             .with_base_dirs(&self.base_dirs)
+             .with_rust_src_rule(
+                 crate::cache_key::get_rustc_sysroot(parsed).as_deref(),
+diff --git a/src/path_normalizer.rs b/src/path_normalizer.rs
+index 67486103..749d8f24 100644
+--- a/src/path_normalizer.rs
++++ b/src/path_normalizer.rs
+@@ -35,6 +35,7 @@
+ //! |---------------------|-----------------|------------------------|
+ //! | workspace root      | `<WORKSPACE>`   | per-checkout location  |
+ //! | `$CARGO_TARGET_DIR` | `<TARGET>`      | per-user / per-job dir |
++//! | Cargo profile dir   | `<PROFILE>`     | `debug`, `release`, a custom name (source paths only) |
+ //! | `$CARGO_HOME`       | `<CARGO_HOME>`  | usually `~/.cargo`     |
+ //! | `$RUSTUP_HOME`      | `<RUSTUP_HOME>` | usually `~/.rustup`    |
+ //! | `$HOME`             | `<HOME>`        | per-user               |
+@@ -118,6 +119,10 @@
+ use std::path::{Path, PathBuf};
+ use unicode_normalization::UnicodeNormalization;
+ 
++/// Key sentinel for Cargo's profile directory; see
++/// [`PathNormalizer::with_profile_dir`].
++const PROFILE_SENTINEL: &str = "<PROFILE>";
++
+ /// One canonicalized prefix plus the two things it maps to: a stable
+ /// `key_sentinel` for cache-key inputs, and a resolvable `flag_target`
+ /// for the DWARF/PDB path rustc bakes into artifacts.
+@@ -389,6 +394,37 @@ impl PathNormalizer {
+         self
+     }
+ 
++    /// Add Cargo's profile directory for this unit:
++    /// `<target>/[<triple>/]<profile>`, derived from `--out-dir`.
++    ///
++    /// Custom profiles that inherit `dev` compile identically, and Cargo gives
++    /// their units the same metadata hash, but each profile has its own
++    /// directory. A crate that `include!`s a file from `OUT_DIR` then reports
++    /// that file under `<profile>/build/...`, and rustc bakes the spelling
++    /// into `file!()` and debug info. Mapping the whole profile directory to
++    /// one `<PROFILE>` root, in the key and in the remap target alike, lets
++    /// such a crate share one entry across profiles and target directories.
++    ///
++    /// The rule outranks every other root, so it wins in both the source
++    /// identity and rustc's last-match-wins remap even under a configured base
++    /// dir. [`Self::normalize`] skips it: search paths and env values are not
++    /// remapped by rustc and keep the identity they had.
++    pub(crate) fn with_profile_dir(mut self, profile_dir: Option<&Path>) -> Self {
++        let Some(profile_dir) = profile_dir else {
++            return self;
++        };
++        push_path_rule_aliases(
++            &mut self.rules,
++            &mut self.source_restore_roots,
++            profile_dir,
++            PROFILE_SENTINEL,
++            PROFILE_SENTINEL,
++        );
++        let mut seen = std::collections::HashSet::new();
++        self.rules.retain(|rule| seen.insert(rule.prefix.clone()));
++        self
++    }
++
+     /// Add the validated `[paths].base_dirs` rule set.
+     ///
+     /// Entries are sorted by their lexical spelling before sentinel assignment,
+@@ -500,6 +536,7 @@ impl PathNormalizer {
+     pub(crate) fn depinfo_source_roots(&self) -> Vec<ConfiguredSourceRoot> {
+         let mut groups = self.configured_source_root_groups.clone();
+         for source_sentinel in [
++            PROFILE_SENTINEL,
+             "<CWD>",
+             "<WORKSPACE>",
+             "<TARGET>",
+@@ -734,7 +771,7 @@ impl PathNormalizer {
+     pub fn normalize<S: AsRef<str>>(&self, s: S) -> String {
+         let mut out: String = s.as_ref().nfc().collect();
+         for rule in &self.rules {
+-            if rule.prefix.is_empty() {
++            if rule.prefix.is_empty() || rule.key_sentinel == PROFILE_SENTINEL {
+                 continue;
+             }
+             out = if configured_base_dir_index(&rule.key_sentinel).is_some() {
+@@ -883,16 +920,24 @@ fn follows_windows_drive_prefix(input: &str, start: usize) -> bool {
+ /// dep's CWD is more specific than `$CARGO_HOME` yet `<CARGO_HOME>` must win so
+ /// the dep resolves to crates.io (see [`PathNormalizer::remap_args`]).
+ ///
+-/// High rank (wins) → low: configured `<BASE_DIR_N>` > `<RUST_SRC>` >
++/// High rank (wins) → low: `<PROFILE>` > configured `<BASE_DIR_N>` > `<RUST_SRC>` >
+ /// `<CARGO_HOME>` > `<BASE_DIR>` > `<WORKSPACE>` > `<TARGET>` >
+ /// `<RUSTUP_HOME>` > `<HOME>`/Windows-user-dirs > `<TMPDIR>`. Explicit roots
+ /// lead so their key and artifact mappings select the same winner. `<TARGET>`
+ /// below `<WORKSPACE>` means the default `target/` (which
+ /// sits inside the workspace) maps under `/proc/self/cwd/target/...` — still
+ /// kernel-resolvable — while an out-of-workspace `$CARGO_TARGET_DIR` (matched by
+-/// `<TARGET>` alone) maps to `/kache/target`. This ordering only affects
++/// `<TARGET>` alone) maps to `/kache/target`. Paths inside the unit's profile
++/// directory (`OUT_DIR` sources among them) map to `/kache/profile` whichever
++/// root holds it. This ordering only affects
+ /// injected debug-info spellings; the cache-key `normalize()` side is unaffected.
+ fn flag_emit_rank(key_sentinel: &str) -> u8 {
++    if key_sentinel == PROFILE_SENTINEL {
++        // Cargo's profile directory sits inside the target, workspace or a
++        // configured root, never around one. Winning everywhere keeps the
++        // profile name out of both the key and the remapped spelling.
++        return 9;
++    }
+     if configured_base_dir_index(key_sentinel).is_some() {
+         // Explicit configured roots win on both the key side and the emitted
+         // rustc side. Keeping those winners aligned prevents identical keys
+@@ -1063,6 +1108,7 @@ fn depinfo_sentinel_for_source(source_sentinel: &str) -> Option<String> {
+     }
+     Some(
+         match source_sentinel {
++            PROFILE_SENTINEL => crate::link::DEPINFO_PROFILE_SENTINEL,
+             "<CWD>" => "__kache_cwd__/",
+             "<WORKSPACE>" => "__kache_workspace__/",
+             "<TARGET>" => "__kache_target_rule__/",
+@@ -1095,6 +1141,7 @@ fn flag_target_for(key_sentinel: &str) -> String {
+         "<WORKSPACE>" => workspace_flag_target().to_string(),
+         "<BASE_DIR>" => "/kache/base-dir".to_string(),
+         "<TARGET>" => "/kache/target".to_string(),
++        PROFILE_SENTINEL => "/kache/profile".to_string(),
+         "<CARGO_HOME>" => "/kache/.cargo".to_string(),
+         "<RUSTUP_HOME>" => "/kache/rustup".to_string(),
+         "<HOME>" => "/kache/home".to_string(),
+@@ -2984,6 +3031,46 @@ mod tests {
+         );
+     }
+ 
++    // Custom profiles that inherit `dev` build in their own directory. A
++    // generated source there must key and remap without the profile name,
++    // even inside the workspace, the target and a configured base dir.
++    #[test]
++    fn profile_dir_owns_generated_sources_in_key_and_remap() {
++        let dir = TempDir::new().unwrap();
++        let workspace = PathBuf::from(canonical_string(dir.path()).unwrap());
++        let workspace_str = workspace.to_str().unwrap().to_string();
++        let target = workspace.join("target");
++        let mut identities = Vec::new();
++        for profile in ["debug", "alt"] {
++            let profile_dir = target.join(profile);
++            let source = profile_dir.join("build/serde-0123456789abcdef/out/private.rs");
++            fs::create_dir_all(source.parent().unwrap()).unwrap();
++            let normalizer = pn_with_rules(vec![(&workspace_str, "<WORKSPACE>")])
++                .with_target_dir(Some(&target))
++                .with_profile_dir(Some(&profile_dir))
++                .with_base_dirs(std::slice::from_ref(&workspace_str));
++            let rest = source.strip_prefix(&profile_dir).unwrap().to_str().unwrap();
++
++            let identity = normalizer.source_path_identity(&source).unwrap();
++            assert_eq!(identity, format!("<PROFILE>/{rest}").into_bytes());
++            identities.push(identity);
++            let source = source.to_str().unwrap();
++            let remapped = apply_last_match(&normalizer.remap_args(), source);
++            assert_eq!(
++                remapped.strip_suffix(rest),
++                Some(format!("/kache/profile{}", std::path::MAIN_SEPARATOR).as_str())
++            );
++            // Search paths and env values are not remapped and keep their
++            // identity.
++            assert!(normalizer.normalize(source).contains(profile));
++
++            let roots = normalizer.depinfo_source_roots();
++            assert_eq!(roots[0].root, profile_dir);
++            assert_eq!(roots[0].depinfo_sentinel, "__kache_profile__/");
++        }
++        assert_eq!(identities[0], identities[1]);
++    }
++
+     #[test]
+     fn legacy_base_dir_is_a_complete_owner_and_rejects_empty_or_root() {
+         let dir = TempDir::new().unwrap();
+@@ -3116,6 +3203,7 @@ mod tests {
+         // the portable rewrite, so the stored `.d` keeps a live local path and
+         // a relocated hit validates against the donor's tree.
+         let mapped = [
++            ("<PROFILE>", "__kache_profile__/"),
+             ("<CWD>", "__kache_cwd__/"),
+             ("<WORKSPACE>", "__kache_workspace__/"),
+             ("<TARGET>", "__kache_target_rule__/"),
+diff --git a/src/wrapper.rs b/src/wrapper.rs
+index baa4355e..68cabe92 100644
+--- a/src/wrapper.rs
++++ b/src/wrapper.rs
+@@ -3633,6 +3633,7 @@ fn resolve_located_build_script_inputs(
+         let normalizer = normalizer.get_or_init(|| {
+             crate::path_normalizer::PathNormalizer::from_env(workspace_root)
+                 .with_target_dir(args.target_dir().as_deref())
++                .with_profile_dir(args.profile_dir().as_deref())
+                 .with_base_dirs(&config.base_dirs)
+         });
+         crate::cache_key::source_path_identity(path, normalizer)
+@@ -4839,8 +4840,12 @@ fn run_parsed_rustc(
+     let depinfo_anchor = args.target_dir();
+     let depinfo_working_dir = current_dir.as_deref().unwrap_or_else(|| Path::new("."));
+     let depinfo_workspace_dir = args.path_normalization_root();
+-    let depinfo_configured_roots =
+-        configured_rustc_depinfo_roots(config, depinfo_workspace_dir, depinfo_anchor.as_deref());
++    let depinfo_configured_roots = configured_rustc_depinfo_roots(
++        config,
++        depinfo_workspace_dir,
++        depinfo_anchor.as_deref(),
++        args.profile_dir().as_deref(),
++    );
+ 
+     // Validate the compiler's consumer-facing dep-info before Store::put makes
+     // an entry observable. The staging transform below cannot alter its input.
+@@ -5376,9 +5381,11 @@ fn configured_rustc_depinfo_roots(
+     config: &Config,
+     workspace_root: Option<&Path>,
+     target_dir: Option<&Path>,
++    profile_dir: Option<&Path>,
+ ) -> Vec<(PathBuf, String, u8)> {
+     crate::path_normalizer::PathNormalizer::from_env(workspace_root)
+         .with_target_dir(target_dir)
++        .with_profile_dir(profile_dir)
+         .with_base_dirs(&config.base_dirs)
+         .depinfo_source_roots()
+         .into_iter()
+@@ -6892,6 +6899,7 @@ fn compute_rustc_cache_key(
+     // and the binary another.
+     let path_normalizer = crate::path_normalizer::PathNormalizer::from_env(workspace_root)
+         .with_target_dir(args.target_dir().as_deref())
++        .with_profile_dir(args.profile_dir().as_deref())
+         .with_base_dirs(&config.base_dirs)
+         .with_path_only_env_vars(config.path_only_env_vars.clone())
+         .with_rust_src_rule(
+@@ -7457,8 +7465,12 @@ fn restore_from_cache_with_memo_store(
+     let depinfo_working_dir =
+         std::env::current_dir().unwrap_or_else(|_| Path::new(".").to_path_buf());
+     let depinfo_workspace_dir = args.path_normalization_root();
+-    let depinfo_configured_roots =
+-        configured_rustc_depinfo_roots(config, depinfo_workspace_dir, cargo_target_dir.as_deref());
++    let depinfo_configured_roots = configured_rustc_depinfo_roots(
++        config,
++        depinfo_workspace_dir,
++        cargo_target_dir.as_deref(),
++        args.profile_dir().as_deref(),
++    );
+ 
+     // Dep-info validation gate (kunobi-ninja/kache#330): a restored `.d`
+     // whose paths do not resolve for THIS consumer poisons cargo's
+diff --git a/src/wrapper/tests.rs b/src/wrapper/tests.rs
+index c6ce31bf..4e5636e3 100644
+--- a/src/wrapper/tests.rs
++++ b/src/wrapper/tests.rs
+@@ -2266,7 +2266,7 @@ fn configured_rustc_depinfo_roots_cover_every_restorable_anchor() {
+         base_dirs: vec![vendored.to_string_lossy().into_owned()],
+         ..test_config(base.join("cache"))
+     };
+-    let roots = configured_rustc_depinfo_roots(&config, Some(&workspace), Some(&target));
++    let roots = configured_rustc_depinfo_roots(&config, Some(&workspace), Some(&target), None);
+ 
+     let found = |root: &Path, sentinel: &str| {
+         roots
+diff --git a/tests/profile_sharing_test.rs b/tests/profile_sharing_test.rs
+new file mode 100644
+index 00000000..4d75a80f
+--- /dev/null
++++ b/tests/profile_sharing_test.rs
+@@ -0,0 +1,172 @@
++//! Generated source paths must share across equivalent Cargo profiles, while
++//! profile settings that change generated bytes must still invalidate reuse.
++#![cfg(unix)]
++
++use std::path::Path;
++use std::process::Command;
++
++mod common;
++use common::{DaemonGuard, build_kache, hermetic_command, isolated_config_path, kache_binary};
++
++fn write(root: &Path, name: &str, text: &str) {
++    let path = root.join(name);
++    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
++    std::fs::write(path, text).unwrap();
++}
++
++fn build(
++    root: &Path,
++    cache: &Path,
++    target: &Path,
++    profile: &str,
++    value: &str,
++) -> Vec<serde_json::Value> {
++    let events = cache.join("events.jsonl");
++    let before = std::fs::read_to_string(&events).unwrap_or_default().len();
++    let output = hermetic_command("cargo", cache, Some(&isolated_config_path(cache)))
++        .args([
++            "build",
++            "--offline",
++            "--quiet",
++            "--profile",
++            profile,
++            "-j",
++            "2",
++        ])
++        .current_dir(root)
++        .env("RUSTC_WRAPPER", kache_binary())
++        .env("CARGO_TARGET_DIR", target)
++        .env("CARGO_INCREMENTAL", "0")
++        .env("RUSTFLAGS", "-C debuginfo=0")
++        .env("GENERATED_VALUE", value)
++        .env("KACHE_SEED_NEW_TARGETS", "0")
++        .env("KACHE_BUILD_SCRIPT_CACHE", "1")
++        .env("KACHE_BUILD_SCRIPT_HERMETIC", "0")
++        .env_remove("CARGO_BUILD_BUILD_DIR")
++        .env_remove("CARGO_BUILD_TARGET_DIR")
++        .env_remove("RUSTC_WORKSPACE_WRAPPER")
++        .env_remove("CARGO_ENCODED_RUSTFLAGS")
++        .output()
++        .unwrap();
++    assert!(
++        output.status.success(),
++        "{}",
++        String::from_utf8_lossy(&output.stderr)
++    );
++    let profile_dir = if profile == "dev" { "debug" } else { profile };
++    let program = Command::new(target.join(profile_dir).join("profile_probe"))
++        .output()
++        .unwrap();
++    assert!(program.status.success());
++    assert_eq!(
++        String::from_utf8(program.stdout).unwrap().trim(),
++        format!("{value}:7")
++    );
++    let text = std::fs::read_to_string(events).unwrap();
++    text[before..]
++        .lines()
++        .map(|line| serde_json::from_str(line).unwrap())
++        .collect()
++}
++
++fn unit<'a>(events: &'a [serde_json::Value], name: &str) -> &'a serde_json::Value {
++    events
++        .iter()
++        .find(|event| event["crate_name"] == name && event["result"] != "passthrough")
++        .unwrap()
++}
++
++#[test]
++fn equivalent_profiles_reuse_generated_artifacts_and_restore_correct_depinfo() {
++    build_kache();
++    let temp = tempfile::tempdir().unwrap();
++    let root = temp.path().canonicalize().unwrap();
++    let source = root.join("source");
++    write(
++        &source,
++        "Cargo.toml",
++        "[package]\nname='profile_probe'\nversion='0.1.0'\nedition='2021'\n[workspace]\n[dependencies]\ngenerated={path='generated'}\nplain={path='plain'}\n[profile.alt]\ninherits='dev'\n",
++    );
++    write(
++        &source,
++        "src/main.rs",
++        "fn main(){println!(\"{}:{}\",generated::value(),plain::value()); assert!(generated::origin().contains(\"/kache/profile/\"));}\n",
++    );
++    write(
++        &source,
++        "plain/Cargo.toml",
++        "[package]\nname='plain'\nversion='0.1.0'\nedition='2021'\n",
++    );
++    write(&source, "plain/src/lib.rs", "pub fn value()->u32{7}\n");
++    write(
++        &source,
++        "generated/Cargo.toml",
++        "[package]\nname='generated'\nversion='0.1.0'\nedition='2021'\n",
++    );
++    write(
++        &source,
++        "generated/src/lib.rs",
++        "include!(concat!(env!(\"OUT_DIR\"),\"/generated.rs\"));\n",
++    );
++    write(
++        &source,
++        "generated/build.rs",
++        r#"fn main(){
++        println!("cargo:rerun-if-changed=build.rs");
++        println!("cargo:rerun-if-env-changed=GENERATED_VALUE");
++        let value=std::env::var("GENERATED_VALUE").unwrap();
++        let text=format!("pub fn value()->u32{{{value}}} pub fn origin()->&'static str{{file!()}}\n");
++        std::fs::write(std::path::Path::new(&std::env::var_os("OUT_DIR").unwrap()).join("generated.rs"),text).unwrap();
++    }"#,
++    );
++    let cache = root.join("cache");
++    std::fs::create_dir_all(&cache).unwrap();
++    std::fs::write(isolated_config_path(&cache), "[cache]\nlocal_only=true\ndaemon_publish=false\ninput_predictions=false\nadaptive_incremental=false\nexplain_miss=true\n").unwrap();
++    let _daemon = DaemonGuard::new(kache_binary(), &cache);
++    let first = build(&source, &cache, &root.join("first"), "dev", "42");
++    let second_target = root.join("second");
++    let second = build(&source, &cache, &second_target, "alt", "42");
++    for name in ["generated", "plain"] {
++        assert_eq!(unit(&first, name)["result"], "miss");
++        assert_eq!(unit(&second, name)["result"], "local_hit", "{second:#?}");
++        assert_eq!(
++            unit(&first, name)["cache_key"],
++            unit(&second, name)["cache_key"]
++        );
++    }
++    fn files(root: &Path, output: &mut Vec<std::path::PathBuf>) {
++        for entry in std::fs::read_dir(root).unwrap() {
++            let path = entry.unwrap().path();
++            if path.is_dir() {
++                files(&path, output);
++            } else {
++                output.push(path);
++            }
++        }
++    }
++    let mut outputs = Vec::new();
++    files(&second_target, &mut outputs);
++    let depinfo = outputs
++        .into_iter()
++        .find(|path| {
++            path.file_name()
++                .unwrap()
++                .to_string_lossy()
++                .starts_with("generated-")
++                && path.extension().is_some_and(|ext| ext == "d")
++        })
++        .unwrap();
++    let depinfo = std::fs::read_to_string(depinfo).unwrap();
++    assert!(depinfo.contains("second/alt/"), "{depinfo}");
++    assert!(
++        !depinfo.contains("first/debug/") && !depinfo.contains("__kache_profile__"),
++        "{depinfo}"
++    );
++    let changed = build(&source, &cache, &root.join("changed"), "alt", "43");
++    assert_eq!(unit(&changed, "generated")["result"], "miss");
++    assert_ne!(
++        unit(&first, "generated")["cache_key"],
++        unit(&changed, "generated")["cache_key"]
++    );
++    assert_eq!(unit(&changed, "plain")["result"], "local_hit");
++}

@@ -1,0 +1,772 @@
+diff --git a/src/compile.rs b/src/compile.rs
+index 621614a9..e743e5d0 100644
+--- a/src/compile.rs
++++ b/src/compile.rs
+@@ -5,6 +5,8 @@ use std::process::{Child, Command, ExitStatus};
+ 
+ use crate::compiler::{ArtifactSet, classify_by_filename};
+ 
++pub(crate) mod usage;
++
+ /// How a rustc invocation handles Cargo's incremental codegen flag.
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ pub enum IncrementalMode {
+@@ -17,6 +19,8 @@ pub enum IncrementalMode {
+ /// Result of running rustc.
+ pub struct CompileResult {
+     pub exit_code: i32,
++    /// Peak resident memory of this waited compiler child, when supported.
++    pub peak_rss_bytes: Option<u64>,
+     /// A Unix signal ended the compiler. `exit_code` then reads 1, as for a
+     /// compile error.
+     pub signaled: bool,
+@@ -35,6 +39,12 @@ pub struct CompileResult {
+ }
+ 
+ impl CompileResult {
++    pub fn successful_peak_rss(&self) -> Option<u64> {
++        (self.exit_code == 0 && !self.signaled)
++            .then_some(self.peak_rss_bytes)
++            .flatten()
++    }
++
+     /// Compiler stderr selected for deferred replay.
+     pub fn pending_stderr(&self) -> &str {
+         self.pending_stderr.as_deref().unwrap_or(&self.stderr)
+@@ -279,6 +289,7 @@ pub fn run_rustc(
+ 
+     Ok(CompileResult {
+         exit_code,
++        peak_rss_bytes: captured_stderr.peak_rss_bytes,
+         signaled: status.code().is_none(),
+         stdout,
+         stderr: stderr.into_owned(),
+@@ -327,17 +338,17 @@ fn capture_rustc_output_with(
+         let stdout = stdout.join();
+         // Neither reader needs the child lock after joining. Holding it during
+         // wait before this point could block a reader that needs to kill rustc.
+-        let status = child.lock().unwrap().wait();
++        let status = usage::wait(&mut child.lock().unwrap());
+         let stdout = stdout.map_err(|_| anyhow::anyhow!("rustc stdout reader panicked"))?;
+-        Ok((
+-            status?,
+-            stdout.context("reading rustc stdout")?,
+-            stderr.context("reading rustc stderr")?,
+-        ))
++        let (status, rss) = status?;
++        let mut stderr = stderr.context("reading rustc stderr")?;
++        stderr.peak_rss_bytes = rss;
++        Ok((status, stdout.context("reading rustc stdout")?, stderr))
+     })
+ }
+ 
+ struct CapturedStderr {
++    peak_rss_bytes: Option<u64>,
+     verbatim: Vec<u8>,
+     undelivered: Vec<u8>,
+     artifacts: Vec<PathBuf>,
+@@ -360,6 +371,7 @@ fn capture_rustc_stderr_with(
+ ) -> io::Result<CapturedStderr> {
+     let mut reader = BufReader::new(reader);
+     let mut captured = CapturedStderr {
++        peak_rss_bytes: None,
+         verbatim: Vec::new(),
+         undelivered: Vec::new(),
+         artifacts: Vec::new(),
+@@ -878,7 +890,12 @@ mod tests {
+             let error = result.err().expect("a pipe read error must be returned");
+             assert!(format!("{error:#}").contains("injected pipe read failure"));
+             assert!(started.elapsed() < std::time::Duration::from_secs(5));
+-            assert!(child.try_wait().unwrap().is_some());
++            // usage::wait reaps this exact PID through wait4 rather than
++            // Child's internal cached-status slot.
++            assert_eq!(
++                child.try_wait().unwrap_err().raw_os_error(),
++                Some(libc::ECHILD)
++            );
+         }
+     }
+ 
+@@ -1023,6 +1040,7 @@ mod tests {
+         ] {
+             let result = CompileResult {
+                 exit_code: 0,
++                peak_rss_bytes: None,
+                 signaled: false,
+                 stdout: String::new(),
+                 stderr: "complete stderr".to_owned(),
+diff --git a/src/compile/usage.rs b/src/compile/usage.rs
+new file mode 100644
+index 00000000..f8e9aeaa
+--- /dev/null
++++ b/src/compile/usage.rs
+@@ -0,0 +1,147 @@
++//! Reap only the compiler we spawned. RUSAGE_CHILDREN is a process-wide
++//! high-water mark and can retain an earlier probe's much larger footprint.
++
++use std::io::{self, Read};
++use std::process::{Child, Command, ExitStatus, Output, Stdio};
++
++pub(super) fn wait(child: &mut Child) -> io::Result<(ExitStatus, Option<u64>)> {
++    #[cfg(unix)]
++    {
++        use std::os::unix::process::ExitStatusExt;
++        let mut status = 0;
++        let mut usage: libc::rusage = unsafe { std::mem::zeroed() };
++        loop {
++            // The caller owns this child exclusively and never waits for it
++            // elsewhere. Child::drop does not reap it a second time.
++            let result =
++                unsafe { libc::wait4(child.id() as libc::pid_t, &mut status, 0, &mut usage) };
++            if result >= 0 {
++                let rss = u64::try_from(usage.ru_maxrss).ok().filter(|rss| *rss > 0);
++                #[cfg(not(target_os = "macos"))]
++                let rss = rss.map(|rss| rss.saturating_mul(1024));
++                return Ok((ExitStatus::from_raw(status), rss));
++            }
++            let error = io::Error::last_os_error();
++            if error.kind() != io::ErrorKind::Interrupted {
++                return Err(error);
++            }
++        }
++    }
++    #[cfg(not(unix))]
++    child.wait().map(|status| (status, None))
++}
++
++pub(crate) fn output(command: &mut Command) -> io::Result<(Output, Option<u64>)> {
++    let mut child = command
++        .stdin(Stdio::null())
++        .stdout(Stdio::piped())
++        .stderr(Stdio::piped())
++        .spawn()?;
++    let mut stdout = child.stdout.take().expect("piped compiler stdout");
++    let mut stderr = child.stderr.take().expect("piped compiler stderr");
++    let child = std::sync::Mutex::new(&mut child);
++    std::thread::scope(|scope| {
++        let reader = |pipe: &mut (dyn Read + Send)| {
++            let mut bytes = Vec::new();
++            let result = pipe.read_to_end(&mut bytes).map(|_| bytes);
++            if result.is_err() {
++                let _ = child.lock().unwrap().kill();
++            }
++            result
++        };
++        let stdout = scope.spawn(move || reader(&mut stdout));
++        let stderr = reader(&mut stderr);
++        let stdout = stdout.join();
++        let (status, rss) = wait(&mut child.lock().unwrap())?;
++        let stdout = stdout.map_err(|_| io::Error::other("compiler stdout reader panicked"))??;
++        Ok((
++            Output {
++                status,
++                stdout,
++                stderr: stderr?,
++            },
++            rss,
++        ))
++    })
++}
++
++#[cfg(all(test, unix))]
++mod tests {
++    use super::*;
++
++    #[test]
++    #[ignore = "subprocess fixture for compiler_child_sample_does_not_inherit_earlier_peak"]
++    fn memory_child() {
++        let bytes: usize = std::env::var("KACHE_RSS_FIXTURE_BYTES")
++            .unwrap()
++            .parse()
++            .unwrap();
++        let data = vec![0x5au8; bytes];
++        std::hint::black_box(data);
++    }
++
++    #[test]
++    fn compiler_child_sample_does_not_inherit_earlier_peak() {
++        // The suite itself can retain hundreds of MiB before fork. Measure
++        // in a fresh process so inherited pre-exec pages don't mask the
++        // intentional difference between the two compiler-sized children.
++        let (out, _) = output(Command::new(std::env::current_exe().unwrap()).args([
++            "--exact",
++            "compile::usage::tests::sample_pair_child",
++            "--ignored",
++        ]))
++        .unwrap();
++        assert!(
++            out.status.success(),
++            "{}{}",
++            String::from_utf8_lossy(&out.stdout),
++            String::from_utf8_lossy(&out.stderr)
++        );
++    }
++
++    #[test]
++    #[ignore = "subprocess fixture for compiler_child_sample_does_not_inherit_earlier_peak"]
++    fn sample_pair_child() {
++        let measure = |bytes: usize| {
++            let (out, rss) = output(
++                Command::new(std::env::current_exe().unwrap())
++                    .args([
++                        "--exact",
++                        "compile::usage::tests::memory_child",
++                        "--ignored",
++                    ])
++                    .env("KACHE_RSS_FIXTURE_BYTES", bytes.to_string()),
++            )
++            .unwrap();
++            assert!(
++                out.status.success(),
++                "{}",
++                String::from_utf8_lossy(&out.stderr)
++            );
++            rss.expect("wait4 RSS")
++        };
++        let large = measure(64 * 1024 * 1024);
++        let small = measure(1024 * 1024);
++        assert!(
++            large > small + 32 * 1024 * 1024,
++            "large={large}, small={small}"
++        );
++    }
++
++    #[test]
++    fn output_preserves_pipes_and_nonzero_status() {
++        let (out, rss) =
++            output(Command::new("sh").args(["-c", "printf out; printf err >&2; exit 7"])).unwrap();
++        assert_eq!(out.stdout, b"out");
++        assert_eq!(out.stderr, b"err");
++        assert_eq!(out.status.code(), Some(7));
++        assert!(rss.is_some_and(|rss| rss > 1024));
++    }
++
++    #[test]
++    fn output_preserves_signal_status() {
++        let (out, _) = output(Command::new("sh").args(["-c", "kill -TERM $$"])).unwrap();
++        use std::os::unix::process::ExitStatusExt;
++        assert_eq!(out.status.signal(), Some(libc::SIGTERM));
++    }
++}
+diff --git a/src/compiler/cc.rs b/src/compiler/cc.rs
+index a577e559..f6ba1b66 100644
+--- a/src/compiler/cc.rs
++++ b/src/compiler/cc.rs
+@@ -7617,8 +7617,7 @@ impl CcCompiler {
+         if let Some(epoch) = effective_source_date_epoch() {
+             command.env("SOURCE_DATE_EPOCH", epoch);
+         }
+-        let output = command
+-            .output()
++        let (output, peak_rss_bytes) = crate::compile::usage::output(&mut command)
+             .with_context(|| format!("executing {}", parsed.program))?;
+         let exit_code = output.status.code().unwrap_or(1);
+ 
+@@ -7676,6 +7675,7 @@ impl CcCompiler {
+         Ok((
+             CompileResult {
+                 exit_code,
++                peak_rss_bytes,
+                 signaled: output.status.code().is_none(),
+                 stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+                 stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+diff --git a/src/compiler/nvcc.rs b/src/compiler/nvcc.rs
+index df229876..300eca2e 100644
+--- a/src/compiler/nvcc.rs
++++ b/src/compiler/nvcc.rs
+@@ -1349,6 +1349,7 @@ impl Compiler for NvccCompiler {
+         }
+ 
+         Ok(super::CompileResult {
++            peak_rss_bytes: None,
+             exit_code,
+             signaled: output.status.code().is_none(),
+             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+diff --git a/src/compiler/rustdoc.rs b/src/compiler/rustdoc.rs
+index 5a99ee24..68549e60 100644
+--- a/src/compiler/rustdoc.rs
++++ b/src/compiler/rustdoc.rs
+@@ -119,6 +119,7 @@ impl Compiler for RustdocCompiler {
+     fn execute(&self, parsed: &RustdocArgs) -> Result<super::CompileResult> {
+         let output = spawn(parsed)?;
+         Ok(super::CompileResult {
++            peak_rss_bytes: None,
+             exit_code: exit_code(&output.status),
+             signaled: output.status.code().is_none(),
+             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+diff --git a/src/scheduler.rs b/src/scheduler.rs
+index 2d331e26..b32ac18d 100644
+--- a/src/scheduler.rs
++++ b/src/scheduler.rs
+@@ -13,8 +13,8 @@
+ //! `std::thread::available_parallelism()`, with a floor of 1. Unmeasured
+ //! compiles occupy [`UNMEASURED_COMPILE_WEIGHT`] slots; unmeasured
+ //! invocations that run the system linker occupy [`UNMEASURED_LINK_WEIGHT`]. After a real compile, Unix
+-//! wrappers record the child's peak RSS by crate name; later invocations of
+-//! that crate occupy `ceil(rss / 512 MiB)` slots, clamped to the pool.
++//! wrappers record that child's peak RSS by workload; later matching
++//! invocations occupy `ceil(rss / slot_bytes)` slots, clamped to the pool.
+ //!
+ //! Under memory pressure (see [`pressure`]) a compile asks for the whole
+ //! pool, so compiles run one after another until pressure eases. Linux
+@@ -33,6 +33,7 @@
+ 
+ pub(crate) mod evidence;
+ pub(crate) mod pressure;
++pub(crate) mod workload;
+ use anyhow::Result;
+ use evidence::{Decision, Outcome, Phase};
+ use std::fs;
+@@ -270,18 +271,20 @@ impl MissGuard {
+         self._permit.is_none() && self._flight.is_none()
+     }
+ 
+-    /// Record the waited-for compiler child's peak RSS under `crate_name`.
++    /// Record the successfully completed compiler child's measured peak RSS.
+     ///
+     /// No-op when the scheduler did not admit this compile, on non-Unix, or
+     /// when the child never ran.
+-    pub fn record_compile_rss(&self, crate_name: &str) {
++    pub fn record_compile_rss(&self, workload: &str, rss: Option<u64>) {
+         let Some(dir) = self.weights_dir.as_ref() else {
+             return;
+         };
+-        let Some(rss) = peak_child_rss_bytes() else {
++        let Some(rss) = rss.filter(|rss| *rss > 0) else {
+             return;
+         };
+-        let _ = write_weight(dir, crate_name, rss);
++        if let Err(error) = write_weight(dir, workload, rss) {
++            tracing::debug!(%error, workload, "could not persist compiler RSS estimate");
++        }
+     }
+ }
+ 
+@@ -313,6 +316,23 @@ pub fn begin_miss(
+     scheduler.begin_miss(identity, crate_name, is_link, lease)
+ }
+ 
++/// A completed deferred compile still joins the keyed publication flight,
++/// but has no compiler left to admit and must not take capacity again.
++pub fn begin_publication(cache_dir: &Path, enabled: bool, identity: &FlightIdentity) -> BeginMiss {
++    if !enabled {
++        return BeginMiss::Compile(MissGuard::empty());
++    }
++    let scheduler = match Scheduler::open(cache_dir) {
++        Ok(scheduler) => scheduler,
++        Err(error) => {
++            Decision::new(Phase::Flight).record(Outcome::Unavailable, Duration::ZERO);
++            tracing::debug!(%error, "publication scheduler unusable; continuing with the store key lock");
++            return BeginMiss::Compile(MissGuard::empty());
++        }
++    };
++    scheduler.publication(identity)
++}
++
+ /// A permit for a compile that runs before it has a key: the compile-first C
+ /// path, whose discovery flight already keeps two processes from compiling the
+ /// same unit. Same pool and weights as [`begin_miss`], no flight lock. The pool
+@@ -346,6 +366,18 @@ enum FlightJoin {
+ }
+ 
+ impl Scheduler {
++    fn publication(&self, identity: &FlightIdentity) -> BeginMiss {
++        match self.join_flight(identity) {
++            FlightJoin::Owner(flight) => BeginMiss::Compile(MissGuard {
++                _permit: None,
++                _flight: Some(flight),
++                weights_dir: None,
++            }),
++            FlightJoin::Waited => BeginMiss::Recheck,
++            FlightJoin::FailOpen => BeginMiss::Compile(MissGuard::empty()),
++        }
++    }
++
+     fn open(cache_dir: &Path) -> Result<Self> {
+         Self::open_with(cache_dir, default_pool_size(), WAIT_TIMEOUT, POLL_INTERVAL)
+     }
+@@ -2229,6 +2261,51 @@ mod tests {
+         assert_eq!(scheduler.weight_for("unknown", true), 1);
+     }
+ 
++    #[test]
++    fn completed_compile_publication_uses_an_isolated_observation() {
++        let dir = temp_cache();
++        let mut child = spawn_fixture(
++            dir.path(),
++            "scheduler::tests::completed_compile_keeps_its_flight_without_readmitting_capacity",
++        );
++        assert!(child.wait().unwrap().success());
++    }
++
++    #[test]
++    #[ignore = "isolated scheduler observation fixture"]
++    fn completed_compile_keeps_its_flight_without_readmitting_capacity() {
++        let dir = temp_cache();
++        let mut scheduler = test_scheduler(dir.path(), 2);
++        scheduler.wait_timeout = Duration::ZERO;
++        let _slots = scheduler
++            .wait_for_permit(0..2, |_| 2, |_, _, _| {})
++            .unwrap();
++        let identity = FlightIdentity::rustc("completed", &["rlib".into()], true).with_key("key");
++        assert_eq!(crate::opcounts::scheduler_evidence(), Default::default());
++        let BeginMiss::Compile(guard) = scheduler.publication(&identity) else {
++            panic!("the completed compile must own the free publication flight");
++        };
++        let evidence = crate::opcounts::scheduler_evidence();
++        assert!(
++            evidence
++                .decisions
++                .iter()
++                .all(|d| d.phase != Phase::Capacity)
++        );
++        assert!(guard._permit.is_none());
++        assert!(guard._flight.is_some());
++        assert!(guard.weights_dir.is_none());
++        assert!(matches!(
++            scheduler.join_flight(&identity),
++            FlightJoin::FailOpen
++        ));
++        drop(guard);
++        assert!(matches!(
++            scheduler.join_flight(&identity),
++            FlightJoin::Owner(_)
++        ));
++    }
++
+     #[test]
+     fn weight_in_slots_rounds_up_within_the_pool() {
+         const MIB: u64 = 1024 * 1024;
+@@ -2766,14 +2843,13 @@ mod tests {
+             BeginMiss::Compile(guard) => guard,
+             BeginMiss::Recheck => panic!("empty scheduler must admit the first compile"),
+         };
+-        assert!(
+-            Command::new("true").status().unwrap().success(),
+-            "need a waited-for child so RUSAGE_CHILDREN is populated"
+-        );
+-        guard.record_compile_rss("measured");
++        let (output, measured) = crate::compile::usage::output(&mut Command::new("true")).unwrap();
++        assert!(output.status.success());
++        guard.record_compile_rss("measured", measured);
+         drop(guard);
+         let rss = read_weight(&dir.path().join("scheduler").join("weights"), "measured")
+             .expect("admitted compile must persist a peak RSS sample");
++        assert_eq!(Some(rss), measured);
+         assert!(
+             rss > 1024,
+             "recorded RSS must be a real sample, not a placeholder; got {rss}"
+diff --git a/src/scheduler/workload.rs b/src/scheduler/workload.rs
+new file mode 100644
+index 00000000..09684e0d
+--- /dev/null
++++ b/src/scheduler/workload.rs
+@@ -0,0 +1,112 @@
++//! Memory estimates describe a compilation workload, not an artifact key.
++//! Keep them reusable across source edits, but never lend an iOS link's RSS
++//! to a host metadata check merely because the crate name is the same.
++
++use crate::args::RustcArgs;
++use crate::compiler::cc::CcArgs;
++
++fn digest(kind: &str, shape: impl std::fmt::Debug) -> String {
++    // A new namespace deliberately does not read legacy crate-name samples.
++    blake3::hash(format!("kache-rss-workload-v2:{kind}:{shape:?}").as_bytes())
++        .to_hex()
++        .to_string()
++}
++
++pub(crate) fn rustc(args: &RustcArgs, incremental: bool) -> String {
++    let mut types = args.crate_types.clone();
++    types.sort();
++    types.dedup();
++    let codegen: Vec<_> = args
++        .codegen_opts
++        .iter()
++        .filter(|(name, _)| !matches!(name.as_str(), "incremental" | "metadata" | "extra-filename"))
++        .collect();
++    digest(
++        "rustc",
++        (
++            (&args.rustc, &args.inner_rustc, &args.sysroot),
++            (&args.crate_name, &args.extra_filename, &args.target, types),
++            (args.emits_link(), args.is_test, incremental),
++            (
++                codegen,
++                &args.features,
++                &args.cfgs,
++                &args.unstable_flags,
++                &args.frontend_jobs,
++            ),
++        ),
++    )
++}
++
++pub(crate) fn cc(args: &CcArgs) -> String {
++    let mut target_flags = Vec::new();
++    let mut next_value = false;
++    for arg in &args.rest {
++        if next_value {
++            target_flags.push(arg);
++            next_value = false;
++        } else if matches!(
++            arg.as_str(),
++            "--target" | "-target" | "-arch" | "--sysroot" | "-isysroot"
++        ) {
++            target_flags.push(arg);
++            next_value = true;
++        } else if arg.starts_with("--target=")
++            || arg.starts_with("--sysroot=")
++            || arg.starts_with("-m")
++            || arg.starts_with("-flto")
++        {
++            target_flags.push(arg);
++        }
++    }
++    digest(
++        "cc",
++        (
++            (&args.program, &args.sources, &args.mode, target_flags),
++            (&args.optimization, args.debug_level, &args.std, args.pic),
++            (&args.defines, &args.language_override, &args.family),
++        ),
++    )
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn args(extra: &[&str]) -> RustcArgs {
++        RustcArgs::parse(
++            &[
++                "rustc",
++                "--crate-name",
++                "game",
++                "--crate-type",
++                "rlib",
++                "src/lib.rs",
++            ]
++            .into_iter()
++            .chain(extra.iter().copied())
++            .map(str::to_string)
++            .collect::<Vec<_>>(),
++        )
++        .unwrap()
++    }
++
++    #[test]
++    fn rust_workloads_separate_target_profile_kind_and_incremental() {
++        let check = args(&["--emit=metadata"]);
++        let key = rustc(&check, false);
++        for changed in [
++            args(&["--emit=metadata", "--target=aarch64-apple-ios"]),
++            args(&["--emit=metadata", "-Copt-level=3"]),
++            args(&["--emit=link"]),
++            args(&["--emit=metadata", "-Cdebuginfo=2"]),
++        ] {
++            assert_ne!(key, rustc(&changed, false));
++        }
++        assert_ne!(key, rustc(&check, true));
++        let mut relocated = check.clone();
++        relocated.source_file = Some("other-checkout/src/lib.rs".into());
++        relocated.out_dir = Some("another-target/deps".into());
++        assert_eq!(key, rustc(&relocated, false));
++    }
++}
+diff --git a/src/wrapper.rs b/src/wrapper.rs
+index 682c250a..baa4355e 100644
+--- a/src/wrapper.rs
++++ b/src/wrapper.rs
+@@ -1153,6 +1153,25 @@ fn admit_scheduler_miss(
+     }
+ }
+ 
++fn admit_scheduler_publication(
++    config: &Config,
++    store: &Store,
++    cache_key: &str,
++    identity: FlightIdentity,
++) -> (MissGuard, Option<EntryMeta>) {
++    let identity = identity.with_key(cache_key);
++    loop {
++        match scheduler::begin_publication(&config.cache_dir, config.scheduler, &identity) {
++            scheduler::BeginMiss::Recheck => {
++                if let Some(meta) = take_recheck_hit(store, cache_key, &cache_entry_has_files) {
++                    return (MissGuard::empty(), Some(meta));
++                }
++            }
++            scheduler::BeginMiss::Compile(guard) => return (guard, None),
++        }
++    }
++}
++
+ /// Where a wrapper invocation's clock starts.
+ ///
+ /// When `main` pinned the process start, `elapsed_ms` is anchored there so the
+@@ -2264,13 +2283,14 @@ fn run_cc_with_store(
+         );
+     }
+ 
++    let workload = scheduler::workload::cc(parsed);
+     let (miss_guard, scheduled_hit) = if precompiled.is_none() {
+         admit_scheduler_miss(
+             config,
+             store,
+             &cache_key,
+             FlightIdentity::cc(crate_name),
+-            crate_name,
++            &workload,
+             false,
+             |meta| cc_scheduled_hit_ok(parsed, meta),
+         )
+@@ -2380,7 +2400,7 @@ fn run_cc_with_store(
+                     );
+                 }
+             };
+-            miss_guard.record_compile_rss(crate_name);
++            miss_guard.record_compile_rss(&workload, result.successful_peak_rss());
+             let compile_time_ms = compile_start.elapsed().as_millis() as u64;
+             replay_diagnostics(
+                 &result.stdout,
+@@ -4468,15 +4488,21 @@ fn run_parsed_rustc(
+ 
+     // 3. Cache miss — join the machine-wide flight, take a permit, then
+     // claim the key and re-check under the build lock.
+-    let (miss_guard, scheduled_hit) = admit_scheduler_miss(
+-        config,
+-        &store,
+-        &cache_key,
+-        FlightIdentity::rustc(crate_name, &args.crate_types, args.emits_link()),
+-        crate_name,
+-        args.invokes_linker(),
+-        cache_entry_has_files,
+-    );
++    let workload = scheduler::workload::rustc(args, false);
++    let identity = FlightIdentity::rustc(crate_name, &args.crate_types, args.emits_link());
++    let (miss_guard, scheduled_hit) = if precompiled.is_some() {
++        admit_scheduler_publication(config, &store, &cache_key, identity)
++    } else {
++        admit_scheduler_miss(
++            config,
++            &store,
++            &cache_key,
++            identity,
++            &workload,
++            args.invokes_linker(),
++            cache_entry_has_files,
++        )
++    };
+     let (lock, committed) = if let Some(meta) = scheduled_hit {
+         (None, Some(meta))
+     } else {
+@@ -4572,7 +4598,9 @@ fn run_parsed_rustc(
+             }
+         },
+     };
+-    miss_guard.record_compile_rss(crate_name);
++    if precompiled_time.is_none() {
++        miss_guard.record_compile_rss(&workload, result.successful_peak_rss());
++    }
+     let compile_time_ms =
+         precompiled_time.unwrap_or_else(|| compile_start.elapsed().as_millis() as u64);
+ 
+@@ -6134,10 +6162,11 @@ fn adaptive_compile_before_key(
+     mut key_hash_stats: FileHashStats,
+ ) -> Result<i32> {
+     crate::out_dir_alias::register_before_compile();
++    let workload = scheduler::workload::rustc(ctx.args, true);
+     let permit = scheduler::begin_keyless_compile(
+         &ctx.config.cache_dir,
+         ctx.config.scheduler,
+-        ctx.crate_name,
++        &workload,
+         ctx.args.invokes_linker(),
+         ctx.config.test_lease.as_deref(),
+     );
+@@ -6186,8 +6215,10 @@ fn adaptive_compile_before_key(
+         &compiler_args,
+         &mut on_dep_info,
+     );
+-    if hit_closure.is_none() && executed.is_ok() {
+-        permit.record_compile_rss(ctx.crate_name);
++    if hit_closure.is_none()
++        && let Ok(result) = &executed
++    {
++        permit.record_compile_rss(&workload, result.successful_peak_rss());
+     }
+     drop(permit);
+     if let Some((dep_info, tree)) = hit_closure {
+@@ -6288,10 +6319,11 @@ fn compile_before_key(
+     crate::out_dir_alias::register_before_compile();
+     // No key yet, but the compile still takes a slot in the scheduler's
+     // pool, as every other compile does.
++    let workload = scheduler::workload::rustc(args, false);
+     let miss_guard = scheduler::begin_keyless_compile(
+         &config.cache_dir,
+         config.scheduler,
+-        crate_name,
++        &workload,
+         args.invokes_linker(),
+         config.test_lease.as_deref(),
+     );
+@@ -6320,8 +6352,10 @@ fn compile_before_key(
+     } else {
+         compiler.execute_streaming(args)
+     };
+-    if hit_closure.is_none() {
+-        miss_guard.record_compile_rss(crate_name);
++    if hit_closure.is_none()
++        && let Ok(result) = &executed
++    {
++        miss_guard.record_compile_rss(&workload, result.successful_peak_rss());
+     }
+     drop(miss_guard);
+     if let Some((dep_info, tree)) = hit_closure {
+@@ -7857,11 +7891,12 @@ fn adaptive_incremental_with_event<R: Into<String>>(
+     let reason = reason.into();
+     let kind = lease.kind();
+     let compiler_args = lease.compiler_args(args);
++    let workload = scheduler::workload::rustc(args, true);
+     let permit = adaptive_lane_takes_permit(kind).then(|| {
+         scheduler::begin_keyless_compile(
+             &config.cache_dir,
+             config.scheduler,
+-            crate_name,
++            &workload,
+             args.invokes_linker(),
+             config.test_lease.as_deref(),
+         )
+@@ -7874,8 +7909,8 @@ fn adaptive_incremental_with_event<R: Into<String>>(
+     } else {
+         compiler.execute_preserving_incremental(args, &compiler_args)
+     };
+-    if let (Some(permit), Ok(_)) = (&permit, &compile) {
+-        permit.record_compile_rss(crate_name);
++    if let (Some(permit), Ok(result)) = (&permit, &compile) {
++        permit.record_compile_rss(&workload, result.successful_peak_rss());
+     }
+     drop(permit);
+     let result = match compile {
+@@ -8107,16 +8142,19 @@ fn cc_compile_before_key(
+     // The compile runs before its key exists, but it still takes a slot in the
+     // scheduler's pool: that pool is the only limit when a build runs its own
+     // jobs beside Cargo's.
++    let workload = scheduler::workload::cc(parsed);
+     let miss_guard = scheduler::begin_keyless_compile(
+         &config.cache_dir,
+         config.scheduler,
+-        crate_name,
++        &workload,
+         false,
+         config.test_lease.as_deref(),
+     );
+     let compile_start = std::time::Instant::now();
+     let compiled = compiler.execute_capturing_inputs(parsed, file_hasher);
+-    miss_guard.record_compile_rss(crate_name);
++    if let Ok((result, _)) = &compiled {
++        miss_guard.record_compile_rss(&workload, result.successful_peak_rss());
++    }
+     drop(miss_guard);
+     let (result, inputs) = match compiled {
+         Ok(pair) => pair,
