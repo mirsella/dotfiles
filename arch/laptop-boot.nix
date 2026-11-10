@@ -19,6 +19,10 @@ let
     "etc/kernel/cmdline" = ''
       rd.luks.name=${rootUuid}=root rd.luks.options=${rootUuid}=tpm2-device=auto,discard root=/dev/mapper/root rootflags=subvol=@ rw rootfstype=btrfs zswap.enabled=0 resume=/dev/mapper/root resume_offset=57190605
     '';
+    "etc/mkinitcpio.conf.d/bootvine.conf" = ''
+      # Managed by arch/laptop-boot.nix; retain systemd's TPM unlock and resume.
+      HOOKS=(base systemd sd-bootvine autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)
+    '';
     "etc/kernel/uki.conf" = ''
       [UKI]
       SecureBootPrivateKey=/var/lib/sbctl/keys/db/db.key

@@ -7,6 +7,11 @@
       flake = false;
     };
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    bootvine = {
+      url = "git+https://codeberg.org/wvhulle/bootvine?ref=refs/tags/v0.1.3";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -148,6 +153,7 @@
       hostModules = builtins.mapAttrs (hostName: directory: {
         imports = [
           ./modules/nixos/common.nix
+          inputs.bootvine.nixosModules.default
           directory
           (directory + "/hardware-configuration.nix")
           home-manager.nixosModules.home-manager

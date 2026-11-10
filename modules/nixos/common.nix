@@ -67,6 +67,7 @@
     };
     envfs.enable = true;
     fwupd.enable = true;
+    bootvine.enable = true;
   };
 
   # Run prebuilt binaries (sfw firewall, npm/npx native packages) on every

@@ -37,6 +37,15 @@ assert lib.assertMsg (lib.all (
 ) workstationHomes) "Cargo's managed kache wrapper must match the daemon binary";
 assert lib.assertMsg (lib.all (host: host.nix.settings.fallback) (builtins.attrValues hosts))
   "Optional binary cache outages must not abort NixOS builds";
+assert lib.assertMsg (lib.all (host:
+  host.services.bootvine.enable
+  && builtins.elem host.services.bootvine.package host.systemd.packages
+  && host.systemd.services.bootvine.wantedBy == [ "sysinit.target" ]
+  && host.systemd.services.bootvine-shutdown.wantedBy == [ "shutdown.target" ]
+  && builtins.elem host.services.bootvine.package host.boot.initrd.systemd.packages
+  && host.boot.initrd.systemd.services.bootvine.wantedBy == [ "sysinit.target" ]
+) (builtins.attrValues hosts))
+  "Bootvine must cover initrd, normal boot and shutdown on every NixOS host";
 assert lib.assertMsg (
   builtins.attrNames flake.nixosModules == [
     "laptop"

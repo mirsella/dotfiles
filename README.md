@@ -399,6 +399,29 @@ resetting an active device would require moving its swapped pages elsewhere.
 Files under `dotfiles/system/main/` are captured system backups, not the policy
 source.
 
+### Bootvine boot display
+
+All NixOS host profiles enable the pinned upstream Bootvine module for the
+initrd, normal boot and shutdown. Rebuild the system profile to apply it.
+Predator keeps its existing console log level for suspend debugging, and its
+TPM policies and recovery SSH are unchanged.
+
+On main and laptop running Arch, pacman owns Bootvine and its system units:
+
+```sh
+sudo pacman -S --needed bootvine
+sudo systemctl enable bootvine.service bootvine-shutdown.service
+```
+
+Do not start the units manually: they take a virtual terminal. Enabling them
+prepares the next boot and shutdown without interrupting the desktop.
+
+Laptop's generated `arch/laptop-boot.nix` configuration adds `sd-bootvine` to
+its existing systemd initramfs. After installing the package, apply and verify
+the signed UKIs with the refresh command below. Main retains its udev-based
+initramfs, so Bootvine starts after switch-root there. Neither machine needs
+changes to its kernel command line or disk-unlock policy.
+
 ### Laptop authenticated boot (Arch)
 
 `arch/laptop-boot.nix` supplies the root-owned mkinitcpio presets, UKI signing
