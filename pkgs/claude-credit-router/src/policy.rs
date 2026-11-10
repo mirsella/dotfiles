@@ -112,6 +112,16 @@ impl State {
         changed
     }
 
+    pub fn defer(&mut self, now: DateTime<Utc>, until: DateTime<Utc>, reason: &str) -> bool {
+        let changed = self.active != Route::Subscription;
+        if changed || self.next_probe_at != Some(until) {
+            self.active = Route::Subscription;
+            self.next_probe_at = Some(until);
+            self.event(now, reason);
+        }
+        changed
+    }
+
     pub fn set_mode(&mut self, mode: Mode, now: DateTime<Utc>) {
         self.mode = mode;
         self.event(
@@ -121,6 +131,16 @@ impl State {
                 Mode::Subscription => "manual_subscription",
             },
         );
+    }
+
+    pub fn note(&mut self, now: DateTime<Utc>, reason: &str) {
+        if self
+            .history
+            .last()
+            .is_none_or(|event| event.reason != reason)
+        {
+            self.event(now, reason);
+        }
     }
 
     pub fn recheck(&mut self, now: DateTime<Utc>) {

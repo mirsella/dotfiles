@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 for (const name of [
   "claude-promotional-credits",
+  "openai-promotional-credits",
   "composio-auth",
   "git-no-ext-diff",
   "subagent-model-policy",

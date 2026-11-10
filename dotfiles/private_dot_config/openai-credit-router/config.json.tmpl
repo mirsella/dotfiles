@@ -1,0 +1,13 @@
+{
+  "listen": "127.0.0.1:17323",
+  "upstream": "http://127.0.0.1:17321/sleev/opencode/codex",
+  "organization_id": "org-M6osShtCkfH80ETz0QBsG6Nk",
+  "renewal_anchor": "2026-11-09T00:00:00Z",
+  "openai": {
+    "api_upstream": "http://127.0.0.1:17321/sleev/opencode/openai",
+    "project_id": "proj_V8UqSU2ezu1cpyNYnAEZBxDJ",
+    "enforced_project_limit_usd": 190,
+    "grant_usd": 199
+  },
+  "notify_send": "{{ .chezmoi.homeDir }}/.nix-profile/bin/notify-send"
+}

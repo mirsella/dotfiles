@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { creditEndpoint, parseCreditStatus } from "../lib/claude-promotional-credits";
 import plugin from "../plugins/claude-promotional-credits";
+import openaiPlugin from "../plugins/openai-promotional-credits";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,10 +26,12 @@ test("only the existing Claude subscription endpoint can be wrapped", () => {
   }
 });
 
-test("subscription restores the exact provider; no session/auth/retry hooks exist", async () => {
+for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restores the exact provider; no session/auth/retry hooks exist`, async () => {
+  const openai = vendor === "openai";
+  const upstream = openai ? "http://127.0.0.1:17321/sleev/opencode/codex" : "http://127.0.0.1:17321/sleev/opencode/anthropic";
   const directory = mkdtempSync(join(tmpdir(), "claude-credit-plugin-"));
-  mkdirSync(join(directory, "claude-credit-router"));
-  writeFileSync(join(directory, "claude-credit-router/config.json"), JSON.stringify({ listen: "127.0.0.1:17322", upstream, organization_id: "personal" }));
+  mkdirSync(join(directory, `${vendor}-credit-router`));
+  writeFileSync(join(directory, `${vendor}-credit-router/config.json`), JSON.stringify({ listen: "127.0.0.1:17322", upstream, organization_id: "personal" }));
   const originalHome = process.env.XDG_CONFIG_HOME;
   const originalFetch = globalThis.fetch;
   const originalInterval = globalThis.setInterval;
@@ -38,8 +41,8 @@ test("subscription restores the exact provider; no session/auth/retry hooks exis
   let transform: (editor: any) => void = () => {};
   let onReload = () => {};
   const source = {
-    "claude-agent": { settings: { baseURL: upstream, chunkTimeout: 180_000 }, nativeAuth: "untouched", models: ["opus#high"] },
-    openai: { settings: { baseURL: "native-codex" }, giftedCredits: "untouched" },
+    "claude-agent": { settings: { baseURL: openai ? "native-claude" : upstream, chunkTimeout: 180_000 }, nativeAuth: "untouched", models: ["opus#high"] },
+    openai: { settings: { baseURL: openai ? upstream : "native-codex", transport: "websocket" }, giftedCredits: "untouched" },
   };
   let current = structuredClone(source);
   let cleanup: (() => void) | void;
@@ -51,7 +54,7 @@ test("subscription restores the exact provider; no session/auth/retry hooks exis
       return originalInterval(() => {}, 1_000_000);
     }) as any;
     console.error = () => {};
-    cleanup = await plugin.setup({ provider: {
+    cleanup = await (openai ? openaiPlugin : plugin).setup({ provider: {
       transform: async (handler: typeof transform) => { transform = handler; },
       reload: async () => {
         current = structuredClone(source);
@@ -62,8 +65,17 @@ test("subscription restores the exact provider; no session/auth/retry hooks exis
         onReload();
       },
     } } as any);
-    expect(current["claude-agent"].settings.baseURL).toBe(router);
-    expect(current.openai).toEqual(source.openai);
+    const expectPromotional = () => {
+      if (openai) {
+        expect(current.openai.settings).toEqual({ baseURL: router, transport: "http" });
+        expect(current.openai.giftedCredits).toBe("untouched");
+        expect(current["claude-agent"]).toEqual(source["claude-agent"]);
+      } else {
+        expect(current["claude-agent"].settings.baseURL).toBe(router);
+        expect(current.openai).toEqual(source.openai);
+      }
+    };
+    expectPromotional();
     const reload = async (value: unknown) => {
       status = value;
       const done = new Promise<void>((resolve) => { onReload = resolve; });
@@ -73,7 +85,7 @@ test("subscription restores the exact provider; no session/auth/retry hooks exis
     await reload({ route: "subscription", organization_id: "personal" });
     expect(current).toEqual(source);
     await reload({ route: "promotional", organization_id: "personal" });
-    expect(current["claude-agent"].settings.baseURL).toBe(router);
+    expectPromotional();
     await reload({ route: "promotional", organization_id: "company" });
     expect(current).toEqual(source);
   } finally {

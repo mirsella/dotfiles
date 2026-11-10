@@ -21,13 +21,14 @@ fn config(upstream: String) -> Config {
         organization_id: "personal-org".into(),
         renewal_anchor: date("2026-12-03T00:00:00Z"),
         notify_send: None,
-        billing: Billing {
+        openai: None,
+        billing: Some(Billing {
             verified_at: date("2026-01-01T00:00:00Z"),
             no_payment_method: true,
             purchased_balance_usd: 0,
             auto_reload: false,
             sales_invoicing: false,
-        },
+        }),
     }
 }
 
@@ -97,15 +98,43 @@ impl Drop for Fixture {
 
 impl Fixture {
     async fn new(responses: Vec<Reply>) -> Self {
+        Self::create(responses, false).await
+    }
+
+    async fn openai(responses: Vec<Reply>) -> Self {
+        Self::create(responses, true).await
+    }
+
+    async fn create(mut responses: Vec<Reply>, openai: bool) -> Self {
+        if openai {
+            responses.insert(
+                0,
+                Reply(
+                    StatusCode::OK,
+                    json!({"object":"list", "data":[{"id":"gpt-test"}]}).to_string(),
+                ),
+            );
+        }
         let state = Upstream {
             responses: Arc::new(Mutex::new(responses.into())),
             seen: Arc::default(),
         };
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let config = config(format!(
+        let mut config = config(format!(
             "http://{}/sleev/opencode/anthropic",
             listener.local_addr().unwrap()
         ));
+        if openai {
+            config.billing = None;
+            config.renewal_anchor = date("2026-11-09T00:00:00Z");
+            config.openai = Some(claude_credit_router::openai::Settings {
+                api_upstream: config.upstream.replace("anthropic", "openai"),
+                project_id: "proj_personal".into(),
+                enforced_project_limit_usd: 190,
+                grant_usd: 199,
+            });
+            config.upstream = config.upstream.replace("anthropic", "codex");
+        }
         let app = axum::Router::new()
             .fallback(upstream)
             .with_state(state.clone());
@@ -114,7 +143,23 @@ impl Fixture {
         });
         let directory = tempfile::tempdir().unwrap();
         let store = Store(directory.path().join("state.json"));
-        let router = Router::new(config.clone(), store.clone(), "sk-ant-api-mock").unwrap();
+        let router = Router::new(
+            config.clone(),
+            store.clone(),
+            if openai {
+                "sk-proj-mock"
+            } else {
+                "sk-ant-api-mock"
+            },
+        )
+        .unwrap();
+        if openai {
+            router.verify_organization().await.unwrap();
+            let metadata = state.seen.lock().unwrap().pop().unwrap();
+            assert_eq!(metadata.uri, "/sleev/opencode/openai/v1/models");
+            assert_eq!(metadata.headers["openai-project"], "proj_personal");
+            assert_eq!(metadata.headers["openai-organization"], "personal-org");
+        }
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
         let task2 = tokio::spawn(async move {
@@ -487,10 +532,10 @@ fn rejects_all_paid_billing_modes_and_non_loopback_endpoints() {
     for index in 0..6 {
         let mut value = config("http://127.0.0.1:17321/sleev/opencode/anthropic".into());
         match index {
-            0 => value.billing.no_payment_method = false,
-            1 => value.billing.purchased_balance_usd = 1,
-            2 => value.billing.auto_reload = true,
-            3 => value.billing.sales_invoicing = true,
+            0 => value.billing.as_mut().unwrap().no_payment_method = false,
+            1 => value.billing.as_mut().unwrap().purchased_balance_usd = 1,
+            2 => value.billing.as_mut().unwrap().auto_reload = true,
+            3 => value.billing.as_mut().unwrap().sales_invoicing = true,
             4 => value.listen = "0.0.0.0:17322".parse().unwrap(),
             _ => value.upstream = "https://api.anthropic.com".into(),
         }
@@ -510,4 +555,189 @@ fn key_must_be_private_and_never_subscription_oauth() {
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
     std::fs::write(&path, "oauth-credential").unwrap();
     assert!(private_key(&path).is_err());
+}
+
+async fn openai_send(fixture: &Fixture, path: &str, body: &str) -> reqwest::Response {
+    reqwest::Client::new()
+        .post(format!("{}{path}", fixture.url))
+        .header("authorization", "Bearer native-codex")
+        .header("chatgpt-account-id", "native-account")
+        .header("x-native-header", "keep")
+        .body(body.to_owned())
+        .send()
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn openai_responses_and_compaction_preserve_exact_body_and_settings() {
+    for path in ["/responses?beta=true", "/v1/responses/compact"] {
+        let fixture = Fixture::openai(vec![Reply(StatusCode::OK, "data: output\n\n".into())]).await;
+        let body = r#"{ "model":"gpt-test", "reasoning":{"effort":"high"}, "input":[{"type":"reasoning","encrypted_content":"signed-history"}], "tools":[{"type":"function","name":"read"}] }"#;
+        assert_eq!(
+            openai_send(&fixture, path, body)
+                .await
+                .text()
+                .await
+                .unwrap(),
+            "data: output\n\n"
+        );
+        let seen = fixture.seen();
+        assert_eq!(seen.len(), 1);
+        assert_eq!(seen[0].body, body);
+        assert_eq!(seen[0].headers["authorization"], "Bearer sk-proj-mock");
+        assert_eq!(seen[0].headers["openai-project"], "proj_personal");
+        assert!(!seen[0].headers.contains_key("chatgpt-account-id"));
+        assert_eq!(seen[0].headers["x-native-header"], "keep");
+        assert_eq!(
+            seen[0].uri,
+            format!(
+                "/sleev/opencode/openai{}",
+                claude_credit_router::openai::api_path(path)
+            )
+        );
+    }
+}
+
+#[tokio::test]
+async fn openai_billing_codes_switch_once_then_leave_native_failures_alone() {
+    for code in [
+        "project_spend_limit_exceeded",
+        "organization_spend_limit_exceeded",
+        "credit_balance_exhausted",
+        "organization_usage_limit_exceeded",
+    ] {
+        let error =
+            json!({"error":{"code":code, "message":"billing allowance exhausted"}}).to_string();
+        let native = r#"{"error":{"code":"subscription_sharing_usage_limit_exceeded"}}"#;
+        let fixture = Fixture::openai(vec![
+            Reply(StatusCode::TOO_MANY_REQUESTS, error),
+            Reply(StatusCode::TOO_MANY_REQUESTS, native.into()),
+            Reply(StatusCode::SERVICE_UNAVAILABLE, "native failure".into()),
+        ])
+        .await;
+        let body = r#"{"model":"gpt-test","input":"same history"}"#;
+        let response = openai_send(&fixture, "/responses", body).await;
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(response.text().await.unwrap(), native);
+        let response = openai_send(&fixture, "/responses", body).await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(response.text().await.unwrap(), "native failure");
+        let seen = fixture.seen();
+        assert_eq!(seen.len(), 3);
+        assert_eq!(seen[0].headers["authorization"], "Bearer sk-proj-mock");
+        for request in &seen[1..] {
+            assert_eq!(request.uri, "/sleev/opencode/codex/responses");
+            assert_eq!(request.headers["authorization"], "Bearer native-codex");
+            assert_eq!(request.headers["chatgpt-account-id"], "native-account");
+            assert_eq!(request.body, body);
+            assert!(!request.headers.contains_key("openai-project"));
+        }
+        assert_eq!(fixture.store.read().unwrap().active, Route::Subscription);
+    }
+}
+
+#[tokio::test]
+async fn openai_rate_limits_and_partial_output_never_trigger_fallback() {
+    for (status, body) in [
+        (
+            StatusCode::TOO_MANY_REQUESTS,
+            r#"{"error":{"code":"rate_limit_exceeded"}}"#,
+        ),
+        (
+            StatusCode::TOO_MANY_REQUESTS,
+            r#"{"error":{"code":"insufficient_quota"}}"#,
+        ),
+        (StatusCode::UNAUTHORIZED, "invalid key"),
+        (
+            StatusCode::OK,
+            "data: tool call\n\ndata: {\"error\":{\"code\":\"credit_balance_exhausted\"}}\n\n",
+        ),
+    ] {
+        let fixture = Fixture::openai(vec![Reply(status, body.into())]).await;
+        assert_eq!(
+            openai_send(&fixture, "/responses", r#"{"model":"gpt-test"}"#)
+                .await
+                .text()
+                .await
+                .unwrap(),
+            body
+        );
+        assert_eq!(fixture.seen().len(), 1);
+        assert_eq!(fixture.store.read().unwrap().active, Route::Promotional);
+    }
+}
+
+#[tokio::test]
+async fn codex_only_models_stay_native_without_model_or_context_remapping() {
+    let fixture = Fixture::openai(vec![Reply(StatusCode::OK, "native".into())]).await;
+    let body = r#"{"model":"codex-only-test","input":"unaltered"}"#;
+    assert_eq!(
+        openai_send(&fixture, "/responses", body)
+            .await
+            .text()
+            .await
+            .unwrap(),
+        "native"
+    );
+    let seen = fixture.seen();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0].headers["authorization"], "Bearer native-codex");
+    assert_eq!(seen[0].body, body);
+}
+
+#[tokio::test]
+async fn calendar_guard_cannot_be_overridden_by_manual_recheck_or_restart() {
+    let fixture = Fixture::openai(vec![]).await;
+    let router = Router::new(
+        fixture.config.clone(),
+        fixture.store.clone(),
+        "sk-proj-mock",
+    )
+    .unwrap();
+    let first = date("2026-12-01T00:00:00Z");
+    assert_eq!(router.status(first).unwrap().route, Route::Subscription);
+    fixture
+        .store
+        .update(|state| {
+            state.recheck(first);
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(router.status(first).unwrap().route, Route::Subscription);
+    assert_eq!(
+        Store(fixture.directory.path().join("state.json"))
+            .read()
+            .unwrap()
+            .next_probe_at,
+        Some(date("2026-12-09T00:00:00Z"))
+    );
+    assert_eq!(
+        router.status(date("2026-12-09T00:00:00Z")).unwrap().route,
+        Route::Promotional
+    );
+    assert_eq!(
+        fixture.store.read().unwrap().history.last().unwrap().reason,
+        "calendar_reset_guard"
+    );
+    assert!(fixture.seen().is_empty());
+}
+
+#[test]
+fn every_grant_cycle_uses_at_most_one_calendar_month_allowance() {
+    use chrono::Datelike;
+    let anchor = date("2026-11-09T00:00:00Z");
+    for offset in 0..24 {
+        let start = anchor + chrono::Months::new(offset);
+        let end = anchor + chrono::Months::new(offset + 1);
+        let mut now = start;
+        let mut months = std::collections::HashSet::new();
+        while now < end {
+            if claude_credit_router::openai::window_open(anchor, now) {
+                months.insert((now.year(), now.month()));
+            }
+            now += chrono::Duration::hours(12);
+        }
+        assert_eq!(months.len(), 1);
+    }
 }

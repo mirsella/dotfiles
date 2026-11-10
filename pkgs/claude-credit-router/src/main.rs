@@ -8,6 +8,9 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(about = "Promotional-only Claude API routing; never manages subscription limits")]
 struct Arguments {
+    /// Use the separately configured OpenAI project and native Codex route.
+    #[arg(long)]
+    openai: bool,
     #[arg(long)]
     config: Option<PathBuf>,
     #[arg(long)]
@@ -38,27 +41,54 @@ fn home_path(variable: &str, fallback: &str) -> Result<PathBuf> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let arguments = Arguments::parse();
+    let directory = if arguments.openai {
+        "openai-credit-router"
+    } else {
+        "claude-credit-router"
+    };
     let config_path = arguments.config.unwrap_or(
-        home_path("XDG_CONFIG_HOME", ".config")?.join("claude-credit-router/config.json"),
+        home_path("XDG_CONFIG_HOME", ".config")?
+            .join(directory)
+            .join("config.json"),
     );
     let config: Config =
         serde_json::from_slice(&std::fs::read(&config_path).context("read router configuration")?)
             .context("parse router configuration")?;
     config.validate()?;
-    let store = Store(arguments.state.unwrap_or(
-        home_path("XDG_STATE_HOME", ".local/state")?.join("claude-credit-router/state.json"),
-    ));
+    anyhow::ensure!(
+        arguments.openai == config.openai.is_some(),
+        "CLI vendor must match configuration"
+    );
+    let store = Store(
+        arguments.state.unwrap_or(
+            home_path("XDG_STATE_HOME", ".local/state")?
+                .join(directory)
+                .join("state.json"),
+        ),
+    );
     match arguments.command {
         Command::Serve => {
-            let key = match std::env::var("CLAUDE_CREDIT_ROUTER_API_KEY") {
+            let variable = if arguments.openai {
+                "OPENAI_CREDIT_ROUTER_API_KEY"
+            } else {
+                "CLAUDE_CREDIT_ROUTER_API_KEY"
+            };
+            let key = match std::env::var(variable) {
+                Ok(value) if arguments.openai => {
+                    anyhow::ensure!(
+                        value.starts_with("sk-proj-") && !value.chars().any(char::is_whitespace),
+                        "OpenAI requires a project inference key, never an Admin or subscription token"
+                    );
+                    value
+                }
                 Ok(value) => validate_key(&value)?,
                 Err(std::env::VarError::NotPresent) => private_key(
                     config
                         .api_key_file
                         .as_deref()
-                        .context("CLAUDE_CREDIT_ROUTER_API_KEY or api_key_file is required")?,
+                        .with_context(|| format!("{variable} or api_key_file is required"))?,
                 )?,
-                Err(_) => anyhow::bail!("CLAUDE_CREDIT_ROUTER_API_KEY must contain UTF-8 text"),
+                Err(_) => anyhow::bail!("{variable} must contain UTF-8 text"),
             };
             let router = Router::new(config, store, &key)?;
             router.verify_organization().await?;
@@ -85,6 +115,12 @@ async fn main() -> Result<()> {
                 }
                 let mut status = serde_json::to_value(&*state)?;
                 status["route"] = serde_json::to_value(state.route(Utc::now()))?;
+                if arguments.openai
+                    && !claude_credit_router::openai::window_open(config.renewal_anchor, Utc::now())
+                {
+                    status["route"] = serde_json::json!("subscription");
+                    status["calendar_guard"] = serde_json::json!(true);
+                }
                 println!("{}", serde_json::to_string_pretty(&status)?);
                 Ok(())
             })?;

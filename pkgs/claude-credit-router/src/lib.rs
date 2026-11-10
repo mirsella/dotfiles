@@ -1,3 +1,4 @@
+pub mod openai;
 pub mod policy;
 
 use anyhow::{Context, Result, ensure};
@@ -24,7 +25,8 @@ pub struct Config {
     pub api_key_file: Option<PathBuf>,
     pub organization_id: String,
     pub renewal_anchor: DateTime<Utc>,
-    pub billing: Billing,
+    pub billing: Option<Billing>,
+    pub openai: Option<openai::Settings>,
     pub notify_send: Option<PathBuf>,
 }
 
@@ -64,17 +66,30 @@ impl Config {
             !self.organization_id.is_empty(),
             "expected promotional organization is required"
         );
-        ensure!(
-            self.billing.no_payment_method
-                && self.billing.purchased_balance_usd == 0
-                && !self.billing.auto_reload
-                && !self.billing.sales_invoicing,
-            "API routing requires a verified promotional-only organization: no card, purchased credits, auto-reload or invoicing"
-        );
-        ensure!(
-            self.billing.verified_at <= Utc::now(),
-            "billing verification cannot be in the future"
-        );
+        HeaderValue::from_str(&self.organization_id).context("invalid organization header")?;
+        if let Some(openai) = &self.openai {
+            ensure!(
+                self.billing.is_none(),
+                "OpenAI shared billing cannot be labelled promotional-only"
+            );
+            openai.validate()?;
+        } else {
+            let billing = self
+                .billing
+                .as_ref()
+                .context("Claude billing verification is required")?;
+            ensure!(
+                billing.no_payment_method
+                    && billing.purchased_balance_usd == 0
+                    && !billing.auto_reload
+                    && !billing.sales_invoicing,
+                "API routing requires a verified promotional-only organization: no card, purchased credits, auto-reload or invoicing"
+            );
+            ensure!(
+                billing.verified_at <= Utc::now(),
+                "billing verification cannot be in the future"
+            );
+        }
         Ok(())
     }
 }
@@ -88,6 +103,7 @@ pub struct Router {
     // Serializes only promotional attempts until their response headers/error
     // arrive. Streaming output and all subscription traffic remain concurrent.
     promotional: Arc<Mutex<()>>,
+    models: Arc<std::sync::RwLock<std::collections::HashSet<String>>>,
 }
 
 #[derive(Serialize)]
@@ -98,6 +114,8 @@ pub struct Status {
     pub organization_id: String,
     pub next_probe_at: Option<DateTime<Utc>>,
     pub history: Vec<policy::Event>,
+    pub api_model_count: Option<usize>,
+    pub last_promotional_success_at: Option<DateTime<Utc>>,
 }
 
 impl Router {
@@ -115,10 +133,23 @@ impl Router {
                 .redirect(reqwest::redirect::Policy::none())
                 .build()?,
             promotional: Arc::new(Mutex::new(())),
+            models: Arc::default(),
         })
     }
 
     pub fn status(&self, now: DateTime<Utc>) -> Result<Status> {
+        if self.config.openai.is_some() && !openai::window_open(self.config.renewal_anchor, now) {
+            let changed = self.store.update(|state| {
+                Ok(state.defer(
+                    now,
+                    policy::next_renewal(self.config.renewal_anchor, now)?,
+                    "calendar_reset_guard",
+                ))
+            })?;
+            if changed {
+                self.notify("Using native Codex until the grant-cycle window opens; the project calendar reset does not renew promotional credits.");
+            }
+        }
         let state = self.store.read()?;
         Ok(Status {
             route: state.route(now),
@@ -127,12 +158,26 @@ impl Router {
             organization_id: self.config.organization_id.clone(),
             next_probe_at: state.next_probe_at,
             history: state.history,
+            api_model_count: self.config.openai.as_ref().map(|_| {
+                self.models
+                    .read()
+                    .expect("model inventory lock poisoned")
+                    .len()
+            }),
+            last_promotional_success_at: state.last_promotional_success_at,
         })
     }
 
     // Free metadata request: validate the key's organization before it is ever
     // allowed to send inference. There is no inference/billing probe at startup.
     pub async fn verify_organization(&self) -> Result<()> {
+        if let Some(settings) = &self.config.openai {
+            let models = settings
+                .verify(&self.client, self.key.clone(), &self.config.organization_id)
+                .await?;
+            *self.models.write().expect("model inventory lock poisoned") = models;
+            return Ok(());
+        }
         let response = self
             .client
             .get(format!(
@@ -179,7 +224,28 @@ impl Router {
         if route == Route::Promotional {
             headers.remove("authorization");
             headers.remove("cookie");
-            headers.insert("x-api-key", self.key.clone());
+            if let Some(settings) = &self.config.openai {
+                headers.remove("chatgpt-account-id");
+                headers.remove("x-api-key");
+                let mut bearer = HeaderValue::from_str(&format!(
+                    "Bearer {}",
+                    self.key.to_str().expect("validated key")
+                ))
+                .expect("validated key");
+                bearer.set_sensitive(true);
+                headers.insert("authorization", bearer);
+                headers.insert(
+                    "openai-organization",
+                    HeaderValue::from_str(&self.config.organization_id)
+                        .expect("validated organization"),
+                );
+                headers.insert(
+                    "openai-project",
+                    HeaderValue::from_str(&settings.project_id).expect("validated project"),
+                );
+            } else {
+                headers.insert("x-api-key", self.key.clone());
+            }
             headers.insert("accept-encoding", HeaderValue::from_static("identity"));
             // This beta opts into OAuth authentication, not a model capability.
             if let Some(beta) = headers.get("anthropic-beta").and_then(|v| v.to_str().ok()) {
@@ -200,20 +266,33 @@ impl Router {
             }
         }
         let suffix = uri.path_and_query().map_or("/", |value| value.as_str());
+        let (upstream, suffix) = match (&self.config.openai, route) {
+            (Some(settings), Route::Promotional) => {
+                (settings.api_upstream.as_str(), openai::api_path(suffix))
+            }
+            _ => (self.config.upstream.as_str(), suffix.to_owned()),
+        };
         self.client
             .request(
                 method,
-                format!("{}{suffix}", self.config.upstream.trim_end_matches('/')),
+                format!("{}{suffix}", upstream.trim_end_matches('/')),
             )
             .headers(headers)
             .body(body)
     }
 
     fn notify(&self, message: &str) {
-        eprintln!("claude-credit-router: {message}");
+        eprintln!("credit-router: {message}");
         if let Some(command) = &self.config.notify_send {
             match std::process::Command::new(command)
-                .args(["Claude promotional credits", message])
+                .args([
+                    if self.config.openai.is_some() {
+                        "OpenAI API credits"
+                    } else {
+                        "Claude promotional credits"
+                    },
+                    message,
+                ])
                 .status()
             {
                 Ok(status) if status.success() => {}
@@ -231,9 +310,17 @@ impl Router {
         let (parts, body) = request.into_parts();
         // Token counting is free and cannot prove a grant renewed. Other CLI
         // endpoints (including OAuth account/usage calls) remain native.
-        let eligible = parts.method == Method::POST && parts.uri.path() == "/v1/messages";
+        let eligible = parts.method == Method::POST
+            && if self.config.openai.is_some() {
+                matches!(
+                    parts.uri.path(),
+                    "/responses" | "/v1/responses" | "/responses/compact" | "/v1/responses/compact"
+                )
+            } else {
+                parts.uri.path() == "/v1/messages"
+            };
         let now = Utc::now();
-        if !eligible || self.store.read()?.route(now) == Route::Subscription {
+        if !eligible || self.status(now)?.route == Route::Subscription {
             // No subscription response is inspected, retried or classified.
             let response = self
                 .request(
@@ -259,7 +346,7 @@ impl Router {
         }
         let guard = self.promotional.lock().await;
         // A concurrent request or manual override may already have switched.
-        if self.store.read()?.route(Utc::now()) == Route::Subscription {
+        if self.status(Utc::now())?.route == Route::Subscription {
             drop(guard);
             let response = self
                 .request(
@@ -276,6 +363,41 @@ impl Router {
         // Match the official Messages API's 128 MiB request limit. Keep bytes,
         // not parsed/re-serialized history, so signed thinking/tool blocks survive.
         let bytes = to_bytes(body, 128 * 1024 * 1024).await?;
+        if self.config.openai.is_some() {
+            let model = serde_json::from_slice::<serde_json::Value>(&bytes)
+                .ok()
+                .and_then(|value| value["model"].as_str().map(str::to_owned));
+            if !model.as_ref().is_some_and(|model| {
+                self.models
+                    .read()
+                    .expect("model inventory lock poisoned")
+                    .contains(model)
+            }) {
+                // Codex-only models cannot be silently remapped to API models.
+                self.store.update(|state| {
+                    state.note(
+                        Utc::now(),
+                        &format!(
+                            "native_model_not_available_on_api:{}",
+                            model.as_deref().unwrap_or("missing")
+                        ),
+                    );
+                    Ok(())
+                })?;
+                drop(guard);
+                return Ok(stream(
+                    self.request(
+                        parts.method,
+                        &parts.uri,
+                        parts.headers,
+                        bytes,
+                        Route::Subscription,
+                    )
+                    .send()
+                    .await?,
+                ));
+            }
+        }
         let response = self
             .request(
                 parts.method.clone(),
@@ -306,10 +428,12 @@ impl Router {
             // Never examine or replay a stream, including a 200 SSE error.
             return Ok(stream(response));
         }
-        if !matches!(
+        if !(matches!(
             response.status(),
             StatusCode::BAD_REQUEST | StatusCode::PAYMENT_REQUIRED
-        ) {
+        ) || self.config.openai.is_some()
+            && response.status() == StatusCode::TOO_MANY_REQUESTS)
+        {
             return Ok(stream(response));
         }
         let code = response.status();
@@ -328,15 +452,28 @@ impl Router {
                 return Ok(reply(code, headers, body));
             }
         }
-        if !exhausted(code, &error) {
+        let billing_limit = if self.config.openai.is_some() {
+            openai::exhausted(code, &error)
+        } else {
+            exhausted(code, &error)
+        };
+        if !billing_limit {
             return Ok(reply(code, headers, Body::from(error)));
         }
-        let changed = self
-            .store
-            .update(|state| state.exhausted(Utc::now(), self.config.renewal_anchor))?;
+        let changed = self.store.update(|state| {
+            if self.config.openai.is_some() {
+                Ok(state.defer(
+                    Utc::now(),
+                    policy::next_renewal(self.config.renewal_anchor, Utc::now())?,
+                    "api_billing_limit",
+                ))
+            } else {
+                state.exhausted(Utc::now(), self.config.renewal_anchor)
+            }
+        })?;
         drop(guard);
         if changed {
-            self.notify("Promotional API credits exhausted; using your normal Claude subscription. Its limits and retries are unchanged.");
+            self.notify("API allowance exhausted; using your normal subscription. Its limits and retries are unchanged.");
         }
         // Only an explicit pre-output rejection reaches here. This is not a
         // retry of a stream or a tool execution, nor a subscription retry loop.

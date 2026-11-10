@@ -117,6 +117,8 @@ kde shortcuts.kksrc
 .config/hex/portable-settings.json
 .config/claude-credit-router/
 .config/claude-credit-router/**
+.config/openai-credit-router/
+.config/openai-credit-router/**
 {{- end }}
 
 # Never manage dependency trees.
