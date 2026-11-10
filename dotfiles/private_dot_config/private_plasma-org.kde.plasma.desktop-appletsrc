@@ -68,7 +68,7 @@ immutability=1
 plugin=com.github.psimaker.codexbar
 
 [Containments][3][Applets][56][Configuration]
-popupHeight=489
+popupHeight=522
 popupWidth=342
 
 [Containments][3][Applets][56][Configuration][ConfigDialog]
@@ -156,6 +156,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][3][Applets][8][Applets][18][Configuration][General]
+currentTab=streams
 migrated=true
 showVirtualDevices=true
 
@@ -232,6 +233,7 @@ shownItems=org.kde.plasma.battery
 AppletOrder=4;5;6;56;7;8;21;22
 
 [Containments][61]
+ItemGeometries-1504x1003=Applet-63:0,0,752,461,0;Applet-65:0,461,376,223,0;Applet-64:752,0,752,461,0;Applet-66:376,461,376,223,0;Applet-67:752,461,376,223,0;Applet-68:1128,461,376,89,0;
 ItemGeometries-1920x1080=Applet-63:0,0,960,496,0;Applet-65:0,496,480,240,0;Applet-64:960,0,960,496,0;Applet-66:480,496,480,240,0;Applet-67:960,496,480,240,0;Applet-68:1440,496,480,96,0;
 ItemGeometriesHorizontal=Applet-63:0,0,960,496,0;Applet-65:0,496,480,240,0;Applet-64:960,0,960,496,0;Applet-66:480,496,480,240,0;Applet-67:960,496,480,240,0;Applet-68:1440,496,480,96,0;
 activityId=06c03017-64db-40af-bb28-3e938d0ed030

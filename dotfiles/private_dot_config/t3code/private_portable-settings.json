@@ -59,7 +59,6 @@
     "persistComposerContextStrip": true,
     "planModeEnabled": false,
     "proactivePanelsEnabled": false,
-    "providerModelPreferences": {},
     "pullRequestLinksOpenInApp": true,
     "sendShortcut": "enter",
     "showSkillsInSlashMenu": true,
@@ -482,12 +481,7 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeAfterDays": null,
-      "worktreeKeepWhen": "uncommitted-changes",
-      "worktreeOnDelete": false,
-      "worktreeOnMerge": false,
-      "worktreeSettledAfterDays": 4,
-      "worktreeUnchanged": false
+      "worktreeSettledAfterDays": 4
     },
     "textGenerationModelSelection": {
       "instanceId": "opencode",
@@ -1062,6 +1056,15 @@
         ],
         "defaultThreadEnvMode": "worktree"
       }
+    },
+    {
+      "workspace_root": "~/dev/news-scraper",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "news-scraper"
+      },
+      "settings": {}
     },
     {
       "workspace_root": "~/dev/opencode-queue",
