@@ -1,3 +1,12 @@
+{{- $laptop := eq .chezmoi.hostname "laptop" -}}
+{{- $rootDisk := "18dc205e-4518-49a0-b693-290f81634fef" -}}
+{{- $cpuTemperature := "lmsensors/zenpower-pci-00c3/temp1" -}}
+{{- $cpuTemperatureLabel := "CPU die temperature" -}}
+{{- if $laptop -}}
+{{- $rootDisk = "a843fb85-bef1-48c5-93b4-47cc00c2fe62" -}}
+{{- $cpuTemperature = "lmsensors/cros_ec-isa-000c/temp4" -}}
+{{- $cpuTemperatureLabel = "CPU temperature" -}}
+{{- end -}}
 [ActionPlugins][0]
 RightButton;NoModifier=org.kde.contextmenu
 
@@ -233,9 +242,17 @@ shownItems=org.kde.plasma.battery
 AppletOrder=4;5;6;56;7;8;21;22
 
 [Containments][61]
+{{ if $laptop -}}
+ItemGeometries-1504x1003=Applet-63:0,0,752,464,0;Applet-65:0,464,368,224,0;Applet-64:752,0,752,464,0;Applet-66:368,464,384,224,0;Applet-67:752,464,384,224,0;Applet-68:1136,464,368,224,0;
+{{ else -}}
 ItemGeometries-1504x1003=Applet-63:0,0,752,464,0;Applet-65:0,464,384,224,0;Applet-64:752,0,752,464,0;Applet-66:384,464,384,224,0;Applet-67:768,464,384,224,0;Applet-68:1152,464,352,96,0;
+{{ end -}}
 ItemGeometries-1920x1080=Applet-63:0,0,960,496,0;Applet-65:0,496,480,240,0;Applet-64:960,0,960,496,0;Applet-66:480,496,480,240,0;Applet-67:960,496,480,240,0;Applet-68:1440,496,480,96,0;
+{{ if $laptop -}}
+ItemGeometriesHorizontal=Applet-63:0,0,752,464,0;Applet-65:0,464,368,224,0;Applet-64:752,0,752,464,0;Applet-66:368,464,384,224,0;Applet-67:752,464,384,224,0;Applet-68:1136,464,368,224,0;
+{{ else -}}
 ItemGeometriesHorizontal=Applet-63:0,0,960,496,0;Applet-65:0,496,480,240,0;Applet-64:960,0,960,496,0;Applet-66:480,496,480,240,0;Applet-67:960,496,480,240,0;Applet-68:1440,496,480,96,0;
+{{ end -}}
 activityId=06c03017-64db-40af-bb28-3e938d0ed030
 formfactor=0
 immutability=1
@@ -248,11 +265,19 @@ wallpaperplugin=org.kde.potd
 immutability=1
 plugin=org.mirsella.memory
 
+{{ if $laptop -}}
+[Containments][61][Applets][63][Configuration]
+UserBackgroundHints=StandardBackground
+
+{{ end -}}
 [Containments][61][Applets][64]
 immutability=1
 plugin=org.kde.plasma.systemmonitor.cpucore
 
 [Containments][61][Applets][64][Configuration]
+{{ if $laptop -}}
+UserBackgroundHints=StandardBackground
+{{ end -}}
 CurrentPreset=org.kde.plasma.systemmonitor
 
 [Containments][61][Applets][64][Configuration][Appearance]
@@ -297,21 +322,31 @@ cpu/cpu6/usage=141,61,233
 cpu/cpu7/usage=174,61,233
 cpu/cpu8/usage=206,61,233
 cpu/cpu9/usage=233,61,228
-lmsensors/zenpower-pci-00c3/temp1=255,255,255
+{{ $cpuTemperature }}=255,255,255
 
 [Containments][61][Applets][64][Configuration][SensorLabels]
-lmsensors/zenpower-pci-00c3/temp1=CPU die temperature
+{{ $cpuTemperature }}={{ $cpuTemperatureLabel }}
 
 [Containments][61][Applets][64][Configuration][Sensors]
-highPrioritySensorIds=["cpu/cpu.*/usage","lmsensors/zenpower-pci-00c3/temp1"]
-lowPrioritySensorIds=["cpu/all/usage","cpu/all/averageFrequency","lmsensors/zenpower-pci-00c3/temp1"]
+highPrioritySensorIds=["cpu/cpu.*/usage","{{ $cpuTemperature }}"]
+lowPrioritySensorIds=["cpu/all/usage","cpu/all/averageFrequency","{{ $cpuTemperature }}"]
 totalSensors=["cpu/all/usage"]
 
+{{ if $laptop -}}
+[Containments][61][Applets][64][Configuration][org.kde.ksysguard.linechart][General]
+rangeAutoY=false
+rangeFromY=0
+rangeToY=100
+
+{{ end -}}
 [Containments][61][Applets][65]
 immutability=1
 plugin=org.kde.plasma.systemmonitor.net
 
 [Containments][61][Applets][65][Configuration]
+{{ if $laptop -}}
+UserBackgroundHints=StandardBackground
+{{ end -}}
 CurrentPreset=org.kde.plasma.systemmonitor
 
 [Containments][61][Applets][65][Configuration][Appearance]
@@ -331,6 +366,9 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor.diskactivity
 
 [Containments][61][Applets][66][Configuration]
+{{ if $laptop -}}
+UserBackgroundHints=StandardBackground
+{{ end -}}
 CurrentPreset=org.kde.plasma.systemmonitor
 
 [Containments][61][Applets][66][Configuration][Appearance]
@@ -350,6 +388,9 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor.diskusage
 
 [Containments][61][Applets][67][Configuration]
+{{ if $laptop -}}
+UserBackgroundHints=StandardBackground
+{{ end -}}
 CurrentPreset=org.kde.plasma.systemmonitor
 updateRateLimit=60000
 
@@ -369,7 +410,7 @@ disk/a843fb85-bef1-48c5-93b4-47cc00c2fe62/free=Free
 disk/a843fb85-bef1-48c5-93b4-47cc00c2fe62/usedPercent=Used
 
 [Containments][61][Applets][67][Configuration][Sensors]
-highPrioritySensorIds=["disk/18dc205e-4518-49a0-b693-290f81634fef/usedPercent"]
+highPrioritySensorIds=["disk/{{ $rootDisk }}/usedPercent"]
 lowPrioritySensorIds=[]
 totalSensors=[]
 
@@ -377,6 +418,11 @@ totalSensors=[]
 immutability=1
 plugin=com.github.zren.commandoutput
 
+{{ if $laptop -}}
+[Containments][61][Applets][68][Configuration]
+UserBackgroundHints=StandardBackground
+
+{{ end -}}
 [Containments][61][Applets][68][Configuration][ConfigDialog]
 DialogHeight=540
 DialogWidth=800
@@ -386,6 +432,10 @@ command=/home/mirsella/.local/bin/zmk_split_battery_level.py
 fontFamily=JetBrainsMono Nerd Font
 interval=30000
 outlineColor=#000000
+{{ if $laptop -}}
+showBackground=true
+showOutline=false
+{{ end -}}
 textColor=#000000
 waitForCompletion=true
 
