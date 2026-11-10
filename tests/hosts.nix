@@ -14,6 +14,16 @@ let
   ]) (builtins.attrNames desktops);
 in
 assert lib.assertMsg (lib.all (home:
+  home.systemd.user.services.nasa-wallpaper.Service.Type == "oneshot"
+  && lib.any (lib.hasInfix "/bin/host-tools nasa-wallpaper") home.systemd.user.services.nasa-wallpaper.Service.ExecStart
+  && home.systemd.user.services.nasa-wallpaper.Unit.After == [ "plasma-plasmashell.service" ]
+  && home.systemd.user.timers.nasa-wallpaper.Unit.PartOf == [ "graphical-session.target" ]
+  && home.systemd.user.timers.nasa-wallpaper.Install.WantedBy == [ "graphical-session.target" ]
+  && home.systemd.user.timers.nasa-wallpaper.Timer.OnUnitInactiveSec == "1h"
+) workstationHomes
+  && !(server.home-manager.users.mirsella.systemd.user.services ? nasa-wallpaper)
+) "NASA wallpapers must update only in workstation graphical sessions using the compiled updater";
+assert lib.assertMsg (lib.all (home:
   home.systemd.user.services.hex.Install.WantedBy == [ "graphical-session.target" ]
   && lib.elem flake.packages.x86_64-linux.hex home.home.packages
   && home.systemd.user.services.hex.Service.ExecStart == [ "${flake.packages.x86_64-linux.hex}/bin/hex service" ]

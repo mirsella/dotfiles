@@ -19,6 +19,7 @@ in
   imports = [
     ./arch-package-cache.nix
     ./electron-theme.nix
+    ./nasa-wallpaper.nix
     ./desktop-mcp.nix
     ./adb-wireless.nix
     ./codexbar.nix
@@ -88,6 +89,14 @@ in
         source = config.lib.file.mkOutOfStoreSymlink "/dev/null";
         force = true;
       };
+
+      # Temporary: preserve a stack trace if the intermittent logout hang returns.
+      # Remove after diagnosing it; SIGKILL otherwise discards the blocked threads.
+      "systemd/user/plasma-plasmashell.service.d/90-shutdown-debug.conf".text = ''
+        [Service]
+        TimeoutStopFailureMode=abort
+        TimeoutAbortSec=10s
+      '';
 
       "kache/config.toml" = {
         force = true;

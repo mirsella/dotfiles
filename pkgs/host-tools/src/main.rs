@@ -16,6 +16,7 @@ mod maintenance;
 mod memory;
 mod migration_backups;
 mod monitoring;
+mod nasa_wallpaper;
 mod opencode;
 mod predator_boot;
 mod scratch;
@@ -188,6 +189,8 @@ enum Commands {
         watch: bool,
     },
     AudioWatch,
+    /// Fetch NASA's latest APOD image and apply it to every Plasma desktop.
+    NasaWallpaper,
     ThemeWatch {
         /// dconf binary to drive.
         #[arg(long, default_value = "dconf")]
@@ -325,6 +328,7 @@ fn run() -> Result<()> {
         Commands::KeyboardOff => hardware::keyboard_off(),
         Commands::Ryzenadj { watch } => hardware::ryzenadj(watch),
         Commands::AudioWatch => hardware::audio_watch(),
+        Commands::NasaWallpaper => nasa_wallpaper::run(),
         Commands::ThemeWatch { dconf } => theme::run(&dconf),
         Commands::OomProtect { user } => memory::run(&user),
         Commands::BtrfsSpaceCheck {
