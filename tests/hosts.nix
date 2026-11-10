@@ -14,6 +14,15 @@ let
   ]) (builtins.attrNames desktops);
 in
 assert lib.assertMsg (lib.all (home:
+  let
+    debug = home.xdg.configFile."systemd/user/plasma-plasmashell.service.d/90-shutdown-debug.conf".text;
+  in
+  lib.hasInfix "TimeoutStopFailureMode=abort\n" debug
+  && lib.hasInfix "TimeoutAbortSec=10s\n" debug
+) workstationHomes
+  && !(server.home-manager.users.mirsella.xdg.configFile ? "systemd/user/plasma-plasmashell.service.d/90-shutdown-debug.conf")
+) "Workstations must retain the temporary Plasma shutdown diagnostics without adding desktop settings to Predator";
+assert lib.assertMsg (lib.all (home:
   home.systemd.user.services.nasa-wallpaper.Service.Type == "oneshot"
   && lib.any (lib.hasInfix "/bin/host-tools nasa-wallpaper") home.systemd.user.services.nasa-wallpaper.Service.ExecStart
   && home.systemd.user.services.nasa-wallpaper.Unit.After == [ "plasma-plasmashell.service" ]
