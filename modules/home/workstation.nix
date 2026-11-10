@@ -22,6 +22,7 @@ in
     ./desktop-mcp.nix
     ./adb-wireless.nix
     ./codexbar.nix
+    ./kdeconnect-remote-commands.nix
     ./reverse-engineering.nix
     ./hex.nix
   ];
