@@ -62,3 +62,6 @@
 # The T3 prompt-cache warmer was removed; its config and OAuth state are dead.
 .config/t3-cache-warmer
 .local/state/t3-cache-warmer
+
+# The OpenCode cache-timer TUI plugin was removed.
+.config/opencode/cache-timer.json

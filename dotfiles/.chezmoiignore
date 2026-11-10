@@ -35,8 +35,6 @@ kde shortcuts.kksrc
 # Home Manager installs compiled extensions and the idle watchdog.
 .config/opencode/plugins/
 .config/opencode/plugins/**
-.config/opencode/tui-plugins/
-.config/opencode/tui-plugins/**
 .config/opencode/chunks/
 .config/opencode/chunks/**
 .local/bin/opencode-idle-watchdog
