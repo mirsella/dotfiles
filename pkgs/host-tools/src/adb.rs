@@ -419,6 +419,8 @@ enum HistoryCommand<'a> {
 /// Android's shell is the adapter for shared files and settings. Serialize these
 /// short operations with Android 11's flock, failing open if locked. The kernel
 /// releases the lock even if the shell is killed or the phone loses power.
+/// Android's shell closes private descriptors on exec: duplicate fd 9 onto
+/// stdin for flock, keeping the shared open-file description owned by the shell.
 /// Keep history through a failed shutdown. A closing port is retired only once
 /// Android advertises a different listener, never on an ordinary TCP reconnect.
 fn history_command(command: HistoryCommand<'_>) -> String {
@@ -438,7 +440,7 @@ for f in *; do
 done
 printf '%s\n' "$port" > .closing
 # Do not hold a lock across a command that tears down this shell's transport.
-flock -u 9
+flock -u 0 <&9
 exec 9>&-
 settings put global adb_wifi_enabled 0"#,
             window = (idle + MARK_INTERVAL).as_secs(),
@@ -449,8 +451,10 @@ settings put global adb_wifi_enabled 0"#,
 mkdir -p {MARKER_DIR}
 cd {MARKER_DIR}
 exec 9>.lock
-flock -nx 9 || {{ echo 'ADB idle history is locked; leaving debugging on' >&2; exit 1; }}
-port=$(getprop service.adb.tls.port)
+flock -nx 0 <&9 || {{ echo 'Cannot lock ADB idle history; leaving debugging on' >&2; exit 1; }}
+# Older Android exposes the property; some ROMs expose only the service dump.
+# If both report a listener they must agree, including during a port change.
+port=$({{ getprop service.adb.tls.port; dumpsys adb | sed -n 's/^[[:space:]]*tls_port=//p'; }} | sed '/^$/d' | sort -u)
 case "$port" in ''|*[!0-9]*|0) echo 'invalid Wireless debugging listener port' >&2; exit 1;; esac
 if [ -f .closing ] && [ "$(cat .closing)" != "$port" ]; then
     rm -f -- * .closing
@@ -1097,7 +1101,16 @@ mod tests {
                     "-c",
                     &format!(
                         r#"
-getprop() {{ echo "$PHONE_PORT"; }}
+# Simulate Android closing fd 9 when it executes an external flock.
+flock() {{ (exec 9>&-; command flock "$@"); }}
+getprop() {{ printf '%s\n' "$PROP_PORT"; }}
+dumpsys() {{
+    if command flock -nx 0 <.lock; then
+        echo 'History lock was not retained by the shell' >&2
+        return 1
+    fi
+    printf '  tls_port=%s\n' "$PHONE_PORT"
+}}
 settings() {{
     printf '%s\n' "$*" >> "$CALLS"
     if [ -n "$RACING_MARK" ]; then (eval "$RACING_MARK"); fi
@@ -1108,6 +1121,7 @@ settings() {{
                     ),
                 ])
                 .env("PHONE_PORT", port.to_string())
+                .env("PROP_PORT", "")
                 .env("CALLS", self.0.path().join(".calls"))
                 .env("RACING_MARK", "")
                 .env("SETTINGS_FAIL", "0");
@@ -1218,7 +1232,7 @@ settings() {{
         );
         let output = fixture.command(HistoryCommand::Read, 40000).output()?;
         assert!(!output.status.success());
-        assert!(String::from_utf8_lossy(&output.stderr).contains("history is locked"));
+        assert!(String::from_utf8_lossy(&output.stderr).contains("Cannot lock ADB idle history"));
         drop(lock);
         let output = fixture.command(HistoryCommand::Read, 0).output()?;
         assert!(!output.status.success());
@@ -1227,13 +1241,48 @@ settings() {{
             .args([
                 "-c",
                 &format!(
-                    "getprop() {{ echo 40000; }}; stat() {{ return 1; }}; {}",
+                    "getprop() {{ echo 40000; }}; dumpsys() {{ :; }}; stat() {{ return 1; }}; {}",
                     fixture.script(HistoryCommand::Read),
                 ),
             ])
             .output()?;
         assert!(!output.status.success());
         util::command_output(&mut fixture.command(HistoryCommand::Read, 40000))?;
+        Ok(())
+    }
+
+    #[test]
+    fn listener_port_sources_support_old_android_but_must_agree() -> Result<()> {
+        let fixture = HistoryFixture::new()?;
+        // Current ROM: service dump only. Older Android: property only.
+        util::command_output(&mut fixture.command(HistoryCommand::Read, 40000))?;
+        util::command_output(
+            fixture
+                .command(HistoryCommand::Read, 40000)
+                .env("PHONE_PORT", "")
+                .env("PROP_PORT", "40000"),
+        )?;
+        util::command_output(
+            fixture
+                .command(HistoryCommand::Read, 40000)
+                .env("PROP_PORT", "40000"),
+        )?;
+        let conflict = fixture
+            .command(HistoryCommand::Read, 40000)
+            .env("PROP_PORT", "41000")
+            .output()?;
+        assert!(!conflict.status.success());
+        assert!(
+            String::from_utf8_lossy(&conflict.stderr)
+                .contains("invalid Wireless debugging listener port")
+        );
+        let missing = fixture
+            .command(HistoryCommand::Read, 40000)
+            .env("PHONE_PORT", "")
+            .output()?;
+        assert!(!missing.status.success());
+        assert!(!fixture.0.path().join(".closing").exists());
+        assert!(!fixture.0.path().join(".calls").exists());
         Ok(())
     }
 
@@ -1246,7 +1295,7 @@ settings() {{
             .args([
                 "-c",
                 &format!(
-                    "exec 9>{}/.lock; flock -nx 9 || exit 1; echo locked; read answer",
+                    "exec 9>{}/.lock; flock -nx 0 <&9 || exit 1; echo locked; read answer",
                     fixture.0.path().display(),
                 ),
             ])
