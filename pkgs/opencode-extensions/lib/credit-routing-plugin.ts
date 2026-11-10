@@ -43,7 +43,7 @@ export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: str
         try { await ctx.provider.reload(); }
         catch (error) { promotional = previous; throw error; }
       };
-      await ctx.provider.transform((editor) => {
+      const transform: Parameters<typeof ctx.provider.transform>[0] = (editor) => {
         if (!promotional) return;
         const source = editor.get(providerID);
         if (!source) return;
@@ -56,6 +56,22 @@ export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: str
             if (vendor === "openai") provider.settings.transport = "http";
           });
         } catch (error) { warn(String(error)); }
+      };
+      let registration = await ctx.provider.transform(transform);
+      // Configured providers are applied after external plugin setup in 2.2.
+      // Re-register after activation so their explicit native settings are our
+      // input, rather than a later overlay undoing the routing choice.
+      const activation = async () => {
+        for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+          if (controller.signal.aborted) break;
+          if (event.type !== "plugin.updated") continue;
+          await registration.dispose();
+          registration = await ctx.provider.transform(transform);
+          if (controller.signal.aborted) await registration.dispose();
+        }
+      };
+      void activation().catch((error) => {
+        if (!controller.signal.aborted) warn(`Provider activation observer failed: ${String(error)}`);
       });
       await refresh();
       const timer = setInterval(() => { void refresh().catch((error) => warn(String(error))); }, 5_000);

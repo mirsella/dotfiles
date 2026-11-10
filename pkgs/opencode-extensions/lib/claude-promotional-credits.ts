@@ -8,13 +8,13 @@ export function parseCreditStatus(value: unknown, organization: string): CreditS
     !value || typeof value !== "object" ||
     !("route" in value) || !["promotional", "subscription"].includes(String(value.route)) ||
     !("organization_id" in value) || value.organization_id !== organization
-  ) throw new Error("Claude credit router returned an invalid status or a different organization");
+  ) throw new Error("Credit router returned an invalid status or a different organization");
   return value as CreditStatus;
 }
 
 export function creditEndpoint(settings: Record<string, unknown>, upstream: string, router: string): string {
   if (settings.baseURL !== upstream || settings.apiKey !== undefined || settings.authToken !== undefined) {
-    throw new Error("Claude credit routing requires the existing Sleev subscription endpoint and native Claude login; leaving provider unchanged");
+    throw new Error("Credit routing requires the existing Sleev subscription endpoint and native login; leaving provider unchanged");
   }
   return router;
 }

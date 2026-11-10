@@ -1,5 +1,11 @@
 # Claude and OpenAI API credit routing
 
+The OpenCode extension re-registers its provider transform after plugin activation:
+OpenCode 2.2 applies explicit provider configuration after ordinary plugin setup.
+This keeps the original configured subscription endpoint as the transform's input,
+so configuration cannot silently override promotional routing. No session, auth or
+subscription-retry hooks are installed.
+
 Uses a personal, promotional-only Anthropic API organization before the existing
 Claude Agent subscription connection. A separate OpenAI instance routes direct
 Responses API requests through the dedicated project before native Codex usage.

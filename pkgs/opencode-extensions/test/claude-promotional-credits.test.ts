@@ -38,7 +38,10 @@ for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restore
   const originalError = console.error;
   let tick: () => void = () => { throw new Error("interval not registered"); };
   let status: unknown = { route: "promotional", organization_id: "personal" };
-  let transform: (editor: any) => void = () => {};
+  type Transform = (editor: any) => void;
+  const transforms = new Set<Transform>();
+  let emitActivation = () => { throw new Error("event subscription not registered"); };
+  let onRegistration = () => {};
   let onReload = () => {};
   const source = {
     "claude-agent": { settings: { baseURL: openai ? "native-claude" : upstream, chunkTimeout: 180_000 }, nativeAuth: "untouched", models: ["opus#high"] },
@@ -54,17 +57,35 @@ for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restore
       return originalInterval(() => {}, 1_000_000);
     }) as any;
     console.error = () => {};
-    cleanup = await (openai ? openaiPlugin : plugin).setup({ provider: {
-      transform: async (handler: typeof transform) => { transform = handler; },
-      reload: async () => {
+    const render = () => {
         current = structuredClone(source);
-        transform({
+        for (const transform of transforms) transform({
           get: (id: keyof typeof source) => ({ provider: current[id] }),
           update: (id: keyof typeof source, update: (provider: unknown) => void) => update(current[id]),
         });
         onReload();
+    };
+    cleanup = await (openai ? openaiPlugin : plugin).setup({
+      event: { subscribe: ({ signal }: { signal: AbortSignal }) => ({
+        [Symbol.asyncIterator]: () => ({ next: () => new Promise((resolve) => {
+          const aborted = () => resolve({ done: true });
+          signal.addEventListener("abort", aborted, { once: true });
+          emitActivation = () => {
+            signal.removeEventListener("abort", aborted);
+            resolve({ done: false, value: { type: "plugin.updated" } });
+          };
+        }) }),
+      }) },
+      provider: {
+        transform: async (handler: Transform) => {
+          transforms.add(handler);
+          render();
+          onRegistration();
+          return { dispose: async () => { transforms.delete(handler); render(); } };
+        },
+        reload: async () => render(),
       },
-    } } as any);
+    } as any);
     const expectPromotional = () => {
       if (openai) {
         expect(current.openai.settings).toEqual({ baseURL: router, transport: "http" });
@@ -75,6 +96,18 @@ for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restore
         expect(current.openai).toEqual(source.openai);
       }
     };
+    expectPromotional();
+    // The real config plugin registers after external plugins. Its overlay
+    // must not silently undo routing after activation, or on later reloads.
+    transforms.add((editor) => editor.update(openai ? "openai" : "claude-agent", (provider: any) => {
+      provider.settings.baseURL = upstream;
+      if (openai) provider.settings.transport = "websocket";
+    }));
+    render();
+    expect(current).toEqual(source);
+    const activated = new Promise<void>((resolve) => { onRegistration = resolve; });
+    emitActivation();
+    await activated;
     expectPromotional();
     const reload = async (value: unknown) => {
       status = value;
