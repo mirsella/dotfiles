@@ -8,6 +8,7 @@ use serde_json::json;
 use std::collections::VecDeque;
 use std::os::unix::fs::PermissionsExt;
 use std::sync::{Arc, Mutex};
+use tower::ServiceExt;
 
 fn date(value: &str) -> DateTime<Utc> {
     value.parse().unwrap()
@@ -53,6 +54,7 @@ struct Seen {
 struct Upstream {
     responses: Arc<Mutex<VecDeque<Reply>>>,
     seen: Arc<Mutex<Vec<Seen>>>,
+    before_reply: Arc<Mutex<Option<Box<dyn FnOnce() + Send>>>>,
 }
 
 async fn upstream(State(state): State<Upstream>, request: Request<Body>) -> Response<Body> {
@@ -64,6 +66,9 @@ async fn upstream(State(state): State<Upstream>, request: Request<Body>) -> Resp
         headers: parts.headers,
         body,
     });
+    if let Some(action) = state.before_reply.lock().unwrap().take() {
+        action();
+    }
     let Reply(status, text) = state
         .responses
         .lock()
@@ -85,6 +90,8 @@ struct Fixture {
     store: Store,
     state: Upstream,
     config: Config,
+    router: Router,
+    clock: Arc<Mutex<DateTime<Utc>>>,
     tasks: Vec<tokio::task::JoinHandle<()>>,
 }
 
@@ -118,6 +125,7 @@ impl Fixture {
         let state = Upstream {
             responses: Arc::new(Mutex::new(responses.into())),
             seen: Arc::default(),
+            before_reply: Arc::default(),
         };
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let mut config = config(format!(
@@ -143,6 +151,7 @@ impl Fixture {
         });
         let directory = tempfile::tempdir().unwrap();
         let store = Store(directory.path().join("state.json"));
+        let clock = Arc::new(Mutex::new(date("2026-11-10T12:00:00Z")));
         let router = Router::new(
             config.clone(),
             store.clone(),
@@ -152,7 +161,11 @@ impl Fixture {
                 "sk-ant-api-mock"
             },
         )
-        .unwrap();
+        .unwrap()
+        .with_clock({
+            let clock = clock.clone();
+            move || *clock.lock().unwrap()
+        });
         if openai {
             router.verify_organization().await.unwrap();
             let metadata = state.seen.lock().unwrap().pop().unwrap();
@@ -162,8 +175,9 @@ impl Fixture {
         }
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
+        let app = router.clone().app();
         let task2 = tokio::spawn(async move {
-            axum::serve(listener, router.app()).await.unwrap();
+            axum::serve(listener, app).await.unwrap();
         });
         Self {
             url,
@@ -171,6 +185,8 @@ impl Fixture {
             store,
             state,
             config,
+            router,
+            clock,
             tasks: vec![task, task2],
         }
     }
@@ -192,6 +208,10 @@ impl Fixture {
 
     fn seen(&self) -> Vec<Seen> {
         self.state.seen.lock().unwrap().clone()
+    }
+
+    fn now(&self) -> DateTime<Utc> {
+        *self.clock.lock().unwrap()
     }
 }
 
@@ -313,8 +333,8 @@ async fn renewal_probe_restores_promotional_route_without_an_extra_inference_pro
     fixture
         .store
         .update(|state| {
-            state.exhausted(Utc::now(), fixture.config.renewal_anchor)?;
-            state.next_probe_at = Some(Utc::now() - chrono::Duration::seconds(1));
+            state.exhausted(fixture.now(), fixture.config.renewal_anchor)?;
+            state.next_probe_at = Some(fixture.now() - chrono::Duration::seconds(1));
             Ok(())
         })
         .unwrap();
@@ -343,16 +363,16 @@ async fn late_renewal_stays_on_subscription_between_bounded_probes() {
     fixture
         .store
         .update(|state| {
-            state.exhausted(Utc::now(), fixture.config.renewal_anchor)?;
-            state.next_probe_at = Some(Utc::now());
+            state.exhausted(fixture.now(), fixture.config.renewal_anchor)?;
+            state.next_probe_at = Some(fixture.now());
             Ok(())
         })
         .unwrap();
     fixture.send("request").await;
     let state = fixture.store.read().unwrap();
     assert_eq!(state.active, Route::Subscription);
-    assert_eq!(state.route(Utc::now()), Route::Subscription);
-    assert!(state.next_probe_at.unwrap() > Utc::now() + chrono::Duration::hours(5));
+    assert_eq!(state.route(fixture.now()), Route::Subscription);
+    assert!(state.next_probe_at.unwrap() > fixture.now() + chrono::Duration::hours(5));
     assert_eq!(
         state.history.last().unwrap().reason,
         "renewal_grant_not_available_yet"
@@ -622,6 +642,67 @@ async fn openai_responses_and_compaction_preserve_exact_body_and_settings() {
             )
         );
     }
+}
+
+#[tokio::test]
+async fn upload_crossing_calendar_reset_uses_native_auth_and_exact_body() {
+    let fixture = Fixture::openai(vec![Reply(StatusCode::OK, "native".into())]).await;
+    *fixture.clock.lock().unwrap() = date("2026-12-31T23:59:59Z");
+    let clock = fixture.clock.clone();
+    let bytes = Bytes::from_static(br#"{"model":"gpt-test","input":"unchanged"}"#);
+    let expected = bytes.clone();
+    let request = Request::builder()
+        .method(Method::POST)
+        .uri("/responses")
+        .header("authorization", "Bearer native-codex")
+        .body(Body::from_stream(futures_util::stream::once(async move {
+            *clock.lock().unwrap() = date("2027-01-01T00:00:00Z");
+            Ok::<_, std::io::Error>(bytes)
+        })))
+        .unwrap();
+    let response = fixture.router.clone().app().oneshot(request).await.unwrap();
+    assert_eq!(
+        to_bytes(response.into_body(), 1024).await.unwrap(),
+        "native"
+    );
+    let seen = fixture.seen();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0].headers["authorization"], "Bearer native-codex");
+    assert_eq!(seen[0].body, expected);
+    assert_eq!(
+        fixture.store.read().unwrap().history.last().unwrap().reason,
+        "calendar_reset_guard"
+    );
+}
+
+#[tokio::test]
+async fn exhaustion_persistence_failure_does_not_block_safe_native_fallback() {
+    let fixture = Fixture::new(vec![depleted(), Reply(StatusCode::OK, "native".into())]).await;
+    let lock = fixture.directory.path().join("state.lock");
+    *fixture.state.before_reply.lock().unwrap() = Some(Box::new(move || {
+        // State reads succeed before the API rejection; persisting it fails.
+        std::fs::remove_file(&lock).unwrap();
+        std::fs::create_dir(&lock).unwrap();
+    }));
+    let request = Request::builder()
+        .method(Method::POST)
+        .uri("/v1/messages")
+        .header("authorization", "Bearer native-subscription")
+        .body(Body::from("same-history"))
+        .unwrap();
+    let response = fixture.router.clone().app().oneshot(request).await.unwrap();
+    assert_eq!(
+        to_bytes(response.into_body(), 1024).await.unwrap(),
+        "native"
+    );
+    let seen = fixture.seen();
+    assert_eq!(seen.len(), 2);
+    assert!(seen[0].headers.contains_key("x-api-key"));
+    assert_eq!(
+        seen[1].headers["authorization"],
+        "Bearer native-subscription"
+    );
+    assert_eq!(seen[0].body, seen[1].body);
 }
 
 #[tokio::test]

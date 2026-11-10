@@ -4,7 +4,9 @@ pub mod policy;
 use anyhow::{Context, Result, ensure};
 use axum::body::{Body, Bytes, to_bytes};
 use axum::extract::State;
-use axum::http::{HeaderMap, HeaderValue, Method, Request, Response, StatusCode, Uri};
+use axum::http::{
+    HeaderMap, HeaderValue, Method, Request, Response, StatusCode, Uri, request::Parts,
+};
 use axum::routing::get;
 use chrono::{DateTime, Utc};
 use futures_util::StreamExt;
@@ -104,6 +106,7 @@ pub struct Router {
     // arrive. Streaming output and all subscription traffic remain concurrent.
     promotional: Arc<Mutex<()>>,
     models: Arc<std::sync::RwLock<std::collections::HashSet<String>>>,
+    clock: Arc<dyn Fn() -> DateTime<Utc> + Send + Sync>,
 }
 
 #[derive(Serialize)]
@@ -134,7 +137,13 @@ impl Router {
                 .build()?,
             promotional: Arc::new(Mutex::new(())),
             models: Arc::default(),
+            clock: Arc::new(Utc::now),
         })
+    }
+
+    pub fn with_clock(mut self, clock: impl Fn() -> DateTime<Utc> + Send + Sync + 'static) -> Self {
+        self.clock = Arc::new(clock);
+        self
     }
 
     pub fn status(&self, now: DateTime<Utc>) -> Result<Status> {
@@ -306,6 +315,25 @@ impl Router {
         }
     }
 
+    // Native responses are never inspected, classified or retried here.
+    async fn subscription(
+        &self,
+        parts: Parts,
+        body: impl Into<reqwest::Body>,
+    ) -> Result<Response<Body>> {
+        Ok(stream(
+            self.request(
+                parts.method,
+                &parts.uri,
+                parts.headers,
+                body,
+                Route::Subscription,
+            )
+            .send()
+            .await?,
+        ))
+    }
+
     async fn forward(&self, request: Request<Body>) -> Result<Response<Body>> {
         let (parts, body) = request.into_parts();
         // Token counting is free and cannot prove a grant renewed. Other CLI
@@ -319,20 +347,11 @@ impl Router {
             } else {
                 parts.uri.path() == "/v1/messages"
             };
-        let now = Utc::now();
+        let now = (self.clock)();
         if !eligible || self.status(now)?.route == Route::Subscription {
-            // No subscription response is inspected, retried or classified.
-            let response = self
-                .request(
-                    parts.method,
-                    &parts.uri,
-                    parts.headers,
-                    reqwest::Body::wrap_stream(body.into_data_stream()),
-                    Route::Subscription,
-                )
-                .send()
-                .await?;
-            return Ok(stream(response));
+            return self
+                .subscription(parts, reqwest::Body::wrap_stream(body.into_data_stream()))
+                .await;
         }
         if parts.headers.contains_key("origin")
             || !parts
@@ -346,23 +365,21 @@ impl Router {
         }
         let guard = self.promotional.lock().await;
         // A concurrent request or manual override may already have switched.
-        if self.status(Utc::now())?.route == Route::Subscription {
+        if self.status((self.clock)())?.route == Route::Subscription {
             drop(guard);
-            let response = self
-                .request(
-                    parts.method,
-                    &parts.uri,
-                    parts.headers,
-                    reqwest::Body::wrap_stream(body.into_data_stream()),
-                    Route::Subscription,
-                )
-                .send()
-                .await?;
-            return Ok(stream(response));
+            return self
+                .subscription(parts, reqwest::Body::wrap_stream(body.into_data_stream()))
+                .await;
         }
         // Match the official Messages API's 128 MiB request limit. Keep bytes,
         // not parsed/re-serialized history, so signed thinking/tool blocks survive.
         let bytes = to_bytes(body, 128 * 1024 * 1024).await?;
+        // An upload can cross the calendar boundary or a manual route change.
+        // Decide again after the last await before sending billable API traffic.
+        if self.status((self.clock)())?.route == Route::Subscription {
+            drop(guard);
+            return self.subscription(parts, bytes).await;
+        }
         if self.config.openai.is_some() {
             let model = serde_json::from_slice::<serde_json::Value>(&bytes)
                 .ok()
@@ -376,7 +393,7 @@ impl Router {
                 // Codex-only models cannot be silently remapped to API models.
                 self.store.update(|state| {
                     state.note(
-                        Utc::now(),
+                        (self.clock)(),
                         &format!(
                             "native_model_not_available_on_api:{}",
                             model.as_deref().unwrap_or("missing")
@@ -385,17 +402,7 @@ impl Router {
                     Ok(())
                 })?;
                 drop(guard);
-                return Ok(stream(
-                    self.request(
-                        parts.method,
-                        &parts.uri,
-                        parts.headers,
-                        bytes,
-                        Route::Subscription,
-                    )
-                    .send()
-                    .await?,
-                ));
+                return self.subscription(parts, bytes).await;
             }
         }
         let response = self
@@ -409,7 +416,10 @@ impl Router {
             .send()
             .await?;
         if response.status().is_success() {
-            let changed = match self.store.update(|state| Ok(state.available(Utc::now()))) {
+            let changed = match self
+                .store
+                .update(|state| Ok(state.available((self.clock)())))
+            {
                 Ok(changed) => changed,
                 Err(error) => {
                     // The model already accepted this request. Never turn its
@@ -460,34 +470,28 @@ impl Router {
         if !billing_limit {
             return Ok(reply(code, headers, Body::from(error)));
         }
+        let now = (self.clock)();
         let changed = self.store.update(|state| {
             if self.config.openai.is_some() {
                 Ok(state.defer(
-                    Utc::now(),
-                    policy::next_renewal(self.config.renewal_anchor, Utc::now())?,
+                    now,
+                    policy::next_renewal(self.config.renewal_anchor, now)?,
                     "api_billing_limit",
                 ))
             } else {
-                state.exhausted(Utc::now(), self.config.renewal_anchor)
+                state.exhausted(now, self.config.renewal_anchor)
             }
-        })?;
+        }).unwrap_or_else(|error| {
+            eprintln!("credit-router: cannot persist exhausted API route; forwarding the rejected request natively: {error}");
+            false
+        });
         drop(guard);
         if changed {
             self.notify("API allowance exhausted; using your normal subscription. Its limits and retries are unchanged.");
         }
         // Only an explicit pre-output rejection reaches here. This is not a
         // retry of a stream or a tool execution, nor a subscription retry loop.
-        let response = self
-            .request(
-                parts.method,
-                &parts.uri,
-                parts.headers,
-                bytes,
-                Route::Subscription,
-            )
-            .send()
-            .await?;
-        Ok(stream(response))
+        self.subscription(parts, bytes).await
     }
 }
 
@@ -551,7 +555,7 @@ fn stream(response: reqwest::Response) -> Response<Body> {
 
 async fn status(State(router): State<Arc<Router>>) -> Response<Body> {
     match router
-        .status(Utc::now())
+        .status((router.clock)())
         .and_then(|value| Ok(serde_json::to_vec(&value)?))
     {
         Ok(bytes) => Response::builder()
