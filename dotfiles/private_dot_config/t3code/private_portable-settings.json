@@ -962,15 +962,6 @@
   ],
   "projects": [
     {
-      "workspace_root": "~/.t3/projects/wiko",
-      "attributes": {
-        "faviconPath": "~/.t3/projects/wiko/assets/icon.svg",
-        "projectIcon": null,
-        "title": "wiko"
-      },
-      "settings": {}
-    },
-    {
       "workspace_root": "~/Documents/xiaomi-mom",
       "attributes": {
         "faviconPath": null,
@@ -1105,6 +1096,24 @@
       "settings": {
         "defaultThreadEnvMode": "worktree"
       }
+    },
+    {
+      "workspace_root": "~/dev/wiko",
+      "attributes": {
+        "faviconPath": "~/dev/wiko/assets/icon.svg",
+        "projectIcon": null,
+        "title": "wiko"
+      },
+      "settings": {}
+    },
+    {
+      "workspace_root": "~/dev/y2s",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "y2s"
+      },
+      "settings": {}
     }
   ]
 }

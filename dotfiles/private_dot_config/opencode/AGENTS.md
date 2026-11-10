@@ -21,8 +21,13 @@
 ## Files and directories
 
 - Use `~/dev` for permanent projects. Keep tool-managed worktrees in their configured locations.
-- `/tmp` is RAM-backed. Keep builds, large downloads and large generated files on disk. Small tool-managed temporary files may use their normal temporary directory.
-- Keep task scratch files in `.scratch/` at the checkout root, or the session's existing scratch directory; outside a checkout, use `~/dev/scratch/`. Do not set `TMPDIR` to a checkout/worktree scratch directory. Preserve tool-managed temporary environments, and never remove a temporary root while processes still use it.
+- `/tmp` is RAM-backed. Keep builds, large downloads and large generated files in the scratch directory. Small tool-managed temporary files may use their normal temporary directory.
+- Where the session runs decides the scratch directory, not what the files are:
+  - In a checkout or worktree: `.scratch/` at its root, for everything the task produces. That includes clones of other repositories, downloads, captures, backups and extra Cargo target directories.
+  - In a T3 thread without a project: its working directory, `~/.t3/scratch/<thread>`.
+  - Anywhere else, including a host reached over ssh: `~/dev/scratch/<task>/`.
+- Scratch is disposable, and `.scratch/` is deleted with its worktree. Before settling, copy out only the files the user asked to keep, to `~/dev/scratch/<project>-<thread>/`, and report the path.
+- Do not set `TMPDIR` to a checkout/worktree scratch directory. Preserve tool-managed temporary environments, and never remove a temporary root while processes still use it.
 
 ## Worktrees
 

@@ -95,9 +95,7 @@
     "enabled": true,
     "providers": [],
     "recording_indicator_corner": "top_right",
-    "show_recording_indicator": true,
-    "summarize_with_apple_intelligence": true,
-    "summarize_with_opencode": false
+    "show_recording_indicator": true
   },
   "paste_last_hotkey": {
     "keys": [
@@ -153,7 +151,13 @@
     "pnpm",
     "npm",
     "seaorm",
-    "voxride"
+    "voxride",
+    {
+      "sounds_like": [
+        ".files"
+      ],
+      "term": "dotfiles"
+    }
   ],
   "vocabulary_boost": "normal"
 }
