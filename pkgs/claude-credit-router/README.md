@@ -1,5 +1,56 @@
 # Claude and OpenAI API credit routing
 
+## Private audit history
+
+Each machine keeps a durable, metadata-only trail beside its router state:
+`~/.local/state/credit-router/<vendor>-credit-router/audit-spool/` and
+`audit.sqlite3`. Directories are private (0700); spools/database are 0600.
+The CLI imports append-only spools transactionally with checkpoint/event-ID
+deduplication. There is no 32-event retention limit on the audit: the smaller
+state history is still only a status convenience. No automatic deletion occurs.
+
+```sh
+openai-credit-router history --limit 100
+claude-credit-router history --summary --grant-cycle
+openai-credit-router history --summary --since 2026-11-10T00:00:00Z
+openai-credit-router history --summary --session ses_EXAMPLE
+```
+
+Records distinguish **actual router attempts** from **passive OpenCode usage**:
+
+- Actual API/native route, fallback reason, UTC time/machine, HTTP outcome and
+  duration; safe upstream request/response IDs; model and reported usage when
+  exposed. Accepted streams are forwarded unchanged, never replayed for logging.
+- Public OpenCode step and compaction accounting, including native requests that
+  bypass the router. Title usage is unavailable through the installed public
+  event API; a prepared-request record is not proof of transport or billing.
+- Full future switch/manual-override history. The installation coverage marker
+  explicitly warns that earlier history is incomplete; only the old retained
+  state events can be imported. Crashes can leave an unmatched request-start.
+- Exact OpenCode session/parent IDs and T3 thread bindings. Reports read only
+  native-binding identifiers from `~/.t3/userdata/statev2.sqlite` (override with
+  `--t3-db`). Claude CLI session UUIDs are joined only when public native metadata
+  exposes an unambiguous binding. Otherwise requests remain **uncorrelated**;
+  model/time/title similarity is never used to guess a thread.
+
+Public models.dev API-price snapshots are timestamped and used only for API
+**token-cost estimates**, never subscription bills. Missing final usage, unknown
+prices/cache TTLs/nonstandard service tiers are explicitly missing, not zero.
+`api_cost_missing` counts excluded requests; any displayed estimate is a partial
+sum if that count is nonzero. Native OpenCode-reported costs remain a separate
+field and may be zero due to subscription metadata. Do not add router and
+OpenCode token totals: they are different observations of overlapping work.
+Vendor invoice/credit totals, tool charges and exact shared-organization
+promo-versus-paid attribution cannot be reconstructed from these estimates.
+
+Prompts, response text, tool inputs/results, raw error text, cookies and
+authentication headers are **never written**. Subscription responses are not
+parsed. API response parsing is bounded; absent/oversized usage events remain
+unknown. Audit writes are private fsynced spools; SQLite ingestion/reporting is
+off the inference/status critical path. An audit failure is conspicuous in the
+service/plugin log but must not change routing, authentication or retry policy.
+No new credentials or browser logins are required.
+
 The OpenCode extension re-registers its provider transform after plugin activation:
 OpenCode 2.2 applies explicit provider configuration after ordinary plugin setup.
 This keeps the original configured subscription endpoint as the transform's input,

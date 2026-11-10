@@ -1,5 +1,7 @@
+pub mod audit;
 pub mod openai;
 pub mod policy;
+pub mod trace;
 
 use anyhow::{Context, Result, ensure};
 use axum::body::{Body, Bytes, to_bytes};
@@ -230,6 +232,9 @@ impl Router {
     ) -> reqwest::RequestBuilder {
         strip_hop_headers(&mut headers);
         headers.remove("host");
+        for name in trace::HEADERS {
+            headers.remove(name);
+        }
         if route == Route::Promotional {
             headers.remove("authorization");
             headers.remove("cookie");
@@ -320,8 +325,11 @@ impl Router {
         &self,
         parts: Parts,
         body: impl Into<reqwest::Body>,
+        context: audit::ContextIds,
+        reason: &str,
     ) -> Result<Response<Body>> {
-        Ok(stream(
+        let trace = trace::Trace::start(self.store.audit(), context, Route::Subscription, reason);
+        Ok(trace.stream(
             self.request(
                 parts.method,
                 &parts.uri,
@@ -331,11 +339,13 @@ impl Router {
             )
             .send()
             .await?,
+            false,
         ))
     }
 
     async fn forward(&self, request: Request<Body>) -> Result<Response<Body>> {
         let (parts, body) = request.into_parts();
+        let mut context = trace::context(&parts.headers);
         // Token counting is free and cannot prove a grant renewed. Other CLI
         // endpoints (including OAuth account/usage calls) remain native.
         let eligible = parts.method == Method::POST
@@ -350,7 +360,16 @@ impl Router {
         let now = (self.clock)();
         if !eligible || self.status(now)?.route == Route::Subscription {
             return self
-                .subscription(parts, reqwest::Body::wrap_stream(body.into_data_stream()))
+                .subscription(
+                    parts,
+                    reqwest::Body::wrap_stream(body.into_data_stream()),
+                    context,
+                    if eligible {
+                        "subscription_selected"
+                    } else {
+                        "non_inference_endpoint"
+                    },
+                )
                 .await;
         }
         if parts.headers.contains_key("origin")
@@ -368,17 +387,25 @@ impl Router {
         if self.status((self.clock)())?.route == Route::Subscription {
             drop(guard);
             return self
-                .subscription(parts, reqwest::Body::wrap_stream(body.into_data_stream()))
+                .subscription(
+                    parts,
+                    reqwest::Body::wrap_stream(body.into_data_stream()),
+                    context,
+                    "subscription_selected",
+                )
                 .await;
         }
         // Match the official Messages API's 128 MiB request limit. Keep bytes,
         // not parsed/re-serialized history, so signed thinking/tool blocks survive.
         let bytes = to_bytes(body, 128 * 1024 * 1024).await?;
+        trace::request_context(&mut context, &bytes);
         // An upload can cross the calendar boundary or a manual route change.
         // Decide again after the last await before sending billable API traffic.
         if self.status((self.clock)())?.route == Route::Subscription {
             drop(guard);
-            return self.subscription(parts, bytes).await;
+            return self
+                .subscription(parts, bytes, context, "route_changed_during_upload")
+                .await;
         }
         if self.config.openai.is_some() {
             let model = serde_json::from_slice::<serde_json::Value>(&bytes)
@@ -402,9 +429,17 @@ impl Router {
                     Ok(())
                 })?;
                 drop(guard);
-                return self.subscription(parts, bytes).await;
+                return self
+                    .subscription(parts, bytes, context, "model_unavailable_on_api")
+                    .await;
             }
         }
+        let mut trace = trace::Trace::start(
+            self.store.audit(),
+            context.clone(),
+            Route::Promotional,
+            "api_selected",
+        );
         let response = self
             .request(
                 parts.method.clone(),
@@ -415,6 +450,7 @@ impl Router {
             )
             .send()
             .await?;
+        trace.response(&response);
         if response.status().is_success() {
             let changed = match self
                 .store
@@ -435,8 +471,8 @@ impl Router {
             if changed {
                 self.notify("Monthly promotional API credits are available; using them again.");
             }
-            // Never examine or replay a stream, including a 200 SSE error.
-            return Ok(stream(response));
+            // Tee only bounded usage metadata; never alter or replay output.
+            return Ok(trace.stream(response, true));
         }
         if !(matches!(
             response.status(),
@@ -444,7 +480,7 @@ impl Router {
         ) || self.config.openai.is_some()
             && response.status() == StatusCode::TOO_MANY_REQUESTS)
         {
-            return Ok(stream(response));
+            return Ok(trace.stream(response, false));
         }
         let code = response.status();
         let headers = response.headers().clone();
@@ -458,7 +494,7 @@ impl Router {
                 let prefix = futures_util::stream::once(async move {
                     Ok::<Bytes, reqwest::Error>(Bytes::from(error))
                 });
-                let body = Body::from_stream(prefix.chain(response.bytes_stream()));
+                let body = trace.body(prefix.chain(response.bytes_stream()), false);
                 return Ok(reply(code, headers, body));
             }
         }
@@ -468,8 +504,10 @@ impl Router {
             exhausted(code, &error)
         };
         if !billing_limit {
+            trace.finish("rejected_without_route_change");
             return Ok(reply(code, headers, Body::from(error)));
         }
+        trace.finish("billing_rejected_native_fallback");
         let now = (self.clock)();
         let changed = self.store.update(|state| {
             if self.config.openai.is_some() {
@@ -491,7 +529,8 @@ impl Router {
         }
         // Only an explicit pre-output rejection reaches here. This is not a
         // retry of a stream or a tool execution, nor a subscription retry loop.
-        self.subscription(parts, bytes).await
+        self.subscription(parts, bytes, context, "api_billing_limit")
+            .await
     }
 }
 
@@ -543,14 +582,6 @@ fn reply(status: StatusCode, mut headers: HeaderMap, body: Body) -> Response<Bod
     *response.status_mut() = status;
     *response.headers_mut() = headers;
     response
-}
-
-fn stream(response: reqwest::Response) -> Response<Body> {
-    reply(
-        response.status(),
-        response.headers().clone(),
-        Body::from_stream(response.bytes_stream()),
-    )
 }
 
 async fn status(State(router): State<Arc<Router>>) -> Response<Body> {

@@ -8,7 +8,7 @@ rustPlatform.buildRustPackage {
   };
   cargoLock.lockFile = ./Cargo.lock;
   meta = {
-    description = "Promotional-only Claude API routing with native subscription passthrough";
+    description = "Private API credit routing and usage audit for OpenCode";
     mainProgram = "claude-credit-router";
     platforms = lib.platforms.linux;
   };

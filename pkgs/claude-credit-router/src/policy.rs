@@ -23,7 +23,7 @@ pub enum Mode {
     Subscription,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Event {
     pub at: DateTime<Utc>,
@@ -39,6 +39,10 @@ pub struct State {
     pub next_probe_at: Option<DateTime<Utc>>,
     pub last_promotional_success_at: Option<DateTime<Utc>>,
     pub history: Vec<Event>,
+    #[serde(default)]
+    audit_started_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pending_audit: Vec<crate::audit::Record>,
 }
 
 impl Default for State {
@@ -50,6 +54,8 @@ impl Default for State {
             next_probe_at: None,
             last_promotional_success_at: None,
             history: vec![],
+            audit_started_at: None,
+            pending_audit: Vec::new(),
         }
     }
 }
@@ -165,10 +171,32 @@ pub fn next_renewal(anchor: DateTime<Utc>, now: DateTime<Utc>) -> Result<DateTim
     bail!("cannot calculate the next promotional renewal")
 }
 
+pub fn cycle_start(anchor: DateTime<Utc>, now: DateTime<Utc>) -> Result<DateTime<Utc>> {
+    use chrono::Datelike;
+    let months = (now.year() - anchor.year()) * 12 + now.month() as i32 - anchor.month() as i32;
+    let shift = |months: i32| {
+        if months >= 0 {
+            anchor.checked_add_months(Months::new(months as u32))
+        } else {
+            anchor.checked_sub_months(Months::new(months.unsigned_abs()))
+        }
+    };
+    let candidate = shift(months).context("grant cycle overflow")?;
+    if candidate <= now {
+        Ok(candidate)
+    } else {
+        shift(months - 1).context("grant cycle overflow")
+    }
+}
+
 #[derive(Clone)]
 pub struct Store(pub PathBuf);
 
 impl Store {
+    pub fn audit(&self) -> crate::audit::Audit {
+        crate::audit::Audit::beside(&self.0)
+    }
+
     pub fn update<T>(&self, action: impl FnOnce(&mut State) -> Result<T>) -> Result<T> {
         let directory = self.0.parent().context("state path has no parent")?;
         fs::create_dir_all(directory)?;
@@ -197,19 +225,73 @@ impl Store {
             "exhausted route is missing its renewal date"
         );
         let before = serde_json::to_vec(&state)?;
+        let history = state.history.clone();
         let result = action(&mut state)?;
-        let after = serde_json::to_vec_pretty(&state)?;
+        let importing = state.audit_started_at.is_none();
+        if importing {
+            state.audit_started_at = Some(Utc::now());
+        }
+        let audit = self.audit();
+        if importing {
+            let mut record = crate::audit::Record::new("audit_started", "policy");
+            record.id = "audit_started".into();
+            record.reason = Some("history_before_audit_is_incomplete".into());
+            state.pending_audit.push(record);
+        }
+        for event in state.history.clone() {
+            if importing || !history.contains(&event) {
+                let mut record = crate::audit::Record::new("policy", "policy");
+                record.id = format!(
+                    "policy:{}:{}",
+                    event.at.timestamp_nanos_opt().unwrap_or_default(),
+                    event.reason
+                );
+                record.at = event.at;
+                record.reason = Some(event.reason.clone());
+                if !history.contains(&event) {
+                    record.route = Some(state.route(event.at));
+                }
+                state.pending_audit.push(record);
+            }
+        }
         if before != serde_json::to_vec(&state)? || !self.0.exists() {
-            let mut temporary = tempfile::NamedTempFile::new_in(directory)?;
-            temporary
-                .as_file()
-                .set_permissions(fs::Permissions::from_mode(0o600))?;
-            temporary.write_all(&after)?;
-            temporary.as_file().sync_all()?;
-            temporary.persist(&self.0)?;
-            File::open(directory)?.sync_all()?;
+            self.persist(&state)?;
+        }
+        // Transactional outbox: the route and unacknowledged audit records are
+        // durable together. A crash can duplicate an ID, never erase a switch.
+        if !state.pending_audit.is_empty() {
+            let exported = state
+                .pending_audit
+                .iter()
+                .try_for_each(|record| audit.spool(record));
+            match exported {
+                Ok(()) => {
+                    state.pending_audit.clear();
+                    if let Err(error) = self.persist(&state) {
+                        eprintln!(
+                            "credit-router: AUDIT ACKNOWLEDGEMENT FAILED: {error}; exports will be retried"
+                        );
+                    }
+                }
+                Err(error) => eprintln!(
+                    "credit-router: AUDIT EXPORT FAILED: {error}; pending records retained in state"
+                ),
+            }
         }
         Ok(result)
+    }
+
+    fn persist(&self, state: &State) -> Result<()> {
+        let directory = self.0.parent().context("state path has no parent")?;
+        let mut temporary = tempfile::NamedTempFile::new_in(directory)?;
+        temporary
+            .as_file()
+            .set_permissions(fs::Permissions::from_mode(0o600))?;
+        temporary.write_all(&serde_json::to_vec_pretty(state)?)?;
+        temporary.as_file().sync_all()?;
+        temporary.persist(&self.0)?;
+        File::open(directory)?.sync_all()?;
+        Ok(())
     }
 
     pub fn read(&self) -> Result<State> {

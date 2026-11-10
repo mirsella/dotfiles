@@ -29,6 +29,24 @@ enum Command {
     Auto,
     /// Try promotional credits on the next model request, not on this command.
     Recheck,
+    /// Metadata-only audit history. No model request or credential is needed.
+    History {
+        #[arg(long)]
+        since: Option<chrono::DateTime<Utc>>,
+        #[arg(long)]
+        session: Option<String>,
+        #[arg(long, default_value_t = 200)]
+        limit: usize,
+        /// Group transport and passive OpenCode usage separately; never add them.
+        #[arg(long)]
+        summary: bool,
+        /// Start at the current subscription grant-cycle boundary.
+        #[arg(long, conflicts_with = "since")]
+        grant_cycle: bool,
+        /// Optional read-only T3 database for exact native-session bindings.
+        #[arg(long)]
+        t3_db: Option<PathBuf>,
+    },
 }
 
 fn home_path(variable: &str, fallback: &str) -> Result<PathBuf> {
@@ -68,6 +86,53 @@ async fn main() -> Result<()> {
         ),
     );
     match arguments.command {
+        Command::History {
+            since,
+            session,
+            limit,
+            summary,
+            grant_cycle,
+            t3_db,
+        } => {
+            let since = if grant_cycle {
+                Some(claude_credit_router::policy::cycle_start(
+                    config.renewal_anchor,
+                    Utc::now(),
+                )?)
+            } else {
+                since
+            };
+            store.read()?;
+            let mut records = store.audit().records(None)?;
+            claude_credit_router::audit::correlate(&mut records);
+            let path =
+                t3_db.unwrap_or(home_path("T3_HOME", ".t3")?.join("userdata/statev2.sqlite"));
+            let bindings = if path.exists() {
+                claude_credit_router::audit::thread_bindings(&path).unwrap_or_else(|error| {
+                    eprintln!("credit-router: T3 binding lookup unavailable: {error}");
+                    Default::default()
+                })
+            } else {
+                Default::default()
+            };
+            let output = if summary {
+                claude_credit_router::audit::report_filtered(
+                    &records,
+                    &bindings,
+                    since,
+                    session.as_deref(),
+                )
+            } else {
+                records.retain(|record| {
+                    since.is_none_or(|since| record.at >= since)
+                        && session.as_ref().is_none_or(|session| {
+                            record.context.session_id.as_ref() == Some(session)
+                        })
+                });
+                serde_json::to_value(&records[records.len().saturating_sub(limit)..])?
+            };
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
         Command::Serve => {
             let variable = if arguments.openai {
                 "OPENAI_CREDIT_ROUTER_API_KEY"
@@ -112,6 +177,7 @@ async fn main() -> Result<()> {
                     Command::Recheck => state.recheck(Utc::now()),
                     Command::Status => {}
                     Command::Serve => unreachable!("serve was handled above"),
+                    Command::History { .. } => unreachable!("history was handled above"),
                 }
                 let mut status = serde_json::to_value(&*state)?;
                 status["route"] = serde_json::to_value(state.route(Utc::now()))?;

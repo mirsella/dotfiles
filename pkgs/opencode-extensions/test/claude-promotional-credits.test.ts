@@ -26,13 +26,14 @@ test("only the existing Claude subscription endpoint can be wrapped", () => {
   }
 });
 
-for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restores the exact provider; no session/auth/retry hooks exist`, async () => {
+for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restores the exact provider; no auth/retry hooks exist`, async () => {
   const openai = vendor === "openai";
   const upstream = openai ? "http://127.0.0.1:17321/sleev/opencode/codex" : "http://127.0.0.1:17321/sleev/opencode/anthropic";
   const directory = mkdtempSync(join(tmpdir(), "claude-credit-plugin-"));
   mkdirSync(join(directory, `${vendor}-credit-router`));
   writeFileSync(join(directory, `${vendor}-credit-router/config.json`), JSON.stringify({ listen: "127.0.0.1:17322", upstream, organization_id: "personal" }));
   const originalHome = process.env.XDG_CONFIG_HOME;
+  const originalState = process.env.XDG_STATE_HOME;
   const originalFetch = globalThis.fetch;
   const originalInterval = globalThis.setInterval;
   const originalError = console.error;
@@ -51,6 +52,7 @@ for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restore
   let cleanup: (() => void) | void;
   try {
     process.env.XDG_CONFIG_HOME = directory;
+    process.env.XDG_STATE_HOME = join(directory, "state");
     globalThis.fetch = (async () => Response.json(status)) as any;
     globalThis.setInterval = ((callback: () => void) => {
       tick = callback;
@@ -66,6 +68,8 @@ for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restore
         onReload();
     };
     cleanup = await (openai ? openaiPlugin : plugin).setup({
+      location: { directory },
+      session: { hook: async (name: string) => { expect(name).toBe("model.request"); } },
       event: { subscribe: ({ signal }: { signal: AbortSignal }) => ({
         [Symbol.asyncIterator]: () => ({ next: () => new Promise((resolve) => {
           const aborted = () => resolve({ done: true });
@@ -128,6 +132,8 @@ for (const vendor of ["claude", "openai"]) test(`${vendor}: subscription restore
     console.error = originalError;
     if (originalHome === undefined) delete process.env.XDG_CONFIG_HOME;
     else process.env.XDG_CONFIG_HOME = originalHome;
+    if (originalState === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = originalState;
     rmSync(directory, { recursive: true });
   }
 });

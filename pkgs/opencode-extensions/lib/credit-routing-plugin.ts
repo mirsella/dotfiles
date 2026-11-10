@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { creditEndpoint, parseCreditStatus } from "./claude-promotional-credits";
+import { creditAudit } from "./credit-audit";
 
 export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: string) {
   return Plugin.define({
@@ -23,6 +24,10 @@ export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: str
         if (message !== warning) console.error(`[${vendor}-promotional-credits] ${message}`);
         warning = message;
       };
+      const observe = await creditAudit(ctx, providerID, vendor, endpoint, controller.signal, warn).catch(error => {
+        warn(`AUDIT INITIALIZATION FAILED: ${String(error)}`);
+        return () => {};
+      });
       const refresh = async () => {
         if (busy || controller.signal.aborted) return;
         busy = true;
@@ -64,6 +69,8 @@ export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: str
       const activation = async () => {
         for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
           if (controller.signal.aborted) break;
+          try { observe(event); }
+          catch (error) { warn(`AUDIT EVENT FAILED: ${String(error)}`); }
           if (event.type !== "plugin.updated") continue;
           await registration.dispose();
           registration = await ctx.provider.transform(transform);

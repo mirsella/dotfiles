@@ -240,6 +240,66 @@ async fn available_promotional_credit_preserves_model_settings_and_history_bytes
 }
 
 #[tokio::test]
+async fn transport_audit_preserves_bytes_strips_private_correlation_and_never_parses_native_usage()
+{
+    let payload = "data: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_api\",\"model\":\"claude-test\",\"usage\":{\"input_tokens\":3,\"output_tokens\":0}}}\ndata: {\"type\":\"content_block_delta\",\"delta\":{\"text\":\"PRIVATE_OUTPUT\"}}\ndata: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":9}}\n";
+    let fixture = Fixture::new(vec![
+        Reply(StatusCode::OK, payload.into()),
+        Reply(StatusCode::OK, payload.into()),
+    ])
+    .await;
+    let body = r#"{"model":"claude-test","messages":[{"content":"PRIVATE_PROMPT"}]}"#;
+    let response = reqwest::Client::new()
+        .post(format!("{}/v1/messages", fixture.url))
+        .header("authorization", "Bearer native-subscription")
+        .header("x-credit-session-id", "ses_exact")
+        .header("x-credit-request-id", "request_exact")
+        .body(body)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.text().await.unwrap(), payload);
+    assert!(
+        !fixture.seen()[0]
+            .headers
+            .contains_key("x-credit-session-id")
+    );
+    assert_eq!(fixture.seen()[0].body, body);
+    fixture
+        .store
+        .update(|state| {
+            state.set_mode(Mode::Subscription, fixture.now());
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(fixture.send(body).await.text().await.unwrap(), payload);
+    let records = fixture.store.audit().records(None).unwrap();
+    let api = records
+        .iter()
+        .find(|record| {
+            record.event == "request_finished" && record.route == Some(Route::Promotional)
+        })
+        .unwrap();
+    assert_eq!(api.context.session_id.as_deref(), Some("ses_exact"));
+    assert_eq!(
+        api.context.upstream_request_id.as_deref(),
+        Some("unchanged-id")
+    );
+    assert_eq!(api.tokens.as_ref().unwrap().output, 9);
+    let native = records
+        .iter()
+        .find(|record| {
+            record.event == "request_finished" && record.route == Some(Route::Subscription)
+        })
+        .unwrap();
+    assert!(native.tokens.is_none());
+    let json = serde_json::to_string(&records).unwrap();
+    for private in ["PRIVATE_OUTPUT", "PRIVATE_PROMPT", "native-subscription"] {
+        assert!(!json.contains(private));
+    }
+}
+
+#[tokio::test]
 async fn explicit_exhaustion_falls_back_once_and_passes_subscription_errors_unchanged() {
     let native_error =
         r#"{"error":{"type":"rate_limit_error","message":"subscription limit reached"}}"#;
