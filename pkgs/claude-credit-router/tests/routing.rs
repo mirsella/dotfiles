@@ -549,12 +549,37 @@ fn key_must_be_private_and_never_subscription_oauth() {
     let path = directory.path().join("key");
     std::fs::write(&path, "sk-ant-api-test\n").unwrap();
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
-    assert_eq!(private_key(&path).unwrap(), "sk-ant-api-test");
+    assert_eq!(
+        private_key(&path, claude_credit_router::policy::validate_key).unwrap(),
+        "sk-ant-api-test"
+    );
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
-    assert!(private_key(&path).is_err());
+    assert!(private_key(&path, claude_credit_router::policy::validate_key).is_err());
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
     std::fs::write(&path, "oauth-credential").unwrap();
-    assert!(private_key(&path).is_err());
+    assert!(private_key(&path, claude_credit_router::policy::validate_key).is_err());
+}
+
+#[test]
+fn openai_private_file_and_environment_use_the_same_project_key_validation() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("key");
+    std::fs::write(&path, "sk-proj-test\n").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(
+        private_key(&path, claude_credit_router::openai::validate_key).unwrap(),
+        "sk-proj-test"
+    );
+    for invalid in [
+        "sk-admin-test",
+        "sk-ant-api-test",
+        "subscription-token",
+        "sk-proj-two words",
+    ] {
+        std::fs::write(&path, invalid).unwrap();
+        assert!(private_key(&path, claude_credit_router::openai::validate_key).is_err());
+        assert!(claude_credit_router::openai::validate_key(invalid).is_err());
+    }
 }
 
 async fn openai_send(fixture: &Fixture, path: &str, body: &str) -> reqwest::Response {

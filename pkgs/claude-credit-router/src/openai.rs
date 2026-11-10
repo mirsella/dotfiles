@@ -6,6 +6,15 @@ use chrono::{DateTime, Datelike, Utc};
 use serde::Deserialize;
 use std::collections::HashSet;
 
+pub fn validate_key(key: &str) -> Result<String> {
+    let key = key.trim();
+    ensure!(
+        key.starts_with("sk-proj-") && !key.chars().any(char::is_whitespace),
+        "OpenAI requires a project inference key, never an Admin or subscription token"
+    );
+    Ok(key.into())
+}
+
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Settings {

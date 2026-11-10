@@ -342,7 +342,7 @@ impl Router {
                 .is_some_and(|value| value.starts_with("Bearer ") && value.len() > 7)
         {
             return Ok(Response::builder().status(StatusCode::FORBIDDEN)
-                .body(Body::from("The local credit router accepts only native authenticated Claude requests, not browser requests.")).expect("static response"));
+                .body(Body::from("The local credit router accepts only native authenticated requests, not browser requests.")).expect("static response"));
         }
         let guard = self.promotional.lock().await;
         // A concurrent request or manual override may already have switched.

@@ -6,7 +6,7 @@ use claude_credit_router::{Config, Router};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(about = "Promotional-only Claude API routing; never manages subscription limits")]
+#[command(about = "API credits before native subscriptions; never manages subscription limits")]
 struct Arguments {
     /// Use the separately configured OpenAI project and native Codex route.
     #[arg(long)]
@@ -74,20 +74,19 @@ async fn main() -> Result<()> {
             } else {
                 "CLAUDE_CREDIT_ROUTER_API_KEY"
             };
+            let validate = if arguments.openai {
+                claude_credit_router::openai::validate_key
+            } else {
+                validate_key
+            };
             let key = match std::env::var(variable) {
-                Ok(value) if arguments.openai => {
-                    anyhow::ensure!(
-                        value.starts_with("sk-proj-") && !value.chars().any(char::is_whitespace),
-                        "OpenAI requires a project inference key, never an Admin or subscription token"
-                    );
-                    value
-                }
-                Ok(value) => validate_key(&value)?,
+                Ok(value) => validate(&value)?,
                 Err(std::env::VarError::NotPresent) => private_key(
                     config
                         .api_key_file
                         .as_deref()
                         .with_context(|| format!("{variable} or api_key_file is required"))?,
+                    validate,
                 )?,
                 Err(_) => anyhow::bail!("{variable} must contain UTF-8 text"),
             };

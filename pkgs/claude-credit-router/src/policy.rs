@@ -217,14 +217,14 @@ impl Store {
     }
 }
 
-pub fn private_key(path: &Path) -> Result<String> {
+pub fn private_key(path: &Path, validate: fn(&str) -> Result<String>) -> Result<String> {
     let metadata = fs::metadata(path).context("read API key metadata")?;
     ensure!(
         metadata.is_file() && metadata.permissions().mode() & 0o077 == 0,
         "API key must be a private regular file (0600 or 0400)"
     );
     let key = fs::read_to_string(path).context("read API key file")?;
-    validate_key(&key)
+    validate(&key)
 }
 
 pub fn validate_key(key: &str) -> Result<String> {
