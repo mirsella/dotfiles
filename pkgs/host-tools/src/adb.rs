@@ -132,9 +132,10 @@ struct Phone {
     last_message: String,
     /// Set while the phone advertises nothing; see `ABSENT_GRACE`.
     missing_since: Option<Instant>,
-    /// Restarted by each new connection and each sample that saw use.
-    idle_since: Instant,
-    next_sample: Instant,
+    /// Boot-time deadline, including suspend. None recovers the phone's durable
+    /// history after a watcher restart; changing transports never restarts it.
+    idle_deadline: Option<Duration>,
+    next_sample: Duration,
     /// The device socket's payload bytes at the last sample; only ADB use changes them.
     baseline: Option<u64>,
     unreadable: bool,
@@ -143,24 +144,23 @@ struct Phone {
     unpublished: bool,
     next_mark: Duration,
     /// Neither marker reads nor a shutdown reach the phone before this.
-    shutdown_after: Instant,
+    shutdown_after: Duration,
 }
 
 impl Phone {
     fn new(serial: &str) -> Self {
-        let now = Instant::now();
         Self {
             serial: serial.to_owned(),
             connection: None,
             last_message: String::new(),
             missing_since: None,
-            idle_since: now,
-            next_sample: now,
+            idle_deadline: None,
+            next_sample: Duration::ZERO,
             baseline: None,
             unreadable: false,
             unpublished: false,
             next_mark: Duration::ZERO,
-            shutdown_after: now,
+            shutdown_after: Duration::ZERO,
         }
     }
 
@@ -198,27 +198,40 @@ impl Phone {
         // reconciliation replaces it.
         if reached != self.connection {
             self.connection = reached;
-            self.reset_idle();
+            let baseline = self
+                .connection
+                .as_ref()
+                .and_then(|connection| transport_bytes(&connection.address));
+            self.reset_transport(boot_time(), baseline);
         }
         Ok(connected)
     }
 
-    /// Restart the idle window after the held transport changes.
-    fn reset_idle(&mut self) {
-        let now = Instant::now();
-        self.idle_since = now;
+    /// Exclude connection handshakes without forgetting the last actual use.
+    fn reset_transport(&mut self, now: Duration, baseline: Option<u64>) {
         self.next_sample = now + SAMPLE_INTERVAL;
         self.unreadable = false;
-        self.baseline = self
-            .connection
-            .as_ref()
-            .and_then(|connection| transport_bytes(&connection.address));
+        self.baseline = baseline;
+    }
+
+    fn observe(&mut self, bytes: u64, now: Duration, idle: Duration) {
+        let previous = self.baseline.replace(bytes);
+        if previous != Some(bytes) {
+            if previous.is_none() {
+                eprintln!(
+                    "adb-watch: {} socket counters recovered without a baseline; activity is unknown, restarting the idle window",
+                    self.serial
+                );
+            }
+            self.idle_deadline = Some(now + idle);
+            self.unpublished = true;
+        }
     }
 
     /// Sample this workstation's use, record it on the phone for the other
     /// workstations, and turn Wireless debugging off once none has used it for `idle`.
     fn enforce_idle(&mut self, adb: &str, host: &str, idle: Duration) {
-        let now = Instant::now();
+        let now = boot_time();
         if now < self.next_sample {
             return;
         }
@@ -236,21 +249,15 @@ impl Phone {
                     connection.address
                 );
             }
-            self.idle_since = now;
             return;
         };
         self.unreadable = false;
-        if self.baseline.replace(bytes) != Some(bytes) {
-            self.idle_since = now;
-            self.unpublished = true;
-        }
-        let boot = boot_time();
-        if self.unpublished && boot >= self.next_mark {
-            let mark = format!("mkdir -p {MARKER_DIR} && touch {MARKER_DIR}/{host}");
-            match phone_shell(adb, &connection.serial, &mark) {
+        self.observe(bytes, now, idle);
+        if self.unpublished && now >= self.next_mark {
+            match mark_use(adb, &connection.serial, host) {
                 Ok(_) => {
                     self.unpublished = false;
-                    self.next_mark = boot + MARK_INTERVAL;
+                    self.next_mark = now + MARK_INTERVAL;
                 }
                 Err(error) => {
                     eprintln!(
@@ -258,12 +265,12 @@ impl Phone {
                         self.serial,
                         PHONE_RETRY.as_secs() / 60
                     );
-                    self.next_mark = boot + PHONE_RETRY;
+                    self.next_mark = now + PHONE_RETRY;
                 }
             }
             self.rebaseline(&connection);
         }
-        if self.idle_since.elapsed() >= idle && now >= self.shutdown_after {
+        if self.idle_deadline.is_none_or(|deadline| now >= deadline) && now >= self.shutdown_after {
             self.expire(adb, host, &connection, idle);
         }
     }
@@ -271,67 +278,78 @@ impl Phone {
     /// Exclude our own phone command from the next sample.
     fn rebaseline(&mut self, connection: &Connection) {
         thread::sleep(SETTLE);
-        if let Some(bytes) = transport_bytes(&connection.address) {
-            self.baseline = Some(bytes);
-        }
+        self.baseline = transport_bytes(&connection.address);
     }
 
-    /// This workstation has been idle for `idle`: wait for the newest use another
-    /// workstation recorded on the phone, or turn Wireless debugging off.
+    /// Recover all workstations' history, including our own after a restart.
+    /// An empty history starts a new debugging session; only expired history
+    /// permits shutdown.
     fn expire(&mut self, adb: &str, host: &str, connection: &Connection, idle: Duration) {
-        let list = format!(
-            "date +%s; cd {MARKER_DIR} 2>/dev/null && for f in *; do [ -f \"$f\" ] && stat -c '%Y %n' \"$f\"; done; true"
-        );
-        let newest = phone_shell(adb, &connection.serial, &list)
-            .and_then(|output| newest_use(&output, host));
-        self.rebaseline(connection);
-        // Another workstation records continued use up to MARK_INTERVAL late.
-        let window = idle + MARK_INTERVAL;
-        let error = match newest {
-            Ok(Some((age, other))) if age < window => {
-                eprintln!(
-                    "adb-watch: {other} used {} {} minutes ago; keeping Wireless debugging on",
-                    self.serial,
-                    age.as_secs() / 60
-                );
-                self.shutdown_after = Instant::now() + (window - age);
-                return;
-            }
-            Ok(_) => {
-                // Only the phone can turn it back on.
-                let result = phone_shell(
+        let result = (|| -> Result<()> {
+            let newest = phone_shell(
+                adb,
+                &connection.serial,
+                &history_command(HistoryCommand::Read),
+            )
+            .and_then(|output| newest_use(&output))
+            .context("read shared ADB use")?;
+            if let Some(delay) = idle_delay(newest.as_ref().map(|(age, _)| *age), idle) {
+                if let Some((age, other)) = newest {
+                    eprintln!(
+                        "adb-watch: {other} used {} {} minutes ago; keeping Wireless debugging on",
+                        self.serial,
+                        age.as_secs() / 60
+                    );
+                } else {
+                    mark_use(adb, &connection.serial, host).context("start ADB idle history")?;
+                    self.unpublished = false;
+                    self.next_mark = boot_time() + MARK_INTERVAL;
+                    eprintln!(
+                        "adb-watch: started a new Wireless debugging idle window on {}",
+                        self.serial
+                    );
+                }
+                self.idle_deadline = Some(boot_time() + delay);
+            } else {
+                let port = connection.address.parse::<SocketAddr>()?.port();
+                let output = phone_shell(
                     adb,
                     &connection.serial,
-                    "settings put global adb_wifi_enabled 0",
-                );
-                self.rebaseline(connection);
-                match result {
-                    Ok(_) => {
-                        self.idle_since = Instant::now();
-                        eprintln!(
-                            "adb-watch: turned Wireless debugging off on {} after {} minutes without ADB use from any workstation",
-                            self.serial,
-                            idle.as_secs() / 60
-                        );
-                        return;
-                    }
-                    Err(error) => error.context("turn Wireless debugging off"),
+                    &history_command(HistoryCommand::Shutdown { idle, port }),
+                )
+                .context("turn Wireless debugging off")?;
+                self.idle_deadline = None;
+                self.unpublished = false;
+                match output.trim() {
+                    "" => eprintln!(
+                        "adb-watch: turned Wireless debugging off on {} after {} minutes without ADB use from any workstation",
+                        self.serial,
+                        idle.as_secs() / 60
+                    ),
+                    "active" => eprintln!(
+                        "adb-watch: {} activity or debugging port changed during the idle check; postponing shutdown",
+                        self.serial
+                    ),
+                    _ => bail!("unexpected shutdown response: {output:?}"),
                 }
             }
-            Err(error) => error.context("read shared ADB use"),
-        };
-        eprintln!(
-            "adb-watch: {}: {error:#}; keeping Wireless debugging on and retrying in {} minutes",
-            self.serial,
-            PHONE_RETRY.as_secs() / 60
-        );
-        self.shutdown_after = Instant::now() + PHONE_RETRY;
+            Ok(())
+        })();
+        self.rebaseline(connection);
+        if let Err(error) = result {
+            eprintln!(
+                "adb-watch: {}: {error:#}; keeping Wireless debugging on and retrying in {} minutes",
+                self.serial,
+                PHONE_RETRY.as_secs() / 60
+            );
+            self.shutdown_after = boot_time() + PHONE_RETRY;
+        }
     }
 }
 
 /// Time since boot including suspend, which `Instant` excludes on Linux. Marker
 /// ages on the phone include a suspended workstation's sleep, so the marker
-/// refresh interval must count it too.
+/// deadlines and refresh intervals must count it too.
 fn boot_time() -> Duration {
     let mut now = libc::timespec {
         tv_sec: 0,
@@ -345,8 +363,8 @@ fn boot_time() -> Duration {
 
 /// The newest ADB-use marker on the phone and its age, from `date +%s` followed
 /// by `stat -c '%Y %n'` lines for each hostname, all on the phone's clock.
-/// This workstation's own marker is skipped: its local samples are exact.
-fn newest_use(output: &str, host: &str) -> Result<Option<(Duration, String)>> {
+/// Our own marker is also needed to recover history after a watcher restart.
+fn newest_use(output: &str) -> Result<Option<(Duration, String)>> {
     let mut lines = output
         .lines()
         .map(str::trim)
@@ -364,13 +382,81 @@ fn newest_use(output: &str, host: &str) -> Result<Option<(Duration, String)>> {
         let mtime: u64 = mtime
             .parse()
             .with_context(|| format!("invalid ADB-use marker time: {line}"))?;
+        ensure!(
+            plain_name(name),
+            "invalid ADB-use marker hostname: {name:?}"
+        );
         // A marker from the future is a phone clock jump; read it as current use.
         let age = Duration::from_secs(now.saturating_sub(mtime));
-        if name != host && newest.as_ref().is_none_or(|(newest, _)| age < *newest) {
+        if newest.as_ref().is_none_or(|(newest, _)| age < *newest) {
             newest = Some((age, name.to_owned()));
         }
     }
     Ok(newest)
+}
+
+/// Continued use can be published up to MARK_INTERVAL late. Missing history is
+/// a new session, not proof that a phone was idle before we first saw it.
+fn idle_delay(age: Option<Duration>, idle: Duration) -> Option<Duration> {
+    match age {
+        None => Some(idle),
+        Some(age) => (idle + MARK_INTERVAL)
+            .checked_sub(age)
+            .filter(|d| !d.is_zero()),
+    }
+}
+
+fn mark_use(adb: &str, serial: &str, host: &str) -> Result<String> {
+    phone_shell(adb, serial, &history_command(HistoryCommand::Mark(host)))
+}
+
+enum HistoryCommand<'a> {
+    Read,
+    Mark(&'a str),
+    Shutdown { idle: Duration, port: u16 },
+}
+
+/// Android's shell is the adapter for shared files and settings. Serialize these
+/// short operations with Android 11's flock, failing open if locked. The kernel
+/// releases the lock even if the shell is killed or the phone loses power.
+/// Keep history through a failed shutdown. A closing port is retired only once
+/// Android advertises a different listener, never on an ordinary TCP reconnect.
+fn history_command(command: HistoryCommand<'_>) -> String {
+    let operation = match command {
+        HistoryCommand::Read => {
+            "date +%s; for f in *; do [ -f \"$f\" ] || continue; stat -c '%Y %n' \"$f\"; done"
+                .to_owned()
+        }
+        HistoryCommand::Mark(host) => format!("touch {host}"),
+        HistoryCommand::Shutdown { idle, port } => format!(
+            r#"if [ "$port" != {port} ]; then echo active; exit 0; fi
+now=$(date +%s)
+for f in *; do
+    [ -f "$f" ] || continue
+    mtime=$(stat -c %Y "$f")
+    if [ "$((now - mtime))" -lt {window} ]; then echo active; exit 0; fi
+done
+printf '%s\n' "$port" > .closing
+# Do not hold a lock across a command that tears down this shell's transport.
+flock -u 9
+exec 9>&-
+settings put global adb_wifi_enabled 0"#,
+            window = (idle + MARK_INTERVAL).as_secs(),
+        ),
+    };
+    format!(
+        r#"set -eu
+mkdir -p {MARKER_DIR}
+cd {MARKER_DIR}
+exec 9>.lock
+flock -nx 9 || {{ echo 'ADB idle history is locked; leaving debugging on' >&2; exit 1; }}
+port=$(getprop service.adb.tls.port)
+case "$port" in ''|*[!0-9]*|0) echo 'invalid Wireless debugging listener port' >&2; exit 1;; esac
+if [ -f .closing ] && [ "$(cat .closing)" != "$port" ]; then
+    rm -f -- * .closing
+fi
+{operation}"#,
+    )
 }
 
 /// The SDK client under a hard timeout, with any server redirection removed so it
@@ -901,18 +987,280 @@ mod tests {
     fn finds_the_newest_shared_use_on_the_phones_clock() -> Result<()> {
         let output = "1000\n700 rpi\n940 laptop\n990 main\n";
         assert_eq!(
-            newest_use(output, "main")?,
-            Some((Duration::from_secs(60), "laptop".to_owned()))
+            newest_use(output)?,
+            Some((Duration::from_secs(10), "main".to_owned()))
         );
-        assert_eq!(newest_use("1000\n990 main\n", "main")?, None);
+        assert_eq!(newest_use("1000\n")?, None);
         assert_eq!(
-            newest_use("1000\n1200 laptop\n", "main")?,
+            newest_use("1000\n1200 laptop\n")?,
             Some((Duration::ZERO, "laptop".to_owned()))
         );
         // Unreadable output must not look like an idle phone.
-        assert!(newest_use("", "main").is_err());
-        assert!(newest_use("1000\nlaptop\n", "main").is_err());
-        assert!(newest_use("1000\nsoon laptop\n", "main").is_err());
+        for output in [
+            "",
+            "1000\nlaptop\n",
+            "1000\nsoon laptop\n",
+            "1000\n990 ../main\n",
+        ] {
+            assert!(newest_use(output).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn reconnects_preserve_history_but_unknown_activity_is_conservative() {
+        let idle = Duration::from_secs(180 * 60);
+        let mut phone = Phone::new("phone");
+        phone.reset_transport(Duration::ZERO, Some(100));
+        phone.observe(200, Duration::from_secs(60), idle);
+        let deadline = phone.idle_deadline;
+        assert!(phone.unpublished);
+
+        // A new socket's handshake has different counters, but is not ADB use.
+        phone.reset_transport(Duration::from_secs(600), Some(9000));
+        phone.observe(9000, Duration::from_secs(660), idle);
+        assert_eq!(phone.idle_deadline, deadline);
+        assert!(
+            phone.unpublished,
+            "reconnect must retain unpublished actual use"
+        );
+
+        phone.reset_transport(Duration::from_secs(1200), None);
+        phone.observe(20_000, Duration::from_secs(1260), idle);
+        assert_eq!(phone.idle_deadline, Some(Duration::from_secs(1260) + idle));
+        phone.observe(20_001, Duration::from_secs(1320), idle);
+        assert_eq!(phone.idle_deadline, Some(Duration::from_secs(1320) + idle));
+    }
+
+    #[test]
+    fn suspend_counts_toward_the_idle_deadline_and_next_sample() {
+        let idle = Duration::from_secs(180 * 60);
+        let mut phone = Phone::new("phone");
+        phone.reset_transport(Duration::ZERO, Some(100));
+        phone.observe(200, Duration::from_secs(60), idle);
+
+        // CLOCK_BOOTTIME advances across sleep even though Instant does not.
+        let resumed = Duration::from_secs(4 * 60 * 60);
+        phone.observe(200, resumed, idle);
+        assert!(resumed >= phone.idle_deadline.unwrap());
+        assert!(resumed >= phone.next_sample);
+    }
+
+    #[test]
+    fn restart_recovers_our_own_history_without_a_fresh_idle_window() -> Result<()> {
+        let idle = Duration::from_secs(180 * 60);
+        // Main's marker was written 3h20 ago; laptop's is even older.
+        let history = newest_use("20000\n8000 main\n7000 laptop\n")?;
+        let remaining = idle_delay(history.map(|(age, _)| age), idle);
+        assert_eq!(remaining, Some(Duration::from_secs(10 * 60)));
+        // Neither a new process nor a newly booted workstation needs its old clock.
+        for boot in [Duration::from_secs(5), Duration::from_secs(5 * 86400)] {
+            let deadline = boot + remaining.unwrap();
+            assert_eq!(deadline - boot, Duration::from_secs(10 * 60));
+        }
+        assert_eq!(idle_delay(Some(idle + MARK_INTERVAL), idle), None);
+        assert_eq!(idle_delay(Some(idle + MARK_INTERVAL * 2), idle), None);
+        // A retired closing listener starts its next session without old markers.
+        assert_eq!(idle_delay(None, idle), Some(idle));
+        Ok(())
+    }
+
+    #[test]
+    fn another_workstations_recent_use_protects_an_idle_or_restarted_host() -> Result<()> {
+        let idle = Duration::from_secs(180 * 60);
+        let newest = newest_use("20000\n8000 main\n19940 laptop\n")?.unwrap();
+        assert_eq!(newest.1, "laptop");
+        assert_eq!(
+            idle_delay(Some(newest.0), idle),
+            Some(idle + MARK_INTERVAL - Duration::from_secs(60))
+        );
+        Ok(())
+    }
+
+    struct HistoryFixture(tempfile::TempDir);
+
+    impl HistoryFixture {
+        fn new() -> Result<Self> {
+            Ok(Self(tempfile::tempdir()?))
+        }
+
+        fn script(&self, action: HistoryCommand<'_>) -> String {
+            history_command(action).replace(MARKER_DIR, self.0.path().to_str().unwrap())
+        }
+
+        fn command(&self, action: HistoryCommand<'_>, port: u16) -> Command {
+            let mut command = Command::new(
+                std::env::var_os("HOST_TOOLS_TEST_SHELL").unwrap_or_else(|| "/bin/sh".into()),
+            );
+            command
+                .args([
+                    "-c",
+                    &format!(
+                        r#"
+getprop() {{ echo "$PHONE_PORT"; }}
+settings() {{
+    printf '%s\n' "$*" >> "$CALLS"
+    if [ -n "$RACING_MARK" ]; then (eval "$RACING_MARK"); fi
+    [ "$SETTINGS_FAIL" = 0 ]
+}}
+{}"#,
+                        self.script(action)
+                    ),
+                ])
+                .env("PHONE_PORT", port.to_string())
+                .env("CALLS", self.0.path().join(".calls"))
+                .env("RACING_MARK", "")
+                .env("SETTINGS_FAIL", "0");
+            command
+        }
+
+        fn expired_marker(&self, host: &str) -> Result<()> {
+            use std::{
+                fs::{File, FileTimes},
+                time::SystemTime,
+            };
+            let file = File::create(self.0.path().join(host))?;
+            file.set_times(
+                FileTimes::new().set_modified(SystemTime::now() - Duration::from_secs(4 * 60 * 60)),
+            )?;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn failed_shutdown_retains_history_and_retries_without_new_grace() -> Result<()> {
+        let fixture = HistoryFixture::new()?;
+        fixture.expired_marker("main")?;
+        let idle = Duration::from_secs(180 * 60);
+        let shutdown = || HistoryCommand::Shutdown { idle, port: 40000 };
+        assert!(
+            !fixture
+                .command(shutdown(), 40000)
+                .env("SETTINGS_FAIL", "1")
+                .output()?
+                .status
+                .success()
+        );
+        assert_eq!(
+            std::fs::read_to_string(fixture.0.path().join(".closing"))?,
+            "40000\n"
+        );
+        let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 40000))?;
+        let age = newest_use(std::str::from_utf8(&history)?)?.unwrap().0;
+        assert_eq!(idle_delay(Some(age), idle), None);
+        assert!(util::command_output(&mut fixture.command(shutdown(), 40000))?.is_empty());
+        assert_eq!(
+            std::fs::read_to_string(fixture.0.path().join(".calls"))?
+                .lines()
+                .count(),
+            2
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn closing_session_discards_a_racing_publication_only_on_new_listener() -> Result<()> {
+        let fixture = HistoryFixture::new()?;
+        fixture.expired_marker("main")?;
+        let idle = Duration::from_secs(180 * 60);
+        util::command_output(
+            fixture
+                .command(HistoryCommand::Shutdown { idle, port: 40000 }, 40000)
+                .env(
+                    "RACING_MARK",
+                    fixture.script(HistoryCommand::Mark("laptop")),
+                ),
+        )?;
+        assert!(fixture.0.path().join("laptop").exists());
+        assert!(fixture.0.path().join(".closing").exists());
+
+        // A late publication cannot leak from the closing session into its next enable.
+        let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 41000))?;
+        assert_eq!(newest_use(std::str::from_utf8(&history)?)?, None);
+        util::command_output(&mut fixture.command(HistoryCommand::Mark("main"), 41000))?;
+        let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 41000))?;
+        assert_eq!(
+            newest_use(std::str::from_utf8(&history)?)?.unwrap().1,
+            "main"
+        );
+        assert!(!fixture.0.path().join(".closing").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn shutdown_rechecks_activity_and_the_expected_listener_under_lock() -> Result<()> {
+        let fixture = HistoryFixture::new()?;
+        fixture.expired_marker("main")?;
+        let idle = Duration::from_secs(180 * 60);
+        let shutdown = || HistoryCommand::Shutdown { idle, port: 40000 };
+        let output = util::command_output(&mut fixture.command(shutdown(), 41000))?;
+        assert_eq!(output, b"active\n");
+        // A port change without a closing session must preserve idle history.
+        assert!(fixture.0.path().join("main").exists());
+        util::command_output(&mut fixture.command(HistoryCommand::Mark("laptop"), 40000))?;
+        let output = util::command_output(&mut fixture.command(shutdown(), 40000))?;
+        assert_eq!(output, b"active\n");
+        assert!(!fixture.0.path().join(".closing").exists());
+        assert!(!fixture.0.path().join(".calls").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn locked_or_unreadable_history_is_an_error_not_an_empty_session() -> Result<()> {
+        use std::os::fd::AsRawFd;
+        let fixture = HistoryFixture::new()?;
+        fixture.expired_marker("main")?;
+        let lock = std::fs::File::create(fixture.0.path().join(".lock"))?;
+        // SAFETY: this is a live file descriptor, owned until explicitly dropped.
+        assert_eq!(
+            unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) },
+            0
+        );
+        let output = fixture.command(HistoryCommand::Read, 40000).output()?;
+        assert!(!output.status.success());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("history is locked"));
+        drop(lock);
+        let output = fixture.command(HistoryCommand::Read, 0).output()?;
+        assert!(!output.status.success());
+        let shell = std::env::var_os("HOST_TOOLS_TEST_SHELL").unwrap_or_else(|| "/bin/sh".into());
+        let output = Command::new(shell)
+            .args([
+                "-c",
+                &format!(
+                    "getprop() {{ echo 40000; }}; stat() {{ return 1; }}; {}",
+                    fixture.script(HistoryCommand::Read),
+                ),
+            ])
+            .output()?;
+        assert!(!output.status.success());
+        util::command_output(&mut fixture.command(HistoryCommand::Read, 40000))?;
+        Ok(())
+    }
+
+    #[test]
+    fn phone_history_lock_is_released_when_its_shell_is_killed() -> Result<()> {
+        use std::io::{BufRead, BufReader};
+        let fixture = HistoryFixture::new()?;
+        let shell = std::env::var_os("HOST_TOOLS_TEST_SHELL").unwrap_or_else(|| "/bin/sh".into());
+        let mut child = Command::new(shell)
+            .args([
+                "-c",
+                &format!(
+                    "exec 9>{}/.lock; flock -nx 9 || exit 1; echo locked; read answer",
+                    fixture.0.path().display(),
+                ),
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()?;
+        let mut ready = String::new();
+        BufReader::new(child.stdout.take().unwrap()).read_line(&mut ready)?;
+        assert_eq!(ready, "locked\n");
+        let blocked = fixture.command(HistoryCommand::Read, 40000).output()?;
+        child.kill()?;
+        child.wait()?;
+        assert!(!blocked.status.success());
+        util::command_output(&mut fixture.command(HistoryCommand::Read, 40000))?;
         Ok(())
     }
 
