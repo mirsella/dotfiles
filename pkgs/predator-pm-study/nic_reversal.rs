@@ -270,9 +270,11 @@ fn reviewed_history(current: &str, after: bool) -> Result<()> {
         ("Low-level resume complete", 1 + usize::from(after)),
         ("BOUNDARY BEGIN", 0),
         ("NIC_WAKE BEGIN", 1),
+        ("NIC_WAKE RETURN", 1),
         ("NIC_WAKE BEGIN id=nic-wake-s3-20261102 nonce=nic1102a", 1),
         ("NIC_WAKE RETURN id=nic-wake-s3-20261102", 1),
         ("NIC_REVERSAL BEGIN", usize::from(after)),
+        ("NIC_REVERSAL RETURN", 0),
         (
             "NIC_REVERSAL BEGIN id=nic-enabled-s3-20261102 nonce=nice1102",
             usize::from(after),
@@ -363,6 +365,11 @@ fn preserve_records(current: &str, prior: &str) -> Result<()> {
     Ok(())
 }
 fn prior_nic_identity() -> Result<()> {
+    let dir = fs::symlink_metadata("/var/lib/predator-pm-nic-wakeup")?;
+    require(
+        dir.is_dir() && dir.uid() == 0 && dir.gid() == 0 && dir.mode() & 0o777 == 0o700,
+        "prior root namespace changed",
+    )?;
     let mut expected = std::collections::BTreeSet::new();
     for line in include_str!("nic_prior_originals.sha256").lines() {
         let (sha, filename) = line.split_once("  ").ok_or("prior hash fixture")?;
