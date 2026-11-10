@@ -560,15 +560,25 @@ phone, at most every 30 minutes while the phone stays in use, and leaves that
 write out of its own accounting. Keepalive probes carry no payload, so they never
 count as use; the counters come from `ss`, which is why the unit's PATH carries
 `iproute2`. Once a watcher has seen no traffic for three hours
-(`services.adb-wireless.idleMinutes`), it reads the other workstations' marker
-ages on the phone's clock. A marker younger than the limit plus those 30 minutes
-keeps Wireless debugging on until it ages out; otherwise the watcher runs
+(`services.adb-wireless.idleMinutes`), it reads all workstations' marker ages on
+the phone's clock. Its own marker also recovers the idle history after a daemon
+restart or workstation reboot, without starting another three-hour window.
+Reconnecting only resets the socket counters, not the idle deadline, and suspend
+counts toward the deadline. A marker younger than the limit plus those 30 minutes
+keeps Wireless debugging on until it ages out; otherwise the watcher records the
+closing listener and runs
 `settings put global adb_wifi_enabled 0`, which turns Wireless debugging off
 and ends every connection. A host that is offline or whose watcher stopped
 simply leaves its marker ageing. Use from a host whose watcher is not running is
 not recorded. Shutdown comes three to four hours after the last use from any
-workstation. While all hosts are idle the phone sees only one marker
-read at each deadline. If the markers cannot be read or the shutdown fails,
+workstation. An empty history starts and records a new idle window. After an
+automatic shutdown, a new Android listener retires the previous session's markers,
+including any another watcher wrote during shutdown. An ordinary port change or
+TCP reconnect without a closing session preserves history. Manually toggling
+debugging without an automatic shutdown also preserves the previous idle history.
+While all hosts are idle the phone sees only one marker read at startup and at
+each deadline. If the
+markers cannot be read or the shutdown fails,
 Wireless debugging stays on and the watcher asks again after 15 minutes.
 Enabling Wireless debugging again on the phone itself, from a Quick Settings tile
 or Developer options, makes it advertise and the watchers reconnect within

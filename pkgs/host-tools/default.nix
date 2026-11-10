@@ -9,6 +9,7 @@
   dbus,
   pkg-config,
   chezmoi,
+  util-linux,
 }:
 rustPlatform.buildRustPackage {
   pname = "host-tools";
@@ -38,6 +39,7 @@ rustPlatform.buildRustPackage {
     openssl
     sqlite
     git
+    util-linux
   ];
   postInstall = ''
     wrapProgram "$out/bin/host-tools" --prefix PATH : "${lib.makeBinPath [ sqlite git ]}"
