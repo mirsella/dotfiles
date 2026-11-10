@@ -1,22 +1,27 @@
 { config, lib, pkgs, ... }:
-{
-  xdg.configFile = lib.genAttrs
-    (map (vendor: "opencode/credit-routing/" + vendor + ".path") [ "claude" "openai" ])
-    (path: let vendor = lib.removeSuffix ".path" (builtins.baseNameOf path); in {
+let
+  vendors = {
+    claude = "Claude promotional API credits before native subscription usage";
+    openai = "OpenAI API project allowance before native Codex subscription usage";
+  };
+in {
+  xdg.configFile = lib.mapAttrs'
+    (vendor: _: lib.nameValuePair "opencode/credit-routing/${vendor}.path" {
       text = "${pkgs.opencode-extensions}/share/opencode/credit-routing-${vendor}";
-    });
+    }) vendors;
   home.packages = [ pkgs.claude-credit-router pkgs.libnotify
     (pkgs.writeShellScriptBin "openai-credit-router" ''
       exec ${lib.getExe pkgs.claude-credit-router} --openai "$@"
     '')
   ];
-  systemd.user.services.openai-credit-router = {
+  systemd.user.services = lib.mapAttrs' (vendor: description:
+    lib.nameValuePair "${vendor}-credit-router" {
     Unit = {
-      Description = "OpenAI API project allowance before native Codex subscription usage";
-      ConditionPathExists = "${config.xdg.configHome}/openai-credit-router/config.json";
+      Description = description;
+      ConditionPathExists = "${config.xdg.configHome}/${vendor}-credit-router/config.json";
     };
     Service = {
-      ExecStart = "${lib.getExe pkgs.claude-credit-router} --openai serve";
+      ExecStart = "${lib.getExe pkgs.claude-credit-router} ${lib.optionalString (vendor == "openai") "--openai "}serve";
       EnvironmentFile = "${config.xdg.configHome}/${(import ../user-secrets.nix).env_secrets}";
       Restart = "on-failure";
       RestartSec = 30;
@@ -31,26 +36,5 @@
       RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
     };
     Install.WantedBy = [ "default.target" ];
-  };
-  systemd.user.services.claude-credit-router = {
-    Unit = {
-      Description = "Claude promotional API credits before native subscription usage";
-      ConditionPathExists = "${config.xdg.configHome}/claude-credit-router/config.json";
-    };
-    Service = {
-      ExecStart = "${lib.getExe pkgs.claude-credit-router} serve";
-      EnvironmentFile = "${config.xdg.configHome}/${(import ../user-secrets.nix).env_secrets}";
-      Restart = "on-failure";
-      RestartSec = 30;
-      UMask = "0077";
-      NoNewPrivileges = true;
-      PrivateTmp = true;
-      ProtectSystem = "strict";
-      ProtectHome = "read-only";
-      StateDirectory = "credit-router";
-      ReadWritePaths = [ "${config.xdg.stateHome}/credit-router" ];
-      RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
-    };
-    Install.WantedBy = [ "default.target" ];
-  };
+  }) vendors;
 }
