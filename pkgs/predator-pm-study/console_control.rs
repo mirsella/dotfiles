@@ -237,6 +237,17 @@ fn recorders_absent() -> Result<()> {
     )
 }
 fn reviewed_history(current: &str, after: bool) -> Result<()> {
+    // These seven exact records were authenticated in the sealed recovery
+    // journal before this protocol existed. Memory registration at boot is not
+    // a hibernation attempt. No other hibernation record is exempted.
+    let boot_registration: Vec<Value> = include_str!("console_boot_nosave.jsonl")
+        .lines()
+        .map(serde_json::from_str)
+        .collect::<std::result::Result<_, _>>()?;
+    require(
+        boot_registration.len() == 7,
+        "boot registration fixture count",
+    )?;
     let mut by_cursor = std::collections::BTreeMap::new();
     let mut messages = Vec::new();
     for line in current.lines() {
@@ -267,12 +278,12 @@ fn reviewed_history(current: &str, after: bool) -> Result<()> {
             format!("reviewed history changed: {needle}"),
         )?;
     }
-    require(
-        !messages.iter().any(|m| {
-            [
+    for v in by_cursor.values() {
+        let m = v["MESSAGE"].as_str().ok_or("history message")?;
+        require(
+            ![
                 "RECORDER_OFF BEGIN",
                 "PM: suspend-to-idle",
-                "PM: hibernation",
                 "pm_boundary_stage",
                 "pm_boundary_compact",
                 "pm_boundary_probe",
@@ -281,11 +292,22 @@ fn reviewed_history(current: &str, after: bool) -> Result<()> {
                 "Call Trace:",
             ]
             .iter()
-            .any(|s| m.contains(s))
-        }),
-        "unexpected prior attempt/error",
-    )?;
+            .any(|s| m.contains(s)),
+            format!("unexpected prior attempt/error: {m}"),
+        )?;
+        require(
+            !m.contains("PM: hibernation") || boot_registration.contains(v),
+            format!("unrecognized hibernation record: {m}"),
+        )?;
+    }
     require(!by_cursor.is_empty(), "empty boot history")?;
+    for v in &boot_registration {
+        let c = v["__CURSOR"].as_str().ok_or("boot registration cursor")?;
+        require(
+            by_cursor.get(c) == Some(v),
+            "known boot registration record missing/changed",
+        )?;
+    }
     Ok(())
 }
 fn recorder_off_cycle(journal: &str) -> Result<Value> {
@@ -1230,13 +1252,17 @@ mod tests {
     }
     #[test]
     fn requires_clean_recovery_boot_then_only_this_single_cycle() {
-        reviewed_history(&journal(&["Linux version 6.18.58"]), false).unwrap();
-        let j = journal(&[
-            "CONSOLE_CONTROL BEGIN id=console-s3-20261102 nonce=cons1102a",
-            "PM: suspend entry (deep)",
-            "ACPI: PM: Low-level resume complete",
-            "PM: suspend exit",
-        ]);
+        let boot = include_str!("console_boot_nosave.jsonl");
+        reviewed_history(boot, false).unwrap();
+        let j = format!(
+            "{boot}{}",
+            journal(&[
+                "CONSOLE_CONTROL BEGIN id=console-s3-20261102 nonce=cons1102a",
+                "PM: suspend entry (deep)",
+                "ACPI: PM: Low-level resume complete",
+                "PM: suspend exit",
+            ])
+        );
         reviewed_history(&j, true).unwrap();
         assert!(reviewed_history(&j, false).is_err());
         assert!(reviewed_history("", false).is_err());
@@ -1255,8 +1281,17 @@ mod tests {
             "BUG:",
             "pm_boundary_stage",
         ] {
-            assert!(reviewed_history(&journal(&[m]), false).is_err());
+            assert!(reviewed_history(&format!("{boot}{}", journal(&[m])), false).is_err());
         }
+        for m in [
+            "PM: hibernation: hibernation entry",
+            "PM: hibernation: hibernation exit",
+            "PM: hibernation: Registered nosave memory: [mem 0x0-0x1]",
+        ] {
+            assert!(reviewed_history(&format!("{boot}{}", journal(&[m])), false).is_err());
+        }
+        assert!(reviewed_history(&boot.replace("31992", "31993"), false).is_err());
+        assert!(reviewed_history(&boot.replace("0x00000000", "0x00001000"), false).is_err());
     }
     #[test]
     fn new_cycle_requires_source_clocks_and_no_boundary_activity() {

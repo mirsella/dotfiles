@@ -43,5 +43,25 @@ path = "boundary_s3.rs"
 name = "predator-pm-recorder-off"
 path = "recorder_off.rs"
 
+[[bin]]
+name = "predator-pm-console-control"
+path = "console_control.rs"
+
+[[bin]]
+name = "predator-pm-console-control-v2"
+path = "console_control_v2.rs"
+
+[[bin]]
+name = "predator-pm-nic-wakeup"
+path = "nic_wakeup.rs"
+
+[[bin]]
+name = "predator-pm-nic-reversal"
+path = "nic_reversal.rs"
+
+[[bin]]
+name = "predator-pm-console-reversal"
+path = "console_reversal.rs"
+
 [dependencies]
 serde_json = "=1.0.151"

@@ -14,7 +14,7 @@
   "machineWindow": "08:00–23:00",
   "machineTimersArmedInSchedulingTurn": false,
   "machineActionsInSchedulingTurn": 0,
-  "remoteSynchronization": "guarded preparation receipt in .scratch/pm-recorder-off-sync-20261101 is authoritative",
+  "remoteSynchronization": "November2 recovery workflow synchronization receipts are authoritative for the later review and owner addendum",
   "prepare": {
     "scheduledTaskId": "scheduled-task:command:mcp:b1149009-6b28-4c5e-ae12-47335ef3ad69:schedule-task:predator-recorder-off-prepare-20261101-1530",
     "title": "Predator: prepare one recorder-off S3 power control",
@@ -41,7 +41,8 @@
   "review": {
     "scheduledTaskId": "scheduled-task:command:mcp:b1149009-6b28-4c5e-ae12-47335ef3ad69:schedule-task:predator-recorder-off-review-20261101-1630",
     "title": "Predator: read-only recorder-off S3 review",
-    "enabled": true,
+    "enabled": false,
+    "deletedBeforeMachineActions": true,
     "schedule": {"type": "fixed_time", "timeOfDay": "16:30", "weekdays": [0]},
     "nextRunAt": "2026-11-01T15:30:00.000Z",
     "deleteExactTaskAtStart": true,
@@ -50,7 +51,7 @@
     "scheduleFurtherPowerTests": false
   },
   "execution": {
-    "status": "ARMED_NOT_YET_OBSERVED",
+    "status": "OWNER_REPORTED_15W_HANG_RECOVERY_VERIFIED",
     "trialId": "off-s3-20261101",
     "nonce": "off1101a",
     "trialPath": "/home/mirsella/dev/dotfiles/.scratch/pm-recorder-off-20261101/off-s3-20261101",
@@ -66,7 +67,28 @@
     "ownerQuote": "same combined load. always the same thing. its always been the same thing. 3w correct suspend, 15w hang, 27w normal power on",
     "protocolEfiWrites": 0,
     "recorderModulesLoaded": false,
-    "collectorUsed": false,
-    "physicalOutcome": "pending dated power trace and actual execution"
+    "collectorUsed": true,
+    "collectorAttempts": 1,
+    "primaryCollectorExit": 255,
+    "primaryOriginalsRetrieved": 10,
+    "primaryOriginalExistence": "ten files verified November2; return and cleanup artifacts absent by authenticated enumeration",
+    "observerEvidenceVerified": true,
+    "observedBeginAndDeepEntry": true,
+    "softwareReturnVerified": false,
+    "cleanupVerified": false,
+    "currentHealthVerified": true,
+    "newBootVerified": true,
+    "recoveryBoot": "7f8080f5-9d58-47ef-b529-598d493e0d43",
+    "recoveryBtime": 1793566604,
+    "recoveryArchive": "hosts/predator/pm-study/diagnostics/s3-recovery-next-20261102/preparation-0830",
+    "recoveryMethod": "new bounded read-only adapters; old once-only collector not rerun",
+    "originalReviewRemainsSealed": true,
+    "ownerReviewQuote": "force rebooted it. its 15w constant since the suspend.",
+    "forcedRecoveryReported": true,
+    "reviewArchive": "hosts/predator/pm-study/diagnostics/s3-recorder-off-20261101/review-1630",
+    "lastBoundedObservationLocal": "2026-11-01T17:48:54+01:00",
+    "physicalOutcome": "owner-reported constant15W on unchanged load; no confirmed software return; dated graph and recovery details pending",
+    "newPowerActionsByReviewer": 0,
+    "scheduleFurtherPowerTests": false
   }
 }

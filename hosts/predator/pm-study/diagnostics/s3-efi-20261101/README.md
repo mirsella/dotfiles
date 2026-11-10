@@ -1,8 +1,12 @@
 # Normal-clock S3 boundary investigation, November 1
 
+## November 2 recovery evidence
+
+The [separate recovery archive](../s3-recovery-next-20261102/preparation-0830/README.md) verifies the recorder-off trial's armed RTC alarm and absence of return/cleanup artifacts. The subsequent healthy boot began around November 1 at 21:56:44 CET. Existing EFI records, core-review anchor and original core harness failure remain preserved. No new trial was armed; the November 2 10:30 independent review will choose and schedule the next investigation. The observations below retain their original dates.
+
 ## Subsequent meter clarification and scheduled control
 
-The owner confirms constant~27W for the full discussed interval, measured across **laptop and peripherals**, and further clarifies that this has always been the identical load: approximately3W proper suspend,15W hang,27W normal-on. That makes the same-meter comparison useful without assigning watts to individual components. The [recorder-off control](../s3-recorder-off-20261101/preparation/README.md) is now armed for16:15 entry/16:20 RTC and16:30 read-only review, with owner recovery availability confirmed. It removes only the EFI boundary recorder and makes zero protocol EFI writes; actual result is pending.
+The owner confirms constant~27W for the full discussed interval, measured across **laptop and peripherals**, and further clarifies that this has always been the identical load: approximately3W proper suspend,15W hang,27W normal-on. The subsequent [recorder-off review](../s3-recorder-off-20261101/review-1630/README.md) records owner-reported constant15W and forced reboot, with Pi deep-entry evidence but no recorded return or reachability through17:48. The failed attempt and recovery boot remain unreadable; cleanup/current health are unverified. Recorder removal did not achieve the normal low-power goal, but this single comparison does not identify a causal firmware/device mechanism. No further power test is scheduled; the new review is local pending guarded synchronization.
 
 ## Historical owner power observation recorded14:49 CET
 

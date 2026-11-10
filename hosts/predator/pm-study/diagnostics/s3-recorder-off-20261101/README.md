@@ -1,12 +1,28 @@
 # Next discriminating S3 test: recorder-off control, November 1
 
-## Armed at15:55 CET; result not yet observed
+## November 2 recovery verified
 
-One recorder-off control is armed for **16:15 entry,16:20 RTC,16:21:30 Pi probe,16:23 frozen log and16:30 read-only review**. The preparation task deleted itself before machine actions. The separately known reviewer was verified enabled/due/current-thread before arming. See [sealed preparation](preparation/README.md), `schedule.json` execution data and the guarded synchronization receipt. Actual trial is `off-s3-20261101`; do not infer execution or physical sleep from these timers.
+The [new recovery archive](../s3-recovery-next-20261102/preparation-0830/README.md) contains all ten original failed-trial files with verified source metadata/hashes and the old boot journal. The 16:20 RTC alarm was armed; authenticated enumeration finds no return or cleanup artifact. A separate healthy recovery boot began around 21:56:44 CET on November 1. The 23:58 owner-message handling time is not the measured boot time. No old collector or restore was rerun. The November 2 preparation armed no test; its 10:30 independent review remains scheduled and will arrange the next investigation. Historical statements below retain their original dated scope.
+
+## November2 continuation scheduled
+
+The owner now requests **“schedule next tests always”** and confirmed November2 09:15–10:30 recovery availability. See the [new dated recovery/next-test workflow](../s3-recovery-next-20261102/README.md):08:30 recovery verification and selection of at most one informative test,10:30 independent review and next-investigation scheduling. The earlier no-further-workflow statements below describe the completed November1 review, not the new authorization. All old originals, collector-attempt limits and sealed archives remain unchanged.
+
+## Later owner recovery report at23:58 CET
+
+Owner: **“force rebooted now. it was at 15w”**. The [append-only recovery update](owner-recovery-2358/README.md) records this later statement without altering the sealed review. New boot and current health remain unverified. No Predator/Pi action was taken because the November1 08:00–23:00 window had ended; no further task was scheduled.
+
+## Reviewed: owner-reported15W hang, recovery not yet verified
+
+The [16:30 review](review-1630/README.md) verifies the new BEGIN/deep entry and failed Pi reachability, but no return. Owner: **“force rebooted it. its 15w constant since the suspend.”** This is the explicitly unchanged combined load. Recorder removal did not produce the usual3W outcome; the15W non-returning symptom recurred. After that report, Predator remained unreachable through17:48, so the new boot, primary originals, cleanup and health are not yet verified. Retrieval failures are preserved, not treated as absent files. The once-only collector ran; the reviewer deleted itself. No further power workflow. This review/update is local pending safe guarded synchronization after reachability is restored.
+
+## Historical arming at15:55 CET
+
+One recorder-off control was armed for **16:15 entry,16:20 RTC,16:21:30 Pi probe,16:23 frozen log and16:30 read-only review**. The preparation task deleted itself before machine actions. The separately known reviewer was verified enabled/due/current-thread before arming. See [sealed preparation](preparation/README.md), `schedule.json` execution data and the guarded preparation synchronization receipt. Actual trial is `off-s3-20261101`; execution evidence and limitations are in the review above.
 
 During preparation the owner clarified: **“same combined load. always the same thing. its always been the same thing. 3w correct suspend, 15w hang, 27w normal power on”**. This establishes a useful unchanged-meter/load comparison and corrects any suggestion that peripheral scope newly changed. The three values are owner-observed reference levels, not separately measured component powers. Keep all connections and powered loads unchanged; record16:13–16:30 and any button/lid action. The raw dated graph remains pending.
 
-Once-only review collection is `.scratch/pm-recorder-off-20261101/operator collect .scratch/pm-recorder-off-20261101/off-s3-20261101 s3`; use existing primary/observer receipts if already present. Runtime/state/pins are in preparation. No new EFI phase record is expected or should be written. Changed boot or unsafe sleep permits bounded read-only evidence and notification only. After review, hand back without another power chain.
+The once-only collector has already run. Reuse its retained primary/observer receipts; do not invoke it again. Runtime/state/pins are in preparation. No new EFI phase record is expected or should be written. Changed boot or unsafe sleep permits bounded read-only evidence and notification only. No further power chain is scheduled.
 
 ## Owner evidence and scope correction
 

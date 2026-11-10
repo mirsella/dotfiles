@@ -24,6 +24,13 @@ in
     "acer_wmi"
     "acer_wmi_ph31751"
   ];
+  # The control already keeps this driver unloaded. Exclude its build from
+  # both comparison arms: its newer platform-profile API does not build on
+  # 6.12, and porting an unused driver would add an unnecessary variable.
+  hardware.predator-acer-wmi.enable = false;
+  # Keep the already-stopped overnight automation stopped across comparison
+  # reboots. Each study trial owns its alarm and sole suspend request.
+  systemd.timers.night-suspend.enable = lib.mkForce false;
   systemd.services.predator-kbd-backlight-off.enable = lib.mkForce false;
   systemd.services.predator-pm-preserve-rtc = {
     description = "Preserve suspend phase RTC evidence before clock synchronization";
@@ -115,7 +122,16 @@ in
     ipv6.method = "auto";
   };
 
+  # Matched S3 kernel comparison: inherit userspace, storage and authenticated
+  # boot from the control. Only the kernel package set (including ABI-bound
+  # modules and the generated initrd) changes. Test the parent control first.
+  specialisation.pm-kernel-lts.configuration = {
+    system.nixos.tags = [ "pm-kernel-lts" ];
+    boot.kernelPackages = lib.mkForce pkgs.linuxPackages_6_12;
+  };
+
   specialisation.pm-study-ec-on.configuration = {
+    hardware.predator-acer-wmi.enable = lib.mkForce true;
     system.nixos.tags = [ "pm-study-ec-on" ];
     systemd.services.predator-kbd-backlight-off = {
       # Override the study's forced disable only in this deliberately selected arm.
