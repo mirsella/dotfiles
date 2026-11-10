@@ -44,9 +44,13 @@ kde shortcuts.kksrc
 .local/bin/context7-account-broker
 .local/bin/composio-mcp-headers
 .local/bin/kache
-# Home Manager loads CodexBar's SOPS key without putting credentials in its editable config.
+# SOPS owns the shared snapshot; CodexBar owns its writable credential config.
+# Never capture these plaintext files with chezmoi.
 .local/bin/codexbar
 .config/codexbar/opencode.env
+.config/codexbar/shared-config.json
+.config/codexbar/config.json
+.config/codexbar/config.json.lock
 # Home Manager selects the patched widget ahead of the system-installed copy.
 .local/share/plasma/plasmoids/com.github.psimaker.codexbar
 .local/share/plasma/plasmoids/com.github.psimaker.codexbar/**

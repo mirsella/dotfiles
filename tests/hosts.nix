@@ -274,10 +274,14 @@ assert lib.assertMsg (
   lib.all (home:
     home.sops.secrets.codexbar_opencode_env.path == "${home.home.homeDirectory}/.config/codexbar/opencode.env"
     && home.sops.secrets.codexbar_opencode_env.mode == "0600"
+    && home.sops.secrets.codexbar_config.path == "${home.home.homeDirectory}/.config/codexbar/shared-config.json"
+    && home.sops.secrets.codexbar_config.mode == "0600"
+    && home.sops.secrets.codexbar_config.key == "config_json"
     && home.home.file.".local/bin/codexbar".force
   ) workstationHomes
   && !(server.home-manager.users.mirsella.sops.secrets ? codexbar_opencode_env)
-) "CodexBar must use a private Home Manager secret and launcher on workstations only";
+  && !(server.home-manager.users.mirsella.sops.secrets ? codexbar_config)
+) "CodexBar must keep its private environment, shared snapshot and launcher on workstations only";
 assert lib.assertMsg
   (lib.all (
     home:

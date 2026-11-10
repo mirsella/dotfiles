@@ -37,8 +37,43 @@ The OpenAI reporting key can read organization usage; it is not restricted to a
 project at the permission level. The widget explicitly sets `OPENAI_PROJECT_ID`
 for its OpenAI probe and rejects unscoped/mismatched reports. The project's
 existing inference key is insufficient for reporting. Claude Console sessions
-can expire and require signing in again. No automatic cookie extraction occurs
-in the widget, and credentials are not automatically copied to another machine.
+can expire and require signing in again. The widget never extracts browser cookies.
+
+### Encrypted shared configuration
+
+The complete shared configuration is encrypted as `config_json` in
+`secrets/codexbar.yaml`, using the repository's existing age recipients. Home
+Manager/SOPS installs its private restore copy at
+`~/.config/codexbar/shared-config.json` (0600) on both workstations. No plaintext
+configuration enters Git or the Nix store.
+
+The live `~/.config/codexbar/config.json` remains a regular writable 0600 file:
+CodexBar atomically replaces it when saving settings, so it must not be a SOPS
+symlink. Existing live settings are never overwritten automatically. To restore
+the snapshot, explicitly replace the live file while holding CodexBar's lock:
+
+```sh
+flock ~/.config/codexbar/config.json.lock sh -c '
+  set -e
+  cd ~/.config/codexbar
+  install -m 600 shared-config.json config.json.restore
+  mv config.json.restore config.json
+'
+```
+
+After changing settings or refreshing an expired cookie, deliberately update the
+encrypted snapshot before sharing it. With SOPS decryption configured, capture
+without displaying or writing an extra plaintext copy:
+
+```sh
+jq --null-input --rawfile config ~/.config/codexbar/config.json '$config' |
+  sops set --value-stdin secrets/codexbar.yaml '["config_json"]'
+```
+
+Commit only the encrypted YAML, then rebuild and restart `sops-nix.service` on
+the other workstation to refresh its restore copy. Restoring it remains explicit.
+
+## Data and validation
 
 Missing, expired, stale, malformed or incomplete billing data shows **Unavailable**,
 never an invented zero. In particular, CLI 0.84 returns 30 daily buckets even when

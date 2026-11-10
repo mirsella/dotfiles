@@ -36,4 +36,13 @@ in
     path = "${config.xdg.configHome}/codexbar/opencode.env";
     mode = "0600";
   };
+
+  # CodexBar atomically replaces its writable config. Keep the SOPS snapshot
+  # separate so CLI settings and refreshed cookies cannot replace a secret link.
+  sops.secrets.codexbar_config = {
+    sopsFile = ../../secrets/codexbar.yaml;
+    key = "config_json";
+    path = "${config.xdg.configHome}/codexbar/shared-config.json";
+    mode = "0600";
+  };
 }
