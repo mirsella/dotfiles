@@ -156,6 +156,26 @@ Faces.SensorFace {
         return NaN
     }
 
+    // The top stays at 100% so the fill is comparable at a glance; the
+    // bottom follows the lowest usage of the last 7 days, with some margin.
+    function diskAxis(now) {
+        let dataMinimum = Infinity
+        for (const sample of root.diskSamples) {
+            if (sample.time >= now - 604800000 && sample.time <= now
+                    && Number.isFinite(sample.value)) {
+                dataMinimum = Math.min(dataMinimum, sample.value)
+            }
+        }
+        if (!Number.isFinite(dataMinimum)) {
+            return { minimum: 0, step: 25 }
+        }
+
+        const lower = Math.max(0, Math.min(90, dataMinimum - 5))
+        const span = 100 - lower
+        const step = span <= 20 ? 5 : span <= 50 ? 10 : 25
+        return { minimum: Math.floor(lower / step) * step, step: step }
+    }
+
     function sampleDisk() {
         const value = currentDiskPercent()
         if (!Number.isFinite(value)) {
@@ -506,11 +526,13 @@ Faces.SensorFace {
                         ctx.lineWidth = 1
 
                         const now = Date.now()
+                        const axis = root.diskAxis(now)
+                        const axisSpan = 100 - axis.minimum
+                        const yAt = value => top + plotHeight
+                            * (1 - (Math.max(axis.minimum, Math.min(100, value)) - axis.minimum) / axisSpan)
 
-                        // The disk chart always spans the full 0-100% range so
-                        // fills are comparable at a glance.
-                        for (let percent = 0; percent <= 100; percent += 25) {
-                            const y = top + plotHeight * (1 - percent / 100)
+                        for (let percent = axis.minimum; percent <= 100; percent += axis.step) {
+                            const y = yAt(percent)
                             ctx.beginPath()
                             ctx.globalAlpha = 0.2
                             ctx.strokeStyle = String(Kirigami.Theme.textColor)
@@ -532,7 +554,6 @@ Faces.SensorFace {
 
                             const strokeColor = String(color)
                             const xAt = time => left + plotWidth * (1 - (now - time) / windowMs)
-                            const yAt = value => top + plotHeight * (1 - Math.max(0, Math.min(100, value)) / 100)
                             let segment = []
 
                             const flushSegment = function() {
