@@ -217,6 +217,7 @@
         memory = ./tests/memory.nix;
         predator = ./tests/predator.nix;
       } // {
+        codexbar-plasmoid = pkgs.codexbar-plasmoid;
         hermes-browser-policy = pkgs.runCommand "hermes-browser-policy-tests" {
           nativeBuildInputs = [ self.nixosConfigurations.predator.config.services.hermes-agent.package.hermesVenv ];
         } ''

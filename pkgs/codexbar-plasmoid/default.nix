@@ -1,4 +1,9 @@
-{ lib, stdenvNoCC, fetchurl }:
+{
+  lib,
+  stdenvNoCC,
+  fetchurl,
+  nodejs,
+}:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "codexbar-plasmoid";
   version = "0.7.0";
@@ -13,8 +18,18 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   patches = [
     ./pace-all-windows.patch
     ./codex-credits-dedupe.patch
+    ./api-credit-rows.patch
   ];
   dontBuild = true;
+  nativeCheckInputs = [ nodejs ];
+  doCheck = true;
+  checkPhase = ''
+    runHook preCheck
+    for test in tests/test-*.js; do
+      node "$test"
+    done
+    runHook postCheck
+  '';
   installPhase = ''
     runHook preInstall
     destination="$out/share/plasma/plasmoids/com.github.psimaker.codexbar"

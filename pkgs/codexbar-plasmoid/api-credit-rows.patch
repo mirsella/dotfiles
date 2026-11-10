@@ -1,0 +1,426 @@
+diff --git a/contents/config/main.xml b/contents/config/main.xml
+index b69da01..4635fc8 100644
+--- a/contents/config/main.xml
++++ b/contents/config/main.xml
+@@ -5,6 +5,9 @@
+       http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+     <kcfgfile name=""/>
+     <group name="General">
++        <entry name="showApiCredits" type="Bool"><default>false</default></entry>
++        <entry name="openaiCreditProjectId" type="String"><default></default></entry>
++        <entry name="openaiCreditBudget" type="Int"><default>190</default><min>1</min></entry>
+         <entry name="refreshIntervalMinutes" type="Int">
+             <default>5</default>
+         </entry>
+diff --git a/contents/ui/ProviderCard.qml b/contents/ui/ProviderCard.qml
+index eac1c48..83a8144 100644
+--- a/contents/ui/ProviderCard.qml
++++ b/contents/ui/ProviderCard.qml
+@@ -4,6 +4,7 @@ import org.kde.plasma.plasmoid
+ import org.kde.plasma.components as PlasmaComponents3
+ import org.kde.kirigami as Kirigami
+ import "code/catalog.js" as Catalog
++import "code/apiCredits.js" as ApiCredits
+ 
+ // The per-provider card: header, rate-window sections with progress bars,
+ // credits, cost and status — mirrors CodexBar's menu card.
+@@ -24,6 +25,14 @@ ColumnLayout {
+     readonly property var entry: d && d.entry ? d.entry : null
+     readonly property var usage: entry && entry.usage ? entry.usage : null
+     readonly property color brandColor: meta.color
++    readonly property var apiCreditRow: {
++        plasmoidRoot.rev
++        if (!Plasmoid.configuration.showApiCredits) return null
++        var source = providerId === "claude" ? "claudeplatform" : "openai"
++        return ApiCredits.row(providerId, plasmoidRoot.usageData[source],
++            Plasmoid.configuration.openaiCreditProjectId,
++            Plasmoid.configuration.openaiCreditBudget, plasmoidRoot.nowMs)
++    }
+ 
+     spacing: Kirigami.Units.smallSpacing
+ 
+@@ -431,6 +440,47 @@ ColumnLayout {
+         Item { Layout.preferredHeight: Kirigami.Units.smallSpacing }
+     }
+ 
++    // A separate read-only billing row, not subscription usage or Codex credits.
++    ColumnLayout {
++        Layout.fillWidth: true
++        visible: card.apiCreditRow !== null
++        spacing: Kirigami.Units.smallSpacing
++
++        Rectangle {
++            Layout.fillWidth: true
++            implicitHeight: 1
++            color: Qt.alpha(Kirigami.Theme.textColor, 0.12)
++        }
++        RowLayout {
++            Layout.fillWidth: true
++            PlasmaComponents3.Label {
++                Layout.fillWidth: true
++                text: card.apiCreditRow ? card.apiCreditRow.title : ""
++                font.weight: Font.DemiBold
++                wrapMode: Text.Wrap
++            }
++            PlasmaComponents3.Label {
++                text: card.apiCreditRow ? card.apiCreditRow.value : ""
++                font: Kirigami.Theme.smallFont
++            }
++        }
++        PlasmaComponents3.ProgressBar {
++            Layout.fillWidth: true
++            visible: card.apiCreditRow !== null && card.apiCreditRow.usedPercent >= 0
++            from: 0
++            to: 100
++            value: card.apiCreditRow ? Math.max(0, card.apiCreditRow.usedPercent) : 0
++        }
++        PlasmaComponents3.Label {
++            Layout.fillWidth: true
++            text: card.apiCreditRow ? card.apiCreditRow.detail : ""
++            font: Kirigami.Theme.smallFont
++            opacity: 0.65
++            wrapMode: Text.Wrap
++            textFormat: Text.PlainText
++        }
++    }
++
+     // ---- cost (local logs) ----
+     ColumnLayout {
+         Layout.fillWidth: true
+diff --git a/contents/ui/code/apiCredits.js b/contents/ui/code/apiCredits.js
+new file mode 100644
+index 0000000..7546074
+--- /dev/null
++++ b/contents/ui/code/apiCredits.js
+@@ -0,0 +1,90 @@
++.pragma library
++
++// Billing is fetched separately, never substituted for subscription usage.
++function sources(providers, enabled) {
++    var out = providers.slice()
++    if (enabled) {
++        if (providers.indexOf("claude") >= 0 && out.indexOf("claudeplatform") < 0)
++            out.push("claudeplatform")
++        if (providers.indexOf("codex") >= 0 && out.indexOf("openai") < 0)
++            out.push("openai")
++    }
++    return out
++}
++
++function dollars(amount) { return "$" + amount.toFixed(2) }
++function finite(n) { return typeof n === "number" && isFinite(n) }
++
++function row(provider, record, project, budget, now) {
++    if (provider !== "claude" && provider !== "codex") return null
++    var title = provider === "claude" ? "Promotional API credits" : "OpenCode API project budget"
++    function unavailable(reason) {
++        return { title: title, value: "Unavailable", detail: reason, usedPercent: -1 }
++    }
++    if (!record || !record.entry)
++        return unavailable(record && record.error ? record.error : "Waiting for billing data")
++    if (record.error) return unavailable(record.error)
++    var entry = record.entry
++    var expected = provider === "claude" ? "claudeplatform" : "openai"
++    if (entry.provider !== expected || !entry.usage)
++        return unavailable("Unexpected billing source")
++    var usage = entry.usage
++    var stamp = Date.parse(usage.updatedAt)
++    var today = new Date(now).toISOString().slice(0, 10)
++    // Never carry yesterday's grant/month across a boundary as current data.
++    if (!isFinite(stamp) || stamp > now + 300000
++            || new Date(stamp).toISOString().slice(0, 10) !== today)
++        return unavailable("Billing data is stale; refresh to update")
++    if (provider === "claude") {
++        if (!usage.providerCost || usage.providerCost.currencyCode !== "USD")
++            return unavailable("Promotional grant currency is not USD")
++        // CLI primary is exclusively the active subscription_api_credit tranche;
++        // purchased credit is secondary. Never use the total prepaid balance.
++        if (!usage.primary)
++            return unavailable("No active promotional grant reported")
++        var description = usage.primary.resetDescription || ""
++        var match = /^\$\s*((?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?) of \$\s*((?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?) left(?: · (.+))?$/.exec(description)
++        if (!match) return unavailable("Unrecognized promotional grant amounts")
++        var remaining = Number(match[1].replace(/,/g, ""))
++        var total = Number(match[2].replace(/,/g, ""))
++        if (!finite(remaining) || !finite(total) || total <= 0 || remaining < 0 || remaining > total)
++            return unavailable("Invalid promotional grant amounts")
++        return { title: title, value: dollars(total - remaining) + " / " + dollars(total) + " used",
++                 detail: dollars(remaining) + " left" + (match[3] ? " · " + match[3] : ""),
++                 usedPercent: (total - remaining) / total * 100 }
++    }
++    var report = usage.openAIAPIUsage
++    if (!project || !report || report.projectID !== project || entry.source !== "admin-api:project")
++        return unavailable("Configure matching project-scoped OpenAI billing")
++    if (!finite(budget) || budget <= 0 || !usage.providerCost || usage.providerCost.currencyCode !== "USD")
++        return unavailable("A positive USD project budget is required")
++    if (!Array.isArray(report.daily)) return unavailable("Missing daily project costs")
++    var month = today.slice(0, 7)
++    var days = {}
++    var used = 0
++    for (var i = 0; i < report.daily.length; i++) {
++        var bucket = report.daily[i]
++        if (!bucket || typeof bucket !== "object") return unavailable("Invalid daily project costs")
++        var start = Date.parse(bucket.startTime)
++        var end = Date.parse(bucket.endTime)
++        if (!isFinite(start) || !isFinite(end)) return unavailable("Invalid daily project costs")
++        var day = new Date(start).toISOString().slice(0, 10)
++        if (day.slice(0, 7) !== month || day > today) continue
++        if (start !== Date.parse(day + "T00:00:00Z") || end - start !== 86400000
++                || days[day] || !finite(bucket.costUSD) || bucket.costUSD < 0)
++            return unavailable("Invalid or duplicate daily project costs")
++        days[day] = true
++        used += bucket.costUSD
++    }
++    var count = new Date(now).getUTCDate()
++    for (var d = 1; d <= count; d++) {
++        if (!days[month + "-" + ("0" + d).slice(-2)])
++            return unavailable("CLI history does not cover the full UTC month")
++    }
++    if (!finite(used)) return unavailable("Invalid project cost total")
++    var next = new Date(Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth() + 1, 1))
++    return { title: title, value: dollars(used) + " / " + dollars(budget) + " used",
++             detail: "Calendar month · Resets " + next.toISOString().slice(0, 10)
++                 + " (UTC) · Costs may lag; not a grant balance",
++             usedPercent: Math.min(100, used / budget * 100) }
++}
+diff --git a/contents/ui/configGeneral.qml b/contents/ui/configGeneral.qml
+index e9b2ee7..e647d57 100644
+--- a/contents/ui/configGeneral.qml
++++ b/contents/ui/configGeneral.qml
+@@ -18,6 +18,9 @@ KCM.SimpleKCM {
+     property string cfg_doubleClickAction
+     property alias cfg_launchCommand: launchCommand.text
+     property alias cfg_showCost: showCost.checked
++    property alias cfg_showApiCredits: showApiCredits.checked
++    property alias cfg_openaiCreditProjectId: openaiCreditProjectId.text
++    property alias cfg_openaiCreditBudget: openaiCreditBudget.value
+     property alias cfg_showStatus: showStatus.checked
+     property alias cfg_notifyQuota: notifyQuota.checked
+     property alias cfg_notifyThreshold: notifyThreshold.value
+@@ -47,6 +50,29 @@ KCM.SimpleKCM {
+     onCfg_doubleClickActionChanged: doubleClickCombo.sync()
+ 
+     Kirigami.FormLayout {
++        QQC2.CheckBox {
++            id: showApiCredits
++            text: i18n("API billing rows inside Claude and Codex cards")
++        }
++        QQC2.TextField {
++            id: openaiCreditProjectId
++            Kirigami.FormData.label: i18n("OpenAI API project:")
++            enabled: showApiCredits.checked
++            placeholderText: "proj_…"
++        }
++        QQC2.SpinBox {
++            id: openaiCreditBudget
++            Kirigami.FormData.label: i18n("Project monthly budget (USD):")
++            enabled: showApiCredits.checked
++            from: 1
++            to: 1000000
++        }
++        QQC2.Label {
++            Layout.maximumWidth: page.hintWidth
++            wrapMode: Text.WordWrap
++            text: i18n("Uses Claude Platform and project-scoped OpenAI reporting credentials. The project budget is not a promotional balance. Display only; no billing limits or routing are changed.")
++        }
++        Item { Kirigami.FormData.isSection: true }
+ 
+         QQC2.SpinBox {
+             id: refreshSpin
+diff --git a/contents/ui/main.qml b/contents/ui/main.qml
+index 89ef899..f0150bf 100644
+--- a/contents/ui/main.qml
++++ b/contents/ui/main.qml
+@@ -6,6 +6,7 @@ import org.kde.plasma.plasma5support as P5Support
+ import org.kde.kirigami as Kirigami
+ import org.kde.notification
+ import "code/catalog.js" as Catalog
++import "code/apiCredits.js" as ApiCredits
+ import "code/claudeAccounts.js" as ClaudeAccounts
+ import "code/cliStatus.js" as CliStatus
+ import "code/configProviders.js" as ConfigProviders
+@@ -532,8 +533,9 @@ PlasmoidItem {
+ 
+     function probeAll(force) {
+         if (CliStatus.canRunUsage(cliState.code)) {
+-            for (var i = 0; i < enabledProviders.length; i++) {
+-                var provider = enabledProviders[i]
++            var providers = ApiCredits.sources(enabledProviders, Plasmoid.configuration.showApiCredits)
++            for (var i = 0; i < providers.length; i++) {
++                var provider = providers[i]
+                 if (force === true || !autoRefreshBlocked[provider])
+                     refreshProvider(provider, force === true)
+             }
+@@ -611,13 +613,27 @@ PlasmoidItem {
+             return
+         if (!usageData[p])
+             usageData[p] = {}
++        if (p === "openai" && Plasmoid.configuration.showApiCredits
++                && !/^proj_[A-Za-z0-9_-]+$/.test(Plasmoid.configuration.openaiCreditProjectId)) {
++            usageData[p].loading = false
++            usageData[p].error = "Configure an OpenAI project ID before querying API billing"
++            bump()
++            return
++        }
+         usageData[p].loading = true
+         bump()
+ 
+         var cliGeneration = cliState.generation
+-        var command = cliCmd("usage --provider " + p + " --json"
++        var args = "usage --provider " + p + " --json"
+                              + (storesSources() ? "" : ProviderSources.cliArguments(Plasmoid.configuration.providerSources, p))
+-                             + (Plasmoid.configuration.showStatus ? " --status" : ""))
++                             + (Plasmoid.configuration.showStatus ? " --status" : "")
++        var command = cliCmd(args)
++        if (p === "openai" && Plasmoid.configuration.showApiCredits) {
++            // Scope the reporting credential, never the user's Codex login.
++            command = commandPathPrefix + environmentFilePrefix()
++                + "export OPENAI_PROJECT_ID=" + shellQuote(Plasmoid.configuration.openaiCreditProjectId)
++                + "; " + cliInvocation(args)
++        }
+         // While a probe of p runs, this refresh shares its answer, or runs
+         // once it is done when it needs a newer one.
+         var probe = UsageProbes.request(probes, p, command, cliGeneration, fresh === true)
+@@ -830,6 +846,7 @@ PlasmoidItem {
+             var d = usageData[req.p]
+             if (!d)
+                 d = usageData[req.p] = {}
++            var displayedProvider = enabledProviders.indexOf(req.p) >= 0
+             d.loading = false
+             d.fetchedAt = Date.now()
+ 
+@@ -853,8 +870,9 @@ PlasmoidItem {
+                 d.entries = entries
+                 d.error = ""
+                 d.errorCode = ""
+-                cliState = CliStatus.applyUsageResult(
+-                    cliState, req.cliGeneration, exitCode, true, false)
++                if (displayedProvider)
++                    cliState = CliStatus.applyUsageResult(
++                        cliState, req.cliGeneration, exitCode, true, false)
+             } else if (cliError !== "") {
+                 // The CLI explains the failure itself, such as a missing
+                 // login or a config.json it cannot decode, so it works.
+@@ -869,10 +887,12 @@ PlasmoidItem {
+             } else {
+                 d.error = usageErrorText(req.p, exitCode, parseFailed)
+                 d.errorCode = CliStatus.usageFailureCode(exitCode, parseFailed)
+-                cliState = CliStatus.applyUsageResult(
+-                    cliState, req.cliGeneration, exitCode, false, parseFailed)
++                if (displayedProvider)
++                    cliState = CliStatus.applyUsageResult(
++                        cliState, req.cliGeneration, exitCode, false, parseFailed)
+             }
+-            notifyChanges(req.p)
++            if (displayedProvider)
++                notifyChanges(req.p)
+             bump()
+             return
+         }
+@@ -1055,6 +1075,12 @@ PlasmoidItem {
+ 
+     Connections {
+         target: Plasmoid.configuration
++        function onShowApiCreditsChanged() {
++            if (root.componentReady) root.refreshAll(true)
++        }
++        function onOpenaiCreditProjectIdChanged() {
++            if (root.componentReady) root.refreshAll(true)
++        }
+         function onProviderSourcesChanged() {
+             // Copying config.json's sources back into the key changes nothing.
+             if (!root.componentReady || root.mirroringConfig)
+diff --git a/tests/run-tests.sh b/tests/run-tests.sh
+index 0466afe..23740bd 100755
+--- a/tests/run-tests.sh
++++ b/tests/run-tests.sh
+@@ -12,6 +12,7 @@ if ! command -v node >/dev/null 2>&1; then
+ fi
+ node tests/test-cli-status.js
+ node tests/test-catalog.js
++node tests/test-api-credits.js
+ node tests/test-provider-sources.js
+ node tests/test-provider-overrides.js
+ node tests/test-config-providers.js
+diff --git a/tests/test-api-credits.js b/tests/test-api-credits.js
+new file mode 100644
+index 0000000..2c87a37
+--- /dev/null
++++ b/tests/test-api-credits.js
+@@ -0,0 +1,76 @@
++const assert = require("assert")
++const fs = require("fs")
++const vm = require("vm")
++const api = {}
++vm.runInNewContext(fs.readFileSync("contents/ui/code/apiCredits.js", "utf8").replace(/^\.pragma library\s*/, ""), api)
++const now = Date.parse("2026-11-10T12:00:00Z")
++const project = "proj_example"
++function row(provider, entry, error) { return api.row(provider, {entry, error}, project, 190, now) }
++const claude = {provider:"claudeplatform", usage:{updatedAt:new Date(now).toISOString(),
++    primary:{resetDescription:"$150.00 of $200.00 left · Expires Dec 3 (UTC)"},
++    providerCost:{balance:900, used:900, currencyCode:"USD"}}}
++assert.strictEqual(row("claude", claude).value, "$50.00 / $200.00 used")
++assert.strictEqual(row("claude", claude).usedPercent, 25)
++assert.ok(row("claude", claude).detail.includes("Expires Dec 3"))
++assert.ok(!row("claude", claude).detail.includes("Resets"))
++assert.strictEqual(row("codex", claude).value, "Unavailable")
++assert.strictEqual(row("claude", claude, "Session expired").value, "Unavailable")
++assert.strictEqual(row("claude", {provider:"claudeplatform", usage:{updatedAt:new Date(now).toISOString(),
++    secondary:claude.usage.primary, providerCost:{balance:200}}}).value, "Unavailable")
++const badGrant = JSON.parse(JSON.stringify(claude))
++badGrant.usage.primary.resetDescription = "$300.00 of $200.00 left"
++assert.strictEqual(row("claude", badGrant).value, "Unavailable")
++badGrant.usage.primary.resetDescription = "$1,2 of $200.00 left"
++assert.strictEqual(row("claude", badGrant).value, "Unavailable")
++badGrant.usage.primary.resetDescription = "$0.00 of $200.00 left"
++assert.strictEqual(row("claude", badGrant).value, "$200.00 / $200.00 used")
++const openai = {provider:"openai", source:"admin-api:project", usage:{updatedAt:new Date(now).toISOString(),
++    providerCost:{used:9999, currencyCode:"USD"},
++    openAIAPIUsage:{projectID:project, daily:Array.from({length:10}, (_,i)=>({
++        startTime:`2026-11-${String(i+1).padStart(2,"0")}T00:00:00Z`,
++        endTime:`2026-11-${String(i+2).padStart(2,"0")}T00:00:00Z`, costUSD:i===0?10:0}))}}}
++assert.strictEqual(row("codex", openai).value, "$10.00 / $190.00 used")
++assert.ok(row("codex", openai).detail.includes("2026-12-01"))
++for (const mutate of [
++    x=>x.usage.openAIAPIUsage.projectID="proj_other",
++    x=>x.source="admin-api",
++    x=>x.usage.openAIAPIUsage.daily.shift(),
++    x=>x.usage.openAIAPIUsage.daily.push(x.usage.openAIAPIUsage.daily[0]),
++    x=>x.usage.openAIAPIUsage.daily[0].costUSD=-1,
++    x=>x.usage.openAIAPIUsage.daily[0].costUSD="0",
++    x=>x.usage.openAIAPIUsage.daily[0]=null,
++    x=>x.usage.updatedAt="2026-10-31T12:00:00Z",
++    x=>x.usage.updatedAt="2026-11-11T00:00:00Z",
++    x=>x.usage.providerCost.currencyCode="EUR"
++]) {
++    const invalid=JSON.parse(JSON.stringify(openai)); mutate(invalid)
++    assert.strictEqual(row("codex",invalid).value,"Unavailable")
++}
++assert.strictEqual(api.row("codex",{entry:openai},project,0,now).value,"Unavailable")
++assert.strictEqual(api.row("claude",null,project,190,now).value,"Unavailable")
++assert.strictEqual(api.row("opencodego",null,project,190,now),null)
++const zero = JSON.parse(JSON.stringify(openai))
++zero.usage.openAIAPIUsage.daily[0].costUSD=0
++assert.strictEqual(row("codex",zero).value,"$0.00 / $190.00 used")
++const overspend = JSON.parse(JSON.stringify(openai))
++overspend.usage.openAIAPIUsage.daily[0].costUSD=195
++assert.strictEqual(row("codex",overspend).value,"$195.00 / $190.00 used")
++assert.strictEqual(row("codex",overspend).usedPercent,100)
++const intact = JSON.stringify(openai)
++row("codex",openai)
++assert.strictEqual(JSON.stringify(openai),intact)
++const endOfYear=Date.parse("2026-12-31T12:00:00Z")
++const fullMonth=JSON.parse(JSON.stringify(openai))
++fullMonth.usage.updatedAt=new Date(endOfYear).toISOString()
++fullMonth.usage.openAIAPIUsage.daily=Array.from({length:31},(_,i)=>({
++    startTime:new Date(Date.UTC(2026,11,i+1)).toISOString(),
++    endTime:new Date(Date.UTC(2026,11,i+2)).toISOString(),costUSD:1}))
++assert.strictEqual(api.row("codex",{entry:fullMonth},project,190,endOfYear).value,"$31.00 / $190.00 used")
++assert.ok(api.row("codex",{entry:fullMonth},project,190,endOfYear).detail.includes("2027-01-01"))
++fullMonth.usage.openAIAPIUsage.daily.shift()
++assert.strictEqual(api.row("codex",{entry:fullMonth},project,190,endOfYear).value,"Unavailable")
++assert.strictEqual(JSON.stringify(api.sources(["claude","codex"],true)),
++    JSON.stringify(["claude","codex","claudeplatform","openai"]))
++assert.strictEqual(JSON.stringify(api.sources(["codex","openai"],true)),JSON.stringify(["codex","openai"]))
++assert.strictEqual(JSON.stringify(api.sources(["claude"],false)),JSON.stringify(["claude"]))
++console.log("API credit rows: passed")
