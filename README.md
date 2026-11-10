@@ -1027,13 +1027,20 @@ The CPU group stops below its threshold. `start_hysteresis` adds 3°C before
 stopped fans start again; spinning fans stay on until the stop threshold.
 The minimum spinning duty is 20%, with a nonblocking 30% start kick for one second.
 
-- Power Saver stops at 70°C, starts at 73°C and reaches 100% at 85°C.
+- Power Saver stops at 75°C, starts at 78°C and reaches its 70% cap at 90°C.
 - Balanced stops at 65°C, starts at 68°C and reaches 100% at 85°C.
 - Performance stops at 65°C, starts at 68°C and reaches 100% at 80°C.
 
+Power Saver caps every channel at 70%, including the emergency response. In
+that profile power-profiles-daemon already disables CPU boost (3.4 GHz base
+clock, about 96 W package at full load), which keeps the die near 62°C with the
+CPU fans stopped. Lower clock caps were measured and rejected: 2.8 GHz still
+draws 88 W and 2.2 GHz 82 W, because the I/O die's share is fixed. At 90°C the
+CPU throttles itself, so the lower cap costs speed, not safety.
+
 `case_fans.channels` retains a 30% minimum. These channels follow whichever
 requests more airflow: the CPU curve or GPU edge temperature, rising from 30%
-at 50°C to 100% at 80°C in every profile. GPU demand is mapped onto the CPU
+at 50°C to the profile's maximum at 80°C. GPU demand is mapped onto the CPU
 curve's scale before taking the maximum and averaging. The CPU group follows
 only CPU temperature; the GPU keeps control of its own fans.
 

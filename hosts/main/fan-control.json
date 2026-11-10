@@ -14,9 +14,9 @@
   "average": 3,
   "profiles": {
     "power-saver": {
-      "minimum_temperature": 70,
-      "maximum_temperature": 85,
-      "maximum_duty": 100
+      "minimum_temperature": 75,
+      "maximum_temperature": 90,
+      "maximum_duty": 70
     },
     "balanced": {
       "minimum_temperature": 65,
