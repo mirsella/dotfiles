@@ -1,5 +1,10 @@
 { config, lib, pkgs, ... }:
 {
+  xdg.configFile = lib.genAttrs
+    (map (vendor: "opencode/credit-routing/" + vendor + ".path") [ "claude" "openai" ])
+    (path: let vendor = lib.removeSuffix ".path" (builtins.baseNameOf path); in {
+      text = "${pkgs.opencode-extensions}/share/opencode/credit-routing-${vendor}";
+    });
   home.packages = [ pkgs.claude-credit-router pkgs.libnotify
     (pkgs.writeShellScriptBin "openai-credit-router" ''
       exec ${lib.getExe pkgs.claude-credit-router} --openai "$@"
@@ -20,8 +25,9 @@
       PrivateTmp = true;
       ProtectSystem = "strict";
       ProtectHome = "read-only";
-      StateDirectory = "openai-credit-router";
-      ReadWritePaths = [ "${config.xdg.stateHome}/openai-credit-router" ];
+      # A distinct parent avoids systemd's legacy ~/.config migration heuristic.
+      StateDirectory = "credit-router";
+      ReadWritePaths = [ "${config.xdg.stateHome}/credit-router" ];
       RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
     };
     Install.WantedBy = [ "default.target" ];
@@ -41,8 +47,8 @@
       PrivateTmp = true;
       ProtectSystem = "strict";
       ProtectHome = "read-only";
-      StateDirectory = "claude-credit-router";
-      ReadWritePaths = [ "${config.xdg.stateHome}/claude-credit-router" ];
+      StateDirectory = "credit-router";
+      ReadWritePaths = [ "${config.xdg.stateHome}/credit-router" ];
       RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
     };
     Install.WantedBy = [ "default.target" ];

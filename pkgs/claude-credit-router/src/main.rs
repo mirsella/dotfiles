@@ -23,7 +23,7 @@ struct Arguments {
 enum Command {
     Serve,
     Status,
-    /// Leave all Claude requests on native subscription authentication.
+    /// Leave this vendor's requests on native subscription authentication.
     Subscription,
     /// Resume automatic promotional/subscription selection.
     Auto,
@@ -62,6 +62,7 @@ async fn main() -> Result<()> {
     let store = Store(
         arguments.state.unwrap_or(
             home_path("XDG_STATE_HOME", ".local/state")?
+                .join("credit-router")
                 .join(directory)
                 .join("state.json"),
         ),

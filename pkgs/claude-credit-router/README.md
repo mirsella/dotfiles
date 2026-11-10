@@ -118,7 +118,8 @@ running process can continue through the transparent subscription path. Native
 Claude/OpenCode subscription retries and errors remain theirs to handle.
 
 Routing state is atomically persisted under
-`~/.local/state/claude-credit-router/state.json`, with file locking, current mode,
+`~/.local/state/credit-router/claude-credit-router/state.json` (or the equivalent
+`openai-credit-router` subdirectory), with file locking, current mode,
 renewal timestamp and the last 32 reasons. Invalid state is an explicit error, not
 an implicit reset to the API route. Monthly renewal uses the verified subscription
 billing anchor, not the first of the calendar month. The next real request probes

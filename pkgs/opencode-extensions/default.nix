@@ -49,12 +49,21 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook preInstall
     mkdir -p "$out/share/opencode"
     cp -r dist/. "$out/share/opencode/"
+    # Load routing plugins via immutable native-package paths. Bun otherwise
+    # caches the old realpath of the Home Manager plugin-directory symlink.
+    mkdir "$out/share/opencode/runtime"
+    for vendor in claude openai; do
+      mv "$out/share/opencode/plugins/$vendor-promotional-credits.js" "$out/share/opencode/runtime/"
+      mkdir "$out/share/opencode/credit-routing-$vendor"
+      echo "export { default } from '../runtime/$vendor-promotional-credits.js';" \
+        > "$out/share/opencode/credit-routing-$vendor/server.js"
+    done
     runHook postInstall
   '';
   doInstallCheck = true;
   installCheckPhase = ''
     runHook preInstallCheck
-    bun -e 'for (const file of new Bun.Glob("plugins/*.js").scanSync(process.argv[1])) {
+    bun -e 'for (const file of new Bun.Glob("{plugins/*.js,credit-routing-*/server.js}").scanSync(process.argv[1])) {
       const plugin = await import(`''${process.argv[1]}/''${file}`);
       if (Object.keys(plugin).length !== 1 || typeof plugin.default?.id !== "string" || typeof plugin.default?.setup !== "function") {
         throw new Error(`Invalid plugin exports: ''${file}`);
