@@ -53,11 +53,39 @@ struct Seen {
 #[derive(Clone)]
 struct Upstream {
     responses: Arc<Mutex<VecDeque<Reply>>>,
+    cost: Arc<Mutex<Option<f64>>>,
+    cost_checks: Arc<Mutex<usize>>,
     seen: Arc<Mutex<Vec<Seen>>>,
     before_reply: Arc<Mutex<Option<Box<dyn FnOnce() + Send>>>>,
 }
 
 async fn upstream(State(state): State<Upstream>, request: Request<Body>) -> Response<Body> {
+    if request.uri().path() == "/costs" {
+        *state.cost_checks.lock().unwrap() += 1;
+        assert_eq!(
+            request.headers()["authorization"],
+            "Bearer reporting-only-test"
+        );
+        assert_eq!(request.headers()["openai-organization"], "personal-org");
+        let url = reqwest::Url::parse(&format!("http://127.0.0.1{}", request.uri())).unwrap();
+        let q: std::collections::HashMap<_, _> = url.query_pairs().into_owned().collect();
+        assert_eq!(q["project_ids"], "proj_personal");
+        let Some(cost) = *state.cost.lock().unwrap() else {
+            return Response::builder()
+                .status(503)
+                .body(Body::from("unavailable"))
+                .unwrap();
+        };
+        return Response::new(Body::from(
+            json!({"object":"page","has_more":false,"data":[{
+                "start_time":q["start_time"].parse::<i64>().unwrap(),
+                "end_time":q["end_time"].parse::<i64>().unwrap(),
+                "results":[{"object":"organization.costs.result","project_id":"proj_personal",
+                    "amount":{"currency":"usd","value":cost}}]
+            }]})
+            .to_string(),
+        ));
+    }
     let (parts, body) = request.into_parts();
     let body = to_bytes(body, 129 * 1024 * 1024).await.unwrap();
     state.seen.lock().unwrap().push(Seen {
@@ -124,6 +152,8 @@ impl Fixture {
         }
         let state = Upstream {
             responses: Arc::new(Mutex::new(responses.into())),
+            cost: Arc::new(Mutex::new(Some(0.0))),
+            cost_checks: Arc::default(),
             seen: Arc::default(),
             before_reply: Arc::default(),
         };
@@ -132,6 +162,14 @@ impl Fixture {
             "http://{}/sleev/opencode/anthropic",
             listener.local_addr().unwrap()
         ));
+        let directory = tempfile::tempdir().unwrap();
+        let reporting = directory.path().join("codexbar.json");
+        std::fs::write(
+            &reporting,
+            r#"{"providers":[{"id":"openai","apiKey":"reporting-only-test"}]}"#,
+        )
+        .unwrap();
+        std::fs::set_permissions(&reporting, std::fs::Permissions::from_mode(0o600)).unwrap();
         if openai {
             config.billing = None;
             config.renewal_anchor = date("2026-11-09T00:00:00Z");
@@ -140,6 +178,10 @@ impl Fixture {
                 project_id: "proj_personal".into(),
                 enforced_project_limit_usd: 190,
                 grant_usd: 199,
+                spending: claude_credit_router::spending::Settings {
+                    limit_usd: 150,
+                    codexbar_config: reporting,
+                },
             });
             config.upstream = config.upstream.replace("anthropic", "codex");
         }
@@ -149,10 +191,9 @@ impl Fixture {
         let task = tokio::spawn(async move {
             axum::serve(listener, app).await.unwrap();
         });
-        let directory = tempfile::tempdir().unwrap();
         let store = Store(directory.path().join("state.json"));
         let clock = Arc::new(Mutex::new(date("2026-11-10T12:00:00Z")));
-        let router = Router::new(
+        let mut router = Router::new(
             config.clone(),
             store.clone(),
             if openai {
@@ -166,6 +207,10 @@ impl Fixture {
             let clock = clock.clone();
             move || *clock.lock().unwrap()
         });
+        router.spending = router.spending.with_test_endpoint(&format!(
+            "{}/costs",
+            config.upstream.split("/sleev").next().unwrap()
+        ));
         if openai {
             router.verify_organization().await.unwrap();
             let metadata = state.seen.lock().unwrap().pop().unwrap();
@@ -905,5 +950,162 @@ fn every_grant_cycle_uses_at_most_one_calendar_month_allowance() {
             now += chrono::Duration::hours(12);
         }
         assert_eq!(months.len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn local_limit_switches_before_inference_and_cannot_be_rechecked_away() {
+    let f = Fixture::openai(vec![
+        Reply(StatusCode::OK, "native".into()),
+        Reply(StatusCode::TOO_MANY_REQUESTS, "native limit".into()),
+    ])
+    .await;
+    *f.state.cost.lock().unwrap() = Some(150.0);
+    let body = r#"{"model":"gpt-test","input":"unchanged"}"#;
+    assert_eq!(
+        openai_send(&f, "/responses/compact", body)
+            .await
+            .text()
+            .await
+            .unwrap(),
+        "native"
+    );
+    assert_eq!(
+        f.store.read().unwrap().history.last().unwrap().reason,
+        "local_spend_limit"
+    );
+    f.store
+        .update(|s| {
+            s.recheck(f.now());
+            Ok(())
+        })
+        .unwrap();
+    // Lower/stale reporting cannot erase the persisted high-water mark.
+    *f.state.cost.lock().unwrap() = Some(0.0);
+    assert_eq!(
+        openai_send(&f, "/responses", body).await.status(),
+        StatusCode::TOO_MANY_REQUESTS
+    );
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 1);
+    assert!(
+        f.seen()
+            .iter()
+            .all(|r| r.headers["authorization"] == "Bearer native-codex" && r.body == body)
+    );
+    assert_eq!(
+        Store(f.store.0.clone())
+            .read()
+            .unwrap()
+            .spending
+            .unwrap()
+            .reported_usd,
+        150.0
+    );
+}
+
+#[tokio::test]
+async fn costs_are_refreshed_for_each_admission_and_shared_project_spend_counts() {
+    let f = Fixture::openai(vec![
+        Reply(StatusCode::OK, "api".into()),
+        Reply(StatusCode::OK, "native".into()),
+    ])
+    .await;
+    *f.state.cost.lock().unwrap() = Some(149.0);
+    openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
+    // Another machine spends the dollar, without any local usage event.
+    *f.state.cost.lock().unwrap() = Some(150.0);
+    openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 2);
+    assert_eq!(f.seen()[0].headers["authorization"], "Bearer sk-proj-mock");
+    assert_eq!(f.seen()[1].headers["authorization"], "Bearer native-codex");
+}
+
+#[tokio::test]
+async fn unavailable_reporting_uses_subscription_and_native_does_not_recheck() {
+    let f = Fixture::openai(vec![
+        Reply(StatusCode::OK, "native".into()),
+        Reply(StatusCode::SERVICE_UNAVAILABLE, "native failure".into()),
+    ])
+    .await;
+    *f.state.cost.lock().unwrap() = None;
+    openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
+    let result = openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
+    assert_eq!(result.status(), StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 1);
+    assert!(
+        f.seen()
+            .iter()
+            .all(|r| r.headers["authorization"] == "Bearer native-codex")
+    );
+    assert_eq!(
+        f.store.read().unwrap().history.last().unwrap().reason,
+        "spend_check_unavailable"
+    );
+}
+
+#[tokio::test]
+async fn new_grant_cycle_rechecks_costs_before_returning_to_api() {
+    let f = Fixture::openai(vec![
+        Reply(StatusCode::OK, "native".into()),
+        Reply(StatusCode::OK, "renewed".into()),
+    ])
+    .await;
+    *f.state.cost.lock().unwrap() = Some(224.65);
+    openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
+    *f.clock.lock().unwrap() = date("2026-12-01T00:00:01Z");
+    assert_eq!(f.router.status(f.now()).unwrap().route, Route::Subscription);
+    *f.clock.lock().unwrap() = date("2026-12-09T00:00:01Z");
+    *f.state.cost.lock().unwrap() = Some(0.0);
+    openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
+    assert_eq!(f.seen()[1].headers["authorization"], "Bearer sk-proj-mock");
+    assert_eq!(f.store.read().unwrap().spending.unwrap().month, "2026-12");
+}
+
+#[tokio::test]
+async fn concurrent_requests_observing_exhaustion_all_use_native() {
+    let f = Fixture::openai(
+        (0..8)
+            .map(|_| Reply(StatusCode::OK, "native".into()))
+            .collect(),
+    )
+    .await;
+    *f.state.cost.lock().unwrap() = Some(150.0);
+    futures_util::future::join_all(
+        (0..8).map(|_| openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#)),
+    )
+    .await;
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 1);
+    assert_eq!(f.seen().len(), 8);
+    assert!(
+        f.seen()
+            .iter()
+            .all(|r| r.headers["authorization"] == "Bearer native-codex")
+    );
+}
+
+#[test]
+fn costs_parser_rejects_untrustworthy_or_incomplete_data() {
+    use claude_credit_router::spending::parse;
+    let valid = json!({"object":"page","has_more":false,"data":[{"start_time":1,"end_time":2,
+        "results":[{"object":"organization.costs.result","project_id":"proj_personal","amount":{"currency":"usd","value":12.34}}]}]});
+    assert_eq!(
+        parse(valid.to_string().as_bytes(), "proj_personal", 1, 2).unwrap(),
+        12.34
+    );
+    for (path, value) in [
+        ("/has_more", json!(true)),
+        ("/data", json!([])),
+        ("/data/0/start_time", json!(0)),
+        ("/data/0/end_time", json!(1)),
+        ("/data/0/results/0/project_id", json!("company")),
+        ("/data/0/results/0/amount/currency", json!("eur")),
+        ("/data/0/results/0/amount/value", json!(null)),
+    ] {
+        let mut invalid = valid.clone();
+        *invalid.pointer_mut(path).unwrap() = value;
+        assert!(
+            parse(invalid.to_string().as_bytes(), "proj_personal", 1, 2).is_err(),
+            "{path}"
+        );
     }
 }

@@ -34,6 +34,8 @@ pub struct Event {
 #[serde(deny_unknown_fields)]
 pub struct State {
     version: u32,
+    #[serde(default)]
+    pub spending: Option<crate::spending::Snapshot>,
     pub mode: Mode,
     pub active: Route,
     pub next_probe_at: Option<DateTime<Utc>>,
@@ -49,6 +51,7 @@ impl Default for State {
     fn default() -> Self {
         Self {
             version: 1,
+            spending: None,
             mode: Mode::Auto,
             active: Route::Promotional,
             next_probe_at: None,

@@ -64,27 +64,41 @@ Neither instance controls subscription limits, retries or gifted credits.
 
 ## OpenAI shared-organization safeguard
 
-The verified benefit email grants **$199 for the first prorated cycle, expiring
-December 9, 2026**. Later grants follow the paid ChatGPT subscription cycle.
-The project's dashboard independently says **resets in 20 days** on November 10
-(around December 1), with a **$190 enforced hard limit**. These are different clocks.
+The first grant is **$199**, expiring December 9, 2026; later grants follow the
+ChatGPT subscription cycle. The dedicated `voxride-opencode` project has a
+**$150 enforced dashboard limit** and a separate **$150 local admission limit**.
+Neither limit allocates a funding source: organization credits remain shared.
 
-`~/.config/openai-credit-router/config.json` selects the existing
-`voxride-opencode` project, never news-scraper. The API window is the subscription
-renewal day (9th UTC) through month-end. Days 1–8 use native Codex, even if some
-grant remains. Thus each grant cycle intersects only one calendar-month API
-allowance: a calendar reset cannot enable a second $190 within that cycle.
-This intentionally conservative schedule avoids a new financial reporting daemon
-and does not depend on delayed usage reports. Do not use this project/key outside
-the router, raise its hard limit, change the grant cycle, or cancel/unlink the
-benefit without putting the router in subscription mode first.
+Before every promotional Responses or compaction request, the router reads the
+project's calendar-month USD costs directly from OpenAI's Costs API. This includes
+both machines and other users of that project. It uses the existing private
+CodexBar `openai` reporting credential (Usage Read); CodexBar need not be running.
+It never sends that credential to inference or Sleev. The status endpoint checks
+at most once per minute while promotional routing is eligible; each promotional
+admission requires a fresh check. Daily UTC buckets include the entire current
+day because an intraday end time can omit today's spend.
 
-**This is not an absolute $0-charge guarantee.** OpenAI does not publish a maximum
-hard-limit overshoot; the initial buffer is $9, normally $10. The organization
-still shares purchased funds and the existing card. Grant cancellation/delayed
-issuance and card-charge timing cannot be proved from this API key. No org-wide
-billing, auto-recharge or company project setting is changed. A separate org with
-no paid funding remains stronger isolation.
+At or above the local limit, the router records `local_spend_limit`, notifies the
+user, and forwards the unchanged request using native subscription authentication.
+It stores a monthly spending high-water mark, so restarts, stale lower reports,
+and manual rechecks cannot forget known exhaustion. Missing credentials, HTTP
+errors, malformed data, incomplete coverage or unexpected projects/currencies
+record `spend_check_unavailable` and use subscription with a one-minute retry.
+Subscription requests do not read cost reports or change native retry behavior.
+
+The API window remains the renewal day (9th UTC) through month-end. Days 1–8 use
+native Codex: a calendar reset must not allow a second allowance within the same
+grant cycle. At renewal, a fresh report is required before any API inference.
+Manual subscription mode overrides renewal until explicitly changed.
+
+**This is a reported-spend cutoff, not an exact token ledger or a $0-charge
+guarantee.** Reporting lag and already accepted concurrent requests can exceed
+$150. There is no shared in-flight reservation across machines. Passing mocked
+cutoff tests does not establish a bound on OpenAI's reporting delay, and does not
+justify raising this to $190. Token-based audit estimates have incomplete usage
+and pricing and are not safe substitutes. Keep the $50 margin; stronger guarantees
+need coordinated conservative reservations or a separate org without paid funds.
+No org-wide billing, auto-recharge or company project setting is changed.
 
 The router uses `OPENAI_CREDIT_ROUTER_API_KEY` from the same SOPS environment file,
 never `OPENAI_API_KEY`. Its free Models request verifies project access and loads
@@ -93,14 +107,17 @@ encrypted history and tool bytes; Codex-only models remain native and record a
 reason instead of being silently mapped. Responses and Responses compaction use
 the direct API (not the Codex product's API-key billing route).
 
-Only exact pre-output billing codes (`project_spend_limit_exceeded`,
+In addition to the local admission check, exact pre-output billing codes (`project_spend_limit_exceeded`,
 `organization_spend_limit_exceeded`, `organization_usage_limit_exceeded`,
 `credit_balance_exhausted`) switch to native authentication. Temporary 429s,
 ambiguous `insufficient_quota`, authentication failures, partial streams, native
 subscription errors and gifted-credit behavior are not rerouted.
 
 Use `openai-credit-router status|subscription|auto|recheck`; `recheck` cannot bypass
-the calendar guard. Inspect `journalctl --user -u openai-credit-router` or the
+the calendar guard or a known exhausted budget. `openai-credit-router check-budget`
+refreshes costs and applies the local limit without making any inference request
+or clearing manual subscription mode. Status exposes the latest reported USD,
+check timestamp, local limit and reason history. Inspect `journalctl --user -u openai-credit-router` or the
 loopback `http://127.0.0.1:17323/_credit/status` for route and reason history.
 The native provider endpoint and transport are restored within five seconds of a
 route change; the already-prepared rejected request is forwarded once natively.

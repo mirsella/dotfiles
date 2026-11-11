@@ -22,6 +22,7 @@ pub struct Settings {
     pub project_id: String,
     pub enforced_project_limit_usd: u32,
     pub grant_usd: u32,
+    pub spending: crate::spending::Settings,
 }
 
 impl Settings {
@@ -47,6 +48,15 @@ impl Settings {
         ensure!(
             self.enforced_project_limit_usd > 0 && self.enforced_project_limit_usd < self.grant_usd,
             "project hard limit must leave a positive grant buffer"
+        );
+        ensure!(
+            self.spending.limit_usd > 0
+                && self.spending.limit_usd <= self.enforced_project_limit_usd,
+            "local spending limit must not exceed project limit"
+        );
+        ensure!(
+            self.spending.codexbar_config.is_absolute(),
+            "reporting credentials require an absolute path"
         );
         Ok(())
     }

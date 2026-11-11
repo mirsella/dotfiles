@@ -23,6 +23,8 @@ struct Arguments {
 enum Command {
     Serve,
     Status,
+    /// Refresh project costs without making an inference request.
+    CheckBudget,
     /// Leave this vendor's requests on native subscription authentication.
     Subscription,
     /// Resume automatic promotional/subscription selection.
@@ -133,6 +135,26 @@ async fn main() -> Result<()> {
             };
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
+        Command::CheckBudget => {
+            let settings = config
+                .openai
+                .as_ref()
+                .context("budget checks require --openai")?;
+            let allowed = claude_credit_router::spending::Guard::new()?
+                .check(
+                    settings,
+                    &config.organization_id,
+                    &store,
+                    config.renewal_anchor,
+                    Utc::now(),
+                    true,
+                )
+                .await?;
+            println!(
+                "{}",
+                serde_json::json!({"budget_allows_api":allowed,"state":store.read()?})
+            );
+        }
         Command::Serve => {
             let variable = if arguments.openai {
                 "OPENAI_CREDIT_ROUTER_API_KEY"
@@ -176,6 +198,7 @@ async fn main() -> Result<()> {
                     Command::Auto => state.set_mode(Mode::Auto, Utc::now()),
                     Command::Recheck => state.recheck(Utc::now()),
                     Command::Status => {}
+                    Command::CheckBudget => unreachable!("budget check handled above"),
                     Command::Serve => unreachable!("serve was handled above"),
                     Command::History { .. } => unreachable!("history was handled above"),
                 }

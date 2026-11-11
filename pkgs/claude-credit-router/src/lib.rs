@@ -1,6 +1,7 @@
 pub mod audit;
 pub mod openai;
 pub mod policy;
+pub mod spending;
 pub mod trace;
 
 use anyhow::{Context, Result, ensure};
@@ -103,6 +104,7 @@ pub struct Router {
     pub config: Config,
     pub store: Store,
     client: reqwest::Client,
+    pub spending: spending::Guard,
     key: HeaderValue,
     // Serializes only promotional attempts until their response headers/error
     // arrive. Streaming output and all subscription traffic remain concurrent.
@@ -121,6 +123,8 @@ pub struct Status {
     pub history: Vec<policy::Event>,
     pub api_model_count: Option<usize>,
     pub last_promotional_success_at: Option<DateTime<Utc>>,
+    pub spending: Option<spending::Snapshot>,
+    pub local_spend_limit_usd: Option<u32>,
 }
 
 impl Router {
@@ -130,6 +134,7 @@ impl Router {
         let mut key = HeaderValue::from_str(key).context("invalid API key header")?;
         key.set_sensitive(true);
         Ok(Self {
+            spending: spending::Guard::new()?,
             config,
             store,
             key,
@@ -164,6 +169,8 @@ impl Router {
         let state = self.store.read()?;
         Ok(Status {
             route: state.route(now),
+            spending: state.spending,
+            local_spend_limit_usd: self.config.openai.as_ref().map(|s| s.spending.limit_usd),
             active: state.active,
             mode: state.mode,
             organization_id: self.config.organization_id.clone(),
@@ -177,6 +184,30 @@ impl Router {
             }),
             last_promotional_success_at: state.last_promotional_success_at,
         })
+    }
+
+    pub async fn check_spending(&self, fresh: bool) -> Result<bool> {
+        let Some(settings) = &self.config.openai else {
+            return Ok(true);
+        };
+        let was_promotional = self.store.read()?.active == Route::Promotional;
+        let allowed = self
+            .spending
+            .check(
+                settings,
+                &self.config.organization_id,
+                &self.store,
+                self.config.renewal_anchor,
+                (self.clock)(),
+                fresh,
+            )
+            .await?;
+        if !allowed {
+            if was_promotional {
+                self.notify("Local API spend check stopped promotional usage; using your normal subscription. See openai-credit-router status for the reason.");
+            }
+        }
+        Ok(allowed)
     }
 
     // Free metadata request: validate the key's organization before it is ever
@@ -434,6 +465,16 @@ impl Router {
                     .await;
             }
         }
+        // Check combined project spend on every promotional admission, including
+        // automatic operations. A failed check never sends an API request.
+        if !self.check_spending(true).await?
+            || self.status((self.clock)())?.route == Route::Subscription
+        {
+            drop(guard);
+            return self
+                .subscription(parts, bytes, context, "local_spend_guard")
+                .await;
+        }
         let mut trace = trace::Trace::start(
             self.store.audit(),
             context.clone(),
@@ -585,6 +626,14 @@ fn reply(status: StatusCode, mut headers: HeaderMap, body: Body) -> Response<Bod
 }
 
 async fn status(State(router): State<Arc<Router>>) -> Response<Body> {
+    if router
+        .status((router.clock)())
+        .is_ok_and(|s| s.route == Route::Promotional)
+    {
+        if let Err(error) = router.check_spending(false).await {
+            return failure(error);
+        }
+    }
     match router
         .status((router.clock)())
         .and_then(|value| Ok(serde_json::to_vec(&value)?))

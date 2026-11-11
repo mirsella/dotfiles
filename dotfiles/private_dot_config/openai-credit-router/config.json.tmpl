@@ -6,8 +6,12 @@
   "openai": {
     "api_upstream": "http://127.0.0.1:17321/sleev/opencode/openai",
     "project_id": "proj_V8UqSU2ezu1cpyNYnAEZBxDJ",
-    "enforced_project_limit_usd": 190,
-    "grant_usd": 199
+    "enforced_project_limit_usd": 150,
+    "grant_usd": 199,
+    "spending": {
+      "limit_usd": 150,
+      "codexbar_config": "{{ .chezmoi.homeDir }}/.config/codexbar/config.json"
+    }
   },
   "notify_send": "{{ .chezmoi.homeDir }}/.nix-profile/bin/notify-send"
 }
