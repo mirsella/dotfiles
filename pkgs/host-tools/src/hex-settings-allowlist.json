@@ -46,7 +46,8 @@
       "picker_sort_filter": true, "sided_modifier_chords": true, "tap_or_hold": true,
       "benchmark_details": true, "parakeet_ultra": true, "standalone_special_keys": true,
       "history_stats": true, "recent_dictations": true, "skip_pauses": true,
-      "stop_when_call_ends": true, "output_fixes": true
+      "stop_when_call_ends": true, "output_fixes": true,
+      "keep_recordings": true, "transcribe_files": true
     },
     "enable_on_launch": true, "paste_with_shift": true, "gnome_keyboard_shortcuts": true,
     "share_dictation_shortcut": true, "ui_language": true, "indicator_position": true,
