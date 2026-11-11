@@ -40,7 +40,84 @@
         "prompt": "Rewrite the transcript into clear, natural text while preserving the speaker's intended meaning.",
         "variant": null
       },
-      "replacements": [],
+      "replacements": [
+        {
+          "matched_phrase": "Tiffy code",
+          "output": "T3 Code"
+        },
+        {
+          "matched_phrase": "TFUS code",
+          "output": "T3 Code"
+        },
+        {
+          "matched_phrase": "Tfue code",
+          "output": "T3 Code"
+        },
+        {
+          "matched_phrase": "Chiffy code",
+          "output": "T3 Code"
+        },
+        {
+          "matched_phrase": "Tiffy",
+          "output": "T3"
+        },
+        {
+          "matched_phrase": "TFUS",
+          "output": "T3"
+        },
+        {
+          "matched_phrase": "voxtrite",
+          "output": "VoxRide"
+        },
+        {
+          "matched_phrase": "voxrite",
+          "output": "VoxRide"
+        },
+        {
+          "matched_phrase": "Post-Hug",
+          "output": "PostHog"
+        },
+        {
+          "matched_phrase": "post-organ",
+          "output": "PostHog"
+        },
+        {
+          "matched_phrase": "post-tug",
+          "output": "PostHog"
+        },
+        {
+          "matched_phrase": "ClinkCode",
+          "output": "cleancode"
+        },
+        {
+          "matched_phrase": "CloudCode",
+          "output": "Claude Code"
+        },
+        {
+          "matched_phrase": "Shimua",
+          "output": "chezmoi"
+        },
+        {
+          "matched_phrase": "sole loop",
+          "output": "sol-loop"
+        },
+        {
+          "matched_phrase": "My T-minions",
+          "output": "Mighty Minions"
+        },
+        {
+          "matched_phrase": "engines.md",
+          "output": "AGENTS.md"
+        },
+        {
+          "matched_phrase": "Parakit",
+          "output": "Parakeet"
+        },
+        {
+          "matched_phrase": "Aconadi",
+          "output": "Akonadi"
+        }
+      ],
       "transformations": [],
       "vocabulary": []
     },
@@ -64,7 +141,7 @@
     "filler_words": false,
     "history_stats": true,
     "keep_on_clipboard": false,
-    "keep_recordings": false,
+    "keep_recordings": true,
     "live_chapters": false,
     "live_text": true,
     "mouse_shortcuts": false,
@@ -84,10 +161,10 @@
     "stop_when_call_ends": false,
     "subtitle_export": false,
     "tap_or_hold": false,
-    "transcribe_files": false,
+    "transcribe_files": true,
     "unload_idle": true,
     "unload_idle_minutes": 5,
-    "vocabulary_biasing": false
+    "vocabulary_biasing": true
   },
   "meetings": {
     "calendar": {
@@ -130,7 +207,7 @@
   "sound_theme": "signature",
   "transcription": {
     "language": "en",
-    "model": "cohere_transcribe"
+    "model": "parakeet_v3"
   },
   "transcription_device": "auto",
   "ui_language": "en",
@@ -138,12 +215,133 @@
     "channel": null
   },
   "vocabulary": [
+    {
+      "sounds_like": [
+        "Tiffy code",
+        "TFUS code",
+        "Tfue code",
+        "Chiffy code",
+        "G3 Code"
+      ],
+      "term": "T3 Code"
+    },
+    {
+      "sounds_like": [
+        "tiffy",
+        "TFUS"
+      ],
+      "term": "T3"
+    },
+    {
+      "sounds_like": [
+        "Post-Hug",
+        "post-organ",
+        "post-tug"
+      ],
+      "term": "PostHog"
+    },
+    "Bevy",
+    {
+      "sounds_like": [
+        "voxrite",
+        "voxtrite"
+      ],
+      "term": "VoxRide"
+    },
+    {
+      "sounds_like": [
+        "My T-minions"
+      ],
+      "term": "Mighty Minions"
+    },
+    {
+      "sounds_like": [
+        "ClinkCode",
+        "Clean coal"
+      ],
+      "term": "cleancode"
+    },
+    {
+      "sounds_like": [
+        "sole loop"
+      ],
+      "term": "sol-loop"
+    },
+    {
+      "sounds_like": [
+        "CloudCode",
+        "cloud code"
+      ],
+      "term": "Claude Code"
+    },
+    {
+      "sounds_like": [
+        "claude agent"
+      ],
+      "term": "claude-agent"
+    },
+    "Claude",
+    {
+      "sounds_like": [
+        "FABL"
+      ],
+      "term": "fable"
+    },
+    {
+      "sounds_like": [
+        "opus55"
+      ],
+      "term": "opus-5.5"
+    },
+    "OpenCode",
+    "Codex",
+    {
+      "sounds_like": [
+        "Shimua"
+      ],
+      "term": "chezmoi"
+    },
+    {
+      "sounds_like": [
+        ".files"
+      ],
+      "term": "dotfiles"
+    },
+    {
+      "sounds_like": [
+        "work tree"
+      ],
+      "term": "worktree"
+    },
+    {
+      "sounds_like": [
+        "work trees"
+      ],
+      "term": "worktrees"
+    },
+    {
+      "sounds_like": [
+        "engines.md"
+      ],
+      "term": "AGENTS.md"
+    },
+    {
+      "sounds_like": [
+        "IDB",
+        "CDB"
+      ],
+      "term": "ADB"
+    },
+    {
+      "sounds_like": [
+        "end-off"
+      ],
+      "term": "handoff"
+    },
+    "cloudflare",
     "wasm",
     "vercel",
-    "cloudflare",
     "spine",
-    "posthog",
-    "bevy",
     "cargo",
     "rust",
     "leptos",
@@ -153,13 +351,38 @@
     "pnpm",
     "npm",
     "seaorm",
-    "voxride",
     {
       "sounds_like": [
-        ".files"
+        "Parakit"
       ],
-      "term": "dotfiles"
-    }
+      "term": "Parakeet"
+    },
+    {
+      "sounds_like": [
+        "Coair"
+      ],
+      "term": "Cohere"
+    },
+    {
+      "sounds_like": [
+        "Compose.io"
+      ],
+      "term": "Composio"
+    },
+    {
+      "sounds_like": [
+        "Aconadi"
+      ],
+      "term": "Akonadi"
+    },
+    {
+      "sounds_like": [
+        "B2FS"
+      ],
+      "term": "btrfs"
+    },
+    "Wiko",
+    "GLES2"
   ],
   "vocabulary_boost": "normal"
 }

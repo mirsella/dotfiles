@@ -5,6 +5,11 @@
     "npmIntegrity": "sha512-7LHxnyw03NWIczCwgD9xMLsKBjDNI7zpy+hpqcLQIEQ6071FMFk24E4+9INAfibTtLcHECiYoeWZKtFDVO63rw==",
     "codexContentHash": "sha256:f9884baab8dbca996d29f8d5126367221b20e79a6e44f96a64b799b6bf8cb5e3"
   },
+  "computerUse": {
+    "package": "@mirsella/computer-use-mcp",
+    "version": "2.2.0",
+    "npmIntegrity": "sha512-eayTwwHIV8ndxSis56aT1ypemvVDGZBfAIwRwWwOt+n0hCTdI3ol62HxEidCactQWcMDgDyuP2AoFns2DwxuUQ=="
+  },
   "servers": {
     "context7-broker": {
       "type": "stdio",
