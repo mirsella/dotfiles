@@ -22,6 +22,7 @@
     "confirmThreadArchive": false,
     "confirmThreadDelete": true,
     "confirmThreadUnpin": false,
+    "contextWindowMeterEnabled": false,
     "diffColorScheme": "red-green",
     "diffFilesCollapsed": true,
     "diffIgnoreWhitespace": true,
@@ -46,6 +47,7 @@
     "fontSmoothing": true,
     "glassOpacity": 80,
     "inAppNotificationsEnabled": true,
+    "legacySidebarEnabled": false,
     "loadBalancingEnabled": false,
     "loadBalancingWeights": {
       "020898b6-4a15-44cb-ae04-0ef53d75919f": 100,
@@ -55,8 +57,8 @@
     "notificationMode": "notifications",
     "panelAnimationDurationMs": 0,
     "persistComposerContextStrip": true,
+    "planModeEnabled": false,
     "proactivePanelsEnabled": false,
-    "providerModelPreferences": {},
     "pullRequestLinksOpenInApp": true,
     "sendShortcut": "enter",
     "showSkillsInSlashMenu": true,
@@ -151,15 +153,7 @@
         "provider": "opencode"
       },
       {
-        "model": "claude-agent/claude-fable-5-1[1m]",
-        "provider": "opencode"
-      },
-      {
         "model": "opencode/deepseek-v4.1-flash-free",
-        "provider": "opencode"
-      },
-      {
-        "model": "claude-agent/claude-fable-5-2",
         "provider": "opencode"
       }
     ],
@@ -968,15 +962,6 @@
   ],
   "projects": [
     {
-      "workspace_root": "~/Documents/xiaomi-mom",
-      "attributes": {
-        "faviconPath": null,
-        "projectIcon": null,
-        "title": "xiaomi-mom"
-      },
-      "settings": {}
-    },
-    {
       "workspace_root": "~/dev/browser-mcp",
       "attributes": {
         "faviconPath": null,
@@ -1004,15 +989,6 @@
       "settings": {
         "defaultThreadEnvMode": "local"
       }
-    },
-    {
-      "workspace_root": "~/dev/email-service",
-      "attributes": {
-        "faviconPath": null,
-        "projectIcon": null,
-        "title": "email-service"
-      },
-      "settings": {}
     },
     {
       "workspace_root": "~/dev/mightyminions/main",
@@ -1064,15 +1040,6 @@
       }
     },
     {
-      "workspace_root": "~/dev/news-scraper",
-      "attributes": {
-        "faviconPath": null,
-        "projectIcon": null,
-        "title": "news-scraper"
-      },
-      "settings": {}
-    },
-    {
       "workspace_root": "~/dev/opencode-queue",
       "attributes": {
         "faviconPath": null,
@@ -1093,7 +1060,7 @@
     {
       "workspace_root": "~/dev/voxride-dashboard",
       "attributes": {
-        "faviconPath": "~/dev/voxride-dashboard/src/app/icon.svg",
+        "faviconPath": null,
         "projectIcon": null,
         "title": "voxride-dashboard"
       },
@@ -1104,22 +1071,13 @@
     {
       "workspace_root": "~/dev/voxride-website",
       "attributes": {
-        "faviconPath": "apps/website/public/logo512.png",
+        "faviconPath": null,
         "projectIcon": null,
         "title": "voxride-website"
       },
       "settings": {
         "defaultThreadEnvMode": "worktree"
       }
-    },
-    {
-      "workspace_root": "~/dev/wiko",
-      "attributes": {
-        "faviconPath": "~/dev/wiko/assets/icon.svg",
-        "projectIcon": null,
-        "title": "wiko"
-      },
-      "settings": {}
     },
     {
       "workspace_root": "~/dev/y2s",
