@@ -66,7 +66,7 @@ Neither instance controls subscription limits, retries or gifted credits.
 
 The first grant is **$199**, expiring December 9, 2026; later grants follow the
 ChatGPT subscription cycle. The dedicated `voxride-opencode` project has a
-**$150 enforced dashboard limit** and a separate **$150 local admission limit**.
+**$100 enforced dashboard limit** and a separate **$100 local admission limit**.
 Neither limit allocates a funding source: organization credits remain shared.
 
 Before every promotional Responses or compaction request, the router checks a
@@ -96,10 +96,10 @@ Manual subscription mode overrides renewal until explicitly changed.
 
 **This is a reported-spend cutoff, not an exact token ledger or a $0-charge
 guarantee.** The 60-second cache, reporting lag and accepted concurrent requests can exceed
-$150. There is no shared in-flight reservation across machines. Passing mocked
+$100. There is no shared in-flight reservation across machines. Passing mocked
 cutoff tests does not establish a bound on OpenAI's reporting delay, and does not
 justify raising this to $190. Token-based audit estimates have incomplete usage
-and pricing and are not safe substitutes. Keep the $50 margin; stronger guarantees
+and pricing and are not safe substitutes. Keep the $100 margin against a full $200 grant; stronger guarantees
 need coordinated conservative reservations or a separate org without paid funds.
 The router does not modify organization-wide billing or company project settings.
 

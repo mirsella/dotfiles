@@ -8,7 +8,7 @@ index b69da01..4635fc8 100644
      <group name="General">
 +        <entry name="showApiCredits" type="Bool"><default>false</default></entry>
 +        <entry name="openaiCreditProjectId" type="String"><default></default></entry>
-+        <entry name="openaiCreditBudget" type="Int"><default>150</default><min>1</min></entry>
++        <entry name="openaiCreditBudget" type="Int"><default>100</default><min>1</min></entry>
          <entry name="refreshIntervalMinutes" type="Int">
              <default>5</default>
          </entry>

@@ -9,7 +9,7 @@ or enable the credit router.
   Claude Platform source. Shows dollars used/total, remaining and expiry. Purchased
   credit and local Claude token estimates are never treated as promotional credit.
 - **Codex:** calendar-month USD costs for the configured OpenAI API project against
-  its configured display budget ($150 here). This is **not** the organization's
+  its configured display budget ($100 here). This is **not** the organization's
   promotional balance. Project caps reset independently from subscription grants;
   billing data/enforcement can lag.
 
