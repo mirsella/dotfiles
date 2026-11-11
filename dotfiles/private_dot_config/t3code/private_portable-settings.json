@@ -1060,7 +1060,7 @@
     {
       "workspace_root": "~/dev/voxride-dashboard",
       "attributes": {
-        "faviconPath": null,
+        "faviconPath": "~/dev/voxride-dashboard/src/app/icon.svg",
         "projectIcon": null,
         "title": "voxride-dashboard"
       },
@@ -1071,7 +1071,7 @@
     {
       "workspace_root": "~/dev/voxride-website",
       "attributes": {
-        "faviconPath": null,
+        "faviconPath": "~/dev/voxride-website/public/favicon.ico",
         "projectIcon": null,
         "title": "voxride-website"
       },

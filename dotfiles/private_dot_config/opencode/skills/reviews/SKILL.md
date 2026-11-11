@@ -8,16 +8,10 @@ changes and work you delegated. Focus on concrete defects introduced by this
 work that are worth fixing before merge, not style preferences, speculative
 hardening, or pre-existing issues.
 Other agents may be working in the same worktree — only review your own changes, never theirs. If ownership of a hunk is shared or uncertain, exclude it. Formatting is fine.
-Delegate the read-only review for fresh context. If you are not an OpenAI GPT
-model, the reviewer is GPT Sol, for a second model's view: load the sol-loop
-skill and use it to start Sol and for its round budget, while this skill decides
-what gets fixed. If you are a GPT model, or no route runs Sol, use one native
-subagent instead. Say which reviewer ran.
-
-Give the reviewer the owned diff, relevant context, and existing verification
-results. It should report concrete defects and verification gaps without editing
-files or running builds, linters, or tests. The parent agent owns fixes and any
-needed verification.
+Delegate read-only reviews to subagents for fresh context. Give them the owned
+diff, relevant context, and existing verification results. They should report
+concrete defects and verification gaps without editing files or running builds,
+linters, or tests. The parent agent owns fixes and any needed verification.
 
 $ARGUMENTS
 

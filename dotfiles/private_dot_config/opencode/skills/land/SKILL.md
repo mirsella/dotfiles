@@ -23,7 +23,6 @@ For each included project:
 - Rebase onto local main, preserving both branches' intended changes,
   then merge into its checkout with `git merge --ff-only --no-autostash`.
 - Repeat if main advances, then push main. Respect dependencies between projects.
-- Landing is this direct merge. Do not open or suggest a pull request unless asked.
 - Preserve other sessions' work. Merge around it if Git permits; never stash,
   commit or discard it. If blocked, leave it untouched and report the blocker.
 
@@ -45,5 +44,3 @@ is landed and its worktrees are clean. Never discard work to enable settlement.
 
 Briefly report each project's landed commits, checks, removed worktrees, and
 skipped, retained or blocked work. Do not claim full landing after partial success.
-End by following the recommendations skill for what is still left to do on the
-task itself.

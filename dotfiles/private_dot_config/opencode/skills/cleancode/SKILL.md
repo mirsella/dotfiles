@@ -29,11 +29,6 @@ $ARGUMENTS
   implementation that adds a dependency and its integration code is not
   automatically simpler. Do not hand-roll substantial functionality merely to
   avoid a suitable dependency.
-- Question the design itself, not only its implementation. If this session's
-  solution added persisted state, versioning, caches, background work, protocol
-  fields or configuration that a simpler design meeting the same requirement
-  would not need, replace it with the simpler design. Ask first when that would
-  change behavior the user chose.
 - Fix underlying design problems instead of adding hacks, local workarounds,
   monkey patches, hidden second implementations, or layers of patches. Rewrite
   awkward control flow, collapse layers, merge fragmented logic, remove redundant

@@ -3,9 +3,3 @@ history.txt
 .bacon*
 .opencode/package-lock.json
 .scratch/
-target/
-node_modules/
-__pycache__/
-.venv/
-.direnv/
-.wrangler/
