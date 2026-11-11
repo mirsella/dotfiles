@@ -16,6 +16,7 @@
 
 - Prefer pnpm or bun over npm.
 - Access Nextcloud with the configured `rclone` remote `nextcloud:` (`lsf`, `lsjson`, `cat`, `copyto`), not a filesystem mount. Download files into a task directory under `~/dev` to edit, then upload only the intended paths; `copyto` can overwrite files. Keep credentials in the existing rclone config, and do not use `sync`, `move`, `delete` or `purge` without authorization. See `~/dev/dotfiles/AGENTS.md` for examples and timeout flags.
+- Before asking for a VoxRide token, check the `secretspec.toml` scopes and `secrets/` payloads of mightyminions, voxride-dashboard and voxride-website, then the Proton Pass `voxride-secrets` vault. Store a new long-lived token in the owning repository's SOPS payload so later sessions reuse it.
 - Use the external browser MCP for third-party dashboards and authenticated account workflows. Use T3 preview tools for local development previews.
 - Never call the T3 desktop `browser.*` tools; they are never attached to service sessions and only return a disconnect error.
 
