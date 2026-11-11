@@ -19,6 +19,18 @@ let
       exit 1
     fi
   '';
+  # The same Computer Use MCP release OpenCode installs from npm. Claude Code
+  # has no plugin for it, so it gets the server and its skill from this tarball.
+  computerUse = inventory.computerUse;
+  computerUseRoot = pkgs.runCommand "computer-use-mcp-${computerUse.version}" {
+    src = pkgs.fetchurl {
+      url = "https://registry.npmjs.org/${computerUse.package}/-/computer-use-mcp-${computerUse.version}.tgz";
+      hash = computerUse.npmIntegrity;
+    };
+  } ''
+    mkdir "$out"
+    tar -xzf "$src" --strip-components=1 -C "$out"
+  '';
   # Adapt Claude's hook envelope to the published browser hook protocol. Keep
   # Claude IDs distinct from Codex IDs and use the broker's queued cleanup.
   browserHook = "${lib.getExe pkgs.host-tools} claude-browser-hook "
@@ -27,7 +39,7 @@ let
     builtins.removeAttrs server [ "enabled" "toolTimeoutSec" "oauth" ]
   ) (lib.filterAttrs (_: server: server.enabled) inventory.servers);
   migratedServerNames = pkgs.writeText "claude-managed-mcp-names.json"
-    (builtins.toJSON ([ "browser" ] ++ builtins.attrNames inventory.servers));
+    (builtins.toJSON ([ "browser" "computer_use" ] ++ builtins.attrNames inventory.servers));
 in
 {
   # Home Manager's personal plugin supplies generated MCP configuration without
@@ -38,6 +50,14 @@ in
     mutableSettings = true;
     mcpServers = claudeServers // {
       browser = { type = "stdio"; command = "${browserRoot}/vendor/browser-mcp"; };
+      # The launcher recovers the graphical session environment when missing.
+      # npm publishes it without the executable bit, so bash runs it, as in the
+      # package's own .mcp.json.
+      computer_use = {
+        type = "stdio";
+        command = lib.getExe pkgs.bash;
+        args = [ "${computerUseRoot}/host/mcp-server" "mcp" "--compact-tools" ];
+      };
     };
     settings.env = { MCP_TIMEOUT = "40000"; MCP_TOOL_TIMEOUT = "540000"; };
     settings.hooks = {
@@ -51,6 +71,7 @@ in
     };
   };
   home.file.".claude/skills/browser-automation".source = "${browserRoot}/skills/browser-automation";
+  home.file.".claude/skills/computer-use-mcp".source = "${computerUseRoot}/skills/computer-use-mcp";
   # Codex installs its plugin from this stable path (see dot_codex/private_config.toml.tmpl).
   home.file.".local/share/browser-mcp/current".source = browserRoot;
   # Old user-scoped entries override plugin configuration. Retire only these
