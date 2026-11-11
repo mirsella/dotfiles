@@ -653,7 +653,8 @@ journalctl --user -u adb-wireless.service -f
 adb devices -l
 ```
 
-`host-tools adb-status` prints what the watcher last saw of each phone: its
+`adb-status` (`host-tools adb-status`, linked into `~/.local/bin` by Home
+Manager) prints what the watcher last saw of each phone: its
 connection, the earliest time Wireless debugging can turn off, the last use
 this host counted, the newest use recorded on the phone by any workstation and
 the build-tool reads it ignored. It reads the status files the watcher keeps in
