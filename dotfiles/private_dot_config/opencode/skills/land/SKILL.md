@@ -44,3 +44,5 @@ is landed and its worktrees are clean. Never discard work to enable settlement.
 
 Briefly report each project's landed commits, checks, removed worktrees, and
 skipped, retained or blocked work. Do not claim full landing after partial success.
+End with what is still left to do on the task itself, or state plainly that
+nothing is left.
