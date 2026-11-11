@@ -1,8 +1,10 @@
 //! Exercise continuous Plasma-to-dconf repair without synthetic theme changes.
 
+#[path = "../src/test_support.rs"]
+mod test_support;
+
 use std::{
     fs,
-    os::unix::fs::PermissionsExt as _,
     path::PathBuf,
     process::{Child, Command, Stdio},
     time::{Duration, Instant},
@@ -56,7 +58,7 @@ impl Studio {
         let shim = self.root.path().join("dconf");
         // Nix supplies its sandbox shell; native Linux builds use /bin/sh.
         let shell = option_env!("HOST_TOOLS_TEST_SHELL").unwrap_or("/bin/sh");
-        fs::write(
+        test_support::executable(
             &shim,
             format!(
                 r#"#!{shell}
@@ -74,9 +76,7 @@ esac
 "#,
                 root = self.root.path().display(),
             ),
-        )
-        .unwrap();
-        fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+        );
         shim
     }
 

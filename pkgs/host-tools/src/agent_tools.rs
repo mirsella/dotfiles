@@ -397,7 +397,7 @@ pub fn composio_mcp_headers() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{os::unix::process::CommandExt, thread, time::Duration};
+    use std::os::unix::process::CommandExt;
 
     fn scratch() -> tempfile::TempDir {
         tempfile::Builder::new()
@@ -411,8 +411,7 @@ mod tests {
         let root = scratch();
         let program = root.path().join("agent");
         let install_version = |version| -> Result<()> {
-            fs::write(&program, format!("#!/bin/sh\necho {version}\n"))?;
-            fs::set_permissions(&program, fs::Permissions::from_mode(0o755))?;
+            crate::test_support::executable(&program, format!("#!/bin/sh\necho {version}\n"));
             Ok(())
         };
         fn keep() -> Result<()> {
@@ -485,36 +484,14 @@ mod tests {
             .map(|path| path.join("cat"))
             .find(|path| path.is_file())
             .expect("cat must be on the test PATH");
-        fs::copy(executable, &installed).unwrap();
-        fs::set_permissions(&installed, fs::Permissions::from_mode(0o755)).unwrap();
-        // A sandbox can briefly report the freshly copied file as busy while the
-        // kernel is still closing the copy's handle. That error is transient, so
-        // retry it instead of failing the build on the race.
-        let mut child = None;
-        let mut last_busy = None;
-        for _ in 0..50 {
-            match Command::new(&installed)
-                .arg0("cat")
-                .stdin(Stdio::piped())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-            {
-                Ok(spawned) => {
-                    child = Some(spawned);
-                    break;
-                }
-                Err(error) if error.raw_os_error() == Some(libc::ETXTBSY) => {
-                    last_busy = Some(error);
-                    thread::sleep(Duration::from_millis(100));
-                }
-                Err(error) => panic!("spawning the installed AppImage failed: {error}"),
-            }
-        }
-        let mut child = child.unwrap_or_else(|| {
-            let error = last_busy.expect("only a busy spawn can exhaust the retries");
-            panic!("the installed AppImage stayed busy: {error}")
-        });
+        crate::test_support::executable(&installed, fs::read(executable).unwrap());
+        let mut child = Command::new(&installed)
+            .arg0("cat")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
         let write_error = fs::File::options()
             .write(true)
             .open(&installed)
@@ -584,8 +561,7 @@ mod tests {
         let releases = scratch.path().join("releases");
         fs::create_dir(&releases).unwrap();
         let binary = releases.join("newer-version");
-        fs::write(&binary, "#!/bin/sh\nprintf 'native version\\n'\n").unwrap();
-        fs::set_permissions(&binary, fs::Permissions::from_mode(0o755)).unwrap();
+        crate::test_support::executable(&binary, "#!/bin/sh\nprintf 'native version\\n'\n");
         let aliased_releases = scratch.path().join("aliased-releases");
         symlink(&releases, &aliased_releases).unwrap();
         let command = scratch.path().join("codex");

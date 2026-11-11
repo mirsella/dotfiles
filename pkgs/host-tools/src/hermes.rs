@@ -845,8 +845,10 @@ mod tests {
     fn credential_capture_drains_stdout_and_discards_stderr_while_sending_large_input() {
         let directory = tempfile::tempdir().unwrap();
         let client = directory.path().join("duplex-client");
-        fs::write(&client, "#!/bin/sh\ndd if=/dev/zero bs=65536 count=4 2>/dev/null\ndd if=/dev/zero bs=65536 count=4 >&2 2>/dev/null\ndd bs=65536 2>/dev/null\n").unwrap();
-        fs::set_permissions(&client, fs::Permissions::from_mode(0o700)).unwrap();
+        crate::test_support::executable(
+            &client,
+            "#!/bin/sh\ndd if=/dev/zero bs=65536 count=4 2>/dev/null\ndd if=/dev/zero bs=65536 count=4 >&2 2>/dev/null\ndd bs=65536 2>/dev/null\n",
+        );
         let input = vec![b'x'; 512 * 1024];
         let output = capture(Command::new("timeout").arg("5s").arg(&client), Some(&input)).unwrap();
         let prefix = 4 * 65536;
@@ -859,12 +861,10 @@ mod tests {
     fn credential_capture_reports_failed_child_without_private_diagnostics() {
         let directory = tempfile::tempdir().unwrap();
         let client = directory.path().join("failed-client");
-        fs::write(
+        crate::test_support::executable(
             &client,
             "#!/bin/sh\nprintf 'private-credential-marker' >&2\nexit 7\n",
-        )
-        .unwrap();
-        fs::set_permissions(&client, fs::Permissions::from_mode(0o700)).unwrap();
+        );
         let input = vec![b'x'; 512 * 1024];
         for stdin in [None, Some(input.as_slice())] {
             let error = capture(&mut Command::new(&client), stdin)

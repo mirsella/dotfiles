@@ -26,6 +26,8 @@ mod t3_activity;
 mod t3_defaults;
 mod t3_settings;
 #[cfg(test)]
+mod test_support;
+#[cfg(test)]
 mod tests;
 mod theme;
 mod uki;

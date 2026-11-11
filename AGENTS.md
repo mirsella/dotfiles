@@ -109,7 +109,10 @@ The flake discovers these directories and sets hostnames automatically.
   `.#ci` on pushes to `main`: every declared check, host-tools with its Rust tests,
   and camofox-browser. Format `pkgs/host-tools` with the flake's pinned
   rustfmt (`nix fmt`); a newer local rustfmt can reformat code the gate accepts.
-  Run focused Cargo tests for monitoring, backups and suspend changes. The
+  Run focused Cargo tests for monitoring, backups and suspend changes. In
+  host-tools tests, create scripts and other executables with
+  `test_support::executable`, never `fs::write` plus chmod: a parallel test's
+  fork can hold the write handle and fail the run with `ETXTBSY`. The
   `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during
   `nix flake check` without `--no-build`.
 - `disko.nix` formats **all four data disks** only for a fresh, intentional

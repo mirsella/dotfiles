@@ -1,9 +1,11 @@
 //! Exercise the real chezmoi command lifecycle, without a server or Git remote.
 
+#[path = "../src/test_support.rs"]
+mod test_support;
+
 use std::{
     fs,
     io::Write as _,
-    os::unix::fs::PermissionsExt as _,
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -127,8 +129,7 @@ esac
     fn script(&self, name: &str, body: &str) {
         let path = self.path(&format!("bin/{name}"));
         let shell = option_env!("HOST_TOOLS_TEST_SHELL").unwrap_or("/bin/sh");
-        fs::write(&path, format!("#!{shell}\nset -e\n{body}")).unwrap();
-        fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
+        test_support::executable(&path, format!("#!{shell}\nset -e\n{body}"));
     }
 
     fn run(&self, args: &[&str]) {

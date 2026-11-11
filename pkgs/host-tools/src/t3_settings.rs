@@ -2049,7 +2049,7 @@ mod tests {
 
     #[test]
     fn t3_cli_must_match_the_running_server_version() -> Result<()> {
-        use std::os::unix::fs::{PermissionsExt, symlink};
+        use std::os::unix::fs::symlink;
 
         let root = tempfile::tempdir()?;
         let home = root.path().join("home");
@@ -2096,8 +2096,7 @@ mod tests {
 
         fs::remove_file(&link)?;
         let unmanaged = home.join("unmanaged-t3");
-        fs::write(&unmanaged, "#!/bin/sh\necho 't3 v0.1.4-nightly.2'\n")?;
-        fs::set_permissions(&unmanaged, fs::Permissions::from_mode(0o755))?;
+        crate::test_support::executable(&unmanaged, "#!/bin/sh\necho 't3 v0.1.4-nightly.2'\n");
         symlink(&unmanaged, &link)?;
         ensure_cli_matches_server(
             &json!({"serverVersion": "0.1.4-nightly.2"}),
@@ -2116,8 +2115,7 @@ mod tests {
 
         fs::remove_file(&link)?;
         let broken = home.join("broken-t3");
-        fs::write(&broken, "#!/bin/sh\nexit 1\n")?;
-        fs::set_permissions(&broken, fs::Permissions::from_mode(0o755))?;
+        crate::test_support::executable(&broken, "#!/bin/sh\nexit 1\n");
         symlink(&broken, &link)?;
         ensure_cli_matches_server(
             &json!({"serverVersion": "0.1.6-nightly.4"}),
@@ -2137,12 +2135,9 @@ mod tests {
 
     #[test]
     fn a_hanging_cli_version_probe_gives_up() {
-        use std::os::unix::fs::PermissionsExt;
-
         let root = tempfile::tempdir().unwrap();
         let script = root.path().join("t3");
-        fs::write(&script, "#!/bin/sh\nsleep 30\n").unwrap();
-        fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+        crate::test_support::executable(&script, "#!/bin/sh\nsleep 30\n");
         let started = Instant::now();
         assert_eq!(
             reported_cli_version_within(&script, Duration::from_millis(100)),
@@ -2153,12 +2148,9 @@ mod tests {
 
     #[test]
     fn a_descendant_holding_stdout_does_not_stall_the_probe() {
-        use std::os::unix::fs::PermissionsExt;
-
         let root = tempfile::tempdir().unwrap();
         let script = root.path().join("t3");
-        fs::write(&script, "#!/bin/sh\nsleep 2 &\necho 't3 v9.9.9'\n").unwrap();
-        fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+        crate::test_support::executable(&script, "#!/bin/sh\nsleep 2 &\necho 't3 v9.9.9'\n");
         assert_eq!(
             reported_cli_version_within(&script, Duration::from_secs(1)),
             Some("9.9.9".to_string())
