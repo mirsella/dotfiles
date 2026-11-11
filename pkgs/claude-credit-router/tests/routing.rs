@@ -1004,9 +1004,10 @@ async fn local_limit_switches_before_inference_and_cannot_be_rechecked_away() {
 }
 
 #[tokio::test]
-async fn costs_are_refreshed_for_each_admission_and_shared_project_spend_counts() {
+async fn costs_cache_expires_at_sixty_seconds_and_counts_shared_project_spend() {
     let f = Fixture::openai(vec![
         Reply(StatusCode::OK, "api".into()),
+        Reply(StatusCode::OK, "cached api".into()),
         Reply(StatusCode::OK, "native".into()),
     ])
     .await;
@@ -1014,10 +1015,68 @@ async fn costs_are_refreshed_for_each_admission_and_shared_project_spend_counts(
     openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
     // Another machine spends the dollar, without any local usage event.
     *f.state.cost.lock().unwrap() = Some(150.0);
+    *f.clock.lock().unwrap() += chrono::Duration::seconds(59);
+    openai_send(&f, "/responses/compact", r#"{"model":"gpt-test"}"#).await;
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 1);
+    *f.clock.lock().unwrap() += chrono::Duration::seconds(1);
     openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
     assert_eq!(*f.state.cost_checks.lock().unwrap(), 2);
     assert_eq!(f.seen()[0].headers["authorization"], "Bearer sk-proj-mock");
+    assert_eq!(f.seen()[1].headers["authorization"], "Bearer sk-proj-mock");
+    assert_eq!(f.seen()[2].headers["authorization"], "Bearer native-codex");
+}
+
+#[tokio::test]
+async fn expired_cost_cache_is_not_used_when_refresh_fails() {
+    let f = Fixture::openai(vec![
+        Reply(StatusCode::OK, "api".into()),
+        Reply(StatusCode::OK, "native".into()),
+    ])
+    .await;
+    openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
+    *f.clock.lock().unwrap() += chrono::Duration::seconds(60);
+    *f.state.cost.lock().unwrap() = None;
+    openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#).await;
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 2);
     assert_eq!(f.seen()[1].headers["authorization"], "Bearer native-codex");
+    assert_eq!(
+        f.store.read().unwrap().history.last().unwrap().reason,
+        "spend_check_unavailable"
+    );
+}
+
+#[tokio::test]
+async fn concurrent_admissions_and_status_share_one_cost_refresh() {
+    let f = Fixture::openai(
+        (0..8)
+            .map(|_| Reply(StatusCode::OK, "api".into()))
+            .collect(),
+    )
+    .await;
+    reqwest::get(format!("{}/_credit/status", f.url))
+        .await
+        .unwrap();
+    futures_util::future::join_all(
+        (0..8).map(|_| openai_send(&f, "/responses", r#"{"model":"gpt-test"}"#)),
+    )
+    .await;
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 1);
+    assert_eq!(f.seen().len(), 8);
+    assert!(
+        f.seen()
+            .iter()
+            .all(|r| r.headers["authorization"] == "Bearer sk-proj-mock")
+    );
+}
+
+#[tokio::test]
+async fn explicit_refresh_bypasses_unexpired_cost_cache() {
+    let f = Fixture::openai(vec![]).await;
+    assert!(f.router.check_spending(false).await.unwrap());
+    *f.state.cost.lock().unwrap() = Some(150.0);
+    assert!(!f.router.check_spending(true).await.unwrap());
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 2);
+    assert_eq!(f.router.status(f.now()).unwrap().route, Route::Subscription);
 }
 
 #[tokio::test]

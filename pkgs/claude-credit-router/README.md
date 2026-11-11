@@ -69,13 +69,15 @@ ChatGPT subscription cycle. The dedicated `voxride-opencode` project has a
 **$150 enforced dashboard limit** and a separate **$150 local admission limit**.
 Neither limit allocates a funding source: organization credits remain shared.
 
-Before every promotional Responses or compaction request, the router reads the
-project's calendar-month USD costs directly from OpenAI's Costs API. This includes
-both machines and other users of that project. It uses the existing private
+Before every promotional Responses or compaction request, the router checks a
+60-second cache of the project's calendar-month USD costs from OpenAI's Costs API.
+All OpenCode instances on one machine share its router's cache, including status
+polls; each machine refreshes independently, but reports include both machines and
+other users of that project. Expired snapshots require a successful refresh before
+API admission; they are never used while refreshing. It uses the existing private
 CodexBar `openai` reporting credential (Usage Read); CodexBar need not be running.
-It never sends that credential to inference or Sleev. The status endpoint checks
-at most once per minute while promotional routing is eligible; each promotional
-admission requires a fresh check. Daily UTC buckets include the entire current
+It never sends that credential to inference or Sleev. `check-budget` bypasses the
+cache for an explicit refresh. Daily UTC buckets include the entire current
 day because an intraday end time can omit today's spend.
 
 At or above the local limit, the router records `local_spend_limit`, notifies the
@@ -92,13 +94,13 @@ grant cycle. At renewal, a fresh report is required before any API inference.
 Manual subscription mode overrides renewal until explicitly changed.
 
 **This is a reported-spend cutoff, not an exact token ledger or a $0-charge
-guarantee.** Reporting lag and already accepted concurrent requests can exceed
+guarantee.** The 60-second cache, reporting lag and accepted concurrent requests can exceed
 $150. There is no shared in-flight reservation across machines. Passing mocked
 cutoff tests does not establish a bound on OpenAI's reporting delay, and does not
 justify raising this to $190. Token-based audit estimates have incomplete usage
 and pricing and are not safe substitutes. Keep the $50 margin; stronger guarantees
 need coordinated conservative reservations or a separate org without paid funds.
-No org-wide billing, auto-recharge or company project setting is changed.
+The router does not modify organization-wide billing or company project settings.
 
 The router uses `OPENAI_CREDIT_ROUTER_API_KEY` from the same SOPS environment file,
 never `OPENAI_API_KEY`. Its free Models request verifies project access and loads

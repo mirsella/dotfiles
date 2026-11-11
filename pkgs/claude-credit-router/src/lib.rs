@@ -465,9 +465,9 @@ impl Router {
                     .await;
             }
         }
-        // Check combined project spend on every promotional admission, including
-        // automatic operations. A failed check never sends an API request.
-        if !self.check_spending(true).await?
+        // All promotional admissions share the router's 60-second cost snapshot,
+        // including automatic operations. A failed refresh never sends API work.
+        if !self.check_spending(false).await?
             || self.status((self.clock)())?.route == Route::Subscription
         {
             drop(guard);
