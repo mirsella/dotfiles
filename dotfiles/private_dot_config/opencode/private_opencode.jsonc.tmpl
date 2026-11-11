@@ -149,6 +149,31 @@
     "claude-agent": {
       "settings": {
         "baseURL": "http://127.0.0.1:17321/sleev/opencode/anthropic"
+      },
+      "models": {
+        "claude-fable-5-1[1m]": {
+          "disabled": true
+        },
+        // Claude Code's gateway-mode catalog still lists 5.1; 5.2 works by explicit ID.
+        "claude-fable-5-2": {
+          "name": "Fable 5.2",
+          "limit": {
+            "context": 1000000,
+            "output": 128000
+          },
+          "capabilities": {
+            "tools": true,
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          },
+          "variants": [
+            { "id": "low", "settings": { "effort": "low" } },
+            { "id": "medium", "settings": { "effort": "medium" } },
+            { "id": "high", "settings": { "effort": "high" } },
+            { "id": "xhigh", "settings": { "effort": "xhigh" } },
+            { "id": "max", "settings": { "effort": "max" } }
+          ]
+        }
       }
     }
   }
