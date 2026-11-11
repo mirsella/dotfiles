@@ -141,6 +141,7 @@
     "filler_words": false,
     "history_stats": true,
     "keep_on_clipboard": false,
+    "keep_recordings": true,
     "live_chapters": false,
     "live_text": true,
     "mouse_shortcuts": false,
@@ -160,9 +161,10 @@
     "stop_when_call_ends": false,
     "subtitle_export": false,
     "tap_or_hold": false,
+    "transcribe_files": true,
     "unload_idle": true,
     "unload_idle_minutes": 5,
-    "vocabulary_biasing": false
+    "vocabulary_biasing": true
   },
   "meetings": {
     "calendar": {
@@ -205,7 +207,7 @@
   "sound_theme": "signature",
   "transcription": {
     "language": "en",
-    "model": "cohere_transcribe"
+    "model": "parakeet_v3"
   },
   "transcription_device": "auto",
   "ui_language": "en",
