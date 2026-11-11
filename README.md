@@ -676,6 +676,11 @@ mirsella's OpenCode, Rio and WezTerm executables. They remain eligible for kerne
 OOM killing, but are strongly deprioritized. Compilers and WASM build tools get
 `+800`; Cargo gets `+500`. The kernel considers memory usage along with these
 adjustments, so they express a preference rather than a strict kill order.
+While it runs, the policy publishes `300` in `/run/oom-protect/long-build-score`.
+A build that takes hours to redo reads that file, sets the score on itself before
+starting its tools, and the policy leaves it on its compilers, so another
+session's short check is killed before a release's link step. Without the file
+such a build changes nothing, so it behaves the same on hosts without the policy.
 The policy uses executable names, so changing a thread's name does not change
 its priority. Newly started processes receive the policy on the next scan.
 

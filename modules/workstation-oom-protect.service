@@ -8,6 +8,7 @@ ExecStart=/usr/local/libexec/host-tools oom-protect --user mirsella
 Restart=on-failure
 RestartSec=1s
 OOMScoreAdjust=-900
+RuntimeDirectory=oom-protect
 CapabilityBoundingSet=CAP_SYS_RESOURCE CAP_SYS_PTRACE CAP_DAC_OVERRIDE
 NoNewPrivileges=yes
 ProtectSystem=strict

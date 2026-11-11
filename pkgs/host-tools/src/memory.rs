@@ -13,11 +13,23 @@ use std::{
 // Apply to individual executables, never to an entire terminal/server cgroup:
 // builds launched inside a protected session must remain eligible OOM victims.
 const INTERACTIVE_SCORE: i32 = -900;
+// A build that takes hours to redo, such as a release, sets this on itself before starting
+// its tools, and they inherit it. It reads the value from `LONG_BUILD_FILE`, which exists
+// only while this policy runs: on a host without the policy the same score would make the
+// build the first victim instead. Among equal scores the kernel kills the largest process,
+// which is that build's link step rather than a check another session reruns in a minute.
+// With RAM plus swap near 110 GiB, the 500 points below other compilers outweigh about
+// 55 GiB of size difference, while 100 points above ordinary processes keep the build a
+// likelier victim than the desktop.
+const LONG_BUILD_SCORE: i32 = 300;
+// Inside the unit's `RuntimeDirectory`, which systemd removes when the policy stops.
+const LONG_BUILD_FILE: &str = "long-build-score";
 
 fn desired_score(executable: &OsStr, current: i32) -> i32 {
     let name = executable.as_bytes();
     match name.strip_suffix(b" (deleted)").unwrap_or(name) {
         b"opencode" | b"opencode.exe" | b"opencode2" | b"rio" | b"wezterm-gui" => INTERACTIVE_SCORE,
+        _ if current == LONG_BUILD_SCORE => current,
         b"rustc" | b"cc1" | b"cc1plus" | b"clang" | b"clang++" | b"gcc" | b"g++" | b"ld"
         | b"ld.lld" | b"lld" | b"rust-lld" | b"wasm-ld" | b"wasm-opt" | b"wasm-bindgen" => {
             current.max(800)
@@ -118,8 +130,16 @@ pub fn run(user: &str) -> Result<()> {
         "OOM policy must target a non-root workstation user"
     );
     println!(
-        "Protecting OpenCode/Rio/WezTerm for {user} (uid={uid}); interactive={INTERACTIVE_SCORE}, compilers=800, Cargo=500; interval=250ms"
+        "Protecting OpenCode/Rio/WezTerm for {user} (uid={uid}); interactive={INTERACTIVE_SCORE}, compilers=800, Cargo=500, long builds keep {LONG_BUILD_SCORE}; interval=250ms"
     );
+    match std::env::var_os("RUNTIME_DIRECTORY") {
+        Some(directory) => fs::write(
+            Path::new(&directory).join(LONG_BUILD_FILE),
+            format!("{LONG_BUILD_SCORE}\n"),
+        )
+        .context("advertising the long-build score")?,
+        None => println!("No RUNTIME_DIRECTORY: long builds cannot find their score"),
+    }
     let mut timer = ticker()?;
     loop {
         sweep(Path::new("/proc"), uid)?;
@@ -190,6 +210,27 @@ mod tests {
         assert_eq!(score(&urgent)?, 1000);
         assert_eq!(score(&terminal)?, -900);
         assert_eq!(score(&unusual)?, 200);
+        Ok(())
+    }
+
+    #[test]
+    fn long_builds_keep_their_own_score_below_other_compilers() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let release = [
+            process(root.path(), "41", "/toolchain/bin/rustc", LONG_BUILD_SCORE)?,
+            process(root.path(), "42", "/toolchain/bin/cargo", LONG_BUILD_SCORE)?,
+            process(root.path(), "43", "/usr/bin/wasm-opt", LONG_BUILD_SCORE)?,
+            process(root.path(), "44", "/usr/bin/just", LONG_BUILD_SCORE)?,
+        ];
+        let check = process(root.path(), "45", "/toolchain/bin/rustc", 200)?;
+        // A protected terminal started from a long build is still interactive.
+        let terminal = process(root.path(), "46", "/usr/bin/rio", LONG_BUILD_SCORE)?;
+        sweep(root.path(), unsafe { libc::getuid() })?;
+        for process in &release {
+            assert_eq!(score(process)?, LONG_BUILD_SCORE);
+        }
+        assert_eq!(score(&check)?, 800);
+        assert_eq!(score(&terminal)?, INTERACTIVE_SCORE);
         Ok(())
     }
 
