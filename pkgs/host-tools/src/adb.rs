@@ -6,9 +6,11 @@ use crate::util;
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use std::{
     collections::HashSet,
+    env, fs,
     io::{self, Read, Write},
     net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream},
     os::fd::AsRawFd,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
@@ -93,13 +95,21 @@ pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) ->
         }
         None => None,
     };
+    // The address of a transport comes only from mDNS, so each phone's is noted
+    // where it outlives a watcher restart but not the ADB server's session.
+    let memory = PathBuf::from(
+        env::var_os("XDG_RUNTIME_DIR")
+            .context("XDG_RUNTIME_DIR is not set, so held ADB transports cannot be remembered")?,
+    )
+    .join("adb-watch");
+    fs::create_dir_all(&memory).with_context(|| format!("create {}", memory.display()))?;
     // Subscribe before querying, so a disconnect during reconciliation is not missed.
     // A broken subscription exits; systemd owns restart and backoff.
     let mut tracker = SERVER.request("host:track-devices")?;
     let mut devices = read_frame(&mut tracker)?;
     let mut phones = serials
         .iter()
-        .map(|serial| Phone::new(serial))
+        .map(|serial| Phone::new(serial).recalling(memory.join(serial)))
         .collect::<Vec<_>>();
     loop {
         let mut all_connected = true;
@@ -144,6 +154,10 @@ struct Phone {
     serial: String,
     /// A failed query says nothing about it, so only a reconciliation replaces it.
     connection: Option<Connection>,
+    /// The transport last held, also noted in `memory` for the next watcher: a
+    /// phone that advertises nothing can only be watched at a known address.
+    remembered: Option<Connection>,
+    memory: Option<PathBuf>,
     last_message: String,
     /// Set while the phone advertises nothing; see `ABSENT_GRACE`.
     missing_since: Option<Instant>,
@@ -170,6 +184,8 @@ impl Phone {
         Self {
             serial: serial.to_owned(),
             connection: None,
+            remembered: None,
+            memory: None,
             last_message: String::new(),
             missing_since: None,
             idle_deadline: None,
@@ -183,6 +199,29 @@ impl Phone {
         }
     }
 
+    /// Start from the transport the previous watcher noted in `memory`, and note
+    /// there each one this watcher holds.
+    fn recalling(mut self, memory: PathBuf) -> Self {
+        self.remembered = recall(&memory);
+        self.memory = Some(memory);
+        self
+    }
+
+    fn remember(&mut self, connection: &Connection) {
+        self.remembered = Some(connection.clone());
+        let Some(memory) = &self.memory else {
+            return;
+        };
+        let note = format!("{} {}\n", connection.serial, connection.address);
+        if let Err(error) = fs::write(memory, note) {
+            eprintln!(
+                "adb-watch: note the transport of {} in {}: {error}; a restarted watcher cannot adopt it while unadvertised",
+                self.serial,
+                memory.display()
+            );
+        }
+    }
+
     /// Bring the held transport in line with what this phone advertises, logging
     /// changes when `announce` is set, and report whether it is online.
     fn sync(&mut self, devices: &str, announce: bool) -> Result<bool> {
@@ -190,6 +229,7 @@ impl Phone {
             &self.serial,
             devices,
             self.connection.as_ref(),
+            self.remembered.as_ref(),
             &mut self.missing_since,
             |service| SERVER.query(service),
             answering,
@@ -208,8 +248,8 @@ impl Phone {
                 )
             }
             Ok(Some(connection)) => format!("{} connected at {}", self.serial, connection.address),
-            // Only mDNS gives a transport's address, so one this watcher did not
-            // hold when the advertisement stopped cannot be sampled.
+            // Only mDNS gives a transport's address, so one no watcher held when
+            // the advertisement stopped cannot be sampled.
             Ok(None) if online_unadvertised(devices, &self.serial) => format!(
                 "{} is connected but not advertised, so its address is unknown: its ADB use is not watched until it advertises again",
                 self.serial
@@ -236,6 +276,9 @@ impl Phone {
         // reconciliation replaces it.
         if reached != self.connection {
             self.connection = reached;
+            if let Some(connection) = self.connection.clone() {
+                self.remember(&connection);
+            }
             let baseline = self
                 .connection
                 .as_ref()
@@ -882,6 +925,34 @@ fn listed(devices: &str, name: &str) -> bool {
         .any(|line| line.split_whitespace().next() == Some(name))
 }
 
+/// The transport a previous watcher noted at `path`, if any.
+fn recall(path: &Path) -> Option<Connection> {
+    let note = match fs::read_to_string(path) {
+        Ok(note) => note,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return None,
+        Err(error) => {
+            eprintln!("adb-watch: read {}: {error}", path.display());
+            return None;
+        }
+    };
+    let mut fields = note.split_whitespace();
+    match (fields.next(), fields.next(), fields.next()) {
+        (Some(serial), Some(address), None) if address.parse::<SocketAddr>().is_ok() => {
+            Some(Connection {
+                serial: serial.to_owned(),
+                address: address.to_owned(),
+            })
+        }
+        _ => {
+            eprintln!(
+                "adb-watch: ignoring the malformed transport note {}",
+                path.display()
+            );
+            None
+        }
+    }
+}
+
 /// Whether an online transport is named after this phone's mDNS service.
 fn online_unadvertised(devices: &str, serial: &str) -> bool {
     stale_transports(devices, serial).any(|name| {
@@ -894,11 +965,13 @@ fn online_unadvertised(devices: &str, serial: &str) -> bool {
 
 /// Bring the phone's transport in line with what it advertises: connect when it
 /// is missing or stale, drop what nothing advertises unless the phone still
-/// answers on it, and return the transport the watcher now holds.
+/// answers on it, and return the transport the watcher now holds. `remembered`
+/// is the last one any watcher held, taken up again if the phone answers on it.
 fn reconcile(
     serial: &str,
     devices: &str,
     held: Option<&Connection>,
+    remembered: Option<&Connection>,
     missing_since: &mut Option<Instant>,
     mut query: impl FnMut(&str) -> Result<String>,
     answering: impl Fn(&str) -> bool,
@@ -917,8 +990,15 @@ fn reconcile(
                 return Ok(Some(held.clone()));
             }
             disconnect(&mut query, &held.serial)?;
+            return Ok(None);
         }
-        return Ok(None);
+        // The ADB server outlives this watcher and keeps its transports, so a
+        // restart or a reconnect by the server can leave one online that this
+        // watcher does not hold. It is the remembered one if the phone answers
+        // at that address; any other stays unwatched, and is never cut.
+        return Ok(remembered
+            .filter(|known| listed(devices, &known.serial) && answering(&known.address))
+            .cloned());
     }
     *missing_since = None;
     // A phone that reboots under a new instance name or moves to another port
@@ -1026,7 +1106,7 @@ mod tests {
         devices: &str,
         steps: &[(&str, &str)],
     ) -> Result<Option<Connection>> {
-        reconcile_with(None, held, devices, steps, false)
+        reconcile_with(None, held, None, devices, steps, false)
     }
 
     /// Run one reconciliation as if the phone had been absent past the grace period.
@@ -1035,7 +1115,7 @@ mod tests {
         devices: &str,
         steps: &[(&str, &str)],
     ) -> Result<Option<Connection>> {
-        reconcile_with(past_grace(), held, devices, steps, false)
+        reconcile_with(past_grace(), held, None, devices, steps, false)
     }
 
     fn past_grace() -> Option<Instant> {
@@ -1045,6 +1125,7 @@ mod tests {
     fn reconcile_with(
         missing_since: Option<Instant>,
         held: Option<&Connection>,
+        remembered: Option<&Connection>,
         devices: &str,
         steps: &[(&str, &str)],
         answering: bool,
@@ -1055,6 +1136,7 @@ mod tests {
             "phone",
             devices,
             held,
+            remembered,
             &mut missing_since,
             |service| {
                 let &(expected, response) = steps.next().expect("unexpected ADB request");
@@ -1062,7 +1144,10 @@ mod tests {
                 Ok(response.to_owned())
             },
             |address| {
-                assert_eq!(Some(address), held.map(|held| held.address.as_str()));
+                assert_eq!(
+                    Some(address),
+                    held.or(remembered).map(|known| known.address.as_str())
+                );
                 answering
             },
         );
@@ -1899,14 +1984,61 @@ settings() {{
         let held = connection("adb-phone-new._adb-tls-connect._tcp", "192.168.1.76:41325");
         let quiet = [("host:mdns:services", "List of discovered mdns services\n")];
         assert_eq!(
-            reconcile_with(past_grace(), Some(&held), devices, &quiet, true).unwrap(),
+            reconcile_with(past_grace(), Some(&held), None, devices, &quiet, true).unwrap(),
             Some(held.clone())
         );
         // Without a listed transport there is nothing left to keep or to ask.
         assert_eq!(
-            reconcile_with(past_grace(), Some(&held), "", &quiet, true).unwrap(),
+            reconcile_with(past_grace(), Some(&held), None, "", &quiet, true).unwrap(),
             None
         );
+    }
+
+    #[test]
+    fn adopts_the_remembered_transport_of_an_unadvertised_phone() {
+        let devices = "adb-phone-new._adb-tls-connect._tcp device\n";
+        let known = connection("adb-phone-new._adb-tls-connect._tcp", "192.168.1.76:41325");
+        let quiet = [("host:mdns:services", "List of discovered mdns services\n")];
+        let adopt = |devices, answering| {
+            reconcile_with(None, None, Some(&known), devices, &quiet, answering).unwrap()
+        };
+        assert_eq!(adopt(devices, true), Some(known.clone()));
+        // A transport that is gone, or one the phone no longer answers on at the
+        // remembered address, is neither adopted nor disconnected.
+        assert_eq!(adopt("", true), None);
+        assert_eq!(adopt(devices, false), None);
+        // What the phone advertises always wins over the note.
+        let moved = connection("adb-phone-new._adb-tls-connect._tcp", "192.168.1.76:5555");
+        assert_eq!(
+            reconcile_with(
+                None,
+                None,
+                Some(&moved),
+                devices,
+                &[("host:mdns:services", DISCOVERY)],
+                false
+            )
+            .unwrap(),
+            Some(known)
+        );
+    }
+
+    #[test]
+    fn a_restarted_watcher_recalls_the_transport_it_held() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let memory = directory.path().join("phone");
+        let held = connection("adb-phone-new._adb-tls-connect._tcp", "192.168.1.76:41325");
+        let mut phone = Phone::new("phone").recalling(memory.clone());
+        assert_eq!(phone.remembered, None);
+        phone.remember(&held);
+        assert_eq!(
+            Phone::new("phone").recalling(memory.clone()).remembered,
+            Some(held)
+        );
+        // A note that names no address is ignored, not guessed at.
+        fs::write(&memory, "adb-phone-new._adb-tls-connect._tcp\n")?;
+        assert_eq!(Phone::new("phone").recalling(memory).remembered, None);
+        Ok(())
     }
 
     #[test]
@@ -2017,6 +2149,7 @@ settings() {{
             reconcile(
                 "phone",
                 "192.168.1.76:41325 device\n",
+                Some(&held),
                 Some(&held),
                 &mut missing_since,
                 &mut query,

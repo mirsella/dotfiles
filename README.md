@@ -556,8 +556,11 @@ stopped acknowledging those probes (`lastack` in `ss`). Discovery alone is not
 enough: multicast between Wi-Fi clients is unreliable, and the laptop's ADB
 server loses a phone that main still sees for minutes to hours. A transport
 kept without an advertisement is logged as such. Only mDNS gives a transport's
-address, so a phone that is connected but unadvertised when the watcher starts
-is logged as unwatched until it advertises again.
+address, so the watcher notes each one it holds in
+`$XDG_RUNTIME_DIR/adb-watch/<serial>`. A restarted watcher takes that transport
+up again if the phone is unadvertised but still answers there. A connected,
+unadvertised phone with no such note is logged as unwatched until it advertises
+again.
 
 The workstations share the phone's idle shutdown. When a sample shows payload
 traffic, the watcher updates `/data/local/tmp/adb-wireless/<hostname>` on the
