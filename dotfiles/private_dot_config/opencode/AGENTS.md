@@ -2,7 +2,6 @@
 
 - Make invariant violations obvious. Do not silently fall back from an impossible state; justify and log any necessary fallback.
 - Never rotate credentials or secrets solely because an agent read or displayed them; sessions are private.
-- The user lands their own work directly on `main`. Do not open pull requests, or suggest them as a next step, unless asked.
 - When a change is visible (UI, layout, animation, a report), show it inline at the end of the turn without being asked: the result for something new, before and after side by side for a change to something existing. Use screenshots for static states and a recording when motion or interaction is what changed. Label each capture and look at it yourself first.
 - When comparing source checkouts, give each checkout its own Cargo target/build directories, including baseline worktrees; reuse the shared Kache cache instead of sharing Cargo outputs.
 

@@ -50,7 +50,8 @@ report, so keep this message short and end it the same way every time:
 
 - What this turn changed, in a few sentences, with one `checks:` line and one
   `diff:` line for the whole turn in the format the reviews skill defines.
-- With `land`: the land skill's report for each project.
+- With `land`: the land skill's report for each project. The section below
+  replaces its closing recommendations.
 - Last, under the heading **Left to do**: every follow-up you did not do, most
   important first, each with the action needed and why you left it. If there are
   none, write "Nothing left to do: this work is complete." Committing, pushing,
