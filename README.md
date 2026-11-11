@@ -548,6 +548,9 @@ if it exits and logs state changes and connection errors to the user journal.
 It waits up to 90 seconds for a default route before starting: the ADB server
 binds its mDNS responder to the interfaces that exist when it starts, so a login
 that beats the Wi-Fi lease would otherwise leave discovery dead until restart.
+That server also serves USB phones and every other ADB client, so stopping or
+restarting the unit ends only the watcher (`KillMode=process`). To restart the
+server itself, run `adb kill-server`; the watcher starts a new one.
 ADB enables `SO_KEEPALIVE` with a one-second idle and probe interval on each
 device socket, so each connected phone is woken once a second while a transport
 is open. The watcher holds that connection only while it is wanted. It drops a
@@ -561,6 +564,17 @@ address, so the watcher notes each one it holds in
 up again if the phone is unadvertised but still answers there. A connected,
 unadvertised phone with no such note is logged as unwatched until it advertises
 again.
+
+A phone that advertises nothing and has no transport is dialled at the noted
+address: first when the fifteen seconds end, then after one minute, doubling up
+to every 15 minutes. That reconnects a phone whose connection dropped while it
+stayed on Wi-Fi, such as after the workstation resumes from suspend, without
+waiting for discovery. It cannot reach a phone that rejoined Wi-Fi or had
+Wireless debugging toggled, because either one moves the port; only a new
+advertisement gives the new one. A transport dialled this way is named after
+its address, and the watcher drops it for the advertised name once ADB's
+auto-connect adds that. After this host turns Wireless debugging off, the note
+is removed and nothing is dialled.
 
 The workstations share the phone's idle shutdown. When a sample shows payload
 traffic, the watcher updates `/data/local/tmp/adb-wireless/<hostname>` on the
@@ -638,6 +652,15 @@ systemctl --user start adb-wireless.service
 journalctl --user -u adb-wireless.service -f
 adb devices -l
 ```
+
+`host-tools adb-status` prints what the watcher last saw of each phone: its
+connection, the earliest time Wireless debugging can turn off, the last use
+this host counted, the newest use recorded on the phone by any workstation and
+the build-tool reads it ignored. It reads the status files the watcher keeps in
+`$XDG_RUNTIME_DIR/adb-watch/<serial>.json` and never contacts the phone;
+`--json` prints them as they are. The shutdown time is a lower bound: it comes
+from the markers this watcher has read, and another workstation's later use
+moves it without this host knowing until its own deadline.
 
 Stop `adb-wireless.service` before intentionally disconnecting a watched phone,
 otherwise it reconnects when ADB reports the disconnect. Watched serials default
@@ -749,9 +772,12 @@ Ctrl-O opens recent sessions/projects, Ctrl-Alt-U/D scroll half a page, and
 F2/Shift-F2 cycle recent models.
 
 OpenCode v2 installs Browser MCP and Computer Use MCP from their published npm
-packages. Browser MCP is pinned in `dotfiles/private_dot_config/agent-tools/mcp.json`
-(`browser.version`, `npmIntegrity` and `codexContentHash`), so every machine runs
-the same release. Home Manager fetches that tarball into
+packages. Both are pinned in `dotfiles/private_dot_config/agent-tools/mcp.json`: Browser MCP
+by `browser.version`, `npmIntegrity` and `codexContentHash`, Computer Use MCP by
+`computerUse.version` and `npmIntegrity`, so every machine runs the same
+release. Claude Code has no Computer Use plugin, so Home Manager fetches that
+tarball too and supplies its MCP server and skill; Codex installs it from the
+`computer-use-mcp` Git marketplace. Home Manager fetches that tarball into
 `~/.local/share/browser-mcp/current`, used by Claude Code's MCP, hook and skill
 and by Codex's local `browser-mcp` marketplace. A fresh setup needs no
 development checkout or compiler to start either MCP.

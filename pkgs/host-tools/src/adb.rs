@@ -55,6 +55,9 @@ const PROBE_REPLY_SLACK: u64 = 512;
 const PROBE_BATCH_MAX: u64 = 4;
 /// A shorter list could not be told apart from an ordinary command's reply.
 const PROPERTY_LIST_MIN: u64 = 16 * 1024;
+/// A phone that advertises nothing is dialled at its last address once the grace
+/// period ends, then after this long, doubling up to `PHONE_RETRY`.
+const REDIAL_FIRST: Duration = Duration::from_secs(60);
 const SERVER: AdbServer = AdbServer(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5037)));
 
 pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) -> Result<()> {
@@ -97,11 +100,7 @@ pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) ->
     };
     // The address of a transport comes only from mDNS, so each phone's is noted
     // where it outlives a watcher restart but not the ADB server's session.
-    let memory = PathBuf::from(
-        env::var_os("XDG_RUNTIME_DIR")
-            .context("XDG_RUNTIME_DIR is not set, so held ADB transports cannot be remembered")?,
-    )
-    .join("adb-watch");
+    let memory = runtime_dir()?;
     fs::create_dir_all(&memory).with_context(|| format!("create {}", memory.display()))?;
     // Subscribe before querying, so a disconnect during reconciliation is not missed.
     // A broken subscription exits; systemd owns restart and backoff.
@@ -137,6 +136,9 @@ pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) ->
                 phone.enforce_idle(adb, host, *idle);
             }
         }
+        for phone in &mut phones {
+            phone.publish(idle.as_ref().map(|(idle, _)| *idle));
+        }
         if !all_connected {
             // Rate-limit failures even when our own attempts generate device events.
             thread::sleep(RETRY_INTERVAL);
@@ -147,6 +149,142 @@ pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) ->
             if all_connected { MDNS_POLL_MS } else { 0 },
         )?;
     }
+}
+
+/// Print what the watcher last published about each phone: its connection, the
+/// use it counted and how long Wireless debugging stays on.
+pub fn status(serials: &[String], json: bool) -> Result<()> {
+    let directory = runtime_dir()?;
+    let mut phones = Vec::new();
+    let entries = fs::read_dir(&directory).with_context(|| {
+        format!(
+            "read {}; is adb-wireless.service running?",
+            directory.display()
+        )
+    })?;
+    for entry in entries {
+        let path = entry?.path();
+        if path.extension().is_none_or(|extension| extension != "json") {
+            continue;
+        }
+        let text = fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+        let phone: Status =
+            serde_json::from_str(&text).with_context(|| format!("parse {}", path.display()))?;
+        if serials.is_empty() || serials.contains(&phone.serial) {
+            phones.push(phone);
+        }
+    }
+    ensure!(
+        !phones.is_empty(),
+        "no ADB watcher status in {}; is adb-wireless.service running?",
+        directory.display()
+    );
+    phones.sort_by(|a, b| a.serial.cmp(&b.serial));
+    if json {
+        println!("{}", serde_json::to_string_pretty(&phones)?);
+        return Ok(());
+    }
+    let today = chrono::Local::now().date_naive();
+    let clock = |unix: u64| {
+        let time = chrono::DateTime::from_timestamp(unix as i64, 0)
+            .expect("status times are valid Unix times")
+            .with_timezone(&chrono::Local);
+        let format = if time.date_naive() == today {
+            "%H:%M"
+        } else {
+            "%a %H:%M"
+        };
+        time.format(format).to_string()
+    };
+    for phone in &phones {
+        // A status file outlives its watcher, and the pid may since be reused.
+        let running = fs::read(format!("/proc/{}/cmdline", phone.watcher_pid))
+            .is_ok_and(|command| String::from_utf8_lossy(&command).contains("adb-watch"));
+        print!("{}", describe(phone, running, &clock));
+    }
+    Ok(())
+}
+
+fn describe(phone: &Status, running: bool, clock: &dyn Fn(u64) -> String) -> String {
+    let mut lines = vec![if running {
+        phone.state.clone()
+    } else {
+        format!(
+            "{} (the watcher is not running; this is its last state)",
+            phone.state
+        )
+    }];
+    match (phone.idle_minutes, &phone.address) {
+        (None, _) => lines.push("idle shutdown is disabled".to_owned()),
+        (Some(idle), Some(_)) => lines.push(match phone.off_not_before_unix {
+            Some(time) => format!(
+                "Wireless debugging turns off after {idle} minutes without use, not before {}",
+                clock(time)
+            ),
+            None => format!(
+                "Wireless debugging turns off after {idle} minutes without use; the watcher has not read the phone's markers yet"
+            ),
+        }),
+        (Some(_), None) => {
+            if let Some(time) = phone.turned_off_unix {
+                lines.push(format!(
+                    "this host turned Wireless debugging off at {}",
+                    clock(time)
+                ));
+            }
+        }
+    }
+    lines.push(match &phone.last_use {
+        Some(activity) => {
+            let time = activity["detected_at_host_unix"]
+                .as_u64()
+                .map_or_else(|| "an unknown time".to_owned(), clock);
+            match (
+                activity["delta"]["sent"].as_u64(),
+                activity["delta"]["received"].as_u64(),
+            ) {
+                (Some(sent), Some(received)) => format!(
+                    "last use counted on this host: {time}, sent {sent} bytes, received {received}"
+                ),
+                _ => format!(
+                    "last use counted on this host: {time} ({})",
+                    activity["reason"].as_str().unwrap_or("unknown reason")
+                ),
+            }
+        }
+        None => "no use counted on this host since the watcher started".to_owned(),
+    });
+    if let Some(marker) = &phone.newest_marker {
+        lines.push(format!(
+            "newest use recorded on the phone: {} at {}",
+            marker.host,
+            clock(marker.used_at_unix)
+        ));
+    }
+    if let Some(read) = &phone.last_ignored_read {
+        lines.push(format!(
+            "{} build-tool property read(s) not counted as use, the last at {}",
+            phone.ignored_reads,
+            clock(read.at_unix)
+        ));
+    }
+    lines.join("\n  ") + "\n"
+}
+
+/// Where the watcher keeps what must outlive it or be read by `adb-status`.
+fn runtime_dir() -> Result<PathBuf> {
+    Ok(PathBuf::from(
+        env::var_os("XDG_RUNTIME_DIR")
+            .context("XDG_RUNTIME_DIR is not set, so there is nowhere to keep ADB watcher state")?,
+    )
+    .join("adb-watch"))
+}
+
+fn unix_now() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("workstation clock predates the Unix epoch")
+        .as_secs()
 }
 
 /// One watched phone: the transport it holds and the state that decides idleness.
@@ -177,6 +315,60 @@ struct Phone {
     /// Size of the phone's property list, reported by each history command.
     /// None counts every payload change as use; see `PROBE_REQUEST_MAX`.
     property_bytes: Option<u64>,
+    /// Earliest next dial of the remembered address, and the wait after it.
+    next_redial: Option<Instant>,
+    redial_wait: Duration,
+    /// What this watcher has seen, for `adb-status`; see `publish`.
+    seen: Seen,
+    status: Option<PathBuf>,
+    published: String,
+}
+
+/// The events `adb-status` reports, on the workstation's clock.
+#[derive(Default)]
+struct Seen {
+    /// `idle_deadline` as a wall-clock time.
+    next_check_unix: Option<u64>,
+    last_use: Option<serde_json::Value>,
+    newest_marker: Option<Marker>,
+    ignored_reads: u64,
+    last_ignored_read: Option<IgnoredRead>,
+    turned_off_unix: Option<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct Marker {
+    host: String,
+    used_at_unix: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct IgnoredRead {
+    at_unix: u64,
+    reads: u64,
+    sent: u64,
+    received: u64,
+}
+
+/// One phone's entry in the runtime directory, as `adb-status` reads it.
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+struct Status {
+    serial: String,
+    watcher_pid: u32,
+    state: String,
+    transport: Option<String>,
+    address: Option<String>,
+    idle_minutes: Option<u64>,
+    /// When this watcher next asks the phone whether any workstation used it.
+    next_check_unix: Option<u64>,
+    /// Wireless debugging stays on at least this long, by what this watcher knows.
+    off_not_before_unix: Option<u64>,
+    last_use: Option<serde_json::Value>,
+    newest_marker: Option<Marker>,
+    property_bytes: Option<u64>,
+    ignored_reads: u64,
+    last_ignored_read: Option<IgnoredRead>,
+    turned_off_unix: Option<u64>,
 }
 
 impl Phone {
@@ -196,6 +388,11 @@ impl Phone {
             next_mark: Duration::ZERO,
             shutdown_after: Duration::ZERO,
             property_bytes: None,
+            next_redial: None,
+            redial_wait: REDIAL_FIRST,
+            seen: Seen::default(),
+            status: None,
+            published: String::new(),
         }
     }
 
@@ -203,8 +400,107 @@ impl Phone {
     /// there each one this watcher holds.
     fn recalling(mut self, memory: PathBuf) -> Self {
         self.remembered = recall(&memory);
+        self.status = Some(memory.with_extension("json"));
         self.memory = Some(memory);
         self
+    }
+
+    /// A phone this watcher turned off has no listener left to dial.
+    fn forget(&mut self) {
+        self.remembered = None;
+        if let Some(memory) = &self.memory
+            && let Err(error) = fs::remove_file(memory)
+            && error.kind() != io::ErrorKind::NotFound
+        {
+            eprintln!("adb-watch: remove {}: {error}", memory.display());
+        }
+    }
+
+    /// The address to dial now for a phone that advertises nothing. Discovery
+    /// that stays quiet must not keep a reachable phone disconnected, and only
+    /// its last address is known: it still listens there unless it left Wi-Fi
+    /// or Wireless debugging was switched off, which move or close the port.
+    fn redial_due(&mut self, devices: &str, now: Instant) -> Option<String> {
+        let known = self.remembered.as_ref()?;
+        let quiet = self
+            .missing_since
+            .is_some_and(|since| now.saturating_duration_since(since) >= ABSENT_GRACE);
+        // The server may already hold a transport to the phone; a second socket
+        // to the same listener could not be told apart when sampling.
+        if !quiet
+            || online_unadvertised(devices, &self.serial)
+            || listed(devices, &known.address)
+            || self.next_redial.is_some_and(|at| now < at)
+        {
+            return None;
+        }
+        self.next_redial = Some(now + self.redial_wait);
+        self.redial_wait = (self.redial_wait * 2).min(PHONE_RETRY);
+        Some(known.address.clone())
+    }
+
+    /// Move the idle deadline, keeping its wall-clock copy for `adb-status`.
+    fn postpone(&mut self, deadline: Option<Duration>, now: Duration) {
+        self.idle_deadline = deadline;
+        self.seen.next_check_unix =
+            deadline.map(|deadline| unix_now() + deadline.saturating_sub(now).as_secs());
+    }
+
+    fn status(&self, idle: Option<Duration>) -> Status {
+        // The phone refuses a shutdown until every marker is older than this.
+        let window = idle.map(|idle| (idle + MARK_INTERVAL).as_secs());
+        let used = [
+            self.seen
+                .newest_marker
+                .as_ref()
+                .map(|marker| marker.used_at_unix),
+            self.seen
+                .last_use
+                .as_ref()
+                .and_then(|activity| activity["detected_at_host_unix"].as_u64()),
+        ];
+        Status {
+            serial: self.serial.clone(),
+            watcher_pid: std::process::id(),
+            state: self.last_message.clone(),
+            transport: self.connection.as_ref().map(|held| held.serial.clone()),
+            address: self.connection.as_ref().map(|held| held.address.clone()),
+            idle_minutes: idle.map(|idle| idle.as_secs() / 60),
+            next_check_unix: self.seen.next_check_unix,
+            off_not_before_unix: window.and_then(|window| {
+                used.into_iter()
+                    .flatten()
+                    .map(|used| used + window)
+                    .chain(self.seen.next_check_unix)
+                    .max()
+            }),
+            last_use: self.seen.last_use.clone(),
+            newest_marker: self.seen.newest_marker.clone(),
+            property_bytes: self.property_bytes,
+            ignored_reads: self.seen.ignored_reads,
+            last_ignored_read: self.seen.last_ignored_read.clone(),
+            turned_off_unix: self.seen.turned_off_unix,
+        }
+    }
+
+    /// Rewrite this phone's status file when what it says has changed.
+    fn publish(&mut self, idle: Option<Duration>) {
+        let Some(path) = &self.status else {
+            return;
+        };
+        let status = serde_json::to_string(&self.status(idle)).expect("status is plain JSON");
+        if status == self.published {
+            return;
+        }
+        // Readers must never see half a file.
+        let partial = path.with_extension("json.tmp");
+        if let Err(error) = fs::write(&partial, &status).and_then(|()| fs::rename(&partial, path)) {
+            eprintln!(
+                "adb-watch: write {}: {error}; adb-status shows older state",
+                path.display()
+            );
+        }
+        self.published = status;
     }
 
     fn remember(&mut self, connection: &Connection) {
@@ -234,6 +530,18 @@ impl Phone {
             |service| SERVER.query(service),
             answering,
         );
+        if matches!(result, Ok(None))
+            && let Some(address) = self.redial_due(devices, Instant::now())
+            && SERVER
+                .query(&format!("host:connect:{address}"))
+                .is_ok_and(|response| response.starts_with("connected to "))
+        {
+            // The next pass finds the new transport listed and takes it up.
+            eprintln!(
+                "adb-watch: {} advertises nothing, but accepted a connection at its last address {address}",
+                self.serial
+            );
+        }
         let message = match &result {
             // Reconciliation keeps an unadvertised transport past the grace
             // period only while the phone still answers on it.
@@ -272,6 +580,10 @@ impl Phone {
         }
         let reached = result?;
         let connected = reached.is_some();
+        if connected {
+            self.next_redial = None;
+            self.redial_wait = REDIAL_FIRST;
+        }
         // A failed query says nothing about the transport, so only a completed
         // reconciliation replaces it.
         if reached != self.connection {
@@ -321,6 +633,13 @@ impl Phone {
                     "adb-watch: not counting {probes} build-tool property read(s) of {} as use: sent {sent} bytes, received {received}, property list {properties}",
                     self.serial
                 );
+                self.seen.ignored_reads += probes;
+                self.seen.last_ignored_read = Some(IgnoredRead {
+                    at_unix: unix_now(),
+                    reads: probes,
+                    sent,
+                    received,
+                });
                 return;
             }
         }
@@ -328,8 +647,7 @@ impl Phone {
             "reason": reason,
             "serial": self.serial,
             "peer": peer,
-            "detected_at_host_unix": SystemTime::now().duration_since(UNIX_EPOCH)
-                .expect("workstation clock predates the Unix epoch").as_secs(),
+            "detected_at_host_unix": unix_now(),
             "sample_elapsed_ms": previous.map(|sample| (now - sample.at).as_millis()),
             "previous": previous.map(|sample| sample.bytes),
             "current": bytes,
@@ -342,7 +660,8 @@ impl Phone {
             "command": null,
         });
         eprintln!("adb-watch: detected ADB activity: {activity}");
-        self.idle_deadline = Some(now + idle);
+        self.postpone(Some(now + idle), now);
+        self.seen.last_use = Some(activity.clone());
         self.pending_activity = Some(activity);
     }
 
@@ -394,6 +713,10 @@ impl Phone {
                     );
                     self.pending_activity = None;
                     self.next_mark = now + MARK_INTERVAL;
+                    self.seen.newest_marker = Some(Marker {
+                        host: host.to_owned(),
+                        used_at_unix: unix_now(),
+                    });
                 }
                 Err(error) => {
                     eprintln!(
@@ -455,6 +778,10 @@ impl Phone {
                 .history(adb, connection, HistoryCommand::Read)
                 .and_then(|output| newest_use(&output))
                 .context("read shared ADB use")?;
+            self.seen.newest_marker = newest.as_ref().map(|(age, other)| Marker {
+                host: other.clone(),
+                used_at_unix: unix_now().saturating_sub(age.as_secs()),
+            });
             if let Some(delay) = idle_delay(newest.as_ref().map(|(age, _)| *age), idle) {
                 if let Some((age, other)) = newest {
                     eprintln!(
@@ -477,25 +804,34 @@ impl Phone {
                         .context("start ADB idle history")?;
                     self.pending_activity = None;
                     self.next_mark = boot_time() + MARK_INTERVAL;
+                    self.seen.newest_marker = Some(Marker {
+                        host: host.to_owned(),
+                        used_at_unix: unix_now(),
+                    });
                     eprintln!(
                         "adb-watch: started a new Wireless debugging idle window on {}",
                         self.serial
                     );
                 }
-                self.idle_deadline = Some(boot_time() + delay);
+                let now = boot_time();
+                self.postpone(Some(now + delay), now);
             } else {
                 let port = connection.address.parse::<SocketAddr>()?.port();
                 let output = self
                     .history(adb, connection, HistoryCommand::Shutdown { idle, port })
                     .context("turn Wireless debugging off")?;
-                self.idle_deadline = None;
+                self.postpone(None, boot_time());
                 self.pending_activity = None;
                 match output.trim() {
-                    "" => eprintln!(
-                        "adb-watch: turned Wireless debugging off on {} after {} minutes without ADB use from any workstation",
-                        self.serial,
-                        idle.as_secs() / 60
-                    ),
+                    "" => {
+                        eprintln!(
+                            "adb-watch: turned Wireless debugging off on {} after {} minutes without ADB use from any workstation",
+                            self.serial,
+                            idle.as_secs() / 60
+                        );
+                        self.seen.turned_off_unix = Some(unix_now());
+                        self.forget();
+                    }
                     "active" => eprintln!(
                         "adb-watch: {} activity or debugging port changed during the idle check; postponing shutdown",
                         self.serial
@@ -996,9 +1332,17 @@ fn reconcile(
         // restart or a reconnect by the server can leave one online that this
         // watcher does not hold. It is the remembered one if the phone answers
         // at that address; any other stays unwatched, and is never cut.
-        return Ok(remembered
-            .filter(|known| listed(devices, &known.serial) && answering(&known.address))
-            .cloned());
+        // A transport dialled while discovery is quiet is named after its address.
+        return Ok(remembered.and_then(|known| {
+            [&known.serial, &known.address]
+                .into_iter()
+                .find(|name| listed(devices, name))
+                .filter(|_| answering(&known.address))
+                .map(|name| Connection {
+                    serial: name.clone(),
+                    address: known.address.clone(),
+                })
+        }));
     }
     *missing_since = None;
     // A phone that reboots under a new instance name or moves to another port
@@ -1036,9 +1380,19 @@ fn reconcile(
     };
     let devices = current.as_deref().unwrap_or(devices);
     for service in &services {
-        if let Some((serial, _)) =
-            matching_devices(devices, service).find(|(_, state)| *state == "device")
-        {
+        let online = || {
+            matching_devices(devices, service)
+                .filter(|(_, state)| *state == "device")
+                .map(|(name, _)| name)
+        };
+        // The server connects an advertised phone under its service name even
+        // while a transport named after the same address is online. Only one
+        // socket to the phone can be sampled, so keep the advertised name.
+        let named = online().find(|name| *name != service.address);
+        if named.is_some() && online().any(|name| name == service.address) {
+            disconnect(&mut query, &service.address)?;
+        }
+        if let Some(serial) = named.or_else(|| online().next()) {
             return Ok(Some(Connection {
                 serial: serial.to_owned(),
                 address: service.address.clone(),
@@ -2007,6 +2361,11 @@ settings() {{
         // remembered address, is neither adopted nor disconnected.
         assert_eq!(adopt("", true), None);
         assert_eq!(adopt(devices, false), None);
+        // A transport dialled while discovery was quiet is listed under its address.
+        assert_eq!(
+            adopt("192.168.1.76:41325 device\n", true),
+            Some(connection("192.168.1.76:41325", "192.168.1.76:41325"))
+        );
         // What the phone advertises always wins over the note.
         let moved = connection("adb-phone-new._adb-tls-connect._tcp", "192.168.1.76:5555");
         assert_eq!(
@@ -2035,9 +2394,154 @@ settings() {{
             Phone::new("phone").recalling(memory.clone()).remembered,
             Some(held)
         );
+        // A phone this watcher turned off has no listener left to dial.
+        phone.forget();
+        assert_eq!(phone.remembered, None);
+        assert_eq!(
+            Phone::new("phone").recalling(memory.clone()).remembered,
+            None
+        );
         // A note that names no address is ignored, not guessed at.
         fs::write(&memory, "adb-phone-new._adb-tls-connect._tcp\n")?;
         assert_eq!(Phone::new("phone").recalling(memory).remembered, None);
+        Ok(())
+    }
+
+    #[test]
+    fn dials_the_last_address_of_a_quiet_phone_at_growing_intervals() {
+        let mut phone = Phone::new("phone");
+        let start = Instant::now();
+        let later = |seconds| start + Duration::from_secs(seconds);
+        phone.missing_since = Some(start);
+        // Only mDNS gives an address, so a phone never held is never dialled.
+        assert_eq!(phone.redial_due("", later(60)), None);
+        phone.remembered = Some(connection(
+            "adb-phone-new._adb-tls-connect._tcp",
+            "192.168.1.76:41325",
+        ));
+        let address = Some("192.168.1.76:41325".to_owned());
+        assert_eq!(phone.redial_due("", later(5)), None);
+        assert_eq!(phone.redial_due("", later(15)), address);
+        assert_eq!(phone.redial_due("", later(74)), None);
+        assert_eq!(phone.redial_due("", later(75)), address);
+        assert_eq!(phone.redial_due("", later(194)), None);
+        assert_eq!(phone.redial_due("", later(195)), address);
+        let mut at = 195;
+        for _ in 0..6 {
+            at += phone.redial_wait.as_secs();
+            assert_eq!(phone.redial_due("", later(at)), address);
+        }
+        assert_eq!(phone.redial_wait, PHONE_RETRY);
+        // A phone the server already has a transport to is not dialled again.
+        at += PHONE_RETRY.as_secs();
+        for devices in [
+            "adb-phone-new._adb-tls-connect._tcp device\n",
+            "192.168.1.76:41325 offline\n",
+        ] {
+            assert_eq!(phone.redial_due(devices, later(at)), None);
+        }
+        // Nor one that advertises: reconciliation connects to what it advertises.
+        phone.missing_since = None;
+        assert_eq!(phone.redial_due("", later(at)), None);
+    }
+
+    #[test]
+    fn keeps_the_advertised_name_when_a_dialled_transport_duplicates_it() {
+        let dialled = connection("192.168.1.76:41325", "192.168.1.76:41325");
+        let held = from(
+            Some(&dialled),
+            "192.168.1.76:41325 device\nadb-phone-new._adb-tls-connect._tcp device\n",
+            &[
+                ("host:mdns:services", DISCOVERY),
+                (
+                    "host:disconnect:192.168.1.76:41325",
+                    "disconnected 192.168.1.76:41325\n",
+                ),
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            held,
+            Some(connection(
+                "adb-phone-new._adb-tls-connect._tcp",
+                "192.168.1.76:41325"
+            ))
+        );
+        // Alone, the dialled transport stays.
+        let held = from(
+            Some(&dialled),
+            "192.168.1.76:41325 device\n",
+            &[("host:mdns:services", DISCOVERY)],
+        )
+        .unwrap();
+        assert_eq!(held, Some(dialled));
+    }
+
+    #[test]
+    fn status_gives_the_earliest_shutdown_and_what_was_counted() -> Result<()> {
+        let idle = Duration::from_secs(180 * 60);
+        let window = (idle + MARK_INTERVAL).as_secs();
+        let peer = "192.168.1.76:41325";
+        let directory = tempfile::tempdir()?;
+        let mut phone = Phone::new("phone").recalling(directory.path().join("phone"));
+        phone.property_bytes = Some(PROPERTIES);
+        phone.last_message = format!("phone connected at {peer}");
+        phone.connection = Some(connection("adb-phone-new._adb-tls-connect._tcp", peer));
+        phone.reset_transport(Duration::ZERO, Some(traffic(1_000, 5_000)));
+        // Nothing is promised before the phone's markers have been read.
+        assert_eq!(phone.status(Some(idle)).off_not_before_unix, None);
+
+        phone.observe(traffic(1_174, 90_558), peer, Duration::from_secs(60), idle);
+        phone.observe(traffic(1_424, 90_678), peer, Duration::from_secs(120), idle);
+        let status = phone.status(Some(idle));
+        let used = status.last_use.as_ref().unwrap()["detected_at_host_unix"]
+            .as_u64()
+            .unwrap();
+        assert_eq!(status.ignored_reads, 1);
+        assert_eq!(status.next_check_unix, Some(used + idle.as_secs()));
+        // This host's marker is written no earlier than the use it records.
+        assert_eq!(status.off_not_before_unix, Some(used + window));
+        // Another workstation's later use holds the phone on for longer.
+        phone.seen.newest_marker = Some(Marker {
+            host: "laptop".to_owned(),
+            used_at_unix: used + 600,
+        });
+        assert_eq!(
+            phone.status(Some(idle)).off_not_before_unix,
+            Some(used + 600 + window)
+        );
+        assert_eq!(phone.status(None).off_not_before_unix, None);
+
+        phone.seen.last_ignored_read.as_mut().unwrap().at_unix = used - 60;
+        phone.publish(Some(idle));
+        let written: Status =
+            serde_json::from_str(&fs::read_to_string(directory.path().join("phone.json"))?)?;
+        assert_eq!(written, phone.status(Some(idle)));
+        let clock = |unix: u64| format!("t{}", unix as i64 - used as i64);
+        assert_eq!(
+            describe(&written, true, &clock),
+            "phone connected at 192.168.1.76:41325\n  \
+             Wireless debugging turns off after 180 minutes without use, not before t13200\n  \
+             last use counted on this host: t0, sent 250 bytes, received 120\n  \
+             newest use recorded on the phone: laptop at t600\n  \
+             1 build-tool property read(s) not counted as use, the last at t-60\n"
+        );
+        let off = Status {
+            state: "waiting for phone to advertise Wireless debugging on the LAN".to_owned(),
+            transport: None,
+            address: None,
+            turned_off_unix: Some(used + 900),
+            last_use: None,
+            newest_marker: None,
+            last_ignored_read: None,
+            ..written
+        };
+        assert_eq!(
+            describe(&off, false, &clock),
+            "waiting for phone to advertise Wireless debugging on the LAN (the watcher is not running; this is its last state)\n  \
+             this host turned Wireless debugging off at t900\n  \
+             no use counted on this host since the watcher started\n"
+        );
         Ok(())
     }
 

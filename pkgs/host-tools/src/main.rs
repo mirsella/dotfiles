@@ -62,6 +62,15 @@ enum Commands {
         #[arg(long, value_parser = clap::value_parser!(u64).range(1..=7 * 24 * 60))]
         idle_minutes: Option<u64>,
     },
+    /// Show what the ADB watcher last saw: each phone's connection, the use it
+    /// counted and how long Wireless debugging stays on.
+    AdbStatus {
+        /// Report only these phones.
+        #[arg(long, value_name = "SERIAL")]
+        serial: Vec<String>,
+        #[arg(long)]
+        json: bool,
+    },
     FanControl {
         #[command(subcommand)]
         action: fan_control::Operation,
@@ -246,6 +255,7 @@ fn run() -> Result<()> {
             once,
             idle_minutes.map(|minutes| std::time::Duration::from_secs(minutes * 60)),
         ),
+        Commands::AdbStatus { serial, json } => adb::status(&serial, json),
         Commands::FanControl { action } => fan_control::run(action),
         Commands::OpencodeClientEnv { config, command } => opencode::client_env(&config, &command),
         Commands::ComposioMcpHeaders => agent_tools::composio_mcp_headers(),

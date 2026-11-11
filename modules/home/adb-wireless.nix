@@ -49,6 +49,9 @@ in
       Environment = "PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.iproute2 ]}";
       Restart = "on-failure";
       RestartSec = "2s";
+      # The ADB server the watcher starts also serves USB phones and every
+      # other ADB client, so restarting the watcher must not take it down.
+      KillMode = "process";
     };
     Install.WantedBy = [ "default.target" ];
   };
