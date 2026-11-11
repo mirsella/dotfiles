@@ -551,15 +551,33 @@ that beats the Wi-Fi lease would otherwise leave discovery dead until restart.
 ADB enables `SO_KEEPALIVE` with a one-second idle and probe interval on each
 device socket, so each connected phone is woken once a second while a transport
 is open. The watcher holds that connection only while it is wanted. It drops a
-transport once its phone has stopped advertising for fifteen seconds, which
-keeps an mDNS cache expiry or a Wi-Fi roam from cutting a live connection.
+transport once its phone has stopped advertising for fifteen seconds and has
+stopped acknowledging those probes (`lastack` in `ss`). Discovery alone is not
+enough: multicast between Wi-Fi clients is unreliable, and the laptop's ADB
+server loses a phone that main still sees for minutes to hours. A transport
+kept without an advertisement is logged as such. Only mDNS gives a transport's
+address, so a phone that is connected but unadvertised when the watcher starts
+is logged as unwatched until it advertises again.
 
 The workstations share the phone's idle shutdown. When a sample shows payload
 traffic, the watcher updates `/data/local/tmp/adb-wireless/<hostname>` on the
 phone, at most every 30 minutes while the phone stays in use, and leaves that
 write out of its own accounting. Keepalive probes carry no payload, so they never
 count as use; the counters come from `ss`, which is why the unit's PATH carries
-`iproute2`. Once a watcher has seen no traffic for three hours
+`iproute2`.
+
+Android build tools (Gradle's Android plugin, Android Studio, Flutter) read the
+property list of every phone the ADB server lists, including phones a build does
+not target, so builds for a USB phone used to keep Wireless debugging on
+indefinitely. Each marker command also prints the size of `getprop`'s output. A
+sample in which the workstation sent at most 512 bytes per read and received
+one to four property lists, each within 2% of that size, is logged as a
+build-tool read and is not use. Everything else still counts, and so does every
+change until the phone has reported a list of at least 16 KB. A sample that
+finds the socket moving is read again a second later, so a read in flight is
+not split in two.
+
+Once a watcher has seen no traffic for three hours
 (`services.adb-wireless.idleMinutes`), it reads all workstations' marker ages on
 the phone's clock. Its own marker also recovers the idle history after a daemon
 restart or workstation reboot, without starting another three-hour window.
@@ -590,7 +608,8 @@ current and delta TCP byte counters, including retransmissions. It also records
 the publication time on the phone, so a delayed marker write is distinguishable
 from new traffic. The reason is `payload_changed`, `counters_decreased`,
 `unknown_baseline` or `new_session` (initialization, not detected traffic). The
-journal logs each detected change and successful marker publication. Only the
+journal logs each detected change, each discounted build-tool read and each
+successful marker publication. Only the
 watched device's socket counts; USB phones and local connections to the shared
 ADB server do not.
 

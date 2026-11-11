@@ -38,6 +38,21 @@ const SETTLE: Duration = Duration::from_secs(1);
 /// Workstations sharing a phone record their latest ADB use here, one file per
 /// hostname, timestamped by the phone's own clock.
 const MARKER_DIR: &str = "/data/local/tmp/adb-wireless";
+/// Android build tools (Gradle's Android plugin, Android Studio, Flutter) read
+/// the property list of every phone the server lists, including phones they do
+/// not target, so such a read is not use of this phone. One is a `getprop`
+/// request of 174 bytes, more when the reply takes several acknowledgements.
+const PROBE_REQUEST_MAX: u64 = 512;
+/// A probe's reply is the property list plus about 300 bytes of ADB and TLS
+/// framing, and the list itself changes by a few hundred bytes over a day: allow
+/// this fraction of the list, and never less than `PROBE_REPLY_SLACK`.
+const PROBE_REPLY_FRACTION: u64 = 50;
+const PROBE_REPLY_SLACK: u64 = 512;
+/// Builds can overlap, but more probes than this in one sample is not a pattern
+/// worth trusting: the tolerance widens with every probe.
+const PROBE_BATCH_MAX: u64 = 4;
+/// A shorter list could not be told apart from an ordinary command's reply.
+const PROPERTY_LIST_MIN: u64 = 16 * 1024;
 const SERVER: AdbServer = AdbServer(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5037)));
 
 pub fn run(adb: &str, serials: &[String], once: bool, idle: Option<Duration>) -> Result<()> {
@@ -145,6 +160,9 @@ struct Phone {
     next_mark: Duration,
     /// Neither marker reads nor a shutdown reach the phone before this.
     shutdown_after: Duration,
+    /// Size of the phone's property list, reported by each history command.
+    /// None counts every payload change as use; see `PROBE_REQUEST_MAX`.
+    property_bytes: Option<u64>,
 }
 
 impl Phone {
@@ -161,6 +179,7 @@ impl Phone {
             pending_activity: None,
             next_mark: Duration::ZERO,
             shutdown_after: Duration::ZERO,
+            property_bytes: None,
         }
     }
 
@@ -173,9 +192,28 @@ impl Phone {
             self.connection.as_ref(),
             &mut self.missing_since,
             |service| SERVER.query(service),
+            answering,
         );
         let message = match &result {
+            // Reconciliation keeps an unadvertised transport past the grace
+            // period only while the phone still answers on it.
+            Ok(Some(connection))
+                if self
+                    .missing_since
+                    .is_some_and(|since| since.elapsed() >= ABSENT_GRACE) =>
+            {
+                format!(
+                    "{} no longer advertises Wireless debugging, but still answers at {}; keeping its connection",
+                    self.serial, connection.address
+                )
+            }
             Ok(Some(connection)) => format!("{} connected at {}", self.serial, connection.address),
+            // Only mDNS gives a transport's address, so one this watcher did not
+            // hold when the advertisement stopped cannot be sampled.
+            Ok(None) if online_unadvertised(devices, &self.serial) => format!(
+                "{} is connected but not advertised, so its address is unknown: its ADB use is not watched until it advertises again",
+                self.serial
+            ),
             Ok(None) => format!(
                 "waiting for {} to advertise Wireless debugging on the LAN",
                 self.serial
@@ -230,6 +268,19 @@ impl Phone {
             }
             Some(_) => "payload_changed",
         };
+        if let (Some(sample), Some(properties)) = (previous, self.property_bytes)
+            && reason == "payload_changed"
+        {
+            let sent = bytes.sent - sample.bytes.sent;
+            let received = bytes.received - sample.bytes.received;
+            if let Some(probes) = property_probes(sent, received, properties) {
+                eprintln!(
+                    "adb-watch: not counting {probes} build-tool property read(s) of {} as use: sent {sent} bytes, received {received}, property list {properties}",
+                    self.serial
+                );
+                return;
+            }
+        }
         let activity = serde_json::json!({
             "reason": reason,
             "serial": self.serial,
@@ -265,7 +316,7 @@ impl Phone {
         self.next_sample = now + SAMPLE_INTERVAL;
         // Only payload counts: keepalive probes are empty segments, so the
         // counters of an idle phone stay put.
-        let Some(bytes) = transport_bytes(&connection.address) else {
+        let Some(mut bytes) = transport_bytes(&connection.address) else {
             if !self.unreadable {
                 self.unreadable = true;
                 eprintln!(
@@ -276,13 +327,23 @@ impl Phone {
             return;
         };
         self.unreadable = false;
+        // A sample taken in the middle of an exchange would split it into two
+        // halves that match no known pattern, so let a moving socket finish.
+        if self.baseline.is_some_and(|sample| sample.bytes != bytes) {
+            thread::sleep(SETTLE);
+            bytes = transport_bytes(&connection.address).unwrap_or(bytes);
+        }
         self.observe(bytes, &connection.address, now, idle);
         if let Some(activity) = self
             .pending_activity
-            .as_ref()
+            .clone()
             .filter(|_| now >= self.next_mark)
         {
-            match mark_use(adb, &connection.serial, host, activity) {
+            let mark = HistoryCommand::Mark {
+                host,
+                activity: &activity,
+            };
+            match self.history(adb, &connection, mark) {
                 Ok(_) => {
                     eprintln!(
                         "adb-watch: {} wrote {host} activity marker: {activity}",
@@ -307,6 +368,32 @@ impl Phone {
         }
     }
 
+    /// Run a history command and learn the property-list size it reports.
+    fn history(
+        &mut self,
+        adb: &str,
+        connection: &Connection,
+        command: HistoryCommand<'_>,
+    ) -> Result<String> {
+        let output = phone_shell(adb, &connection.serial, &history_command(command))?;
+        let (properties, output) = history_output(&output)?;
+        let properties = Some(properties).filter(|size| *size >= PROPERTY_LIST_MIN);
+        if properties.is_some() != self.property_bytes.is_some() {
+            match properties {
+                Some(size) => eprintln!(
+                    "adb-watch: {} has a {size}-byte property list; a short request answered by that much is a build tool's read, not use",
+                    self.serial
+                ),
+                None => eprintln!(
+                    "adb-watch: {} reports a property list too short to recognise build-tool reads; every payload change counts as use",
+                    self.serial
+                ),
+            }
+        }
+        self.property_bytes = properties;
+        Ok(output.to_owned())
+    }
+
     /// Exclude our own phone command from the next sample.
     fn rebaseline(&mut self, connection: &Connection) {
         thread::sleep(SETTLE);
@@ -321,13 +408,10 @@ impl Phone {
     /// permits shutdown.
     fn expire(&mut self, adb: &str, host: &str, connection: &Connection, idle: Duration) {
         let result = (|| -> Result<()> {
-            let newest = phone_shell(
-                adb,
-                &connection.serial,
-                &history_command(HistoryCommand::Read),
-            )
-            .and_then(|output| newest_use(&output))
-            .context("read shared ADB use")?;
+            let newest = self
+                .history(adb, connection, HistoryCommand::Read)
+                .and_then(|output| newest_use(&output))
+                .context("read shared ADB use")?;
             if let Some(delay) = idle_delay(newest.as_ref().map(|(age, _)| *age), idle) {
                 if let Some((age, other)) = newest {
                     eprintln!(
@@ -336,18 +420,18 @@ impl Phone {
                         age.as_secs() / 60
                     );
                 } else {
-                    mark_use(
-                        adb,
-                        &connection.serial,
+                    let activity = serde_json::json!({
+                        "reason": "new_session",
+                        "serial": self.serial,
+                        "peer": connection.address,
+                        "command": null,
+                    });
+                    let mark = HistoryCommand::Mark {
                         host,
-                        &serde_json::json!({
-                            "reason": "new_session",
-                            "serial": self.serial,
-                            "peer": connection.address,
-                            "command": null,
-                        }),
-                    )
-                    .context("start ADB idle history")?;
+                        activity: &activity,
+                    };
+                    self.history(adb, connection, mark)
+                        .context("start ADB idle history")?;
                     self.pending_activity = None;
                     self.next_mark = boot_time() + MARK_INTERVAL;
                     eprintln!(
@@ -358,12 +442,9 @@ impl Phone {
                 self.idle_deadline = Some(boot_time() + delay);
             } else {
                 let port = connection.address.parse::<SocketAddr>()?.port();
-                let output = phone_shell(
-                    adb,
-                    &connection.serial,
-                    &history_command(HistoryCommand::Shutdown { idle, port }),
-                )
-                .context("turn Wireless debugging off")?;
+                let output = self
+                    .history(adb, connection, HistoryCommand::Shutdown { idle, port })
+                    .context("turn Wireless debugging off")?;
                 self.idle_deadline = None;
                 self.pending_activity = None;
                 match output.trim() {
@@ -452,12 +533,30 @@ fn idle_delay(age: Option<Duration>, idle: Duration) -> Option<Duration> {
     }
 }
 
-fn mark_use(adb: &str, serial: &str, host: &str, activity: &serde_json::Value) -> Result<String> {
-    phone_shell(
-        adb,
-        serial,
-        &history_command(HistoryCommand::Mark { host, activity }),
-    )
+/// How many build-tool property reads explain this sample's traffic, if it is
+/// nothing else: only short requests went out, and what came back is that many
+/// property lists. Anything else stays unexplained and counts as use.
+fn property_probes(sent: u64, received: u64, properties: u64) -> Option<u64> {
+    let probes = (received + properties / 2) / properties;
+    let tolerance = (properties / PROBE_REPLY_FRACTION).max(PROBE_REPLY_SLACK);
+    ((1..=PROBE_BATCH_MAX).contains(&probes)
+        && received.abs_diff(probes * properties) <= probes * tolerance
+        && sent <= probes * PROBE_REQUEST_MAX)
+        .then_some(probes)
+}
+
+/// Every history command first prints the size of the phone's property list.
+fn history_output(output: &str) -> Result<(u64, &str)> {
+    let (properties, rest) = output
+        .split_once('\n')
+        .context("the phone printed no property-list size")?;
+    let properties = properties
+        .strip_prefix("properties ")
+        .with_context(|| format!("expected the property-list size, not {properties:?}"))?
+        .trim()
+        .parse()
+        .context("invalid property-list size")?;
+    Ok((properties, rest))
 }
 
 enum HistoryCommand<'a> {
@@ -518,6 +617,9 @@ case "$port" in ''|*[!0-9]*|0) echo 'invalid Wireless debugging listener port' >
 if [ -f .closing ] && [ "$(cat .closing)" != "$port" ]; then
     rm -f -- * .closing
 fi
+# Build tools read this list from every listed phone; its size lets the watcher
+# tell those reads from use without asking the phone anything more.
+echo "properties $(getprop | wc -c)"
 {operation}"#,
     )
 }
@@ -707,6 +809,35 @@ fn transport_bytes(address: &str) -> Option<SocketBytes> {
 }
 
 fn bytes_for_peer(text: &str, address: &str) -> Option<SocketBytes> {
+    let field = peer_fields(text, address)?;
+    Some(SocketBytes {
+        sent: field("bytes_sent:")?.parse().ok()?,
+        received: field("bytes_received:")?.parse().ok()?,
+        // ss omits this field when no payload has been retransmitted.
+        retransmitted: field("bytes_retrans:").unwrap_or("0").parse().ok()?,
+    })
+}
+
+/// Whether the phone acknowledged the device socket to `address` within
+/// `ABSENT_GRACE`. ADB probes an idle device socket every second, so a phone
+/// that is still there always has; one that left stops, whatever mDNS shows.
+fn answering(address: &str) -> bool {
+    Command::new("ss")
+        .args(["-tnHi"])
+        .output()
+        .ok()
+        .and_then(|output| last_ack_for_peer(&String::from_utf8_lossy(&output.stdout), address))
+        .is_some_and(|age| age < ABSENT_GRACE)
+}
+
+/// Time since the peer's latest acknowledgement, which keepalive replies renew.
+fn last_ack_for_peer(text: &str, address: &str) -> Option<Duration> {
+    let milliseconds = peer_fields(text, address)?("lastack:")?.parse().ok()?;
+    Some(Duration::from_millis(milliseconds))
+}
+
+/// Lookup of the `name:value` TCP info fields `ss` prints for the socket to `address`.
+fn peer_fields<'a>(text: &'a str, address: &str) -> Option<impl Fn(&str) -> Option<&'a str>> {
     let wanted = address.replace(['[', ']'], "");
     let mut matched = false;
     for line in text.lines() {
@@ -715,21 +846,12 @@ fn bytes_for_peer(text: &str, address: &str) -> Option<SocketBytes> {
                 .split_whitespace()
                 .nth(4)
                 .is_some_and(|peer| peer.replace(['[', ']'], "") == wanted);
-            continue;
+        } else if matched {
+            return Some(move |name: &str| {
+                line.split_whitespace()
+                    .find_map(|field| field.strip_prefix(name))
+            });
         }
-        if !matched {
-            continue;
-        }
-        let field = |name: &str| -> Option<&str> {
-            line.split_whitespace()
-                .find_map(|field| field.strip_prefix(name))
-        };
-        return Some(SocketBytes {
-            sent: field("bytes_sent:")?.parse().ok()?,
-            received: field("bytes_received:")?.parse().ok()?,
-            // ss omits this field when no payload has been retransmitted.
-            retransmitted: field("bytes_retrans:").unwrap_or("0").parse().ok()?,
-        });
     }
     None
 }
@@ -760,24 +882,38 @@ fn listed(devices: &str, name: &str) -> bool {
         .any(|line| line.split_whitespace().next() == Some(name))
 }
 
+/// Whether an online transport is named after this phone's mDNS service.
+fn online_unadvertised(devices: &str, serial: &str) -> bool {
+    stale_transports(devices, serial).any(|name| {
+        devices.lines().any(|line| {
+            let mut fields = line.split_whitespace();
+            fields.next() == Some(name) && fields.next() == Some("device")
+        })
+    })
+}
+
 /// Bring the phone's transport in line with what it advertises: connect when it
-/// is missing or stale, drop what nothing advertises, and return the transport
-/// the watcher now holds.
+/// is missing or stale, drop what nothing advertises unless the phone still
+/// answers on it, and return the transport the watcher now holds.
 fn reconcile(
     serial: &str,
     devices: &str,
     held: Option<&Connection>,
     missing_since: &mut Option<Instant>,
     mut query: impl FnMut(&str) -> Result<String>,
+    answering: impl Fn(&str) -> bool,
 ) -> Result<Option<Connection>> {
     let services = discover(&query("host:mdns:services")?, serial)?;
     if services.is_empty() {
         // Cache expiry and a Wi-Fi roam look exactly like a phone that left, so a
         // quiet mDNS list alone must not cut the transport: wait for the grace
-        // period, during which the transport is reported as still held.
+        // period, during which the transport is reported as still held. Past it,
+        // discovery that stays quiet (multicast is unreliable between Wi-Fi
+        // clients) still must not cut a transport the phone answers on, or this
+        // workstation loses the phone and its use goes unseen until mDNS returns.
         let since = missing_since.get_or_insert_with(Instant::now);
         if let Some(held) = held.filter(|held| listed(devices, &held.serial)) {
-            if since.elapsed() < ABSENT_GRACE {
+            if since.elapsed() < ABSENT_GRACE || answering(&held.address) {
                 return Ok(Some(held.clone()));
             }
             disconnect(&mut query, &held.serial)?;
@@ -890,7 +1026,7 @@ mod tests {
         devices: &str,
         steps: &[(&str, &str)],
     ) -> Result<Option<Connection>> {
-        reconcile_with(None, held, devices, steps)
+        reconcile_with(None, held, devices, steps, false)
     }
 
     /// Run one reconciliation as if the phone had been absent past the grace period.
@@ -899,8 +1035,11 @@ mod tests {
         devices: &str,
         steps: &[(&str, &str)],
     ) -> Result<Option<Connection>> {
-        let since = Instant::now().checked_sub(ABSENT_GRACE + Duration::from_secs(1));
-        reconcile_with(since, held, devices, steps)
+        reconcile_with(past_grace(), held, devices, steps, false)
+    }
+
+    fn past_grace() -> Option<Instant> {
+        Instant::now().checked_sub(ABSENT_GRACE + Duration::from_secs(1))
     }
 
     fn reconcile_with(
@@ -908,14 +1047,25 @@ mod tests {
         held: Option<&Connection>,
         devices: &str,
         steps: &[(&str, &str)],
+        answering: bool,
     ) -> Result<Option<Connection>> {
         let mut missing_since = missing_since;
         let mut steps = steps.iter();
-        let result = reconcile("phone", devices, held, &mut missing_since, |service| {
-            let &(expected, response) = steps.next().expect("unexpected ADB request");
-            assert_eq!(service, expected);
-            Ok(response.to_owned())
-        });
+        let result = reconcile(
+            "phone",
+            devices,
+            held,
+            &mut missing_since,
+            |service| {
+                let &(expected, response) = steps.next().expect("unexpected ADB request");
+                assert_eq!(service, expected);
+                Ok(response.to_owned())
+            },
+            |address| {
+                assert_eq!(Some(address), held.map(|held| held.address.as_str()));
+                answering
+            },
+        );
         assert!(
             steps.as_slice().is_empty(),
             "missing ADB requests: {steps:?}"
@@ -1239,6 +1389,125 @@ mod tests {
         assert!(phone.idle_deadline.is_none());
     }
 
+    /// Main's journal, 10–11 November: Gradle builds for the USB phone read this
+    /// phone's property list, 174 bytes out and about 85.5 KB back each time.
+    const PROPERTIES: u64 = 85_300;
+
+    fn traffic(sent: u64, received: u64) -> SocketBytes {
+        SocketBytes {
+            sent,
+            received,
+            retransmitted: 0,
+        }
+    }
+
+    #[test]
+    fn build_tool_property_reads_are_not_use() {
+        for (sent, received, probes) in [
+            (174, 85_558, Some(1)),
+            (174, 85_849, Some(1)),
+            // More acknowledgements, a retransmitted request, two builds at once.
+            (394, 85_543, Some(1)),
+            (210, 85_601, Some(1)),
+            (348, 171_116, Some(2)),
+            // A list that drifted since it was measured still matches.
+            (174, 84_100, Some(1)),
+            // Ordinary commands: a tap, a screenshot, an install, a long log.
+            (250, 120, None),
+            (300, 1_068_512, None),
+            (3_894, 85_558, None),
+            (60_000_000, 85_558, None),
+            (174, 80_000, None),
+            (174, 91_000, None),
+            (174, 128_000, None),
+            (870, 427_790, None),
+            (0, 0, None),
+        ] {
+            assert_eq!(
+                property_probes(sent, received, PROPERTIES),
+                probes,
+                "sent {sent}, received {received}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_property_read_leaves_the_idle_deadline_and_marker_alone() {
+        let idle = Duration::from_secs(180 * 60);
+        let peer = "192.168.1.76:41325";
+        let mut phone = Phone::new("phone");
+        phone.reset_transport(Duration::ZERO, Some(traffic(1_000, 5_000)));
+        // Until the phone has reported its list, the same traffic counts as use.
+        phone.observe(traffic(1_174, 90_558), peer, Duration::from_secs(60), idle);
+        let deadline = phone.idle_deadline;
+        assert_eq!(deadline, Some(Duration::from_secs(60) + idle));
+        phone.pending_activity = None;
+
+        phone.property_bytes = Some(PROPERTIES);
+        phone.observe(
+            traffic(1_348, 176_116),
+            peer,
+            Duration::from_secs(120),
+            idle,
+        );
+        assert_eq!(phone.idle_deadline, deadline);
+        assert!(phone.pending_activity.is_none());
+        // The read still moves the baseline, so the next command stands alone.
+        phone.observe(
+            traffic(1_598, 176_236),
+            peer,
+            Duration::from_secs(180),
+            idle,
+        );
+        assert_eq!(phone.idle_deadline, Some(Duration::from_secs(180) + idle));
+        assert_eq!(
+            phone.pending_activity.as_ref().unwrap()["delta"],
+            serde_json::json!({"sent": 250, "received": 120, "retransmitted": 0})
+        );
+        // Counters that restarted say nothing about what was exchanged.
+        phone.pending_activity = None;
+        phone.observe(traffic(174, 85_558), peer, Duration::from_secs(240), idle);
+        assert_eq!(
+            phone.pending_activity.as_ref().unwrap()["reason"],
+            "counters_decreased"
+        );
+    }
+
+    #[test]
+    fn history_commands_report_the_property_list_size() -> Result<()> {
+        let fixture = HistoryFixture::new()?;
+        fixture.expired_marker("main")?;
+        let properties = "[ro.serialno]: [phone]\n".repeat(1000);
+        for action in [
+            HistoryCommand::Read,
+            HistoryCommand::Mark {
+                host: "laptop",
+                activity: &serde_json::json!({}),
+            },
+            HistoryCommand::Shutdown {
+                idle: Duration::from_secs(180 * 60),
+                port: 41000,
+            },
+        ] {
+            let output = util::command_output(
+                fixture
+                    .command(action, 40000)
+                    .env("PROPERTIES", &properties),
+            )?;
+            let (size, _) = history_output(std::str::from_utf8(&output)?)?;
+            assert_eq!(size, properties.len() as u64);
+        }
+        // Output that lost its first line must not be read as marker history.
+        for output in ["", "1000\n990 main\n", "properties many\n", "properties 12"] {
+            assert!(history_output(output).is_err(), "{output:?}");
+        }
+        assert_eq!(
+            history_output("properties  85300 \n1000\n")?,
+            (85_300, "1000\n")
+        );
+        Ok(())
+    }
+
     #[test]
     fn restart_recovers_our_own_history_without_a_fresh_idle_window() -> Result<()> {
         let idle = Duration::from_secs(180 * 60);
@@ -1292,7 +1561,9 @@ mod tests {
                         r#"
 # Simulate Android closing fd 9 when it executes an external flock.
 flock() {{ (exec 9>&-; command flock "$@"); }}
-getprop() {{ printf '%s\n' "$PROP_PORT"; }}
+getprop() {{
+    if [ $# = 0 ]; then printf '%s' "$PROPERTIES"; else printf '%s\n' "$PROP_PORT"; fi
+}}
 dumpsys() {{
     if command flock -nx 0 <.lock; then
         echo 'History lock was not retained by the shell' >&2
@@ -1311,10 +1582,17 @@ settings() {{
                 ])
                 .env("PHONE_PORT", port.to_string())
                 .env("PROP_PORT", "")
+                .env("PROPERTIES", "[ro.serialno]: [phone]\n")
                 .env("CALLS", self.0.path().join(".calls"))
                 .env("RACING_MARK", "")
                 .env("SETTINGS_FAIL", "0");
             command
+        }
+
+        /// Run a history command and return its own output, past the size line.
+        fn run(&self, command: &mut Command) -> Result<String> {
+            let output = String::from_utf8(util::command_output(command)?)?;
+            Ok(history_output(&output)?.1.to_owned())
         }
 
         fn expired_marker(&self, host: &str) -> Result<()> {
@@ -1360,11 +1638,8 @@ settings() {{
         // cannot look like another workstation or change its idle history.
         fixture.expired_marker("laptop")?;
         std::fs::write(fixture.0.path().join(".marker-tmp"), "partial")?;
-        let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 40000))?;
-        assert_eq!(
-            newest_use(std::str::from_utf8(&history)?)?.unwrap().1,
-            "main"
-        );
+        let history = fixture.run(&mut fixture.command(HistoryCommand::Read, 40000))?;
+        assert_eq!(newest_use(&history)?.unwrap().1, "main");
 
         util::command_output(&mut fixture.command(
             HistoryCommand::Mark {
@@ -1401,10 +1676,14 @@ settings() {{
             std::fs::read_to_string(fixture.0.path().join(".closing"))?,
             "40000\n"
         );
-        let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 40000))?;
-        let age = newest_use(std::str::from_utf8(&history)?)?.unwrap().0;
+        let history = fixture.run(&mut fixture.command(HistoryCommand::Read, 40000))?;
+        let age = newest_use(&history)?.unwrap().0;
         assert_eq!(idle_delay(Some(age), idle), None);
-        assert!(util::command_output(&mut fixture.command(shutdown(), 40000))?.is_empty());
+        assert!(
+            fixture
+                .run(&mut fixture.command(shutdown(), 40000))?
+                .is_empty()
+        );
         assert_eq!(
             std::fs::read_to_string(fixture.0.path().join(".calls"))?
                 .lines()
@@ -1434,8 +1713,8 @@ settings() {{
         assert!(fixture.0.path().join(".closing").exists());
 
         // A late publication cannot leak from the closing session into its next enable.
-        let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 41000))?;
-        assert_eq!(newest_use(std::str::from_utf8(&history)?)?, None);
+        let history = fixture.run(&mut fixture.command(HistoryCommand::Read, 41000))?;
+        assert_eq!(newest_use(&history)?, None);
         util::command_output(&mut fixture.command(
             HistoryCommand::Mark {
                 host: "main",
@@ -1443,11 +1722,8 @@ settings() {{
             },
             41000,
         ))?;
-        let history = util::command_output(&mut fixture.command(HistoryCommand::Read, 41000))?;
-        assert_eq!(
-            newest_use(std::str::from_utf8(&history)?)?.unwrap().1,
-            "main"
-        );
+        let history = fixture.run(&mut fixture.command(HistoryCommand::Read, 41000))?;
+        assert_eq!(newest_use(&history)?.unwrap().1, "main");
         assert!(!fixture.0.path().join(".closing").exists());
         Ok(())
     }
@@ -1458,8 +1734,8 @@ settings() {{
         fixture.expired_marker("main")?;
         let idle = Duration::from_secs(180 * 60);
         let shutdown = || HistoryCommand::Shutdown { idle, port: 40000 };
-        let output = util::command_output(&mut fixture.command(shutdown(), 41000))?;
-        assert_eq!(output, b"active\n");
+        let output = fixture.run(&mut fixture.command(shutdown(), 41000))?;
+        assert_eq!(output, "active\n");
         // A port change without a closing session must preserve idle history.
         assert!(fixture.0.path().join("main").exists());
         util::command_output(&mut fixture.command(
@@ -1469,8 +1745,8 @@ settings() {{
             },
             40000,
         ))?;
-        let output = util::command_output(&mut fixture.command(shutdown(), 40000))?;
-        assert_eq!(output, b"active\n");
+        let output = fixture.run(&mut fixture.command(shutdown(), 40000))?;
+        assert_eq!(output, "active\n");
         assert!(!fixture.0.path().join(".closing").exists());
         assert!(!fixture.0.path().join(".calls").exists());
         Ok(())
@@ -1618,6 +1894,50 @@ settings() {{
     }
 
     #[test]
+    fn keeps_an_unadvertised_transport_the_phone_still_answers_on() {
+        let devices = "adb-phone-new._adb-tls-connect._tcp device\n";
+        let held = connection("adb-phone-new._adb-tls-connect._tcp", "192.168.1.76:41325");
+        let quiet = [("host:mdns:services", "List of discovered mdns services\n")];
+        assert_eq!(
+            reconcile_with(past_grace(), Some(&held), devices, &quiet, true).unwrap(),
+            Some(held.clone())
+        );
+        // Without a listed transport there is nothing left to keep or to ask.
+        assert_eq!(
+            reconcile_with(past_grace(), Some(&held), "", &quiet, true).unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn reads_the_phones_latest_acknowledgement() {
+        let text = "ESTAB 0 0 192.168.1.2:50000 192.168.1.76:41325 timer:(keepalive,109ms,0)\n\
+                    \t cubic bytes_sent:1665 bytes_received:3979 lastsnd:2005554 lastrcv:2005549 lastack:891 minrtt:4.6\n\
+                    ESTAB 0 0 192.168.1.2:50001 192.168.1.77:41325\n\
+                    \t cubic bytes_sent:7 bytes_received:9\n";
+        assert_eq!(
+            last_ack_for_peer(text, "192.168.1.76:41325"),
+            Some(Duration::from_millis(891))
+        );
+        // A socket that is gone or reports no acknowledgement is not answering.
+        assert_eq!(last_ack_for_peer(text, "192.168.1.77:41325"), None);
+        assert_eq!(last_ack_for_peer(text, "192.168.1.78:41325"), None);
+    }
+
+    #[test]
+    fn notices_a_connected_phone_it_cannot_watch() {
+        let devices = "adb-phone-new._adb-tls-connect._tcp device\n\
+                       adb-phone2-new._adb-tls-connect._tcp device\n\
+                       192.168.1.76:41325 device\n";
+        assert!(online_unadvertised(devices, "phone"));
+        assert!(!online_unadvertised(devices, "other"));
+        assert!(!online_unadvertised(
+            "adb-phone-new._adb-tls-connect._tcp offline\n",
+            "phone"
+        ));
+    }
+
+    #[test]
     fn drops_an_advertised_transport_that_changed_its_instance_name() {
         cycle(
             "adb-phone-old._adb-tls-connect._tcp device\n",
@@ -1699,7 +2019,8 @@ settings() {{
                 "192.168.1.76:41325 device\n",
                 Some(&held),
                 &mut missing_since,
-                &mut query
+                &mut query,
+                |_| false,
             )
             .unwrap(),
             None
