@@ -37,6 +37,10 @@ in
       turns it off.
     '';
   };
+  # `adb-status` prints what the watcher last saw without contacting a phone.
+  config.home.file.".local/bin/adb-status".source = pkgs.writeShellScript "adb-status" ''
+    exec ${lib.getExe pkgs.host-tools} adb-status "$@"
+  '';
   config.systemd.user.services.adb-wireless = {
     Unit.Description = "Reconnect the paired Android phone through mDNS";
     Service = {
