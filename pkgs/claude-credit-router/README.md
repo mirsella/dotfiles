@@ -82,7 +82,8 @@ day because an intraday end time can omit today's spend.
 
 At or above the local limit, the router records `local_spend_limit`, notifies the
 user, and forwards the unchanged request using native subscription authentication.
-It stores a monthly spending high-water mark, so restarts, stale lower reports,
+Cached reports are bound to their organization and project; older unbound reports
+require a fresh check. It stores a monthly spending high-water mark, so restarts, stale lower reports,
 and manual rechecks cannot forget known exhaustion. Missing credentials, HTTP
 errors, malformed data, incomplete coverage or unexpected projects/currencies
 record `spend_check_unavailable` and use subscription with a one-minute retry.

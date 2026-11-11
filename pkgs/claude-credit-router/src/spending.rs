@@ -16,9 +16,20 @@ pub struct Settings {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Snapshot {
+    // Older snapshots are deliberately unbound and must be refreshed.
+    #[serde(default)]
+    pub organization_id: String,
+    #[serde(default)]
+    pub project_id: String,
     pub month: String,
     pub reported_usd: f64,
     pub checked_at: DateTime<Utc>,
+}
+
+impl Snapshot {
+    fn matches(&self, month: &str, organization: &str, project: &str) -> bool {
+        self.month == month && self.organization_id == organization && self.project_id == project
+    }
 }
 
 #[derive(Clone)]
@@ -52,20 +63,31 @@ impl Guard {
 
     pub async fn check(
         &self,
-        settings: &crate::openai::Settings,
-        org: &str,
+        config: &crate::Config,
         store: &Store,
-        anchor: DateTime<Utc>,
-        now: DateTime<Utc>,
+        clock: &(dyn Fn() -> DateTime<Utc> + Send + Sync),
         fresh: bool,
     ) -> Result<bool> {
+        let settings = config
+            .openai
+            .as_ref()
+            .context("budget checks require OpenAI")?;
         let _lock = self.lock.lock().await;
+        // Queued checks must evaluate cache age after the preceding refresh.
+        let now = clock();
         let month = now.format("%Y-%m").to_string();
-        let previous = store.read()?.spending.filter(|s| s.month == month);
-        if let Some(snapshot) = &previous {
+        let state = store.read()?;
+        if let Some(snapshot) = state.spending.as_ref().filter(|snapshot| {
+            snapshot.matches(&month, &config.organization_id, &settings.project_id)
+        }) {
             // Even manual recheck cannot forget a known exhausted month.
-            if snapshot.reported_usd >= f64::from(settings.spending.limit_usd) {
-                return self.stop(store, now, next_renewal(anchor, now)?, "local_spend_limit");
+            if !fresh && snapshot.reported_usd >= f64::from(settings.spending.limit_usd) {
+                return self.stop(
+                    store,
+                    now,
+                    next_renewal(config.renewal_anchor, now)?,
+                    "local_spend_limit",
+                );
             }
             if !fresh
                 && snapshot.checked_at <= now
@@ -74,18 +96,25 @@ impl Guard {
                 return Ok(true);
             }
         }
-        match self.fetch(settings, org, now).await {
+        match self.fetch(settings, &config.organization_id, now).await {
             Ok(reported) => {
-                let total = reported.max(previous.map_or(0.0, |s| s.reported_usd));
                 let total = store.update(|state| {
-                    let total = total.max(
+                    let total = reported.max(
                         state
                             .spending
                             .as_ref()
-                            .filter(|s| s.month == month)
+                            .filter(|snapshot| {
+                                snapshot.matches(
+                                    &month,
+                                    &config.organization_id,
+                                    &settings.project_id,
+                                )
+                            })
                             .map_or(0.0, |s| s.reported_usd),
                     );
                     state.spending = Some(Snapshot {
+                        organization_id: config.organization_id.clone(),
+                        project_id: settings.project_id.clone(),
                         month,
                         reported_usd: total,
                         checked_at: now,
@@ -93,7 +122,12 @@ impl Guard {
                     Ok(total)
                 })?;
                 if total >= f64::from(settings.spending.limit_usd) {
-                    self.stop(store, now, next_renewal(anchor, now)?, "local_spend_limit")
+                    self.stop(
+                        store,
+                        now,
+                        next_renewal(config.renewal_anchor, now)?,
+                        "local_spend_limit",
+                    )
                 } else {
                     Ok(true)
                 }
@@ -145,9 +179,15 @@ impl Guard {
         let providers = config["providers"]
             .as_array()
             .context("missing reporting provider")?;
-        let keys: Vec<_> = providers.iter().filter(|p| p["id"] == "openai").collect();
-        ensure!(keys.len() == 1, "expected one OpenAI reporting provider");
-        let key = keys[0]["apiKey"]
+        let mut providers = providers.iter().filter(|p| p["id"] == "openai");
+        let provider = providers
+            .next()
+            .context("missing OpenAI reporting provider")?;
+        ensure!(
+            providers.next().is_none(),
+            "duplicate OpenAI reporting provider"
+        );
+        let key = provider["apiKey"]
             .as_str()
             .filter(|k| !k.is_empty())
             .context("missing reporting key")?;

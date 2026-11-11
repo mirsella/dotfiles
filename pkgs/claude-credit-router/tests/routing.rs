@@ -1077,6 +1077,44 @@ async fn explicit_refresh_bypasses_unexpired_cost_cache() {
     assert!(!f.router.check_spending(true).await.unwrap());
     assert_eq!(*f.state.cost_checks.lock().unwrap(), 2);
     assert_eq!(f.router.status(f.now()).unwrap().route, Route::Subscription);
+    *f.state.cost.lock().unwrap() = Some(200.0);
+    assert!(!f.router.check_spending(true).await.unwrap());
+    assert_eq!(*f.state.cost_checks.lock().unwrap(), 3);
+    assert_eq!(
+        f.store.read().unwrap().spending.unwrap().reported_usd,
+        200.0
+    );
+    *f.state.cost.lock().unwrap() = Some(100.0);
+    assert!(!f.router.check_spending(true).await.unwrap());
+    assert_eq!(
+        f.store.read().unwrap().spending.unwrap().reported_usd,
+        200.0
+    );
+}
+
+#[tokio::test]
+async fn costs_cache_requires_the_current_billing_identity() {
+    for field in ["organization_id", "project_id", "legacy"] {
+        let f = Fixture::openai(vec![]).await;
+        assert!(f.router.check_spending(false).await.unwrap());
+        let mut state = serde_json::to_value(f.store.read().unwrap()).unwrap();
+        state["spending"]["reported_usd"] = json!(200.0);
+        if field == "legacy" {
+            let snapshot = state["spending"].as_object_mut().unwrap();
+            snapshot.remove("organization_id");
+            snapshot.remove("project_id");
+        } else {
+            state["spending"][field] = json!("another-billing-identity");
+        }
+        std::fs::write(&f.store.0, serde_json::to_vec(&state).unwrap()).unwrap();
+        *f.state.cost.lock().unwrap() = Some(1.0);
+        assert!(f.router.check_spending(false).await.unwrap(), "{field}");
+        assert_eq!(*f.state.cost_checks.lock().unwrap(), 2);
+        let snapshot = f.store.read().unwrap().spending.unwrap();
+        assert_eq!(snapshot.reported_usd, 1.0);
+        assert_eq!(snapshot.organization_id, "personal-org");
+        assert_eq!(snapshot.project_id, "proj_personal");
+    }
 }
 
 #[tokio::test]

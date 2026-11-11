@@ -187,25 +187,16 @@ impl Router {
     }
 
     pub async fn check_spending(&self, fresh: bool) -> Result<bool> {
-        let Some(settings) = &self.config.openai else {
+        if self.config.openai.is_none() {
             return Ok(true);
-        };
+        }
         let was_promotional = self.store.read()?.active == Route::Promotional;
         let allowed = self
             .spending
-            .check(
-                settings,
-                &self.config.organization_id,
-                &self.store,
-                self.config.renewal_anchor,
-                (self.clock)(),
-                fresh,
-            )
+            .check(&self.config, &self.store, self.clock.as_ref(), fresh)
             .await?;
-        if !allowed {
-            if was_promotional {
-                self.notify("Local API spend check stopped promotional usage; using your normal subscription. See openai-credit-router status for the reason.");
-            }
+        if !allowed && was_promotional {
+            self.notify("Local API spend check stopped promotional usage; using your normal subscription. See openai-credit-router status for the reason.");
         }
         Ok(allowed)
     }

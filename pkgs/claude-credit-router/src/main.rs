@@ -136,19 +136,8 @@ async fn main() -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&output)?);
         }
         Command::CheckBudget => {
-            let settings = config
-                .openai
-                .as_ref()
-                .context("budget checks require --openai")?;
             let allowed = claude_credit_router::spending::Guard::new()?
-                .check(
-                    settings,
-                    &config.organization_id,
-                    &store,
-                    config.renewal_anchor,
-                    Utc::now(),
-                    true,
-                )
+                .check(&config, &store, &Utc::now, true)
                 .await?;
             println!(
                 "{}",
@@ -180,14 +169,25 @@ async fn main() -> Result<()> {
             let router = Router::new(config, store, &key)?;
             router.verify_organization().await?;
             let listener = tokio::net::TcpListener::bind(router.config.listen).await?;
+            let mut terminate =
+                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                    .context("install SIGTERM handler")?;
             eprintln!(
                 "claude-credit-router: listening on {} for organization {}",
                 listener.local_addr()?,
                 router.config.organization_id
             );
             axum::serve(listener, router.app())
-                .with_graceful_shutdown(async {
-                    let _ = tokio::signal::ctrl_c().await;
+                .with_graceful_shutdown(async move {
+                    tokio::select! {
+                        result = tokio::signal::ctrl_c() => {
+                            if let Err(error) = result {
+                                eprintln!("credit-router: SIGINT handler failed: {error}; shutting down");
+                            }
+                        }
+                        _ = terminate.recv() => {}
+                    }
+                    eprintln!("credit-router: draining active requests");
                 })
                 .await?;
         }
