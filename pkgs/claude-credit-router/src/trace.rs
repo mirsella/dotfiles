@@ -70,6 +70,7 @@ pub struct Trace {
     started: Instant,
     complete: bool,
     metadata: Metadata,
+    credit_cut: Option<Box<dyn FnOnce(&ContextIds) + Send + Sync>>,
 }
 
 impl Trace {
@@ -87,6 +88,7 @@ impl Trace {
             started: Instant::now(),
             complete: false,
             metadata: Metadata::default(),
+            credit_cut: None,
         }
     }
 
@@ -103,6 +105,12 @@ impl Trace {
             .get("content-type")
             .and_then(|value| value.to_str().ok())
             .is_some_and(|value| value.starts_with("text/event-stream"));
+    }
+
+    /// Called once if the vendor ends this promotional stream with its balance
+    /// error. The bytes still reach the client unchanged.
+    pub fn on_credit_cut(&mut self, action: impl FnOnce(&ContextIds) + Send + Sync + 'static) {
+        self.credit_cut = Some(Box::new(action));
     }
 
     pub fn finish(&mut self, outcome: &str) {
@@ -144,6 +152,12 @@ impl Trace {
                         if parse_usage {
                             trace.metadata.push(&chunk, &mut trace.record);
                         }
+                        if trace.metadata.credit_cut {
+                            if let Some(action) = trace.credit_cut.take() {
+                                action(&trace.record.context);
+                            }
+                            trace.finish("credit_exhausted_mid_stream");
+                        }
                         Some((Ok::<_, reqwest::Error>(chunk), (stream, trace)))
                     }
                     Some(Err(error)) => {
@@ -179,6 +193,7 @@ pub struct Metadata {
     pending: Vec<u8>,
     discard: bool,
     pub error: bool,
+    pub credit_cut: bool,
     tokens: Tokens,
     input_seen: bool,
     final_usage: bool,
@@ -232,6 +247,7 @@ impl Metadata {
             Some("error" | "response.failed" | "response.incomplete")
         ) {
             self.error = true;
+            self.credit_cut |= crate::exhausted_error(&value);
         }
         let (object, openai) = if value.get("response").is_some() {
             (&value["response"], true)

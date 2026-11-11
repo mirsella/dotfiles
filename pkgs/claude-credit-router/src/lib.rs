@@ -110,8 +110,20 @@ pub struct Router {
     // arrive. Streaming output and all subscription traffic remain concurrent.
     promotional: Arc<Mutex<()>>,
     models: Arc<std::sync::RwLock<std::collections::HashSet<String>>>,
+    interrupted: Arc<std::sync::Mutex<Vec<Interruption>>>,
     clock: Arc<dyn Fn() -> DateTime<Utc> + Send + Sync>,
 }
+
+/// A promotional response the vendor ended mid-stream because the balance ran
+/// out. The stream is forwarded as-is; this only lets the client that owns the
+/// session decide to send the turn again.
+#[derive(Clone, Debug, Serialize)]
+pub struct Interruption {
+    pub at: DateTime<Utc>,
+    pub native_session_id: Option<String>,
+}
+
+const INTERRUPTION_RETENTION: chrono::Duration = chrono::Duration::minutes(10);
 
 #[derive(Serialize)]
 pub struct Status {
@@ -125,6 +137,7 @@ pub struct Status {
     pub last_promotional_success_at: Option<DateTime<Utc>>,
     pub spending: Option<spending::Snapshot>,
     pub local_spend_limit_usd: Option<u32>,
+    pub interrupted: Vec<Interruption>,
 }
 
 impl Router {
@@ -144,6 +157,7 @@ impl Router {
                 .build()?,
             promotional: Arc::new(Mutex::new(())),
             models: Arc::default(),
+            interrupted: Arc::default(),
             clock: Arc::new(Utc::now),
         })
     }
@@ -183,7 +197,31 @@ impl Router {
                     .len()
             }),
             last_promotional_success_at: state.last_promotional_success_at,
+            interrupted: self.interruptions(now),
         })
+    }
+
+    fn interruptions(&self, now: DateTime<Utc>) -> Vec<Interruption> {
+        let mut interrupted = self.interrupted.lock().expect("interruption lock poisoned");
+        interrupted.retain(|entry| now - entry.at < INTERRUPTION_RETENTION);
+        interrupted.clone()
+    }
+
+    fn interrupt(&self, native_session_id: Option<String>) {
+        let now = (self.clock)();
+        eprintln!(
+            "credit-router: promotional credits ran out during a response; the next request is checked and uses your normal subscription"
+        );
+        let mut interrupted = self.interrupted.lock().expect("interruption lock poisoned");
+        interrupted.retain(|entry| now - entry.at < INTERRUPTION_RETENTION);
+        // One exhaustion cuts at most the streams in flight; this bound only
+        // keeps a misbehaving upstream from growing the list.
+        if interrupted.len() < 64 {
+            interrupted.push(Interruption {
+                at: now,
+                native_session_id,
+            });
+        }
     }
 
     pub async fn check_spending(&self, fresh: bool) -> Result<bool> {
@@ -504,6 +542,12 @@ impl Router {
                 self.notify("Monthly promotional API credits are available; using them again.");
             }
             // Tee only bounded usage metadata; never alter or replay output.
+            // The route changes when the next request is rejected before any
+            // output, which is the only rejection that is safe to replay.
+            let router = self.clone();
+            trace.on_credit_cut(move |context| {
+                router.interrupt(context.native_session_id.clone());
+            });
             return Ok(trace.stream(response, true));
         }
         if !(matches!(
@@ -573,9 +617,11 @@ pub fn exhausted(status: StatusCode, bytes: &[u8]) -> bool {
     ) {
         return false;
     }
-    let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else {
-        return false;
-    };
+    serde_json::from_slice::<serde_json::Value>(bytes).is_ok_and(|value| exhausted_error(&value))
+}
+
+/// The vendor's exact balance error, as a rejection body or a stream event.
+pub fn exhausted_error(value: &serde_json::Value) -> bool {
     value["type"] == "error"
         && value["error"]["message"] == EXHAUSTED
         && matches!(

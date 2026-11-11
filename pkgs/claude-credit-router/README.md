@@ -185,8 +185,18 @@ rejects the request as ineligible, that error is not treated as credit exhaustio
 Only the documented full credit-depletion JSON message, with HTTP 400/402 and the
 matching error type, permits one subscription attempt of the rejected request.
 Temporary limits, spend caps, auth failures, network failures and unknown billing
-errors are returned unchanged. HTTP 200 streams are never inspected or replayed,
+errors are returned unchanged. HTTP 200 streams are never altered or replayed,
 even when they contain an SSE error after output/tool calls have started.
+
+Anthropic can also end a promotional response mid-stream with that same depletion
+message, when the balance reaches zero while the response is being generated.
+The router forwards the stream as it is and keeps the route: only a rejection
+before any output is safe to replay. It lists the cut under `interrupted` in
+`/_credit/status` for ten minutes, with the Claude Code session it belonged to.
+OpenCode never retries Claude Agent failures, so the extension resends that one
+turn, once per cut and session. The resent request is rejected before output and
+takes the path above. A failure without a matching entry is left alone, which
+includes every subscription failure.
 
 After exhaustion, subscription requests are forwarded without response inspection
 or retries. Within five seconds the extension removes its endpoint override, so

@@ -410,6 +410,44 @@ async fn partial_sse_output_is_never_parsed_replayed_or_switched() {
     assert_eq!(fixture.send("request").await.text().await.unwrap(), body);
     assert_eq!(fixture.seen().len(), 1);
     assert_eq!(fixture.store.read().unwrap().active, Route::Promotional);
+    // An event that is not the vendor's exact error object reports nothing.
+    let now = *fixture.clock.lock().unwrap();
+    assert!(fixture.router.status(now).unwrap().interrupted.is_empty());
+}
+
+#[tokio::test]
+async fn credit_cut_mid_stream_is_reported_without_replay_and_the_next_request_switches() {
+    let cut = format!(
+        "event: message_start\ndata: {{\"type\":\"message_start\",\"message\":{{\"id\":\"msg_1\",\"usage\":{{\"input_tokens\":3}}}}}}\n\nevent: content_block_delta\ndata: {{\"type\":\"content_block_delta\",\"delta\":{{\"type\":\"text_delta\",\"text\":\"{EXHAUSTED}\"}}}}\n\nevent: error\ndata: {}\n\n",
+        json!({"type":"error", "error":{"type":"billing_error", "message":EXHAUSTED}})
+    );
+    let session = "0f0e0d0c-0b0a-4908-8706-050403020100";
+    let request = json!({"model":"claude-fable-5-2", "metadata":{"user_id": format!("user_x_account__session_{session}")}}).to_string();
+    let fixture = Fixture::new(vec![
+        Reply(StatusCode::OK, cut.clone()),
+        depleted(),
+        Reply(StatusCode::OK, "native".into()),
+    ])
+    .await;
+    // Output already reached the client, so the stream is neither replayed nor
+    // altered, and only a pre-output rejection may change the route.
+    assert_eq!(fixture.send(&request).await.text().await.unwrap(), cut);
+    assert_eq!(fixture.seen().len(), 1);
+    assert_eq!(fixture.store.read().unwrap().active, Route::Promotional);
+    let now = *fixture.clock.lock().unwrap();
+    let status = fixture.router.status(now).unwrap();
+    assert_eq!(status.interrupted.len(), 1);
+    assert_eq!(
+        status.interrupted[0].native_session_id.as_deref(),
+        Some(session)
+    );
+    // The client sends the turn again: that request is rejected up front and
+    // moves to the subscription.
+    assert_eq!(fixture.send(&request).await.text().await.unwrap(), "native");
+    assert_eq!(fixture.seen().len(), 3);
+    assert_eq!(fixture.store.read().unwrap().active, Route::Subscription);
+    let later = now + chrono::Duration::minutes(11);
+    assert!(fixture.router.status(later).unwrap().interrupted.is_empty());
 }
 
 #[tokio::test]

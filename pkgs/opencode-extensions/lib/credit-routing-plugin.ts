@@ -2,7 +2,7 @@ import { Plugin } from "@opencode/plugin";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { creditEndpoint, parseCreditStatus } from "./claude-promotional-credits";
+import { creditCutRetries, creditEndpoint, parseCreditStatus, parseInterruptions } from "./claude-promotional-credits";
 import { creditAudit } from "./credit-audit";
 
 export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: string) {
@@ -63,6 +63,27 @@ export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: str
         } catch (error) { warn(String(error)); }
       };
       let registration = await ctx.provider.transform(transform);
+      const cuts = creditCutRetries();
+      // The vendor can end a promotional response mid-stream when the balance
+      // runs out. Nothing resends that turn: OpenCode never retries this
+      // provider. Send it again once; the router then rejects the promotional
+      // attempt before any output and uses the subscription. This hook runs
+      // after the built-in one, so its decision is the one that applies.
+      const retries = vendor !== "claude" ? undefined : await ctx.session.hook("retry", async (event) => {
+        try {
+          const response = await fetch(`${endpoint}/_credit/status`, {
+            signal: AbortSignal.any([controller.signal, AbortSignal.timeout(2_000)]), cache: "no-store",
+          });
+          if (!response.ok) throw new Error(`router status ${response.status}`);
+          const status: unknown = await response.json();
+          parseCreditStatus(status, config.organization_id);
+          if (!cuts.retry({ sessionID: event.sessionID, message: event.error.message, interrupted: parseInterruptions(status), now: Date.now() })) return;
+          event.decision = { retry: true, delay: 1_000 };
+          console.error(`[${vendor}-promotional-credits] Promotional credits ran out mid-response; sending the turn again for session ${event.sessionID}`);
+        } catch (error) {
+          warn(`Cannot check for a credit cut; leaving the failed turn as it is: ${String(error)}`);
+        }
+      }, { providerID });
       // Configured providers are applied after external plugin setup in 2.2.
       // Re-register after activation so their explicit native settings are our
       // input, rather than a later overlay undoing the routing choice.
@@ -71,6 +92,8 @@ export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: str
           if (controller.signal.aborted) break;
           try { observe(event); }
           catch (error) { warn(`AUDIT EVENT FAILED: ${String(error)}`); }
+          const data: any = event.data;
+          cuts.bind(data?.sessionID, data?.native?.sessionID);
           if (event.type !== "plugin.updated") continue;
           await registration.dispose();
           registration = await ctx.provider.transform(transform);
@@ -83,7 +106,7 @@ export function creditRoutingPlugin(vendor: "claude" | "openai", providerID: str
       await refresh();
       const timer = setInterval(() => { void refresh().catch((error) => warn(String(error))); }, 5_000);
       timer.unref();
-      return () => { controller.abort(); clearInterval(timer); };
+      return () => { controller.abort(); clearInterval(timer); void retries?.dispose(); };
     },
   });
 }
