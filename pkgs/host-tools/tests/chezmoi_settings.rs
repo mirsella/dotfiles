@@ -107,10 +107,11 @@ esac
             .arg(self.path("source"))
             .arg("--destination")
             .arg(self.path("home"))
-            .arg("--persistent-state")
-            .arg(self.path("state.boltdb"))
             .args(["--no-tty", "--force"])
             .env("HOME", self.path("home"))
+            // Keep the default state path so a nested chezmoi in a hook, which
+            // does not inherit --persistent-state, contends like it does live.
+            .env("XDG_CONFIG_HOME", self.path("home/.config"))
             .env(
                 "PATH",
                 format!(

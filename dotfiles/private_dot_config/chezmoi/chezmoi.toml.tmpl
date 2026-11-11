@@ -18,9 +18,12 @@ recipients = [
 command = "sh"
 args = ["-ec", "if command -v t3-settings >/dev/null 2>&1; then t3-settings capture --if-running; fi; if command -v hex-settings >/dev/null 2>&1; then hex-settings capture --if-present; fi"]
 
+# re-add holds the persistent state lock while post hooks run, so a nested
+# chezmoi using the same state would time out. source-path does not need the
+# state, so point it at a fresh path that never touches the locked file.
 [hooks.re-add.post]
 command = "sh"
-args = ["-ec", "case \" $CHEZMOI_ARGS \" in *\" --dry-run\"*|*\" -n\"*) exit 0;; esac; if command -v t3-settings >/dev/null 2>&1; then target=\"$CHEZMOI_DEST_DIR/.config/t3code/portable-settings.json\"; source=$(chezmoi --config \"$CHEZMOI_CONFIG_FILE\" --source \"$CHEZMOI_SOURCE_DIR\" --destination \"$CHEZMOI_DEST_DIR\" source-path \"$target\"); if cmp -s \"$source\" \"$target\"; then t3-settings sync --if-running --no-capture; fi; fi"]
+args = ["-ec", "case \" $CHEZMOI_ARGS \" in *\" --dry-run\"*|*\" -n\"*) exit 0;; esac; if command -v t3-settings >/dev/null 2>&1; then target=\"$CHEZMOI_DEST_DIR/.config/t3code/portable-settings.json\"; state=\"${TMPDIR:-/tmp}/chezmoi-re-add-$$.boltdb\"; rm -f \"$state\"; source=$(chezmoi --persistent-state \"$state\" --config \"$CHEZMOI_CONFIG_FILE\" --source \"$CHEZMOI_SOURCE_DIR\" --destination \"$CHEZMOI_DEST_DIR\" source-path \"$target\"); if cmp -s \"$source\" \"$target\"; then t3-settings sync --if-running --no-capture; fi; fi"]
 
 {{ $sync := "dry=; case \" $CHEZMOI_ARGS \" in *\" --dry-run\"*|*\" -n\"*) dry=--dry-run;; esac; if command -v t3-settings >/dev/null 2>&1; then t3-settings sync --if-running --no-capture $dry; fi; if command -v hex-settings >/dev/null 2>&1; then hex-settings sync --if-present --no-capture $dry; fi" -}}
 [hooks.apply.post]
