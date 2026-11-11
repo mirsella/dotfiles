@@ -22,7 +22,6 @@
     "confirmThreadArchive": false,
     "confirmThreadDelete": true,
     "confirmThreadUnpin": false,
-    "contextWindowMeterEnabled": false,
     "diffColorScheme": "red-green",
     "diffFilesCollapsed": true,
     "diffIgnoreWhitespace": true,
@@ -47,7 +46,6 @@
     "fontSmoothing": true,
     "glassOpacity": 80,
     "inAppNotificationsEnabled": true,
-    "legacySidebarEnabled": false,
     "loadBalancingEnabled": false,
     "loadBalancingWeights": {
       "020898b6-4a15-44cb-ae04-0ef53d75919f": 100,
@@ -57,8 +55,8 @@
     "notificationMode": "notifications",
     "panelAnimationDurationMs": 0,
     "persistComposerContextStrip": true,
-    "planModeEnabled": false,
     "proactivePanelsEnabled": false,
+    "providerModelPreferences": {},
     "pullRequestLinksOpenInApp": true,
     "sendShortcut": "enter",
     "showSkillsInSlashMenu": true,
@@ -153,8 +151,16 @@
         "provider": "opencode"
       },
       {
-        "model": "claude-opus-5-5",
-        "provider": "claudeAgent"
+        "model": "claude-agent/claude-fable-5-1[1m]",
+        "provider": "opencode"
+      },
+      {
+        "model": "opencode/deepseek-v4.1-flash-free",
+        "provider": "opencode"
+      },
+      {
+        "model": "claude-agent/claude-fable-5-2",
+        "provider": "opencode"
       }
     ],
     "guestSharingEnabled": true,
@@ -481,7 +487,7 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeSettledAfterDays": 4
+      "worktreeSettledAfterDays": 3
     },
     "textGenerationModelSelection": {
       "instanceId": "opencode",
@@ -1000,6 +1006,15 @@
       }
     },
     {
+      "workspace_root": "~/dev/email-service",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "email-service"
+      },
+      "settings": {}
+    },
+    {
       "workspace_root": "~/dev/mightyminions/main",
       "attributes": {
         "faviconPath": "web/public/icons/icon-only.png",
@@ -1089,7 +1104,7 @@
     {
       "workspace_root": "~/dev/voxride-website",
       "attributes": {
-        "faviconPath": "~/dev/voxride-website/public/favicon.ico",
+        "faviconPath": "apps/website/public/logo512.png",
         "projectIcon": null,
         "title": "voxride-website"
       },
