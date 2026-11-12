@@ -1126,7 +1126,7 @@
     {
       "workspace_root": "~/dev/wiko",
       "attributes": {
-        "faviconPath": "~/dev/wiko/assets/icon.svg",
+        "faviconPath": null,
         "projectIcon": null,
         "title": "wiko"
       },
