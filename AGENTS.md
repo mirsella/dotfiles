@@ -39,6 +39,15 @@ The flake discovers these directories and sets hostnames automatically.
   checkout as its chezmoi source, but activation never applies it: run
   `chezmoi apply` there after changing managed files and watch `chezmoi status`
   for drift, since a stale copy there is otherwise invisible.
+- Home Manager's plasma-manager owns the Plasma settings in
+  `modules/home/plasma.nix`: panel, desktop widgets, wallpaper and the
+  kwin/input/krunner/power/lock-screen rc files. Main and laptop share it; their
+  `home.nix` sets only screen size, sensors and hardware-specific keys. It writes
+  declared keys at activation, so Plasma's runtime state no longer shows as
+  drift. Port GUI changes to the module; nothing captures them. The layout
+  scripts rebuild the panel and widgets at the next login only when they change;
+  run `~/.local/share/plasma-manager/run_all.sh` to apply them now (it restarts
+  plasmashell).
 - OpenCode extensions and their tests live in `pkgs/opencode-extensions`; Home
   Manager installs the compiled plugins. Its editable JSON settings remain in
   chezmoi. The shared `pkgs/idle-watchdog` Cargo project builds both the OpenCode

@@ -16,6 +16,19 @@
     })
   ];
   programs.git.settings.user.signingkey = "E88ECCA3AA187BC1";
+
+  desktop.plasma = {
+    screen = {
+      width = 1504;
+      height = 1003;
+    };
+    cpuTemperature = {
+      sensor = "lmsensors/cros_ec-isa-000c/temp4";
+      label = "CPU temperature";
+    };
+    rootDisk = "a843fb85-bef1-48c5-93b4-47cc00c2fe62";
+  };
+  programs.plasma.configFile.kscreenlockerrc.Authenticators.Fingerprint = true;
   services.adb-wireless.serials = [ "188b31ee" "A20AAFYS0202" ];
   home.packages = [ pkgs.host-tools ];
 

@@ -20,6 +20,7 @@ in
     ./arch-package-cache.nix
     ./electron-theme.nix
     ./nasa-wallpaper.nix
+    ./plasma.nix
     ./desktop-mcp.nix
     ./adb-wireless.nix
     ./codexbar.nix

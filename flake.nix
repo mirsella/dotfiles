@@ -22,6 +22,11 @@
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    plasma-manager = {
+      url = "github:nix-community/plasma-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -164,7 +169,10 @@
         _module.args.inputs = inputs;
         networking.hostName = hostName;
         nixpkgs.overlays = overlays;
-        home-manager.sharedModules = [ inputs.sops-nix.homeManagerModules.sops ];
+        home-manager.sharedModules = [
+          inputs.sops-nix.homeManagerModules.sops
+          inputs.plasma-manager.homeModules.plasma-manager
+        ];
         home-manager.users.mirsella.imports = nixpkgs.lib.optional
           (builtins.hasAttr hostName homeModules) homeModules.${hostName};
       }) hostDirs;
@@ -202,6 +210,7 @@
             ./modules/home/common.nix
             module
             sops-nix.homeManagerModules.sops
+            inputs.plasma-manager.homeModules.plasma-manager
             {
               targets.genericLinux.enable = true;
               targets.genericLinux.gpu.enable = false;
