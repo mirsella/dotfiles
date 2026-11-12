@@ -2,6 +2,7 @@
 .config/opencode/plugins/rtk.ts
 .config/opencode/plugins/notify-send.ts
 .config/opencode/plugins/local-llama.ts
+.config/opencode/plugins/t3-html-render-direct.js
 .config/opencode/test/local-llama.test.ts
 .local/bin/rio-shell-scope
 .local/share/applications/rio.desktop
