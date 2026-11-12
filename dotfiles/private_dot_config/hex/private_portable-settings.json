@@ -116,6 +116,18 @@
         {
           "matched_phrase": "Aconadi",
           "output": "Akonadi"
+        },
+        {
+          "matched_phrase": "comparaison",
+          "output": "comparison"
+        },
+        {
+          "matched_phrase": "voxri.com",
+          "output": "voxride.com"
+        },
+        {
+          "matched_phrase": "voxricom",
+          "output": "voxride.com"
         }
       ],
       "transformations": [],
@@ -341,7 +353,12 @@
     "cloudflare",
     "wasm",
     "vercel",
-    "spine",
+    {
+      "sounds_like": [
+        "sparing"
+      ],
+      "term": "spine"
+    },
     "cargo",
     "rust",
     "leptos",
@@ -353,7 +370,8 @@
     "seaorm",
     {
       "sounds_like": [
-        "Parakit"
+        "Parakit",
+        "market v3"
       ],
       "term": "Parakeet"
     },
@@ -383,7 +401,73 @@
     },
     "Wiko",
     "GLES2",
-    "sfx"
+    {
+      "sounds_like": [
+        "FFX"
+      ],
+      "term": "sfx"
+    },
+    {
+      "sounds_like": [
+        "student dev",
+        "student death"
+      ],
+      "term": "Sudden Death"
+    },
+    {
+      "sounds_like": [
+        "criminal castle"
+      ],
+      "term": "Crumbling Castle"
+    },
+    {
+      "sounds_like": [
+        "roton pass",
+        "proton pass"
+      ],
+      "term": "ProtonPass"
+    },
+    {
+      "sounds_like": [
+        "WGP"
+      ],
+      "term": "WGPU"
+    },
+    {
+      "sounds_like": [
+        "mushroom maj"
+      ],
+      "term": "Mushroom Mage"
+    },
+    {
+      "sounds_like": [
+        "puffing"
+      ],
+      "term": "pathing"
+    },
+    {
+      "sounds_like": [
+        "toogle",
+        "tougel"
+      ],
+      "term": "toggle"
+    },
+    {
+      "sounds_like": [
+        "voxri.com",
+        "voxraycom"
+      ],
+      "term": "voxride.com"
+    },
+    "transactional",
+    "spritesheets",
+    "biasing",
+    {
+      "sounds_like": [
+        "APE"
+      ],
+      "term": "API"
+    }
   ],
   "vocabulary_boost": "normal"
 }
