@@ -1,6 +1,6 @@
 ---
 name: finish
-description: Finish this session's work in one turn: do its remaining follow-ups, clean up, review and fix, then report what is left. Arguments `land` and `settle` are optional. Use ONLY when the user explicitly requests finishing.
+description: Finish this session's work in one turn: do its remaining follow-ups, clean up, review and fix, then land it when nothing is left to do and report what is left. Arguments `land`, `no-land` and `settle` are optional. Use ONLY when the user explicitly requests finishing.
 ---
 
 Bring this session's work to a finished state in one turn. This replaces
@@ -35,13 +35,18 @@ invalidate.
 
 ## Arguments
 
-- No argument: stop after the steps. Do not commit, push or land.
-- `land`: after the steps, follow the land skill. Do not settle the thread.
-- `settle`, together with `land`: after landing, settle the thread only if every
-  included project landed and nothing important is left to do. If something
-  important is left, do not settle, and say what it is. Settle as the very last
-  action, following the land skill's settling rules: no delegate, subagent or
-  background command may still be running or due to send a completion notice.
+- No argument: after the steps, follow the land skill only if nothing is left
+  to do, meaning the **Left to do** list below would be empty. If anything is
+  left, stop without committing, pushing or landing, and say that landing waits
+  on those items. Do not settle the thread.
+- `land`: after the steps, follow the land skill even if follow-ups are left.
+  Do not settle the thread.
+- `no-land`: stop after the steps. Do not commit, push or land.
+- `settle`: land as with `land`, then settle the thread only if every included
+  project landed and nothing important is left to do. If something important is
+  left, do not settle, and say what it is. Settle as the very last action,
+  following the land skill's settling rules: no delegate, subagent or background
+  command may still be running or due to send a completion notice.
 
 Any other text narrows or adjusts the work.
 
@@ -52,7 +57,7 @@ report, so keep this message short and end it the same way every time:
 
 - What this turn changed, in a few sentences, with one `checks:` line and one
   `diff:` line for the whole turn in the format the reviews skill defines.
-- With `land`: the land skill's report for each project. The section below
+- When this turn landed: the land skill's report for each project. The section below
   replaces its closing recommendations.
 - Last, under the heading **Left to do**: every follow-up you did not do, most
   important first, each with the action needed and why you left it. If there are
