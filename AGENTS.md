@@ -40,8 +40,8 @@ The flake discovers these directories and sets hostnames automatically.
   `chezmoi apply` there after changing managed files and watch `chezmoi status`
   for drift, since a stale copy there is otherwise invisible.
 - Home Manager's plasma-manager owns the Plasma settings in
-  `modules/home/plasma.nix`: panel, desktop widgets, wallpaper and the
-  kwin/input/krunner/power/lock-screen rc files. Main and laptop share it; their
+  `modules/home/plasma.nix`: panel, desktop widgets, wallpaper, global
+  shortcuts and the kwin/input/krunner/power/lock-screen rc files. Main and laptop share it; their
   `home.nix` sets only screen size, sensors and hardware-specific keys. It writes
   declared keys at activation, so Plasma's runtime state no longer shows as
   drift. Port GUI changes to the module; nothing captures them. The layout

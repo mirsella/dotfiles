@@ -342,6 +342,40 @@ in
         })
       ];
 
+      shortcuts = {
+        # Meta+Ctrl+arrows quick-tile instead of switching desktops.
+        kwin = {
+          "Switch One Desktop Down" = [ ];
+          "Switch One Desktop Up" = [ ];
+          "Switch One Desktop to the Left" = [ ];
+          "Switch One Desktop to the Right" = [ ];
+          "Window Custom Quick Tile Bottom" = "Meta+Ctrl+Down";
+          "Window Custom Quick Tile Left" = "Meta+Ctrl+Left";
+          "Window Custom Quick Tile Right" = "Meta+Ctrl+Right";
+          "Window Custom Quick Tile Top" = "Meta+Ctrl+Up";
+        };
+        plasmashell = {
+          "next activity" = "Meta+A";
+          "previous activity" = "Meta+Shift+A";
+          repeat_action = "Meta+Ctrl+R";
+        };
+        yakuake.toggle-window-state = [ ];
+        # Launchers for the chezmoi-managed entries in ~/.local/share/applications.
+        "services/net.local.bash.desktop"._launch = "Meta+S";
+        "services/rio-cargo.desktop" = {
+          New = "Ctrl+Alt+T";
+          _launch = [ ];
+        };
+        "services/org.kde.konsole.desktop"._launch = [ ];
+        "services/com.mitchellh.ghostty.desktop"._launch = [ ];
+        "services/rio.desktop"._launch = [ ];
+        "services/org.kde.spectacle.desktop" = {
+          CurrentMonitorScreenShot = "Shift+Print";
+          FullScreenScreenShot = [ ];
+          RecordWindow = [ ];
+        };
+      };
+
       configFile = {
         kcminputrc = {
           "Libinput/1133/16505/Logitech G Pro ".PointerAccelerationProfile = 1;

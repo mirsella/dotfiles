@@ -94,8 +94,9 @@ in
 
   nix.settings = {
     # The CachyOS kernel and ZFS packages must be present here before the next rebuild.
-    extra-substituters = [ "https://attic.xuyh0120.win/lantian" ];
-    extra-trusted-public-keys = [ "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc=" ];
+    # Rebuilt after the 2026-10 server compromise with a new key; never trust the old one.
+    extra-substituters = [ "https://cache.lantian.pub/lantian" ];
+    extra-trusted-public-keys = [ "lantian:WVGO7vsRMSEN+h7Lp7kv6SAmrkEXgUGbbXm7jMDjBuQ=" ];
     # 7.6GB RAM: an uncapped rioterm build once OOM-wedged the box.
     max-jobs = 1;
     cores = 4;

@@ -15,7 +15,6 @@ etc/
 system/
 apply-colemak-dhm-keyboard.sh
 update-system-backup.sh
-kde shortcuts.kksrc
 {{- if ne .chezmoi.hostname "laptop" }}
 .config/nushell/laptop.nu
 {{- end }}
