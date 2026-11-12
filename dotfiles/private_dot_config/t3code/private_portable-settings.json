@@ -153,8 +153,20 @@
         "provider": "opencode"
       },
       {
+        "model": "claude-agent/claude-fable-5-1[1m]",
+        "provider": "opencode"
+      },
+      {
         "model": "opencode/deepseek-v4.1-flash-free",
         "provider": "opencode"
+      },
+      {
+        "model": "claude-agent/claude-fable-5-2",
+        "provider": "opencode"
+      },
+      {
+        "model": "claude-opus-5-5",
+        "provider": "claudeAgent"
       }
     ],
     "guestSharingEnabled": true,
@@ -537,6 +549,11 @@
     }
   },
   "keybindings": [
+    {
+      "command": "preview.find",
+      "key": "mod+f",
+      "when": "previewFocus"
+    },
     {
       "command": "composer.dictation",
       "key": "mod+shift+d",
@@ -962,6 +979,15 @@
   ],
   "projects": [
     {
+      "workspace_root": "~/Documents/xiaomi-mom",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "xiaomi-mom"
+      },
+      "settings": {}
+    },
+    {
       "workspace_root": "~/dev/browser-mcp",
       "attributes": {
         "faviconPath": null,
@@ -989,6 +1015,15 @@
       "settings": {
         "defaultThreadEnvMode": "local"
       }
+    },
+    {
+      "workspace_root": "~/dev/email-service",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "email-service"
+      },
+      "settings": {}
     },
     {
       "workspace_root": "~/dev/mightyminions/main",
@@ -1040,6 +1075,15 @@
       }
     },
     {
+      "workspace_root": "~/dev/news-scraper",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "news-scraper"
+      },
+      "settings": {}
+    },
+    {
       "workspace_root": "~/dev/opencode-queue",
       "attributes": {
         "faviconPath": null,
@@ -1071,13 +1115,22 @@
     {
       "workspace_root": "~/dev/voxride-website",
       "attributes": {
-        "faviconPath": "~/dev/voxride-website/public/favicon.ico",
+        "faviconPath": "apps/website/public/logo512.png",
         "projectIcon": null,
         "title": "voxride-website"
       },
       "settings": {
         "defaultThreadEnvMode": "worktree"
       }
+    },
+    {
+      "workspace_root": "~/dev/wiko",
+      "attributes": {
+        "faviconPath": "~/dev/wiko/assets/icon.svg",
+        "projectIcon": null,
+        "title": "wiko"
+      },
+      "settings": {}
     },
     {
       "workspace_root": "~/dev/y2s",
