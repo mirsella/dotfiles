@@ -43,6 +43,20 @@ After successful landing and pushing, clean up temporary manual worktrees:
 Settle the thread only when requested, all included work
 is landed and its worktrees are clean. Never discard work to enable settlement.
 
+Settling is the last action of the turn, because any later turn unsettles the
+thread, including one started by a delegate's or background job's completion
+notice:
+- Before settling, make sure nothing will wake the thread. Every delegated task,
+  subagent and background command has finished and its result has been handled.
+  Cancel the ones no longer needed. If settling was requested from the start,
+  run delegates with `mode: "wait"` where the tool allows it, so no completion
+  notice arrives after the turn.
+- If something is still running, do not settle. End the turn as its tool
+  directs, and settle at the end of the turn its completion starts.
+- Settle after every other tool call, then write the final report.
+- If the thread wakes after settling to a notice that needs no work, such as a
+  duplicate or an already-handled result, settle again and end the turn.
+
 Briefly report each project's landed commits, checks, removed worktrees, and
 skipped, retained or blocked work. Do not claim full landing after partial success.
 End by following the recommendations skill for what is still left to do on the

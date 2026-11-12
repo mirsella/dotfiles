@@ -39,7 +39,9 @@ invalidate.
 - `land`: after the steps, follow the land skill. Do not settle the thread.
 - `settle`, together with `land`: after landing, settle the thread only if every
   included project landed and nothing important is left to do. If something
-  important is left, do not settle, and say what it is.
+  important is left, do not settle, and say what it is. Settle as the very last
+  action, following the land skill's settling rules: no delegate, subagent or
+  background command may still be running or due to send a completion notice.
 
 Any other text narrows or adjusts the work.
 
