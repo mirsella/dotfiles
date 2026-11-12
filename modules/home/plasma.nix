@@ -30,9 +30,10 @@ let
     };
 
   # Removed widgets linger while the desktop script adds the new ones, so
-  # Plasma shifts the new widgets aside, and it ignores later geometry
-  # changes from scripts. The folder view reads ItemGeometries on load, so
-  # write them before the restart below.
+  # Plasma shifts the new widgets aside and ignores later geometry changes
+  # from scripts. Record the intended geometry under a key the folder view
+  # never writes; finalizeLayout moves it into place while plasmashell is
+  # stopped, and the folder view reads it on the next start.
   widgetGeometry = builtins.listToAttrs (map (widget:
     lib.nameValuePair widget.name [
       widget.position.horizontal
@@ -40,17 +41,15 @@ let
       widget.size.width
       widget.size.height
     ]) config.programs.plasma.desktop.widgets);
-  placeDesktopWidgets = ''
+  recordDesktopGeometry = ''
     {
       const desktop = desktops().filter((d) => d.screen === 0)[0];
       const geometry = ${builtins.toJSON widgetGeometry};
-      const items = desktop.widgets()
+      desktop.currentConfigGroup = [];
+      desktop.writeConfig("plasmaManagerItemGeometries", desktop.widgets()
         .filter((w) => geometry[w.type])
         .map((w) => "Applet-" + w.id + ":" + geometry[w.type].join(",") + ",0;")
-        .join("");
-      desktop.currentConfigGroup = [];
-      desktop.writeConfig("ItemGeometries-${toString width}x${toString height}", items);
-      desktop.writeConfig("ItemGeometriesHorizontal", items);
+        .join(""));
     }
   '';
 
@@ -77,8 +76,7 @@ let
   );
 
   # The scripting API cannot reach applets inside the system tray, and
-  # plasma-manager drops tray item settings. After the panel script has
-  # created the tray, write them into its child groups.
+  # plasma-manager drops tray item settings; write them into its child groups.
   trayItemSettings = {
     "org.kde.plasma.battery".General.showPercentage = true;
     "org.kde.plasma.bluetooth".General.showNumberOfConnectedDevices = true;
@@ -92,35 +90,45 @@ let
       provider = "bbcukmet";
     };
   };
-  configureTrayItems = ''
+  finalizeLayout = ''
     applets="${config.xdg.configHome}/plasma-org.kde.plasma.desktop-appletsrc"
-    # plasmashell saves new applets a few seconds after creating them.
-    for _ in $(seq 30); do
-      grep -qx 'plugin=org.kde.plasma.weather' "$applets" && break
-      sleep 1
-    done
-    # write PLUGIN GROUP KEY VALUE into the tray child running PLUGIN.
-    write() {
-      path=$(awk -v plugin="plugin=$1" '
+    # A clean stop saves every applet the scripts created and ends the folder
+    # view's own layout saves.
+    systemctl --user stop plasma-plasmashell
+    # kwriteconfig6 --group arguments for an appletsrc group header.
+    groups() { printf '%s' "$1" | sed 's/^\[/--group /; s/\]$//; s/\]\[/ --group /g'; }
+
+    desktop=$(awk '/^\[/ { group = $0 } /^plasmaManagerItemGeometries=/ { print group; exit }' "$applets")
+    if [ -z "$desktop" ]; then
+      echo "plasma-manager: desktop widget geometry was not recorded; Plasma's placement stays" >&2
+    else
+      items=$(sed -n 's/^plasmaManagerItemGeometries=//p' "$applets" | head -n 1)
+      for key in ItemGeometries-${toString width}x${toString height} ItemGeometriesHorizontal; do
+        kwriteconfig6 --file "$applets" $(groups "$desktop") --key "$key" "$items"
+      done
+      kwriteconfig6 --file "$applets" $(groups "$desktop") --key plasmaManagerItemGeometries --delete
+    fi
+
+    # tray PLUGIN GROUP KEY VALUE configures the tray child running PLUGIN.
+    tray() {
+      item=$(awk -v plugin="plugin=$1" '
         /^\[/ { group = $0 }
-        $0 == plugin && group ~ /\]\[Applets\]\[[0-9]+\]\[Applets\]\[[0-9]+\]$/ { print group }
+        $0 == plugin && group ~ /\]\[Applets\]\[[0-9]+\]\[Applets\]\[[0-9]+\]$/ { print group; exit }
       ' "$applets")
-      if [ -z "$path" ]; then
+      if [ -z "$item" ]; then
         echo "plasma-manager: tray item $1 not found; its settings were not applied" >&2
         return
       fi
-      plugin=$1 group=$2 key=$3 value=$4
-      set --
-      for part in $(printf '%s' "$path" | sed 's/^\[//; s/\]$//; s/\]\[/ /g'); do
-        set -- "$@" --group "$part"
-      done
-      kwriteconfig6 --file "$applets" "$@" --group Configuration --group "$group" --key "$key" "$value"
+      kwriteconfig6 --file "$applets" $(groups "$item") --group Configuration --group "$2" --key "$3" "$4"
     }
     ${lib.concatStrings (lib.flatten (lib.mapAttrsToList (plugin: groups:
       lib.mapAttrsToList (group: entries:
         lib.mapAttrsToList (key: value: ''
-          write ${plugin} ${group} ${key} ${lib.escapeShellArg (if builtins.isBool value then lib.boolToString value else toString value)}
+          tray ${plugin} ${group} ${key} ${lib.escapeShellArg (if builtins.isBool value then lib.boolToString value else toString value)}
         '') entries) groups) trayItemSettings))}
+    # Start it here rather than through restartServices, which a failed
+    # command above would skip, leaving the desktop without a shell.
+    systemctl --user start plasma-plasmashell
   '';
 in
 {
@@ -253,9 +261,8 @@ in
       ];
 
       startup.desktopScript.finalize_layout = {
-        text = placeDesktopWidgets;
-        postCommands = configureTrayItems;
-        restartServices = [ "plasma-plasmashell" ];
+        text = recordDesktopGeometry;
+        postCommands = finalizeLayout;
         # After the panels (2) and wallpaper (3) scripts.
         priority = 4;
       };
