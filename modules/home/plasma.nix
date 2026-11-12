@@ -354,26 +354,14 @@ in
           "Window Custom Quick Tile Right" = "Meta+Ctrl+Right";
           "Window Custom Quick Tile Top" = "Meta+Ctrl+Up";
         };
-        plasmashell = {
-          "next activity" = "Meta+A";
-          "previous activity" = "Meta+Shift+A";
-          repeat_action = "Meta+Ctrl+R";
-        };
-        yakuake.toggle-window-state = [ ];
+        # Plasma's default also binds Alt+F1.
+        plasmashell."activate application launcher" = "Meta";
         # Launchers for the chezmoi-managed entries in ~/.local/share/applications.
+        # Konsole's and Ghostty's default Ctrl+Alt+T would take Rio's key.
         "services/net.local.bash.desktop"._launch = "Meta+S";
-        "services/rio-cargo.desktop" = {
-          New = "Ctrl+Alt+T";
-          _launch = [ ];
-        };
+        "services/rio-cargo.desktop".New = "Ctrl+Alt+T";
         "services/org.kde.konsole.desktop"._launch = [ ];
         "services/com.mitchellh.ghostty.desktop"._launch = [ ];
-        "services/rio.desktop"._launch = [ ];
-        "services/org.kde.spectacle.desktop" = {
-          CurrentMonitorScreenShot = "Shift+Print";
-          FullScreenScreenShot = [ ];
-          RecordWindow = [ ];
-        };
       };
 
       configFile = {
