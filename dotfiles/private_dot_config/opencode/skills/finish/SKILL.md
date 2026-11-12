@@ -36,14 +36,12 @@ invalidate.
 ## Landing and settling
 
 After the steps, always follow the land skill, even if follow-ups are left.
-Landing does not wait on the **Left to do** items; report them instead.
 
-- No argument: do not settle the thread.
-- `settle`: after landing, settle the thread only if every included project
-  landed and nothing important is left to do. If something important is left,
-  do not settle, and say what it is. Settle as the very last action, following
-  the land skill's settling rules: no delegate, subagent or background command
-  may still be running or due to send a completion notice.
+With `settle`, then settle the thread only if every included project landed and
+nothing important is left to do; otherwise do not settle, and say what is left.
+Settle as the very last action, following the land skill's settling rules: no
+delegate, subagent or background command may still be running or due to send a
+completion notice.
 
 Any other text narrows or adjusts the work.
 
@@ -54,8 +52,8 @@ report, so keep this message short and end it the same way every time:
 
 - What this turn changed, in a few sentences, with one `checks:` line and one
   `diff:` line for the whole turn in the format the reviews skill defines.
-- The land skill's report for each project. The section below
-  replaces its closing recommendations.
+- The land skill's report for each project, without its closing
+  recommendations; the list below replaces them.
 - Last, under the heading **Left to do**: every follow-up you did not do, most
   important first, each with the action needed and why you left it. If there are
   none, write "Nothing left to do: this work is complete." Committing, pushing,
