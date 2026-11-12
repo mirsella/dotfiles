@@ -65,25 +65,12 @@ let
     } config;
   };
 
-  cpuColors = builtins.listToAttrs (
-    lib.imap0 (core: color: lib.nameValuePair "cpu/cpu${toString core}/usage" color) [
-      "61,174,233" "61,142,233" "61,110,233" "61,77,233" "77,61,233" "109,61,233" "141,61,233"
-      "174,61,233" "206,61,233" "233,61,228" "233,61,196" "233,61,163" "233,61,131" "233,61,99"
-      "233,61,67" "233,88,61" "233,120,61" "233,152,61" "233,184,61" "233,217,61" "217,233,61"
-      "185,233,61" "153,233,61" "120,233,61" "88,233,61" "61,233,66" "61,233,98" "61,233,131"
-      "61,233,163" "61,233,195" "61,233,227" "61,206,233"
-    ]
-  );
-
   # The scripting API cannot reach applets inside the system tray, and
   # plasma-manager drops tray item settings; write them into its child groups.
   trayItemSettings = {
     "org.kde.plasma.battery".General.showPercentage = true;
     "org.kde.plasma.bluetooth".General.showNumberOfConnectedDevices = true;
-    "org.kde.plasma.volume".General = {
-      migrated = true;
-      showVirtualDevices = true;
-    };
+    "org.kde.plasma.volume".General.showVirtualDevices = true;
     "org.kde.plasma.weather".WeatherStation = {
       placeDisplayName = "Fontainebleau, France, FR";
       placeInfo = "Fontainebleau, France, FR|3018074";
@@ -98,11 +85,12 @@ let
     # kwriteconfig6 --group arguments for an appletsrc group header.
     groups() { printf '%s' "$1" | sed 's/^\[/--group /; s/\]$//; s/\]\[/ --group /g'; }
 
-    desktop=$(awk '/^\[/ { group = $0 } /^plasmaManagerItemGeometries=/ { print group; exit }' "$applets")
-    if [ -z "$desktop" ]; then
+    # "<group header> <geometry>" of the recorded desktop widget geometry.
+    recorded=$(awk '/^\[/ { group = $0 } sub(/^plasmaManagerItemGeometries=/, "") { print group, $0; exit }' "$applets")
+    if [ -z "$recorded" ]; then
       echo "plasma-manager: desktop widget geometry was not recorded; Plasma's placement stays" >&2
     else
-      items=$(sed -n 's/^plasmaManagerItemGeometries=//p' "$applets" | head -n 1)
+      desktop=''${recorded%% *} items=''${recorded#* }
       for key in ItemGeometries-${toString width}x${toString height} ItemGeometriesHorizontal; do
         kwriteconfig6 --file "$applets" $(groups "$desktop") --key "$key" "$items"
       done
@@ -261,7 +249,12 @@ in
       ];
 
       startup.desktopScript.finalize_layout = {
-        text = recordDesktopGeometry;
+        # plasma-manager reruns a desktop script only when its JavaScript
+        # changes; the hash makes postCommands changes count too.
+        text = ''
+          // postCommands ${builtins.hashString "sha256" finalizeLayout}
+          ${recordDesktopGeometry}
+        '';
         postCommands = finalizeLayout;
         # After the panels (2) and wallpaper (3) scripts.
         priority = 4;
@@ -273,7 +266,8 @@ in
           config.UserBackgroundHints = "StandardBackground";
         })
         (desktopWidget 2 0 2 (systemMonitor "cpucore" "Individual Core Usage" {
-          SensorColors = cpuColors // { ${host.cpuTemperature.sensor} = "255,255,255"; };
+          # Other sensors use the widget's automatic palette.
+          SensorColors.${host.cpuTemperature.sensor} = "255,255,255";
           SensorLabels.${host.cpuTemperature.sensor} = host.cpuTemperature.label;
           Sensors = {
             highPrioritySensorIds = builtins.toJSON [ "cpu/cpu.*/usage" host.cpuTemperature.sensor ];
@@ -292,18 +286,10 @@ in
         }))
         (desktopWidget 0 1 1 (systemMonitor "net" "Network Speed" {
           Appearance.showTitle = true;
-          SensorColors = {
-            "network/all/download" = "61,174,233";
-            "network/all/upload" = "233,120,61";
-          };
           Sensors.highPrioritySensorIds = builtins.toJSON [ "network/all/download" "network/all/upload" ];
         }))
         (desktopWidget 1 1 1 (systemMonitor "diskactivity" "Hard Disk Activity" {
           Appearance.showTitle = true;
-          SensorColors = {
-            "disk/all/read" = "233,120,61";
-            "disk/all/write" = "61,174,233";
-          };
           Sensors.highPrioritySensorIds = builtins.toJSON [ "disk/all/write" "disk/all/read" ];
         }))
         (desktopWidget 2 1 1 (systemMonitor "diskusage" "Disk Usage" {
@@ -313,7 +299,6 @@ in
             showLegend = true;
             showTitle = false;
           };
-          SensorColors."disk/${host.rootDisk}/usedPercent" = "61,174,233";
           SensorLabels = {
             "disk/${host.rootDisk}/free" = "Free";
             "disk/${host.rootDisk}/usedPercent" = "Used";
@@ -396,7 +381,6 @@ in
         };
 
         plasmarc.AdaptiveTransparency.enabled = false;
-        plasmashellrc.General."Number of Actions" = 0;
 
         powerdevilrc = {
           "AC/Display" = {
