@@ -1,9 +1,9 @@
 {
   "browser": {
     "package": "@mirsella/browser-mcp",
-    "version": "2.1.2",
-    "npmIntegrity": "sha512-KxaEK6/s/vb+n13hAehTD55d8NMb6qMjFr1LWUGiZoafEbci4r+W8Gk7I7wDlc/VvrfW8iy/CmDdM7gUMIbDIw==",
-    "codexContentHash": "sha256:d24863bc95708454150e72dd8a7e5583a91cdb7e611cc99d82ee880156402b24"
+    "version": "2.1.3",
+    "npmIntegrity": "sha512-Swncnr1PfmHvcDqPccI0AjoRy/FynX1hVR8jMPZG7SYxMhMS/rWToMDH60iN2+D7neIFOH4EoUiU44QZPyddTQ==",
+    "codexContentHash": "sha256:3164147f43002de02bcfc2bd2a1a0ef44b073a7c1f56d397c7404ff0bace73d9"
   },
   "computerUse": {
     "package": "@mirsella/computer-use-mcp",
