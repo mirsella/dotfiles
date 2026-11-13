@@ -75,7 +75,14 @@ alias pnpx = sfw pnpx
 alias yarn = sfw yarn
 alias bun = sfw bun
 alias p = pnpm
-alias rm = gtrash put
+# Preserve gtrash by default; T3's setup wrapper needs Nu's permanent deletion.
+def --wrapped rm [--permanent, ...paths] {
+  if $permanent {
+    %rm --permanent ...$paths
+  } else {
+    gtrash put ...$paths
+  }
+}
 alias rmf = /bin/rm -rf
 alias clip = wl-copy
 alias clipp = wl-paste
