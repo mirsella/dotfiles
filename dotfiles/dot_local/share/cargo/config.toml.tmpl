@@ -17,6 +17,14 @@ codegen-backend = "llvm"
 [profile.test.package."*"]
 codegen-backend = "llvm"
 
+# Rio's sugarloaf CPU renderer inlines `wide` SSE2 shifts (llvm.x86.sse2.psrl.d)
+# that Cranelift cannot lower; debug builds otherwise panic when it draws.
+[profile.dev.package.sugarloaf]
+codegen-backend = "llvm"
+
+[profile.test.package.sugarloaf]
+codegen-backend = "llvm"
+
 [profile.release]
 codegen-backend = "llvm"
 
