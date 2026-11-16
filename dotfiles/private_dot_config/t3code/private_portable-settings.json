@@ -145,15 +145,11 @@
         "provider": "opencode"
       },
       {
-        "model": "claude-opus-5-5",
-        "provider": "claudeAgent"
-      },
-      {
-        "model": "claude-agent/opus",
+        "model": "opencode/muse-spark-1.3-contributor-free",
         "provider": "opencode"
       },
       {
-        "model": "opencode/muse-spark-1.3-contributor-free",
+        "model": "claude-agent/opus",
         "provider": "opencode"
       },
       {
