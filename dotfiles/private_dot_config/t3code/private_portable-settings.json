@@ -157,7 +157,7 @@
         "provider": "opencode"
       },
       {
-        "model": "claude-agent/claude-fable-5-1[1m]",
+        "model": "claude-agent/claude-fable-5-2[1m]",
         "provider": "opencode"
       }
     ],
