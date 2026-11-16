@@ -240,15 +240,16 @@ assert lib.assertMsg (
    && server.services.hermes-agent.settings.browser == { backend = "browserbase"; cloud_provider = "camofox"; }
    && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-unsupported" ]
    && server.services.hermes-agent.settings.plugins.enabled == [ "browser-policy" ]
-   && server.services.hermes-agent.settings.model.provider == "opencode-go"
-    && server.services.hermes-agent.settings.model.default == "deepseek-v4.1-flash"
-    && server.services.hermes-agent.settings.agent.reasoning_overrides."deepseek-v4.1-flash" == "max"
+   && server.services.hermes-agent.settings.model.provider == "openai-codex"
+    && server.services.hermes-agent.settings.model.default == "gpt-6.1-sol"
+    && server.services.hermes-agent.settings.agent.reasoning_effort == "high"
+    && server.services.hermes-agent.settings.agent.reasoning_overrides."gpt-6.1-sol" == "high"
    && server.services.hermes-agent.settings.fallback_providers == []
    && server.services.hermes-agent.settings.custom_providers == []
-   && server.services.hermes-agent.settings.providers.opencode-go.enabled
+   && server.services.hermes-agent.settings.providers.openai-codex.enabled
    && lib.all (name: !server.services.hermes-agent.settings.providers.${name}.enabled)
-     [ "openrouter" "openai" "openai-api" "openai-codex" "chatgpt" "opencode" "opencode-zen" "zen" "custom" "auto" "anthropic" ]
-    && lib.all (slot: slot.provider == "opencode-go" && slot.model == "deepseek-v4.1-flash" && slot.api_key == "" && slot.base_url == "")
+     [ "openrouter" "openai" "openai-api" "opencode-go" "chatgpt" "opencode" "opencode-zen" "zen" "custom" "auto" "anthropic" ]
+    && lib.all (slot: slot.provider == "openai-codex" && slot.model == "gpt-6.1-sol" && slot.reasoning_effort == "high" && slot.api_key == "" && slot.base_url == "")
      (builtins.attrValues (builtins.removeAttrs server.services.hermes-agent.settings.auxiliary [ "openrouter_model" ]))
   && lib.elem "hermes-agent-setup" server.system.activationScripts.hermes-settings.deps
   && lib.hasInfix "runuser -u mirsella -g hermes-private" server.system.activationScripts.hermes-settings.text
@@ -260,12 +261,12 @@ assert lib.assertMsg (
   && !server.services.hermes-agent.settings.security.allow_lazy_installs
   && server.systemd.services.hermes-agent.environment.HOME == "/home/mirsella"
   && server.systemd.services.hermes-agent.environment.HERMES_MANAGED == "false"
-  && server.services.hermes-agent.environment.OPENCODE_GO_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/opencode-go"
+  && server.services.hermes-agent.environment.HERMES_CODEX_BASE_URL == "http://127.0.0.1:17321/sleev/hermes/codex"
    && !(server.services.hermes-agent.environment ? OPENCODE_ZEN_BASE_URL)
    && !(server.services.hermes-agent.environment ? OPENAI_BASE_URL)
-   && !(server.services.hermes-agent.environment ? HERMES_CODEX_BASE_URL)
+   && !(server.services.hermes-agent.environment ? OPENCODE_GO_BASE_URL)
    && lib.all (name: lib.elem name server.systemd.services.hermes-agent.serviceConfig.UnsetEnvironment && lib.elem name server.systemd.services.hermes-backend.serviceConfig.UnsetEnvironment)
-     [ "OPENROUTER_API_KEY" "OPENAI_API_KEY" "OPENCODE_ZEN_API_KEY" "DEEPINFRA_API_KEY" "MOONSHOT_API_KEY" ]
+     [ "OPENROUTER_API_KEY" "OPENAI_API_KEY" "OPENCODE_GO_API_KEY" "OPENCODE_ZEN_API_KEY" "DEEPINFRA_API_KEY" "MOONSHOT_API_KEY" ]
   && server.services.hermes-agent.environment.TELEGRAM_ALLOW_ALL_USERS == "false"
   && map lib.getName server.services.hermes-agent.extraPlugins == [ "hermes-browser-policy" ]
   && server.services.hermes-agent.package.hermesVenv.drvPath

@@ -12,7 +12,7 @@ let
     XDG_RUNTIME_DIR = ownerRuntime;
     DBUS_SESSION_BUS_ADDRESS = "unix:path=${ownerRuntime}/bus";
   };
-  blockedInferenceEnvironment = [ "OPENROUTER_API_KEY" "OPENAI_API_KEY" "OPENCODE_ZEN_API_KEY" "OPENCODE_API_KEY" "DEEPINFRA_API_KEY" "MOONSHOT_API_KEY" "ANTHROPIC_API_KEY" "ANTHROPIC_TOKEN" "CLAUDE_CODE_OAUTH_TOKEN" ];
+  blockedInferenceEnvironment = [ "OPENROUTER_API_KEY" "OPENAI_API_KEY" "OPENCODE_GO_API_KEY" "OPENCODE_ZEN_API_KEY" "OPENCODE_API_KEY" "DEEPINFRA_API_KEY" "MOONSHOT_API_KEY" "ANTHROPIC_API_KEY" "ANTHROPIC_TOKEN" "CLAUDE_CODE_OAUTH_TOKEN" ];
   state = "/var/lib/hermes";
   browserState = "/var/lib/camofox";
   controlState = "/var/lib/hermes-browser-control";
@@ -78,7 +78,7 @@ let
   disabledProviders = lib.unique (
     builtins.attrNames (builtins.readDir "${inputs.hermes-agent}/plugins/model-providers") ++ [
       "auto" "moa" "openai" "openai-api" "chatgpt" "chatgpt-codex"
-      "opencode" "opencode_zen" "zen" "glm" "z-ai" "z.ai" "zhipu"
+      "opencode" "opencode-go" "opencode_zen" "zen" "glm" "z-ai" "z.ai" "zhipu"
       "x-ai" "x.ai" "grok" "xai-oauth" "grok-oauth" "x-ai-oauth" "xai-grok-oauth"
       "nim" "nvidia-nim" "build-nvidia" "nemotron" "kimi-for-coding" "kimi" "kimi-coding-cn" "moonshot"
       "step" "stepfun-coding-plan" "minimax-cn" "minimax-china" "minimax_cn"
@@ -94,8 +94,9 @@ let
     ]
   );
   aux = lib.genAttrs [ "vision" "compression" "skills_hub" "approval" "review" "mcp" "title_generation" "memory_query_rewrite" "tts_audio_tags" "voice_chat" "triage_specifier" "kanban_decomposer" "profile_describer" "goal_judge" "curator" "monitor" "background_review" "moa_reference" "moa_aggregator" ] (_: {
-    provider = "opencode-go";
-    model = "deepseek-v4.1-flash";
+    provider = "openai-codex";
+    model = "gpt-6.1-sol";
+    reasoning_effort = "high";
     base_url = "";
     api_key = "";
   });
@@ -259,7 +260,7 @@ in {
         # The native delivery policy otherwise rejects our /var/lib workspace.
         # Keep the exception below the state root, away from auth and history.
         HERMES_MEDIA_ALLOW_DIRS = "${state}/workspace";
-        OPENCODE_GO_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/opencode-go";
+        HERMES_CODEX_BASE_URL = "http://127.0.0.1:17321/sleev/hermes/codex";
         CAMOFOX_URL = "http://127.0.0.1:9378";
         CAMOFOX_USER_ID = "home-browser";
         CAMOFOX_SESSION_KEY = "home-browser";
@@ -274,13 +275,14 @@ in {
         approvals.mode = "off";
         security.allow_lazy_installs = false;
         agent.disabled_toolsets = [ "browser-unsupported" ];
-        agent.reasoning_overrides."deepseek-v4.1-flash" = "max";
+        agent.reasoning_effort = "high";
+        agent.reasoning_overrides."gpt-6.1-sol" = "high";
         plugins.enabled = [ "browser-policy" ];
-        model = { provider = "opencode-go"; default = "deepseek-v4.1-flash"; base_url = ""; api_key = ""; };
+        model = { provider = "openai-codex"; default = "gpt-6.1-sol"; base_url = ""; api_key = ""; };
         auxiliary = aux // { openrouter_model = ""; };
         fallback_providers = [];
         custom_providers = [];
-        providers = lib.genAttrs disabledProviders (_: { enabled = false; }) // { opencode-go.enabled = true; };
+        providers = lib.genAttrs disabledProviders (_: { enabled = false; }) // { openai-codex.enabled = true; };
         auth.adopt_external_logins = false;
         skills.external_dirs = [ "${ownerHome}/.agents/skills" "${ownerHome}/.codex/skills" ];
         skills.disabled = [ "personal-accounts" ];

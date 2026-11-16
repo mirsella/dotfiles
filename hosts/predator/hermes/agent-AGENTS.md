@@ -48,7 +48,7 @@ into commands or configuration. Client credentials are provided through SOPS.
 
 # Host automation
 
-Use only the configured OpenCode Go model through Sleev, including auxiliary and
+Use only the configured Codex subscription model through Sleev, including auxiliary and
 delegated work. Do not add providers/keys or bypass this policy with another client.
 
 You run as `mirsella` with the owner's home, SSH keys and passwordless sudo.
