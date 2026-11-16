@@ -1,1 +1,0 @@
-cat /home/mirsella/dev/predator-pm-debug/.agents-local/d-core-02-20261030-result.log

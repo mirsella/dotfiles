@@ -1,3 +1,0 @@
-pkgs/predator-pm-study/boundary_trial.rs: OK
-pkgs/predator-pm-study/boundary_record.rs: OK
-pkgs/predator-pm-study/boundary-stage.c: OK

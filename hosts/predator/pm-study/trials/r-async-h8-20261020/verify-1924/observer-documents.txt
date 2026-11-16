@@ -1,3 +1,0 @@
-2026-10-20T19:26:22+02:00
-MISSING /home/mirsella/dev/predator-pm-debug/STATE.md
-MISSING /home/mirsella/dev/predator-pm-debug/PLAN.md

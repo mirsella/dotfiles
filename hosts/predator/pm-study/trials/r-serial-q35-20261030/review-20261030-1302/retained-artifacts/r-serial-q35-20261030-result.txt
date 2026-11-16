@@ -1,3 +1,0 @@
-epoch=1793361100
-result=Err("unfinished suspend in kernel history")
-pm_async=1

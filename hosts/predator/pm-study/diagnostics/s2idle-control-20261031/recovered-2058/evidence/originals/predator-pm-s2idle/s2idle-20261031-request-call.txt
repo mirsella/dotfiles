@@ -1,1 +1,0 @@
-SuspendWithFlags(1); inhibitors enforced; mem_sleep=s2idle

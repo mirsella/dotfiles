@@ -1,1 +1,0 @@
-cat /home/mirsella/dev/predator-pm-debug/.agents-local/d-platform-02-20261030-baseline.log

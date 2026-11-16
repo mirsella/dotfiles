@@ -1,410 +1,244 @@
-# Predator suspend recovery evidence
-
-November10,16:33CET: [Secure Boot USB follow-up passed in a disposable VM](diagnostics/kernel-ab-20261105/live-usb-secure-boot-20261110/README.md). The stick now selects Ventoy's enforcing policy. Ubuntu/SSH/sudo worked with SecureBoot=1 and kernel integrity lockdown, with Ventoy enrollment confined to virtual firmware. Predator already has Microsoft keys; its first-boot MOK/firmware acceptance remains to be checked. Keep its Secure Boot enabled and inspect any prompt before enrollment. [Current handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November10, after16:08CET: [the owner's Ventoy USB is updated and ready](diagnostics/kernel-ab-20261105/live-usb-prepared-20261110/README.md). Existing files preserved; signed-checksum Ubuntu image and separate automatic key-only SSH overlay verified. The actual USB booted in a disposable UEFI VM with working SSH/sudo, without a suspend. Await owner moving it from main to Predator and reporting booted; physical firmware acceptance and suspend remain untested. No timed polling. [Current handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November10, after14:15CET: [the two-test applications-off screen is complete](diagnostics/kernel-ab-20261105/minimal-services-completed-20261110/README.md). The second RTC90 returned at7459.56seconds uptime with88.599seconds suspension; originals, journals, independent capture and continued isolation verified. Normal-stack trials also returned repeatedly, so there is no demonstrated fix or service-dependent contrast. Ordinary applications and backup timers are restored; a stale T3 service entry was repaired. No further timed test is armed. Next useful comparison is an official live Linux desktop, pending owner USB/boot readiness. [Current handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November10,12:10CET: **autonomous application-stack isolation resumed at the owner's request.** The same stock kernel returned from the first RTC90 with applications skipped from boot, preparation age370.11seconds and suspension88.326seconds. Evidence and continued isolation verified; one return is not a fix. [Build/first-test package](diagnostics/kernel-ab-20261105/minimal-services-initial-20261110/README.md). A one-off13:58CET continuation precedes the approximately14:01CET two-hour-age test. Applications remain unavailable until this short screen ends. [Current handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November10,10:53CET: **testing is paused for a progress/value review.** The queued12:29 test is disabled; no continuation is enabled. The intermittent failure is established, but no cause or reliable fix is identified. The next control has limited diagnostic value because the reboot, suspend history and workload differ. [Assessment and future update requirements](diagnostics/kernel-ab-20261105/progress-review-20261110.json). [Live handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November10,10:40CET: [owner recovery is verified](diagnostics/kernel-ab-20261105/cpu-latency-recovery-20261110/README.md), with the original nonreturn preserved, failed originals and independent capture checked, matching sentinel resolved and CPU-latency helper absent after reboot. The backlight key failed during the hang and works again after reboot; this does not identify an EC fault. One unconstrained control is prepared near the same boot age. The single continuation is due12:29CET; reboot/cycle/workload confounds remain. [Live handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November10,09:52CET: [the post-backup trial returned, then the CPU-idle-constrained trial did not](diagnostics/kernel-ab-20261105/post-restic-and-latency-20261110/README.md). The new nonreturn remains preserved, and fresh SSH checks still time out. Owner observation/recovery is needed before retrieving the failed originals and reassessing a control reversal. The constraint may have changed failure probability or introduced this failure. [Live handoff](diagnostics/kernel-ab-20261105/STATE.md) records the single hourly continuation.
-
-November9,23:42CET: [both updated kernels completed six short-age returns](diagnostics/kernel-ab-20261105/gen171-control-six-complete/README.md). Sixth control evidence was collected and verified separately after a transient service failure blocked the original collector; original metadata is preserved. Source comparison identified no culprit. One new observation is prepared after the normal23:50 restic backup, with completion checks at23:53CET through the same continuation. The hang remains unresolved. [Live handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November9,22:57CET: [the matching current-kernel third cycle returned](diagnostics/kernel-ab-20261105/gen171-control-six-third/README.md) at preparation age1016.43seconds, counters3/0. Its26 originals, journal and Pi capture are verified. The next declared cycle is23:07CET; the existing continuation was retimed for the required awake gap. Historical failures remain unresolved. [Live handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November9,22:46CET: [LTS completed its six short-age cycles](diagnostics/kernel-ab-20261105/gen171-lts-cycle-count/README.md). A separately planned current-kernel boot now has [two verified returns in the matching six-cycle history](diagnostics/kernel-ab-20261105/gen171-control-six-first-two/README.md), counters2/0. Its third is prepared for22:54CET to match the delayed LTS third; no automatic56-hour wait. The intermittent hang remains unresolved. [Live handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November9,22:12CET: [three actual RTC90 trials returned on each updated generation171 kernel](diagnostics/kernel-ab-20261105/generation171-initial-20261109/README.md). The56-hour LTS attempt stopped at a boot-audit prerequisite before any power request, so it supplies no aged suspend result. Both new boots passed authenticated/storage checks; a separate cron-related no-request abort and later replacement are preserved. LTS remains3/0. A bounded short-age cycle-count extension is prepared for22:22CET rather than another automatic56-hour wait. [Live handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November7,16:04CET: [the replacement LTS fifth returned](diagnostics/kernel-ab-20261105/lts-fifth-observer-restoration/README.md), counters5/0. The scheduled attempt had stopped before any power request because a Pi reboot erased its volatile receiver; a newly compiled receiver was installed and qualified. The later fifth age is an explicit comparison limitation. The single continuation now targets the prepared56-hour sixth on **November9,21:34CET**. [Live handoff](diagnostics/kernel-ab-20261105/STATE.md). Earlier nonreturns remain failures.
-
-November7,13:45CET: [owner recovery and all16 failed-trial originals are verified](diagnostics/kernel-ab-20261105/long-age-recovery/README.md). A separately planned LTS boot completed [four matching early RTC90 returns](diagnostics/kernel-ab-20261105/lts-long-age-first-four/README.md), counters4/0. Its fifth is prepared for15:48CET; the sixth will compare approximately56-hour boot age. The current-kernel nonreturn remains a failure. [Live handoff](diagnostics/kernel-ab-20261105/STATE.md).
-
-November7,12:44CET: the [56-hour current-kernel trial did not return](diagnostics/kernel-ab-20261105/long-age-nonreturn/README.md). Its sole RTC90 request was accepted; all bounded SSH probes and a later independent Pi LAN check failed. Off-host evidence is sealed, physical iteration is stopped and owner recovery is required. [Live state](diagnostics/kernel-ab-20261105/STATE.md) records original-retrieval and matched long-age LTS follow-up requirements. No root cause or exact hang location is established.
-
-November5,07:00CET: [the aged control fifth trial](diagnostics/kernel-ab-20261105/aged-control-completion/README.md) returned, completing five returning cycles on both matched-history arms. The hang remains unresolved. A single trial near the original failure's56-hour boot age is prepared for the existing November7,12:38CET continuation; [live state](diagnostics/kernel-ab-20261105/STATE.md) records its exact identity, age window and limitations.
-
-November5,04:50CET: [aged LTS and matched control history](diagnostics/kernel-ab-20261105/aged-lts-control-history/README.md) adds a fifth LTS return after the longer awake gap and four new6.18.58 control returns at comparable early cycle ages. A preflight-only abort and two planned reboots are preserved separately. The control's matching aged fifth trial is prepared for the single06:53CET continuation; [live state](diagnostics/kernel-ab-20261105/STATE.md) has the exact boot/window. The intermittent hang remains unresolved.
-
-November5: [matched6.18.58/6.12.114 kernel trials](diagnostics/kernel-ab-20261105/initial-seven/README.md) all returned in the initial three-per-arm sequence. A separately declared fourth LTS cycle also returned. The new matched baseline preserves authenticated boot/storage and has seven verified request archives. These results leave the intermittent hang unresolved. [Live state and next experiment](diagnostics/kernel-ab-20261105/STATE.md): retain the LTS boot and test a longer awake gap at the04:20CET continuation. Planned clean reboots are now authorized; hangs still require input-tool recovery. Older summaries retain their dated outcomes.
-
-Latest: [ten-minute RTC-only comparison](diagnostics/clock-neutral-long-dwell-20261104/README.md) returned on the same recovery boot. The kernel reports 597.944 seconds suspended; current counters are 3/0, the alarm is empty and pools healthy. Sixteen new originals and full successful post-return collection are verified. This adds a longer returning interval without erasing the earlier nonreturn or proving its cause. Local kernel A/B evaluation identified unrelated drift between the current repository and running system; no alternate kernel or boot configuration was deployed. Older summaries below retain their dated outcomes.
-
-Latest: [manual recovery and two returning RTC-only comparisons](diagnostics/clock-neutral-recovered-20261104/README.md). The earlier nonreturn's 11 original files and previous-boot journals are recovered. On new boot `aa69c359`, two predeclared stock 6.18.58 trials returned near their 90-second alarms; counters are 2/0, alarms empty and pools healthy. This is evidence of intermittent/state-dependent behavior, not proof of an uptime cause or a fix. The recovery task was deleted. Exact Linux 6.12.114 and matching ZFS comparator inputs are acquired and verified locally; no alternate boot or deployment occurred. No further test is armed. Unrestricted hours/manual owner recovery remain the active policy; older waiting/blocked summaries below describe their dated stages.
-
-Current owner policy allows tests at any hour, with manual owner recovery after a hang. The [new clock-neutral S3 trial](diagnostics/clock-neutral-s3-20261104/README.md) requested ordinary stock-kernel S3 at 21:23:21 CET with a 90-second RTC alarm, no WoL packet and the RTC phase recorder disarmed. It did not return within the bounded observation interval; independent Pi LAN checks also failed. Physical iteration is paused pending manual recovery and retrieval of that attempt's evidence. No automatic reset was issued. Earlier hour restrictions and old cleanup results below are historical, not current scheduling gates.
-
-The [accepted integration and platform tests](diagnostics/s3-integration-20261104/README.md) now include three successful full-kernel links: original, unchanged-emitter control and BP-anchor candidate. The real whole-object objtool pass is diagnostic-free, and final ORC/IBT/return metadata checks pass. The actual FADT selects legacy PM1; WoL is currently magic-packet enabled. Three regression tests pass. Baseline ORC matches the retained kernel, but whole-text reproducibility is not claimed. A usable independent capture connection and the original cleanup/recovery bound remain unqualified, so the physical protocol is not armed and the hang cause remains unproved. Earlier integration blockers below are historical.
-
-New [cause-discrimination tests](diagnostics/suspend-cause-tests-20261104/README.md) ran the matching ACPI sleep functions against simulated hardware: sixteen cases and three regression checks pass. Both wake-status loops can continue without an internal deadline; actual linked code discards preparation and sleep-entry errors, so a reported return alone does not prove physical S3. The RTC-marked hang is after preparation and before the low-level end marker. Firmware/entry non-return, missing wake indication and early-wake restoration remain distinct hypotheses. No new physical test or root-cause claim.
-
-The newly authorized [setup repair and actual objtool tests](diagnostics/wake64-placement-20261104/setup-repair/README.md) restored and verified the exact elfutils/Linux development outputs. The complete wake-source baseline and BP-anchor candidate pass the fourteen-flag objtool check without diagnostics; the R12-only control triggers the expected realignment warning. Actual ORC/return/IBT metadata is generated and checked. Three regression tests pass. Whole-kernel candidate linking, runtime/capture and original cleanup remain unproved. The acquisition blocker below is historical; no power action or new scheduling loop occurred.
-
-The [final independent metadata review](diagnostics/wake64-placement-20261104/final-review/README.md) is complete:911 sealed members,40 signatures, four request receipts and closed chronological reference graph verified;10 tests pass. The [terminal assessment](diagnostics/wake64-placement-20261104/terminal-blocker/README.md) retains the exact-content, differing-build-provenance and acquisition-authorization blockers. No new metadata request or further counting/review cycle. Configured objtool, runtime/capture and original cleanup remain unproved; no power test is ready. Zero future preparations/reviewers, binary downloads/imports or power actions; counters3/0. [Separate publication receipts](diagnostics/wake64-placement-20261104/final-review-synchronization/README.md). Earlier entries are historical.
-
-Independent [frontier review](diagnostics/wake64-placement-20261104/frontier-review/README.md) verified772 sealed members,36 signatures,16 bounded requests and chronological verified-edge admission. The immediate [final metadata preparation](diagnostics/wake64-placement-20261104/metadata-final/README.md) closes the signed graph with four new records:40 nodes, no unchecked edges. Ten tests pass. Metadata counting has stopped. Exact binary content and differing-derivation provenance remain blocked; configured objtool/runtime/capture/original cleanup remain unresolved. One finite final reviewer after publication, actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/frontier-review-synchronization/next-review.json). Zero future preparations, binary downloads/imports or power actions; counters3/0. Earlier entries are historical.
-
-Independent [reference review](diagnostics/wake64-placement-20261104/reference-review/README.md) verified495 sealed members,20 metadata signatures,16 request bounds and the partial frontier/budgets. The [metadata-closure preparation](diagnostics/wake64-placement-20261104/metadata-closure/README.md) happened immediately:16 new signatures verified,36 records/39 nodes, three unchecked references. Ten tests pass. Exact content/provenance, configured objtool and runtime/capture/original cleanup remain unresolved. One reviewer after primary publication with actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/reference-review-synchronization/next-review.json); zero future preparation tasks, binary downloads/imports or power actions, counters3/0. Earlier entries are historical.
-
-Independent [cache review](diagnostics/wake64-placement-20261104/cache-review/README.md) verified368 sealed members and all four original metadata signatures, including tampering controls. The [reference route](diagnostics/wake64-placement-20261104/reference-route/README.md) was prepared immediately:16 new metadata requests verified,20 records total and10 explicit unchecked references. Twelve tests pass. The differing unsigned deriver remains unavailable locally; content/provenance, actual objtool and runtime/capture/original cleanup remain unresolved. One reviewer after primary publication with actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/cache-review-synchronization/next-review.json). Zero future preparation tasks, binary downloads/imports or power actions; counters3/0. Earlier entries are historical.
-
-Independent [frozen-input review](diagnostics/wake64-placement-20261104/closure-review/README.md) verified279 sealed members,23 output mappings,56 named roots,29 support files and six source members. The [exact cache route](diagnostics/wake64-placement-20261104/cache-route/README.md) was prepared immediately: four configured-key metadata signatures verified, zero binary downloads/imports. The cache's unsigned deriver differs from the retained build; content/build provenance, actual objtool and runtime/capture/original cleanup remain unresolved. Thirteen tests pass. One reviewer after primary publication, actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/closure-review-synchronization/next-review.json); zero future preparation slots or power actions, counters3/0. Earlier entries are historical.
-
-Independent [normalization review](diagnostics/wake64-placement-20261104/normalization-review/README.md) verified335 sealed members, five source members and all five exact fetched-patch transformations, including both unchanged controls. The [frozen development route](diagnostics/wake64-placement-20261104/dev-closure/README.md) was prepared immediately:23 direct output identities,56 named input roots and29 retained support files. Sixteen roots are absent; exact dev reproduction and actual objtool remain unresolved. Fourteen tests pass. One reviewer after successful publication, with actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/normalization-review-synchronization/next-review.json). Zero future preparation slots or power actions; runtime/capture/original-cleanup gates and counters3/0 remain. Earlier entries are historical.
-
-Independent [libelf source-route review](diagnostics/wake64-placement-20261104/libelf-review/README.md) verified 366 sealed members, seven archive members, six-patch provenance and the exact development-input limits. The [normalization prerequisite](diagnostics/wake64-placement-20261104/patch-normalization/README.md) was prepared immediately: all five fetched patch outputs now match their pinned hashes and expected store paths, closing the three normalized-byte gaps. Thirteen review/normalization/publisher tests pass. Exact development-output reproduction, actual objtool, runtime/capture and original mandatory cleanup remain unproved. One reviewer after successful publication, with actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/libelf-review-synchronization/next-review.json); zero future preparation slots or power actions, counters3/0. Earlier entries are historical.
-
-Independent [objtool-boundary review](diagnostics/wake64-placement-20261104/objtool-review/README.md) verified 160 sealed members, 12 matching sources, the sole lowlevel exemption and all 14 linked diagnostic flags. Six review, three source-route and six publisher tests pass. The [matching libelf source/build route](diagnostics/wake64-placement-20261104/libelf-source/README.md) was prepared immediately: upstream archive verified, all five fetched patch sources retained, two exact normalized patches verified plus the original local patch. Three normalized inputs and exact development-output reproduction remain unresolved; actual objtool and all runtime/capture/original-cleanup gates remain unproved. One reviewer after publication, with actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/objtool-review-synchronization/next-review.json). Zero future preparation slots or power actions; counters3/0. Earlier entries are historical.
-
-Independent [retained ORC review](diagnostics/wake64-placement-20261104/orc-review/README.md) verified397745 paired entries and12 selected lookups.10 NEW review tests,4 boundary tests and6 publisher tests pass. The [original exemption/configured objtool prerequisite](diagnostics/wake64-placement-20261104/objtool-boundary/README.md) was prepared immediately: only `do_suspend_lowlevel` is directly exempted; configured IBT defers checking to `vmlinux.o` with14 arguments, including `--noinstr --unret`. Missing exact development inputs block actual diagnostics; exit0 would not prove warning-free acceptance. Runtime/integration/capture/original-cleanup gates remain. One reviewer after publication, with actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/orc-review-synchronization/next-review.json); zero future preparation slots, no scientific wait, no power actions,3/0 preserved. Earlier entries are historical.
-
-Independent [unwind-anchor review](diagnostics/wake64-placement-20261104/unwind-review/README.md):7 NEW review tests,3 ORC preparation tests and6 publisher tests pass. The [retained linked ORC prerequisite](diagnostics/wake64-placement-20261104/orc-entry/README.md) was prepared immediately. The table encodes CALL/SP+8 at original WAKE64 entry and after saved-RSP restoration, supporting that starting layout as a static metadata fact; the common resume region is UNDEFINED. This does not establish live stack correctness or candidate objtool/ORC acceptance. Full integration/mappings/GS/stack/capture and original cleanup remain blocked. Exactly one separate-turn reviewer will be scheduled after primary publication, with actual ID/time in [separate receipts](diagnostics/wake64-placement-20261104/unwind-review-synchronization/next-review.json). Zero future preparation slots or scientific wait; no power actions,3/0 preserved. Earlier entries remain historical.
-
-**November4,07:00 S3 recorder/decoder preparation:** [24 passing fault tests,12 synthetic traces and compiled C/assembly candidates](diagnostics/s3-cutpoint-harness-20261104/experiment-0700/README.md) distinguish direct entry-call return from the unique64-bit wake path. RAM capture cannot survive recovery reset; early16-bit integration and the original clock-cleanup bound remain unresolved. Result **BLOCKED_CAPTURE_NOT_VALIDATED**; no installed instrumentation or armed physical trial. The **08:00CET independent reviewer** owns continuation. Owner timing clarification is explicitly included in this publication: preparation may precede08:00; actual wake/review stays08:00–23:00. Counters3/0, zero power transitions. Older entries retain their historical times and scope.
-
-**November3,21:00 review and return to suspend discrimination:** [ten independent tests,24 journal records and216 selected coordinates](diagnostics/clock-journal-provenance-20261103/review-2100/README.md) close the finite provenance review. SerialD/Q37 also hung; async is not necessary. Matching assembly shows direct entry-call return and genuine wake-vector return converge on the same restore path, so the later resume message alone cannot distinguish them. [Next: a tested S3 return-provenance recorder/decoder harness](diagnostics/s3-cutpoint-harness-20261104/README.md), **November4,08:30CET preparation and09:30CET independent review**. No validated hang-surviving capture channel or safe next-return-plus-required-cleanup bound exists; no physical trial is armed. Owner direction/policy amendment is explicitly included in this review's guarded publication. Counters3/0, zero power transitions. Earlier entries retain their historical scope.
-
-**November3,20:00 journal provenance:** [17 offline tests and24 retained records](diagnostics/clock-journal-provenance-20261103/experiment-2000/README.md) distinguish kernel enqueue source timestamps from cached event-loop entry headers. Conditional timelines remain feasible; header lower bounds require a cache-to-invocation clock assumption, while kernel-source floors preserve the earlier whole-second bound. Error-record absence does not prove syscall success without delivery completeness. **21:00 CET independent review is confirmed and owns continuation.** Actual dispatch/future cleanup safety remain unproved, suspend gated, counters3/0, zero power transitions. Earlier entries retain their capture-time scope.
-
-**November 3, 19:00 independent interface review:** [ten tests and 683-event reconstruction](diagnostics/clock-adjust-interface-20261103/review-1900/README.md) verify the status/notification interface and54 request cases. Initial maxerror is a placeholder in two historical cases; the modeled step overwrites it before the query. Journal timestamp provenance and delivery assumptions remain open. **20:00 CET journal-provenance diagnostic;21:00 CET independent review/continuation confirmed.** Suspend stays gated, counters3/0, zero power transitions. Earlier entries retain their capture-time scope.
-
-**November 3, 18:00 clock-adjustment interface:** [22 offline tests and three conditional historical witnesses](diagnostics/clock-adjust-interface-20261103/experiment-1800/README.md) resolve the source ordering. Positive subsecond steps call notify(false), transient UNSYNC precedes final status processing, and NTPSynchronized uses maxerror rather than the RTC worker's status predicate. Its status query can itself queue RTC work. Actual dispatch, physical delay and future cleanup safety remain unproved. **19:00 CET independent review is confirmed and owns continuation.** Suspend stays gated, counters3/0, zero power transitions. Earlier entries retain their capture-time scope.
-
-**November 3, 17:00 independent review:** [ten tests and 636-event replay](diagnostics/clock-writer-order-20261103/review-1700/README.md) confirm the short-window exclusion using journal receipts. Source review corrects the embedded timestamp origin and identifies a same-adjustment notification-order gap in the selected traces; historical execution and future cleanup safety remain unproved. **18:00 CET clock-adjustment interface diagnostic; 19:00 CET independent review and continuation scheduled.** Suspend stays gated, counters 3/0, zero power transitions. Earlier entries retain their capture-time scope; sealed artifacts are preserved.
-
-**November3 16:00 composed-writer experiment:** [short cleanup windows exclude the nine-miss example](diagnostics/clock-writer-order-20261103/experiment-1600/README.md) under the stated no-wall-step assumptions. Twenty-four offline tests passed. Composed traces permit either writer to apply last; a kernel argument sampled before a correction can survive cancellation and apply after qzs. Actual dispatch, hardware delay and future cleanup safety remain unproved; suspend stays gated. **The confirmed17:00 independent reviewer owns next scheduling.** Counters3/0 unchanged; no new clock sampling, metadata adapter, settings or power action. Earlier entries retain their capture-time scope.
-
-**November3 15:00 independent review:** [frozen path and full adaptive retry loop verified](diagnostics/clock-write-path-20261103/review-1500/README.md). Eight new offline tests passed; a class-only alternate-configuration error in the earlier checker is corrected in the independent analysis, with the actual both-enabled host conclusion unchanged. Historical retry-window admissibility and competing kernel/userspace writer order remain open. Next distinct non-power work: **16:00 composed writer ordering;17:00 independent review/next scheduling**. Counters remain3/0; no new measurement, adapter replay or power/settings action. Earlier entries retain their capture-time scope.
-
-**November3 14:00 write-path diagnostic completed:** [frozen RTC writer applicability verified; fixed timing bound excluded](diagnostics/clock-write-path-20261103/experiment-1400/README.md). The pinned hwclock build and RTC ioctl path are identified, HZ=1000 confirms1ms jiffies/strict5ms periodic screening, and userspace's initial1ms target tolerance can expand after missed targets. Actual dispatch and hardware timing remain unproved; suspend stays gated,3/0 unchanged. Twenty-one offline tests passed; one read-only metadata adapter, no new clock sampling or power/settings changes. **15:00 independent review and next scheduling remain enabled.** Earlier entries retain their capture-time scope.
-
-**November3 13:00 independent review:** [carried-state arithmetic and conditional exclusion verified](diagnostics/clock-state-reachability-20261103/review-1300/README.md), including jointly ordered snapshot constraints and corrected microsecond-quantization handling. Actual RTC writer/configuration and resume-branch applicability remain open; suspend stays gated,3/0 unchanged. Next distinct non-power test: **14:00 frozen RTC write-path applicability;15:00 independent review and next scheduling**. No new clock measurement, sampler replay or power/settings action. Earlier entries retain their capture-time scope.
-
-**November3 12:00 stateful offline test completed:** [one carried-state conditional trajectory fits the three recorded cycles](diagnostics/clock-state-reachability-20261103/experiment-1200/README.md), with17 tests passed and a concrete exclusion of RTC=system throughout the snapshots. The same carried state permits a future950ms correction to cross the original guard. Actual RTC write phase/dispatch and resume branch remain unobserved; this is not proof of the actual hardware trajectory or a safe future cleanup. Counters3/0; no new sampler, power or settings action. **13:00 independent review and next scheduling remain enabled.**
-
-**November3 11:00 independent review:** [captured arithmetic and conditional counterexample verified](diagnostics/clock-bound-test-20261103/review-1100/README.md). The97ns common-offset intersection requires constancy across the observations; overlap alone cannot prove it. The950ms source-permitted witness still crosses the guard, but its hidden state has not been linked to the three recorded cycles. Next distinct non-power test: **12:00 stateful clock-history reachability,13:00 independent review and continuation**. Counters3/0; no sampler replay or power/settings action. Earlier entries retain their capture-time scope.
-
-**November3 10:15 diagnostic completed:** [fresh clock interval and tested counterexample](diagnostics/clock-bound-test-20261103/experiment-1015/README.md). The owner renewed continuation after the09:45 stop. One read-only five-sample invocation measured about864.859ms before the next rejected boot-estimate integer; an offline source-consistent950ms cleanup correction crosses it. This is not a prediction of the next correction. No power/settings action occurred; counters3/0, suspend remains gated. The11:00 independent review will select the next distinct useful diagnostic. Earlier entries retain their capture-time scope; [continuation policy](continuation-policy.json) reflects the renewed instruction.
-
-**November3 09:45 independent review:** [verified unarmed state and clock blocker](diagnostics/s3-async-reversal-20261103/review-0945/README.md). The09:00 async trial did not run; counters remain3/0, all64 originals and three prior cycles are intact. Publication reconciliation is verified, but another required cleanup is not bounded within the unchanged boot-estimate guard. The concrete-prerequisite stop condition applies: no next test or reviewer is scheduled, and standing owner authorization remains unchanged.
-
-**November3 08:00 preparation blocked before arming:** [clock investigation](diagnostics/s3-async-reversal-20261103/prerequisite-0800/README.md) found repeated positive clock-offset changes during the three completed cleanups. Current btime1793621943 is at the unchanged anchor1793621941 ±2second limit; no safe next-cleanup bound was established. The09:00 async trial remains unarmed, counters3/0. Yesterday's review publication was reconciled with sealed receipts. The existing09:45 independent review remains scheduled; physical power is still unknown.
-
-**22:40 console-Y review:** [independent evidence](diagnostics/s3-console-reversal-20261102/review-2240/README.md) verifies genuine same-boot return, counters2→3, rawconsoleY/NICenabled before ownedcleanup and freshhealth. ConsoleN was unnecessary for this return; physical3W residency remains unknown. Next:November3 08:00 preparation/09:00 target/09:45 review for async0→1 with trialconsoleY/NICenabled fixed, first resolving cumulative clock-estimate shifts now at the existing tolerance boundary. No next machine timer is armed. Earlier entries retain their capture-time scope.
-
-**21:44 console-Y reversal armed:** [preparation evidence](diagnostics/s3-console-reversal-20261102/preparation-2130/README.md) records22:00 entry,22:05 RTC,22:06:30 Pi probe,22:08 log freeze and22:40 independent review. The new runtime passed19 tests/build/flake checks and fresh machine/Pi gates, preserving42 originals and both prior cycles. It owns consoleN→Y only for this comparison; NICenabled stays observation-only. At21:45:51 it remained unattempted with ordinary settings and counters2/0 from the two prior returns. Actual execution and physical power remain pending. Earlier entries retain their capture-time scope.
-
-**20:30 enabled-policy reversal review:** [independent evidence](diagnostics/s3-nic-wakeup-reversal-20261102/review-2030/README.md) verifies another same-boot deep-entry/low-level-resume/exit, counters1→2, raw evidence before owned cleanup and fresh health. Disabling NIC wakeup was unnecessary for this return; physical low-power residency remains unknown. One consoleN→Y reversal is scheduled for21:30 preparation/22:00 target/latest22:10/22:40 review, with NICenabled fixed. Scheduling has armed no new timer. Earlier entries retain their capture-time scope.
-
-**19:10 enabled-policy reversal armed:** [sealed preparation](diagnostics/s3-nic-wakeup-reversal-20261102/preparation-1900/README.md) records entry19:45, RTC19:50, Pi probe19:51:30, log freeze19:53 and independent review20:30 CET. The new runtime passed17 tests/build/flake checks and fresh health/history/Pi gates, with no NIC-policy write authority. At19:11:20 it remained unattempted on the same boot at1/0; those counters belong to the prior17:30 return. Actual execution and physical power are pending. Earlier entries describe their capture times.
-
-**18:15 independent review: NIC-disabled trial returned.** [Primary originals, four-clock history, raw return and owned cleanup](diagnostics/s3-nic-wakeup-control-20261102/review-1815/README.md) independently establish same-boot deep entry/resume/exit, counters0→1 and fresh full health. The scheduled Pi probe exited0. Physical wattage during this attempt is unreported; software return is not3W sleep proof. Next [enabled-policy reversal](diagnostics/s3-nic-wakeup-reversal-20261102/README.md):19:00 preparation,19:45 target/latest20:00,20:30 review CET. Enabled is already restored, so observe it without redundant NICwrites. No new machine timer is armed; earlier entries retain capture-time scope.
-
-**17:00 NIC wake-policy trial armed:** [preparation evidence](diagnostics/s3-nic-wakeup-control-20261102/preparation-1645/README.md) records one17:30 CET entry, RTC17:35, Pi probe17:36:30, log freeze17:38 and independent18:15 review. The new current-boot protocol passed16tests/Nixbuild/flakeevaluation/fullhealth and Pi nonce/baseline checks. At17:01:45 no attempt had occurred: counters0/0, NICwake enabled, consoleN/async1/none/emptyalarm, sleep/trialinactive and repaired handoff healthy. Only NICsystem-wakeup will differ; source-supported driver restoration is ownership/verified-return gated. Arming is not execution or physical-sleep proof; earlier entries retain historical scope.
-
-**16:02 authorized repair completed:** [one guarded handoff service start](diagnostics/handoff-repair-20261102/README.md) preserved the original failure, removed stale network state and restored fresh NTP/RTC synchronization. Full postconditions passed; same boot/counters0/0, no failed units, closed lid/display off. The owner's "yes do it." resolved the earlier authorization dependency. Next [NIC system-wakeup control](diagnostics/s3-nic-wakeup-control-20261102/README.md): preparation16:45, target17:30, independent review18:15 CET. No power timer is armed yet. Earlier entries retain their capture-time scope.
-
-[15:30 independent review](diagnostics/s3-readiness-gate-20261102/review-1530/README.md): same recovery boot, closed lid/display off and otherwise healthy checks; the original failed handoff still blocks readiness. The unapplied repair proposal is source-supported, but its service/cache/network/clock changes remain prohibited. No repair or power test ran. Scheduling stops at this concrete authorization dependency instead of repeating completed audits; standing recovery-window availability remains authorized. No next task is pending.
-
-The [15:00 checkpoint](diagnostics/s3-readiness-gate-20261102/preparation-1500/README.md) observed closed lid/display-off at15:02 on the unchanged recovery boot/counters0/0. The original failed handoff remains the observed readiness blocker. A [concrete unapplied recovery plan](diagnostics/s3-readiness-gate-20261102/recovery-plan-v1/README.md) now specifies the single existing-unit start candidate, all network/cache/NTP/RTC effects, original-failure preservation, authorization boundary and full postconditions. No repair or power action occurred. The existing15:30 reviewer will assess it; earlier entries retain their capture-time scope.
-
-The [14:15 independent review](diagnostics/s3-console-recovery-20261102/review-1415/README.md) confirmed the11 originals, root0600 metadata, consoleY/RTC/request evidence, old/new history and unchanged observer logs. Same recovery bootd793… remains at0/0; no return or cleanup is established. Failed boot-handoff, open lid and display-on still block readiness. Next: [15:00 read-only readiness checkpoint and unapplied corrective plan,15:30 review](diagnostics/s3-readiness-gate-20261102/README.md). No power request is armed; standing all-window availability remains authorized. Earlier entries below describe their capture times.
-
-The [13:45 recovery investigation](diagnostics/s3-console-recovery-20261102/preparation-1345/README.md) recovered all11 trial originals: consoleY, RTC arming and request acceptance are verified; return/cleanup artifacts are absent. Recovery bootd793… has zero new attempts. Security, storage and application checks pass, but the frozen boot helper's immediate network-readiness check failed; the lid is currently open and display on. The different qzs cleanup helper already has a bounded readiness wait. No repair or power action was performed. The14:15 reviewer remains scheduled to assess these concrete blockers and arrange the next evidence-led workflow. Publication receipts are in the recovery directory; dated entries below retain their historical scope.
-
-Owner update and [recovery discovery at13:22](diagnostics/s3-console-readiness-20261102/owner-recovery-1322/README.md): **"force rebooted, it was a 15w."** New boot`d793c222-876d-4d91-adb2-5f64b50857d5` began about13:19:01; frozen identities and ordinary PM settings/counters0/0 verified. Full health remains blocked by failed boot network/clock handoff, despite currently correct LAN/DNS and synchronized NTP. The existing13:45 evidence investigation and14:15 review will use this discovery; no additional power workflow was created. Updates are local pending fresh guarded publication. The dated review below remains unchanged evidence.
-
-Latest review, [November 2 at13:00](diagnostics/s3-console-readiness-20261102/review-1300/README.md): **console V2 reached deep-entry/console suspension at12:15:12; no return observed, Predator unreachable**. The scheduled Pi probe exited1; the frozen log remained unchanged through13:02. Current power, primary originals, boot/counters, cleanup and fresh health are unavailable, not absent. Exactly one [read-only recovery investigation13:45 and independent review14:15](diagnostics/s3-console-recovery-20261102/schedule.json) are scheduled under standing availability. No new power test was armed. Review publication is local pending recovered access and fresh remote preimages; earlier entries retain their dated scope.
-
-Latest preparation, [November 2 console V2 at11:15](diagnostics/s3-console-readiness-20261102/preparation-1115/README.md): **armed for12:15 CET**, RTCwake12:20, Pi probe12:21:30, log freeze12:23, independent review13:00. The new final-deadline/owned-abort protocol passed16 tests, Nix build, flake evaluation and full machine/Pi preflight. At11:24 the service remained unattempted, sameboot0/0 and ordinary settings. Arming is not a sleep result; prior dated entries below retain their historical scope.
-
-Current owner instruction, November 2 at 10:57: **"all. dont ask. just schedule next tests always"**. [Standing availability](continuation-policy.json) now covers all permitted 08:00-23:00 Paris windows without reconfirmation. The existing 11:15 task now prepares the corrected console control, target **12:15**, independent review **13:00**, then automatic next-test scheduling. See the [active schedule](diagnostics/s3-console-readiness-20261102/schedule.json). No machine timer is armed by this scheduling update; earlier read-only/availability statements below retain their historical scope.
-
-Latest review, [November 2 at 10:30](diagnostics/s3-console-control-20261102/review-1030/README.md): the console test remained unarmed; fresh health/security passed with the same boot and counters 0/0. Six independent offline tests validated the boot-message classifier correction. A request-deadline sequencing gap remains for the next **11:15 CET read-only timing audit**. No power test is armed; a new recovery window is needed.
-
-Latest preparation, [November 2 console control](diagnostics/s3-console-control-20261102/preparation-0920/README.md): unarmed. The new runtime's history filter rejected seven normal boot memory-registration messages. Their exact records match the sealed recovery journal; this is a classifier defect, not a new suspend failure. The correction passed local tests/build/checks but was not retried on Predator. At 09:32, console N, async 1, empty alarm, inactive sleep and counters 0/0 remained unchanged. No 09:50 test will run; the existing 10:30 independent review remains enabled.
-
-Latest preparation, [November 2 recovery evidence](diagnostics/s3-recovery-next-20261102/preparation-0830/README.md): recovery boot `7f8080f5-9d58-47ef-b529-598d493e0d43` began around November 1 at 21:56:44 CET. All ten failed-trial originals were recovered and verified: the RTC alarm was armed, but authenticated enumeration finds no return or cleanup artifact. Current frozen-system health/security passed, counters 0/0. No new test was selected or armed; source analysis and a possible console-suspended control await the enabled 10:30 independent review. That reviewer will schedule the next bounded investigation under the owner's standing request. Earlier status entries describe their recorded dates.
-
-Latest result, [recorder-off16:30 review](diagnostics/s3-recorder-off-20261101/review-1630/README.md): owner reports constant15W since suspend and forced reboot, on the unchanged combined meter. Pi verifies this trial's BEGIN/deep entry, then no return or SSH response; its live log remained frozen at the NIC suspend boundary through17:48. The15W non-returning symptom recurred without EFI boundary recording, but no specific hang stage is established. Primary retrieval failed; post-recovery boot, originals, cleanup and current health remain unverified, not absent. Both tasks self-deleted, collection was attempted once, and no further power workflow is scheduled. This review is archived locally; remote synchronization awaits reachability. Earlier observations and sealed archives retain their dated scope.
-
-Latest capture check, [November1 compact EFI breadcrumb](diagnostics/efi-compact-20261101/README.md): one64-byte awake record was written and independently verified, consuming156 reported storage bytes and leaving2,222 usable bytes above Linux's reserve. The original audit incorrectly rejected a dynamic maximum-variable-size value; that failure is preserved and the check corrected without another write. Nine originals, cleanup and full health/security verified at12:48 on boot`bf51c3ac-164e-4bfa-b56c-7b71df526b7f`, counters0/0. Reset retention and suspended-context operation remain untested; no new S3 or reboot was requested. Full logs remain on disk; no boot image or EFI variable was deleted.
-
-Latest preparation, [November1 clock-safe S3 boundary recorder](diagnostics/s3-boundary-20261101/README.md): blocked before any new suspend. The awake EFI probe's capacity guard refused module initialization before writing; only2,378 usable EFI bytes remain. One separately owner-authorized normal reboot at11:58:50 returned into the same signed system/kernel/modules and did not reclaim space. Newboot`bf51c3ac-164e-4bfa-b56c-7b71df526b7f`, btime1793530757, has0/0 suspend counters; the previous boot's two s2idle cycles remain preserved. Full health/security passed at12:02/12:04, and the earlier tank scrub had completed at10:52:07. Durable capture remains unvalidated; no S3 trial or further power workflow is armed. Earlier entries below retain their historical scope.
-
-Latest result, [November1 10:30 review](diagnostics/wake-path-20261101/review-1030/README.md): `path-d3-v2-20261101` returned at09:35 in the RTC-fallback window, despite verified bridgeD0/NICD3hot and PME/ACPI arming. Both09:31 WoL sends ran without a recorded return then. All24 originals and cleanup verified; same boot, cumulative2/0/markers0. The owner reported approximately6W. Services/security are healthy, but an active tank scrub blocked the observed maintenance preflight. Firmware mapping narrows the unresolved wake path to GPE0x69; no justified next setting was established. Second slot closed unarmed; no further power workflow scheduled. Exact physical duration still needs the dated graph. Earlier entries below retain their historical scope.
-
-Latest result, October31 22:45 review: [the recorder-off s2idle trial returned in the RTC-fallback window](diagnostics/s2idle-wake-validation-20261031/review-2245/README.md). Both Pi WoL sends ran at22:31/22:31:30 without a recorded return then. The verified22:35 alarm expired; IRQ9/ACPI fixed-event wake, RTC-source activity and the22:35:04 pre-correction snapshot strongly support RTC fallback. The exact fixed-event bit was not logged at wake. All20 original artifacts match their authenticated hashes and root0600 metadata. Request, kernel/service return, cleanup and fresh health passed on the same boot, counters1/0 and markers0. Source-clock loop interval is1136.638081s; receipt intervals are121/120microseconds and are not sleep duration. The dated22:13 to22:40 power graph remains missing, so full PASS/physical duration is unresolved. The review task deleted itself; no new power operation is scheduled or authorized by this review. The following entries retain their earlier recovery/preparation scope.
-
-Current result, October31 evening: [recovered s2idle originals](diagnostics/s2idle-control-20261031/recovered-2058/README.md) prove a return following IRQ9/ACPI notify and lid-open/short-power-key events, then orderly poweroff. The owner reported “3-1w” and forced recovery. This differs from the earlier15W S3 hang. Scheduled WoL did not establish a return; its cause remains unresolved. Kernel source timestamps span14558.172999s in the idle loop, while journal receipt timestamps misleadingly span0.000121s. The RTC recorder also blocked clock recovery during s2idle's cpuidle timekeeping freeze; old uncorrected wall-clock return times cannot establish an early wake. No physical-duration PASS is claimed without a dated graph.
-
-Recovery boot`f9b45aa6-b820-4ab5-b18c-9324d8d53087`, btime1793474520, is healthy after repairing its failed clock-handoff service. A separate event-driven LAN-readiness fix passed59 tests, Nix build, flake evaluation and live clock handoff. The frozen system remains unchanged. The owner-authorized next workflow is scheduled for **21:45CET October31**: one s2idle WoL test with an independent RTC-alarm fallback, recorder off and normal synchronized clocks. It must finish review before23:00; exact operation times follow validation. No new power transition or machine timer was armed during this recovery. Earlier observations below retain their original scope.
-
-Created October 20, 2026 because the original `/home/mirsella/dev/predator-pm-debug` directory and SSH shim were unavailable during the evening verifier and review. STATE.md and PLAN.md could not be read at their expected laptop, Predator or Pi paths. The cause or new location is unknown.
-
-This directory preserves newly retrieved machine evidence and the retained October 20 verifier. It is not a reconstruction of the missing historical archive. Do not overwrite or remove existing captures.
-
-The owner reported Predator online and requested deployment and resumed scheduling on October 27, 2026. The recovered boot is `9c19e8c7-a404-454c-813e-ced03d90a71c`, epoch `1793120798`, October 27 at 18:06:38 CET. Its first inspection found no prior suspend cycles, healthy fast/tank pools and all five data mounts. The LAN had inherited an address without DNS; activating the existing declared study profile restored DNS and fresh NTP.
-
-Earlier trial [r-async-h8-20261020](trials/r-async-h8-20261020/README.md) remains an owner-confirmed hang. Its retained manifest, request, pre-entry capture and old-boot journals were retrieved on October 27 before deployment, under `recovered-20261027/`. They contain no return, result or completed record. The later boot was recovery, not a successful H resume. The failed WoL after battery depletion remains owner-reported; its cause is unverified.
-
-Previous trial: [r-async-d1225-20261029](trials/r-async-d1225-20261029/README.md), fresh async D on kernel 6.18.58 after the owner's October 28 WoL startup. **Owner-confirmed HANG.** The owner reported it stuck at about 15 W and recovered it by holding the power button. The kernel began the deep-suspend sequence at 09:21:06 CET after about 44,704 seconds awake. Both scheduled WoL sends ran, but the LAN probe failed and review could not reach Predator. The healthy new boot was recovery, not a D resume. Retained evidence has been collected; the dated graph remains missing.
-
-Previous long-age serial trial: [r-serial-d1225-20261030](trials/r-serial-d1225-20261030/README.md), first suspend after 12h25 awake with `pm_async=0`, on the same pinned baseline. **Owner-confirmed HANG at about 15 W, followed by forced reboot.** Its deep-suspend sequence began October 30 at 08:30:45 CET. Both scheduled wake sends ran, but the LAN probe and review SSH failed. The complete Pi capture and recovered old-boot artifacts are preserved. No return/result/completed record was retained. Its controlled shutdown/WoL startup is documented below; the reset history differs from the failed async D.
-
-Previous actual suspend: [r-serial-q35-20261030](trials/r-serial-q35-20261030/README.md), first suspend at 35 minutes awake on the recovery boot, same baseline and fixed serial mode. **Same-boot resume confirmed, owner-observed 3 W, verifier error.** The kernel measured **954.773 seconds asleep** and the complete boot journal has one ordered deep entry/resume/exit. The runtime rejected an incomplete early journal snapshot and wrote no completion record. The dated graph remains missing; this is neither a hang nor a compliant PASS.
-
-Previous attempt: [r-serial-q35r1-20261030](trials/r-serial-q35r1-20261030/README.md), using the corrected verifier and an owner-authorized controlled shutdown/planned-WoL startup. **Aborted before suspend because Nextcloud cron was activating.** The final preflight stopped at **14:12:57 CET**; no suspend request, sleep or return occurred. The corrected post-return verifier was not exercised. Kernel/system/modules and the explicitly pinned corrected runtime remain unchanged.
-
-Latest real-S3 trial: [r-serial-q37-20261030](trials/r-serial-q37-20261030/README.md), first serial Q at **2220 seconds after the owner's recovery boot**. **Owner-confirmed HANG at about15 W, never reaching the usual3 W, followed by owner reboot.** Its sequence began17:44:21; recovered files contain only plan/request/before, with no return or completion. The earlier30 W report belongs to a separate shutdown/startup outage. Exact reset mechanism/off duration and dated graph remain unspecified. Long awake age was not necessary for this hang; age bisection is deferred.
-
-**Bounded diagnostic ladder complete, October30 22:38 CET:** freezer returned and was separately revalidated at20:03:57; **devices, platform, processors and core each returned twice**, all on bootf8eb6e44-85ae-4e56-bc00-587876699945 without another reboot. Final counters9/0, normal modes/markers and full post-health checks passed. The [summary](diagnostics/ladder-summary-20261030/README.md) preserves original freezer post-check failure, explicit runtime handoffs and unchanged ordinary S3 records. These checkpoints skip actual firmware S3 and do not prove a culprit or exclude intermittency.
-
-**October31 08:30 preparation completed: BLOCKED_BEFORE_ARMING.** The task deleted itself and assessed the existing RTC recorder against matching kernel sources. It overwrites the clock and disables both RTC sleep-time readers; none of Predator's available clocks advertises S3-nonstop timing. No validated independent duration measurement or complete RTC writeback/retention protocol is established. The [assessment and tested decoder](diagnostics/rtc-feasibility-20261031/README.md) preserve two older raw RTC clues compatible with ACPI-S3 entry markers, without assigning a current-kernel culprit. At08:46 the same boot remained healthy, counters9/0 and zero actual S3 attempts, ordinary modes/markers, with no pending PM operation or follow-up task. No new runtime, RTC setting, suspend or power transition was applied. The current btime1793381193 differs by one second from the historical1793381192; both readings are retained. Unsupported measurement/logging remains a concrete blocker under the owner's guarded-execution authorization.
-
-**October31 09:45, calibration verified and one real S3 trial armed:** the separate [RTC-instrumented protocol](diagnostics/rtc-instrumented-20261031/README.md) completed its recorder-enabled core calibration at09:35:19. Independent09:41–09:44 review confirmed the actual RTC marker, fresh clock/LAN restoration and full health. This is the tenth diagnostic on the same boot, counters10/0, markers56, with zero actualS3 attempts before the newly armed trial. Observed btime1793381198 reflects clock accounting; historical1793381192 and pre-calibration1793381193 remain retained. [Trial rtc-s3-20261031](diagnostics/rtc-instrumented-20261031/trial-rtc-s3-20261031/README.md) is armed for09:55, Pi wake10:11/retry10:11:30, probe10:12:30, snapshot10:14 and automatic review10:21. The original09:50 target moved to preserve setup lead. Owner notification requested the dated09:53–10:15 power graph; a technical return cannot become PASS without at least900s measured physical sleep. Frozen system/module/security identities and all prior histories remain unchanged.
-
-**October31 10:21 review: unreachable after S3 entry and both scheduled WoL sends.** [Independent evidence](diagnostics/rtc-instrumented-20261031/trial-rtc-s3-20261031/review-1021/README.md) records deep-suspend entry09:55:02, Pi WoL10:11:00.650997 and10:11:30.644462, failed LAN probe10:12:30–35, then review SSH `No route to host`. The frozen capture contains no observed low-level return/exit and stops at the usual NIC logging boundary, which does not identify a culprit. Current Predator counters, recorder, lifecycle, artifacts and health are unreadable, not proven absent or failed individually. Physical sleep/hang state and duration remain unverified without owner watts/graph. The exact review task was deleted; no further wake/reset/test was issued or scheduled. Owner notification requested the dated graph and manual recovery details so the next boot's early RTC capture can be interpreted. Evidence is archived locally; Predator documentation synchronization is blocked by its unreachability.
-
-**October31 recovery: owner-confirmed15W hang and forced reboot.** [Recovered originals and RTC decode](diagnostics/rtc-instrumented-20261031/trial-rtc-s3-20261031/recovered-1109/README.md) establish requestOk and a retained ACPI S3 entry marker, with no retained low-level return marker or completion. The early RTC2099-07-02 00:59:40UTC uniquely matches `acpi_suspend` start plus3580seconds under the documented clock/device-hash assumptions; this narrows the boundary, not the culprit or physical sleep duration. Newboot`ae29f675-9167-4975-a884-01885468bc38`, observedbtime1793440484=10:54:44, is healthy with counters0/0 and markers0, frozen identities unchanged. The old boot retains ten diagnostics and one failed S3 attempt. The requested11:45 workflow ran and deleted itself. A distinct tested [s2idle control](diagnostics/s2idle-control-20261031/README.md) was armed11:55:13–21 for12:07CET, Pi WoL12:23/retry12:23:30, and automatic read-only review12:33. All55 package tests, Nix build and flake evaluation passed. This is one control without firmware S3, not an automatic deep retry or another diagnostic ladder. Hardware outcome is pending; exact recovery method/off duration and the dated power graph remain missing.
-
-**October31 12:33 s2idle review: unreachable after the selected s2idle entry and both scheduled WoL sends.** [Review evidence](diagnostics/s2idle-control-20261031/review-1233/README.md) records entry12:07:10, actual Pi sends12:23:00.644935 and12:23:30.654975, failed LAN probe12:24:30 to12:24:33, and review SSH `No route to host`. The frozen capture ends at the NIC transport boundary before any received idle-loop or return message. It proves selection of the s2idle path, but cannot distinguish a hang from a failure to wake via WoL, establish physical sleep duration or identify a driver. Current host artifacts, counters, RTC marker, modes and health could not be retrieved. The owner was asked for current watts, the dated12:05 to12:27 graph and manual recovery details. The exact review task was deleted; no further power operation or repeat was scheduled. Evidence is preserved locally; synchronization to Predator awaits recovery and fresh preimage checks.
-
-## Standing automatic continuation, October 30
-
-After the Q35r1 review the owner instructed: **"automatically do that, always schedule the next test"**. Execute and schedule the next justified experiment after each review rather than stopping at a recommendation. Carry this instruction into each dated, self-deleting preparation/review task. Routine eligible preparation may use a healthy graceful shutdown and one planned WoL startup when a fresh first-cycle boot is needed. Only one real trial may be pending. Older dated review-only/no-automatic-continuation statements below describe the earlier scope.
-
-Classification and eligibility still determine the next test. Preserve exact boot, age, ordinal, startup provenance and runtime; keep the 08:00 to 23:00 observation window, at least 900 seconds measured sleep, dated physical evidence and all maintenance/health guards. A technical return without a dated graph cannot become a compliant passing bound or primer. An independent replication may still be scheduled with the earlier result honestly labeled. Reproduce a compliant short-age control before age narrowing; Q never supplies E's required D primer. Unreachable or hung machines require owner recovery. Report a real blocker rather than inventing a scheduled suspend, sending recovery wake packets or repeating power cycles blindly.
-
-For Q37 preparation, pre-reset health passed at **14:52:30** on boot `3c1873e4-b866-41e1-b411-702168ef90cf`: exact baseline/runtime, counters 0/0, markers 0, all five authenticated disk audits, healthy applications/storage/NTP and no active maintenance. Only the already explained Q35r1 refusal unit was failed. One poweroff request was acknowledged at **14:53:25**. The acknowledgement-guarded Pi timer sent one WoL at **14:56:24.646608** and completed successfully. Its bounded observer was reaped and spent guard removed. No additional wake or reset followed.
-
-At **14:58:34**, WAN SSH returned `No route to host`; a Pi LAN keyscan also failed at 14:58:59. Netconsole stopped at shutdown callbacks at **14:53:34**, ending with `r8169 ... shutdown`; this is a logging boundary, not proof of a driver fault, physical off-state, startup failure phase or a suspend hang. No new boot ID/btime or Q37 deadline could then be established. The frozen full startup capture is **2,181,931 bytes**, SHA256 `78dc2e2b53368e389aebdc48a9960782bd65962b47c8ee7c9cb9db31bf49b385`. Telegram **88801** requested the owner's physical check. Remote docs could not be synchronized while Predator was unreachable.
-
-The single follow-up passed its date guard at **15:10:19 CET** and deleted exact task `scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-serial-q37-preparation-20261030-1510`. Its one authenticated health attempt at **15:10:43 to 15:10:46** failed with SSH exit255, `No route to host`, before the remote health script ran. At **15:11:00 to 15:11:03**, the Pi's LAN keyscan failed and neighbor state was `FAILED`. Its receiver was active, NTP synchronized and waker hash unchanged. The full live log and a fresh frozen copy were byte-for-byte identical to the earlier startup capture, still ending at 14:53:34. No current Predator identity, counters, health or physical state could be inferred from this access failure. No additional wake, reset, manifest or suspend was attempted. Telegram **88803** requested owner watts/LEDs/screen and local recovery as needed. Evidence is in Q37's `followup-blocked-20261030-1510/`. Preparation stopped for owner recovery, without another polling task. A separate owner-requested load check at 15:17 was also unreachable and changed no power state.
-
-## October 30 startup-outage recovery and Q37 arming
-
-The owner reported: **"predator was at 30w, so weird not the hanged amount. its now rebooted. check what happened."** At **17:08:43**, Predator was reachable on boot `614a8318-dc72-4308-ae89-d4680fafac4e`, btime **1793376438 = 17:07:18 CET**. The exact reset method, earlier observation time and off duration were not supplied. Keep the approximately30 W startup outage separate from the approximately15 W suspend hangs and the prior Q35's approximately3 W sleep.
-
-Recovered old-boot logs show Nix stopped normally at **14:53:25.458834**. Its cgroup used **90 ms CPU over 1h15m10.151s**, with an **11 M memory peak**; pre-reset inspection found no builders. Heavy Nix building does not explain the recorded shutdown. System Power Off finished **14:53:32.800007**, followed by final shutdown, filesystem sync and SIGTERM; journald stopped **14:53:33.029048**. The four encrypted data mappings returned `EBUSY` while closing, but the preceding successful 13:34 shutdown had the same four warnings and continued normally. They do not identify the cause.
-
-The persistent boot list goes directly from the old boot ending14:53:33 to the recovery boot beginning17:07:19. No intermediate boot or pstore crash record was retained. A failed early boot might leave no persistent journal. The cause therefore remains unresolved between late shutdown/power transition and early startup; neither systemd's poweroff completion nor the final netconsole NIC callback proves physical power-off or a driver fault. No Q37 suspend had occurred. Full old-boot journal evidence, the successful-shutdown comparator and the owner report are in Q37's `recovered-startup-20261030-1708/`.
-
-The new boot's initial container startup/healthcheck settled without intervention; by17:08:57 there were no jobs or failed units. Full health at **17:09:35** passed all five authenticated boot/late-phase audits, frozen identities, zero cycles/failures/markers, expected PM/TPM/AC/lid/screen/WoL/LAN/DNS/NTP, applications/containers and both pools/five mounts. USB identities and power states matched Q35r1 byte-for-byte. The complete Pi recovery snapshot is **2,294,945 bytes**, SHA256 `c6fca9cac83fb85b66af1d3230252d79d8a2acd1f422c6277d93590d7d3d3694`. A stale Pi neighbor-cache `FAILED` entry coexisted with successful authenticated access and new netconsole; cached state alone is not a fresh probe.
-
-Under standing automatic continuation, Q37 was staged, rehearsed and armed on this healthy owner-recovery boot without another reset. Manifest SHA256 **`65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a`** pins the corrected5gqr runtime, Q/ordinal1/serial0, due **1793378658 = 17:44:18**, wake **1793379618 = 18:00:18**. Actual Nextcloud cron ran17:12:20 to17:12:22, with next timer17:17:20; the observed five-minute phase projects before the37-minute deadline. Coalescing can shift later firings, so the maintenance guard remains mandatory. No cron configuration changed.
-
-Independent **17:16:51** proofs confirmed primary waiting17:44:18, service inactive, counters0/0, recorderN/markers0, ordinaryasync1, no requested artifact/jobs/failed units, and synchronized NTP. Pi wake/retry/probe/snapshot are **18:00:18 / 18:00:48 / 18:01:48 / 18:03:18**, nonpersistent, accuracy1s/random0. Baseline Pi capture: **2,298,461 bytes**, SHA256 `740c198f89d86cced600dbc579575fa104e089609211dbec7a5fcdaae4591fab`. Setup notice **88804** and owner investigation/schedule notice **88805** were acknowledged; dated graph **17:43 to18:05** requested.
-
-Review **18:11 CET**, previously verified next run **`2026-10-30T17:11:00.000Z`**, used exact task `scheduled-task:command:mcp:7c78a459-384e-4141-9c94-d8ac1cb43ff2:schedule-task:predator-serial-q37-review-20261030-1811`. It was successfully deleted at review start; the October30 guard passed at **18:11:24**. Q37 is not a D primer or an established age bound. Full preparation proofs are in `preparation-ownerboot-20261030-1708/`; no baseline/runtime edit or extra agent power action was made.
-
-## October 30 serial Q37 review
-
-The corrected controller collected the observer evidence and full frozen Pi log, but Predator SSH failed with exit255, `No route to host`, before its read-only script ran. Collection is partial. Current identity, counters, retained request/return/result/verification/completion files, full boot journal, last-completed, clock and storage health remain unavailable. Their absence on the machine is not established. The bounded verifier's execution and cleanup cannot be evaluated from the received capture.
-
-The unique current attempt identifies boot `614a8318-dc72-4308-ae89-d4680fafac4e` and the pinned system. CAPTURE CHECK nonce1793378658 appears at monotonic2219.780877; preflights report prior successes0/markers0 and awake2219s then2222s. BEGIN at2222.864509 records Q/ordinal1/serial0, followed by logind request2222.935366 and deep entry2223.093895, received **17:44:21**. The capture ends at2223.861740 with `r8169 ... calling pci_pm_suspend`, received17:44:22. There is one current entry and no received low-level resume, exit or measured sleep duration. The network logging boundary does not identify a driver or prove physical sleep; the earlier returning Q35 also stopped there before link-up.
-
-Pi journals confirm wake sends **18:00:18.649018** and **18:00:48.651921**, failed LAN probe **18:01:51.654964**, and successful frozen snapshot **18:03:18.582486**. At **18:13:03**, its receiver remained active, NTP synchronized and waker hash correct. Live and frozen logs matched: **2,331,434 bytes**, SHA256 **`41671c87b94c1f3c7ca9a4faca0aeda37496f83b961f903e5fd120779256caef`**, last live write17:44:22.606292959. No future Pi study timer remained. Garbage-collected transient unit files do not negate their execution journals.
-
-The18:11 classification was **SUSPECTED_HANG_PHYSICAL_STATE_UNKNOWN**. The owner subsequently confirmed it stayed around15 W and rebooted; current classification is owner-confirmedHANG. This supplies no passing bound or primer and does not establish a sharp age threshold or cause. Preserve the owner-reset and instrumentation differences from the prior returningQ35. The earlier30 W startup outage and long-age15 W hangs remain separate.
-
-Telegram notices88807start,88808wake,88809retry,88810failed-probe and88811snapshot were acknowledged. Review message **88812**, epoch1793380421, requested current watts/LEDs/screen and the dated **17:43 to18:05** graph. No new wake, reset, configuration change, suspend or polling task was issued during that review. Its evidence remains immutable in Q37's `review-20261030-1811/`. The later owner-authorized phase-isolation branch supersedes its provisional short-control recommendation.
-
-## October30 Q37 recovery and phase-isolation branch
-
-Owner clarification was **"Stayed around 15 W"**, meaning it did not reach the usual3 W sleep state. The recovered boot is `f8eb6e44-85ae-4e56-bc00-587876699945`, btime1793381192, **18:26:32 CET**. Collection and independent inventory retrieved only Q37 before110803bytes/SHA256`85eab59c48a7e258b3577b5a267aceef66e4fedc100bd579b9bccb2e65a270be`, plan/requested646bytes each/hash`65a74a97d05ba5c3eb6c28851e8835c8b499c2663a1c672b2c7ec40c7790f39a`. Return, after-kernel/service, recovery/result, verification, kernel-completed and completed are absent; ordinary last-completed remains the unrelated October18 record. The new boot is recovery, not resume.
-
-Full health18:43:52 passed frozen identities, allfive authenticated boot/late-phase rejection audits, counters0/0, markers0, recorderN, ordinaryasync1, TPM/AC/lid/screen/WoL/LAN/NTP/storage/applications, nofailedunits/jobs/builders/active maintenance. Kernel and system remain unchanged. The actual kernel offers all five pm_test levels. It has generic pstore support, but persistent console/PMSG/ftrace options are disabled; pstore is empty. Four legacyUARTs report unknown, SPCR is absent and DBG2 describes0x3f8 without establishing working hardware. Continuous persistent logs or a usable serial console are therefore not available merely by selecting an existing switch. No pstore memory reservation, watchdog, firmware/TPM experiment or kernel change was performed.
-
-The owner authorized diagnostics and said **"i just want each reboot i have to manually do have the most value possible, because im far away from it."** The new separate `predator-pm-diagnostic` binary uses strict `pm-test-1` manifests and `/var/lib/predator-pm-diagnostic`, preserving ordinary S3 source/records. All31 tests and the Nix build passed. Package `/nix/store/krqqddfkhqipb8dzw02z56b24v9nnljp-predator-pm-study-0.1.0` was imported and rooted, not activated as a system generation. It checks a predecessor SHA/phase/ordinal chain, captures a cursor-bound five-second diagnostic cycle and service return, reaps its reader, restores modes only after sleep is fully inactive, and performs post-health checks. It refuses to turn pm_test off while an operation is active or queued, avoiding accidental realS3 entry.
-
-The first freezer ordinal1 was armed for19:03:32 (plannedage2220s), with read-only probe19:05:32 and snapshot19:07:32. Its19:09 review is complete and the task was deleted. No PM cycle occurred. The bounded plan remains freezeronce, then devices/platform/processors/core twice each, with review between every operation. This narrows failing phases while preserving boot value, not a guarantee of zero manual recoveries. Details, phase interpretation, exact pins and safe-stop rules are in `diagnostics/README.md`.
-
-### Freezer preflight abort and same-boot retry
-
-At19:03:32.643349 the first diagnostic service started. It stopped at19:03:33.301613 with `jobs active`, before the before-kernel capture, mode selection, BEGIN or logind submission. Only the plan and requested marker exist. Independent review validated all1170 full kernel-export records against the expected boot and found zero diagnostic BEGIN, entry, debug-delay, exit, real resume or measured sleep messages. Counters remain0/0, modes are pm_testnone/async1, and the server, NTP, applications and five data mounts are healthy. This is **ABORTED_BEFORE_DIAGNOSTIC_SELF_JOB_GUARD**, not a tested freezer return or hang.
-
-The strict job guard also saw the primary oneshot unit's own unfinished start job. A harmless19:10:40 paired rehearsal reproduced that job under `Type=oneshot` and an empty job list under `Type=exec`. The original failure did not record the full job list; additional jobs cannot be excluded, but its own start job alone is sufficient to make the old setup fail. No maintenance guard or runtime code was weakened. After preserving evidence, only this explained failed-unit state was cleared.
-
-Fresh retry `d-freezer-02-20261030` was armed as ordinal1/freezer/predecessornone, due1793384612=19:23:32 on the same boot, plannedage3420s. This was an explicitly recorded diagnostic age, not a Q-age substitution. Primary `Type=exec`, `RuntimeMaxSec=180s`, start/stop timeouts30s and pinned safe-restore were verified. Pi probe19:25:32 and snapshot19:27:32 were read-only; no WoL or reboot. The19:29 review was enabled with verified nextRunAt2026-10-30T18:29:00.000Z and has since completed/deleted its task. Owner notice88814 acknowledged the abort and retry. Review and preparation archives preserve the full captures, original artifacts, hashes and lifecycle rehearsal.
-
-### Freezer returned; immediate network post-check prevented completion
-
-The19:29 review deleted its exact scheduled task and passed the date guard at19:29:13. The retry started19:23:32.643522, emitted BEGIN at19:23:34.057632 with actualage3422s, and entered the freezer checkpoint. Independent analysis validates all1207 kernel-export records against bootf8eb6e44-85ae-4e56-bc00-587876699945 and exactly one entry, five-second debug marker and exit. Systemd reported return19:23:39.392281 and finished19:23:39.402136. There is no low-level resume or timekeeping sleep measurement, as expected for pm_test. Raw return records request_and_returnOk, reader stopped/reaped/joined; operation and safe cleanup are bothOk. Counters are1/0, recorderN/markers0, pm_testnone/async1. This exercise did not hang, but does not exclude intermittent freezer failures.
-
-The runner failed at19:23:39.819615 with `LAN profile changed`, before writing completed. The kernel had reported Ethernet link down19:23:39.490196 and19:23:39.692240; link returned19:23:43.203408, **3.384seconds after the failed check**. At19:30:57, the original declared UUID/DNS were active and connected, with profile timestamp1793384623 (19:23:43). NetworkManager logs atWARN and the rejected nmcli value was not captured; no persistent configuration change is established. The evidence identifies a post-return readiness race in the runner, not a NIC suspend-hang cause. The phase returned before the link transition.
-
-NTP, both pools/five mounts and applications/four containers were healthy at review. Only the diagnostic unit is failed, and remains preserved. Ordinary last-completed is unchanged fromOctober18. No completed file was synthesized and no devices phase, retry, reboot, wake or polling task was scheduled. A cycle actually executed, so the zero-cycle retry exception cannot apply. The next necessary work is a reviewed bounded network-readiness check, retaining strict UUID/DNS and all health checks, plus an explicit audited same-boot continuation/revalidation protocol that preserves this failed record and actual later validation time. Runtime edits are outside this review's scope; a manual reboot is not needed to recover the currently healthy host.
-
-Pi probe succeeded19:25:32.981204 and full snapshot19:27:32.575804. The frozen log is2,458,179bytes, SHA256`c30e301b78646d48e0a2055bc3724ee108a026348d5fac2e3523d435519cb9a0`, containing the diagnostic entry/delay/exit; later network loss explains why it is not the complete post-check journal. Original artifacts, full journals, independent analysis and network follow-up are in `diagnostics/d-freezer-02-20261030/review-20261030-1929/`. Owner notice88815 requested keeping the healthy boot and explained the software blocker.
-
-## October 30 corrected-control review
-
-The later authorized implementation is recorded in [readiness and revalidation](diagnostics/readiness-revalidation-20261030/README.md). It uses an explicitly new diagnostic package, preserves the frozen kernel/system/TPM/storage, and records the actual later validation time rather than backdating the freezer completion. All36 tests, the package build and flake evaluation passed. Only the explained, already captured failed-unit state was cleared. The original ordinary S3 last-completed file remains unchanged.
-
-The 14:39 review deleted its exact scheduled task and passed the dated guard at **14:39:32 CET**. Collection and notification-status succeeded. The service started at **14:12:53.735506**, and its first preflight reported 2100 seconds awake with zero prior cycles/markers. After three disk warmups, the final preflight encountered `nextcloud-cron.service loaded activating condition start`. Nextcloud cron began at **14:12:56.983699**, passed its condition and started at **14:12:57.439108**, then completed successfully at **14:12:58.381263**. The study failed before BEGIN or the logind request, restored ordinary async 1, and left NTP running.
-
-Independent inspection found the same boot `3c1873e4-b866-41e1-b411-702168ef90cf`, exact baseline/runtime, counters **0/0**, recorder N/markers 0, synchronized NTP, healthy applications/containers, both pools and all five mounts. All 1221 records in the full kernel export belong to that boot; none records a suspend request, deep entry, low-level resume, exit or measured sleep duration. Only plan/requested/before/recovery/result artifacts exist. There is no return, early post-return snapshot, verification history or completion. The October 18 `last-completed.txt` remains unrelated. This is an aborted attempt, not HANG, SHORT_SLEEP or PASS, and provides no new age or driver evidence.
-
-The Pi sent both planned wake packets at **14:28:53.668165** and **14:29:23.648530** to a machine that had not slept. The LAN probe succeeded at 14:30:24, and the full snapshot completed at 14:31:53. The frozen log is **2,155,775 bytes**, SHA256 `49e883270e262898167ef6e9602f6143fea0be4ccece80371df6a6aaa18b6eaa`. Telegram review **88796** reported the abort and requested the dated 14:12 to 14:33 graph, even if flat. The earlier owner's 3 W report applies only to the original Q35. Complete captures, retained files, boot-bound analysis and checksums are in the new trial's `review-20261030-1439/`.
-
-The cron timer uses `OnBootSec=5m` and `OnUnitActiveSec=5m`; this 35-minute target collided with its activation after the first preflight had passed. Keep the maintenance guard. The recommended next test is a **fresh first serial Q at 37 minutes (2220 seconds)**, explicitly changing the target age within Q's supported range, with its deadline checked against the observed maintenance schedule before arming. Keep the corrected runtime and documented controlled-start procedure; this is another short-age control, not an exact Q35 replication or an age-bisection result. The current boot has aged out of Q, so do not retry it late or relabel its age. No new reset, runtime edit, suspend or polling task was performed during review. Q cannot prime E.
-
-## October 30 corrected-verifier control
-
-After review, the owner reported Q35 "correctly went to 3w" and requested the next test. The owner separately approved one graceful shutdown of the healthy machine and one planned WoL startup. This adds physical low-power confirmation to the original Q35 record, but does not repair its missing completion record or supply a dated graph.
-
-The narrow fix in `pkgs/predator-pm-study/trial.rs` preserves the early `after-kernel` capture and acquires a separate exact-boot `verification-kernel` history, waiting at most 30 seconds for the ordered current-cycle exit. It saves verification metadata and reaps its direct journal reader on every outcome. The existing cycle, ordinal, timing, measured-duration, identity, clock and storage checks remain in force. All **24 tests** passed, including delayed exit, missing exit, prior-cycle exclusion and misordered history; the Nix package built successfully. New runtime: `/nix/store/5gqrh1r71xnl127sj8dv83nnlk1nf6vs-predator-pm-study-0.1.0`. It is explicitly pinned by this trial rather than changing the running system generation.
-
-Poweroff was acknowledged **13:34:37**, with System Power Off finishing **13:34:46.482383** in the old boot journal. The acknowledgement-guarded Pi timer sent one WoL at **13:37:37.646648**. New boot `3c1873e4-b866-41e1-b411-702168ef90cf` has btime `1793363873`, **13:37:53 CET**. Physical off-state/duration was not independently measured. The startup method is comparable to serial D, but differs from the original Q35's forced-reset provenance; the instrumentation also changed.
-
-At 13:40 the fresh boot was healthy, with all five authenticated disk/late-phase rejection checks passing, exact frozen baseline, zero cycles/failures/markers, ordinary async 1, fresh NTP, healthy services/containers and all five data mounts. USB identities and power-state snapshots matched the original Q35 preparation. Stage, harmless rehearsal and arm succeeded; independent 13:43 checks confirmed only this real trial's primary and observer timers. Manifest SHA256 `3d7c015927aec14d3bebac79f3ba0dc73df4f4f0a7e3106f853a5bc45e2f322e`. Review next run was verified as `2026-10-30T13:39:00.000Z`, with dated self-deletion. Complete preparation, source/build evidence and reset provenance are in the new trial archive. The later maintenance refusal is recorded above.
-
-## October 30 serial Q35 review
-
-The 13:02 review deleted its exact scheduled task before collecting evidence and passed the dated time guard at 13:02:27 CET. Collection and notification-status both succeeded. The expected boot `8b7a173d-8406-4072-aebc-c85c8b4989e7` and frozen system/kernel/modules remained unchanged. The request began at 12:35:07.743444 after preflight reported 2103 seconds awake. The return artifact records epoch `1793361068` (12:51:08), request `Ok(())`, successes/failures 1/0 and markers 0. Fresh NTP synchronized at 12:51:39; recovery diagnostics and the later review found both pools and all five mounts healthy. Ordinary `pm_async=1` was restored.
-
-The verifier failure is a journal-capture race. Its immutable `after-kernel` snapshot was saved at 12:51:08.802156083 with entry and low-level resume but no exit. The journal received `PM: suspend exit` at 12:51:08.831444, about 29 ms later. The runtime then evaluated the earlier snapshot after clock recovery and failed at 12:51:40 with `unfinished suspend in kernel history`. The later full boot journal contains exactly one ordered cycle and `Timekeeping suspended for 954.773 seconds`. Neither `kernel-completed` nor `completed` exists, and `last-completed.txt` still describes October 18. Do not synthesize a completion or a repeat anchor.
-
-Both planned WoL sends ran at 12:51:04.653384 and 12:51:34.648609; the LAN probe succeeded at 12:52:34 and the snapshot completed at 12:54:04. The full Pi result is **2,012,555 bytes**, SHA256 `c5ced61d41140d16387ec10c2e61a7065d485f7c052ee0da4e122579cea16761`. Q's last pre-sleep netconsole callback was also `r8169 ... calling pci_pm_suspend`, followed by link-up after resume. This returning trial illustrates why that boundary in D cannot identify a culprit. Telegram review **88785** requested the dated 12:34 to 12:55 low-power graph; it remains missing.
-
-The short-age condition produced a real same-boot resume, unlike the two long-age hangs. This is useful evidence, but not a compliant passing bound: the verifier failed, the dated graph is missing, and Q's forced-reset provenance differs from D's controlled shutdown/WoL. The review recommended correcting and testing journal verification before a fresh first serial Q35 with comparable startup, preserving raw snapshots and strict checks. The later authorized preparation above implements that recommendation with an explicitly changed instrumentation baseline. The review itself changed no runtime or baseline and scheduled no polling task. Full captures, raw retained artifacts, journal export, source-matched diagnosis and checksums are in the trial's `review-20261030-1302/`.
-
-## Owner recovery on October 29
-
-The owner first reported "ive rebooted it". Inspection at 13:20:27 CET found new boot `4e5cb3ba-062b-4ad0-bd18-7e24492f97e6`, btime `1793271910`, October 29 at **12:05:10 CET**, on the same pinned generation, kernel 6.18.58 and modules. The owner then clarified: "it was stuck, 15w etc. the usual. power button hold." This confirms the hang and forced power-button recovery. The subsequent startup method, exact physical timings and dated graph were not supplied; do not infer a WoL startup for this recovery. The dated owner report is preserved in the trial directory.
-
-At the 13:20 recovery inspection, that boot had zero suspend successes/failures and no PM markers, recorder N, no HOLD, no failed units, no jobs and no active maintenance. Both legacy suspend timers were inactive. All five authenticated disk boot audits and late-phase rejection checks passed. Services and all four Immich containers were healthy, fast/tank and the five mounts were healthy, and the declared LAN profile/DNS, fresh NTP and pinned clock-handoff were correct. These checks describe the recovered boot, not the failed trial's post-resume state.
-
-The pinned collector completed without access gaps into the trial's `recovered-20261029-1320/` archive. Predator retained only the D plan, requested manifest and before capture; there are no return/result/completed files for this trial. Plan and requested SHA256 both match `a2fb0df21a5e800da11d4e80763bc7d18686fab9fa78278f8144c4c68b63f1da`; before capture SHA256 is `ea4e3b82d0fe520732808af8eb29f3b8473cb877de91c59b67d0a2c74f9b9808`. The old service journal ends with systemd-sleep performing suspend at 09:21:06.757404; its persisted kernel journal ends at the suspend request. The Pi capture extends farther into callbacks but has no return. No measured sleep duration or successful completion was recovered. The frozen Pi result still has its original checksum.
-
-Using the recovered boot for a 44,700-second D would request suspend on October 30 at **00:30:10 CET**, outside 08:00–23:00. Do not shorten D or reuse this boot at a different age. Before scheduling serial D, establish comparable powered-off/start conditions with the owner and select a fresh start whose complete test/review fits the window. No new reboot, suspend, wake packet or trial schedule was initiated during recovery collection.
-
-## Serial D preparation completed October 29
-
-On October 29 the owner approved the recommendations and requested setup immediately. Preparation ran within its date guard at **20:00:21 CET** and deleted task `scheduled-task:command:mcp:ec3a1d16-3127-4eb3-a89b-dcdd45951c21:schedule-task:predator-serial-d-preparation-20261029-2000`. Its previously verified next run was `2026-10-29T19:00:00.000Z`. The earlier setup record under `preparation-20261029/` remains immutable; execution evidence is in the serial trial's `preparation/` archive.
-
-Readiness checks at 14:09 found the recovered Predator boot unchanged and healthy, counters 0/0, recorder N/markers 0, no HOLD, jobs or failed units, synchronized NTP, healthy pools/five mounts and inactive nightly/legacy-next timers. The Pi was reachable, synchronized, receiving netconsole, with the expected waker hash and no future study timers. Both WAN adapter routes, the local closure GC root and private notification-credential presence were checked. Captures are in `preparation-20261029/`.
-
-Fresh pre-state checks passed at 20:00:42. One ordinary `systemctl poweroff --no-block` was acknowledged at **20:02:26**, and the old journal records the poweroff target completing at 20:02:35. The Pi startup timer was guarded by a root-only acknowledgement file created only after that successful request. It sent exactly one planned WoL at **20:05:24.664264**. No forced shutdown or recovery retry was used. The new boot is `13bec0dd-b611-43aa-a9b7-30a8de33195e`, btime `1793300740` = **20:05:40 CET**. The physical off-state and duration were not independently measured. The earlier async D followed an unexplained powered-off state and owner WoL; the two reset histories are nominally comparable, not an exact matched pair.
-
-At 20:07:49 the new boot passed all pinned identity, authenticated disk/late-phase rejection, TPM/EC/Acer, services/containers, network/NTP, pools/mounts and PM checks, with counters 0/0 and markers 0. Captured USB paths, identities, serials, speeds, power controls and runtime-state snapshots matched the async D preparation. The startup journal watcher had timed out because its success pattern omitted the unit-name prefix; a later journal read confirmed the actual send and successful completion. Its expired read-only follower was stopped and its spent guard removed. Empty `systemctl show` fields from garbage-collected transient units were not treated as execution evidence.
-
-Stage, preflight, harmless rehearsal and arm succeeded for **serial D**, ordinal 1, `pm_async=0`, due `1793345440`, wake `1793346400`. Manifest SHA256: `971f5fd85e83510230a42372ad5a841c28e87a4fceddca26b2c7c4b8a5ba2594`. Independent checks at 20:11 verified the primary waiting for October 30 **08:30:40**, Pi wake **08:46:40**, retry **08:47:10**, probe **08:48:10** and snapshot **08:49:40**. The primary service was inactive, counters remained 0/0, markers 0 and ordinary `pm_async=1` was restored. Telegram setup message **88755** was acknowledged. This was the only armed real trial.
-
-Evidence review was scheduled at **08:57 October 30 CET**, with verified next run `2026-10-30T07:57:00.000Z`, after the wake-plus-600-second threshold of 08:56:40. The dated review ran and deleted exact task `scheduled-task:command:mcp:ec3a1d16-3127-4eb3-a89b-dcdd45951c21:schedule-task:predator-serial-d1225-review-20261030-0857`. No repeat is armed.
-
-Only a compliant serial D with owner physical evidence can prime the same-boot async repeat E. Its due time is the verified runtime **`completed_epoch + 25500`** (7h05), not `returned_epoch`, boot time or review time. Require ordinal 2, no intervening cycle/reset, full preflight and the complete cycle/review inside the observation window. The October 30 review found no verified completion, so this continuation is blocked. A later serial repeat needs a separate fresh boot and the same successful serial D primer. Only one real trial may be pending at any time.
-
-## October 30 serial D review
-
-The review checked its time guard at 08:57:28 CET. Its initial self-deletion call found the tool unavailable; schema discovery and a retry then confirmed deletion. Collection at 09:00 retrieved the complete frozen Pi log and observer journals. Predator SSH exited 255 with `No route to host` before its collection script ran. That collection was partial: no return/result/completed artifacts, post-cycle counters, current boot identity, NTP or storage health could be retrieved. Artifact absence on Predator itself was not established until the later recovery collection.
-
-The boot-bound capture identifies `13bec0dd-b611-43aa-a9b7-30a8de33195e`, the pinned generation and preflight with zero prior successes/markers. BEGIN records ordinal 1 and `pm_async=0` at monotonic 44704.785003; the request follows at 44704.860992 and deep entry at 44705.023600. The last captured line is `r8169 0000:03:00.1: PM: calling pci_pm_suspend` at 44705.842762, received at 08:30:46. This is a netconsole boundary, not proof that the NIC caused a hang or that physical sleep completed. No current-cycle exit, resume or measured sleep duration follows. Older cycles in the full log are separate evidence.
-
-Pi journals confirm wake sends at **08:46:40.650787** and **08:47:10.644423**, failed LAN probe at **08:48:13**, and snapshot at **08:49:40**. At 09:02 the receiver was active, Pi NTP synchronized, waker hash unchanged and Predator's neighbor entry `FAILED`. Live and frozen logs matched: **1,851,536 bytes**, SHA256 `43843381f6fecbb8167d3c8f89c9e6112a098829769ba6bb6a6a0141d619cb8a`. Their last received data was at 08:30:46.645519791. Completed transient-unit fields were empty after garbage collection; execution journals establish the sends and snapshot.
-
-Captures and checksums are in the serial trial's `review-20261030-0857/` directory. Telegram notices were acknowledged: start 88763, wake 88764, retry 88765, failed probe 88766 and snapshot 88767. Review message **88768** requested the current watts, LEDs/screen, stuck-state confirmation and dated power graph. At that review physical state was unknown, so classification was suspected hang. The later owner report confirms HANG. Measured sleep remains unavailable; the 960-second wake schedule cannot establish 900 seconds asleep.
-
-The morning review stopped for owner recovery. It attempted no extra WoL, reset, power toggle or new trial. Its archive was initially local because Predator was unreachable. E has no valid completion anchor and remains unarmed. Previous archives remain intact.
-
-## October 30 owner recovery and short-age control
-
-The owner reported: "i force rebooted it, it was 15w. learn from it, and schedule the next useful test." At **12:02:06 CET**, Predator was reachable on new boot `8b7a173d-8406-4072-aebc-c85c8b4989e7`, btime **1793358004 = 12:00:04 CET**, with the exact pinned generation, kernel and modules. This is recovery, not a trial resume. Exact forced-reset sequence, power-off duration and subsequent startup method were not supplied; the dated graph is still missing.
-
-The pinned collector completed with `issues=[]`. Only the serial D plan/requested manifests and before capture were retained, with no return/result/completed artifact. The plan and request match SHA256 `971f5fd85e83510230a42372ad5a841c28e87a4fceddca26b2c7c4b8a5ba2594`; before is `dc71d6d4070c12cee65e573fe446fa8e262950a27e34105df21a2598821e29a4`. Old-boot service/kernel journals contain the request but no successful return. `last-completed.txt` belongs to another boot on October 18 and cannot anchor E. Evidence and the exact owner report are in the serial D trial's `recovered-20261030-1201/` directory.
-
-**What this establishes:** first long-age suspend has now failed under both async and serial callback execution on kernel 6.18.58. Async execution is not necessary for the observed failure. These observations do not establish age dependence, repeatability, a specific failing driver or an exact reset-matched comparison. The last netconsole callback remains only a logging boundary.
-
-At 12:04 the recovery boot passed all five authenticated disk/late-phase rejection audits, baseline and PM checks, fresh NTP/LAN, pools/five mounts, actual application services and four healthy Immich containers. Counters were 0/0, recorder N/markers 0, ordinary `pm_async=1`, no HOLD, jobs or failed units. Captured USB identities, serials, speeds and power-state snapshots matched serial D byte-for-byte. Pi receiver/NTP/waker checks passed. The nightly and legacy-next timers remain inactive.
-
-The initial Q30 preparation was aborted without a suspend. Its first rehearsal correctly refused an active Nextcloud cron job, which completed normally at 12:05:10. After a successful rehearsal, final arming preflight projected **1799 seconds** at the exact 1800-second boundary. The controller rejected it before creating the primary timer and canceled its Pi wake/notice timers. Independent checks confirmed cancellation and no requested artifact. Its immutable manifest and captures are preserved under `trials/r-serial-q30-20261030/`; the guard was not changed.
-
-Fresh **Q35**, ordinal 1, `pm_async=0`, was staged, rehearsed and armed at 12:09 using the midpoint of Q's supported 1800..2400-second range. Manifest SHA256 `47b7709ece14ca45d55d67cea044434153bf3ca39f251b7af57db67c950ccbf5`. Independent checks at 12:12 verified primary **12:35:04**, Pi wake **12:51:04**, retry **12:51:34**, probe **12:52:34**, snapshot **12:54:04**, and zero prior cycles/markers. Review is **13:02**, verified next run `2026-10-30T12:02:00.000Z`, with exact dated self-deletion. Telegram setup **88778** and corrected owner summary **88779** were acknowledged. Full PASS still requires at least 900 seconds measured sleep and the dated owner graph. No further suspend is scheduled automatically by the review.
-
-## October 29 review
-
-The dated 09:48 review ran at 09:48:30 CET and deleted its exact task. The pinned controller collected the complete Pi snapshot and observer journals, but Predator SSH failed with exit 255, `No route to host`, without running its collection script. Collection is explicitly partial; no return/result/completed artifact, post-cycle counters, NTP or storage health was retrieved.
-
-For boot `b223cb35-a02b-4417-a3db-569ad986cd4b`, netconsole records preflight with prior successes 0 and markers 0, the three disk warmups, BEGIN at monotonic 44704.334011, request at 44704.418006 and `PM: suspend entry (deep)` at 44704.582941. The last received line is a successful `led_suspend` return for `input0::scrolllock` at 44704.689691. This is only the capture boundary; it identifies neither a faulty callback nor a completed physical sleep transition. No resume, exit, verified result or timekeeping sleep duration follows for this boot.
-
-Pi journals confirm WoL transmissions at 09:37:02.651632 and 09:37:32.655601 CET. The LAN SSH probe failed at 09:38:35, and the result snapshot was saved at 09:40:02. At 09:50 the receiver remained active, Pi NTP was synchronized, the waker hash matched and the neighbor entry for Predator was `FAILED`. Live and frozen logs were identical: 1,547,549 bytes, SHA256 `9676887af405220bac4726f50c47916bb9003594f0ec64d6805dc601429fea37`, last modified at 09:21:06.915515853. Older boots in this full log must not be attributed to D. Some completed transient units had already been garbage-collected when queried; their journal execution records establish the actual sends and snapshot, not the empty timestamps returned by `systemctl show`.
-
-Evidence is in the trial's `review-20261029-0948/` directory, including full checksums and collection gaps. All scheduled Telegram notices were acknowledged (start 88736, wake 88737, retry 88738, failed probe 88739, snapshot 88740); review message 88741 requested the current power/LED/screen state and dated graph. The 960-second schedule does not establish 900 seconds of physical sleep, and `SHORT_SLEEP` cannot be assessed without a measured duration. At that review the outcome was suspected hang; the later owner report above confirms HANG. No extra WoL, reset or power toggle was attempted, and no replacement preparation/review was scheduled during the review.
-
-## Next comparison
-
-The deployed update changed the kernel from 6.18.54 to 6.18.58, so compare the new trials with each other and keep the earlier results as a separate baseline. Schema-2 trial preflight checks the exact kernel path in its immutable manifest; legacy trial commands retain their old kernel restriction.
-
-1. Fresh async D: first suspend after 44,700 seconds awake, `pm_async=1`.
-2. Fresh serial D: same age, generation, kernel, modules, runtime, hardware and reset procedure, `pm_async=0`.
-3. Controlled repeat E: identical successful serial D primers before each repeat arm. Keep ordinal 2 and measure the repeat age from the verified primer completion. Do not fit a primer and repeat into a different window by shortening either age.
-
-The October 29 recommendation was fresh **serial D at 12h25**, supplying the missing long-age serial control on the current kernel/runtime. It has now produced an owner-confirmed hang. The current branch is the fixed-serial short-age control above. Earlier short successes used another baseline and did not meet the present measured-duration requirement. Preserve startup differences and require repeatable observations before claiming an age threshold.
-
-Use its result to choose the next branch:
-
-- If serial D passes the technical checks and owner power evidence, retain that boot as the standard successful primer. It can support an async repeat E at 7h05 awake after verified completion, if the full cycle/review fits the window. A corresponding serial repeat E needs another fresh boot with the same serial D primer. This can obtain a first-suspend and a repeat-suspend observation in one day without mixing their ordinals.
-- If serial D also hangs, async execution is not necessary for the observed failure. Prioritize age testing under one fixed mode: first obtain a compliant short-age pass on this same baseline, then test between that passing age and a reproducible failing age. Repeat inconsistent results instead of treating them as a sharp threshold.
-- Binary search assumes that passing/failing outcomes are repeatable and ordered by age. That has not been established. Earlier short successes and failures on another kernel are useful context, not a validated current-baseline bracket. The pinned runner currently accepts only its named age ranges; an arbitrary midpoint requires an explicit reviewed/tested runner change, not relabeling a trial to bypass its age guard.
-
-This is the conditional experiment plan, not a set of armed trials. Q37 is now a suspected nonreturn awaiting physical confirmation and owner recovery; no further trial is armed. Obtain a compliant short-age control before narrowing age; repeatable passing/failing bounds remain unestablished. A confirmed short-age hang would undermine a simple long-awake-only explanation. Neither single outcome establishes a threshold.
-
-Each wake is scheduled 960 seconds after the request deadline, and each current cycle must independently measure at least 900 seconds asleep. Require complete captures, checksums, fresh NTP, healthy storage and the dated power graph. Keep one real trial pending at a time. No remote recovery of a hung machine or TPM/LUKS/keyslot/firmware experiments are authorized.
-
-On October 28 the owner expanded the observation window to **08:00–23:00 Europe/Paris**. The full trial and evidence review must fit this window. This supersedes the older 09:00–21:30 window in historical captures. The deployed parser still limits each manifest's daytime span to 12 hours; use a containing subset of the approved window, such as 08:00–20:00 for a morning trial. The target awake age and measured sleep requirement are unchanged.
-
-## Recovery and deployment on October 28
-
-The owner reported Predator back at 08:01 CET. At that inspection it remained on boot `9c19e8c7-a404-454c-813e-ced03d90a71c`, with zero suspend successes/failures and the old 6.18.54 system. The retained kernel journal confirms a global OOM killed `nix-daemon` PID 21702 at 03:00:53 CET after prolonged memory pressure. Its anonymous RSS was 5,698,920 KiB. The retained build status is 1, with `Nix daemon disconnected unexpectedly`. This was not a new boot or a suspend test.
-
-Fresh checks found healthy fast/tank pools and all five mounts, synchronized NTP, the declared LAN profile and no active build. Sanoid and Hermes backup succeeded when retried at 08:04:50 and 08:05:10; Hermes services are active. The failed notifications for the previously successful database and recovery backups were redelivered. No failed system services remain. At 08:25 the Pi receiver was active, its waker hash unchanged and its NTP synchronized, with no future study timer.
-
-The laptop completed the full system build from isolated commit `ec70dd4b879da614604489588bebbbeaa4a944eb` plus final source patch SHA256 `a103534bc0eab928d0bd7f7b0a83b86f372a93ea6357095a3fc79f5d3d9103c2`. The initial build exposed missing certificates for the two custom kernel modules. Both now use Nixpkgs' `kernelModuleMakeFlags` and `modules_install`, producing signed modules and their required `.ko.cer` companions. The final build also includes the manifest-kernel preflight fix, the existing Acer source edit and a 3 GiB RAM / 1 GiB swap limit for the Nix daemon. The remote checkout's seven modified source files match the built source byte-for-byte. Concurrent edits elsewhere in the shared local checkout were excluded. Managed settings were applied while preserving Predator's edited password skill.
-
-The closure was copied to Predator and activated successfully, with exit status 0. Profile and current system now point to generation 167:
-
-- System: `/nix/store/zbq64a1n4yzr3knpsgzhiw29lvgs3b34-nixos-system-predator-26.11.20261023.3ec6363`
-- Installed kernel: `/nix/store/82haph8j8hmbny68rzkis8dqrz9gqrr5-linux-6.18.58/bzImage`
-- Modules: `/nix/store/1qbmxim06wak3qplmj747hb5gkyzgj9z-linux-6.18.58-modules`
-- Runtime: `/nix/store/l423y5sbmkgcl50cjfkxwhqg1im7b31q-predator-pm-study-0.1.0/bin/predator-pm-study`
-
-The legacy clock-handoff override was removed and the declarative unit ran successfully with this runtime. At 10:29 CET all services were healthy, all four Immich containers were healthy, NTP had fresh replies, pools and mounts were healthy, and both old suspend timers remained inactive. HTTP checks confirmed Nextcloud 35.0.2 with maintenance off and no pending database upgrade, and Immich 3.3.5 responding normally. The Nix daemon's 3 GiB / 1 GiB limits are active. Lanzaboote installed and authorized the new normal UKI. At the end of deployment the running kernel was still 6.18.54. No reboot or suspend was performed during deployment; the later preparation reboot is recorded below.
-
-The October 28 at 19:35 CET preparation ran within its date guard and deleted its own task, `scheduled-task:command:mcp:c74dd2c1-2c4d-40bb-bc82-59208cb578e3:schedule-task:predator-d-preparation-20261028-2040`. At 19:35:48 Predator was healthy and idle on the old boot, with counters 0/0, recorder N, no HOLD, no active maintenance or pending study, healthy pools and all five mounts, synchronized NTP, AC connected and lid closed. The resolved normal default boot entry was generation 167 with kernel 6.18.58. The Pi receiver and NTP were healthy, with the expected waker hash and no future study timer.
-
-Preparation initially stopped after the ordinary reboot requested at 19:36:29 CET. The SSH connection closed during shutdown. A bounded six-minute reconnection attempt expired without receiving any remote output, leaving the new boot state unavailable at that time. At 19:44 the Pi's read-only LAN SSH probe also failed and its neighbor entry was `FAILED`. Its last netconsole record was the old kernel's `r8169 0000:03:00.1: shutdown` at monotonic 91803.113672, received at 19:36:41. This is a logging boundary, not evidence that the NIC caused the failure or proof of where the subsequent boot stopped.
-
-Captures are under `preparation-20261028/`. The frozen Pi log is 1,406,956 bytes, SHA256 `3de41999e8e80d4c9af66b31cdb26d71c17b483881650711145f8cbb60f46912`, verified against the Pi snapshot. It also contains older boots. No suspend or real trial was started during that preparation attempt. The agent did not send recovery WoL, toggle power or request a second reboot. Telegram message 88726 requested an owner screen/status check and was acknowledged by the API.
-
-The owner then reported: "weird it was just powered off, i sent a WoL and it woken up". At 20:59, inspection found boot `b223cb35-a02b-4417-a3db-569ad986cd4b`, btime `1793217362`, October 28 at 20:56:02 CET, with both current and booted system on the pinned generation and kernel 6.18.58. All five `predator-boot audit` checks passed, including late-phase token rejection. Services and all four Immich containers were healthy, pools and five mounts were healthy, NTP was fresh, counters were 0/0 and recorder N. The previous journal confirms `systemd-reboot.service` and the System Reboot target; it does not explain the powered-off state. This starting condition is owner-reported power-off followed by owner WoL, not the intended uninterrupted warm reboot. A later serial D must document comparable reset conditions before being called matched.
-
-The eligible boot was preserved. Stage, schema-2 preflight, harmless timer rehearsal and arming succeeded for `r-async-d1225-20261029`; manifest SHA256 is `a2fb0df21a5e800da11d4e80763bc7d18686fab9fa78278f8144c4c68b63f1da`. At 21:04 the primary timer was waiting for 09:21:02, with independent Pi wake at 09:37:02, retry at 09:37:32, probe at 09:38:32 and snapshot at 09:40:02 CET on October 29. Telegram setup message 88727 was acknowledged. No suspend had yet occurred. Evidence and topology/reset details are in the trial's `preparation/` directory.
-
-Evidence review was scheduled for October 29 at 09:48 CET, verified as `2026-10-29T08:48:00.000Z`, after the wake-plus-600-second threshold of 09:47:02. Task `scheduled-task:command:mcp:c74dd2c1-2c4d-40bb-bc82-59208cb578e3:schedule-task:predator-async-d1225-review-20261029-0948` ran and was deleted on October 29 as recorded above. Only this one real trial was armed. Full PASS still requires the complete checksummed captures, measured sleep of at least 900 seconds and dated owner power graph; a new SSH connection alone is insufficient. The next comparison after recovery and evidence is fresh serial D with documented comparable reset conditions.
-
-Final-source flake evaluation and the full system build passed. The Nix package build ran all 20 study tests successfully. Copy, activation, application health and evidence/source checksums passed. Complete deployment evidence is under `deployment-20261028/`; earlier OOM diagnostics are under `deployment-20261027/recovered-20261028/`. Keep `.scratch/pm-resume-20261028/`, its build worktree and the `deployed-system` GC root while the scheduled preparation and trial need them.
-
-## Deployment blocked on October 27
-
-Predator's previously clean checkout was fast-forwarded from `a6bcde0345a709b7e73ecdc2e3095f575ee42184` to `92e90dad9f132f12ae0dbed4d3136ca31b8fd11b`, then the reviewed source patch SHA256 `f4c30194f777ce1dea62e82acbe0720b529078e47e108315cf225b01f0b1ab07` was applied. This includes the existing Acer driver edit and the manifest-kernel preflight fix. Both Acer modules remain blacklisted and the EC backlight service disabled in the study arm. Chezmoi settings were applied except for the remotely edited `pass/SKILL.md`, which was preserved byte-for-byte and backed up in remote task scratch. No commit or push was made.
-
-The system build started as `mirsella` around 18:43 CET with `--max-jobs 1 --cores 2`. Its SSH transport subsequently failed with exit 255. An independent read-only SSH attempt at 19:07 timed out during banner exchange. The Pi remained reachable, its receiver active and its neighbor entry for Predator `FAILED`. No system activation, reboot or suspend trial was performed that evening. The remote build's result was unavailable until the October 28 collection described above.
-
-The frozen Pi capture in `deployment-20261027/` is 1,324,422 bytes, SHA256 `66662b8d641093a017201e3e46697398eeb7c0c8bd752015e12dfa9e01862304`, verified against the Pi copy. Current-boot messages include a failed slab-extension allocation at 18:44:34, journald reporting memory pressure at 18:47:04, then repeated GPU-memory purge messages through 18:52:40. This establishes memory pressure during the build, not its exact cause or a confirmed hardware hang. The capture also contains older boots; do not attribute their suspend/resume lines to this incident. No remote recovery, extra WoL or power toggle was attempted. The owner's physical status report is pending.
-
-The planned October 27 at 20:40 CET preparation task was deleted after access was lost: `scheduled-task:command:mcp:d3b61a01-2f63-4dd7-ba7b-383bdc4927d2:schedule-task:predator-newbaseline-d-prepare-20261027-2040`. The scheduler then returned no tasks, and the tentative October 28 morning test was canceled. Recovery collection, the off-host rebuild and replacement of the clock-handoff override were completed on October 28 as recorded above. The nightly and legacy-next suspend guards remain in place.
-
-Verification completed on October 27: flake evaluation with `--no-build --no-update-lock-file`, all 20 package tests (2 controller and 18 runtime), documentation/source whitespace checks and recovered-evidence checksums. Full build and activation were still unverified at that point.
-
-The recovered records are stored in the dotfiles repository at `hosts/predator/pm-study/`. The external recovery archive and retained scratch captures remain available; the unavailable original study archive has not been reconstructed. Captured reports describe their observation times and can contain superseded schedules. This README records the current state.
-
-Use explicit authenticated WAN SSH routes while the original shim is missing. Merely prepending its absent directory to PATH does not route controller child processes safely. Keep the instructed PATH prefix, and use `-o HostName=mirsella.mooo.com -p 22` for Predator or `-p 222` for Pi, with BatchMode and StrictHostKeyChecking enabled. Do not silently contact the overlapping local LAN. No global SSH configuration or host-key trust changes were made.
-
-The October 27 local task scratch is no longer available; its cause is unknown. A replacement Rust transport adapter is at `.scratch/pm-resume-20261028/remote/ssh`, SHA256 `2c37e28f7fbfefc60a432c1b6d6d3ebe9b584b165626c1dc726d5ada5d2a91f5`. Its archived source hash is `75b08f9ac2124becb377e2e3f787df870975eefd407209648e45273fce70c1bd`. After retaining the old PATH prefix, prepend the replacement directory before invoking the controller. It accepts the two literal study IP destinations, maps their ports to the WAN routes above and requires existing trusted host keys. Both authenticated identities were verified through it on October 28. Retain the adapter while schedules reference it.
+# Predator suspend hang
+
+Predator (Acer Predator PH317-51, BIOS V1.21, EC 1.16) sometimes hangs when it
+is asked to suspend to RAM. It stays powered at about 15 W on the wall meter,
+ignores the keyboard and a short press of the power button, and comes back only
+after the owner holds the power button. A good suspend draws about 3 W. Normal
+running draws about 27 W.
+
+This file is the whole study: what is known, the working theory, the method,
+the test queue and the results. The first study's evidence is archived (see the
+last section).
+
+## What the first study recorded
+
+Between October 20 and November 16 the first study made 77 real suspend
+requests, almost always one per test. 63 returned, 13 hung and 1 was unclear
+(an s2idle run that Wake-on-LAN never woke).
+
+| Split | Requests | Hung |
+| --- | --- | --- |
+| S3, more than 8 h awake since boot or the last resume | 8 | 8 |
+| S3, less than 4.2 h awake | 66 | 5 |
+| S3 between 4.2 h and 8 h awake | 0 | |
+| s2idle (one of them after 11 h awake) | 3 | 0 |
+| Linux 6.18.58 | 54 | 11 |
+| Linux 6.12.114, never tested after a long time awake | 19 | 0 |
+| Ubuntu 24.04 live, Linux 7.0 | 3 | 1 |
+| External hub and its disks attached | 49 | 3 |
+| Hub and its disks removed | 9 | 2 |
+
+The five hangs after a short time awake each had something unusual:
+`pm_async=0`, a CPU idle-latency limit held at 2 µs, the xHCI driver unbound, a
+previous suspend that returned without ever reaching low power, and the Ubuntu
+live system on its second suspend. The unmodified NixOS configuration never
+hung after a short time awake in about 50 requests.
+
+Eleven dry runs (`pm_test`, where the kernel runs the suspend path and skips
+the firmware step) all returned. One of them, a `core` dry run, passed after 15
+hours awake. The real suspend 20 minutes later hung.
+
+Every hang with a meter reading stayed at 15 W from the moment of the request.
+The owner recorded no LED or fan observations.
+
+## What this means
+
+Time awake is the trigger. A real S3 request after more than 8 hours awake has
+hung every time, and a resume resets the clock: several suspends returned at
+4 to 9 hours of uptime because each came within about 2 hours of an earlier
+resume. Uptime, the hub, the external disks, USB activity and the kernel
+version do not explain the hangs. The apparent advantage of Linux 6.12 came
+from testing it only after a short time awake.
+
+The machine never powers down in a hang, so wake-up, the RTC alarm and resume
+are not involved. The kernel's part works even when aged (the 15 hour dry run).
+What is left is the step after the kernel writes the sleep request.
+
+## Working theory
+
+On this machine the chipset's `SLP_SMI_EN` bit is set (`SMI_EN` reads
+`0x80002033`). With that bit set, the sleep request does not put the machine to
+sleep directly. It first runs a handler in the Acer firmware (system management
+mode), and the firmware then performs the real sleep. A handler that never
+finishes gives exactly what the owner sees: CPU powered, operating system
+frozen, no reaction to keys, steady 15 W.
+
+The theory is that this handler stalls on some piece of hardware state that
+drifts over hours awake and is reset by a boot or a resume. It is unproven.
+What that state is remains unknown. Candidates are the embedded controller, the
+Management Engine, the discrete NVIDIA GPU (powered, with no driver, because
+nouveau is blacklisted), the battery charger and disk standby.
+
+BIOS V1.21 (November 2018) is the last release for this model, so a firmware
+update is not an option.
+
+## Method
+
+- An aged trial is one real S3 request made at least 9 hours after the last
+  boot or resume. With the production configuration it is expected to hang.
+  This is the reproducer.
+- Each arm changes one thing and runs as an aged trial. One return is a hint.
+  Two returns in a row are strong evidence, because a control that still hung
+  70% of the time would return twice in fewer than one case in ten. After two
+  returns, run one control. It should hang again.
+- Every return resets the clock, so an aged trial costs at least 9 hours of
+  awake time. A hang costs one power-button hold. Plan for one trial per day.
+- Short-awake batches are only for checking that a change does not break
+  suspend. They cannot show that a change fixes the hang.
+- `pm-batch snapshot` records hardware and power state. Compare a fresh
+  snapshot with an aged one to find what drifts.
+- Trials run from a timer on Predator, so they do not depend on main, the
+  network or an agent session. `pm-batch` refuses to start unless the pools are
+  healthy and `SLP_SMI_EN` is set, and it waits up to ten minutes for systemd's
+  job queue to empty. Keep trials away from 23:00 to 00:30, when the backups
+  run.
+- A one-time T3 scheduled task in the study's thread reads each trial
+  afterwards, records it here, arms the next trial and schedules its own next
+  run.
+- Nothing recovers a hang automatically. The owner holds the power button.
+  Predator has a working battery, so cutting mains power does not reset it.
+- After each hang, ask the owner for three things: the meter graph around the
+  trial time (did it dip toward 3 W at all), the power LED, and whether the fan
+  was running.
+
+## Test queue
+
+Work through this in order. Record every run in the results table.
+
+1. Aged control with dry runs first (armed for November 17, 02:00). Snapshot,
+   five `core` dry runs, one real S3 with a 120 s alarm, snapshot. Expected:
+   the dry runs return and the real request hangs. That confirms the reproducer
+   on the new runner and repeats the dry-run result at the exact aged state.
+   If the real request returns instead, run a plain aged control next (no dry
+   runs), because the dry runs may have reset whatever drifts.
+2. Compare `fresh-1.snapshot.txt` with `aged-1-before.snapshot.txt`. List every
+   difference in device power states, EC memory, Management Engine status, PCH
+   registers and disk power mode. Each real difference is a candidate arm.
+3. Deploy the trimmed configuration, with the owner's go-ahead, then repeat
+   the aged control once. Predator still runs the first study's system (see
+   "Leftovers"). The deploy removes that instrumentation and brings 181 commits
+   of `main`, including a newer nixpkgs, so it is a new baseline and needs its
+   own control before any arm. Do it while the machine is freshly rebooted
+   after a hang. Follow the Predator deploy steps in the repository's
+   `AGENTS.md`, then run `chezmoi apply` there.
+4. Firmware handler bypass, short awake. `pm-batch <label> s3 3 60 30 nosmi`
+   clears `SLP_SMI_EN` before each request so the chipset sleeps without the
+   firmware handler. Check that all three return, that the meter shows about
+   3 W, and that the machine is healthy afterwards. A failed resume here needs
+   a power-button hold. If this does not work, drop the arm.
+5. Firmware handler bypass, aged. Two aged trials with `nosmi`. Two returns
+   mean the firmware handler is the fault, and clearing the bit before every
+   sleep becomes the fix.
+6. Discrete GPU powered off, aged. First check awake that
+   `echo auto > /sys/bus/pci/devices/0000:01:00.0/power/control` puts the port
+   `0000:00:01.0` into D3cold and lowers the wall reading. Ubuntu hung with
+   nouveau loaded, which counts against this arm, so it comes after the bypass.
+7. s2idle, aged. It returned once after 11 hours awake. Two more aged returns
+   and a wall reading near 3 W would make it a usable replacement for S3.
+   Wake-on-LAN does not wake s2idle on this machine. The RTC alarm does.
+8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
+   timer or counter, a gradual one at a slow drift.
+9. Arms from the snapshot differences in step 2.
+
+If nothing isolates the cause, the fallbacks are s2idle (step 7) or a nightly
+power-off with an RTC or Wake-on-LAN power-on, which already works here.
+
+## Running a trial
+
+The runner is [pm-batch.rs](pm-batch.rs), a single Rust file with no
+dependencies. Predator has no Rust toolchain, so build a static binary on main
+and copy it over:
+
+```sh
+rustc -O --edition 2021 -D warnings --target x86_64-unknown-linux-musl \
+  hosts/predator/pm-study/pm-batch.rs -o .scratch/pm-batch-build/pm-batch-musl
+scp .scratch/pm-batch-build/pm-batch-musl \
+  predator:/home/mirsella/dev/scratch/predator-suspend/pm-batch
+```
+
+Predator's login shell is nushell. Run remote commands through
+`ssh predator /run/current-system/sw/bin/bash -s`. On Predator, with
+`B=/home/mirsella/dev/scratch/predator-suspend/pm-batch`:
+
+```sh
+# Find when the clock was last reset.
+journalctl -k -b -g 'PM: suspend exit' -o short-iso | tail -1; uptime -s
+
+# A short batch now: 3 real suspends, 60 s alarm, 30 s between cycles.
+sudo systemd-run --unit=pm-batch-LABEL --collect $B LABEL s3 3 60 30
+
+# An aged trial from a timer.
+sudo systemd-run --unit=pm-aged-N --on-calendar='YYYY-MM-DD HH:MM:SS' \
+  --timer-property=AccuracySec=1s /run/current-system/sw/bin/bash -c \
+  "$B aged-N-before snapshot && $B aged-N-s3 s3 1 120 30; rc=\$?; $B aged-N-after snapshot || rc=\$?; exit \$rc"
+```
+
+Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
+writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
+`enter` line with no `return` line after it. Labels cannot be reused. Creating
+`logs/STOP` or stopping the unit ends a batch after the current cycle. A batch
+exits non-zero unless every cycle returned normally and the sleep settings were
+put back.
+
+Killing a `nosmi` batch with SIGKILL leaves `SLP_SMI_EN` clear. Later batches
+refuse to start until a reboot restores it.
+
+After a forced reboot, check the machine before the next trial:
+
+```sh
+zpool status -x; findmnt -rn -t zfs -o TARGET; systemctl --failed
+sudo predator-boot audit
+```
+
+It should report healthy pools, the five ZFS mounts, no failed units and a
+passing audit.
+
+## Results
+
+Times are CET. "Awake" is the time since the last boot or resume.
+
+| Date | Label | Change | Awake | Result | Owner observations |
+| --- | --- | --- | --- | --- | --- |
+| Nov 16 15:54 | `smoke-1` | dry run ×2 | 5 min | 2 of 2 returned | |
+| Nov 16 16:03 | `validate-dry-1` | dry run ×1 | 14 min | returned | |
+| Nov 16 16:03 | `validate-s3-1` | none, real S3 ×2 | 14 min, 30 s | 2 of 2 returned | |
+| Nov 16 16:15 | `validate-dry-2` | dry run ×2, rebuilt runner | 10 min | 2 of 2 returned | |
+| Nov 17 02:00 | `aged-1-dry`, `aged-1-s3` | dry runs ×5, then real S3 | about 10 h | pending | |
+
+Last resume before the aged trial: November 16, 16:05:19.
+
+## Machine facts
+
+- Production system: NixOS generation 175, Linux 6.18.58, booted November 16
+  at 15:49 (boot `c8901e62-f8b4-4dd0-904a-c94c5ea9e111`).
+- Lid closed. The owner remembers hangs with the lid open as well.
+- Battery present and full. AC connected.
+- Discrete GPU `0000:01:00.0`: no driver, `power/control=on`, D0.
+- Six disks: two internal SATA SSDs and four USB disks on the hub. Three USB
+  disks form the `tank` pool. The fourth, `WD-WXK1A67NTCDX` (NTFS), stays
+  attached and unmounted at the owner's request.
+- Two of the USB disks were already in standby 15 minutes after boot.
+- ACPI wake sources enabled: XHC, RP03, RP04, PWRB.
+- The owner's wall meter records a history graph.
+
+## Leftovers from the first study
+
+- The repository no longer has the first study's harness package, kernel
+  modules, boot services or specialisations. [pm-study.nix](../pm-study.nix)
+  now only holds the baseline every trial shares: the Acer WMI driver and the
+  boot-time EC write stay off, the nightly suspend timer stays disabled, and
+  the LAN profile keeps its fixed address.
+- Predator has not been redeployed. Generation 175 still loads the `pm_stage`
+  module, runs the old capture and clock services, and keeps their state in
+  `/var/lib/predator-pm-study`. It was built from an uncommitted checkout whose
+  `hosts/predator/default.nix` still trusts the retired `lantian` cache key,
+  so do not build on Predator before the deploy in step 3.
+- Predator's checkout now follows `main`. Its previous uncommitted state, which
+  held nothing that `main` lacks, is kept there as the Git ref
+  `refs/wip/predator-20261116`.
+- The first study's evidence tree and scratch receipts are archived on main in
+  `~/dev/scratch/dotfiles-predator-pm-study-archive-20261116/` with a
+  `SHA256SUMS` file. Predator's old receipts are in
+  `/home/mirsella/dev/scratch/pm-study-receipts-20261116.tar.zst`. The harness
+  code and the tracked part of the tree are in Git history up to commit
+  `2446e3cc`.

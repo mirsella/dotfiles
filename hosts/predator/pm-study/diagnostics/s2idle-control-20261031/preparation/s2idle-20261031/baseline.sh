@@ -1,1 +1,0 @@
-cat /home/mirsella/dev/predator-pm-debug/.agents-local/s2idle-20261031-baseline.log
