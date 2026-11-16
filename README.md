@@ -495,10 +495,6 @@ Then run `systemd-tty-ask-password-agent --query` to answer the unlock prompt.
 Secure Boot key or PCR-bank changes may require fresh disk enrollment and
 recovery-credential sealing.
 
-The TPM-free `pm-study` specialisation uses passphrase recovery and manual data
-unlocks. Its suspend-study hold and scheduling controls remain separate from
-normal authenticated boot.
-
 Arch's root-owned maintenance is installed separately on both workstations:
 
 ```sh

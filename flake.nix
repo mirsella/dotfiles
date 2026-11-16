@@ -116,7 +116,6 @@
         "llama-vulkan"
         "onlyoffice-languagetool"
         "opencode-extensions"
-        "predator-pm-study"
         "sleev"
       ];
       # Their committed locks carry security overrides and postPatch pins that
