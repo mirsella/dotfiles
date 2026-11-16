@@ -129,10 +129,6 @@
     },
     "favorites": [
       {
-        "model": "opencode-go/deepseek-v4.1-flash",
-        "provider": "opencode"
-      },
-      {
         "model": "opencode/muse-spark-1.3-contributor-free",
         "provider": "opencode"
       },
@@ -493,7 +489,7 @@
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
       "logsAfterDays": 8,
-      "worktreeSettledAfterDays": 3
+      "worktreeSettledAfterDays": 2
     },
     "textGenerationModelSelection": {
       "instanceId": "opencode",
@@ -1126,7 +1122,7 @@
     {
       "workspace_root": "~/dev/wiko",
       "attributes": {
-        "faviconPath": null,
+        "faviconPath": "~/dev/wiko/assets/icon.svg",
         "projectIcon": null,
         "title": "wiko"
       },

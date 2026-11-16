@@ -9,3 +9,5 @@ __pycache__/
 .venv/
 .direnv/
 .wrangler/
+
+**/.claude/settings.local.json
