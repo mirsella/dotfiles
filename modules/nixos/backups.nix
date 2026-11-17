@@ -5,10 +5,10 @@ let
   dataset = config.fileSystems.${mountpoint}.device;
   jobs = {
     db-backup = {
-      description = "Back up Nextcloud and Immich databases and Nextcloud configuration";
+      description = "Back up Nextcloud, Immich and Ente databases and service configuration";
       startAt = "23:00";
       out = "${mountpoint}/db";
-      requires = [ "postgresql.service" "podman-immich_postgres.service" ];
+      requires = [ "postgresql.service" "podman-immich_postgres.service" "podman-ente_postgres.service" ];
       directories = [ ];
       commands = [
         {
@@ -20,6 +20,18 @@ let
           program = "${pkgs.podman}/bin/podman";
           args = [ "exec" "immich_postgres" "pg_dump" "--format=custom" "-U" "immich" "immich" ];
           stdout = "immich.dump";
+        }
+        {
+          program = "${pkgs.podman}/bin/podman";
+          args = [ "exec" "ente_postgres" "pg_dump" "--format=custom" "-U" "ente" "ente" ];
+          stdout = "ente.dump";
+        }
+        {
+          program = "${pkgs.gnutar}/bin/tar";
+          args = [
+            "--create" "--dereference" "--file=ente-config.tar" "--directory=/"
+            (lib.removePrefix "/" config.sops.templates."ente-museum.yaml".path)
+          ];
         }
         {
           program = "${pkgs.gnutar}/bin/tar";

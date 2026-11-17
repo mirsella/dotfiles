@@ -16,6 +16,7 @@ in
     ../../modules/nixos/caddy.nix
     ../../modules/nixos/nextcloud.nix
     ../../modules/nixos/immich.nix
+    ../../modules/nixos/ente.nix
     ../../modules/nixos/backups.nix
     ../../modules/nixos/night-suspend.nix
     ../../modules/nixos/monitoring.nix
