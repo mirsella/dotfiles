@@ -65,6 +65,11 @@
         # resolve. Supply matching Mesa drivers, while respecting an explicit
         # driver override.
         hex = (final.callPackage "${inputs.hex}/nix/package.nix" { }).overrideAttrs (previous: {
+          # The Voice Filter and its Hex Microphone virtual input are
+          # Audience::Dev upstream, so an unstamped build compiles them off
+          # even though the source is the dev branch. Stamp the same channel
+          # the dev releases use.
+          HEX_BUILD_CHANNEL = "dev";
           postFixup = previous.postFixup + ''
             wrapProgram "$out/bin/hex" --set-default VK_DRIVER_FILES "${final.mesa}/share/vulkan/icd.d"
           '';
