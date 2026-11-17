@@ -43,16 +43,18 @@ The owner recorded no LED or fan observations.
 
 ## What this means
 
-Time awake is the trigger. A real S3 request after more than 8 hours awake has
-hung every time, and a resume resets the clock: several suspends returned at
-4 to 9 hours of uptime because each came within about 2 hours of an earlier
-resume. Uptime, the hub, the external disks, USB activity and the kernel
-version do not explain the hangs. The apparent advantage of Linux 6.12 came
-from testing it only after a short time awake.
+Time awake is the strongest association in the old records, not yet a proven
+trigger. Every recorded S3 request after more than 8 hours awake hung. Several
+suspends returned at 4 to 9 hours of uptime when each came within about 2 hours
+of an earlier resume. The hub and external disks are not required for a hang.
+The kernel comparison was not age-matched, so it does not establish an advantage
+for either version.
 
-The machine never powers down in a hang, so wake-up, the RTC alarm and resume
-are not involved. The kernel's part works even when aged (the 15 hour dry run).
-What is left is the step after the kernel writes the sleep request.
+The reported steady 15 W favours a failure before low-power entry, but does not
+prove where execution stopped or exclude a brief sleep/resume transition below
+the meter's sampling resolution. A dry run skips the final platform transition;
+its return narrows the search but does not clear every kernel or driver path.
+The firmware sleep handler remains a hypothesis.
 
 ## Working theory
 
@@ -77,14 +79,18 @@ update is not an option.
 - An aged trial is one real S3 request made at least 9 hours after the last
   boot or resume. With the production configuration it is expected to hang.
   This is the reproducer.
-- Each arm changes one thing and runs as an aged trial. One return is a hint.
-  Two returns in a row are strong evidence, because a control that still hung
-  70% of the time would return twice in fewer than one case in ten. After two
-  returns, run one control. It should hang again.
-- Every return resets the clock, so an aged trial costs at least 9 hours of
-  awake time. A hang costs one power-button hold. Plan for one trial per day.
+- Each arm changes one thing and runs as an aged trial. Two returns merit a
+  reversal to the control; they do not prove a fix. Keep the system, disk layout
+  and workload comparable. A changed baseline needs its own control.
+- Count age from the last boot or real resume. Dry runs may also change the
+  relevant state, so record them rather than assume they have no effect.
+  A hang costs one power-button hold. Plan for one trial per day.
 - Short-awake batches are only for checking that a change does not break
   suspend. They cannot show that a change fixes the hang.
+- Read the pending trial's outcome before arming another. Reuse its matched
+  baseline snapshot while the system stays unchanged, and do not repeat a
+  passed short-awake safety batch unless the tested change is different.
+  Recording or committing results must not reset the awake clock.
 - `pm-batch snapshot` records hardware and power state. Compare a fresh
   snapshot with an aged one to find what drifts.
 - Trials run from a timer on Predator, so they do not depend on main, the
@@ -92,9 +98,23 @@ update is not an option.
   healthy and `SLP_SMI_EN` is set, and it waits up to ten minutes for systemd's
   job queue to empty. Keep trials away from 23:00 to 00:30, when the backups
   run.
+- Pin a timed trial to its prepared boot, system and suspend counters, and
+  check its age again before it starts. Abort for blocking inhibitors, active
+  storage scans or backup jobs. A cancelled timer or missing log is not a hang.
+  Do not restart a trial cancelled for another task without checking that task
+  has finished.
+- Require a passing `predator-boot audit` before arming a trial. If an
+  activation changed the system after boot, wait for an owner-approved reboot
+  and repeat the health checks. Do not bypass the audit or reboot automatically.
 - A one-time T3 scheduled task in the study's thread reads each trial
   afterwards, records it here, arms the next trial and schedules its own next
   run.
+- Commit the study's text and source changes after each iteration, including
+  results, cancellations, blockers and any queue changes. Review the exact
+  staged diff and exclude other tasks' changes, even when already staged.
+  Keep raw logs, snapshots, binaries, archives and private recovery material
+  outside Git. Commit from the available study checkout even if Predator is
+  hung. Do not create duplicate commits in both checkouts or push unless asked.
 - Nothing recovers a hang automatically. The owner holds the power button.
   Predator has a working battery, so cutting mains power does not reset it.
 - After each hang, ask the owner for three things: the meter graph around the
@@ -105,30 +125,33 @@ update is not an option.
 
 Work through this in order. Record every run in the results table.
 
-1. Aged control with dry runs first (armed for November 17, 02:00). Snapshot,
-   five `core` dry runs, one real S3 with a 120 s alarm, snapshot. Expected:
-   the dry runs return and the real request hangs. That confirms the reproducer
-   on the new runner and repeats the dry-run result at the exact aged state.
-   If the real request returns instead, run a plain aged control next (no dry
-   runs), because the dry runs may have reset whatever drifts.
-2. Compare `fresh-1.snapshot.txt` with `aged-1-before.snapshot.txt`. List every
-   difference in device power states, EC memory, Management Engine status, PCH
-   registers and disk power mode. Each real difference is a candidate arm.
-3. Deploy the trimmed configuration, with the owner's go-ahead, then repeat
-   the aged control once. Predator still runs the first study's system (see
-   "Leftovers"). The deploy removes that instrumentation and brings 181 commits
-   of `main`, including a newer nixpkgs, so it is a new baseline and needs its
-   own control before any arm. Do it while the machine is freshly rebooted
-   after a hang. Follow the Predator deploy steps in the repository's
-   `AGENTS.md`, then run `chezmoi apply` there.
+1. The November 17, 02:00 trial never ran. Another session stopped
+   `pm-aged-1.timer` on November 16 at 17:40:09 during storage migration.
+   No `aged-1` logs exist, and the old boot's journal has no suspend after
+   November 16 at 16:20. This is a cancellation with zero requests.
+2. `aged-3` is armed for November 18, 01:00, about 9 h 57 min after the
+   November 17, 15:02:38 boot. Generation 183 is now booted and passes the
+   audit. The owner approved the reboot; no rebuild or disk reconfiguration
+   was needed. The earlier 11:48:34 reboot removed `pm-aged-2` before it ran.
+   Sequence: snapshot, five `core` dry runs, one real S3 with a 120 s alarm,
+   then snapshot. Before both the dry runs and real request, guards check
+   boot/system identity, expected suspend counters, age, inhibitors,
+   maintenance, failed units, pool identities, mounts and the boot audit.
+   If the real request returns, run a plain aged control next without dry
+   runs, because they may have changed the relevant state.
+3. Compare `fresh-3.snapshot.txt` with `aged-3-before.snapshot.txt` after that
+   trial. `fresh-3` was captured November 17 at 15:05:33, about three minutes
+   after boot. Check device power states, EC memory, Management Engine status,
+   PCH registers and disk power mode. Differences are leads, not causes.
+   Neither `fresh-1` nor `fresh-2` is a matched control for this deployment.
 4. Firmware handler bypass, short awake. `pm-batch <label> s3 3 60 30 nosmi`
    clears `SLP_SMI_EN` before each request so the chipset sleeps without the
    firmware handler. Check that all three return, that the meter shows about
    3 W, and that the machine is healthy afterwards. A failed resume here needs
    a power-button hold. If this does not work, drop the arm.
-5. Firmware handler bypass, aged. Two aged trials with `nosmi`. Two returns
-   mean the firmware handler is the fault, and clearing the bit before every
-   sleep becomes the fix.
+5. Firmware handler bypass, aged. Two aged trials with `nosmi`, then reverse
+   to a matched control. Returns would support involvement of the handler;
+   they would not prove a safe permanent workaround without further testing.
 6. Discrete GPU powered off, aged. First check awake that
    `echo auto > /sys/bus/pci/devices/0000:01:00.0/power/control` puts the port
    `0000:00:01.0` into D3cold and lowers the wall reading. Ubuntu hung with
@@ -138,7 +161,7 @@ Work through this in order. Record every run in the results table.
    Wake-on-LAN does not wake s2idle on this machine. The RTC alarm does.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
-9. Arms from the snapshot differences in step 2.
+9. Arms from the snapshot differences in step 3.
 
 If nothing isolates the cause, the fallbacks are s2idle (step 7) or a nightly
 power-off with an RTC or Wake-on-LAN power-on, which already works here.
@@ -162,7 +185,8 @@ Predator's login shell is nushell. Run remote commands through
 
 ```sh
 # Find when the clock was last reset.
-journalctl -k -b -g 'PM: suspend exit' -o short-iso | tail -1; uptime -s
+journalctl -k -b -g 'PM: suspend exit' -o short-iso | tail -1
+date --date="@$(awk '/^btime / {print $2}' /proc/stat)" --iso-8601=seconds
 
 # A short batch now: 3 real suspends, 60 s alarm, 30 s between cycles.
 sudo systemd-run --unit=pm-batch-LABEL --collect $B LABEL s3 3 60 30
@@ -172,6 +196,11 @@ sudo systemd-run --unit=pm-aged-N --on-calendar='YYYY-MM-DD HH:MM:SS' \
   --timer-property=AccuracySec=1s /run/current-system/sw/bin/bash -c \
   "$B aged-N-before snapshot && $B aged-N-s3 s3 1 120 30; rc=\$?; $B aged-N-after snapshot || rc=\$?; exit \$rc"
 ```
+
+The calendar example only shows the timer wiring. Add the runtime guards from
+the method before arming an aged trial. Inspect the stored command with
+`systemctl cat pm-aged-N.service`. Timers are transient and non-persistent,
+with no restart or recovery action; a reboot removes them.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -203,21 +232,64 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 16 16:03 | `validate-dry-1` | dry run ×1 | 14 min | returned | |
 | Nov 16 16:03 | `validate-s3-1` | none, real S3 ×2 | 14 min, 30 s | 2 of 2 returned | |
 | Nov 16 16:15 | `validate-dry-2` | dry run ×2, rebuilt runner | 10 min | 2 of 2 returned | |
-| Nov 17 02:00 | `aged-1-dry`, `aged-1-s3` | dry runs ×5, then real S3 | about 10 h | pending | |
+| Nov 17 02:00 | `aged-1-dry`, `aged-1-s3` | planned dry runs ×5, then real S3 | not applicable | cancelled before execution; zero requests | timer stopped Nov 16 17:40:09 |
+| Nov 17 18:00 | `aged-2-dry`, `aged-2-s3` | planned same sequence on generation 177 and new storage layout | not applicable | timer removed by 11:48:34 reboot; zero requests | |
+| Nov 18 01:00 | `aged-3-dry`, `aged-3-s3` | dry runs ×5, then real S3 on booted generation 183 and new storage layout | expected 9 h 57 min before dry runs | pending | |
 
-Last resume before the aged trial: November 16, 16:05:19.
+Prepared at November 17, 09:00: no suspend in that boot; success and fail
+counters both zero. Boot began around 07:33. No failed units, all three pools
+healthy with no running scrub/resilver, all five expected ZFS mounts present,
+Nextcloud out of maintenance, and all nine LUKS volumes passed
+`predator-boot audit`. Only NetworkManager's normal delay inhibitor was present.
+
+Rechecked November 17, 14:12: `pm-aged-2.timer` and its service are absent,
+there are no aged-trial logs, and both suspend counters are zero. Pools and
+mounts are healthy, no scans or backup jobs are running, Nextcloud is not in
+maintenance, and no units have failed. The boot audit is blocked by an
+activated but unbooted generation. No suspend trial was armed at that check.
+
+The owner approved booting the latest installed generation and preserving the
+new disk setup. Before reboot, evaluating Predator's dirty checkout produced
+exactly the installed generation 183 derivation, so no rebuild, source sync,
+activation or disk operation was needed. Source changes and storage identity
+were saved in the private directory
+`/home/mirsella/dev/scratch/predator-suspend/preboot-20261117-generation183/`.
+The existing recovery bundle covers all nine LUKS volumes.
+
+One `systemctl reboot` was issued at November 17, 14:23:19. Predator did not
+return on the network. The owner reported, "it was just powered off. I have
+booted it". It then booted at 15:02:38. No suspend request had been made;
+this power-off is separate from the suspend hang.
+
+At 15:05, current, booted and profile all matched generation 183. All nine
+volumes passed `predator-boot audit`; all pool GUIDs, ZFS mounts and the saved
+uncommitted source diff matched their pre-reboot records. All pools and Immich
+containers were healthy, Nextcloud was out of maintenance, no jobs or failed
+units remained, and only NetworkManager's normal delay inhibitor was present.
+Suspend success/fail counters were both zero.
+
+`pm-aged-3.timer` is confirmed active for November 18, 01:00 CET, with 1 s
+accuracy, no persistence and no restart. The T3 check was moved from November
+17, 18:30 to November 18, 01:30 CET. No automatic recovery is configured.
 
 ## Machine facts
 
-- Production system: NixOS generation 175, Linux 6.18.58, booted November 16
-  at 15:49 (boot `c8901e62-f8b4-4dd0-904a-c94c5ea9e111`).
+- Current boot began November 17 at 15:02:38
+  (boot `72a5ba34-16e5-4d6f-8566-a4b6cf69e538`).
+  Current system, booted system and profile are generation 183:
+  `/nix/store/mgm9m1nj9rlicz4xdhxw5v177frd9g8b-nixos-system-predator-26.11.20261023.3ec6363`.
+  Linux remains 6.18.58. The boot audit passes.
 - Lid closed. The owner remembers hangs with the lid open as well.
 - Battery present and full. AC connected.
 - Discrete GPU `0000:01:00.0`: no driver, `power/control=on`, D0.
-- Six disks: two internal SATA SSDs and four USB disks on the hub. Three USB
-  disks form the `tank` pool. The fourth, `WD-WXK1A67NTCDX` (NTFS), stays
-  attached and unmounted at the owner's request.
-- Two of the USB disks were already in standby 15 minutes after boot.
+- Six physical disks: two internal SATA SSDs and four USB HDDs. Storage work
+  since November 16 changed the layout: `tank` now uses four roughly 750 GB
+  encrypted HDD sections in RAIDZ1; `backups` uses the roughly 250 GB tails of
+  three HDDs in RAIDZ1. `WD-WXK1A67NTCDX` is now part of these pools, not an
+  unmounted NTFS disk. There are nine LUKS volumes.
+- Expected mounts: `/srv/data/fast`, `/var/lib/nextcloud/data`,
+  `/srv/data/archive`, `/srv/backup`, `/srv/backup/recovery`. The last two now
+  come from `backups/data` and `backups/data/recovery`.
 - ACPI wake sources enabled: XHC, RP03, RP04, PWRB.
 - The owner's wall meter records a history graph.
 
@@ -228,13 +300,12 @@ Last resume before the aged trial: November 16, 16:05:19.
   now only holds the baseline every trial shares: the Acer WMI driver and the
   boot-time EC write stay off, the nightly suspend timer stays disabled, and
   the LAN profile keeps its fixed address.
-- Predator has not been redeployed. Generation 175 still loads the `pm_stage`
-  module, runs the old capture and clock services, and keeps their state in
-  `/var/lib/predator-pm-study`. It was built from an uncommitted checkout whose
-  `hosts/predator/default.nix` still trusts the retired `lantian` cache key,
-  so do not build on Predator before the deploy in step 3.
-- Predator's checkout now follows `main`. Its previous uncommitted state, which
-  held nothing that `main` lacks, is kept there as the Git ref
+- The deployed configuration no longer loads `pm_stage` or `netconsole`; the old capture,
+  clock-handoff and preserve-RTC services are absent. Historical state in
+  `/var/lib/predator-pm-study` is not used by the runner.
+- Predator's checkout contains uncommitted storage and MCP work from other
+  tasks. Leave it intact. Study commits do not authorize deploying, changing
+  disks or applying chezmoi. The November 16 pre-sync state remains in
   `refs/wip/predator-20261116`.
 - The first study's evidence tree and scratch receipts are archived on main in
   `~/dev/scratch/dotfiles-predator-pm-study-archive-20261116/` with a
