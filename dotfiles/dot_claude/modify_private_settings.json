@@ -1,0 +1,14 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $settings := mustFromJson (default "{}" (trim .chezmoi.stdin)) -}}
+{{- if not (kindIs "map" $settings) -}}
+  {{- fail "Claude Code settings must be a JSON object" -}}
+{{- end -}}
+{{- $attribution := index $settings "attribution" -}}
+{{- if or (deepEqual $attribution false) (and (kindIs "map" $attribution) (deepEqual (index $attribution "commit") "")) -}}
+  {{- .chezmoi.stdin -}}
+{{- else -}}
+  {{- if eq $attribution nil -}}
+    {{- $_ := set $settings "attribution" (dict) -}}
+  {{- end -}}
+  {{ $settings | setValueAtPath "attribution.commit" "" | toPrettyJson }}
+{{ end -}}
