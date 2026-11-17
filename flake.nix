@@ -243,6 +243,12 @@
           rustfmt --check --edition 2024 $(find ${./pkgs/host-tools/src} -name '*.rs')
           touch "$out"
         '';
+        claude-managed-mcp = pkgs.runCommand "claude-managed-mcp-tests" {
+          nativeBuildInputs = [ pkgs.python3 ];
+        } ''
+          python3 ${./tests/claude-managed-mcp.py} ${pkgs.jaq}/bin/jaq ${./modules/home/claude-managed-mcp.jq}
+          touch "$out"
+        '';
         data-unlock = pkgs.runCommand "data-unlock-tests" { nativeBuildInputs = [ pkgs.python3 ]; } ''
           python3 ${./tests/data-unlock.py} ${pkgs.systemd} < ${pkgs.writeText "predator-crypttab" self.nixosConfigurations.predator.config.environment.etc.crypttab.text}
           touch "$out"

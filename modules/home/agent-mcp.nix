@@ -84,7 +84,7 @@ in
       format = "json";
       empty = "{}";
       mode = "600";
-      jqOperation = ''$dynamic | delpaths($static | map(["mcpServers", .]))'';
+      jqOperation = builtins.readFile ./claude-managed-mcp.jq;
     }
   );
 }
