@@ -1,6 +1,52 @@
 # Local Kache fixes
 
-The package stays on v1.2.2 rather than adopting the 2.0 scheduler.
+## Current package
+
+`default.nix` selects upstream commit
+`3aad1a1974efcae8c8827a7200d5cf7cd270319e` with the version label
+`2.1.1+local-review-20261117`. Install the frontend and `kache-engine`
+together. Home Manager also owns the Cargo-bin aliases so a separately installed
+frontend cannot replace the managed daemon.
+
+`upstream-candidate.patch` preserves the Clippy compiler-identity fix for upstream
+issue #1944 and imports the boot-scoped tree memo fix from PR #1941,
+`a549f6fd74a750c39f99ea54378a15f1a1fead93`. Upstream supplies profile reuse,
+native/Git input tracking, per-invocation child RSS, source-revert reuse, registry
+key parity and incremental-seed diagnostics. The old workload-scheduler patch
+does not apply to this package.
+
+The upstream checkout-path correctness fix uses key version 35. Expect cold
+misses when moving from the old recipe; preserve old entries for rollback.
+Remote caching stays disabled. Upstream issue #1946 still affects remote
+C/C++ object validation.
+
+The retention and scheduler policies use upstream defaults. Keep the 150 GiB
+budget until equal-budget, matched-workload evidence supports a reduction.
+Require a substantial wall-time or physical-space gain before adopting a local
+policy. Check tail latency, failures, RSS, swap and expensive re-demand as well
+as medians. Compiler-time sums and inferred session closure are not Cargo wall time.
+
+`kache-observe.timer` captures read-only compressed observations twice daily in
+`~/.local/state/kache-observations`. It retains at most 60 snapshots and 512 MiB,
+including entry-to-blob mappings, live/shadow eviction observations, binary and
+daemon identity, and physical cache extents. These snapshots have gaps and cannot
+prove a counterfactual policy win. Collection uses idle I/O, low CPU priority and
+a five-minute timeout; check its journal and retained coverage during reviews.
+
+The November qualification includes an interleaved vanilla/deployed/candidate
+warm-build comparison, real Clippy/Cranelift and Git/native-input checks, and
+the Nix workspace library/binary suite. The small warm fixture showed no speed
+gain. Run integration fixtures with the pinned Cargo and a clean Cargo home;
+newer nightly output layouts violate several fixtures' hardcoded paths.
+Trusted daemon-execution fixtures also need a compatible host process context.
+Both vanilla and the candidate reject that optional path in the agent context;
+do not relax the process checks to make those fixtures pass.
+
+## Retained 1.2.2 rollback recipe
+
+`legacy-1.2.nix` preserves the previous deployment and its patch history below.
+The following descriptions apply to that recipe.
+
 `local-cache-fixes.patch` contains these fixes and their regressions:
 
 - Probe the underlying compiler with `-vV`, check its exit status and require

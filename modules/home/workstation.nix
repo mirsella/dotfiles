@@ -28,6 +28,7 @@ in
     ./kdeconnect-remote-commands.nix
     ./reverse-engineering.nix
     ./hex.nix
+    ./kache-observations.nix
   ];
 
   programs.git.settings.commit.gpgsign = true;
@@ -48,6 +49,27 @@ in
   # Cargo uses this stable path so cargo-installed kache cannot shadow its daemon.
   home.file.".local/bin/kache" = {
     source = lib.getExe pkgs.kache;
+    force = true;
+  };
+  home.file.".local/bin/kache-engine" = {
+    source = "${pkgs.kache}/bin/kache-engine";
+    force = true;
+  };
+  # Keep Cargo-installed frontends from replacing the managed daemon.
+  home.file.".local/share/cargo/bin/kache" = {
+    source = lib.getExe pkgs.kache;
+    force = true;
+  };
+  home.file.".local/share/cargo/bin/kache-engine" = {
+    source = "${pkgs.kache}/bin/kache-engine";
+    force = true;
+  };
+  home.file.".local/share/cargo/bin/kache-clang-cl" = {
+    source = "${pkgs.kache}/bin/kache-clang-cl";
+    force = true;
+  };
+  home.file.".local/share/cargo/bin/kache-cl" = {
+    source = "${pkgs.kache}/bin/kache-cl";
     force = true;
   };
   home.file.".local/bin/opencode-idle-watchdog" = {
