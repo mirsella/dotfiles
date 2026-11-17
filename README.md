@@ -23,10 +23,26 @@ exposes the standalone Arch `homeConfigurations.<hostname>`.
 
 ## Install main or laptop
 
+Main's Arch install uses the NVMe for its EFI partition (`p1`, mounted at
+`/boot`) and Btrfs root (`p2`). The SATA SSD holds Windows `C:` (150 GiB),
+NTFS data `D:` (about 780 GiB), and the Windows EFI, reserved, and recovery
+partitions. Linux mounts `D:` at `/run/media/mirsella/data`.
+
+Use `ReviOS (SATA SSD)` in systemd-boot. That automatic entry starts the
+Microsoft loader on the NVMe EFI partition; its BCD points to Windows on the
+SATA SSD. The NVMe firmware entry named `Windows Boot Manager` points to
+systemd-boot, so putting that entry first still opens the menu. The separate
+`Windows Boot Manager (SATA)` entry starts Windows directly. Keep both EFI
+partitions when reinstalling Linux. If the system starts bypassing the menu,
+use `sudo efibootmgr -v` to check the entry paths and order; Windows upgrades
+can change them.
+
+### Install NixOS
+
 Both desktops install onto a LUKS2-encrypted XFS root with TPM2 auto-unlock and a
-16 GiB encrypted swap partition used for hibernation. Main keeps its EFI and
-Windows partitions; only the old Linux partition is replaced. Laptop keeps its EFI
-partition. The single XFS filesystem holds `/`, `/home` and `/nix`;
+16 GiB encrypted swap partition used for hibernation. Keep the existing EFI
+partition on the Linux disk. Leave Main's SATA SSD untouched.
+The single XFS filesystem holds `/`, `/home` and `/nix`;
 `modules/nixos/desktop.nix` records the LUKS containers and the resume device.
 Both desktops use zstd zram at 100% of RAM ahead of the swap partition, run weekly
 `fstrim` through the encrypted root, and main keeps its NTFS data mount.
@@ -36,7 +52,7 @@ Partitioning is destructive for the Linux partition only. Delete it, create a
 and the filesystem:
 
 ```sh
-# main: /dev/nvme0n1, old Linux partition p2; p1 (EFI) and p3-p5 (Windows) stay.
+# main: /dev/nvme0n1, old Linux partition p2; p1 (EFI) stays. Do not modify the SATA SSD.
 sudo sgdisk --delete=2 /dev/nvme0n1
 sudo sgdisk --new=2:0:+16G --change-name=2:nixos-swap /dev/nvme0n1
 sudo sgdisk --new=6:0:0 --change-name=6:nixos-root /dev/nvme0n1
