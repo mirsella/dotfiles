@@ -30,6 +30,7 @@
 {{- end -}}
 {
   "$schema": "https://opencode.ai/v2/config.json",
+  "model": "openai/gpt-6.2-sol",
   "plugins": [
 {{ if or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop") }}    { "package": "{file:~/.config/opencode/credit-routing/claude.path}" },
     { "package": "{file:~/.config/opencode/credit-routing/openai.path}" },
@@ -116,6 +117,34 @@
         "baseURL": "http://127.0.0.1:17321/sleev/opencode/codex"
       },
       "models": {
+        // Explicit entries keep long-running servers usable before their catalog refresh.
+        "gpt-6.2-sol": {
+          "name": "GPT-6.2 Sol",
+          "settings": {
+            "reasoningEffort": "xhigh"
+          },
+          "limit": { "context": 628000, "input": 500000, "output": 128000 },
+          "capabilities": {
+            "tools": true,
+            "freeform": ["text", "lark", "regex"],
+            "input": ["text", "image", "pdf"],
+            "output": ["text"],
+            "temperature": false,
+            "reasoning": { "supported": true, "effort": ["low", "medium", "high", "xhigh", "max"] }
+          }
+        },
+        "gpt-6.2-astra": {
+          "name": "GPT-6.2 Astra",
+          "limit": { "context": 628000, "input": 500000, "output": 128000 },
+          "capabilities": {
+            "tools": true,
+            "freeform": ["text", "lark", "regex"],
+            "input": ["text", "image", "pdf"],
+            "output": ["text"],
+            "temperature": false,
+            "reasoning": { "supported": true, "effort": ["low", "medium", "high", "xhigh", "max"] }
+          }
+        },
         "gpt-6-luna": {},
         "gpt-6-sol-fast": {},
         "gpt-6-sol": {}

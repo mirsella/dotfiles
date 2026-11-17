@@ -108,7 +108,7 @@
     "defaultAutoPull": true,
     "defaultModelSelection": {
       "instanceId": "opencode",
-      "model": "openai/gpt-6.1-sol",
+      "model": "openai/gpt-6.2-sol",
       "options": [
         {
           "id": "variant",
@@ -133,11 +133,11 @@
         "provider": "opencode"
       },
       {
-        "model": "openai/gpt-6-astra",
+        "model": "openai/gpt-6.2-astra",
         "provider": "opencode"
       },
       {
-        "model": "openai/gpt-6.1-sol",
+        "model": "openai/gpt-6.2-sol",
         "provider": "opencode"
       },
       {
