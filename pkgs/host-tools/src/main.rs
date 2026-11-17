@@ -33,6 +33,7 @@ mod theme;
 mod uki;
 mod util;
 mod worktree_prune;
+mod zfs_capacity;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -175,6 +176,12 @@ enum Commands {
         key_file: PathBuf,
         recipient: String,
     },
+    /// Email warning/critical ZFS pool capacity alerts without pruning data.
+    ZfsCapacity {
+        config: PathBuf,
+        #[arg(long)]
+        test: bool,
+    },
     Backup {
         config: PathBuf,
     },
@@ -313,6 +320,7 @@ fn run() -> Result<()> {
             &std::env::var("SMARTD_SUBJECT")?,
             &std::env::var("SMARTD_FULLMESSAGE")?,
         ),
+        Commands::ZfsCapacity { config, test } => zfs_capacity::run(&config, test),
         Commands::Backup { config } => backup::run(&config),
         Commands::ScratchPrune {
             max_age_days,

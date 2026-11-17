@@ -9,6 +9,7 @@ in
     ./lid-screen.nix
     ./pm-study.nix
     ./storage-alerts.nix
+    ./trash.nix
     ./hermes
     ../../modules/nixos/healthchecks.nix
     ../../modules/nixos/storage.nix

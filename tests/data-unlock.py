@@ -36,7 +36,16 @@ class DataUnlock(unittest.TestCase):
             rows = [line.split() for line in crypttab.splitlines() if line.strip()]
             self.assertEqual(
                 [row[0] for row in rows],
-                ["fast-crypt", "tank1-crypt", "tank2-crypt", "tank3-crypt"],
+                [
+                    "backup1-crypt",
+                    "backup3-crypt",
+                    "backup4-crypt",
+                    "fast-crypt",
+                    "tank1-crypt",
+                    "tank2-crypt",
+                    "tank3-crypt",
+                    "tank4-crypt",
+                ],
             )
             for name, device, keyfile, flags in rows:
                 with self.subTest(name=name):

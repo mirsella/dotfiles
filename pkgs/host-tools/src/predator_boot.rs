@@ -40,21 +40,29 @@ struct Config {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Disks {
+    backup1: PathBuf,
+    backup3: PathBuf,
+    backup4: PathBuf,
     fast: PathBuf,
     root: PathBuf,
     tank1: PathBuf,
     tank2: PathBuf,
     tank3: PathBuf,
+    tank4: PathBuf,
 }
 
 impl Disks {
-    fn devices(&self) -> [(&'static str, &Path); 5] {
+    fn devices(&self) -> [(&'static str, &Path); 9] {
         [
+            ("backup1", &self.backup1),
+            ("backup3", &self.backup3),
+            ("backup4", &self.backup4),
             ("fast", &self.fast),
             ("root", &self.root),
             ("tank1", &self.tank1),
             ("tank2", &self.tank2),
             ("tank3", &self.tank3),
+            ("tank4", &self.tank4),
         ]
     }
 }
@@ -1035,11 +1043,15 @@ mod tests {
     #[test]
     fn disk_configuration_rejects_missing_and_unknown_roles() {
         let mut disks = json!({
+            "backup1": "/dev/disk/by-id/tank1-part2",
+            "backup3": "/dev/disk/by-id/tank3-part2",
+            "backup4": "/dev/disk/by-id/tank4-part2",
             "fast": "/dev/disk/by-id/fast-part1",
             "root": "/dev/disk/by-id/root-part2",
             "tank1": "/dev/disk/by-id/tank1-part1",
             "tank2": "/dev/disk/by-id/tank2-part1",
-            "tank3": "/dev/disk/by-id/tank3-part1"
+            "tank3": "/dev/disk/by-id/tank3-part1",
+            "tank4": "/dev/disk/by-id/tank4-part1"
         });
         assert!(serde_json::from_value::<Disks>(disks.clone()).is_ok());
         disks["unknown"] = json!("/dev/disk/by-id/other");

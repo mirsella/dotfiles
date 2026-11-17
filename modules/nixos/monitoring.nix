@@ -14,6 +14,7 @@ let
     tank1 = "14";
     tank2 = "15";
     tank3 = "13";
+    tank4 = "16";
   };
   smartDevice = flags: longHour: device: {
     inherit device;
@@ -36,6 +37,15 @@ let
         ${lib.escapeShellArg recipient}
     '';
   };
+  capacityConfig = {
+    zfs = "${config.boot.zfs.package}/bin/zfs";
+    pools = builtins.attrNames (import ../../disko.nix).disko.devices.zpool;
+    warning_percent = 75;
+    critical_percent = 80;
+    reminder_hours = 24;
+    key_file = config.sops.secrets.nextcloud-resend.path;
+    inherit recipient;
+  };
 in
 {
   environment.systemPackages = [ pkgs.smartmontools ];
@@ -49,10 +59,12 @@ in
     # Avoid toggling vendor-specific offline collection.
     # Missing data disks must not stop health monitoring of available disks.
     defaults.monitored = "-a -d sat -d removable -S on -m <nomailer> -M daily -M exec ${lib.getExe alert}";
-    # BX500 peaks at 74-78 degrees during nightly I/O in this laptop, above the
-    # 65 degree spec threshold with no user-serviceable cooling available, so
-    # only alert above 80 where something is genuinely wrong.
-    devices = map (smartDevice "-W 0,0,80" "13") ssds
+    # BX500 retains a past temperature failure in attribute 194. Ignore that
+    # latched Usage Attribute warning only; keep live 80°C alerts and all other
+    # SMART checks. Attribute 194 is an ID, not a Celsius reading.
+    devices = lib.mapAttrsToList (name: device:
+      smartDevice "${lib.optionalString (name == "fast") "-i 194 "}-W 0,0,80" "13" device
+    ) physical.ssds
       ++ lib.mapAttrsToList (name: device:
         smartDevice "-W 0,0,55" hddLongHours.${name} device
       ) physical.hdds;
@@ -64,6 +76,32 @@ in
     serviceConfig = {
       Restart = "on-failure";
       RestartSec = "1min";
+    };
+  };
+  systemd.services.zfs-capacity-alerts = {
+    description = "Email ZFS pool capacity warnings before storage fills";
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" "sops-install-secrets.service" "zfs-import.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.host-tools}/bin/host-tools zfs-capacity /etc/zfs-capacity.json";
+      StateDirectory = "zfs-capacity-alerts";
+      StateDirectoryMode = "0700";
+      UMask = "0077";
+      TimeoutStartSec = "2min";
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+    };
+    restartTriggers = [ config.environment.etc."zfs-capacity.json".source ];
+  };
+  systemd.timers.zfs-capacity-alerts = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*:0/5";
+      RandomizedDelaySec = "30s";
+      Persistent = true;
     };
   };
 
@@ -81,7 +119,9 @@ in
   # ZED's data handler also works for individual I/O and checksum error events.
   environment.etc = lib.genAttrs [ "zfs/zed.d/io-notify.sh" "zfs/zed.d/checksum-notify.sh" ] (_: {
     source = "${config.boot.zfs.package}/etc/zfs/zed.d/data-notify.sh";
-  });
+  }) // {
+    "zfs-capacity.json".text = builtins.toJSON capacityConfig;
+  };
   systemd.services.zfs-zed = {
     wants = [ "network-online.target" ];
     after = [ "network-online.target" "sops-install-secrets.service" ];

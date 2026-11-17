@@ -104,7 +104,7 @@ The flake discovers these directories and sets hostnames automatically.
   `hosts/predator/hermes/agent-AGENTS.md` on every activation, so keep
   instruction edits in the repository.
 - Predator's initrd OS separator and signed SHA-256 PCR 11 policies protect all
-  five disks. Root unlocks at `enter-initrd`; data unlocks at
+  nine LUKS volumes on six physical disks. Root unlocks at `enter-initrd`; data unlocks at
   `enter-initrd:leave-initrd`, before the host sysinit phase. Keep the Nix-managed
   Lanzaboote signature companion hook and phase ordering intact. After reboot,
   `sudo predator-boot audit` proves token use and late-phase rejection. Preserve
@@ -127,15 +127,22 @@ The flake discovers these directories and sets hostnames automatically.
   fork can hold the write handle and fail the run with `ETXTBSY`. The
   `data-unlock` and `arch-maintenance` checks run the tests under `tests/` during
   `nix flake check` without `--no-build`.
-- `disko.nix` formats **all four data disks** only for a fresh, intentional
+- `disko.nix` formats **all five data disks** (the SSD and four HDDs) only for a fresh, intentional
   installation. To reinstall on existing disks, mount them without running disko,
   preserve the LUKS headers, ZFS pools, Secure Boot signing bundle (`/var/lib/sbctl`),
   TPM policy authorities (`/var/lib/predator-boot`), and SOPS host identity (`/etc/ssh/ssh_host_ed25519_key`),
   then install `#predator`.
-  The database dumps and ZFS snapshots on `tank/backup` are on-machine only.
-  `tank` uses three encrypted HDDs in RAIDZ1 and tolerates one failed HDD.
-  The read-only migration copy `fast/tank-pre-raidz1-20261003` is a fixed recovery point on the separate
-  SSD, not an ongoing backup. SMART and ZED send storage warnings via Resend.
+  `tank` uses four roughly 750 GB encrypted HDD sections in RAIDZ1; `backups`
+  uses the three roughly 250 GB tails in another RAIDZ1. Both survive any one
+  physical HDD failure. Replacing a 1 TB HDD requires replacing its encrypted
+  members in both pools. The backup pool protects SSD originals, not an
+  independent copy of the HDD archive. Database dumps and ZFS snapshots under
+  `backups/data` are on-machine only. SMART and ZED send storage warnings via Resend.
+  Do not duplicate `tank/archive` into the backup pool. Keep its local snapshots.
+  Predator's interactive `rm` uses gtrash; use `gtrash put` explicitly for ad-hoc
+  deletion in noninteractive agent shells. Native deletion in scripts remains
+  permanent. Daily root/user timers prune Trash after 30 days; ZFS snapshots may
+  retain the blocks longer.
 - A nightly restic backup copies `fast/data` and `fast/ncdata` from throwaway
   `.zfs/snapshot/restic-backup` snapshots to `/srv/backup/restic` at 23:50.
   Recovery bundles run Sundays at 23:10 under
@@ -159,7 +166,7 @@ Manual files outside the repo:
   OpenCode 2.x and OpenChamber 2.x together. The Nix daemon ignores cache settings
   from an untrusted Home Manager user config.
 - Predator: Freebox LAN IP is `192.168.1.1`; SMART runs daily short and weekly
-  long tests on all five physical drives. Toshiba's earlier USB setup had repeated
+  long tests on all six physical drives. Toshiba's earlier USB setup had repeated
   host-aborted long tests after about 10 minutes; check its adapter, cable and power
   if this recurs.
 - rpi (Debian) is outside the flake; its fail2ban SSH jail is tuned by hand in

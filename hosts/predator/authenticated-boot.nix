@@ -11,6 +11,9 @@ let
   disks = import ./disks.nix;
   dataDisks = builtins.removeAttrs disks.luks [ "root" ];
   signature = "/run/credentials/@encrypted/predator-pcr-signature";
+  # libcryptsetup's initial token probe uses the default path, before systemd's
+  # explicit tpm2-signature option. Both must see the same signed credential.
+  signatureBinding = "${signature}:/run/systemd/tpm2-pcr-signature.json";
   tpmOptions = [
     "tpm2-device=auto"
     "tpm2-pcrs=7"
@@ -88,6 +91,7 @@ in
     serviceConfig = {
       TimeoutSec = "2min";
       Environment = "SYSTEMD_LOG_LEVEL=debug";
+      BindReadOnlyPaths = [ signatureBinding ];
     };
   };
   # TPM-disabled study boots must not start measurements without the driver.
@@ -124,9 +128,10 @@ in
   boot.initrd.systemd.services."systemd-cryptsetup@crypt\\x2droot" = lib.mkIf enabled {
     overrideStrategy = "asDropin";
     serviceConfig.Environment = "SYSTEMD_LOG_LEVEL=debug";
+    serviceConfig.BindReadOnlyPaths = [ signatureBinding ];
   };
   # nofail crypttab units are not ordered before cryptsetup.target. Close the
-  # data-unlock phase only after all four bounded attempts have completed.
+  # data-unlock phase only after every bounded attempt has completed.
   systemd.services.systemd-pcrphase-sysinit = lib.mkIf enabled {
     wants = unlocks;
     after = unlocks;

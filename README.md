@@ -456,8 +456,8 @@ EFI inventory until the next normal boot refreshes it.
 ### Predator authenticated boot
 
 Lanzaboote verifies signed boot images and measures their kernel, initramfs and
-command line into SHA-256 PCR 11. All five disks require post-separator SHA-256
-PCR 7 plus signed PCR 11: root at `enter-initrd`, data at
+command line into SHA-256 PCR 11. All nine LUKS volumes on six physical disks
+require post-separator SHA-256 PCR 7 plus signed PCR 11: root at `enter-initrd`, data at
 `enter-initrd:leave-initrd`, with separate signing authorities. `sysinit` waits
 for the bounded data-unlock attempts before closing their authorization window.
 
@@ -920,11 +920,20 @@ keyring key, and refreshed credentials would diverge between devices.
 
 ## Predator storage
 
-`fast` is the separate 240 GB encrypted SSD. `tank` combines the Seagate 1 TB,
-Toshiba 750 GB and WD 1 TB HDDs in one RAIDZ1 vdev, each inside LUKS.
-Usable capacity is roughly 1.36 TiB before ZFS overhead. The pool tolerates one
-failed HDD; replace it promptly and let ZFS resilver. `tank/archive` mounts at `/srv/data/archive` and
-`tank/backup` at `/srv/backup`.
+`fast` is the separate 240 GB encrypted SSD. Four HDDs provide two LUKS-encrypted
+RAIDZ1 pools:
+
+- `tank` uses a roughly 750 GB section of each HDD: the Seagate 1 TB, Toshiba
+  750 GB and two WD 1 TB drives. Nominal usable capacity is about 2.25 TB before
+  ZFS overhead and reserved space. `tank/archive` mounts at `/srv/data/archive`.
+- `backups` uses the remaining roughly 250 GB sections of the three 1 TB HDDs.
+  Nominal usable capacity is about 500 GB. `backups/data` mounts at `/srv/backup`,
+  with `backups/data/recovery` mounted separately at `/srv/backup/recovery`.
+
+Both pools remain available after any one physical HDD fails. They share three
+HDDs, so the backup pool is independent of the SSD originals, not of the HDD
+archive. When replacing a 1 TB HDD, recreate both encrypted partitions and
+resilver its member in each pool. The 750 GB HDD belongs only to `tank`.
 
 `hosts/predator/disks.nix` defines the physical drive identities shared by
 boot, provisioning, unlocking and monitoring. `disko.nix` defines the data mount
@@ -932,33 +941,53 @@ layout consumed by the installed system without importing its formatter.
 Native systemd crypttab units open data
 disks in parallel by persistent disk ID. Only the OS disk unlocks in initrd;
 data devices use bounded, noninteractive, optional unlocking. RAIDZ1 import can
-continue when one HDD is missing. All data mounts use `legacy` and `nofail`, so
+continue when one HDD is missing. Pool discovery searches the decrypted
+`/dev/mapper` names after unlocking. Shutdown unmounts datasets, exports pools
+without force, then closes LUKS mappings; live configuration switches leave
+imported pools running. All data mounts use `legacy` and `nofail`, so
 data-disk failures leave the OS and SSH available. Data-dependent services require
 their mounts and refuse the bare OS filesystem. Preserve
 the policy authorities under `/var/lib/predator-boot` when reinstalling.
-`disko.nix` is only for a fresh installation and formats the SSD and all three HDDs.
+`disko.nix` is only for a fresh installation and formats the data SSD and all four HDDs.
 
-SMART checks all five physical disks, runs daily short self-tests at noon and
-weekly long tests on Sunday: SSDs and WD at 13:00, Seagate at 14:00 and Toshiba
-at 15:00. Temperature emails start at 55 C for HDDs and 80 C for SSDs.
+SMART checks all six physical disks, runs daily short self-tests at noon and
+weekly long tests on Sunday: SSDs and `tank3` at 13:00, `tank1` at 14:00,
+`tank2` at 15:00 and `tank4` at 16:00.
+Temperature emails start at 55 C for HDDs and 80 C for SSDs.
 SMART sends warnings through Resend to
 `mirsella@protonmail.com`. USB disks can reconnect
 without stopping monitoring of the other disks. ZED emails device faults,
 I/O errors, checksum errors and scrub failures using the same Resend key as
 Nextcloud. The kernel-journal watcher also sends USB connection errors to Telegram.
-Both pools receive a monthly scrub; Sanoid retains daily and weekly snapshots.
-Snapshots and database dumps on `tank` do not survive loss of that pool.
+All three pools receive a monthly scrub; Sanoid retains daily and weekly snapshots.
+These snapshots and database dumps are on-machine backups, not off-machine copies.
+
+`zfs-capacity-alerts` checks all three pools every five minutes and emails at
+75% and 80% usage. It uses each pool root's `used / (used + available)`, including
+child datasets and snapshots, rather than RAIDZ raw/parity allocation.
+Persistent alerts repeat daily; each alert level clears five percentage points
+below its threshold. State is root-only under `/var/lib/zfs-capacity-alerts`.
+The monitor never deletes data or changes retention.
 
 A nightly restic backup copies `fast/data` and `fast/ncdata` from throwaway
 `.zfs/snapshot/restic-backup` snapshots to `/srv/backup/restic` nightly at
 23:50, keeping 7 daily, 8 weekly and 6 monthly snapshots; a monthly check reads
 10% of the repository data. Every scheduled backup job pings a healthchecks.io
 check on success. The overnight idle check waits for the backup jobs to finish.
+`tank/archive` is not copied into the backup pool; its local Sanoid snapshots
+provide version history on `tank` itself.
+
+Predator's interactive `rm` sends files to `gtrash`; explicit native deletion
+and noninteractive scripts retain their normal behavior. Nushell also supports
+`rm --permanent`. Daily `gtrash-prune-mirsella` and `gtrash-prune-root` timers
+permanently remove trash entries older than 30 days, based on deletion date.
+Trash stays on the original filesystem. ZFS snapshots can retain trashed or
+deleted blocks longer, so emptying Trash does not necessarily reclaim pool space.
 
 `recovery-backup.service` runs on Sundays at 23:10 and retains 7 root-only
-bundles in the separate `tank/backup/recovery` dataset at `/srv/backup/recovery/`; `latest`
+bundles in the separate `backups/data/recovery` dataset at `/srv/backup/recovery/`; `latest`
 points to the newest complete bundle. Each
-contains all five current LUKS headers and UUIDs plus `system-secrets.tar` with
+contains all nine current LUKS headers and UUIDs plus `system-secrets.tar` with
 `/var/lib/predator-boot`, the SOPS SSH host identity and `/var/lib/sbctl`.
 These archives contain private keys. Restore them as root with their original permissions.
 
@@ -966,10 +995,6 @@ These archives contain private keys. Restore them as root with their original pe
 Nextcloud configuration under `/srv/backup/recovery/db/latest` at 23:00. Both
 backup jobs stage complete bundles, atomically publish `latest`, and retain 7
 bundles.
-
-`fast/tank-pre-raidz1-20261003` holds a read-only, unmounted migration copy,
-including the older snapshots. It is a fixed recovery point and does not track
-later writes.
 
 SMART lifetime counters cannot generally be cleared. The post-cable baseline and
 migration snapshot manifest are saved under

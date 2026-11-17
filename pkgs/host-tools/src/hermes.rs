@@ -558,18 +558,18 @@ fn operation_lock() -> Result<fs::File> {
     Ok(file)
 }
 
-fn require_tank_backup_mount() -> Result<()> {
+fn require_backup_mount() -> Result<()> {
     crate::util::run(
         "findmnt",
         &[
             "--noheadings",
             "--source",
-            "tank/backup",
+            "backups/data",
             "--mountpoint",
             "/srv/backup",
         ],
     )
-    .context("Tank backup dataset is not mounted at /srv/backup")
+    .context("Backup dataset is not mounted at /srv/backup")
 }
 
 fn prune_backups(current: &Path) -> Result<()> {
@@ -667,7 +667,7 @@ pub fn operations(action: Operation) -> Result<()> {
             with_service_recovery(|| stop(&owner), || systemctl("start", &UNITS))
         }
         Operation::Backup => {
-            require_tank_backup_mount()?;
+            require_backup_mount()?;
             let owner = worker_owner()?;
             let directory = Path::new(TANK_BACKUP_DIRECTORY);
             fs::DirBuilder::new()
@@ -742,7 +742,7 @@ pub fn operations(action: Operation) -> Result<()> {
         Operation::Restore { archive } => {
             let archive = archive.canonicalize()?;
             if archive.starts_with(TANK_BACKUP_DIRECTORY) {
-                require_tank_backup_mount()?;
+                require_backup_mount()?;
             } else {
                 ensure!(
                     archive.starts_with(LEGACY_BACKUP_DIRECTORY),

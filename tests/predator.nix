@@ -7,8 +7,13 @@ let
   disks = layout.disko.devices.disk;
   physical = import ../hosts/predator/disks.nix;
   hddNames = builtins.attrNames physical.hdds;
+  backupNames = builtins.attrNames physical.backupHdds;
+  dataNames = [ "fast" ] ++ hddNames ++ backupNames;
   smartOptions = builtins.listToAttrs (map (d: lib.nameValuePair d.device d.options)
     server.services.smartd.devices);
+  capacityPolicy = builtins.fromJSON (
+    builtins.unsafeDiscardStringContext server.environment.etc."zfs-capacity.json".text
+  );
   ncdata = layout.disko.devices.zpool.fast.datasets.ncdata;
   pkgs = flake.inputs.nixpkgs.legacyPackages.x86_64-linux;
   utils = import (flake.inputs.nixpkgs + "/nixos/lib/utils.nix") {
@@ -54,10 +59,14 @@ assert lib.assertMsg (
   && server.systemd.tpm2.pcrphases.enable
   && builtins.elem "predator.authenticated-boot=1" server.boot.kernelParams
   && builtins.elem "tpm2-pcrs=7" server.boot.initrd.luks.devices.crypt-root.crypttabExtraOpts
+  && server.boot.initrd.systemd.services."systemd-cryptsetup@crypt\\x2droot".serviceConfig.BindReadOnlyPaths
+    == [ "/run/credentials/@encrypted/predator-pcr-signature:/run/systemd/tpm2-pcr-signature.json" ]
+  && server.systemd.services."systemd-cryptsetup@".serviceConfig.BindReadOnlyPaths
+    == server.boot.initrd.systemd.services."systemd-cryptsetup@crypt\\x2droot".serviceConfig.BindReadOnlyPaths
   && lib.all (name:
     builtins.elem "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service"
       server.systemd.services.systemd-pcrphase-sysinit.after
-  ) ([ "fast" ] ++ hddNames)
+   ) dataNames
 ) "Root and data unlocks must use distinct, explicitly ordered PCR11 phases";
 assert lib.assertMsg (
   lib.all (name:
@@ -66,8 +75,29 @@ assert lib.assertMsg (
       && builtins.elem unit server.systemd.services.zfs-import-tank.after
       && !(builtins.elem unit server.systemd.services.zfs-import-tank.requires)
   ) hddNames
+  && lib.all (name:
+    let unit = "systemd-cryptsetup@${utils.escapeSystemdPath "${name}-crypt"}.service";
+    in builtins.elem unit server.systemd.services.zfs-import-backups.wants
+      && builtins.elem unit server.systemd.services.zfs-import-backups.after
+      && !(builtins.elem unit server.systemd.services.zfs-import-backups.requires)
+  ) backupNames
   && server.systemd.services."systemd-cryptsetup@".serviceConfig.TimeoutSec == "2min"
 ) "HDD unlocking must be bounded and parallel, allowing degraded import when a member fails";
+assert lib.assertMsg (
+  lib.all (pool:
+    let service = server.systemd.services."zfs-import-${pool}";
+    in service.serviceConfig.ExecStop
+        == "${server.boot.zfs.package}/bin/zpool export ${lib.escapeShellArg pool}"
+      && server.boot.zfs.pools.${pool}.devNodes == "/dev/mapper"
+      && !service.restartIfChanged
+      && !service.stopIfChanged
+      && service.serviceConfig.RemainAfterExit
+      && builtins.elem "shutdown.target" service.conflicts
+      && lib.all (dataset:
+        builtins.elem "${utils.escapeSystemdPath dataset.mountpoint}.mount" service.before
+      ) (builtins.attrValues layout.disko.devices.zpool.${pool}.datasets)
+  ) [ "backups" "fast" "tank" ]
+) "Every data pool must export after its mounts stop and before LUKS detach, without exporting during live switches";
 assert lib.assertMsg (
   builtins.attrNames server.boot.initrd.luks.devices == [ "crypt-root" ]
   && lib.hasInfix "fast-crypt ${disks.ssd.device}-part1 - tpm2-device=auto,tpm2-pcrs=7,tpm2-signature="
@@ -79,11 +109,14 @@ assert lib.assertMsg (
     && builtins.elem "nofail" dataset.mountOptions
     && builtins.elem "nofail" server.fileSystems.${dataset.mountpoint}.options
   ) ([ layout.disko.devices.zpool.fast.datasets.data ncdata ]
-    ++ map (name: layout.disko.devices.zpool.tank.datasets.${name}) [ "archive" "backup" "backup/recovery" ])
+    ++ [ layout.disko.devices.zpool.tank.datasets.archive ]
+    ++ builtins.attrValues layout.disko.devices.zpool.backups.datasets)
   && server.fileSystems.${ncdata.mountpoint}.device == "fast/ncdata"
   && lib.all (d:
-    let luks = d.content.partitions.crypt.content;
-    in luks.askPassword && !luks.initrdUnlock && !(luks.settings ? keyFile)
+    lib.all (partition:
+      let luks = partition.content;
+      in luks.askPassword && !luks.initrdUnlock && !(luks.settings ? keyFile)
+    ) (builtins.attrValues d.content.partitions)
   ) (builtins.attrValues disks)
 ) "Fresh provisioning must match runtime mounts and leave credential enrollment explicit";
 assert lib.assertMsg (
@@ -91,15 +124,32 @@ assert lib.assertMsg (
   && layout.disko.devices.zpool.tank.options.autoexpand == "on"
   && layout.disko.devices.zpool.tank.options.autoreplace == "off"
   && layout.disko.devices.zpool.tank.options.ashift == "12"
-  && hddNames == [ "tank1" "tank2" "tank3" ]
-  && builtins.attrNames disks == [ "ssd" "tank1" "tank2" "tank3" ]
+  && hddNames == [ "tank1" "tank2" "tank3" "tank4" ]
+  && backupNames == [ "backup1" "backup3" "backup4" ]
+  && builtins.attrNames disks == [ "ssd" "tank1" "tank2" "tank3" "tank4" ]
+  && layout.disko.devices.zpool.backups.mode == "raidz"
+  && builtins.attrNames layout.disko.devices.zpool.tank.datasets == [ "archive" ]
+  && builtins.attrNames layout.disko.devices.zpool.backups.datasets == [ "data" "data/recovery" ]
+  && server.fileSystems."/srv/backup".device == "backups/data"
   && lib.all (name:
     disks.${name}.device == physical.hdds.${name}
     && disks.${name}.content.partitions.crypt.content.name == "${name}-crypt"
+    && disks.${name}.content.partitions.crypt.size == physical.mainPartitionSize
+    && disks.${name}.content.partitions.crypt.content.content.pool == "tank"
     && lib.hasInfix "${name}-crypt ${disks.${name}.device}-part1 - tpm2-device=auto,tpm2-pcrs=7,tpm2-signature="
       server.environment.etc.crypttab.text
   ) hddNames
-) "Three-disk RAIDZ1 must provision and unlock every HDD using the same physical identities";
+  && builtins.attrNames disks.tank2.content.partitions == [ "crypt" ]
+  && lib.all (name:
+    let partitions = disks.${"tank" + lib.removePrefix "backup" name}.content.partitions;
+    in builtins.attrNames partitions == [ name "crypt" ]
+      && partitions.${name}.priority > partitions.crypt.priority
+      && partitions.${name}.content.name == "${name}-crypt"
+      && partitions.${name}.content.content.pool == "backups"
+      && lib.hasInfix "${name}-crypt ${physical.backupHdds.${name}}-part2 - tpm2-device=auto,tpm2-pcrs=7,tpm2-signature="
+        server.environment.etc.crypttab.text
+  ) backupNames
+) "Four main sections and three larger-drive tails must form separate RAIDZ1 pools with matching encrypted identities";
 assert lib.assertMsg (
   lib.sort builtins.lessThan (map (d: d.device) server.services.smartd.devices)
     == lib.sort builtins.lessThan (builtins.attrValues physical.ssds ++ builtins.attrValues physical.hdds)
@@ -115,19 +165,54 @@ assert lib.assertMsg (
     lib.hasInfix "-W 0,0,80" smartOptions.${device}
     && lib.hasInfix "-s (S/../.././12|L/../../7/13)" smartOptions.${device}
   ) (builtins.attrValues physical.ssds)
+  && lib.hasInfix "-i 194 " smartOptions.${physical.ssds.fast}
+  && lib.all (device: !(lib.hasInfix "-i 194" smartOptions.${device}))
+    ([ physical.ssds.root ] ++ builtins.attrValues physical.hdds)
   && lib.all (name:
     let options = smartOptions.${physical.hdds.${name}};
         schedule = {
           tank1 = "S/../.././12|L/../../7/14";
           tank2 = "S/../.././12|L/../../7/15";
           tank3 = "S/../.././12|L/../../7/13";
+          tank4 = "S/../.././12|L/../../7/16";
         }.${name};
     in lib.hasInfix "-W 0,0,55" options
       && lib.hasInfix "-s (${schedule})" options
   ) hddNames
   && server.services.zfs.autoScrub.enable
-  && server.services.zfs.autoScrub.pools == [ "fast" "tank" ]
+  && server.services.zfs.autoScrub.pools == [ "backups" "fast" "tank" ]
 ) "SMART must schedule daily short tests, weekly long tests, high-temperature-only warnings and pool scrubs";
+assert lib.assertMsg (
+  capacityPolicy.pools == [ "backups" "fast" "tank" ]
+  && capacityPolicy.warning_percent == 75
+  && capacityPolicy.critical_percent == 80
+  && capacityPolicy.reminder_hours == 24
+  && capacityPolicy.key_file == server.sops.secrets.nextcloud-resend.path
+  && lib.hasInfix " zfs-capacity /etc/zfs-capacity.json"
+    server.systemd.services.zfs-capacity-alerts.serviceConfig.ExecStart
+  && server.systemd.services.zfs-capacity-alerts.serviceConfig.StateDirectoryMode == "0700"
+  && server.systemd.services.zfs-capacity-alerts.serviceConfig.ProtectSystem == "strict"
+  && server.systemd.timers.zfs-capacity-alerts.timerConfig.OnCalendar == "*:0/5"
+  && server.systemd.timers.zfs-capacity-alerts.timerConfig.Persistent
+) "All pools must have persistent, non-destructive 75/80 percent capacity alerts with five-minute checks";
+assert lib.assertMsg (
+  lib.hasSuffix "/bin/gtrash put" server.environment.shellAliases.rm
+  && lib.all (name:
+    let
+      service = server.systemd.services."gtrash-prune-${name}";
+      timer = server.systemd.timers."gtrash-prune-${name}";
+    in service.serviceConfig.User == name
+      && lib.hasSuffix "/bin/gtrash prune --day 30 --force" service.serviceConfig.ExecStart
+      && service.serviceConfig.ProtectSystem == "full"
+      && service.serviceConfig.ProtectHome == false
+      && service.serviceConfig.NoNewPrivileges
+      && service.serviceConfig.SetLoginEnvironment
+      && service.environment.XDG_DATA_HOME == "${server.users.users.${name}.home}/.local/share"
+      && !(builtins.elem "zfs-import-tank.service" service.requires)
+      && timer.timerConfig.OnCalendar == "daily"
+      && timer.timerConfig.Persistent
+  ) [ "mirsella" "root" ]
+) "Interactive deletion must use gtrash and daily private pruning must retain 30 days without requiring optional pools";
 assert lib.assertMsg (
   server.services.restic.backups.fast.repository == "/srv/backup/restic"
   && server.services.restic.backups.fast.initialize
@@ -136,13 +221,19 @@ assert lib.assertMsg (
     "--keep-weekly 8"
     "--keep-monthly 6"
   ]
-  && lib.all (path: lib.hasInfix "/.zfs/snapshot/restic-backup" path)
-    server.services.restic.backups.fast.paths
+  && server.services.restic.backups.fast.paths == [
+    "/srv/data/fast/.zfs/snapshot/restic-backup"
+    "/var/lib/nextcloud/data/.zfs/snapshot/restic-backup"
+  ]
   && lib.hasInfix "zfs snapshot" server.services.restic.backups.fast.backupPrepareCommand
   && lib.hasInfix "zfs destroy" server.services.restic.backups.fast.backupCleanupCommand
   && server.systemd.timers.restic-check.timerConfig.Persistent
   && lib.all (name: server.services.sanoid.datasets.${name}.autosnap)
-    [ "fast/data" "fast/ncdata" "tank/archive" "tank/backup" ]
+    [ "fast/data" "fast/ncdata" "tank/archive" "backups/data" ]
+  && lib.all (unit:
+    builtins.elem "zfs-import-backups.service" server.systemd.services.${unit}.requires
+    && !(builtins.elem "zfs-import-tank.service" server.systemd.services.${unit}.requires)
+  ) [ "restic-backups-fast" "restic-check" ]
   && lib.all (dataset: dataset.recursive) (builtins.attrValues server.services.sanoid.datasets)
 ) "The SSD pool must be backed up nightly by restic from a throwaway snapshot, while HDD datasets keep their reliable sanoid snapshots";
 assert lib.assertMsg (
@@ -153,9 +244,9 @@ assert lib.assertMsg (
   ) [ "db-backup" "recovery-backup" ]
   && lib.toList server.systemd.timers.recovery-backup.timerConfig.OnCalendar == [ "Sun 23:10" ]
   && lib.toList server.systemd.timers.db-backup.timerConfig.OnCalendar == [ "23:00" ]
-  && server.fileSystems."/srv/backup/recovery".device == "tank/backup/recovery"
-  && layout.disko.devices.zpool.tank.datasets."backup/recovery".mountpoint == "/srv/backup/recovery"
-  && layout.disko.devices.zpool.tank.datasets."backup/recovery".options.mountpoint == "legacy"
+  && server.fileSystems."/srv/backup/recovery".device == "backups/data/recovery"
+  && layout.disko.devices.zpool.backups.datasets."data/recovery".mountpoint == "/srv/backup/recovery"
+  && layout.disko.devices.zpool.backups.datasets."data/recovery".options.mountpoint == "legacy"
   && builtins.elem "nofail" server.fileSystems."/srv/backup/recovery".options
 ) "Database and recovery bundles must share a private legacy mount without blocking boot on failure";
 assert lib.assertMsg (
@@ -164,10 +255,10 @@ assert lib.assertMsg (
   && server.systemd.services.hermes-backup.unitConfig.RequiresMountsFor == [ "/srv/backup" ]
   && server.systemd.services.hermes-backup.serviceConfig.UMask == "0077"
   && server.systemd.timers.hermes-backup.timerConfig.Persistent
-  && server.fileSystems."/srv/backup".device == "tank/backup"
+  && server.fileSystems."/srv/backup".device == "backups/data"
   && lib.any (path: lib.hasInfix "util-linux" (toString path)) server.systemd.services.hermes-backup.path
   && builtins.elem pkgs.gzip server.systemd.services.hermes-backup.path
-) "Hermes runtime state must be backed up daily to the mounted Tank dataset";
+) "Hermes runtime state must be backed up daily to the mounted backups dataset";
 assert lib.assertMsg (
   server.systemd.services.caddy.serviceConfig.Restart == "on-failure"
 ) "The server's web proxy must retry transient startup failures";
