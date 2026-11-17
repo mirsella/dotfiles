@@ -358,6 +358,8 @@ in
           };
         };
 
+        klipperrc.General.MaxClipItems = 1000;
+
         krunnerrc = {
           General = {
             FreeFloating = true;
