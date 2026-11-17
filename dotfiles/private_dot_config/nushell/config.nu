@@ -15,7 +15,8 @@ $env.config.history.max_size = 100000
 $env.config.rm.always_trash = true
 $env.config.highlight_resolved_externals = true
 $env.config.float_precision = 4
-$env.config.keybindings = [
+# Preserve Nushell's default menu bindings, including Tab and Shift-Tab.
+$env.config.keybindings ++= [
   {
     name: menu_accept
     modifier: control
