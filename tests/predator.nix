@@ -185,7 +185,7 @@ assert lib.assertMsg (
 assert lib.assertMsg (
   capacityPolicy.pools == [ "backups" "fast" "tank" ]
   && capacityPolicy.warning_percent == 75
-  && capacityPolicy.critical_percent == 80
+  && capacityPolicy.critical_percent == 90
   && capacityPolicy.reminder_hours == 24
   && capacityPolicy.key_file == server.sops.secrets.nextcloud-resend.path
   && lib.hasInfix " zfs-capacity /etc/zfs-capacity.json"

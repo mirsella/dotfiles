@@ -41,7 +41,7 @@ let
     zfs = "${config.boot.zfs.package}/bin/zfs";
     pools = builtins.attrNames (import ../../disko.nix).disko.devices.zpool;
     warning_percent = 75;
-    critical_percent = 80;
+    critical_percent = 90;
     reminder_hours = 24;
     key_file = config.sops.secrets.nextcloud-resend.path;
     inherit recipient;

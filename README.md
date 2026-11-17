@@ -979,7 +979,7 @@ All three pools receive a monthly scrub; Sanoid retains daily and weekly snapsho
 These snapshots and database dumps are on-machine backups, not off-machine copies.
 
 `zfs-capacity-alerts` checks all three pools every five minutes and emails at
-75% and 80% usage. It uses each pool root's `used / (used + available)`, including
+75% and 90% usage. It uses each pool root's `used / (used + available)`, including
 child datasets and snapshots, rather than RAIDZ raw/parity allocation.
 Persistent alerts repeat daily; each alert level clears five percentage points
 below its threshold. State is root-only under `/var/lib/zfs-capacity-alerts`.
