@@ -272,6 +272,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 06:00 | `aged-3-dry`, `aged-3-s3` | planned dry runs ×5, then real S3; prepared generation 183 baseline | 14 h 57 min at timer trigger | refused before snapshots, dry runs or real S3; zero requests | moved later for Ente uploads |
 | Nov 18 20:40 | `aged-4` scheduling check | read-only timer and baseline checks | 9 h 53 min | timer correct; mount guard would refuse; zero requests | |
 | Nov 18 21:00 | `aged-4-dry`, `aged-4-s3` | planned dry runs ×5, then real S3 on generation 189 | 10 h 13 min | command parse error; zero requests | |
+| Nov 18 21:55 | `aged-5` scheduling check | read-only timer and baseline checks | 11 h 8 min | timer correct; preflight passed; zero requests | |
 | Nov 18 22:15 | `aged-5-dry`, `aged-5-s3` | same control on the same boot, with corrected trial command | ~11 h 28 min if uninterrupted | pending | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
@@ -407,6 +408,16 @@ Only the concluded `pm-aged-4.service` failure flag was cleared. No boot,
 storage, or Ente process changed, so `fresh-4` is still the matched snapshot.
 `pm-aged-5.timer` was verified active for 22:15 CET with its service inactive;
 the T3 checks now run at 21:55 and 22:40.
+
+At the 21:55 check, the timer was waiting for exactly
+`2026-11-18 22:15:00 Europe/Paris`. Both live units matched the prepared
+copies, with no drop-ins, and all three prepared SHA-256 checks passed.
+The control's read-only `check` mode passed with the trial's pinned arguments
+and confirmed the boot, generation, storage and maintenance guards. The
+boot audit passed for all nine volumes. There were no `aged-5` logs or STOP
+flag and the suspend counters stayed 0/0. Ente was running. No repair was
+needed; the timer and inactive trial service were left unchanged. The
+22:40 results check remains scheduled.
 
 ## Machine facts
 
