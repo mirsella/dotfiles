@@ -129,31 +129,29 @@ Work through this in order. Record every run in the results table.
    `pm-aged-1.timer` on November 16 at 17:40:09 during storage migration.
    No `aged-1` logs exist, and the old boot's journal has no suspend after
    November 16 at 16:20. This is a cancellation with zero requests.
-2. `aged-3` is armed for November 18, 06:00, about 14 h 57 min after the
-   November 17, 15:02:38 boot. The owner moved it from 01:00 to leave time for
-   Ente photo uploads. Do not stop or restart Ente, its dependencies or the
-   upload, and do not reboot to make this trial run.
-   The trial was prepared on booted generation 183. Ente setup subsequently
-   activated newer generations without a reboot. The November 18, 05:40 check
-   found generation 187 activated, so the prepared system guard and boot audit
-   still block it. The timer is correctly scheduled; no repair was needed.
-   Leave the guards intact and do not rearm a changed baseline to bypass them.
-   The earlier 11:48:34 reboot removed `pm-aged-2` before it ran.
-   Sequence: snapshot, five `core` dry runs, one real S3 with a 120 s alarm,
-   then snapshot. Before both the dry runs and real request, guards check
-   boot/system identity, expected suspend counters, age, inhibitors,
+2. Testing is paused awaiting the owner. `aged-3` fired November 18 at 06:00
+   and refused at 06:00:01 because `/run/current-system` had changed from its
+   prepared generation 183. No snapshot, dry run or real suspend request ran.
+   Generation 187 is activated while generation 183 remains booted, and the
+   boot audit still refuses. Do not stop or restart Ente, its dependencies or
+   uploads; do not reboot or change guards to make a trial run. No replacement
+   trial or automatic retry check is scheduled.
+   After an owner-approved path to a booted, audited baseline, prepare a new
+   control as `aged-4`, not a repaired `aged-3`. Capture a fresh snapshot and
+   require at least nine hours since the new boot or last real resume.
+   Keep the planned sequence: snapshot, five `core` dry runs, one real S3 with
+   a 120 s alarm, then snapshot. Before both dry runs and the real request,
+   check boot/system identity, expected suspend counters, age, inhibitors,
    maintenance, failed units, pool identities, mounts and the boot audit.
    If the real request returns, run a plain aged control next without dry
-   runs, because they may have changed the relevant state. If the baseline
-   remains invalid, record zero requests and wait for an owner-approved path
-   to a booted, audited baseline. Any new boot needs its own fresh snapshot
-   and at least nine hours awake; do not blindly move this trial's guards.
-3. Compare `fresh-3.snapshot.txt` with `aged-3-before.snapshot.txt` after that
-   trial. `fresh-3` was captured November 17 at 15:05:33, about three minutes
-   after boot. Check device power states, EC memory, Management Engine status,
-   PCH registers and disk power mode. Differences are leads, not causes.
-   Neither `fresh-1` nor `fresh-2` is a matched control for this deployment.
-   `fresh-3` also does not cover the subsequent Ente activation.
+   runs, because they may have changed the relevant state. The refusal gave
+   no new evidence about the suspend hang, so do not advance to changed arms.
+3. Compare matched fresh and aged snapshots from the next prepared baseline.
+   Check device power states, EC memory, Management Engine status, PCH registers
+   and disk power mode. Differences are leads, not causes. `fresh-1` and
+   `fresh-2` are unmatched to the changed deployment. `fresh-3`, captured
+   November 17 at 15:05:33, predates Ente activation; `aged-3-before` was never
+   created. Do not treat them as a matched pair.
 4. Firmware handler bypass, short awake. `pm-batch <label> s3 3 60 30 nosmi`
    clears `SLP_SMI_EN` before each request so the chipset sleeps without the
    firmware handler. Check that all three return, that the meter shows about
@@ -214,10 +212,10 @@ with no restart or recovery action; a reboot removes them.
 
 ### November 18 scheduling check
 
-The owner's window is 06:00 CET. A separate T3 check at 05:40 verifies the
-timer and may repair only the study's scheduling units. It must not run a dry
-batch or real suspend early, interrupt uploads, restart Ente, or reboot.
-The results check runs at 06:30.
+The owner's window was 06:00 CET. The 05:40 scheduling check and 06:30 results
+check have completed. The trial refused before any request, and no replacement
+is armed. The following repair instructions describe that prepared trial;
+they do not authorize replaying it or changing its baseline.
 
 Prepared copies of the guarded service and the 06:00 timer are in
 `/home/mirsella/dev/scratch/predator-suspend/prepared-aged-3-20261118/`,
@@ -277,7 +275,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 17 02:00 | `aged-1-dry`, `aged-1-s3` | planned dry runs ×5, then real S3 | not applicable | cancelled before execution; zero requests | timer stopped Nov 16 17:40:09 |
 | Nov 17 18:00 | `aged-2-dry`, `aged-2-s3` | planned same sequence on generation 177 and new storage layout | not applicable | timer removed by 11:48:34 reboot; zero requests | |
 | Nov 18 05:40 | `aged-3` scheduling check | read-only timer and baseline checks | 14 h 38 min | timer correct; baseline blocked; zero requests | Ente left running |
-| Nov 18 06:00 | `aged-3-dry`, `aged-3-s3` | planned dry runs ×5, then real S3; prepared generation 183 baseline | expected 14 h 57 min before dry runs | pending; 05:40 check confirms system and audit guards would refuse | moved later for Ente uploads |
+| Nov 18 06:00 | `aged-3-dry`, `aged-3-s3` | planned dry runs ×5, then real S3; prepared generation 183 baseline | 14 h 57 min at timer trigger | refused before snapshots, dry runs or real S3; zero requests | moved later for Ente uploads |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -317,15 +315,15 @@ Postgres, S3 and web containers were running, but current/profile had advanced
 to generation 186 while generation 183 remained booted.
 `predator-boot audit` refused with "activated generation not booted".
 
-Only the study timer was rescheduled. `pm-aged-3.timer` is confirmed active
+Only the study timer was rescheduled. `pm-aged-3.timer` was confirmed active
 for November 18, 06:00 CET, with 1 s accuracy, no persistence and no restart.
 Its service and guards are unchanged. Ente container PIDs and activation
 timestamps were unchanged across the timer update. No suspend, service
 restart, deployment or reboot was performed.
 
-T3 checks are enabled for November 18 at 05:40, to verify or safely repair
-scheduling, and 06:30, to read results. The old 01:30 results check was moved,
-not duplicated. No automatic recovery is configured.
+T3 checks were set for November 18 at 05:40, to verify or safely repair
+scheduling, and 06:30, to read results. Both have now run. The old 01:30 results
+check was moved, not duplicated. No automatic recovery is configured.
 
 At November 18, 05:40:39, `pm-aged-3.timer` was active with exactly
 `2026-11-18 06:00:00 Europe/Paris` as its next trigger. The service was inactive,
@@ -344,13 +342,33 @@ The existing guarded timer was left unchanged to refuse safely. No service
 restart, activation, reboot or guard bypass was performed. The existing 06:30
 results check remains responsible for recording the actual timer outcome.
 
+At November 18, 06:30:30, Predator was reachable in the same boot. The journal
+records the service starting at 06:00:00 and exiting at 06:00:01 with status 1:
+`Aged control refused: system changed: /run/current-system`.
+This happened in the first preflight, before the runner or snapshots started.
+No `aged-3` logs exist, suspend success/fail counters remain zero, `pm_test` is
+none, deep is selected and the RTC alarm is empty. This is a guard refusal,
+not a suspend hang or a successful control.
+
+The one-shot timer deactivated after firing and is now absent. Its service
+remains failed with the refusal recorded; it is the only failed unit.
+Current/profile are still generation 187, booted is generation 183, and the
+boot audit still refuses with "activated generation not booted". All three
+pools are healthy with no running scan; pool GUIDs and all five mounts match
+the saved baseline. No jobs, checked maintenance services or blocking
+inhibitors are active. Nextcloud is out of maintenance. All four Ente services
+are active with the same PIDs and activation times as at 05:40.
+No services were changed, no trial was rearmed, and no further check was
+scheduled. Resume only after the owner permits establishing an audited
+baseline without disrupting uploads.
+
 ## Machine facts
 
 - Current boot began November 17 at 15:02:38
   (boot `72a5ba34-16e5-4d6f-8566-a4b6cf69e538`).
   Booted system is generation 183:
   `/nix/store/mgm9m1nj9rlicz4xdhxw5v177frd9g8b-nixos-system-predator-26.11.20261023.3ec6363`.
-  Current system/profile at November 18, 05:40 are generation 187:
+  Current system/profile at November 18, 06:30 are generation 187:
   `/nix/store/wi3njsj4na5qn9ldk1rslkxdyd4m4zq9-nixos-system-predator-26.11.20261023.3ec6363`.
   Linux remains 6.18.58. The boot audit is blocked until the activated
   generation is booted; do not reboot during the owner's Ente upload.
