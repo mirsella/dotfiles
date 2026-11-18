@@ -134,11 +134,11 @@ Work through this in order. Record every run in the results table.
    Ente photo uploads. Do not stop or restart Ente, its dependencies or the
    upload, and do not reboot to make this trial run.
    The trial was prepared on booted generation 183. Ente setup subsequently
-   activated generation 186 without a reboot, so the prepared system guard
-   and boot audit currently block it. Leave those guards intact. A scheduled
-   05:40 check verifies or repairs the timer, but must report an invalid
-   baseline instead of bypassing it. The earlier 11:48:34 reboot removed
-   `pm-aged-2` before it ran.
+   activated newer generations without a reboot. The November 18, 05:40 check
+   found generation 187 activated, so the prepared system guard and boot audit
+   still block it. The timer is correctly scheduled; no repair was needed.
+   Leave the guards intact and do not rearm a changed baseline to bypass them.
+   The earlier 11:48:34 reboot removed `pm-aged-2` before it ran.
    Sequence: snapshot, five `core` dry runs, one real S3 with a 120 s alarm,
    then snapshot. Before both the dry runs and real request, guards check
    boot/system identity, expected suspend counters, age, inhibitors,
@@ -276,7 +276,8 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 16 16:15 | `validate-dry-2` | dry run ×2, rebuilt runner | 10 min | 2 of 2 returned | |
 | Nov 17 02:00 | `aged-1-dry`, `aged-1-s3` | planned dry runs ×5, then real S3 | not applicable | cancelled before execution; zero requests | timer stopped Nov 16 17:40:09 |
 | Nov 17 18:00 | `aged-2-dry`, `aged-2-s3` | planned same sequence on generation 177 and new storage layout | not applicable | timer removed by 11:48:34 reboot; zero requests | |
-| Nov 18 06:00 | `aged-3-dry`, `aged-3-s3` | planned dry runs ×5, then real S3; prepared generation 183 baseline | expected 14 h 57 min before dry runs | pending; current system and audit guards would refuse | moved later for Ente uploads |
+| Nov 18 05:40 | `aged-3` scheduling check | read-only timer and baseline checks | 14 h 38 min | timer correct; baseline blocked; zero requests | Ente left running |
+| Nov 18 06:00 | `aged-3-dry`, `aged-3-s3` | planned dry runs ×5, then real S3; prepared generation 183 baseline | expected 14 h 57 min before dry runs | pending; 05:40 check confirms system and audit guards would refuse | moved later for Ente uploads |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -326,14 +327,31 @@ T3 checks are enabled for November 18 at 05:40, to verify or safely repair
 scheduling, and 06:30, to read results. The old 01:30 results check was moved,
 not duplicated. No automatic recovery is configured.
 
+At November 18, 05:40:39, `pm-aged-3.timer` was active with exactly
+`2026-11-18 06:00:00 Europe/Paris` as its next trigger. The service was inactive,
+its stored command matched the prepared copy, both prepared unit hashes passed,
+and the runner hash was unchanged. No `aged-3` logs or STOP flag existed;
+suspend success/fail counters were still zero. No repair or early dry/suspend
+request was made.
+
+The boot was unchanged, but current/profile had advanced to generation 187,
+activated at 00:23:08. The audit still refused with
+"activated generation not booted". All pools were healthy with no running scan;
+pool GUIDs and mounts matched the saved baseline. No failed units, systemd jobs,
+active checked maintenance services or blocking inhibitors were present.
+Nextcloud was out of maintenance and all four Ente services were active.
+The existing guarded timer was left unchanged to refuse safely. No service
+restart, activation, reboot or guard bypass was performed. The existing 06:30
+results check remains responsible for recording the actual timer outcome.
+
 ## Machine facts
 
 - Current boot began November 17 at 15:02:38
   (boot `72a5ba34-16e5-4d6f-8566-a4b6cf69e538`).
   Booted system is generation 183:
   `/nix/store/mgm9m1nj9rlicz4xdhxw5v177frd9g8b-nixos-system-predator-26.11.20261023.3ec6363`.
-  Current system/profile are generation 186:
-  `/nix/store/0k8cxwp553g4y1sllwsfwahry04dy2ks-nixos-system-predator-26.11.20261023.3ec6363`.
+  Current system/profile at November 18, 05:40 are generation 187:
+  `/nix/store/wi3njsj4na5qn9ldk1rslkxdyd4m4zq9-nixos-system-predator-26.11.20261023.3ec6363`.
   Linux remains 6.18.58. The boot audit is blocked until the activated
   generation is booted; do not reboot during the owner's Ente upload.
 - Lid closed. The owner remembers hangs with the lid open as well.
