@@ -146,12 +146,13 @@ Work through this in order. Record every run in the results table.
    `fresh-3`, captured November 17 at 15:05:33, predates Ente activation;
    `aged-3-before` was never created. Do not treat them as a matched pair.
 4. Firmware handler bypass, short awake. `pm-batch <label> s3 3 60 30 nosmi`
-   clears `SLP_SMI_EN` before each request so the chipset sleeps without the
-   firmware handler. Check that all three return, that the meter shows about
-   3 W, and that the machine is healthy afterwards. A failed resume here needs
-   a power-button hold. Run this next only in an agreed window when the owner
-   can watch the meter and recover the machine if needed. If it does not work,
-   drop the arm.
+   clears `SLP_SMI_EN` before each request to bypass the firmware sleep
+   handler. Check for three normal RTC-timed returns, observed sleep power
+   near 3 W and a healthy system with `SLP_SMI_EN` restored. The owner
+   approved the November 19 overnight run and can check the meter history
+   and recover the machine after 09:00 if it hangs. If the test returns but
+   the meter history is unavailable, record the software result and wait
+   for the graph before declaring a pass. Drop the arm if the bypass fails.
 5. Firmware handler bypass, aged. Two aged trials with `nosmi`, then reverse
    to a matched control. Returns would support involvement of the handler;
    they would not prove a safe permanent workaround without further testing.
@@ -205,35 +206,48 @@ in the `aged-4` command before Bash could read them. Use `check` instead of
 `run` to verify all initial guards without running the batch. Timers are
 non-persistent, with no restart or recovery action; a reboot removes them.
 
-### `aged-5` scheduling check
+### Short bypass scheduling check
 
-The T3 precheck runs November 18 at 21:55 CET and the results check at
-22:40 CET. The prepared binary, two unit files and `SHA256SUMS` are in
-`/home/mirsella/dev/scratch/predator-suspend/prepared-aged-5-20261118/`.
-Check all three hashes there, compare loaded unit files with the prepared
-copies and inspect `systemctl cat pm-aged-5.service`. As root, invoke the
-prepared binary with the **same arguments as `ExecStart`**, replacing
-`run` with `check`. This verifies the pinned baseline and trial age, counters,
-storage, inhibitors, maintenance, boot audit and absence of trial logs or
-STOP. Never start the trial service or run a dry or real suspend at precheck.
+`pm-nosmi-short-1.timer` is set for November 19 at 01:30 CET. The T3 precheck
+is at 01:10 CET and the results check is at 01:55 CET. The prepared binary,
+two unit files and `SHA256SUMS` are in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-nosmi-short-1-20261119/`.
+`pm-aged-control` selects the short bypass for a `nosmi-short-N` label. It
+requires a boot under four hours old with suspend counters at 0/0, takes a
+before snapshot, repeats the preflight and then runs three S3 requests
+with 60 s RTC alarms and 30 s gaps. It takes an after snapshot if the batch
+returns. It does not run any dry cycles.
 
-Repair only before 22:15 CET, if no one cancelled the trial, the checks pass,
-the service is inactive or missing, and only scheduling is wrong. If the
-timer is missing, install its saved unit into `/run/systemd/system/`,
+Verify all three prepared hashes, compare the loaded units with their saved
+copies and inspect `systemctl cat pm-nosmi-short-1.service`. As root, invoke
+the prepared binary with the **same arguments as `ExecStart`**, replacing
+`run` with `check`. This checks the pinned baseline, age, counters, storage,
+inhibitors, maintenance, boot audit and absence of trial logs or STOP. Do not
+start the trial service or run a batch at precheck.
+
+Repair only before 01:30 CET, if no one cancelled the trial, the checks
+pass, the service is inactive or missing, and only scheduling is wrong.
+If the timer is missing, install its saved unit into `/run/systemd/system/`,
 restoring the service from its saved copy only if it is also missing. If
 only the time is wrong, keep the service unchanged and set
-`/run/systemd/system/pm-aged-5.timer.d/schedule.conf` to:
+`/run/systemd/system/pm-nosmi-short-1.timer.d/schedule.conf` to:
 
 ```ini
 [Timer]
 OnCalendar=
-OnCalendar=2026-11-18 22:15:00 Europe/Paris
+OnCalendar=2026-11-19 01:30:00 Europe/Paris
 ```
 
-Then reload systemd and start or restart only the timer. Confirm the next
-trigger with `systemctl show pm-aged-5.timer -p NextElapseUSecRealtime`.
+Then reload systemd and start or restart only the timer. Confirm the trigger
+with `systemctl show pm-nosmi-short-1.timer -p NextElapseUSecRealtime`.
 If a check fails or runs late, report the blocker without changing the
 baseline or replaying a trial.
+
+If the short test passes, schedule only the first aged bypass. Count at
+least nine hours from the last actual resume, pin the post-batch counters
+and verify the elapsed time again at launch. The current short-arm mode
+does not implement these aged-bypass guards. Do not reuse that mode for an
+aged trial.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -274,6 +288,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 21:55 | `aged-5` scheduling check | read-only timer and baseline checks | 11 h 8 min | timer correct; preflight passed; zero requests | |
 | Nov 18 22:15 | `aged-5-dry` | five `core` dry cycles on generation 189 | 11 h 28 min at first request | 5 of 5 returned, no abnormal cycles | |
 | Nov 18 22:17 | `aged-5-s3` | unmodified real S3, 120 s RTC alarm | 11 h 30 min | one request, no return; owner forced reboot | hung at 15 W, power LED on, fan running; any brief dip unreported |
+| Nov 19 01:30 | `nosmi-short-1-s3` | firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | pending | overnight run approved, owner available after 09:00 |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -444,7 +459,14 @@ separate an effect of awake time from workload or temperature.
 After recovery, the three generation 189 system links still matched, all
 nine volumes passed the boot audit, and all three pools and five mounts
 matched the baseline. By 23:00 all four Ente services were running and
-no jobs or failed units remained. No new trial or scheduler check was armed.
+no jobs or failed units remained.
+
+At scheduling, the recovery boot and generation 189 links still matched,
+the audit passed and storage matched the saved baseline. Suspend counters
+were 0/0, with no trial logs or STOP. The prepared units passed systemd
+verification, and the timer read back as active for 01:30 CET with the
+service inactive. Runtime preflight will recheck maintenance after the
+backup window. No early suspend or automatic recovery is configured.
 
 ## Machine facts
 

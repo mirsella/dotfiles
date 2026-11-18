@@ -1,4 +1,4 @@
-// Guarded dry-run + S3 control. "check" runs the initial preflight only.
+// Guarded suspend study trials. "check" runs the initial preflight only.
 use std::env;
 use std::fs;
 use std::io;
@@ -60,7 +60,40 @@ fn mount_rows(text: &str) -> Vec<&str> {
     rows
 }
 
+enum Arm {
+    AgedControl,
+    ShortBypass,
+}
+
+impl Arm {
+    fn from_label(label: &str) -> Result<Self> {
+        for (prefix, arm) in [
+            ("aged-", Self::AgedControl),
+            ("nosmi-short-", Self::ShortBypass),
+        ] {
+            if label
+                .strip_prefix(prefix)
+                .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+            {
+                return Ok(arm);
+            }
+        }
+        Err(format!("invalid trial label: {label}").into())
+    }
+
+    fn check_age(&self, uptime: f64) -> Result<()> {
+        match self {
+            Self::AgedControl => require(uptime >= 32_400.0, "less than nine hours awake"),
+            Self::ShortBypass => require(
+                (0.0..14_400.0).contains(&uptime),
+                "short bypass requires less than four hours since boot",
+            ),
+        }
+    }
+}
+
 struct Baseline<'a> {
+    arm: Arm,
     label: &'a str,
     boot: &'a str,
     system: &'a str,
@@ -100,7 +133,8 @@ impl Baseline<'_> {
             .next()
             .ok_or("missing uptime")?
             .parse()?;
-        require(awake >= 32_400.0, "less than nine hours awake")?;
+        // The short arm is pinned to a boot with no intervening suspends.
+        self.arm.check_age(awake)?;
         let clock: u32 = output("date", &["+%H%M"])?.trim().parse()?;
         require((30..2300).contains(&clock), "backup exclusion window")?;
 
@@ -187,7 +221,10 @@ impl Baseline<'_> {
             "Nextcloud maintenance or unknown status",
         )?;
         print!("{}", output("predator-boot", &["audit"])?);
-        println!("Aged control preflight passed, uptime {awake:.0} seconds, expected successes {successes}");
+        println!(
+            "{} preflight passed, uptime {awake:.0} seconds, expected successes {successes}",
+            self.label
+        );
         Ok(())
     }
 
@@ -204,15 +241,26 @@ impl Baseline<'_> {
 
     fn run(&self) -> Result<()> {
         self.preflight("0")?;
-        let result = self
-            .batch("before", &["snapshot"])
-            .and_then(|()| self.batch("dry", &["dry", "5", "30", "10"]))
-            .and_then(|()| self.preflight("5"))
+        self.batch("before", &["snapshot"])?;
+        let setup = match self.arm {
+            Arm::AgedControl => self
+                .batch("dry", &["dry", "5", "30", "10"])
+                .and_then(|()| self.preflight("5")),
+            Arm::ShortBypass => self.preflight("0"),
+        };
+        let s3: &[&str] = match self.arm {
+            Arm::AgedControl => &["s3", "1", "120", "30"],
+            Arm::ShortBypass => &["s3", "3", "60", "30", "nosmi"],
+        };
+        let result = setup
             .and_then(|()| output("sync", &[]).map(|_| ()))
-            .and_then(|()| self.batch("s3", &["s3", "1", "120", "30"]));
+            .and_then(|()| self.batch("s3", s3));
         let after = self.batch("after", &["snapshot"]);
         if let (Err(first), Err(second)) = (&result, &after) {
-            eprintln!("Aged control: {first}; after snapshot also failed: {second}");
+            eprintln!(
+                "{}: {first}; after snapshot also failed: {second}",
+                self.label
+            );
         }
         result.and(after)
     }
@@ -221,17 +269,18 @@ impl Baseline<'_> {
 fn main() -> ExitCode {
     let args: Vec<_> = env::args().collect();
     let [_, mode, label, boot, system, runner_hash, storage] = args.as_slice() else {
-        eprintln!("Usage: pm-aged-control <check|run> <aged-N> <boot-id> <system> <runner-sha256> <storage-records>");
+        eprintln!("Usage: pm-aged-control <check|run> <aged-N|nosmi-short-N> <boot-id> <system> <runner-sha256> <storage-records>");
         return ExitCode::FAILURE;
     };
-    if !label
-        .strip_prefix("aged-")
-        .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
-    {
-        eprintln!("Invalid aged control label: {label}");
-        return ExitCode::FAILURE;
-    }
+    let arm = match Arm::from_label(label) {
+        Ok(arm) => arm,
+        Err(err) => {
+            eprintln!("{err}");
+            return ExitCode::FAILURE;
+        }
+    };
     let baseline = Baseline {
+        arm,
         label,
         boot,
         system,
@@ -246,7 +295,7 @@ fn main() -> ExitCode {
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("Aged control stopped: {err}");
+            eprintln!("{label} stopped: {err}");
             ExitCode::FAILURE
         }
     }
@@ -254,7 +303,19 @@ fn main() -> ExitCode {
 
 #[cfg(test)]
 mod tests {
-    use super::mount_rows;
+    use super::{mount_rows, Arm};
+
+    #[test]
+    fn each_label_selects_its_own_age_window() {
+        let control = Arm::from_label("aged-5").unwrap();
+        assert!(control.check_age(32_399.0).is_err());
+        assert!(control.check_age(32_400.0).is_ok());
+        let short = Arm::from_label("nosmi-short-1").unwrap();
+        assert!(short.check_age(14_399.0).is_ok());
+        assert!(short.check_age(14_400.0).is_err());
+        assert!(Arm::from_label("nosmi-short-").is_err());
+        assert!(Arm::from_label("nosmi-short-1-s3").is_err());
+    }
 
     #[test]
     fn mount_order_is_ignored_but_mount_changes_are_not() {
