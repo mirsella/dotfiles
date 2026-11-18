@@ -133,25 +133,25 @@ Work through this in order. Record every run in the results table.
 2. `aged-3` fired November 18 at 06:00 and refused before any requests because
    `/run/current-system` no longer matched its prepared generation 183.
    After Predator booted generation 189, `aged-4` fired at 21:00 but failed
-   before making any requests. `aged-5` was the same control on the same boot,
-   scheduled for November 18 at 22:15 CET. Predator was unreachable at the
-   results check, so a trial hang is suspected but the stage is unknown.
-   Wait for the owner to check and recover the machine. Then read the trial
-   logs and previous boot's journal before choosing another arm. If the
-   real request returned, run a plain aged control next without dry runs,
-   because they may have changed the relevant state. Neither `aged-3` nor
-   `aged-4` tested suspend.
-3. Compare `fresh-4` with `aged-5-before` if the latter is captured and the
-   baseline stays unchanged. Check device power states, EC memory, Management
-   Engine status, PCH registers and disk power mode. Differences are leads,
-   not causes. `fresh-1` and `fresh-2` are unmatched to the changed deployment.
+   before making any requests. `aged-5` reproduced the hang on generation
+   189: all five dry cycles returned, then the real S3 request did not.
+   This is enough to move on to a changed arm without repeating this control.
+   Neither `aged-3` nor `aged-4` tested suspend.
+3. The matched `fresh-4` and `aged-5-before` snapshots show changes in PCH
+   Management Engine power-state readings, the ME status data and EC RAM.
+   PCI/USB power-state readings, disk power modes and the captured PCH
+   registers were unchanged. The snapshots are single samples at different
+   loads and temperatures; the differences are leads, not causes.
+   `fresh-1` and `fresh-2` are unmatched to the changed deployment.
    `fresh-3`, captured November 17 at 15:05:33, predates Ente activation;
    `aged-3-before` was never created. Do not treat them as a matched pair.
 4. Firmware handler bypass, short awake. `pm-batch <label> s3 3 60 30 nosmi`
    clears `SLP_SMI_EN` before each request so the chipset sleeps without the
    firmware handler. Check that all three return, that the meter shows about
    3 W, and that the machine is healthy afterwards. A failed resume here needs
-   a power-button hold. If this does not work, drop the arm.
+   a power-button hold. Run this next only in an agreed window when the owner
+   can watch the meter and recover the machine if needed. If it does not work,
+   drop the arm.
 5. Firmware handler bypass, aged. Two aged trials with `nosmi`, then reverse
    to a matched control. Returns would support involvement of the handler;
    they would not prove a safe permanent workaround without further testing.
@@ -272,7 +272,8 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 20:40 | `aged-4` scheduling check | read-only timer and baseline checks | 9 h 53 min | timer correct; mount guard would refuse; zero requests | |
 | Nov 18 21:00 | `aged-4-dry`, `aged-4-s3` | planned dry runs ×5, then real S3 on generation 189 | 10 h 13 min | command parse error; zero requests | |
 | Nov 18 21:55 | `aged-5` scheduling check | read-only timer and baseline checks | 11 h 8 min | timer correct; preflight passed; zero requests | |
-| Nov 18 22:15 | `aged-5-dry`, `aged-5-s3` | same control on the same boot, with corrected trial command | ~11 h 28 min at scheduled trigger | presumed hang; dry and real S3 outcomes not yet verified | meter, LED and fan observations pending |
+| Nov 18 22:15 | `aged-5-dry` | five `core` dry cycles on generation 189 | 11 h 28 min at first request | 5 of 5 returned, no abnormal cycles | |
+| Nov 18 22:17 | `aged-5-s3` | unmodified real S3, 120 s RTC alarm | 11 h 30 min | one request, no return; owner forced reboot | hung at 15 W, power LED on, fan running; any brief dip unreported |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -417,20 +418,39 @@ boot audit passed for all nine volumes. There were no `aged-5` logs or STOP
 flag and the suspend counters stayed 0/0. Ente was running. No repair was
 needed; the timer and inactive trial service were left unchanged.
 
-From 22:40:38 to 22:51:04, Predator did not answer SSH, including direct LAN
-attempts. The Pi could not reach it on the LAN at either end of that window.
-The last confirmed state is the passing precheck. The outage after the
-scheduled trigger is consistent with a hang, but the unit journal, dry and
-S3 logs, suspend counters and `aged-5-before` snapshot could not be read.
-Do not yet count a real S3 request or compare snapshots. No recovery was
-attempted and no further trial was armed. After the owner restores access,
-check health and read the two batch logs and the previous boot's unit journal.
+From 22:40:38 to 22:51:04, Predator was unreachable from the laptop and Pi.
+The owner reported a hang at 15 W with the power LED on and the fan running,
+then forced a reboot. The new boot began around 22:57. It is not yet known
+whether the meter dipped before settling at 15 W.
+
+The recovered journal shows that the timer fired at 22:15:00 and both
+preflights passed. All five `core` dry cycles returned in 6.8 to 8.5 s each,
+each adding one success and no failures. At 22:17:07 `aged-5-s3.jsonl`
+recorded a real request with `pm_test=none`, `deep` selected and a 120 s RTC
+alarm. Its last event is `enter`; there is no `return`, `done` or after
+snapshot. The kernel journal has five dry-run exits and no exit for the real
+request. That places the hang in the real suspend attempt, but does not
+establish how far the machine got into sleep or resume.
+
+Both matched snapshots have boot `3d404152-4566-418d-ab75-2ecec49b3b8f`.
+`fresh-4` was taken about four minutes into boot and `aged-5-before` after
+11 h 28 min. Several CSME blocks in the PMC readings changed from Off to On;
+the second ME status word changed from `03F10506` to `83210506`, and several
+EC RAM bytes differed. The captured `SMI_EN` stayed `0x80002033`, and the
+other captured PCH registers were unchanged. The fresh sample was at 89 °C
+CPU package temperature against 57 °C in the aged sample. This pair cannot
+separate an effect of awake time from workload or temperature.
+
+After recovery, the three generation 189 system links still matched, all
+nine volumes passed the boot audit, and all three pools and five mounts
+matched the baseline. By 23:00 all four Ente services were running and
+no jobs or failed units remained. No new trial or scheduler check was armed.
 
 ## Machine facts
 
-- Current boot began November 18 at 10:47:19
-  (boot `3d404152-4566-418d-ab75-2ecec49b3b8f`). Booted, current and profile
-  all matched generation 189:
+- After the owner's recovery, the current boot began around November 18
+  22:57 (boot `99e6427f-85e4-4c9b-b651-dc619b833749`). Booted, current and
+  profile all matched generation 189:
   `/nix/store/cg2x27vhsgzwb1s7djpswfsrs3qlamgz-nixos-system-predator-26.11.20261023.3ec6363`.
   Linux remains 6.18.58. The boot audit passed.
 - Lid closed. The owner remembers hangs with the lid open as well.
