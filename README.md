@@ -129,6 +129,28 @@ starts requested through D-Bus. KMail, KOrganizer and other KDE PIM apps are
 unused, so their Akonadi database stays off even if a package installs it again.
 Remove the mask from `modules/home/workstation.nix` before using those apps.
 
+### Workstation load
+
+Run `peer-load` on either workstation to check the other one. Specify `main`,
+`laptop`, or `predator` to check one machine, or use `peer-load --all` to
+compare all three. It prints the one-minute Linux load average divided by
+online logical CPUs as a percentage. Lower means less load
+relative to that machine's CPU count; `100%` is one task per logical CPU on
+average, and the number can go higher. This is not CPU utilization or memory
+usage: Linux load also includes tasks in uninterruptible waits, such as disk I/O.
+
+The **Computer Load** desktop widget shows all three machines and a rolling
+30-minute chart. It reads the local load directly and uses the existing SSH
+aliases and noninteractive login for the other two. **Keyboard Battery** shows
+charge for both ZMK halves and keeps 14 days of history on each workstation,
+including across Plasma restarts. After the first one-point drop, each half
+shows a remaining-time range. A detected recharge starts a new estimate. The
+range reflects the resolution of the whole-percent gauge, so it narrows as
+more discharge is observed; it is not a guarantee about future usage. The
+estimate includes elapsed idle and sleep time. Both widgets refresh every
+30 seconds and leave gaps when readings are missing. The load chart starts
+fresh when Plasma restarts.
+
 ### CodexBar
 
 Main and laptop share the OpenCode Go key in `secrets/codexbar.yaml`, encrypted

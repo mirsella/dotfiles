@@ -1,5 +1,6 @@
 {
   config,
+  hostName,
   isNixOS,
   lib,
   pkgs,
@@ -9,13 +10,47 @@ let
   host = config.desktop.plasma;
   inherit (host.screen) width height;
 
-  # Desktop widget grid on the primary screen: two halves on top, four
-  # quarters below, snapped to the folder view's 16 px grid.
+  peerLoad = pkgs.writeShellScript "peer-load" ''
+    case "$#:''${1-}" in
+      0:) set -- ${lib.escapeShellArg host.peerLoadHost} ;;
+      1:--all|1:--json) set -- "$1" ${lib.escapeShellArg hostName} ;;
+      1:${lib.escapeShellArg hostName}) set -- local ;;
+    esac
+    exec ${lib.getExe' pkgs.host-tools "peer-load"} "$@"
+  '';
+  keyboardBattery = pkgs.writeShellScript "split-keyboard-battery" ''
+    exec ${lib.getExe (pkgs.python3.withPackages (ps: [ ps.dbus-next ]))} \
+      ${../../dotfiles/dot_local/bin/executable_zmk_split_battery_level.py} --json
+  '';
+  monitorApplet = name:
+    pkgs.runCommand "plasma-${name}" { } ''
+      mkdir -p "$out/contents/config" "$out/contents/ui"
+      cp ${./plasmoids/${name}/metadata.json} "$out/metadata.json"
+      cp ${./plasmoids/${name}/main.qml} "$out/contents/ui/main.qml"
+      cp ${./plasmoids/Monitor.qml} "$out/contents/ui/Monitor.qml"
+      ${lib.optionalString (name == "keyboard-battery") ''
+        cp ${./plasmoids/keyboard-battery/BatteryHistory.qml} "$out/contents/ui/BatteryHistory.qml"
+        cp ${./plasmoids/keyboard-battery/BatteryTrend.js} "$out/contents/ui/BatteryTrend.js"
+      ''}
+      cp ${./plasmoids/monitor.xml} "$out/contents/config/main.xml"
+    '';
+  monitorWidget = name: command: {
+    name = "org.mirsella.${name}";
+    config = {
+      UserBackgroundHints = "StandardBackground";
+      General.command = command;
+    };
+  };
+
+  # Desktop widget grid on the primary screen: two halves on top, five
+  # columns below, snapped to the folder view's 16 px grid.
   snap = value: 16 * builtins.floor (value / 16.0 + 0.5);
   top = snap (height * 0.46);
   bottom = snap (height * 0.222);
-  columnStart = column: snap (column * width / 4.0);
-  desktopWidget = column: row: columns: widget:
+  desktopWidget = column: row: widget:
+    let
+      columnStart = index: snap (index * width / (if row == 0 then 2.0 else 5.0));
+    in
     widget
     // {
       screen = 0;
@@ -24,7 +59,7 @@ let
         vertical = if row == 0 then 0 else top;
       };
       size = {
-        width = columnStart (column + columns) - columnStart column;
+        width = columnStart (column + 1) - columnStart column;
         height = if row == 0 then top else bottom;
       };
     };
@@ -145,6 +180,10 @@ in
       type = lib.types.str;
       description = "Filesystem UUID of the root disk for the disk usage widget.";
     };
+    peerLoadHost = lib.mkOption {
+      type = lib.types.enum [ "main" "laptop" ];
+      description = "SSH alias of the other workstation for peer-load with no arguments.";
+    };
   };
 
   config = {
@@ -152,6 +191,16 @@ in
     home.packages = lib.optional (!isNixOS) (
       pkgs.writeShellScriptBin "qdbus" ''exec /usr/bin/qdbus6 "$@"''
     );
+    home.file.".local/bin/peer-load" = {
+      source = peerLoad;
+      force = true;
+    };
+    xdg.dataFile = lib.listToAttrs (map (name:
+      lib.nameValuePair "plasma/plasmoids/org.mirsella.${name}" {
+        source = monitorApplet name;
+        force = true;
+      }
+    ) [ "computer-load" "keyboard-battery" ]);
 
     programs.plasma = {
       enable = true;
@@ -261,11 +310,11 @@ in
       };
 
       desktop.widgets = [
-        (desktopWidget 0 0 2 {
+        (desktopWidget 0 0 {
           name = "org.mirsella.memory";
           config.UserBackgroundHints = "StandardBackground";
         })
-        (desktopWidget 2 0 2 (systemMonitor "cpucore" "Individual Core Usage" {
+        (desktopWidget 1 0 (systemMonitor "cpucore" "Individual Core Usage" {
           # Other sensors use the widget's automatic palette.
           SensorColors.${host.cpuTemperature.sensor} = "255,255,255";
           SensorLabels.${host.cpuTemperature.sensor} = host.cpuTemperature.label;
@@ -284,15 +333,15 @@ in
             rangeToY = 100;
           };
         }))
-        (desktopWidget 0 1 1 (systemMonitor "net" "Network Speed" {
+        (desktopWidget 0 1 (systemMonitor "net" "Network Speed" {
           Appearance.showTitle = true;
           Sensors.highPrioritySensorIds = builtins.toJSON [ "network/all/download" "network/all/upload" ];
         }))
-        (desktopWidget 1 1 1 (systemMonitor "diskactivity" "Hard Disk Activity" {
+        (desktopWidget 1 1 (systemMonitor "diskactivity" "Hard Disk Activity" {
           Appearance.showTitle = true;
           Sensors.highPrioritySensorIds = builtins.toJSON [ "disk/all/write" "disk/all/read" ];
         }))
-        (desktopWidget 2 1 1 (systemMonitor "diskusage" "Disk Usage" {
+        (desktopWidget 2 1 (systemMonitor "diskusage" "Disk Usage" {
           updateRateLimit = 60000;
           Appearance = {
             historyAmount = 86400;
@@ -309,22 +358,8 @@ in
             totalSensors = "[]";
           };
         }))
-        (desktopWidget 3 1 1 {
-          name = "com.github.zren.commandoutput";
-          config = {
-            UserBackgroundHints = "StandardBackground";
-            General = {
-              command = "${config.home.homeDirectory}/.local/bin/zmk_split_battery_level.py";
-              fontFamily = "JetBrainsMono Nerd Font";
-              interval = 30000;
-              outlineColor = "#000000";
-              showBackground = true;
-              showOutline = false;
-              textColor = "#000000";
-              waitForCompletion = true;
-            };
-          };
-        })
+        (desktopWidget 3 1 (monitorWidget "computer-load" "${peerLoad} --json"))
+        (desktopWidget 4 1 (monitorWidget "keyboard-battery" "${keyboardBattery}"))
       ];
 
       shortcuts = {

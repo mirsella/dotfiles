@@ -22,6 +22,32 @@ assert lib.assertMsg (lib.all (home:
 ) workstationHomes
   && !(server.home-manager.users.mirsella.xdg.configFile ? "systemd/user/plasma-plasmashell.service.d/90-shutdown-debug.conf")
 ) "Workstations must retain the temporary Plasma shutdown diagnostics without adding desktop settings to Predator";
+assert lib.assertMsg (lib.all (name:
+  let
+    peer = { main = "laptop"; laptop = "main"; }.${name};
+  in
+  lib.all (home:
+    home.desktop.plasma.peerLoadHost == peer
+    && home.home.file ? ".local/bin/peer-load"
+  ) [
+    desktops.${name}.home-manager.users.mirsella
+    flake.homeConfigurations.${name}.config
+  ]
+) (builtins.attrNames desktops)
+  && !(server.home-manager.users.mirsella.home.file ? ".local/bin/peer-load")
+) "Workstation load checks must default to the other desktop and stay off Predator";
+assert lib.assertMsg (lib.all (home:
+  let
+    widgets = home.programs.plasma.desktop.widgets;
+    hasWidget = name: lib.any (widget:
+      widget.name == "org.mirsella.${name}"
+      && widget.config.General.command != ""
+    ) widgets && home.xdg.dataFile ? "plasma/plasmoids/org.mirsella.${name}";
+  in
+  hasWidget "computer-load"
+  && hasWidget "keyboard-battery"
+  && !(lib.any (widget: widget.name == "com.github.zren.commandoutput") widgets)
+) workstationHomes) "Workstations must use separate native computer load and keyboard battery widgets";
 assert lib.assertMsg (lib.all (home:
   home.systemd.user.services.nasa-wallpaper.Service.Type == "oneshot"
   && lib.any (lib.hasInfix "/bin/host-tools nasa-wallpaper") home.systemd.user.services.nasa-wallpaper.Service.ExecStart

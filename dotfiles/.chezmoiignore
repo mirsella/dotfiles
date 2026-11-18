@@ -61,6 +61,10 @@ update-system-backup.sh
 # Home Manager selects the patched widget ahead of the system-installed copy.
 .local/share/plasma/plasmoids/com.github.psimaker.codexbar
 .local/share/plasma/plasmoids/com.github.psimaker.codexbar/**
+.local/share/plasma/plasmoids/org.mirsella.computer-load
+.local/share/plasma/plasmoids/org.mirsella.computer-load/**
+.local/share/plasma/plasmoids/org.mirsella.keyboard-battery
+.local/share/plasma/plasmoids/org.mirsella.keyboard-battery/**
 # Home Manager owns the portable settings helper.
 .local/bin/t3-settings
 .local/bin/hex-settings

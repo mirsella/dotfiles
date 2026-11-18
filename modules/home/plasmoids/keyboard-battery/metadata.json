@@ -1,0 +1,13 @@
+{
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Id": "org.mirsella.keyboard-battery",
+    "Name": "Split Keyboard Battery",
+    "Description": "Bluetooth battery levels and history for the two ZMK keyboard halves",
+    "Icon": "input-keyboard",
+    "Category": "System Information",
+    "License": "MIT",
+    "Version": "1.0"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0"
+}

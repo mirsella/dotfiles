@@ -22,6 +22,7 @@
       label = "CPU die temperature";
     };
     rootDisk = "18dc205e-4518-49a0-b693-290f81634fef";
+    peerLoadHost = "laptop";
   };
   # The tower's power button shuts down; the laptop keeps the logout dialog.
   programs.plasma.configFile.powerdevilrc."AC/SuspendAndShutdown".PowerButtonAction = 8;

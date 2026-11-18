@@ -10,6 +10,8 @@
   pkg-config,
   chezmoi,
   util-linux,
+  coreutils,
+  openssh,
 }:
 rustPlatform.buildRustPackage {
   pname = "host-tools";
@@ -45,6 +47,7 @@ rustPlatform.buildRustPackage {
     wrapProgram "$out/bin/host-tools" --prefix PATH : "${lib.makeBinPath [ sqlite git ]}"
     makeWrapper "$out/bin/host-tools" "$out/bin/composio-mcp-headers" \
       --add-flags "composio-mcp-headers"
+    wrapProgram "$out/bin/peer-load" --prefix PATH : "${lib.makeBinPath [ coreutils openssh ]}"
   '';
   meta = {
     description = "Recurring host maintenance and monitoring helpers";

@@ -27,6 +27,7 @@
       label = "CPU temperature";
     };
     rootDisk = "a843fb85-bef1-48c5-93b4-47cc00c2fe62";
+    peerLoadHost = "main";
   };
   programs.plasma.configFile.kscreenlockerrc.Authenticators.Fingerprint = true;
   services.adb-wireless.serials = [ "188b31ee" "A20AAFYS0202" ];

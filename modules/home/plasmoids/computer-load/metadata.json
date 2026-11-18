@@ -1,0 +1,13 @@
+{
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Id": "org.mirsella.computer-load",
+    "Name": "Computer Load",
+    "Description": "Normalized Linux load and recent history for main, laptop and predator",
+    "Icon": "utilities-system-monitor",
+    "Category": "System Information",
+    "License": "MIT",
+    "Version": "1.0"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0"
+}
