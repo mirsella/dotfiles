@@ -133,15 +133,14 @@ Work through this in order. Record every run in the results table.
 2. `aged-3` fired November 18 at 06:00 and refused before any requests because
    `/run/current-system` no longer matched its prepared generation 183.
    After Predator booted generation 189, `aged-4` fired at 21:00 but failed
-   before making any requests. `aged-5` is the same control on the same boot,
-   armed for November 18 at 22:15 CET, about 11 h 28 min after boot. It takes
-   a snapshot, runs five `core` dry cycles, requests one real S3 with a 120 s
-   alarm, then takes another snapshot. Both stages check boot/system identity,
-   expected suspend counters, age, inhibitors, maintenance, failed units,
-   pool identities, mounts and the boot audit. Do not reboot, restart services
-   or bypass a guard to make it run. If the real request returns, run a plain
-   aged control next without dry runs, because they may have changed the
-   relevant state. Neither earlier refusal tested suspend.
+   before making any requests. `aged-5` was the same control on the same boot,
+   scheduled for November 18 at 22:15 CET. Predator was unreachable at the
+   results check, so a trial hang is suspected but the stage is unknown.
+   Wait for the owner to check and recover the machine. Then read the trial
+   logs and previous boot's journal before choosing another arm. If the
+   real request returned, run a plain aged control next without dry runs,
+   because they may have changed the relevant state. Neither `aged-3` nor
+   `aged-4` tested suspend.
 3. Compare `fresh-4` with `aged-5-before` if the latter is captured and the
    baseline stays unchanged. Check device power states, EC memory, Management
    Engine status, PCH registers and disk power mode. Differences are leads,
@@ -273,7 +272,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 20:40 | `aged-4` scheduling check | read-only timer and baseline checks | 9 h 53 min | timer correct; mount guard would refuse; zero requests | |
 | Nov 18 21:00 | `aged-4-dry`, `aged-4-s3` | planned dry runs ×5, then real S3 on generation 189 | 10 h 13 min | command parse error; zero requests | |
 | Nov 18 21:55 | `aged-5` scheduling check | read-only timer and baseline checks | 11 h 8 min | timer correct; preflight passed; zero requests | |
-| Nov 18 22:15 | `aged-5-dry`, `aged-5-s3` | same control on the same boot, with corrected trial command | ~11 h 28 min if uninterrupted | pending | |
+| Nov 18 22:15 | `aged-5-dry`, `aged-5-s3` | same control on the same boot, with corrected trial command | ~11 h 28 min at scheduled trigger | presumed hang; dry and real S3 outcomes not yet verified | meter, LED and fan observations pending |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -416,8 +415,16 @@ The control's read-only `check` mode passed with the trial's pinned arguments
 and confirmed the boot, generation, storage and maintenance guards. The
 boot audit passed for all nine volumes. There were no `aged-5` logs or STOP
 flag and the suspend counters stayed 0/0. Ente was running. No repair was
-needed; the timer and inactive trial service were left unchanged. The
-22:40 results check remains scheduled.
+needed; the timer and inactive trial service were left unchanged.
+
+From 22:40:38 to 22:51:04, Predator did not answer SSH, including direct LAN
+attempts. The Pi could not reach it on the LAN at either end of that window.
+The last confirmed state is the passing precheck. The outage after the
+scheduled trigger is consistent with a hang, but the unit journal, dry and
+S3 logs, suspend counters and `aged-5-before` snapshot could not be read.
+Do not yet count a real S3 request or compare snapshots. No recovery was
+attempted and no further trial was armed. After the owner restores access,
+check health and read the two batch logs and the previous boot's unit journal.
 
 ## Machine facts
 
