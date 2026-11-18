@@ -129,29 +129,25 @@ Work through this in order. Record every run in the results table.
    `pm-aged-1.timer` on November 16 at 17:40:09 during storage migration.
    No `aged-1` logs exist, and the old boot's journal has no suspend after
    November 16 at 16:20. This is a cancellation with zero requests.
-2. Testing is paused awaiting the owner. `aged-3` fired November 18 at 06:00
-   and refused at 06:00:01 because `/run/current-system` had changed from its
-   prepared generation 183. No snapshot, dry run or real suspend request ran.
-   Generation 187 is activated while generation 183 remains booted, and the
-   boot audit still refuses. Do not stop or restart Ente, its dependencies or
-   uploads; do not reboot or change guards to make a trial run. No replacement
-   trial or automatic retry check is scheduled.
-   After an owner-approved path to a booted, audited baseline, prepare a new
-   control as `aged-4`, not a repaired `aged-3`. Capture a fresh snapshot and
-   require at least nine hours since the new boot or last real resume.
-   Keep the planned sequence: snapshot, five `core` dry runs, one real S3 with
-   a 120 s alarm, then snapshot. Before both dry runs and the real request,
-   check boot/system identity, expected suspend counters, age, inhibitors,
+2. `aged-3` fired November 18 at 06:00 and refused before any requests because
+   `/run/current-system` no longer matched its prepared generation 183.
+   After the owner confirmed Ente uploads were done, Predator booted the
+   latest installed generation, 189, and passed the boot audit. The replacement
+   control is `aged-4`, armed for November 18 at 21:00 CET, about 10 h 13 min
+   after boot. It takes a snapshot, runs five `core` dry cycles, requests one
+   real S3 with a 120 s alarm, then takes another snapshot. Both stages check
+   boot/system identity, expected suspend counters, age, inhibitors,
    maintenance, failed units, pool identities, mounts and the boot audit.
+   Do not reboot, restart services or bypass a guard to make it run.
    If the real request returns, run a plain aged control next without dry
    runs, because they may have changed the relevant state. The refusal gave
    no new evidence about the suspend hang, so do not advance to changed arms.
-3. Compare matched fresh and aged snapshots from the next prepared baseline.
-   Check device power states, EC memory, Management Engine status, PCH registers
-   and disk power mode. Differences are leads, not causes. `fresh-1` and
-   `fresh-2` are unmatched to the changed deployment. `fresh-3`, captured
-   November 17 at 15:05:33, predates Ente activation; `aged-3-before` was never
-   created. Do not treat them as a matched pair.
+3. Compare `fresh-4` with `aged-4-before` if the latter is captured and the
+   baseline stays unchanged. Check device power states, EC memory, Management
+   Engine status, PCH registers and disk power mode. Differences are leads,
+   not causes. `fresh-1` and `fresh-2` are unmatched to the changed deployment.
+   `fresh-3`, captured November 17 at 15:05:33, predates Ente activation;
+   `aged-3-before` was never created. Do not treat them as a matched pair.
 4. Firmware handler bypass, short awake. `pm-batch <label> s3 3 60 30 nosmi`
    clears `SLP_SMI_EN` before each request so the chipset sleeps without the
    firmware handler. Check that all three return, that the meter shows about
@@ -210,37 +206,36 @@ the method before arming an aged trial. Inspect the stored command with
 `systemctl cat pm-aged-N.service`. Timers are transient and non-persistent,
 with no restart or recovery action; a reboot removes them.
 
-### November 18 scheduling check
+### `aged-4` scheduling check
 
-The owner's window was 06:00 CET. The 05:40 scheduling check and 06:30 results
-check have completed. The trial refused before any request, and no replacement
-is armed. The following repair instructions describe that prepared trial;
-they do not authorize replaying it or changing its baseline.
+The T3 precheck runs November 18 at 20:40 CET and the results check at
+21:30 CET. The precheck is read-only unless the timer is missing or mistimed,
+and must never start the trial service or issue a dry or real suspend request.
 
-Prepared copies of the guarded service and the 06:00 timer are in
-`/home/mirsella/dev/scratch/predator-suspend/prepared-aged-3-20261118/`,
-with `SHA256SUMS`. They survive a reboot, unlike the transient units.
-Before restoring anything, check the hashes, no existing `aged-3` logs, no
-active trial, the prepared boot/system/counters, age, health, inhibitors and
-boot audit. Respect another task's intentional cancellation. A missing timer
-does not authorize changing the baseline or reusing a label.
+Prepared copies of the guarded service and the 21:00 timer are in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-aged-4-20261118/`.
+Run `sha256sum -c SHA256SUMS` from that directory before any repair, and
+compare the prepared service with the loaded one if present. Repair only
+before 21:00, with no `aged-4-*` logs, STOP flag or active trial, a matching
+boot/system/runner and zero suspend counters. Confirm age, pool health and
+identities, mounts, inhibitors, maintenance and the boot audit. Respect
+intentional cancellation. If a guard fails or the check runs late, report
+the blocker; do not change the baseline or replay the trial.
 
-If all checks pass and the units are missing, install the saved unit files
-into `/run/systemd/system/`, reload systemd and start only
-`pm-aged-3.timer`. If only its time is wrong, keep the service unchanged and
-set `/run/systemd/system/pm-aged-3.timer.d/schedule.conf` to:
+If all checks pass and the timer is missing, install its saved unit into
+`/run/systemd/system/`, restoring the service from its saved copy only if it
+is also missing. If only the time is wrong, keep the service unchanged and
+set `/run/systemd/system/pm-aged-4.timer.d/schedule.conf` to:
 
 ```ini
 [Timer]
 OnCalendar=
-OnCalendar=2026-11-18 06:00:00 Europe/Paris
+OnCalendar=2026-11-18 21:00:00 Europe/Paris
 ```
 
-Then reload systemd and restart only the timer. Confirm the next trigger with
-`systemctl show pm-aged-3.timer -p NextElapseUSecRealtime` and inspect the
-service's guards. Never start the trial service during the scheduling check.
-If a guard fails, report the blocker rather than weakening it; an existing
-guarded timer may remain armed to refuse safely.
+Then reload systemd and start or restart only the timer. Confirm the next
+trigger with `systemctl show pm-aged-4.timer -p NextElapseUSecRealtime`
+and inspect the stored service guards.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -276,6 +271,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 17 18:00 | `aged-2-dry`, `aged-2-s3` | planned same sequence on generation 177 and new storage layout | not applicable | timer removed by 11:48:34 reboot; zero requests | |
 | Nov 18 05:40 | `aged-3` scheduling check | read-only timer and baseline checks | 14 h 38 min | timer correct; baseline blocked; zero requests | Ente left running |
 | Nov 18 06:00 | `aged-3-dry`, `aged-3-s3` | planned dry runs ×5, then real S3; prepared generation 183 baseline | 14 h 57 min at timer trigger | refused before snapshots, dry runs or real S3; zero requests | moved later for Ente uploads |
+| Nov 18 21:00 | `aged-4-dry`, `aged-4-s3` | dry runs ×5, then real S3; booted generation 189, same storage layout | ~10 h 13 min if uninterrupted | pending | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -339,8 +335,7 @@ pool GUIDs and mounts matched the saved baseline. No failed units, systemd jobs,
 active checked maintenance services or blocking inhibitors were present.
 Nextcloud was out of maintenance and all four Ente services were active.
 The existing guarded timer was left unchanged to refuse safely. No service
-restart, activation, reboot or guard bypass was performed. The existing 06:30
-results check remains responsible for recording the actual timer outcome.
+restart, activation, reboot or guard bypass was performed at that check.
 
 At November 18, 06:30:30, Predator was reachable in the same boot. The journal
 records the service starting at 06:00:00 and exiting at 06:00:01 with status 1:
@@ -350,28 +345,46 @@ No `aged-3` logs exist, suspend success/fail counters remain zero, `pm_test` is
 none, deep is selected and the RTC alarm is empty. This is a guard refusal,
 not a suspend hang or a successful control.
 
-The one-shot timer deactivated after firing and is now absent. Its service
-remains failed with the refusal recorded; it is the only failed unit.
-Current/profile are still generation 187, booted is generation 183, and the
-boot audit still refuses with "activated generation not booted". All three
-pools are healthy with no running scan; pool GUIDs and all five mounts match
-the saved baseline. No jobs, checked maintenance services or blocking
-inhibitors are active. Nextcloud is out of maintenance. All four Ente services
-are active with the same PIDs and activation times as at 05:40.
+The one-shot timer deactivated after firing. At the check, its service was
+the only failed unit. Current/profile were still generation 187, booted was
+generation 183, and the audit refused with "activated generation not booted".
+All three pools were healthy with no running scan; pool GUIDs and all five
+mounts matched the saved baseline. No jobs, checked maintenance services or
+blocking inhibitors were active. Nextcloud was out of maintenance. All four
+Ente services were active with the same PIDs and activation times as at 05:40.
 No services were changed, no trial was rearmed, and no further check was
-scheduled. Resume only after the owner permits establishing an audited
-baseline without disrupting uploads.
+scheduled then.
+
+After the owner confirmed the upload had finished, one `systemctl reboot`
+was issued November 18 at 10:41:40. Predator powered off rather than restarting.
+The owner sent Wake-on-LAN, and the new boot began at 10:47:19. As on
+November 17, this was before any suspend request and is not a suspend result.
+
+By 10:49 all system links matched generation 189. The boot audit passed for
+all nine volumes, and the three healthy pools and five mounts matched
+`/home/mirsella/dev/scratch/predator-suspend/preboot-20261118-generation189/`.
+The recovery inventory still covered all nine volumes. Ente's four services
+were running, Nextcloud was out of maintenance, and no jobs, failed units,
+active storage scans or blocking inhibitors remained. Suspend counters were
+0/0, `pm_test` was none, deep was selected and the RTC alarm was empty.
+No rebuild, activation or disk changes were needed.
+
+Captured `fresh-4.snapshot.txt` at 10:51:16, about four minutes after boot.
+Verified that `pm-aged-4.timer` was active with a 21:00 CET trigger, 1 s
+accuracy and no persistence. Its service was inactive with no restart or
+recovery configured. The stored guards pin the boot, generation, runner,
+storage and expected counters (0/0 before dry runs, 5/0 before S3), and
+include Ente's separate database backup among the maintenance checks. No
+early dry or real suspend ran. Both T3 checks were moved to the new window,
+not duplicated.
 
 ## Machine facts
 
-- Current boot began November 17 at 15:02:38
-  (boot `72a5ba34-16e5-4d6f-8566-a4b6cf69e538`).
-  Booted system is generation 183:
-  `/nix/store/mgm9m1nj9rlicz4xdhxw5v177frd9g8b-nixos-system-predator-26.11.20261023.3ec6363`.
-  Current system/profile at November 18, 06:30 are generation 187:
-  `/nix/store/wi3njsj4na5qn9ldk1rslkxdyd4m4zq9-nixos-system-predator-26.11.20261023.3ec6363`.
-  Linux remains 6.18.58. The boot audit is blocked until the activated
-  generation is booted; do not reboot during the owner's Ente upload.
+- Current boot began November 18 at 10:47:19
+  (boot `3d404152-4566-418d-ab75-2ecec49b3b8f`). Booted, current and profile
+  all matched generation 189:
+  `/nix/store/cg2x27vhsgzwb1s7djpswfsrs3qlamgz-nixos-system-predator-26.11.20261023.3ec6363`.
+  Linux remains 6.18.58. The boot audit passed.
 - Lid closed. The owner remembers hangs with the lid open as well.
 - Battery present and full. AC connected.
 - Discrete GPU `0000:01:00.0`: no driver, `power/control=on`, D0.
