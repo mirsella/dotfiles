@@ -70,13 +70,11 @@
           # even though the source is the dev branch. Stamp the same channel
           # the dev releases use.
           HEX_BUILD_CHANNEL = "dev";
-          # This UI test flips the global Labs state while the rest of the
-          # suite runs in parallel, so it races in the Nix sandbox. The other
-          # 2735 tests still run.
-          checkFlags = (previous.checkFlags or [ ]) ++ [
-            "--skip"
-            "history_stats_button_opens_and_closes_the_dialog"
-          ];
+          # A few tests flip process-global state (Labs switches, the model
+          # download slot). Upstream runs them in parallel and they race in
+          # the Nix sandbox, so run the suite serially instead of skipping
+          # them.
+          checkFlags = (previous.checkFlags or [ ]) ++ [ "--test-threads=1" ];
           postFixup = previous.postFixup + ''
             wrapProgram "$out/bin/hex" --set-default VK_DRIVER_FILES "${final.mesa}/share/vulkan/icd.d"
           '';
