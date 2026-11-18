@@ -100,9 +100,10 @@ update is not an option.
   run.
 - Pin a timed trial to its prepared boot, system and suspend counters, and
   check its age again before it starts. Abort for blocking inhibitors, active
-  storage scans or backup jobs. A cancelled timer or missing log is not a hang.
-  Do not restart a trial cancelled for another task without checking that task
-  has finished.
+  storage scans or backup jobs. For new trials, sort the saved and live mount
+  lists with the same locale (`LC_ALL=C`) and verify the comparison before arming.
+  A cancelled timer or missing log is not a hang. Do not restart a trial
+  cancelled for another task without checking that task has finished.
 - Require a passing `predator-boot audit` before arming a trial. If an
   activation changed the system after boot, wait for an owner-approved reboot
   and repeat the health checks. Do not bypass the audit or reboot automatically.
@@ -271,6 +272,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 17 18:00 | `aged-2-dry`, `aged-2-s3` | planned same sequence on generation 177 and new storage layout | not applicable | timer removed by 11:48:34 reboot; zero requests | |
 | Nov 18 05:40 | `aged-3` scheduling check | read-only timer and baseline checks | 14 h 38 min | timer correct; baseline blocked; zero requests | Ente left running |
 | Nov 18 06:00 | `aged-3-dry`, `aged-3-s3` | planned dry runs ×5, then real S3; prepared generation 183 baseline | 14 h 57 min at timer trigger | refused before snapshots, dry runs or real S3; zero requests | moved later for Ente uploads |
+| Nov 18 20:40 | `aged-4` scheduling check | read-only timer and baseline checks | 9 h 53 min | timer correct; mount guard would refuse; zero requests | |
 | Nov 18 21:00 | `aged-4-dry`, `aged-4-s3` | dry runs ×5, then real S3; booted generation 189, same storage layout | ~10 h 13 min if uninterrupted | pending | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
@@ -377,6 +379,22 @@ storage and expected counters (0/0 before dry runs, 5/0 before S3), and
 include Ente's separate database backup among the maintenance checks. No
 early dry or real suspend ran. Both T3 checks were moved to the new window,
 not duplicated.
+
+At 20:40:33 the timer was still active for exactly 21:00 CET. Its service was
+inactive and matched the prepared copy. Both prepared unit checksums and the
+runner hash matched. The boot, generation 189 links and pool GUIDs matched,
+the counters were 0/0, and there were no `aged-4` logs or STOP flag. All pools
+were healthy, the audit passed for all nine volumes, and no maintenance,
+failed units, jobs or blocking inhibitors were present. Nextcloud was out of
+maintenance and Ente was running.
+
+The five ZFS mounts were unchanged, but the stored guard would report
+`mounts changed`. The saved list puts `backups/data/recovery` before
+`backups/data`, while the service sorts the live list under `LC_ALL=C`
+and puts them in the opposite order. Sorting both lists under `LC_ALL=C`
+confirmed that their contents match. The timer, service and prepared
+baseline were left untouched. The 21:30 check will read the actual outcome;
+no dry or real suspend was started by this precheck.
 
 ## Machine facts
 
