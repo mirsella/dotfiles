@@ -132,18 +132,17 @@ Work through this in order. Record every run in the results table.
    November 16 at 16:20. This is a cancellation with zero requests.
 2. `aged-3` fired November 18 at 06:00 and refused before any requests because
    `/run/current-system` no longer matched its prepared generation 183.
-   After the owner confirmed Ente uploads were done, Predator booted the
-   latest installed generation, 189, and passed the boot audit. The replacement
-   control is `aged-4`, armed for November 18 at 21:00 CET, about 10 h 13 min
-   after boot. It takes a snapshot, runs five `core` dry cycles, requests one
-   real S3 with a 120 s alarm, then takes another snapshot. Both stages check
-   boot/system identity, expected suspend counters, age, inhibitors,
-   maintenance, failed units, pool identities, mounts and the boot audit.
-   Do not reboot, restart services or bypass a guard to make it run.
-   If the real request returns, run a plain aged control next without dry
-   runs, because they may have changed the relevant state. The refusal gave
-   no new evidence about the suspend hang, so do not advance to changed arms.
-3. Compare `fresh-4` with `aged-4-before` if the latter is captured and the
+   After Predator booted generation 189, `aged-4` fired at 21:00 but failed
+   before making any requests. `aged-5` is the same control on the same boot,
+   armed for November 18 at 22:15 CET, about 11 h 28 min after boot. It takes
+   a snapshot, runs five `core` dry cycles, requests one real S3 with a 120 s
+   alarm, then takes another snapshot. Both stages check boot/system identity,
+   expected suspend counters, age, inhibitors, maintenance, failed units,
+   pool identities, mounts and the boot audit. Do not reboot, restart services
+   or bypass a guard to make it run. If the real request returns, run a plain
+   aged control next without dry runs, because they may have changed the
+   relevant state. Neither earlier refusal tested suspend.
+3. Compare `fresh-4` with `aged-5-before` if the latter is captured and the
    baseline stays unchanged. Check device power states, EC memory, Management
    Engine status, PCH registers and disk power mode. Differences are leads,
    not causes. `fresh-1` and `fresh-2` are unmatched to the changed deployment.
@@ -195,48 +194,47 @@ date --date="@$(awk '/^btime / {print $2}' /proc/stat)" --iso-8601=seconds
 
 # A short batch now: 3 real suspends, 60 s alarm, 30 s between cycles.
 sudo systemd-run --unit=pm-batch-LABEL --collect $B LABEL s3 3 60 30
-
-# An aged trial from a timer.
-sudo systemd-run --unit=pm-aged-N --on-calendar='YYYY-MM-DD HH:MM:SS' \
-  --timer-property=AccuracySec=1s /run/current-system/sw/bin/bash -c \
-  "$B aged-N-before snapshot && $B aged-N-s3 s3 1 120 30; rc=\$?; $B aged-N-after snapshot || rc=\$?; exit \$rc"
 ```
 
-The calendar example only shows the timer wiring. Add the runtime guards from
-the method before arming an aged trial. Inspect the stored command with
-`systemctl cat pm-aged-N.service`. Timers are transient and non-persistent,
-with no restart or recovery action; a reboot removes them.
+For the five-dry-run S3 control, build
+[pm-aged-control.rs](pm-aged-control.rs) with the same `rustc` flags as the
+runner. Set the service's `ExecStart` to the binary followed by
+`run <aged-N> <boot-id> <system> <runner-sha256> <storage-records>`. Use a
+one-shot calendar timer and runtime unit files in `/run/systemd/system/`.
+Do not embed a shell program in `ExecStart`; systemd expanded Bash parameters
+in the `aged-4` command before Bash could read them. Use `check` instead of
+`run` to verify all initial guards without running the batch. Timers are
+non-persistent, with no restart or recovery action; a reboot removes them.
 
-### `aged-4` scheduling check
+### `aged-5` scheduling check
 
-The T3 precheck runs November 18 at 20:40 CET and the results check at
-21:30 CET. The precheck is read-only unless the timer is missing or mistimed,
-and must never start the trial service or issue a dry or real suspend request.
+The T3 precheck runs November 18 at 21:55 CET and the results check at
+22:40 CET. The prepared binary, two unit files and `SHA256SUMS` are in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-aged-5-20261118/`.
+Check all three hashes there, compare loaded unit files with the prepared
+copies and inspect `systemctl cat pm-aged-5.service`. As root, invoke the
+prepared binary with the **same arguments as `ExecStart`**, replacing
+`run` with `check`. This verifies the pinned baseline and trial age, counters,
+storage, inhibitors, maintenance, boot audit and absence of trial logs or
+STOP. Never start the trial service or run a dry or real suspend at precheck.
 
-Prepared copies of the guarded service and the 21:00 timer are in
-`/home/mirsella/dev/scratch/predator-suspend/prepared-aged-4-20261118/`.
-Run `sha256sum -c SHA256SUMS` from that directory before any repair, and
-compare the prepared service with the loaded one if present. Repair only
-before 21:00, with no `aged-4-*` logs, STOP flag or active trial, a matching
-boot/system/runner and zero suspend counters. Confirm age, pool health and
-identities, mounts, inhibitors, maintenance and the boot audit. Respect
-intentional cancellation. If a guard fails or the check runs late, report
-the blocker; do not change the baseline or replay the trial.
-
-If all checks pass and the timer is missing, install its saved unit into
-`/run/systemd/system/`, restoring the service from its saved copy only if it
-is also missing. If only the time is wrong, keep the service unchanged and
-set `/run/systemd/system/pm-aged-4.timer.d/schedule.conf` to:
+Repair only before 22:15 CET, if no one cancelled the trial, the checks pass,
+the service is inactive or missing, and only scheduling is wrong. If the
+timer is missing, install its saved unit into `/run/systemd/system/`,
+restoring the service from its saved copy only if it is also missing. If
+only the time is wrong, keep the service unchanged and set
+`/run/systemd/system/pm-aged-5.timer.d/schedule.conf` to:
 
 ```ini
 [Timer]
 OnCalendar=
-OnCalendar=2026-11-18 21:00:00 Europe/Paris
+OnCalendar=2026-11-18 22:15:00 Europe/Paris
 ```
 
 Then reload systemd and start or restart only the timer. Confirm the next
-trigger with `systemctl show pm-aged-4.timer -p NextElapseUSecRealtime`
-and inspect the stored service guards.
+trigger with `systemctl show pm-aged-5.timer -p NextElapseUSecRealtime`.
+If a check fails or runs late, report the blocker without changing the
+baseline or replaying a trial.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -273,7 +271,8 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 05:40 | `aged-3` scheduling check | read-only timer and baseline checks | 14 h 38 min | timer correct; baseline blocked; zero requests | Ente left running |
 | Nov 18 06:00 | `aged-3-dry`, `aged-3-s3` | planned dry runs ×5, then real S3; prepared generation 183 baseline | 14 h 57 min at timer trigger | refused before snapshots, dry runs or real S3; zero requests | moved later for Ente uploads |
 | Nov 18 20:40 | `aged-4` scheduling check | read-only timer and baseline checks | 9 h 53 min | timer correct; mount guard would refuse; zero requests | |
-| Nov 18 21:00 | `aged-4-dry`, `aged-4-s3` | dry runs ×5, then real S3; booted generation 189, same storage layout | ~10 h 13 min if uninterrupted | pending | |
+| Nov 18 21:00 | `aged-4-dry`, `aged-4-s3` | planned dry runs ×5, then real S3 on generation 189 | 10 h 13 min | command parse error; zero requests | |
+| Nov 18 22:15 | `aged-5-dry`, `aged-5-s3` | same control on the same boot, with corrected trial command | ~11 h 28 min if uninterrupted | pending | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -393,8 +392,21 @@ The five ZFS mounts were unchanged, but the stored guard would report
 `backups/data`, while the service sorts the live list under `LC_ALL=C`
 and puts them in the opposite order. Sorting both lists under `LC_ALL=C`
 confirmed that their contents match. The timer, service and prepared
-baseline were left untouched. The 21:30 check will read the actual outcome;
-no dry or real suspend was started by this precheck.
+baseline were left untouched. The precheck did not start a suspend.
+
+At 21:00 `pm-aged-4.timer` fired, but systemd expanded parts of the inline
+Bash program. Bash exited with a syntax error before the mount guard or
+runner ran. There were no `aged-4` logs and the suspend counters remained
+0/0. This was a launch failure, not a suspend hang.
+
+The replacement starts the control binary directly and compares both mount
+lists in byte order. The mount test covers reordered, missing and changed
+mounts. Before arming, `systemd-analyze verify` accepted the trial units and
+the binary's `check` mode passed under systemd without a dry or real request.
+Only the concluded `pm-aged-4.service` failure flag was cleared. No boot,
+storage, or Ente process changed, so `fresh-4` is still the matched snapshot.
+`pm-aged-5.timer` was verified active for 22:15 CET with its service inactive;
+the T3 checks now run at 21:55 and 22:40.
 
 ## Machine facts
 
