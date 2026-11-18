@@ -22,7 +22,6 @@
     "confirmThreadArchive": false,
     "confirmThreadDelete": true,
     "confirmThreadUnpin": false,
-    "contextWindowMeterEnabled": false,
     "diffColorScheme": "red-green",
     "diffFilesCollapsed": true,
     "diffIgnoreWhitespace": true,
@@ -47,18 +46,17 @@
     "fontSmoothing": true,
     "glassOpacity": 80,
     "inAppNotificationsEnabled": true,
-    "legacySidebarEnabled": false,
-    "loadBalancingEnabled": false,
+    "loadBalancingEnabled": true,
     "loadBalancingWeights": {
       "020898b6-4a15-44cb-ae04-0ef53d75919f": 100,
-      "1dcfc905-4f7e-4119-a60d-c27753b77241": 25
+      "1dcfc905-4f7e-4119-a60d-c27753b77241": 0
     },
     "mathRenderingEnabled": true,
     "notificationMode": "notifications",
     "panelAnimationDurationMs": 0,
     "persistComposerContextStrip": true,
-    "planModeEnabled": false,
     "proactivePanelsEnabled": false,
+    "providerModelPreferences": {},
     "pullRequestLinksOpenInApp": true,
     "sendShortcut": "enter",
     "showSkillsInSlashMenu": true,
@@ -117,16 +115,6 @@
       ]
     },
     "defaultThreadEnvMode": "local",
-    "fallbackModelSelection": {
-      "instanceId": "opencode",
-      "model": "opencode/deepseek-v4.1-flash-free",
-      "options": [
-        {
-          "id": "variant",
-          "value": "max"
-        }
-      ]
-    },
     "favorites": [
       {
         "model": "opencode/deepseek-v4.1-flash-free",
@@ -481,13 +469,7 @@
     },
     "textGenerationModelSelection": {
       "instanceId": "opencode",
-      "model": "opencode/deepseek-v4.1-flash-free",
-      "options": [
-        {
-          "id": "variant",
-          "value": "low"
-        }
-      ]
+      "model": "opencode/hy4-flash-free"
     },
     "usageModelAliases": {
       "deepseek-v4.1-flash-free": "deepseek-v4.1-flash",
@@ -1057,6 +1039,24 @@
         ],
         "defaultThreadEnvMode": "worktree"
       }
+    },
+    {
+      "workspace_root": "~/dev/mm-lab",
+      "attributes": {
+        "faviconPath": "~/dev/mm-lab/public/icon.svg",
+        "projectIcon": null,
+        "title": "mm-lab"
+      },
+      "settings": {}
+    },
+    {
+      "workspace_root": "~/dev/mm-runtime-config",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "mm-runtime-config"
+      },
+      "settings": {}
     },
     {
       "workspace_root": "~/dev/news-scraper",
