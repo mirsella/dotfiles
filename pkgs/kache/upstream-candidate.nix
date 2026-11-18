@@ -19,12 +19,15 @@ rustPlatform.buildRustPackage rec {
     hash = "sha256-qCv7ierYlx9dZhea+SRMxsIRRq4LFFTzKNoiKOZ6448=";
   };
   cargoLock.lockFile = "${src}/Cargo.lock";
-  patches = [ ./upstream-candidate.patch ];
+  patches = [
+    ./upstream-candidate.patch
+    ./compile-first-observations.patch
+  ];
   postPatch = ''
     substituteInPlace crates/kache-ipc/src/execution/unix_client.rs \
       --replace-fail '/bin/cat' '${coreutils}/bin/cat'
   '';
-  KACHE_VERSION = "${version}+local-review-20261117";
+  KACHE_VERSION = "${version}+local-compile-first-20261118";
   CARGO_PROFILE_RELEASE_LTO = "thin";
   nativeBuildInputs = [ pkg-config ];
   nativeCheckInputs = [ git cacert bashInteractive zsh ];

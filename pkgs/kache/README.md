@@ -4,7 +4,7 @@
 
 `default.nix` selects upstream commit
 `3aad1a1974efcae8c8827a7200d5cf7cd270319e` with the version label
-`2.1.1+local-review-20261117`. Install the frontend and `kache-engine`
+`2.1.1+local-compile-first-20261118`. Install the frontend and `kache-engine`
 together. Home Manager also owns the Cargo-bin aliases so a separately installed
 frontend cannot replace the managed daemon.
 
@@ -14,6 +14,12 @@ issue #1944 and imports the boot-scoped tree memo fix from PR #1941,
 native/Git input tracking, per-invocation child RSS, source-revert reuse, registry
 key parity and incremental-seed diagnostics. The old workload-scheduler patch
 does not apply to this package.
+
+`compile-first-observations.patch` adds `rustc_compile_first_reason` to schema 29
+events. Join it to capacity-wait observations on eventual hits to distinguish
+missing or rejected input predictions from a first lookup that missed. A
+verified key already gets a lookup before compiler admission. This patch does
+not change admission, key validation, or cache-key schema.
 
 The upstream checkout-path correctness fix uses key version 35. Expect cold
 misses when moving from the old recipe; preserve old entries for rollback.

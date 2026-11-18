@@ -1,0 +1,469 @@
+diff --git a/crates/kache-protocol/src/events.rs b/crates/kache-protocol/src/events.rs
+index 7b0d907b..f026f6c5 100644
+--- a/crates/kache-protocol/src/events.rs
++++ b/crates/kache-protocol/src/events.rs
+@@ -108,6 +108,7 @@ pub struct BuildEvent {
+     /// 26 = successful compilation outputs and captured package identity.
+     /// 27 = recorded scheduler decisions and admission outcomes.
+     /// 28 = local hits served from the read-only store.
++    /// 29 = Rust compile-first key discovery reason.
+     #[serde(default)]
+     pub schema: u32,
+     /// Build session this event belongs to (kunobi-ninja/kache#583 P0.5).
+@@ -181,6 +182,11 @@ pub struct BuildEvent {
+     /// Completed coordination attempts; absent in events before schema 27.
+     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+     pub scheduler_decisions: Vec<SchedulerDecision>,
++    /// Why the Rust wrapper chose compile-first discovery: a prediction
++    /// rejection before lookup, `predicted-key-missed`, or `exact-key-missed`.
++    /// This is a decision, not the final cache result or a compiler run count.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub rustc_compile_first_reason: Option<String>,
+     /// Unique output blobs handled by store put (compiled outcomes only).
+     #[serde(default)]
+     pub store_output_blobs: u32,
+@@ -610,6 +616,7 @@ impl BuildEvent {
+             flight_wait_ms: 0,
+             permit_wait_ms: 0,
+             scheduler_decisions: Vec::new(),
++            rustc_compile_first_reason: None,
+             store_output_blobs: 0,
+             store_duplicate_blobs: 0,
+             store_new_blobs: 0,
+diff --git a/src/cache_key.rs b/src/cache_key.rs
+index 15b8832e..76a5923b 100644
+--- a/src/cache_key.rs
++++ b/src/cache_key.rs
+@@ -1815,6 +1815,7 @@ impl Drop for InvocationKeyScope {
+ #[derive(Debug)]
+ pub struct DeferredDiscovery {
+     pub miss_certain: bool,
++    pub(crate) reason: Rejection,
+ }
+ 
+ impl std::fmt::Display for DeferredDiscovery {
+@@ -3823,7 +3824,7 @@ fn resolve_key_inputs(
+             // A missing prediction only describes this checkout. Another
+             // checkout may have stored a portable entry, so compile first
+             // only when the store has never held this unit.
+-            Err(Rejection::NoRecord | Rejection::Disabled | Rejection::NotEligible)
++            Err(reason @ (Rejection::NoRecord | Rejection::Disabled | Rejection::NotEligible))
+                 if owns_flight
+                     && DEFER_DISCOVERY.with(std::cell::Cell::get)
+                     && file_hasher.store_lacks_unit(
+@@ -3833,7 +3834,10 @@ fn resolve_key_inputs(
+             {
+                 crate::phase_trace::decision("prediction", "deferred-new-crate");
+                 tracing::trace!("[key:{}] inputs=deferred(new crate)", crate_name);
+-                return Err(anyhow::Error::new(DeferredDiscovery { miss_certain: true }));
++                return Err(anyhow::Error::new(DeferredDiscovery {
++                    miss_certain: true,
++                    reason,
++                }));
+             }
+             Err(reason)
+                 if owns_flight
+@@ -3848,6 +3852,7 @@ fn resolve_key_inputs(
+                 );
+                 return Err(anyhow::Error::new(DeferredDiscovery {
+                     miss_certain: false,
++                    reason,
+                 }));
+             }
+             Err(reason) => {
+@@ -8069,7 +8074,7 @@ pub(crate) enum Rejection {
+ }
+ 
+ impl Rejection {
+-    fn as_str(self) -> &'static str {
++    pub(crate) fn as_str(self) -> &'static str {
+         match self {
+             Rejection::Disabled => "disabled",
+             Rejection::NotEligible => "not-eligible",
+diff --git a/src/cache_key/tests.rs b/src/cache_key/tests.rs
+index 0d4536ae..3d558632 100644
+--- a/src/cache_key/tests.rs
++++ b/src/cache_key/tests.rs
+@@ -4802,12 +4802,12 @@ fn a_crate_the_store_never_held_defers_discovery() {
+         outcome.err().and_then(|error| {
+             error
+                 .downcast_ref::<DeferredDiscovery>()
+-                .map(|d| d.miss_certain)
++                .map(|d| (d.miss_certain, d.reason.as_str()))
+         })
+     };
+     {
+         let hasher = FileHasher::persistent(&db).with_prediction_flights(flights.clone());
+-        assert_eq!(while_keying(&hasher, true), Some(false));
++        assert_eq!(while_keying(&hasher, true), Some((false, "disabled")));
+     }
+     {
+         let hasher = FileHasher::persistent(&db).with_prediction_flights(flights.clone());
+@@ -20646,9 +20646,13 @@ fn a_provided_closure_is_pending_until_a_key_takes_it() {
+ 
+ #[test]
+ fn a_deferred_discovery_says_so_when_displayed() {
+-    let text = DeferredDiscovery { miss_certain: true }.to_string();
++    let deferred = || DeferredDiscovery {
++        miss_certain: true,
++        reason: Rejection::NoRecord,
++    };
++    let text = deferred().to_string();
+     assert!(text.contains("deferred"), "{text}");
+-    let error: anyhow::Error = DeferredDiscovery { miss_certain: true }.into();
++    let error: anyhow::Error = deferred().into();
+     assert!(error.downcast_ref::<DeferredDiscovery>().is_some());
+ }
+ 
+diff --git a/src/cli/tests.rs b/src/cli/tests.rs
+index 33fe0b07..d8c1365c 100644
+--- a/src/cli/tests.rs
++++ b/src/cli/tests.rs
+@@ -6310,6 +6310,7 @@ fn build_event(
+         flight_wait_ms: 0,
+         permit_wait_ms: 0,
+         scheduler_decisions: Vec::new(),
++        rustc_compile_first_reason: None,
+         store_output_blobs: 0,
+         store_duplicate_blobs: 0,
+         store_new_blobs: 0,
+diff --git a/src/events.rs b/src/events.rs
+index 2d4788f5..c52deb7e 100644
+--- a/src/events.rs
++++ b/src/events.rs
+@@ -1628,6 +1628,7 @@ mod tests {
+             flight_wait_ms: 0,
+             permit_wait_ms: 0,
+             scheduler_decisions: Vec::new(),
++            rustc_compile_first_reason: None,
+             store_output_blobs: 0,
+             store_duplicate_blobs: 0,
+             store_new_blobs: 0,
+diff --git a/src/opcounts.rs b/src/opcounts.rs
+index b7be5cf4..31a0bb5b 100644
+--- a/src/opcounts.rs
++++ b/src/opcounts.rs
+@@ -23,6 +23,7 @@ struct InvocationCounts {
+     flight_wait_us: Cell<u64>,
+     permit_wait_us: Cell<u64>,
+     prediction_mismatches: Cell<u64>,
++    rustc_compile_first_reason: Cell<Option<&'static str>>,
+     scheduler_decisions: RefCell<Vec<kache_protocol::SchedulerDecision>>,
+     event_written: Cell<bool>,
+ }
+@@ -56,6 +57,7 @@ impl InvocationScope {
+             flight_wait_us: Cell::new(0),
+             permit_wait_us: Cell::new(0),
+             prediction_mismatches: Cell::new(0),
++            rustc_compile_first_reason: Cell::new(None),
+             scheduler_decisions: RefCell::new(Vec::new()),
+             event_written: Cell::new(false),
+         });
+@@ -349,6 +351,25 @@ pub fn prediction_mismatches() -> u64 {
+     })
+ }
+ 
++/// Preserve the first decision through emitted dep-info and wrapper re-entry.
++pub(crate) fn record_rustc_compile_first(reason: &'static str) {
++    INVOCATION_COUNTS.with(|slot| {
++        if let Some(counts) = slot.borrow().as_ref()
++            && counts.rustc_compile_first_reason.get().is_none()
++        {
++            counts.rustc_compile_first_reason.set(Some(reason));
++        }
++    });
++}
++
++pub(crate) fn rustc_compile_first_reason() -> Option<&'static str> {
++    INVOCATION_COUNTS.with(|slot| {
++        slot.borrow()
++            .as_ref()
++            .and_then(|counts| counts.rustc_compile_first_reason.get())
++    })
++}
++
+ /// Record time blocked joining a scheduler flight another process owned.
+ pub fn record_flight_wait(spent: Duration) {
+     add_u64(
+@@ -483,6 +504,27 @@ mod tests {
+         assert_eq!(copied_bytes(), repetitions * 17);
+     }
+ 
++    #[test]
++    fn compile_first_reason_stays_with_the_invocation() {
++        assert_eq!(rustc_compile_first_reason(), None);
++        record_rustc_compile_first("not-in-an-invocation");
++        {
++            let _request = InvocationScope::enter(Instant::now());
++            assert_eq!(rustc_compile_first_reason(), None);
++            record_rustc_compile_first("tree-changed");
++            record_rustc_compile_first("exact-key-missed");
++            assert_eq!(rustc_compile_first_reason(), Some("tree-changed"));
++            {
++                let _nested = InvocationScope::enter(Instant::now());
++                assert_eq!(rustc_compile_first_reason(), None);
++                record_rustc_compile_first("no-record");
++                assert_eq!(rustc_compile_first_reason(), Some("no-record"));
++            }
++            assert_eq!(rustc_compile_first_reason(), Some("tree-changed"));
++        }
++        assert_eq!(rustc_compile_first_reason(), None);
++    }
++
+     #[test]
+     fn child_memory_owners_survive_nested_scopes_and_cross_thread_reaping() {
+         let worker = std::thread::spawn(|| {
+diff --git a/src/report/tests.rs b/src/report/tests.rs
+index 964cb052..da731235 100644
+--- a/src/report/tests.rs
++++ b/src/report/tests.rs
+@@ -517,6 +517,7 @@ fn test_event(
+         flight_wait_ms: 0,
+         permit_wait_ms: 0,
+         scheduler_decisions: Vec::new(),
++        rustc_compile_first_reason: None,
+         store_output_blobs: 0,
+         store_duplicate_blobs: 0,
+         store_new_blobs: 0,
+diff --git a/src/tui/tests.rs b/src/tui/tests.rs
+index d9907385..7d055619 100644
+--- a/src/tui/tests.rs
++++ b/src/tui/tests.rs
+@@ -1486,6 +1486,7 @@ fn sample_build_event(
+         flight_wait_ms: 0,
+         permit_wait_ms: 0,
+         scheduler_decisions: Vec::new(),
++        rustc_compile_first_reason: None,
+         store_output_blobs: 0,
+         store_duplicate_blobs: 0,
+         store_new_blobs: 0,
+diff --git a/src/wrapper.rs b/src/wrapper.rs
+index d575768d..ea4214cd 100644
+--- a/src/wrapper.rs
++++ b/src/wrapper.rs
+@@ -4819,6 +4819,11 @@ fn run_parsed_rustc(
+         }
+     }
+     if let Some(stop_on_hit) = compile_then_key {
++        crate::opcounts::record_rustc_compile_first(if owes_rederivation(predicted, rederived) {
++            "predicted-key-missed"
++        } else {
++            "exact-key-missed"
++        });
+         tracing::debug!("{crate_name}: no lane took the miss; compiling before keying again");
+         return compile_before_key(
+             &compile_first,
+@@ -7527,20 +7532,19 @@ fn compute_rustc_cache_key(
+     };
+     let (cache_key, outputs) = compiler.cache_key_in(args, &key_ctx, key_env);
+     key_record.absorb(&outputs);
+-    let deferral = cache_key.as_ref().err().and_then(|error| {
+-        error
+-            .downcast_ref::<crate::cache_key::DeferredDiscovery>()
+-            .map(|deferred| deferred.miss_certain)
+-    });
+     crate::cache_key::set_compile_while_keying(false);
++    crate::cache_key::set_defer_discovery(false);
+     let cache_key = match cache_key {
+         Ok(cache_key) => cache_key,
+-        Err(_) if let Some(miss_certain) = deferral => {
+-            crate::cache_key::set_defer_discovery(false);
++        Err(error) => {
++            let Some(deferred) = error.downcast_ref::<crate::cache_key::DeferredDiscovery>() else {
++                return Err(error);
++            };
++            crate::opcounts::record_rustc_compile_first(deferred.reason.as_str());
+             return Ok(ComputedKey {
+                 cache_key: String::new(),
+                 deferred: true,
+-                stop_on_hit: !miss_certain,
++                stop_on_hit: !deferred.miss_certain,
+                 discovery_flight: file_hasher.take_discovery_flight(),
+                 predicted: false,
+                 outputs,
+@@ -7552,12 +7556,7 @@ fn compute_rustc_cache_key(
+                 written_sources: Vec::new(),
+             });
+         }
+-        Err(error) => {
+-            crate::cache_key::set_defer_discovery(false);
+-            return Err(error);
+-        }
+     };
+-    crate::cache_key::set_defer_discovery(false);
+     let key_hash_stats = file_hasher.stats();
+     // An emitted closure was hashed after rustc read it, so its fingerprints
+     // say nothing about what the compile saw.
+@@ -9877,7 +9876,7 @@ pub(crate) fn build_event_details(config: &Config, inputs: EventInputs<'_>) -> B
+             .then(|| cache_key.to_string()),
+         rebuilt_path: rebuilt.primary,
+         rebuilt_paths: rebuilt.paths,
+-        schema: 28,
++        schema: 29,
+         demands: crate::demand::take(),
+         session_id,
+         key_ms,
+@@ -9897,6 +9896,8 @@ pub(crate) fn build_event_details(config: &Config, inputs: EventInputs<'_>) -> B
+         flight_wait_ms: crate::opcounts::flight_wait_ms(),
+         permit_wait_ms: crate::opcounts::permit_wait_ms(),
+         scheduler_decisions: crate::opcounts::scheduler_decisions(),
++        rustc_compile_first_reason: crate::opcounts::rustc_compile_first_reason()
++            .map(str::to_owned),
+         store_output_blobs: store_put.output_blobs,
+         store_duplicate_blobs: store_put.duplicate_blobs,
+         store_new_blobs: store_put.new_blobs,
+diff --git a/src/wrapper/tests.rs b/src/wrapper/tests.rs
+index 5d800a42..85033125 100644
+--- a/src/wrapper/tests.rs
++++ b/src/wrapper/tests.rs
+@@ -9289,6 +9289,7 @@ fn cc_direct_passthrough_refuses_legacy_cache_blob_hardlink() {
+ 
+ #[test]
+ fn local_hit_demand_reaches_event_without_remote_wait() {
++    let _invocation = crate::opcounts::InvocationScope::enter(std::time::Instant::now());
+     let _ = crate::demand::take();
+     let dir = tempfile::tempdir().unwrap();
+     let config = test_config(dir.path().join("cache"));
+@@ -9301,6 +9302,7 @@ fn local_hit_demand_reaches_event_without_remote_wait() {
+             .is_some()
+     );
+     let after = chrono::Utc::now().timestamp_millis() as u64;
++    crate::opcounts::record_rustc_compile_first("tree-changed");
+     log_event(
+         &config,
+         EventInputs::new("/repo", "foo", EventResult::LocalHit, 10)
+@@ -9310,7 +9312,11 @@ fn local_hit_demand_reaches_event_without_remote_wait() {
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     assert_eq!(events.len(), 1);
+-    assert_eq!(events[0].schema, 28);
++    assert_eq!(events[0].schema, 29);
++    assert_eq!(
++        events[0].rustc_compile_first_reason.as_deref(),
++        Some("tree-changed")
++    );
+     let demands = &events[0].demands;
+     assert_eq!(demands.len(), 1);
+     assert_eq!(demands[0].cache_key, "local-demand-key");
+@@ -9359,7 +9365,7 @@ fn log_event_with_store_stats_persists_timing_hash_and_store_fields() {
+     assert_eq!(event.compile_time_ms, 20);
+     assert_eq!(event.size, 30);
+     assert_eq!(event.cache_key, "cache-key");
+-    assert_eq!(event.schema, 28);
++    assert_eq!(event.schema, 29);
+     assert_eq!(event.key_ms, 40);
+     assert_eq!(event.key_hash_hits, 4);
+     assert_eq!(event.key_hash_misses, 5);
+@@ -9477,7 +9483,7 @@ fn log_event_records_the_wrapper_phase_accumulators() {
+ 
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     let event = &events[0];
+-    assert_eq!(event.schema, 28);
++    assert_eq!(event.schema, 29);
+     // Whatever other tests add is real time, far under the next band.
+     for (name, value, floor, fed) in [
+         ("startup_ms", event.startup_ms, before[0], STARTUP_MS),
+@@ -9613,7 +9619,7 @@ fn log_event_persists_same_key_lookup_rejection() {
+     let event = &events[0];
+     assert_eq!(event.result, EventResult::Miss);
+     assert_eq!(event.cache_key, "same-key");
+-    assert_eq!(event.schema, 28);
++    assert_eq!(event.schema, 29);
+     assert_eq!(
+         event.lookup_rejection,
+         "matching entry lacks dep-info required by this invocation"
+@@ -9683,7 +9689,7 @@ fn log_event_persists_verify_compare_class_on_hit() {
+             .keyed("hit-key", 0, FileHashStats::default()),
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+-    assert_eq!(events[0].schema, 28);
++    assert_eq!(events[0].schema, 29);
+     assert_eq!(events[0].result, EventResult::LocalHit);
+     assert!(
+         events[0].verify_compare.is_empty(),
+@@ -9701,7 +9707,7 @@ fn log_event_persists_verify_compare_class_on_hit() {
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     assert_eq!(events.len(), 2);
+-    assert_eq!(events[1].schema, 28);
++    assert_eq!(events[1].schema, 29);
+     assert_eq!(
+         events[1].verify_compare,
+         "content: libfoo.rlib (byte mismatch)"
+@@ -12601,7 +12607,7 @@ fn a_passthrough_reason_is_classified_on_the_event() {
+         EventInputs::new("/repo", "foo.c", EventResult::Passthrough, 10)
+             .passthrough_reason("unsupported|cc link mode".to_string()),
+     );
+-    assert_eq!(event.schema, 28);
++    assert_eq!(event.schema, 29);
+     assert_eq!(event.miss_reason, crate::events::MissReason::Unsupported);
+     let hit = super::build_event_details(
+         &config,
+@@ -12928,7 +12934,7 @@ fn rebuilt_event_uses_actual_outputs_for_success_even_without_store() {
+                 .store_error("cannot store".into())
+                 .rebuilt(true, &artifacts, Some("cargo-package-name".into())),
+         );
+-        assert_eq!(event.schema, 28);
++        assert_eq!(event.schema, 29);
+         assert_eq!(event.rebuilt_package.as_deref(), Some("cargo-package-name"));
+         assert_eq!(
+             event.rebuilt_fingerprint.as_deref(),
+@@ -14232,7 +14238,7 @@ fn cancelled_scheduler_waits_reach_error_events_without_spawning_compilers() {
+         assert_eq!(events.len(), 1);
+         let event = &events[0];
+         assert_eq!(event.result, EventResult::Error);
+-        assert_eq!(event.schema, 28);
++        assert_eq!(event.schema, 29);
+         assert_eq!(event.exit_code, None, "there was no compiler exit");
+         assert!(event.passthrough_reason.is_empty());
+         assert!(
+diff --git a/tests/fallback_recovery_test.rs b/tests/fallback_recovery_test.rs
+index 6300145c..5353491d 100644
+--- a/tests/fallback_recovery_test.rs
++++ b/tests/fallback_recovery_test.rs
+@@ -158,7 +158,7 @@ fn failed_fallback_retries_once_preserving_compiler_inputs_and_events() {
+         assert!(stderr.contains("kache: warning: fallback"));
+         assert!(stderr.contains("compiling directly without fallback"));
+         let event = fixture.event();
+-        assert_eq!(event["schema"], 28);
++        assert_eq!(event["schema"], 29);
+         assert_eq!(event["exit_code"], 0);
+         assert_ne!(event["fallback"], true);
+         assert_eq!(event["fallback_attempt"]["outcome"], "failed");
+diff --git a/tests/input_prediction_test.rs b/tests/input_prediction_test.rs
+index 7a4be2ae..93bd4ceb 100644
+--- a/tests/input_prediction_test.rs
++++ b/tests/input_prediction_test.rs
+@@ -251,6 +251,9 @@ fn compile_first_publishes_without_a_second_compiler_admission() {
+     let _daemon = common::DaemonGuard::new(kache_binary(), cache.path());
+     run_kache_rustc_as_cargo(cache.path(), out.path(), &src, true);
+     let cold = last_event(cache.path());
++    let cold_raw = last_raw_event(cache.path());
++    assert_eq!(cold_raw["schema"], 29);
++    assert_eq!(cold_raw["rustc_compile_first_reason"], "no-record");
+     assert_eq!(cold.result, "miss");
+     assert_eq!(cold.compiler_runs, 1);
+     let scheduler = cache.path().join("scheduler");
+@@ -271,6 +274,11 @@ fn compile_first_publishes_without_a_second_compiler_admission() {
+     std::fs::remove_dir_all(&scheduler).unwrap();
+     run_kache_rustc_as_cargo(cache.path(), out.path(), &src, true);
+     let warm = last_event(cache.path());
++    assert!(
++        last_raw_event(cache.path())
++            .get("rustc_compile_first_reason")
++            .is_none()
++    );
+     assert_eq!(warm.result, "local_hit");
+     assert_eq!(warm.cache_key, cold.cache_key);
+     assert_eq!(warm.compiler_runs, 0);
+@@ -404,6 +412,10 @@ fn a_stale_record_is_re_derived_from_the_running_compile() {
+     let grown = last_event(cache_dir);
+     assert_eq!(grown.result, "miss");
+     assert_eq!(grown.dep_info_runs, 0, "the compile re-derived the closure");
++    assert_eq!(
++        last_raw_event(cache_dir)["rustc_compile_first_reason"],
++        "predicted-key-missed"
++    );
+     assert_eq!(grown.compiler_runs, 1);
+     assert_ne!(grown.cache_key, cold.cache_key);
+ 
