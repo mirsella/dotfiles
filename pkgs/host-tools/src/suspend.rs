@@ -7,6 +7,7 @@ use std::{path::Path, process::Command};
 const POOLS: &[&str] = &["fast", "tank"];
 const MAINTENANCE: &[&str] = &[
     "db-backup.service",
+    "ente-db-backup.service",
     "recovery-backup.service",
     "hermes-backup.service",
     "sanoid.service",

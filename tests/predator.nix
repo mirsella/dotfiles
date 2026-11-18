@@ -241,14 +241,32 @@ assert lib.assertMsg (
     server.systemd.services.${name}.serviceConfig.UMask == "0077"
     && server.systemd.timers.${name}.timerConfig.Persistent
     && server.systemd.services.${name}.unitConfig.RequiresMountsFor == [ "/srv/backup/recovery" ]
-  ) [ "db-backup" "recovery-backup" ]
+  ) [ "db-backup" "ente-db-backup" "recovery-backup" ]
   && lib.toList server.systemd.timers.recovery-backup.timerConfig.OnCalendar == [ "Sun 23:10" ]
   && lib.toList server.systemd.timers.db-backup.timerConfig.OnCalendar == [ "23:00" ]
+  && lib.toList server.systemd.timers.ente-db-backup.timerConfig.OnCalendar == [ "23:05" ]
+  && server.systemd.services.db-backup.requires == [ "postgresql.service" "podman-immich_postgres.service" ]
+  && server.systemd.services.ente-db-backup.wants == [ "podman-ente_postgres.service" ]
+  && server.systemd.services.ente-db-backup.unitConfig.OnFailure == [ "ente-db-backup-alert.service" ]
+  && builtins.elem "ente-db-backup.service" server.systemd.services.sanoid.after
   && server.fileSystems."/srv/backup/recovery".device == "backups/data/recovery"
   && layout.disko.devices.zpool.backups.datasets."data/recovery".mountpoint == "/srv/backup/recovery"
   && layout.disko.devices.zpool.backups.datasets."data/recovery".options.mountpoint == "legacy"
   && builtins.elem "nofail" server.fileSystems."/srv/backup/recovery".options
 ) "Database and recovery bundles must share a private legacy mount without blocking boot on failure";
+assert lib.assertMsg (
+  let
+    api = server.systemd.services.podman-ente_api;
+    web = server.systemd.services.podman-ente_web;
+  in
+  api.serviceConfig.Restart == "on-failure"
+  && api.serviceConfig.RuntimeDirectoryMode == "0700"
+  && lib.hasInfix "mkdir :s3:ente-photos" api.preStart
+  && builtins.elem "podman-ente_s3.service" api.after
+  && !(builtins.elem "podman-ente_s3.service" api.requires)
+  && builtins.elem "podman-ente_api.service" web.after
+  && !(builtins.elem "podman-ente_api.service" web.requires)
+) "Ente must retry bucket setup on API startup and keep generated credentials private";
 assert lib.assertMsg (
   lib.toList server.systemd.services.hermes-backup.startAt == [ "23:20" ]
   && builtins.elem "multi-user.target" server.systemd.services.hermes-backup.after
@@ -274,7 +292,7 @@ assert lib.assertMsg (
   && lib.hasInfix "--read-data-subset=10%%" server.systemd.services.restic-check.serviceConfig.ExecStart
   && lib.all (mount: builtins.elem mount server.systemd.services."restic-backups-fast".unitConfig.RequiresMountsFor)
     [ "/srv/backup" "/srv/data/fast" "/var/lib/nextcloud/data" ]
-) "Every scheduled backup must ping its healthchecks.io check and restic must back up from mounted sources";
+) "Existing Healthchecks jobs must retain their success pings and restic must back up from mounted sources";
 assert lib.assertMsg (
   lib.all (change:
     let updated = (flake.nixosConfigurations.predator.extendModules {

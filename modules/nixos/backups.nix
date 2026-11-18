@@ -5,10 +5,10 @@ let
   dataset = config.fileSystems.${mountpoint}.device;
   jobs = {
     db-backup = {
-      description = "Back up Nextcloud, Immich and Ente databases and service configuration";
+      description = "Back up Nextcloud and Immich databases and Nextcloud configuration";
       startAt = "23:00";
       out = "${mountpoint}/db";
-      requires = [ "postgresql.service" "podman-immich_postgres.service" "podman-ente_postgres.service" ];
+      requires = [ "postgresql.service" "podman-immich_postgres.service" ];
       directories = [ ];
       commands = [
         {
@@ -22,6 +22,20 @@ let
           stdout = "immich.dump";
         }
         {
+          program = "${pkgs.gnutar}/bin/tar";
+          args = [ "--create" "--dereference" "--file=nextcloud-config.tar" "--directory=${config.services.nextcloud.home}" "config" ];
+        }
+      ];
+    };
+    ente-db-backup = {
+      description = "Back up Ente's database and Museum configuration";
+      startAt = "23:05";
+      out = "${mountpoint}/ente";
+      wants = [ "podman-ente_postgres.service" ];
+      notification.OnFailure = [ "ente-db-backup-alert.service" ];
+      directories = [ ];
+      commands = [
+        {
           program = "${pkgs.podman}/bin/podman";
           args = [ "exec" "ente_postgres" "pg_dump" "--format=custom" "-U" "ente" "ente" ];
           stdout = "ente.dump";
@@ -29,13 +43,8 @@ let
         {
           program = "${pkgs.gnutar}/bin/tar";
           args = [
-            "--create" "--dereference" "--file=ente-config.tar" "--directory=/"
-            (lib.removePrefix "/" config.sops.templates."ente-museum.yaml".path)
+            "--create" "--file=ente-config.tar" "--directory=/run/ente_api" "museum.yaml"
           ];
-        }
-        {
-          program = "${pkgs.gnutar}/bin/tar";
-          args = [ "--create" "--dereference" "--file=nextcloud-config.tar" "--directory=${config.services.nextcloud.home}" "config" ];
         }
       ];
     };
@@ -67,12 +76,15 @@ let
 in
 {
   systemd.services = lib.mapAttrs (name: job: {
-    inherit (job) description startAt requires;
-    after = job.requires;
+    inherit (job) description startAt;
+    requires = job.requires or [ ];
+    wants = job.wants or [ ];
+    after = (job.requires or [ ]) ++ (job.wants or [ ]);
     unitConfig = {
       RequiresMountsFor = [ mountpoint ];
+    } // (job.notification or {
       OnSuccess = [ "healthchecks-ping@${name}.service" ];
-    };
+    });
     path = [ pkgs.util-linux ];
     serviceConfig = {
       Type = "oneshot";
@@ -83,6 +95,19 @@ in
         inherit (job) commands directories;
       }}";
     };
-  }) jobs;
+  }) jobs // {
+    sanoid.after = [ "ente-db-backup.service" ];
+    ente-db-backup-alert = {
+      description = "Email Ente database backup failures";
+      wants = [ "network-online.target" ];
+      after = [ "network-online.target" "sops-install-secrets.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        StandardInput = "text";
+        StandardInputText = "The Ente database backup failed on Predator. See journalctl -u ente-db-backup.service.";
+        ExecStart = ''${pkgs.host-tools}/bin/host-tools storage-mail ${config.sops.secrets.nextcloud-resend.path} mirsella@protonmail.com "Predator: Ente database backup failed"'';
+      };
+    };
+  };
   systemd.timers = lib.mapAttrs (_: _: { timerConfig.Persistent = true; }) jobs;
 }

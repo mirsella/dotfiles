@@ -1007,12 +1007,13 @@ contains all nine current LUKS headers and UUIDs plus `system-secrets.tar` with
 `/var/lib/predator-boot`, the SOPS SSH host identity and `/var/lib/sbctl`.
 These archives contain private keys. Restore them as root with their original permissions.
 
-`db-backup.service` uses the same private dataset, publishing Nextcloud, Immich,
-and Ente database dumps and Nextcloud and Ente configuration under
-`/srv/backup/recovery/db/latest` at 23:00. Both backup jobs stage complete
-bundles, atomically publish `latest`, and retain 7 bundles. Ente's object files
-are in `fast/data`; the database dump and the later restic snapshot are not a
-single recovery point.
+`db-backup.service` publishes Nextcloud and Immich dumps and the Nextcloud
+configuration under `/srv/backup/recovery/db/latest` at 23:00.
+`ente-db-backup.service` saves the Ente dump and Museum configuration under
+`/srv/backup/recovery/ente/latest` at 23:05. It emails failures through Resend
+without blocking the other database backups. Each job atomically publishes
+`latest` and retains 7 complete bundles. Ente's objects are in `fast/data`;
+the database dump and the later restic snapshot are not a single recovery point.
 
 Ente's PostgreSQL container reads `db_password` from SOPS when initializing a
 fresh database. On an existing database, stop Museum, change the `ente` role

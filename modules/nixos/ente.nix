@@ -1,10 +1,51 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, utils, ... }:
 let
   photosOrigin = "https://ente.mirsella.mooo.com";
   apiOrigin = "https://ente-api.mirsella.mooo.com";
   storageOrigin = "https://ente-s3.mirsella.mooo.com";
   dataPath = "/srv/data/fast/Ente";
-  secret = name: config.sops.placeholder."ente_${name}";
+  bucket = "ente-photos";
+  region = "us-east-1";
+  museumConfig = "/run/ente_api/museum.yaml";
+  secretPath = name: config.sops.secrets."ente_${name}".path;
+  secret = name: { _secret = secretPath name; };
+  museumSettings = {
+    db = {
+      host = "ente_postgres";
+      port = 5432;
+      name = "ente";
+      user = "ente";
+      password = secret "db_password";
+    };
+    s3 = {
+      are_local_buckets = false;
+      use_path_style_urls = true;
+      "b2-eu-cen" = {
+        key = "ente";
+        secret = secret "s3_password";
+        endpoint = storageOrigin;
+        inherit bucket region;
+      };
+    };
+    key = {
+      encryption = secret "encryption_key";
+      hash = secret "hash_key";
+    };
+    jwt.secret = secret "jwt_secret";
+    smtp = {
+      host = "smtp.resend.com";
+      port = 465;
+      username = "resend";
+      password = secret "smtp_password";
+      email = "noreply@voxride.com";
+      sender-name = "Ente Photos (Predator)";
+      encryption = "ssl";
+    };
+    internal = {
+      admins = [ 1580559962386438 ];
+      disable-registration = true;
+    };
+  };
   healthcheck = command: [
     "--health-cmd=${command}"
     "--health-interval=30s"
@@ -21,10 +62,7 @@ in
       key = lib.removePrefix "ente_" name;
       restartUnits = [ "podman-ente_api.service" ]
         ++ lib.optional (name == "ente_db_password") "podman-ente_postgres.service"
-        ++ lib.optionals (name == "ente_s3_password") [
-          "podman-ente_s3.service"
-          "ente-storage-setup.service"
-        ];
+        ++ lib.optional (name == "ente_s3_password") "podman-ente_s3.service";
     }) // {
     ente_smtp_password = {
       sopsFile = ../../secrets/nextcloud.yaml;
@@ -32,52 +70,6 @@ in
       restartUnits = [ "podman-ente_api.service" ];
     };
   };
-  # JSON is also valid YAML; placeholders are rendered only into /run, not the store.
-  sops.templates."ente-museum.yaml" = {
-    restartUnits = [ "podman-ente_api.service" ];
-    content = builtins.toJSON {
-      db = {
-        host = "ente_postgres";
-        port = 5432;
-        name = "ente";
-        user = "ente";
-        password = secret "db_password";
-      };
-      s3 = {
-        are_local_buckets = false;
-        use_path_style_urls = true;
-        "b2-eu-cen" = {
-          key = "ente";
-          secret = secret "s3_password";
-          endpoint = storageOrigin;
-          region = "us-east-1";
-          bucket = "ente-photos";
-        };
-      };
-      key = {
-        encryption = secret "encryption_key";
-        hash = secret "hash_key";
-      };
-      jwt.secret = secret "jwt_secret";
-      smtp = {
-        host = "smtp.resend.com";
-        port = 465;
-        username = "resend";
-        password = secret "smtp_password";
-        email = "noreply@voxride.com";
-        sender-name = "Ente Photos (Predator)";
-        encryption = "ssl";
-      };
-      internal = {
-        admins = [ 1580559962386438 ];
-        disable-registration = true;
-      };
-    };
-  };
-  sops.templates."ente-storage-setup.env".content = ''
-    AWS_ACCESS_KEY_ID=ente
-    AWS_SECRET_ACCESS_KEY=${secret "s3_password"}
-  '';
 
   services.caddy.virtualHosts = {
     "ente.mirsella.mooo.com".extraConfig = "reverse_proxy 127.0.0.1:8300";
@@ -114,28 +106,35 @@ in
         ExecStartPost = "${pkgs.curl}/bin/curl --fail --silent --show-error --retry 30 --retry-connrefused --retry-delay 1 --max-time 5 http://127.0.0.1:8320/minio/health/ready";
       };
     };
-    ente-storage-setup = {
-      description = "Ensure Ente's private object-storage bucket exists";
-      requires = [ "podman-ente_s3.service" "sops-install-secrets.service" ];
-      after = [ "podman-ente_s3.service" "sops-install-secrets.service" ];
+    podman-ente_api = {
+      requires = [ "sops-install-secrets.service" ];
+      wants = [ "podman-ente_postgres.service" "podman-ente_s3.service" ];
+      after = [ "sops-install-secrets.service" "podman-ente_postgres.service" "podman-ente_s3.service" ];
+      # Put bucket creation in Museum's own start so a failed check is retried.
+      preStart = ''
+        s3Password=$(<${lib.escapeShellArg (secretPath "s3_password")})
+        AWS_ACCESS_KEY_ID=ente AWS_SECRET_ACCESS_KEY="$s3Password" \
+          ${lib.getExe pkgs.rclone} mkdir :s3:${bucket} --config=/dev/null \
+          --s3-provider=Minio --s3-env-auth --s3-endpoint=http://127.0.0.1:8320 \
+          --s3-region=${region} --retries=1 --low-level-retries=1 --contimeout=10s --timeout=30s
+
+        # Serialize the actual secrets at runtime, escaping them as JSON strings.
+        umask 077
+        ${utils.genJqSecretsReplacementSnippet museumSettings "${museumConfig}.new"}
+        ${pkgs.coreutils}/bin/mv -T ${museumConfig}.new ${museumConfig}
+      '';
       serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        EnvironmentFile = config.sops.templates."ente-storage-setup.env".path;
-        ExecStart = "${pkgs.rclone}/bin/rclone mkdir :s3:ente-photos --config=/dev/null --s3-provider=Minio --s3-env-auth --s3-endpoint=http://127.0.0.1:8320 --s3-region=us-east-1 --retries=1 --low-level-retries=1 --contimeout=10s --timeout=30s";
-        UMask = "0077";
-        NoNewPrivileges = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        PrivateTmp = true;
+        RestartSec = "5s";
+        RuntimeDirectoryMode = "0700";
+        # The database backup can still read the last complete config if Museum stops.
+        RuntimeDirectoryPreserve = "yes";
       };
     };
-    podman-ente_api = {
-      requires = [ "sops-install-secrets.service" "ente-storage-setup.service" ];
-      after = [ "sops-install-secrets.service" "ente-storage-setup.service" ];
+    podman-ente_web = {
+      wants = [ "podman-ente_api.service" ];
+      after = [ "podman-ente_api.service" ];
       serviceConfig.RestartSec = "5s";
     };
-    podman-ente_web.serviceConfig.RestartSec = "5s";
   };
 
   virtualisation.oci-containers = {
@@ -167,7 +166,8 @@ in
           MINIO_ROOT_USER = "ente";
           MINIO_ROOT_PASSWORD_FILE = "/run/secrets/s3_password";
           MINIO_BROWSER = "off";
-          MINIO_API_CORS_ALLOW_ORIGIN = photosOrigin;
+          # The official desktop client uses a registered Chromium scheme.
+          MINIO_API_CORS_ALLOW_ORIGIN = "${photosOrigin},ente://app";
         };
         volumes = [
           "${dataPath}/objects:/data"
@@ -178,8 +178,7 @@ in
       };
       ente_api = {
         image = "ghcr.io/ente/server:latest@sha256:f8c33e9bc1d5b7079dcda51522dd9f4fb28d93bef8655d95be54a978acc43408";
-        dependsOn = [ "ente_postgres" "ente_s3" ];
-        volumes = [ "${config.sops.templates."ente-museum.yaml".path}:/museum.yaml:ro" ];
+        volumes = [ "${museumConfig}:/museum.yaml:ro" ];
         ports = [ "127.0.0.1:8180:8080" ];
         networks = [ "podman" ];
         podman.sdnotify = "healthy";
@@ -187,7 +186,6 @@ in
       };
       ente_web = {
         image = "ghcr.io/ente/web:latest@sha256:f135d345510d9f85545960543961a7b6cd0b78d20e004704a2a0165b7692f3ef";
-        dependsOn = [ "ente_api" ];
         environment.ENTE_API_ORIGIN = apiOrigin;
         ports = [ "127.0.0.1:8300:3000" ];
         networks = [ "podman" ];
