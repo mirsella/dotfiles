@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
+import argparse
 import asyncio
+import json
+import sys
 
 from dbus_next.aio.message_bus import MessageBus
 from dbus_next.constants import BusType
@@ -33,12 +36,12 @@ async def get_battery_description(bus, char):
 
 
 async def get_battery_info(bus):
-    """One status line per battery, empty when the keyboard exposes none."""
+    """Battery descriptions and levels, or None when the keyboard is disconnected."""
     device = await get_proxy(bus, BLUEZ_PATH)
     if not await device.get_interface(DEVICE_INTERFACE).get_connected():
-        return []
+        return None
 
-    statuses = []
+    levels = {}
     for service_path in device.child_paths:
         service = await get_proxy(bus, service_path)
         service_interface = service.get_interface(GATT_SERVICE_INTERFACE)
@@ -50,20 +53,47 @@ async def get_battery_info(bus):
             char_interface = char.get_interface(GATT_CHARACTERISTIC_INTERFACE)
             if await char_interface.get_uuid() != BATTERY_LEVEL_UUID:
                 continue
-            level = int.from_bytes(await char_interface.call_read_value({}), "little")
+            value = await char_interface.call_read_value({})
+            if len(value) != 1 or value[0] > 100:
+                raise ValueError(f"Invalid battery level from {char_path}")
             description = await get_battery_description(bus, char)
-            statuses.append(f"{description}: {level}%")
+            if description in levels:
+                raise ValueError(f"Duplicate battery description: {description}")
+            levels[description] = value[0]
 
-    return statuses
+    return levels
 
 
-async def main():
+async def sample():
+    bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
     try:
-        bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
-        print("\n".join(await get_battery_info(bus)) or "disconnected")
-    except Exception as e:
-        print(f"Error: {e}")
+        return await get_battery_info(bus)
+    finally:
+        bus.disconnect()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    try:
+        levels = asyncio.run(asyncio.wait_for(sample(), timeout=10))
+    except Exception as error:
+        print(
+            f"Error reading keyboard batteries: {error or type(error).__name__}",
+            file=sys.stderr,
+        )
+        return 1
+
+    if args.json:
+        print(json.dumps(levels))
+    else:
+        print(
+            "\n".join(f"{name}: {level}%" for name, level in (levels or {}).items())
+            or "disconnected"
+        )
+    return 0
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    sys.exit(main())

@@ -170,7 +170,6 @@
     "spoken_formatting": false,
     "spoken_symbols": false,
     "standalone_special_keys": false,
-    "stop_when_call_ends": false,
     "subtitle_export": false,
     "tap_or_hold": false,
     "transcribe_files": true,
