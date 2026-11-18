@@ -238,11 +238,11 @@
     "hex": {
       "flake": false,
       "locked": {
-        "lastModified": 1794255658,
-        "narHash": "sha256-EiKjD4/LbM1e5bXVqiJk2RwZLwVVNXaNTYLpnJFn+io=",
+        "lastModified": 1794991136,
+        "narHash": "sha256-XafPgUAGYdQnXKE22QyituqXILJagLQr2wjltw3ABd4=",
         "owner": "anomalyco",
         "repo": "hex",
-        "rev": "0264d5a8e010a19c1d720ec7fbc5b5bfe3968dac",
+        "rev": "a2a583b95f60e5d143cafc17157805f7ac613f51",
         "type": "github"
       },
       "original": {
