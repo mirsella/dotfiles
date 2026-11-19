@@ -13,8 +13,7 @@ and explore new ideas, skip fixes to code being replaced.
 Bring in two delegates to help with the user's request, usually for review
 or feedback. Use one strong model from each of two different providers, at
 high reasoning effort. If the user's instructions name council members, use
-those. Otherwise use Claude Opus from Claude and GPT Sol from OpenAI. Do not
-add Gemini or any other model.
+those. Otherwise use Claude Opus from Claude and GPT Sol from OpenAI.
 
 In T3 Code, use `orchestrator_capabilities` to resolve the models, then
 `delegate_task` to start one delegate per model in parallel. Elsewhere, use
