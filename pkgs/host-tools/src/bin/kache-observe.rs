@@ -9,7 +9,7 @@ use std::{
     io::{BufRead, BufReader, Read, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
 #[derive(Parser)]
@@ -232,10 +232,24 @@ fn pending_file(output: &Path) -> Result<tempfile::NamedTempFile> {
         .tempfile_in(output)?)
 }
 
+fn write_extent_result(writer: &mut impl Write, extents: Result<String>) -> Result<()> {
+    writer.write_all(b",\"cache_extents\":")?;
+    match extents {
+        Ok(extents) => serde_json::to_writer(writer, &extents)?,
+        Err(error) => {
+            let error = format!("{error:#}");
+            eprintln!("skipping physical extent sample: {error}");
+            writer.write_all(b"null,\"cache_extents_error\":")?;
+            serde_json::to_writer(writer, &error)?;
+        }
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
-    let started = SystemTime::now();
-    let timestamp_ms = started.duration_since(UNIX_EPOCH)?.as_millis();
+    let started = Instant::now();
+    let timestamp_ms = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
     let cache = args.cache.canonicalize()?;
     let binary = args.kache.canonicalize()?;
     fs::create_dir_all(&args.output)?;
@@ -273,7 +287,6 @@ fn main() -> Result<()> {
         "daemon": command("systemctl", &["--user","show","kache","-p","MainPID","-p","ExecMainStartTimestamp","-p","ActiveState"])?,
         "cache_processes": cache_processes()?,
         "df": command("df", &["-B1", cache_text])?,
-        "cache_extents": command("btrfs", &["filesystem","du","--raw","-s",cache_text])?,
         "gc_stats": serde_json::from_str::<Value>(&read_bounded(&cache.join("gc_stats.json"), 1 << 20)?)?,
         "files": inventory,
         "columns": {
@@ -286,6 +299,8 @@ fn main() -> Result<()> {
         },
         "semantics": "Immutable periodic snapshots, not a complete eviction ledger. Demand between snapshots may be censored. Index bytes are not filesystem-exclusive bytes. Compare equal-budget policies using future observations; inventory scores alone do not demonstrate a win.",
     });
+    let metadata_ms = started.elapsed().as_millis();
+    eprintln!("collected metadata in {metadata_ms}ms; sampling cache index");
     let name = output.join(format!("observation-{timestamp_ms}.json.gz"));
     {
         let mut encoder = GzEncoder::new(&mut temporary, Compression::fast());
@@ -296,11 +311,32 @@ fn main() -> Result<()> {
         );
         encoder.write_all(&metadata)?;
         encoder.write_all(b",\"index\":")?;
+        let index_started = Instant::now();
         write_index(&cache, &mut encoder)?;
+        let index_ms = index_started.elapsed().as_millis();
+        eprintln!("collected cache index in {index_ms}ms; sampling Btrfs extents");
+        // Don't hold a SQLite read transaction during a potentially slow disk walk.
+        let extent_started = Instant::now();
+        let extents = command(
+            "timeout",
+            &[
+                "--verbose",
+                "--kill-after=5s",
+                "45s",
+                "btrfs",
+                "filesystem",
+                "du",
+                "--raw",
+                "-s",
+                cache_text,
+            ],
+        );
+        write_extent_result(&mut encoder, extents)?;
+        let extent_ms = extent_started.elapsed().as_millis();
         write!(
             encoder,
-            ",\"collection_ms\":{}}}",
-            started.elapsed()?.as_millis()
+            ",\"stages_ms\":{{\"metadata\":{metadata_ms},\"index\":{index_ms},\"cache_extents\":{extent_ms}}},\"collection_ms\":{}}}",
+            started.elapsed().as_millis()
         )?;
         encoder.finish()?.flush()?;
     }
@@ -311,6 +347,10 @@ fn main() -> Result<()> {
     temporary.as_file().sync_all()?;
     temporary.persist_noclobber(&name)?;
     retain(&output, &name, MAX_BYTES, MAX_FILES)?;
+    eprintln!(
+        "published observation in {}ms",
+        started.elapsed().as_millis()
+    );
     println!("{}", name.display());
     Ok(())
 }
@@ -324,6 +364,17 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         assert!(write_index(dir.path(), &mut Vec::new()).is_err());
         assert!(!dir.path().join("index.db").exists());
+    }
+
+    #[test]
+    fn failed_extent_scan_keeps_index_with_explicit_unavailable_sample() {
+        let mut bytes = b"{\"index\":{\"entries\":[]}".to_vec();
+        write_extent_result(&mut bytes, Err(anyhow::anyhow!("test scan timeout"))).unwrap();
+        bytes.push(b'}');
+        let parsed: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(parsed["index"]["entries"], json!([]));
+        assert_eq!(parsed["cache_extents"], Value::Null);
+        assert_eq!(parsed["cache_extents_error"], "test scan timeout");
     }
 
     #[test]

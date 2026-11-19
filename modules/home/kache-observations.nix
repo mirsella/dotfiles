@@ -11,7 +11,8 @@
       IOSchedulingClass = "idle";
       CPUQuota = "25%";
       MemoryMax = "768M";
-      TimeoutStartSec = "5min";
+      # The index is required; the optional extent walk has its own 45s deadline.
+      TimeoutStartSec = "8min";
     };
   };
   systemd.user.timers.kache-observe = {
