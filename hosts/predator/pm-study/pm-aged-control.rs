@@ -77,6 +77,7 @@ enum Arm {
     GpuMeter,
     GpuOff,
     AgedS2idle,
+    S2idleMeter,
 }
 
 #[derive(Clone, Copy)]
@@ -88,7 +89,9 @@ enum Stage {
 impl Stage {
     fn expected(self, arm: &Arm) -> (&'static str, &'static [&'static str]) {
         match (self, arm) {
+            (Self::Initial, Arm::S2idleMeter) => ("6", &[]),
             (Self::Initial, _) => ("0", &[]),
+            (Self::BeforeSleep, Arm::S2idleMeter) => ("11", &["before.snapshot.txt", "dry.jsonl"]),
             (Self::BeforeSleep, Arm::AgedControl | Arm::GpuOff | Arm::AgedS2idle) => {
                 ("5", &["before.snapshot.txt", "dry.jsonl"])
             }
@@ -132,6 +135,7 @@ impl Arm {
             ("gpu-meter-", Self::GpuMeter),
             ("gpu-off-", Self::GpuOff),
             ("s2idle-aged-", Self::AgedS2idle),
+            ("s2idle-meter-", Self::S2idleMeter),
         ] {
             if label
                 .strip_prefix(prefix)
@@ -145,15 +149,43 @@ impl Arm {
 
     fn check_age(&self, uptime: f64) -> Result<()> {
         match self {
-            Self::AgedControl | Self::AgedBypassProbe | Self::GpuOff | Self::AgedS2idle => {
-                require(uptime >= 32_400.0, "less than nine hours awake")
-            }
+            Self::AgedControl
+            | Self::AgedBypassProbe
+            | Self::GpuOff
+            | Self::AgedS2idle
+            | Self::S2idleMeter => require(uptime >= 32_400.0, "less than nine hours awake"),
             Self::ShortBypass => require(
                 (0.0..14_400.0).contains(&uptime),
                 "short bypass requires less than four hours since boot",
             ),
             Self::GpuMeter => Ok(()),
         }
+    }
+
+    fn awake_since(&self, uptime: f64, resume_observed: Option<u64>) -> Result<f64> {
+        match (self, resume_observed) {
+            (Self::S2idleMeter, Some(anchor)) => {
+                require(
+                    anchor >= 32_400 && uptime >= anchor as f64,
+                    "invalid post-resume observation uptime",
+                )?;
+                Ok((uptime - anchor as f64).floor())
+            }
+            (Self::S2idleMeter, None) => Err("missing post-resume observation uptime".into()),
+            (_, None) => Ok(uptime),
+            (_, Some(_)) => Err("unexpected post-resume observation uptime".into()),
+        }
+    }
+
+    fn check_window(&self, clock: u32) -> Result<()> {
+        require(trial_window(clock), "backup exclusion window")?;
+        if matches!(self, Self::S2idleMeter) {
+            require(
+                clock < 2215,
+                "not enough time before backups for the meter run",
+            )?;
+        }
+        Ok(())
     }
 
     fn runner(&self) -> &'static str {
@@ -170,6 +202,7 @@ impl Arm {
             Self::AgedBypassProbe => &["s3", "1", "120", "30", "nosmi"],
             Self::GpuOff => &["s3", "1", "120", "30", "gpu-off"],
             Self::AgedS2idle => &["s2idle", "1", "120", "30"],
+            Self::S2idleMeter => &["s2idle", "1", "1500", "30"],
             Self::GpuMeter => unreachable!("awake measurement must not call suspend"),
         }
     }
@@ -182,6 +215,7 @@ struct Baseline<'a> {
     system: &'a str,
     runner_hash: &'a str,
     storage: &'a Path,
+    resume_observed: Option<u64>,
 }
 
 impl Baseline<'_> {
@@ -212,23 +246,23 @@ impl Baseline<'_> {
             )?;
         }
         let uptime = read("/proc/uptime")?;
-        let awake: f64 = uptime
+        let uptime: f64 = uptime
             .split_whitespace()
             .next()
             .ok_or("missing uptime")?
             .parse()?;
-        // All arms start from a boot with no intervening suspends.
+        let awake = self.arm.awake_since(uptime, self.resume_observed)?;
         let clock: u32 = output("date", &["+%H%M"])?.trim().parse()?;
-        require(trial_window(clock), "backup exclusion window")?;
+        self.arm.check_window(clock)?;
         let age_at_start = if let Some(slot) = planned {
             require(
-                matches!(self.arm, Arm::GpuOff | Arm::AgedS2idle),
-                "prepare is only for GPU-off or aged s2idle",
+                matches!(self.arm, Arm::GpuOff | Arm::AgedS2idle | Arm::S2idleMeter),
+                "prepare is only for GPU-off or the s2idle arms",
             )?;
             let now: i64 = output("date", &["+%s"])?.trim().parse()?;
             let when: i64 = output("date", &["--date", slot, "+%s"])?.trim().parse()?;
             let clock = output("date", &["--date", slot, "+%H%M"])?.trim().parse()?;
-            require(trial_window(clock), "planned time overlaps backups")?;
+            self.arm.check_window(clock)?;
             require(when > now, "planned time is not in the future")?;
             awake + (when - now) as f64
         } else {
@@ -238,7 +272,7 @@ impl Baseline<'_> {
         if matches!(self.arm, Arm::GpuMeter) {
             require(clock < 2230, "GPU measurement overlaps the backup window")?;
         }
-        if matches!(self.arm, Arm::GpuOff | Arm::AgedS2idle) {
+        if matches!(self.arm, Arm::GpuOff | Arm::AgedS2idle | Arm::S2idleMeter) {
             let sleep = read("/sys/power/mem_sleep")?;
             require(
                 read("/sys/power/pm_test")?
@@ -248,7 +282,7 @@ impl Baseline<'_> {
                     && read("/sys/class/rtc/rtc0/wakealarm")?.trim().is_empty(),
                 "sleep mode changed or an RTC alarm is already armed",
             )?;
-            if matches!(self.arm, Arm::AgedS2idle) {
+            if matches!(self.arm, Arm::AgedS2idle | Arm::S2idleMeter) {
                 require(
                     sleep.split_whitespace().any(|v| v == "s2idle"),
                     "s2idle is not available",
@@ -328,7 +362,7 @@ impl Baseline<'_> {
         )?;
         print!("{}", output("predator-boot", &["audit"])?);
         println!(
-            "{} preflight passed, uptime {awake:.0} seconds, expected successes {successes}",
+            "{} preflight passed, awake for {awake:.0} seconds, expected successes {successes}",
             self.label
         );
         if let Some(slot) = planned {
@@ -355,7 +389,7 @@ impl Baseline<'_> {
         }
         self.batch("before", &["snapshot"])?;
         let dry = match self.arm {
-            Arm::AgedControl | Arm::GpuOff | Arm::AgedS2idle => {
+            Arm::AgedControl | Arm::GpuOff | Arm::AgedS2idle | Arm::S2idleMeter => {
                 self.batch("dry", &["dry", "5", "30", "10"])
             }
             _ => Ok(()),
@@ -523,7 +557,7 @@ fn gpu_event(log: &mut fs::File, event: &str) -> Result<()> {
 fn main() -> ExitCode {
     let args: Vec<_> = env::args().collect();
     let [_, mode, label, boot, system, runner_hash, storage, rest @ ..] = args.as_slice() else {
-        eprintln!("Usage: pm-aged-control <check|prepare|run|gpu-restore> <label> <boot-id> <system> <runner-sha256> <storage-records> [planned-time for prepare]");
+        eprintln!("Usage: pm-aged-control <check|prepare|run|gpu-restore> <label> <boot-id> <system> <runner-sha256> <storage-records> [post-resume uptime for s2idle-meter] [planned-time for prepare]");
         return ExitCode::FAILURE;
     };
     let arm = match Arm::from_label(label) {
@@ -533,6 +567,18 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    let (resume_observed, rest) = if matches!(arm, Arm::S2idleMeter) {
+        let Some((anchor, rest)) = rest
+            .split_first()
+            .and_then(|(anchor, rest)| Some((anchor.parse::<u64>().ok()?, rest)))
+        else {
+            eprintln!("{label}: expected integer post-resume observation uptime");
+            return ExitCode::FAILURE;
+        };
+        (Some(anchor), rest)
+    } else {
+        (None, rest)
+    };
     let baseline = Baseline {
         arm,
         label,
@@ -540,6 +586,7 @@ fn main() -> ExitCode {
         system,
         runner_hash,
         storage: Path::new(storage),
+        resume_observed,
     };
     let result = match (mode.as_str(), rest) {
         ("check", []) => baseline.check(None),
@@ -650,5 +697,28 @@ mod tests {
         let arm = Arm::AgedS2idle;
         assert_eq!(arm.runner(), super::RUNNER);
         assert_eq!(arm.sleep_args(), ["s2idle", "1", "120", "30"]);
+    }
+
+    #[test]
+    fn s2idle_meter_pins_counters_and_ages_from_a_verified_post_resume_observation() {
+        let arm = Arm::from_label("s2idle-meter-1").unwrap();
+        let observed = Some(36_000);
+        assert!(arm.awake_since(68_400.0, None).is_err());
+        assert!(arm.awake_since(68_400.0, Some(0)).is_err());
+        assert!(arm.awake_since(35_999.0, observed).is_err());
+        assert!(arm
+            .check_age(arm.awake_since(68_399.99, observed).unwrap())
+            .is_err());
+        assert!(arm
+            .check_age(arm.awake_since(68_400.0, observed).unwrap())
+            .is_ok());
+        assert_eq!(Stage::Initial.expected(&arm), ("6", &[][..]));
+        assert_eq!(
+            Stage::BeforeSleep.expected(&arm),
+            ("11", &["before.snapshot.txt", "dry.jsonl"][..])
+        );
+        assert_eq!(arm.sleep_args(), ["s2idle", "1", "1500", "30"]);
+        assert!(arm.check_window(2214).is_ok());
+        assert!(arm.check_window(2215).is_err());
     }
 }

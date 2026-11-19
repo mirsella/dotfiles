@@ -171,7 +171,10 @@ Work through this in order. Record every run in the results table.
    Wake-on-LAN did not wake s2idle on this machine; an RTC alarm has
    brought it back. Run `s2idle-aged-1` on the unchanged generation 189
    configuration with the same five dry cycles, GPU in D0 and one 120 s
-   RTC alarm. Do not arm another trial until this one is resolved.
+   RTC alarm. If it returns normally at the RTC interval and restoration
+   and health checks pass, the owner approved automatically scheduling
+   `s2idle-meter-1`, one aged repeat with a 25-minute RTC alarm. A failure
+   or incomplete result stops the queue.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -418,7 +421,32 @@ replay the trial. The results check records the dry cycles, real return
 timing, restoration and health separately. Ask for wall draw around
 the actual request; a two-minute sleep may be mixed with awake draw in
 a five-minute meter bin. Do not treat a software return as a low-power
-measurement or pre-arm another trial.
+measurement.
+
+The 05:25 check may arm `s2idle-meter-1` only once it verifies all five
+dry returns, one normal `s2idle` return at the 120 s RTC interval,
+successful cleanup, `deep` restored, an empty RTC alarm, a healthy
+unchanged baseline and suspend counters at 6/0. A mixed or missing
+meter bin from the short run is not a blocker. Stop for a refusal,
+early return, hang, incomplete evidence or failed health check.
+
+For the repeat, keep the same boot, system, runner, storage and GPU
+policy. The candidate launcher is saved without a unit or timer in
+`/home/mirsella/dev/scratch/predator-suspend/candidate-s2idle-meter-1/`.
+Verify its SHA-256 before installing. It accepts a post-resume uptime
+argument after the storage-record directory. After confirming the
+return on the expected boot, read `/proc/uptime` and round its first
+field up to a whole second. Use that reading as the conservative age
+anchor, not boot time. `prepare` takes the planned ISO timestamp after the anchor;
+`check` and `run` take just the anchor. Runtime guards pin counters at
+6/0 before the dry cycles and 11/0 before the real request, and require
+nine hours awake since the anchor. No stage may start at or after
+22:15 CET or before 00:30 CET, so the 25-minute run has time to finish
+before backups. Aim for 15:00 CET on November 20 if that allows nine
+hours awake and time for a precheck; otherwise choose a later safe
+slot. Verify the new one-shot timer and schedule its precheck and
+results check. Compare only complete five-minute meter bins within
+the logged sleep interval, not the transition bins.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
