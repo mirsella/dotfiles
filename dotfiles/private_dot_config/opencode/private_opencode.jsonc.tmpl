@@ -117,32 +117,9 @@
         "baseURL": "http://127.0.0.1:17321/sleev/opencode/codex"
       },
       "models": {
-        // Explicit entries keep long-running servers usable before their catalog refresh.
         "gpt-6.2-sol": {
-          "name": "GPT-6.2 Sol",
           "settings": {
             "reasoningEffort": "xhigh"
-          },
-          "limit": { "context": 628000, "input": 500000, "output": 128000 },
-          "capabilities": {
-            "tools": true,
-            "freeform": ["text", "lark", "regex"],
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-            "temperature": false,
-            "reasoning": { "supported": true, "effort": ["low", "medium", "high", "xhigh", "max"] }
-          }
-        },
-        "gpt-6.2-astra": {
-          "name": "GPT-6.2 Astra",
-          "limit": { "context": 628000, "input": 500000, "output": 128000 },
-          "capabilities": {
-            "tools": true,
-            "freeform": ["text", "lark", "regex"],
-            "input": ["text", "image", "pdf"],
-            "output": ["text"],
-            "temperature": false,
-            "reasoning": { "supported": true, "effort": ["low", "medium", "high", "xhigh", "max"] }
           }
         },
         "gpt-6-luna": {},
