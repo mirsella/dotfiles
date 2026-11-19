@@ -315,11 +315,22 @@ can include both D0 and D3cold, so compare complete five-minute bins.
 
 On November 19, both devices reached D3cold at 10:29:27 CET, stayed
 there through the last sample at 10:54:27, and were back in active D0
-with the original policy at 10:54:29. The owner reported about 17 W
-from 10:30 to 10:50, fully inside that interval. This corroborates
-the low-power state but is not a load-matched estimate of watts saved.
-The nine-volume boot audit and pool checks passed; Ente was running
-and the suspend counters remained 0/0.
+with the original policy at 10:54:29. The 11:05 read-only check
+counted 50 D3cold samples over exactly 1,500 seconds, with no gap
+longer than 31 seconds. The journal confirmed successful
+`ExecStopPost` restoration. Both devices were still active in D0
+with the GPU set to `on`. The pinned boot and generation 189
+links were unchanged, and suspend counters were still 0/0.
+All nine volumes passed the boot audit, the three healthy pools
+and five mounts matched the baseline, and all four Ente services
+were running with their original PIDs and activation times.
+
+The owner reported about 17 W from 10:30 to 10:50, entirely inside
+the D3cold interval. This is the measured wall draw with D3cold,
+not how much power D3cold saved. A wattage comparison still needs
+complete D0 bins ending by 10:25 and starting at or after 11:00,
+with comparable workload. The separate 18:40 suspend timer was
+left unchanged.
 
 ### `gpu-off-1` aged S3
 
