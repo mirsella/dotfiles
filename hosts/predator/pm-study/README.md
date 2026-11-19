@@ -268,6 +268,9 @@ If the probe hangs, leave recovery to the owner and pause the arm. If it
 returns normally, the next step is still a three-cycle short check on a
 fresh boot, not a formal aged repetition.
 
+The 09:00 results check could not reach Predator. The queue is paused
+until the owner checks the machine and the probe logs can be read.
+
 If the short test passes, schedule only the first aged bypass. Count at
 least nine hours from the last actual resume, pin the post-batch counters
 and verify the elapsed time again at launch. Neither the short mode nor
@@ -315,7 +318,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 01:10 | `nosmi-short-1` scheduling check | read-only timer and baseline checks | 2 h 13 min | timer correct; preflight passed; zero requests | |
 | Nov 19 01:30 | `nosmi-short-1` | planned firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | second preflight refused; zero requests | |
 | Nov 19 08:30 | `nosmi-aged-probe-1` scheduling check | read-only timer and baseline checks | 9 h 34 min | timer correct; preflight passed; zero requests | |
-| Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 request with firmware handler bypass, 120 s RTC alarm | about 9 h 43 min at trigger | pending | one-off approved; short safety batch still required |
+| Nov 19 08:40 | `nosmi-aged-probe-1` | planned one S3 request with firmware handler bypass, 120 s RTC alarm | about 9 h 43 min at scheduled trigger | suspected hang; request and return not verified | meter graph, power LED and fan observations requested |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -536,6 +539,22 @@ were 0/0. Running only `check` with the stored trial arguments passed on the
 pinned boot, including the audit for all nine volumes. The timer and service
 were left unchanged, Ente remained running and the 09:00 results check was
 left in place.
+
+At the 09:00 results check, both SSH paths failed and the Pi saw no reply
+on the LAN. Direct LAN SSH still failed at 09:04:53, 09:07:53 and 09:10:53;
+the Pi still saw no reply at 09:10:57. The SSH alias failed again at
+09:11:13. The Pi's netconsole log had no new data since November 17.
+The passed precheck and sustained loss of reachability after the planned
+trial make a hang plausible, but do not confirm that the timer fired or
+that the request reached the kernel. The journal, probe logs, suspend
+counters and `SLP_SMI_EN` state could not be read.
+
+No wake, reset or other recovery was sent, and no further trial was armed.
+If Predator is powered on but unresponsive, the owner should note the
+power LED and fan state before holding the power button. Check the meter
+history around 08:40 for any dip toward 3 W. After recovery, use the
+previous boot's journal and the probe logs to distinguish a refusal from
+a request with no software return.
 
 ## Machine facts
 
