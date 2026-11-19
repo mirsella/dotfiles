@@ -296,9 +296,27 @@ unbound NVIDIA graphics function on device add. This is the same setting
 used by the awake check; it does not force the GPU off if the kernel needs
 it. It has not been activated. After booting the configuration, verify
 both PCI devices reach D3cold and treat the new policy as a baseline
-change before arming any suspend trial. Use a longer awake comparison
-with the meter if an attributable wattage difference is needed. No
-suspend timer is armed.
+change before arming any suspend trial.
+
+### `gpu-meter-1` awake comparison
+
+The longer measurement uses the same generation 189 boot and changes
+only the GPU's `power/control`. The launcher accepts `gpu-meter-N` to
+hold the GPU and port in D3cold for 25 minutes, sampling every 30 seconds.
+It does not invoke a suspend batch. Run it only under its systemd service:
+`RuntimeDirectory` holds the restore marker and `ExecStopPost` returns
+the GPU to `on` and checks both devices reach D0, including after an error
+or timeout. The unit does not restart. A short interval at either end
+can include both D0 and D3cold, so compare complete five-minute bins.
+
+On November 19, `pm-gpu-meter-1.service` started at 10:29:15 CET. The
+boot audit and other preflight checks passed. Both devices were in D0
+at 10:29:26 and reached D3cold at 10:29:27. D0 restoration is expected
+around 10:55 CET; the 11:05 T3 check will confirm actual times and health.
+For the wall graph, compare full bins inside 10:30 to 10:50 with bins
+before the change and after 11:00, once restoration has been verified.
+No suspend timer is armed. A guarded aged GPU-off S3 remains the next
+suspend candidate after the meter comparison and restoration check.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -344,6 +362,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 08:30 | `nosmi-aged-probe-1` scheduling check | read-only timer and baseline checks | 9 h 34 min | timer correct; preflight passed; zero requests | |
 | Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 attempt with firmware handler bypass, 120 s RTC alarm | 9 h 43 min at request | no software return; firmware bypass did not prevent the hang | 15 W; owner forced reboot; any brief dip, LED and fan state unreported |
 | Nov 19 10:03 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 46 min | GPU and upstream port reached D3cold; original policy and D0 restored | about 30 W to 17 W near the check; five-minute samples cannot isolate the change |
+| Nov 19 10:29 | `gpu-meter-1` | 25-minute awake D3cold comparison, no suspend | about 1 h 12 min | in progress; both devices reached D3cold at 10:29:27 | restoration and meter readings pending |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools

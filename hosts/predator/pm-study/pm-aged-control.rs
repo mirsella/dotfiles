@@ -1,12 +1,18 @@
-// Guarded suspend study trials. "check" runs the initial preflight only.
+// Guarded suspend study trials and awake GPU measurement.
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 const RUNNER: &str = "/home/mirsella/dev/scratch/predator-suspend/pm-batch";
+const GPU: &str = "/sys/bus/pci/devices/0000:01:00.0";
+const PORT: &str = "/sys/bus/pci/devices/0000:00:01.0";
+const GPU_MEASUREMENT: Duration = Duration::from_secs(25 * 60);
 const MAINTENANCE: &[&str] = &[
     "db-backup.service",
     "ente-db-backup.service",
@@ -63,6 +69,7 @@ enum Arm {
     AgedControl,
     ShortBypass,
     AgedBypassProbe,
+    GpuMeter,
 }
 
 #[derive(Clone, Copy)]
@@ -76,7 +83,7 @@ impl Stage {
         match (self, arm) {
             (Self::Initial, _) => ("0", &[]),
             (Self::BeforeS3, Arm::AgedControl) => ("5", &["before.snapshot.txt", "dry.jsonl"]),
-            (Self::BeforeS3, Arm::ShortBypass | Arm::AgedBypassProbe) => {
+            (Self::BeforeS3, Arm::ShortBypass | Arm::AgedBypassProbe | Arm::GpuMeter) => {
                 ("0", &["before.snapshot.txt"])
             }
         }
@@ -113,6 +120,7 @@ impl Arm {
             ("aged-", Self::AgedControl),
             ("nosmi-short-", Self::ShortBypass),
             ("nosmi-aged-probe-", Self::AgedBypassProbe),
+            ("gpu-meter-", Self::GpuMeter),
         ] {
             if label
                 .strip_prefix(prefix)
@@ -133,6 +141,7 @@ impl Arm {
                 (0.0..14_400.0).contains(&uptime),
                 "short bypass requires less than four hours since boot",
             ),
+            Self::GpuMeter => Ok(()),
         }
     }
 }
@@ -183,6 +192,9 @@ impl Baseline<'_> {
         self.arm.check_age(awake)?;
         let clock: u32 = output("date", &["+%H%M"])?.trim().parse()?;
         require((30..2300).contains(&clock), "backup exclusion window")?;
+        if matches!(self.arm, Arm::GpuMeter) {
+            require(clock < 2230, "GPU measurement overlaps the backup window")?;
+        }
 
         let logs = Path::new(RUNNER).with_file_name("logs");
         check_trial_logs(&logs, self.label, expected_logs)?;
@@ -274,15 +286,19 @@ impl Baseline<'_> {
 
     fn run(&self) -> Result<()> {
         self.preflight(Stage::Initial)?;
+        if matches!(self.arm, Arm::GpuMeter) {
+            return self.measure_gpu();
+        }
         self.batch("before", &["snapshot"])?;
         let dry = match self.arm {
             Arm::AgedControl => self.batch("dry", &["dry", "5", "30", "10"]),
-            Arm::ShortBypass | Arm::AgedBypassProbe => Ok(()),
+            _ => Ok(()),
         };
         let s3: &[&str] = match self.arm {
             Arm::AgedControl => &["s3", "1", "120", "30"],
             Arm::ShortBypass => &["s3", "3", "60", "30", "nosmi"],
             Arm::AgedBypassProbe => &["s3", "1", "120", "30", "nosmi"],
+            Arm::GpuMeter => unreachable!("awake measurement must not call suspend"),
         };
         let result = dry
             .and_then(|()| self.preflight(Stage::BeforeS3))
@@ -297,12 +313,128 @@ impl Baseline<'_> {
         }
         result.and(after)
     }
+
+    fn gpu_restore_marker(&self) -> PathBuf {
+        PathBuf::from(format!("/run/pm-{}/restore-on", self.label))
+    }
+
+    fn gpu_meter_preflight(&self) -> Result<()> {
+        require(
+            output("systemctl", &["list-jobs", "--no-legend", "--no-pager"])?
+                .trim()
+                .is_empty(),
+            "systemd jobs are running",
+        )?;
+        let timers = output(
+            "systemctl",
+            &["list-timers", "--no-legend", "--no-pager", "pm-*"],
+        )?;
+        require(timers.trim().is_empty(), "a study timer is armed")?;
+        check_unbound_gpu()?;
+        require(
+            read(&format!("{GPU}/power/control"))?.trim() == "on"
+                && read(&format!("{PORT}/power/control"))?.trim() == "auto"
+                && read(&format!("{GPU}/d3cold_allowed"))?.trim() == "1"
+                && read(&format!("{PORT}/d3cold_allowed"))?.trim() == "1"
+                && gpu_state("D0", "active")?,
+            "GPU and port do not match the awake D0 baseline",
+        )
+    }
+
+    fn measure_gpu(&self) -> Result<()> {
+        self.gpu_meter_preflight()?;
+        let logs = Path::new(RUNNER).with_file_name("logs");
+        let mut log = fs::File::create_new(logs.join(format!("{}-awake.txt", self.label)))?;
+        gpu_event(&mut log, "D0 baseline")?;
+        // The unit's ExecStopPost restores even after timeout or kill. Only
+        // arm it once the original policy and write target have been checked.
+        fs::File::create_new(self.gpu_restore_marker())?;
+        fs::write(format!("{GPU}/power/control"), "auto")?;
+        gpu_event(&mut log, "GPU policy set to auto")?;
+        wait_gpu_state("D3cold", "suspended", Duration::from_secs(45))?;
+        let start = Instant::now();
+        gpu_event(&mut log, "both GPU and port in D3cold; measurement begins")?;
+        while start.elapsed() < GPU_MEASUREMENT {
+            sleep(
+                GPU_MEASUREMENT
+                    .saturating_sub(start.elapsed())
+                    .min(Duration::from_secs(30)),
+            );
+            require(!logs.join("STOP").try_exists()?, "runner STOP flag exists")?;
+            require(gpu_state("D3cold", "suspended")?, "GPU or port left D3cold")?;
+            gpu_event(&mut log, "D3cold sample")?;
+        }
+        gpu_event(&mut log, "25-minute D3cold measurement complete")
+    }
+
+    fn restore_gpu(&self) -> Result<()> {
+        require(matches!(self.arm, Arm::GpuMeter), "not a GPU meter trial")?;
+        if !self.gpu_restore_marker().try_exists()? {
+            return Ok(());
+        }
+        check_unbound_gpu()?;
+        fs::write(format!("{GPU}/power/control"), "on")?;
+        require(
+            read(&format!("{GPU}/power/control"))?.trim() == "on",
+            "GPU policy did not restore to on",
+        )?;
+        wait_gpu_state("D0", "active", Duration::from_secs(20))?;
+        println!("GPU policy restored to on; both GPU and port back in D0");
+        Ok(())
+    }
+}
+
+fn check_unbound_gpu() -> Result<()> {
+    let unbound = match fs::symlink_metadata(format!("{GPU}/driver")) {
+        Ok(_) => false,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => true,
+        Err(err) => return Err(err.into()),
+    };
+    require(
+        read(&format!("{GPU}/vendor"))?.trim() == "0x10de"
+            && read(&format!("{GPU}/device"))?.trim() == "0x1c20"
+            && unbound,
+        "the expected unbound NVIDIA GPU is not present",
+    )
+}
+
+fn gpu_state(state: &str, runtime: &str) -> Result<bool> {
+    for dev in [GPU, PORT] {
+        if read(&format!("{dev}/power_state"))?.trim() != state
+            || read(&format!("{dev}/power/runtime_status"))?.trim() != runtime
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+fn wait_gpu_state(state: &str, runtime: &str, timeout: Duration) -> Result<()> {
+    let start = Instant::now();
+    loop {
+        if gpu_state(state, runtime)? {
+            return Ok(());
+        }
+        require(
+            start.elapsed() < timeout,
+            format!("GPU or port did not reach {state}"),
+        )?;
+        sleep(Duration::from_secs(1));
+    }
+}
+
+fn gpu_event(log: &mut fs::File, event: &str) -> Result<()> {
+    let stamp = output("date", &["--iso-8601=seconds"])?;
+    writeln!(log, "{} {event}", stamp.trim())?;
+    log.sync_data()?;
+    println!("{event}");
+    Ok(())
 }
 
 fn main() -> ExitCode {
     let args: Vec<_> = env::args().collect();
     let [_, mode, label, boot, system, runner_hash, storage] = args.as_slice() else {
-        eprintln!("Usage: pm-aged-control <check|run> <aged-N|nosmi-short-N|nosmi-aged-probe-N> <boot-id> <system> <runner-sha256> <storage-records>");
+        eprintln!("Usage: pm-aged-control <check|run|gpu-restore> <aged-N|nosmi-short-N|nosmi-aged-probe-N|gpu-meter-N> <boot-id> <system> <runner-sha256> <storage-records>");
         return ExitCode::FAILURE;
     };
     let arm = match Arm::from_label(label) {
@@ -321,8 +453,15 @@ fn main() -> ExitCode {
         storage: Path::new(storage),
     };
     let result = match mode.as_str() {
-        "check" => baseline.preflight(Stage::Initial),
+        "check" => baseline.preflight(Stage::Initial).and_then(|()| {
+            if matches!(baseline.arm, Arm::GpuMeter) {
+                baseline.gpu_meter_preflight()
+            } else {
+                Ok(())
+            }
+        }),
         "run" => baseline.run(),
+        "gpu-restore" => baseline.restore_gpu(),
         _ => Err(format!("unknown mode: {mode}").into()),
     };
     match result {
@@ -393,6 +532,9 @@ mod tests {
         let probe = Arm::from_label("nosmi-aged-probe-1").unwrap();
         assert!(probe.check_age(32_399.0).is_err());
         assert!(probe.check_age(32_400.0).is_ok());
+        let meter = Arm::from_label("gpu-meter-1").unwrap();
+        assert!(matches!(meter, Arm::GpuMeter));
+        assert!(meter.check_age(10.0).is_ok());
         assert!(Arm::from_label("nosmi-short-").is_err());
         assert!(Arm::from_label("nosmi-short-1-s3").is_err());
     }
