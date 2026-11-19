@@ -153,6 +153,10 @@ Work through this in order. Record every run in the results table.
    and recover the machine after 09:00 if it hangs. If the test returns but
    the meter history is unavailable, record the software result and wait
    for the graph before declaring a pass. Drop the arm if the bypass fails.
+   `nosmi-short-1` stopped before making a request. Before scheduling a
+   fresh label, fix the second preflight to accept its own before snapshot
+   while still rejecting reused labels at startup and unexpected logs during
+   the trial. Test both stages without suspending.
 5. Firmware handler bypass, aged. Two aged trials with `nosmi`, then reverse
    to a matched control. Returns would support involvement of the handler;
    they would not prove a safe permanent workaround without further testing.
@@ -206,10 +210,10 @@ in the `aged-4` command before Bash could read them. Use `check` instead of
 `run` to verify all initial guards without running the batch. Timers are
 non-persistent, with no restart or recovery action; a reboot removes them.
 
-### Short bypass scheduling check
+### `nosmi-short-1` scheduling check
 
-`pm-nosmi-short-1.timer` is set for November 19 at 01:30 CET. The T3 precheck
-is at 01:10 CET and the results check is at 01:55 CET. The prepared binary,
+`pm-nosmi-short-1.timer` fired November 19 at 01:30 CET. The T3 precheck
+ran at 01:10 CET and the results check at 01:55 CET. The prepared binary,
 two unit files and `SHA256SUMS` are in
 `/home/mirsella/dev/scratch/predator-suspend/prepared-nosmi-short-1-20261119/`.
 `pm-aged-control` selects the short bypass for a `nosmi-short-N` label. It
@@ -225,8 +229,9 @@ the prepared binary with the **same arguments as `ExecStart`**, replacing
 inhibitors, maintenance, boot audit and absence of trial logs or STOP. Do not
 start the trial service or run a batch at precheck.
 
-Repair only before 01:30 CET, if no one cancelled the trial, the checks
-pass, the service is inactive or missing, and only scheduling is wrong.
+For future trials, repair only before the scheduled time, if no one
+cancelled the trial, the checks pass, the service is inactive or missing,
+and only scheduling is wrong. Do not rearm the concluded `nosmi-short-1`.
 If the timer is missing, install its saved unit into `/run/systemd/system/`,
 restoring the service from its saved copy only if it is also missing. If
 only the time is wrong, keep the service unchanged and set
@@ -289,7 +294,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 22:15 | `aged-5-dry` | five `core` dry cycles on generation 189 | 11 h 28 min at first request | 5 of 5 returned, no abnormal cycles | |
 | Nov 18 22:17 | `aged-5-s3` | unmodified real S3, 120 s RTC alarm | 11 h 30 min | one request, no return; owner forced reboot | hung at 15 W, power LED on, fan running; any brief dip unreported |
 | Nov 19 01:10 | `nosmi-short-1` scheduling check | read-only timer and baseline checks | 2 h 13 min | timer correct; preflight passed; zero requests | |
-| Nov 19 01:30 | `nosmi-short-1-s3` | firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | pending | overnight run approved, owner available after 09:00 |
+| Nov 19 01:30 | `nosmi-short-1` | planned firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | second preflight refused; zero requests | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -475,6 +480,23 @@ started. No trial logs or STOP existed, and counters were 0/0. The read-only
 preflight passed on the pinned generation 189 boot, including the audit for
 all nine volumes. Ente remained running. No repair or batch was needed,
 and the 01:55 results check was left unchanged.
+
+The timer fired at 01:30:00. The initial preflight passed, then the second
+preflight refused at 01:30:16 with `trial labels already used`. Both
+preflights expect 0/0 counters for this arm. The code uses zero successes
+to decide when to check for any existing trial files, so the second check
+rejected the before snapshot created by the same invocation. Only the
+before and after snapshots exist. There is no S3 log or kernel suspend
+entry, and the counters are still 0/0. No bypass was attempted.
+
+At 01:55 Predator was reachable on the same generation 189 boot. `pm_test`
+was none, deep was selected, the RTC alarm was empty, and `SMI_EN` was
+`0x80002033` with `SLP_SMI_EN` still set. The audit passed for all nine
+volumes. All pools were healthy with no active scan, pool GUIDs and mounts
+matched, Nextcloud was out of maintenance, and all four Ente PIDs matched
+the precheck. The refused trial was the only failed unit; its timer had
+deactivated. No services were touched and no trial was scheduled. This run
+does not call for a meter reading, recovery or an aged bypass.
 
 ## Machine facts
 
