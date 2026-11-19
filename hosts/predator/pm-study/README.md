@@ -163,8 +163,9 @@ Work through this in order. Record every run in the results table.
    verify both devices reach D3cold under the policy being tested and verify
    the rest of the baseline. Do not count S3 with the GPU still powered as
    GPU-off. `gpu-off-1` was scheduled on the unchanged generation 189
-   baseline. Predator was unreachable at the results check, so the
-   queue is paused until the trial logs can be checked.
+   baseline. The owner reported a 15 W hang and rebooted Predator.
+   The queue is paused until the trial logs and post-reboot health
+   can be checked.
    If it hangs with D3cold verified, move to step 7 after owner recovery
    and health checks. If it returns and the meter corroborates sleep,
    repeat once before a reversal control. If D3cold cannot be reached and
@@ -383,6 +384,13 @@ issued, and any return or GPU restoration are unverified. No recovery
 command was sent and no next trial was armed. Check the logs and system
 health once the machine is reachable.
 
+The owner reported a 15 W hang and rebooted Predator. A brief dip toward
+3 W, LED state and fan state were not reported. At the 19:33 CET
+post-reboot check, neither SSH path answered and the Pi still received
+no reply. The owner's observation confirms the machine hung, but the
+trial logs are still needed to confirm that an S3 request was made
+with both devices in D3cold. No s2idle trial was armed.
+
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
 `enter` line with no `return` line after it. Labels cannot be reused. Creating
@@ -429,7 +437,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 10:03 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 46 min | GPU and upstream port reached D3cold; original policy and D0 restored | about 30 W to 17 W near the check; five-minute samples cannot isolate the change |
 | Nov 19 10:29 | `gpu-meter-1` | 25-minute awake D3cold comparison, no suspend | about 1 h 12 min | completed and restored to D0 at 10:54:29 | about 17 W from 10:30 to 10:50 |
 | Nov 19 18:20 | `gpu-off-1` scheduling check | read-only timer and baseline checks | about 9 h 4 min | timer correct; preflight passed; zero requests | |
-| Nov 19 18:40 | `gpu-off-1` | planned five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 23 min at planned trigger | unreachable through 19:16; suspected hang, request and return unverified | pending |
+| Nov 19 18:40 | `gpu-off-1` | planned five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 23 min at planned trigger | owner-reported hang; S3 request and D3cold unverified | 15 W; owner rebooted |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
