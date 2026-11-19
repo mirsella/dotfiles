@@ -323,9 +323,10 @@ and the suspend counters remained 0/0.
 
 ### `gpu-off-1` aged S3
 
-On November 19, the T3 precheck is at 19:40 CET, the host timer
-fires at 20:00 CET, and the T3 results check is at 20:25 CET.
-The planned age at trigger is 10 h 43 min since the 09:17:07 boot.
+On November 19, the T3 precheck is at 18:20 CET, the host timer
+fires at 18:40 CET, and the T3 results check is at 19:05 CET.
+The owner moved the trial forward from 20:00. The new trigger
+is 9 h 23 min after the 09:17:07 boot.
 Prepared unit files, binaries and checksums are in
 `/home/mirsella/dev/scratch/predator-suspend/prepared-gpu-off-1-20261119/`.
 Read-only `prepare` checked the projected age and pinned baseline
@@ -344,7 +345,7 @@ At precheck, compare the loaded units and installed binaries with
 the prepared copies and checksums. Use the stored `ExecStart`
 arguments with `check` in place of `run`. Do not start the service,
 change GPU policy, repair or replay a failed or cancelled trial.
-The 20:25 check reads the actual request and meter evidence before
+The 19:05 check reads the actual request and meter evidence before
 choosing the next arm. No s2idle or later trial is armed.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
@@ -392,7 +393,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 attempt with firmware handler bypass, 120 s RTC alarm | 9 h 43 min at request | no software return; firmware bypass did not prevent the hang | 15 W; owner forced reboot; any brief dip, LED and fan state unreported |
 | Nov 19 10:03 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 46 min | GPU and upstream port reached D3cold; original policy and D0 restored | about 30 W to 17 W near the check; five-minute samples cannot isolate the change |
 | Nov 19 10:29 | `gpu-meter-1` | 25-minute awake D3cold comparison, no suspend | about 1 h 12 min | completed and restored to D0 at 10:54:29 | about 17 W from 10:30 to 10:50 |
-| Nov 19 20:00 | `gpu-off-1` | five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 10 h 43 min at planned trigger | armed | |
+| Nov 19 18:40 | `gpu-off-1` | five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 23 min at planned trigger | armed | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
