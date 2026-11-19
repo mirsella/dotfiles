@@ -156,10 +156,14 @@ Work through this in order. Record every run in the results table.
    This does not rule out firmware involvement elsewhere. Drop the
    bypass arm: no short batch, formal aged repetitions or reversal are
    needed. Pause before changing arms.
-6. Discrete GPU powered off, aged. First check awake that
-   `echo auto > /sys/bus/pci/devices/0000:01:00.0/power/control` puts the port
-   `0000:00:01.0` into D3cold and lowers the wall reading. Ubuntu hung with
-   nouveau loaded, which counts against this arm, so it comes after the bypass.
+6. Discrete GPU powered off, aged. First check awake that setting the
+   graphics function `0000:01:00.0` to `power/control=auto` puts its upstream
+   port `0000:00:01.0` into D3cold and lowers the wall reading. Restore `on`
+   after the check. Do not test S3 with a GPU still powered on and count it
+   as GPU-off. If the check cannot reach D3cold and the baseline is otherwise
+   healthy, skip to step 7. If D3cold is reached but the meter reading is
+   missing, wait for the reading. If the baseline is unresolved, stop and
+   record why. Ubuntu hung with nouveau loaded, which counts against this arm.
 7. s2idle, aged. It returned once after 11 hours awake. Two more aged returns
    and a wall reading near 3 W would make it a usable replacement for S3.
    Wake-on-LAN does not wake s2idle on this machine. The RTC alarm does.
@@ -263,12 +267,30 @@ fresh boot, not a formal aged repetition.
 
 The probe did not return, and the owner confirmed the 15 W hang and forced
 a reboot. Do not replay the probe or arm the short batch or aged repetitions.
-No next arm is scheduled.
+The follow-up is the awake GPU check below, not another bypass trial.
 
-If the short test passes, schedule only the first aged bypass. Count at
-least nine hours from the last actual resume, pin the post-batch counters
-and verify the elapsed time again at launch. Neither the short mode nor
-the zero-counter probe mode implements those post-resume guards.
+### `gpu-awake-1` schedule
+
+The T3 check starts November 19 at 10:00 CET. It does not suspend. On the
+09:17:07 generation 189 boot, the GPU was unbound with `power/control=on`
+and the upstream port was already `auto`. Both were active in D0, both
+allowed D3cold, suspend counters were 0/0, and the audit and pool health
+checks passed.
+
+Recheck the pinned boot, generation, counters and normal health guards
+before changing anything. Timestamp the baseline and the change, enable
+runtime PM on only the graphics function for roughly two minutes, and
+verify the port and GPU power state. Restore `on` even if the check fails.
+Do not change the audio function, bind a driver or stop services. Compare
+actual wall readings for the observed interval, not the planned time.
+
+Reserve 20:00 CET for a single guarded aged request, about 10 h 43 min
+after boot if there is no intervening suspend. Arm GPU-off S3 only after
+the awake check confirms D3cold and the meter corroborates it. If D3cold
+cannot be reached and the original state and baseline are verified, arm a
+single aged s2idle trial instead, with no GPU change. Both use a 120 s RTC
+alarm. Only after arming one trial, schedule its T3 precheck and results
+check. No suspend timer is armed at the time of this note.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -313,6 +335,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 01:30 | `nosmi-short-1` | planned firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | second preflight refused; zero requests | |
 | Nov 19 08:30 | `nosmi-aged-probe-1` scheduling check | read-only timer and baseline checks | 9 h 34 min | timer correct; preflight passed; zero requests | |
 | Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 attempt with firmware handler bypass, 120 s RTC alarm | 9 h 43 min at request | no software return; firmware bypass did not prevent the hang | 15 W; owner forced reboot; any brief dip, LED and fan state unreported |
+| Nov 19 10:00 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 43 min at scheduled start | scheduled; gates the next aged trial | compare the meter around the measured interval |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
