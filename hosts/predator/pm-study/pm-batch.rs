@@ -3,7 +3,7 @@
 //!
 //! Build (static, on main): `rustc -O --edition 2021 -D warnings
 //!     --target x86_64-unknown-linux-musl pm-batch.rs`
-//! Run as root: `pm-batch <label> <dry|s3|s2idle> <cycles> [wake_s] [gap_s] [nosmi]`
+//! Run as root: `pm-batch <label> <dry|s3|s2idle> <cycles> [wake_s] [gap_s] [nosmi|gpu-off]`
 //!              `pm-batch <label> snapshot`
 //!
 //! - `dry`    : `pm_test=core`. The kernel runs the whole suspend path, waits
@@ -443,12 +443,24 @@ fn modules() -> String {
         .join(" ")
 }
 
+fn require_gpu_off() -> R<()> {
+    for dev in [GPU, GPU_PORT] {
+        if read(&format!("{dev}/power_state")) != "D3cold"
+            || read(&format!("{dev}/power/runtime_status")) != "suspended"
+            || read(&format!("{dev}/power/control")) != "auto"
+        {
+            return Err(format!("{dev} is not runtime suspended in D3cold on auto"));
+        }
+    }
+    Ok(())
+}
+
 fn run() -> R<()> {
     let args: Vec<String> = env::args().collect();
     let is_snapshot = args.len() == 3 && args[2] == "snapshot";
     if !is_snapshot && !(4..=7).contains(&args.len()) {
         return Err(
-            "usage: pm-batch <label> <dry|s3|s2idle> <cycles> [wake_s=30] [gap_s=30] [nosmi]\n       pm-batch <label> snapshot"
+            "usage: pm-batch <label> <dry|s3|s2idle> <cycles> [wake_s=30] [gap_s=30] [nosmi|gpu-off]\n       pm-batch <label> snapshot"
                 .into(),
         );
     }
@@ -490,9 +502,10 @@ fn run() -> R<()> {
         return Err(format!("a wake alarm is already armed: {}", read(ALARM)));
     }
 
-    let no_smi = match args.get(6).map(String::as_str) {
-        None => false,
-        Some("nosmi") if mode != "dry" => true,
+    let (no_smi, gpu_off) = match args.get(6).map(String::as_str) {
+        None => (false, false),
+        Some("nosmi") if mode != "dry" => (true, false),
+        Some("gpu-off") if mode == "s3" && cycles == 1 => (false, true),
         Some(other) => return Err(format!("unknown or misplaced option {other}")),
     };
     let pm_base = pm_base()?;
@@ -524,7 +537,7 @@ fn run() -> R<()> {
         if jobs.is_empty() {
             break;
         }
-        if Instant::now() >= patience {
+        if gpu_off || Instant::now() >= patience {
             return Err(format!("systemd still has jobs in progress: {jobs}"));
         }
         thread::sleep(Duration::from_secs(10));
@@ -561,6 +574,7 @@ fn run() -> R<()> {
         ("wake_s", wake.to_string()),
         ("gap_s", gap.to_string()),
         ("nosmi", no_smi.to_string()),
+        ("gpu_off", gpu_off.to_string()),
         ("smi_en_low", quote(&format!("{smi_en:#04x}"))),
         ("wall", format!("{:.3}", wall())),
         ("uptime", format!("{:.2}", uptime())),
@@ -608,6 +622,9 @@ fn run() -> R<()> {
             Some(base) => format!("{:#04x}", slp_smi(base, false)?),
             None => String::new(),
         };
+        if gpu_off {
+            require_gpu_off()?;
+        }
         log.line(&[
             ("event", quote("enter")),
             ("cycle", cycle.to_string()),
