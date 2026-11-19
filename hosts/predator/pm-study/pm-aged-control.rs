@@ -1,7 +1,6 @@
 // Guarded suspend study trials. "check" runs the initial preflight only.
 use std::env;
 use std::fs;
-use std::io;
 use std::path::Path;
 use std::process::{Command, ExitCode};
 
@@ -63,6 +62,49 @@ fn mount_rows(text: &str) -> Vec<&str> {
 enum Arm {
     AgedControl,
     ShortBypass,
+    AgedBypassProbe,
+}
+
+#[derive(Clone, Copy)]
+enum Stage {
+    Initial,
+    BeforeS3,
+}
+
+impl Stage {
+    fn expected(self, arm: &Arm) -> (&'static str, &'static [&'static str]) {
+        match (self, arm) {
+            (Self::Initial, _) => ("0", &[]),
+            (Self::BeforeS3, Arm::AgedControl) => ("5", &["before.snapshot.txt", "dry.jsonl"]),
+            (Self::BeforeS3, Arm::ShortBypass | Arm::AgedBypassProbe) => {
+                ("0", &["before.snapshot.txt"])
+            }
+        }
+    }
+}
+
+fn check_trial_logs(logs: &Path, label: &str, expected: &[&str]) -> Result<()> {
+    let prefix = format!("{label}-");
+    let mut found = Vec::new();
+    for entry in fs::read_dir(logs)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        if name == "STOP" {
+            return Err("runner STOP flag exists".into());
+        }
+        if let Some(suffix) = name.to_string_lossy().strip_prefix(&prefix) {
+            require(
+                entry.file_type()?.is_file(),
+                format!("not a regular trial file: {}", entry.path().display()),
+            )?;
+            found.push(suffix.to_owned());
+        }
+    }
+    found.sort_unstable();
+    require(
+        found == expected,
+        format!("{label} trial files: expected {expected:?}, found {found:?}"),
+    )
 }
 
 impl Arm {
@@ -70,6 +112,7 @@ impl Arm {
         for (prefix, arm) in [
             ("aged-", Self::AgedControl),
             ("nosmi-short-", Self::ShortBypass),
+            ("nosmi-aged-probe-", Self::AgedBypassProbe),
         ] {
             if label
                 .strip_prefix(prefix)
@@ -83,7 +126,9 @@ impl Arm {
 
     fn check_age(&self, uptime: f64) -> Result<()> {
         match self {
-            Self::AgedControl => require(uptime >= 32_400.0, "less than nine hours awake"),
+            Self::AgedControl | Self::AgedBypassProbe => {
+                require(uptime >= 32_400.0, "less than nine hours awake")
+            }
             Self::ShortBypass => require(
                 (0.0..14_400.0).contains(&uptime),
                 "short bypass requires less than four hours since boot",
@@ -102,7 +147,8 @@ struct Baseline<'a> {
 }
 
 impl Baseline<'_> {
-    fn preflight(&self, successes: &str) -> Result<()> {
+    fn preflight(&self, stage: Stage) -> Result<()> {
+        let (successes, expected_logs) = stage.expected(&self.arm);
         require(
             read("/proc/sys/kernel/random/boot_id")?.trim() == self.boot,
             "boot changed",
@@ -133,26 +179,13 @@ impl Baseline<'_> {
             .next()
             .ok_or("missing uptime")?
             .parse()?;
-        // The short arm is pinned to a boot with no intervening suspends.
+        // All arms start from a boot with no intervening suspends.
         self.arm.check_age(awake)?;
         let clock: u32 = output("date", &["+%H%M"])?.trim().parse()?;
         require((30..2300).contains(&clock), "backup exclusion window")?;
 
         let logs = Path::new(RUNNER).with_file_name("logs");
-        match logs.join("STOP").symlink_metadata() {
-            Err(err) if err.kind() == io::ErrorKind::NotFound => {}
-            Err(err) => return Err(err.into()),
-            Ok(_) => return Err("runner STOP flag exists".into()),
-        }
-        if successes == "0" {
-            let prefix = format!("{}-", self.label);
-            for entry in fs::read_dir(logs)? {
-                require(
-                    !entry?.file_name().to_string_lossy().starts_with(&prefix),
-                    "trial labels already used",
-                )?;
-            }
-        }
+        check_trial_logs(&logs, self.label, expected_logs)?;
         let runner_hash = output("sha256sum", &[RUNNER])?;
         require(
             runner_hash.split_whitespace().next() == Some(self.runner_hash),
@@ -240,19 +273,19 @@ impl Baseline<'_> {
     }
 
     fn run(&self) -> Result<()> {
-        self.preflight("0")?;
+        self.preflight(Stage::Initial)?;
         self.batch("before", &["snapshot"])?;
-        let setup = match self.arm {
-            Arm::AgedControl => self
-                .batch("dry", &["dry", "5", "30", "10"])
-                .and_then(|()| self.preflight("5")),
-            Arm::ShortBypass => self.preflight("0"),
+        let dry = match self.arm {
+            Arm::AgedControl => self.batch("dry", &["dry", "5", "30", "10"]),
+            Arm::ShortBypass | Arm::AgedBypassProbe => Ok(()),
         };
         let s3: &[&str] = match self.arm {
             Arm::AgedControl => &["s3", "1", "120", "30"],
             Arm::ShortBypass => &["s3", "3", "60", "30", "nosmi"],
+            Arm::AgedBypassProbe => &["s3", "1", "120", "30", "nosmi"],
         };
-        let result = setup
+        let result = dry
+            .and_then(|()| self.preflight(Stage::BeforeS3))
             .and_then(|()| output("sync", &[]).map(|_| ()))
             .and_then(|()| self.batch("s3", s3));
         let after = self.batch("after", &["snapshot"]);
@@ -269,7 +302,7 @@ impl Baseline<'_> {
 fn main() -> ExitCode {
     let args: Vec<_> = env::args().collect();
     let [_, mode, label, boot, system, runner_hash, storage] = args.as_slice() else {
-        eprintln!("Usage: pm-aged-control <check|run> <aged-N|nosmi-short-N> <boot-id> <system> <runner-sha256> <storage-records>");
+        eprintln!("Usage: pm-aged-control <check|run> <aged-N|nosmi-short-N|nosmi-aged-probe-N> <boot-id> <system> <runner-sha256> <storage-records>");
         return ExitCode::FAILURE;
     };
     let arm = match Arm::from_label(label) {
@@ -288,7 +321,7 @@ fn main() -> ExitCode {
         storage: Path::new(storage),
     };
     let result = match mode.as_str() {
-        "check" => baseline.preflight("0"),
+        "check" => baseline.preflight(Stage::Initial),
         "run" => baseline.run(),
         _ => Err(format!("unknown mode: {mode}").into()),
     };
@@ -303,7 +336,51 @@ fn main() -> ExitCode {
 
 #[cfg(test)]
 mod tests {
-    use super::{mount_rows, Arm};
+    use super::{check_trial_logs, mount_rows, Arm, Stage};
+    use std::fs;
+
+    #[test]
+    fn trial_files_follow_the_stage_not_the_suspend_counter() {
+        let logs =
+            std::env::temp_dir().join(format!("pm-aged-control-test-{}", std::process::id()));
+        fs::create_dir(&logs).unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                fs::remove_dir_all(&self.0).expect("clean up the trial log fixture");
+            }
+        }
+        let _cleanup = Cleanup(logs.clone());
+        let short = Arm::ShortBypass;
+        let aged = Arm::AgedControl;
+        let initial = Stage::Initial.expected(&short);
+        let before_s3 = Stage::BeforeS3.expected(&short);
+        assert_eq!(initial.0, before_s3.0);
+
+        fs::write(logs.join("nosmi-short-1-s3.jsonl"), "").unwrap();
+        assert!(check_trial_logs(&logs, "nosmi-short-2", initial.1).is_ok());
+        assert!(check_trial_logs(&logs, "nosmi-short-2", before_s3.1).is_err());
+        fs::write(logs.join("nosmi-short-2-before.snapshot.txt"), "").unwrap();
+        assert!(check_trial_logs(&logs, "nosmi-short-2", initial.1).is_err());
+        assert!(check_trial_logs(&logs, "nosmi-short-2", before_s3.1).is_ok());
+        fs::write(logs.join("nosmi-short-2-s3.jsonl"), "").unwrap();
+        assert!(check_trial_logs(&logs, "nosmi-short-2", before_s3.1).is_err());
+
+        let probe = Arm::AgedBypassProbe;
+        fs::write(logs.join("nosmi-aged-probe-1-before.snapshot.txt"), "").unwrap();
+        let (successes, expected) = Stage::BeforeS3.expected(&probe);
+        assert_eq!(successes, "0");
+        assert!(check_trial_logs(&logs, "nosmi-aged-probe-1", expected).is_ok());
+
+        let (successes, expected) = Stage::BeforeS3.expected(&aged);
+        assert_eq!(successes, "5");
+        fs::write(logs.join("aged-6-before.snapshot.txt"), "").unwrap();
+        assert!(check_trial_logs(&logs, "aged-6", expected).is_err());
+        fs::write(logs.join("aged-6-dry.jsonl"), "").unwrap();
+        assert!(check_trial_logs(&logs, "aged-6", expected).is_ok());
+        fs::create_dir(logs.join("STOP")).unwrap();
+        assert!(check_trial_logs(&logs, "aged-6", expected).is_err());
+    }
 
     #[test]
     fn each_label_selects_its_own_age_window() {
@@ -313,6 +390,9 @@ mod tests {
         let short = Arm::from_label("nosmi-short-1").unwrap();
         assert!(short.check_age(14_399.0).is_ok());
         assert!(short.check_age(14_400.0).is_err());
+        let probe = Arm::from_label("nosmi-aged-probe-1").unwrap();
+        assert!(probe.check_age(32_399.0).is_err());
+        assert!(probe.check_age(32_400.0).is_ok());
         assert!(Arm::from_label("nosmi-short-").is_err());
         assert!(Arm::from_label("nosmi-short-1-s3").is_err());
     }

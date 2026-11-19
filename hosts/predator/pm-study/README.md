@@ -153,10 +153,13 @@ Work through this in order. Record every run in the results table.
    and recover the machine after 09:00 if it hangs. If the test returns but
    the meter history is unavailable, record the software result and wait
    for the graph before declaring a pass. Drop the arm if the bypass fails.
-   `nosmi-short-1` stopped before making a request. Before scheduling a
-   fresh label, fix the second preflight to accept its own before snapshot
-   while still rejecting reused labels at startup and unexpected logs during
-   the trial. Test both stages without suspending.
+   `nosmi-short-1` stopped before making a request. The launcher now checks
+   the expected log files for each stage independently of the counters.
+   By the time the next check was requested, the boot was already over
+   nine hours old. The owner approved one aged bypass probe on that boot
+   rather than rebooting now. This does not replace the short safety
+   batch. If the probe returns normally, wait for a fresh boot to run the
+   short batch before advancing to step 5.
 5. Firmware handler bypass, aged. Two aged trials with `nosmi`, then reverse
    to a matched control. Returns would support involvement of the handler;
    they would not prove a safe permanent workaround without further testing.
@@ -200,10 +203,10 @@ date --date="@$(awk '/^btime / {print $2}' /proc/stat)" --iso-8601=seconds
 sudo systemd-run --unit=pm-batch-LABEL --collect $B LABEL s3 3 60 30
 ```
 
-For the five-dry-run S3 control, build
-[pm-aged-control.rs](pm-aged-control.rs) with the same `rustc` flags as the
-runner. Set the service's `ExecStart` to the binary followed by
-`run <aged-N> <boot-id> <system> <runner-sha256> <storage-records>`. Use a
+For a guarded trial, build [pm-aged-control.rs](pm-aged-control.rs) with
+the same `rustc` flags as the runner. Set the service's `ExecStart` to the
+binary followed by
+`run <label> <boot-id> <system> <runner-sha256> <storage-records>`. Use a
 one-shot calendar timer and runtime unit files in `/run/systemd/system/`.
 Do not embed a shell program in `ExecStart`; systemd expanded Bash parameters
 in the `aged-4` command before Bash could read them. Use `check` instead of
@@ -248,11 +251,27 @@ with `systemctl show pm-nosmi-short-1.timer -p NextElapseUSecRealtime`.
 If a check fails or runs late, report the blocker without changing the
 baseline or replaying a trial.
 
+### `nosmi-aged-probe-1` schedule
+
+On November 19 the T3 precheck is at 08:30 CET, the probe is at 08:40 CET,
+and the results check is at 09:00 CET. Prepared files are in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-nosmi-aged-probe-1-20261119/`.
+The `nosmi-aged-probe-N` mode requires at least nine hours since boot and
+0/0 counters. It takes a before snapshot, checks the baseline again, and
+attempts one S3 request with a 120 s RTC alarm and firmware bypass.
+There are no dry cycles. Use the same checksum, loaded-unit and read-only
+`check` procedure as for the short arm, with the probe's own unit names
+and arguments. If the precheck fails, report without repair or replay.
+
+Check the meter graph around 08:40 separately from the software result.
+If the probe hangs, leave recovery to the owner and pause the arm. If it
+returns normally, the next step is still a three-cycle short check on a
+fresh boot, not a formal aged repetition.
+
 If the short test passes, schedule only the first aged bypass. Count at
 least nine hours from the last actual resume, pin the post-batch counters
-and verify the elapsed time again at launch. The current short-arm mode
-does not implement these aged-bypass guards. Do not reuse that mode for an
-aged trial.
+and verify the elapsed time again at launch. Neither the short mode nor
+the zero-counter probe mode implements those post-resume guards.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -295,6 +314,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 22:17 | `aged-5-s3` | unmodified real S3, 120 s RTC alarm | 11 h 30 min | one request, no return; owner forced reboot | hung at 15 W, power LED on, fan running; any brief dip unreported |
 | Nov 19 01:10 | `nosmi-short-1` scheduling check | read-only timer and baseline checks | 2 h 13 min | timer correct; preflight passed; zero requests | |
 | Nov 19 01:30 | `nosmi-short-1` | planned firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | second preflight refused; zero requests | |
+| Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 request with firmware handler bypass, 120 s RTC alarm | about 9 h 43 min at trigger | pending | one-off approved; short safety batch still required |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -497,6 +517,15 @@ matched, Nextcloud was out of maintenance, and all four Ente PIDs matched
 the precheck. The refused trial was the only failed unit; its timer had
 deactivated. No services were touched and no trial was scheduled. This run
 does not call for a meter reading, recovery or an aged bypass.
+
+At 08:21, after the owner approved the one-off probe, the new launcher's
+read-only preflight passed under systemd on the same generation 189 boot,
+including the nine-volume audit. Unit tests covered the initial log check
+and the second-stage checks for the short batch, aged control and probe,
+including rejection of extra logs and STOP. Only the concluded
+`pm-nosmi-short-1.service` failure flag was cleared. The timer read back
+as active for exactly 08:40 CET with the service inactive. Counters stayed
+0/0 and Ente PIDs were unchanged.
 
 ## Machine facts
 
