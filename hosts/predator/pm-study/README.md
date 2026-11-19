@@ -284,13 +284,17 @@ verify the port and GPU power state. Restore `on` even if the check fails.
 Do not change the audio function, bind a driver or stop services. Compare
 actual wall readings for the observed interval, not the planned time.
 
-Reserve 20:00 CET for a single guarded aged request, about 10 h 43 min
-after boot if there is no intervening suspend. Arm GPU-off S3 only after
-the awake check confirms D3cold and the meter corroborates it. If D3cold
-cannot be reached and the original state and baseline are verified, arm a
-single aged s2idle trial instead, with no GPU change. Both use a 120 s RTC
-alarm. Only after arming one trial, schedule its T3 precheck and results
-check. No suspend timer is armed at the time of this note.
+The awake check confirmed D3cold; wall-power corroboration is still
+missing. Use the meter history for 10:03:19 to 10:05:05 CET and compare
+it with the adjacent periods when the GPU was in D0. Do not switch to
+s2idle on the basis of a missing meter reading.
+
+If the meter corroborates the drop, target a single guarded GPU-off S3
+request at 20:00 CET, about 10 h 43 min after boot if there is no
+intervening suspend, or a later safe window. Use a 120 s RTC alarm, verify
+D3cold immediately before the request, and restore `on` on return or
+refusal. Schedule the T3 precheck and results check only after arming the
+host timer. No suspend timer is armed.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -335,7 +339,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 01:30 | `nosmi-short-1` | planned firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | second preflight refused; zero requests | |
 | Nov 19 08:30 | `nosmi-aged-probe-1` scheduling check | read-only timer and baseline checks | 9 h 34 min | timer correct; preflight passed; zero requests | |
 | Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 attempt with firmware handler bypass, 120 s RTC alarm | 9 h 43 min at request | no software return; firmware bypass did not prevent the hang | 15 W; owner forced reboot; any brief dip, LED and fan state unreported |
-| Nov 19 10:00 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 43 min at scheduled start | scheduled; gates the next aged trial | compare the meter around the measured interval |
+| Nov 19 10:03 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 46 min | GPU and upstream port reached D3cold; original policy and D0 restored | wall-power history requested for 10:03:19 to 10:05:05 |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -586,6 +590,20 @@ deep was selected, the RTC alarm was empty, and `SLP_SMI_EN` was set
 were healthy with no active scans, and their GUIDs and all five mounts
 matched the baseline. By the final check, Ente was running and systemd
 reported no failed units or queued jobs. No further trial was armed.
+
+On November 19 the awake GPU check started from the same generation 189
+boot and 0/0 suspend counters. An initial read-only attempt stopped on
+journalctl's `-- No entries --` banner; it made no change. With that
+banner suppressed, the preflight passed. Both the graphics function and
+its upstream port were active in D0 at 10:02:49 and 10:03:04. Setting
+only the graphics function to `auto` at 10:03:04 put both devices in
+D3cold by 10:03:19. Both remained runtime suspended in D3cold on all eight
+samples through 10:05:05. Restored `on` at 10:05:05; both devices were
+active in D0 by 10:05:11.
+
+The post-check audit and storage checks passed. Boot, generation, counters,
+Ente PIDs and Ente activation times were unchanged. No suspend ran. No wall
+meter readings were available, so neither suspend arm was scheduled.
 
 ## Machine facts
 
