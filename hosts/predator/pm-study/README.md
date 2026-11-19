@@ -162,19 +162,16 @@ Work through this in order. Record every run in the results table.
    NixOS config but has not been activated. Before an aged GPU-off trial,
    verify both devices reach D3cold under the policy being tested and verify
    the rest of the baseline. Do not count S3 with the GPU still powered as
-   GPU-off. `gpu-off-1` was scheduled on the unchanged generation 189
-   baseline. The owner reported a 15 W hang and rebooted Predator.
-   The queue is paused until the trial logs and post-reboot health
-   can be checked.
-   If it hangs with D3cold verified, move to step 7 after owner recovery
-   and health checks. If it returns and the meter corroborates sleep,
-   repeat once before a reversal control. If D3cold cannot be reached and
-   the baseline is otherwise healthy and restored, skip to step 7.
-   If the baseline is unresolved, stop and record why. The Ubuntu hang
-   with nouveau loaded did not establish whether the GPU was in D3cold.
+   GPU-off. `gpu-off-1` did not return even with both devices in D3cold
+   at the request boundary. The owner saw 15 W and rebooted. GPU-off
+   reduced awake wall draw in the meter test but was not sufficient to
+   prevent this hang. Skip the repeat and reversal and move to step 7.
 7. s2idle, aged. It returned once after 11 hours awake. Two more aged returns
    and a wall reading near 3 W would make it a usable replacement for S3.
-   Wake-on-LAN does not wake s2idle on this machine. The RTC alarm does.
+   Wake-on-LAN did not wake s2idle on this machine; an RTC alarm has
+   brought it back. Run `s2idle-aged-1` on the unchanged generation 189
+   configuration with the same five dry cycles, GPU in D0 and one 120 s
+   RTC alarm. Do not arm another trial until this one is resolved.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -361,8 +358,8 @@ At precheck, compare the loaded units and installed binaries with
 the prepared copies and checksums. Use the stored `ExecStart`
 arguments with `check` in place of `run`. Do not start the service,
 change GPU policy, repair or replay a failed or cancelled trial.
-The 19:05 check reads the actual request and meter evidence before
-choosing the next arm. No s2idle or later trial is armed.
+The 19:05 check was scheduled to read the actual request and meter
+evidence before choosing the next arm.
 
 The 18:20 precheck confirmed the exact 18:40 CET trigger. The trial
 service was inactive and had not started. Both runtime units and
@@ -376,20 +373,52 @@ left unchanged; the existing 19:05 results check was not duplicated.
 
 At the results check, SSH via the alias and direct LAN address failed
 from 19:05:35 through 19:16:12 CET. The Pi also received no ping replies,
-and its netconsole log had no new data since November 17. Given the
-passing precheck and previous hangs, a hang is suspected. The timer
-and service journals and the trial logs were inaccessible, so the dry
-cycles, D3cold at the request boundary, whether an S3 request was
-issued, and any return or GPU restoration are unverified. No recovery
-command was sent and no next trial was armed. Check the logs and system
-health once the machine is reachable.
+and its netconsole log had no new data since November 17. The trial
+journals and logs were inaccessible at that point. No recovery command
+was sent and no next trial was armed while the result was unverified.
 
 The owner reported a 15 W hang and rebooted Predator. A brief dip toward
-3 W, LED state and fan state were not reported. At the 19:33 CET
-post-reboot check, neither SSH path answered and the Pi still received
-no reply. The owner's observation confirms the machine hung, but the
-trial logs are still needed to confirm that an S3 request was made
-with both devices in D3cold. No s2idle trial was armed.
+3 W, LED state and fan state were not reported. SSH returned at 19:34:45
+CET. The prior boot's logs show the service started at 18:40:00 and
+both preflights passed. All five D0 `core` cycles returned in 7.5 to
+11.8 seconds, each with a success delta of one and no failure delta.
+The launcher verified D3cold at 18:42:05.497, and the runner rechecked
+both devices before logging `enter` at 18:42:05.623, 33,895.82 seconds
+after boot. The request used `deep`, `pm_test=none`, a 120 s RTC alarm,
+and `SLP_SMI_EN` set (`smi_en_low=0x33`). Counters were 5/0 before the
+request. There was no `return`, `done`, after snapshot or recorded
+`ExecStopPost`. The persisted kernel journal contains only the five dry
+exits. This establishes a failure to return, not whether the machine
+reached physical S3 or where it stopped.
+
+After recovery all three system links still matched generation 189,
+all nine volume audits passed, and the three healthy pools and five
+mounts matched the saved baseline. Counters were 0/0, `deep` was
+selected, the RTC alarm was empty, and both devices were active in D0
+with the original policies. Startup settled with no failed units or
+queued jobs; all four Ente services were running.
+
+### `s2idle-aged-1` with RTC wake
+
+The November 20 host timer is set for 05:00 CET, 9 h 27 min after the
+19:32:56 boot. The T3 precheck is at 04:40 and the results check at 05:25.
+Prepared copies and hashes are in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-aged-1-20261120/`.
+Read-only `prepare` passed all guards with the projected age; `check`
+and `run` enforce actual age. The sole change from the aged control is
+the mode of the real request: the original runner uses `s2idle` once
+with a 120 s RTC alarm, after the same five `core` dry cycles. Neither
+GPU policy nor `SLP_SMI_EN` is changed. On software return the runner
+restores `deep` and clears the alarm. No wake-on-LAN is planned.
+
+The precheck compares the unit files and launcher to the saved copies,
+verifies the pinned runner, then uses the exact stored `ExecStart`
+arguments with `check` in place of `run`. It does not start, repair or
+replay the trial. The results check records the dry cycles, real return
+timing, restoration and health separately. Ask for wall draw around
+the actual request; a two-minute sleep may be mixed with awake draw in
+a five-minute meter bin. Do not treat a software return as a low-power
+measurement or pre-arm another trial.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -437,7 +466,8 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 10:03 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 46 min | GPU and upstream port reached D3cold; original policy and D0 restored | about 30 W to 17 W near the check; five-minute samples cannot isolate the change |
 | Nov 19 10:29 | `gpu-meter-1` | 25-minute awake D3cold comparison, no suspend | about 1 h 12 min | completed and restored to D0 at 10:54:29 | about 17 W from 10:30 to 10:50 |
 | Nov 19 18:20 | `gpu-off-1` scheduling check | read-only timer and baseline checks | about 9 h 4 min | timer correct; preflight passed; zero requests | |
-| Nov 19 18:40 | `gpu-off-1` | planned five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 23 min at planned trigger | owner-reported hang; S3 request and D3cold unverified | 15 W; owner rebooted |
+| Nov 19 18:40 | `gpu-off-1` | five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 25 min at S3 request | dry 5/5; real request at 18:42:05.623 did not return | 15 W; owner rebooted |
+| Nov 20 05:00 | `s2idle-aged-1` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm | 9 h 27 min at planned trigger | pending | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -707,7 +737,7 @@ later reported the nearby drop in the results table.
 ## Machine facts
 
 - After the owner's recovery, the current boot began November 19 at
-  09:17:07 (boot `da3a8cf7-8048-455a-a171-4cd067636091`). Booted, current and
+  19:32:56 (boot `805078f4-eda4-41dd-858b-99b2121a61e1`). Booted, current and
   profile all matched generation 189:
   `/nix/store/cg2x27vhsgzwb1s7djpswfsrs3qlamgz-nixos-system-predator-26.11.20261023.3ec6363`.
   Linux remains 6.18.58. The boot audit passed.

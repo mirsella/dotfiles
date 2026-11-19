@@ -76,22 +76,23 @@ enum Arm {
     AgedBypassProbe,
     GpuMeter,
     GpuOff,
+    AgedS2idle,
 }
 
 #[derive(Clone, Copy)]
 enum Stage {
     Initial,
-    BeforeS3,
+    BeforeSleep,
 }
 
 impl Stage {
     fn expected(self, arm: &Arm) -> (&'static str, &'static [&'static str]) {
         match (self, arm) {
             (Self::Initial, _) => ("0", &[]),
-            (Self::BeforeS3, Arm::AgedControl | Arm::GpuOff) => {
+            (Self::BeforeSleep, Arm::AgedControl | Arm::GpuOff | Arm::AgedS2idle) => {
                 ("5", &["before.snapshot.txt", "dry.jsonl"])
             }
-            (Self::BeforeS3, Arm::ShortBypass | Arm::AgedBypassProbe | Arm::GpuMeter) => {
+            (Self::BeforeSleep, Arm::ShortBypass | Arm::AgedBypassProbe | Arm::GpuMeter) => {
                 ("0", &["before.snapshot.txt"])
             }
         }
@@ -130,6 +131,7 @@ impl Arm {
             ("nosmi-aged-probe-", Self::AgedBypassProbe),
             ("gpu-meter-", Self::GpuMeter),
             ("gpu-off-", Self::GpuOff),
+            ("s2idle-aged-", Self::AgedS2idle),
         ] {
             if label
                 .strip_prefix(prefix)
@@ -143,7 +145,7 @@ impl Arm {
 
     fn check_age(&self, uptime: f64) -> Result<()> {
         match self {
-            Self::AgedControl | Self::AgedBypassProbe | Self::GpuOff => {
+            Self::AgedControl | Self::AgedBypassProbe | Self::GpuOff | Self::AgedS2idle => {
                 require(uptime >= 32_400.0, "less than nine hours awake")
             }
             Self::ShortBypass => require(
@@ -158,6 +160,17 @@ impl Arm {
         match self {
             Self::GpuOff => GPU_OFF_RUNNER,
             _ => RUNNER,
+        }
+    }
+
+    fn sleep_args(&self) -> &'static [&'static str] {
+        match self {
+            Self::AgedControl => &["s3", "1", "120", "30"],
+            Self::ShortBypass => &["s3", "3", "60", "30", "nosmi"],
+            Self::AgedBypassProbe => &["s3", "1", "120", "30", "nosmi"],
+            Self::GpuOff => &["s3", "1", "120", "30", "gpu-off"],
+            Self::AgedS2idle => &["s2idle", "1", "120", "30"],
+            Self::GpuMeter => unreachable!("awake measurement must not call suspend"),
         }
     }
 }
@@ -209,8 +222,8 @@ impl Baseline<'_> {
         require(trial_window(clock), "backup exclusion window")?;
         let age_at_start = if let Some(slot) = planned {
             require(
-                matches!(self.arm, Arm::GpuOff),
-                "prepare is only for GPU-off",
+                matches!(self.arm, Arm::GpuOff | Arm::AgedS2idle),
+                "prepare is only for GPU-off or aged s2idle",
             )?;
             let now: i64 = output("date", &["+%s"])?.trim().parse()?;
             let when: i64 = output("date", &["--date", slot, "+%s"])?.trim().parse()?;
@@ -225,17 +238,23 @@ impl Baseline<'_> {
         if matches!(self.arm, Arm::GpuMeter) {
             require(clock < 2230, "GPU measurement overlaps the backup window")?;
         }
-        if matches!(self.arm, Arm::GpuOff) {
+        if matches!(self.arm, Arm::GpuOff | Arm::AgedS2idle) {
+            let sleep = read("/sys/power/mem_sleep")?;
             require(
                 read("/sys/power/pm_test")?
                     .split_whitespace()
                     .any(|v| v == "[none]")
-                    && read("/sys/power/mem_sleep")?
-                        .split_whitespace()
-                        .any(|v| v == "[deep]")
+                    && sleep.split_whitespace().any(|v| v == "[deep]")
                     && read("/sys/class/rtc/rtc0/wakealarm")?.trim().is_empty(),
                 "sleep mode changed or an RTC alarm is already armed",
             )?;
+            if matches!(self.arm, Arm::AgedS2idle) {
+                require(
+                    sleep.split_whitespace().any(|v| v == "s2idle"),
+                    "s2idle is not available",
+                )?;
+                check_gpu_d0()?;
+            }
         }
 
         let logs = Path::new(RUNNER).with_file_name("logs");
@@ -336,18 +355,14 @@ impl Baseline<'_> {
         }
         self.batch("before", &["snapshot"])?;
         let dry = match self.arm {
-            Arm::AgedControl | Arm::GpuOff => self.batch("dry", &["dry", "5", "30", "10"]),
+            Arm::AgedControl | Arm::GpuOff | Arm::AgedS2idle => {
+                self.batch("dry", &["dry", "5", "30", "10"])
+            }
             _ => Ok(()),
         };
-        let s3: &[&str] = match self.arm {
-            Arm::AgedControl => &["s3", "1", "120", "30"],
-            Arm::ShortBypass => &["s3", "3", "60", "30", "nosmi"],
-            Arm::AgedBypassProbe => &["s3", "1", "120", "30", "nosmi"],
-            Arm::GpuOff => &["s3", "1", "120", "30", "gpu-off"],
-            Arm::GpuMeter => unreachable!("awake measurement must not call suspend"),
-        };
+        let sleep = self.arm.sleep_args();
         let result = dry
-            .and_then(|()| self.preflight(Stage::BeforeS3, None))
+            .and_then(|()| self.preflight(Stage::BeforeSleep, None))
             .and_then(|()| {
                 if matches!(self.arm, Arm::GpuOff) {
                     self.enable_gpu_pm()
@@ -356,7 +371,7 @@ impl Baseline<'_> {
                 }
             })
             .and_then(|()| output("sync", &[]).map(|_| ()))
-            .and_then(|()| self.batch("s3", s3));
+            .and_then(|()| self.batch(sleep[0], sleep));
         let after = self.batch("after", &["snapshot"]);
         if let (Err(first), Err(second)) = (&result, &after) {
             eprintln!(
@@ -562,34 +577,33 @@ mod tests {
         let short = Arm::ShortBypass;
         let aged = Arm::AgedControl;
         let initial = Stage::Initial.expected(&short);
-        let before_s3 = Stage::BeforeS3.expected(&short);
-        assert_eq!(initial.0, before_s3.0);
+        let before_sleep = Stage::BeforeSleep.expected(&short);
+        assert_eq!(initial.0, before_sleep.0);
 
         fs::write(logs.join("nosmi-short-1-s3.jsonl"), "").unwrap();
         assert!(check_trial_logs(&logs, "nosmi-short-2", initial.1).is_ok());
-        assert!(check_trial_logs(&logs, "nosmi-short-2", before_s3.1).is_err());
+        assert!(check_trial_logs(&logs, "nosmi-short-2", before_sleep.1).is_err());
         fs::write(logs.join("nosmi-short-2-before.snapshot.txt"), "").unwrap();
         assert!(check_trial_logs(&logs, "nosmi-short-2", initial.1).is_err());
-        assert!(check_trial_logs(&logs, "nosmi-short-2", before_s3.1).is_ok());
+        assert!(check_trial_logs(&logs, "nosmi-short-2", before_sleep.1).is_ok());
         fs::write(logs.join("nosmi-short-2-s3.jsonl"), "").unwrap();
-        assert!(check_trial_logs(&logs, "nosmi-short-2", before_s3.1).is_err());
+        assert!(check_trial_logs(&logs, "nosmi-short-2", before_sleep.1).is_err());
 
         let probe = Arm::AgedBypassProbe;
         fs::write(logs.join("nosmi-aged-probe-1-before.snapshot.txt"), "").unwrap();
-        let (successes, expected) = Stage::BeforeS3.expected(&probe);
+        let (successes, expected) = Stage::BeforeSleep.expected(&probe);
         assert_eq!(successes, "0");
         assert!(check_trial_logs(&logs, "nosmi-aged-probe-1", expected).is_ok());
 
-        let (successes, expected) = Stage::BeforeS3.expected(&aged);
+        let (successes, expected) = Stage::BeforeSleep.expected(&aged);
         assert_eq!(successes, "5");
         fs::write(logs.join("aged-6-before.snapshot.txt"), "").unwrap();
         assert!(check_trial_logs(&logs, "aged-6", expected).is_err());
         fs::write(logs.join("aged-6-dry.jsonl"), "").unwrap();
         assert!(check_trial_logs(&logs, "aged-6", expected).is_ok());
-        assert_eq!(
-            Stage::BeforeS3.expected(&Arm::GpuOff),
-            (successes, expected)
-        );
+        for arm in [Arm::GpuOff, Arm::AgedS2idle] {
+            assert_eq!(Stage::BeforeSleep.expected(&arm), (successes, expected));
+        }
         fs::create_dir(logs.join("STOP")).unwrap();
         assert!(check_trial_logs(&logs, "aged-6", expected).is_err());
     }
@@ -611,6 +625,10 @@ mod tests {
         let gpu_off = Arm::from_label("gpu-off-1").unwrap();
         assert!(gpu_off.check_age(32_399.0).is_err());
         assert!(gpu_off.check_age(32_400.0).is_ok());
+        let s2idle = Arm::from_label("s2idle-aged-1").unwrap();
+        assert!(matches!(s2idle, Arm::AgedS2idle));
+        assert!(s2idle.check_age(32_399.0).is_err());
+        assert!(s2idle.check_age(32_400.0).is_ok());
         assert!(Arm::from_label("nosmi-short-").is_err());
         assert!(Arm::from_label("nosmi-short-1-s3").is_err());
     }
@@ -625,5 +643,12 @@ mod tests {
             mount_rows(saved),
             mount_rows(&live.replace("/srv/backup/recovery", "/other"))
         );
+    }
+
+    #[test]
+    fn aged_s2idle_requests_only_one_rtc_wake_without_a_hardware_override() {
+        let arm = Arm::AgedS2idle;
+        assert_eq!(arm.runner(), super::RUNNER);
+        assert_eq!(arm.sleep_args(), ["s2idle", "1", "120", "30"]);
     }
 }
