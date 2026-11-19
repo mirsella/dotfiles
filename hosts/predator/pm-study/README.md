@@ -288,6 +288,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 21:55 | `aged-5` scheduling check | read-only timer and baseline checks | 11 h 8 min | timer correct; preflight passed; zero requests | |
 | Nov 18 22:15 | `aged-5-dry` | five `core` dry cycles on generation 189 | 11 h 28 min at first request | 5 of 5 returned, no abnormal cycles | |
 | Nov 18 22:17 | `aged-5-s3` | unmodified real S3, 120 s RTC alarm | 11 h 30 min | one request, no return; owner forced reboot | hung at 15 W, power LED on, fan running; any brief dip unreported |
+| Nov 19 01:10 | `nosmi-short-1` scheduling check | read-only timer and baseline checks | 2 h 13 min | timer correct; preflight passed; zero requests | |
 | Nov 19 01:30 | `nosmi-short-1-s3` | firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | pending | overnight run approved, owner available after 09:00 |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
@@ -467,6 +468,13 @@ were 0/0, with no trial logs or STOP. The prepared units passed systemd
 verification, and the timer read back as active for 01:30 CET with the
 service inactive. Runtime preflight will recheck maintenance after the
 backup window. No early suspend or automatic recovery is configured.
+
+At 01:10 the prepared checksums passed and the loaded units matched without
+drop-ins. The timer was waiting for exactly 01:30 CET; the service had not
+started. No trial logs or STOP existed, and counters were 0/0. The read-only
+preflight passed on the pinned generation 189 boot, including the audit for
+all nine volumes. Ente remained running. No repair or batch was needed,
+and the 01:55 results check was left unchanged.
 
 ## Machine facts
 
