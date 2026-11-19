@@ -156,14 +156,15 @@ Work through this in order. Record every run in the results table.
    This does not rule out firmware involvement elsewhere. Drop the
    bypass arm: no short batch, formal aged repetitions or reversal are
    needed. Pause before changing arms.
-6. Discrete GPU powered off, aged. First check awake that setting the
-   graphics function `0000:01:00.0` to `power/control=auto` puts its upstream
-   port `0000:00:01.0` into D3cold and lowers the wall reading. Restore `on`
-   after the check. Do not test S3 with a GPU still powered on and count it
-   as GPU-off. If the check cannot reach D3cold and the baseline is otherwise
-   healthy, skip to step 7. If D3cold is reached but the meter reading is
-   missing, wait for the reading. If the baseline is unresolved, stop and
-   record why. Ubuntu hung with nouveau loaded, which counts against this arm.
+6. Discrete GPU powered off, aged. The awake check put the unbound graphics
+   function `0000:01:00.0` and its upstream port `0000:00:01.0` into D3cold
+   with `power/control=auto` on the GPU alone. The permanent setting is in
+   NixOS config but has not been activated. Before an aged GPU-off trial,
+   verify both devices reach D3cold under the policy being tested and verify
+   the rest of the baseline. Do not count S3 with the GPU still powered as
+   GPU-off. If D3cold cannot be reached and the baseline is otherwise healthy,
+   skip to step 7. If the baseline is unresolved, stop and record why.
+   Ubuntu hung with nouveau loaded, which counts against this arm.
 7. s2idle, aged. It returned once after 11 hours awake. Two more aged returns
    and a wall reading near 3 W would make it a usable replacement for S3.
    Wake-on-LAN does not wake s2idle on this machine. The RTC alarm does.
@@ -284,17 +285,20 @@ verify the port and GPU power state. Restore `on` even if the check fails.
 Do not change the audio function, bind a driver or stop services. Compare
 actual wall readings for the observed interval, not the planned time.
 
-The awake check confirmed D3cold; wall-power corroboration is still
-missing. Use the meter history for 10:03:19 to 10:05:05 CET and compare
-it with the adjacent periods when the GPU was in D0. Do not switch to
-s2idle on the basis of a missing meter reading.
+The awake check confirmed D3cold. The owner saw a drop from about 30 W
+to 17 W near the 10:03:19 to 10:05:05 CET test, but the meter reports
+five-minute intervals. That is consistent with lower power draw, not a
+measurement of how many watts D3cold saved. Do not switch to s2idle on
+the basis of this coarse reading.
 
-If the meter corroborates the drop, target a single guarded GPU-off S3
-request at 20:00 CET, about 10 h 43 min after boot if there is no
-intervening suspend, or a later safe window. Use a 120 s RTC alarm, verify
-D3cold immediately before the request, and restore `on` on return or
-refusal. Schedule the T3 precheck and results check only after arming the
-host timer. No suspend timer is armed.
+Predator's NixOS config now allows runtime power management for the
+unbound NVIDIA graphics function on device add. This is the same setting
+used by the awake check; it does not force the GPU off if the kernel needs
+it. It has not been activated. After booting the configuration, verify
+both PCI devices reach D3cold and treat the new policy as a baseline
+change before arming any suspend trial. Use a longer awake comparison
+with the meter if an attributable wattage difference is needed. No
+suspend timer is armed.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -339,7 +343,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 01:30 | `nosmi-short-1` | planned firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | second preflight refused; zero requests | |
 | Nov 19 08:30 | `nosmi-aged-probe-1` scheduling check | read-only timer and baseline checks | 9 h 34 min | timer correct; preflight passed; zero requests | |
 | Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 attempt with firmware handler bypass, 120 s RTC alarm | 9 h 43 min at request | no software return; firmware bypass did not prevent the hang | 15 W; owner forced reboot; any brief dip, LED and fan state unreported |
-| Nov 19 10:03 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 46 min | GPU and upstream port reached D3cold; original policy and D0 restored | wall-power history requested for 10:03:19 to 10:05:05 |
+| Nov 19 10:03 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 46 min | GPU and upstream port reached D3cold; original policy and D0 restored | about 30 W to 17 W near the check; five-minute samples cannot isolate the change |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -602,8 +606,9 @@ samples through 10:05:05. Restored `on` at 10:05:05; both devices were
 active in D0 by 10:05:11.
 
 The post-check audit and storage checks passed. Boot, generation, counters,
-Ente PIDs and Ente activation times were unchanged. No suspend ran. No wall
-meter readings were available, so neither suspend arm was scheduled.
+Ente PIDs and Ente activation times were unchanged. No suspend ran or was
+scheduled. The meter history was not available during the check; the owner
+later reported the nearby drop in the results table.
 
 ## Machine facts
 

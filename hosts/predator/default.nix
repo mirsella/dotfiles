@@ -70,9 +70,12 @@ in
     AllowHibernation = false;
   };
 
-  # Select the TCO watchdog by identity; watchdog0/1 numbering can change at boot.
   services.udev.extraRules = ''
+    # Select the TCO watchdog by identity; watchdog0/1 numbering can change at boot.
     SUBSYSTEM=="watchdog", ATTR{identity}=="iTCO_wdt", SYMLINK+="watchdog-itco"
+
+    # Allow the unused NVIDIA graphics function and its upstream port to reach D3cold.
+    ACTION=="add", SUBSYSTEM=="pci", KERNEL=="0000:01:00.0", DRIVER=="", ATTR{vendor}=="0x10de", ATTR{device}=="0x1c20", ATTR{power/control}="auto"
   '';
   systemd.settings.Manager = {
     WatchdogDevice = "/dev/watchdog-itco";
