@@ -314,6 +314,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 18 22:17 | `aged-5-s3` | unmodified real S3, 120 s RTC alarm | 11 h 30 min | one request, no return; owner forced reboot | hung at 15 W, power LED on, fan running; any brief dip unreported |
 | Nov 19 01:10 | `nosmi-short-1` scheduling check | read-only timer and baseline checks | 2 h 13 min | timer correct; preflight passed; zero requests | |
 | Nov 19 01:30 | `nosmi-short-1` | planned firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | second preflight refused; zero requests | |
+| Nov 19 08:30 | `nosmi-aged-probe-1` scheduling check | read-only timer and baseline checks | 9 h 34 min | timer correct; preflight passed; zero requests | |
 | Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 request with firmware handler bypass, 120 s RTC alarm | about 9 h 43 min at trigger | pending | one-off approved; short safety batch still required |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
@@ -526,6 +527,15 @@ including rejection of extra logs and STOP. Only the concluded
 `pm-nosmi-short-1.service` failure flag was cleared. The timer read back
 as active for exactly 08:40 CET with the service inactive. Counters stayed
 0/0 and Ente PIDs were unchanged.
+
+At 08:30 the timer was still waiting for exactly
+`2026-11-19 08:40:00 Europe/Paris`. Both live units matched the prepared
+copies without drop-ins, the checksums passed and `ExecStart` was unchanged.
+The trial service had not started, no trial logs or STOP existed and counters
+were 0/0. Running only `check` with the stored trial arguments passed on the
+pinned boot, including the audit for all nine volumes. The timer and service
+were left unchanged, Ente remained running and the 09:00 results check was
+left in place.
 
 ## Machine facts
 
