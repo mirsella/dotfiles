@@ -361,6 +361,16 @@ change GPU policy, repair or replay a failed or cancelled trial.
 The 19:05 check reads the actual request and meter evidence before
 choosing the next arm. No s2idle or later trial is armed.
 
+The 18:20 precheck confirmed the exact 18:40 CET trigger. The trial
+service was inactive and had not started. Both runtime units and
+installed binaries matched the prepared copies, all four SHA-256
+checks passed, and neither unit had drop-ins. There were no trial
+logs or STOP file. Running only `check` with the stored arguments
+passed at 32,624 seconds awake, including the boot audit for all nine
+volumes. Counters stayed at 0/0, both PCI devices remained active in D0,
+and all four Ente services were running. The timer and service were
+left unchanged; the existing 19:05 results check was not duplicated.
+
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
 `enter` line with no `return` line after it. Labels cannot be reused. Creating
@@ -406,6 +416,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 attempt with firmware handler bypass, 120 s RTC alarm | 9 h 43 min at request | no software return; firmware bypass did not prevent the hang | 15 W; owner forced reboot; any brief dip, LED and fan state unreported |
 | Nov 19 10:03 | `gpu-awake-1` | temporary runtime PM on the unbound GPU, no suspend | about 46 min | GPU and upstream port reached D3cold; original policy and D0 restored | about 30 W to 17 W near the check; five-minute samples cannot isolate the change |
 | Nov 19 10:29 | `gpu-meter-1` | 25-minute awake D3cold comparison, no suspend | about 1 h 12 min | completed and restored to D0 at 10:54:29 | about 17 W from 10:30 to 10:50 |
+| Nov 19 18:20 | `gpu-off-1` scheduling check | read-only timer and baseline checks | about 9 h 4 min | timer correct; preflight passed; zero requests | |
 | Nov 19 18:40 | `gpu-off-1` | five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 23 min at planned trigger | armed | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
