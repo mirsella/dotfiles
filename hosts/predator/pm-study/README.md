@@ -145,24 +145,17 @@ Work through this in order. Record every run in the results table.
    `fresh-1` and `fresh-2` are unmatched to the changed deployment.
    `fresh-3`, captured November 17 at 15:05:33, predates Ente activation;
    `aged-3-before` was never created. Do not treat them as a matched pair.
-4. Firmware handler bypass, short awake. `pm-batch <label> s3 3 60 30 nosmi`
-   clears `SLP_SMI_EN` before each request to bypass the firmware sleep
-   handler. Check for three normal RTC-timed returns, observed sleep power
-   near 3 W and a healthy system with `SLP_SMI_EN` restored. The owner
-   approved the November 19 overnight run and can check the meter history
-   and recover the machine after 09:00 if it hangs. If the test returns but
-   the meter history is unavailable, record the software result and wait
-   for the graph before declaring a pass. Drop the arm if the bypass fails.
-   `nosmi-short-1` stopped before making a request. The launcher now checks
-   the expected log files for each stage independently of the counters.
-   By the time the next check was requested, the boot was already over
-   nine hours old. The owner approved one aged bypass probe on that boot
-   rather than rebooting now. This does not replace the short safety
-   batch. If the probe returns normally, wait for a fresh boot to run the
-   short batch before advancing to step 5.
-5. Firmware handler bypass, aged. Two aged trials with `nosmi`, then reverse
-   to a matched control. Returns would support involvement of the handler;
-   they would not prove a safe permanent workaround without further testing.
+4. Firmware handler bypass, short awake. `nosmi-short-1` stopped before
+   making a request. The launcher now checks the expected log files for
+   each stage independently of the counters. The short safety batch did
+   not pass and will not be repeated after the aged probe failed.
+5. Firmware handler bypass, aged. The owner approved one probe on the
+   already-aged boot. The runner read back `SLP_SMI_EN` clear before
+   suspend, but the request did not return and the owner found Predator
+   hung at 15 W. Clearing the bit before the request was not sufficient.
+   This does not rule out firmware involvement elsewhere. Drop the
+   bypass arm: no short batch, formal aged repetitions or reversal are
+   needed. Pause before changing arms.
 6. Discrete GPU powered off, aged. First check awake that
    `echo auto > /sys/bus/pci/devices/0000:01:00.0/power/control` puts the port
    `0000:00:01.0` into D3cold and lowers the wall reading. Ubuntu hung with
@@ -268,8 +261,9 @@ If the probe hangs, leave recovery to the owner and pause the arm. If it
 returns normally, the next step is still a three-cycle short check on a
 fresh boot, not a formal aged repetition.
 
-The 09:00 results check could not reach Predator. The queue is paused
-until the owner checks the machine and the probe logs can be read.
+The probe did not return, and the owner confirmed the 15 W hang and forced
+a reboot. Do not replay the probe or arm the short batch or aged repetitions.
+No next arm is scheduled.
 
 If the short test passes, schedule only the first aged bypass. Count at
 least nine hours from the last actual resume, pin the post-batch counters
@@ -318,7 +312,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 01:10 | `nosmi-short-1` scheduling check | read-only timer and baseline checks | 2 h 13 min | timer correct; preflight passed; zero requests | |
 | Nov 19 01:30 | `nosmi-short-1` | planned firmware handler bypass, three S3 requests with 60 s RTC alarms | about 2 h 33 min at trigger | second preflight refused; zero requests | |
 | Nov 19 08:30 | `nosmi-aged-probe-1` scheduling check | read-only timer and baseline checks | 9 h 34 min | timer correct; preflight passed; zero requests | |
-| Nov 19 08:40 | `nosmi-aged-probe-1` | planned one S3 request with firmware handler bypass, 120 s RTC alarm | about 9 h 43 min at scheduled trigger | suspected hang; request and return not verified | meter graph, power LED and fan observations requested |
+| Nov 19 08:40 | `nosmi-aged-probe-1` | one S3 attempt with firmware handler bypass, 120 s RTC alarm | 9 h 43 min at request | no software return; firmware bypass did not prevent the hang | 15 W; owner forced reboot; any brief dip, LED and fan state unreported |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -549,17 +543,31 @@ trial make a hang plausible, but do not confirm that the timer fired or
 that the request reached the kernel. The journal, probe logs, suspend
 counters and `SLP_SMI_EN` state could not be read.
 
-No wake, reset or other recovery was sent, and no further trial was armed.
-If Predator is powered on but unresponsive, the owner should note the
-power LED and fan state before holding the power button. Check the meter
-history around 08:40 for any dip toward 3 W. After recovery, use the
-previous boot's journal and the probe logs to distinguish a refusal from
-a request with no software return.
+No automated recovery was sent. The owner reported a 15 W hang and forced
+a reboot. A brief dip toward 3 W, the power LED and the fan state were not
+reported.
+
+After recovery, the previous boot's journal confirmed the timer fired at
+08:40:00 and both preflights passed. The S3 log records the 120 s alarm
+configuration, deep selected, `pm_test` none, and an `enter` at 08:40:28.452
+after 35,009 s awake. The runner read back the low `SMI_EN` byte as `0x23`,
+down from `0x33`, before making the suspend request. There is no `return`,
+`done` or after snapshot. The persisted kernel journal has no suspend
+entry or exit from this attempt, so the logs do not locate the hang in
+the entry or resume path or establish that the machine reached physical S3.
+
+The new boot began at 09:17:07. All three system links still matched
+generation 189. The reboot reset the counters to 0/0; `pm_test` was none,
+deep was selected, the RTC alarm was empty, and `SLP_SMI_EN` was set
+(`SMI_EN=0x80002033`). All nine volumes passed the boot audit. All three pools
+were healthy with no active scans, and their GUIDs and all five mounts
+matched the baseline. By the final check, Ente was running and systemd
+reported no failed units or queued jobs. No further trial was armed.
 
 ## Machine facts
 
-- After the owner's recovery, the current boot began around November 18
-  22:57 (boot `99e6427f-85e4-4c9b-b651-dc619b833749`). Booted, current and
+- After the owner's recovery, the current boot began November 19 at
+  09:17:07 (boot `da3a8cf7-8048-455a-a171-4cd067636091`). Booted, current and
   profile all matched generation 189:
   `/nix/store/cg2x27vhsgzwb1s7djpswfsrs3qlamgz-nixos-system-predator-26.11.20261023.3ec6363`.
   Linux remains 6.18.58. The boot audit passed.
