@@ -325,12 +325,14 @@ All nine volumes passed the boot audit, the three healthy pools
 and five mounts matched the baseline, and all four Ente services
 were running with their original PIDs and activation times.
 
-The owner reported about 17 W from 10:30 to 10:50, entirely inside
-the D3cold interval. This is the measured wall draw with D3cold,
-not how much power D3cold saved. A wattage comparison still needs
-complete D0 bins ending by 10:25 and starting at or after 11:00,
-with comparable workload. The separate 18:40 suspend timer was
-left unchanged.
+The owner's Tapo graph showed about 17 W from 10:30 to 10:50,
+entirely inside the D3cold interval. The historical trace was around
+30 to 32 W shortly before the change and climbed back to about 33 W
+after D0 was restored. That is roughly 13 to 16 W lower at the wall
+during D3cold in this run, not a workload-matched estimate of GPU power.
+Exclude the 23 W "Now" point at 11:11: the owner has seen that endpoint
+fluctuate, and it is not confirmed to represent a complete interval.
+The separate 18:40 suspend timer was left unchanged.
 
 ### `gpu-off-1` aged S3
 
