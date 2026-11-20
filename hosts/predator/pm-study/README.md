@@ -476,6 +476,20 @@ service does not restart. The service had never started at arming.
 Prepared unit files, launcher and checksums are in
 `/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-aged-2-20261120/`.
 
+At the November 20 19:40 CET precheck, the timer was waiting for exactly
+20:00 CET and the service had never started. Both loaded units and the
+launcher matched their prepared copies, the checksums and pinned runner
+hash passed, and there were no drop-ins. The stored command matched the
+original pins. There were no trial logs or STOP file, and the suspend
+counters were still 0/0.
+
+Predator was still on the pinned generation 193 boot, but the active
+system and profile pointed to generation 202, registered at 19:34 CET.
+The system pin already failed, so the launcher was not invoked, even
+in `check` mode. Ente was running and all pools were healthy. The
+timer and guards were left unchanged, no suspend was requested, and
+the existing 20:25 results check will verify what happened at 20:00.
+
 The repeat requires five normal dry returns and one normal `s2idle`
 return at the 120 s RTC interval. It also requires successful cleanup,
 `deep` restored, an empty RTC alarm, a healthy
@@ -552,6 +566,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 18:40 | `gpu-off-1` | five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 25 min at S3 request | dry 5/5; real request at 18:42:05.623 did not return | 15 W; owner rebooted |
 | Nov 20 04:40 | `s2idle-aged-1` scheduling check | read-only timer and baseline checks | about 9 h 8 min | timer correct; preflight refused on generation mismatch; zero requests | |
 | Nov 20 05:00 | `s2idle-aged-1` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm | 9 h 27 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
+| Nov 20 19:40 | `s2idle-aged-2` scheduling check | read-only timer and baseline inspection | about 9 h 11 min | timer correct; generation mismatch; launcher not invoked | booted 193; active/profile 202 |
 | Nov 20 20:00 | `s2idle-aged-2` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 193 | 9 h 31 min at planned trigger | pending | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
@@ -832,8 +847,11 @@ later reported the nearby drop in the results table.
   `/nix/store/fszmdsgrr83igx391w6lcgbdwbqzm3ji-nixos-system-predator-26.11.20261023.3ec6363`.
   The audit refused both times because the active generation was not booted.
 - The current boot began November 20 at 10:29:20 CET
-  (`608fda18-fca9-48ad-86db-4b93809d7275`). Booted, current and profile
-  now all match generation 193. The boot audit passed all nine volumes.
+  (`608fda18-fca9-48ad-86db-4b93809d7275`). All system links initially
+  matched generation 193 and the audit passed all nine volumes. At the
+  19:40 check, generation 193 was still booted, but current and profile
+  pointed to generation 202:
+  `/nix/store/z0aslb72ck4b788bpg0gm13zic346c0b-nixos-system-predator-26.11.20261023.3ec6363`.
 - Lid closed. The owner remembers hangs with the lid open as well.
 - Battery present and full. AC connected.
 - Discrete GPU `0000:01:00.0`: no driver, `power/control=on`, D0.
