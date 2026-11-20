@@ -423,6 +423,19 @@ the actual request; a two-minute sleep may be mixed with awake draw in
 a five-minute meter bin. Do not treat a software return as a low-power
 measurement.
 
+At the November 20 04:40 precheck the timer was still waiting for
+05:00 CET, and the trial service had not started. The prepared checksums
+passed, both loaded units and the installed launcher matched their
+prepared copies, there were no drop-ins, and the runner hash matched.
+`check` refused with `system changed: /run/current-system`. The running
+boot was still generation 189, but the current system and system profile
+pointed to generation 190, registered at 00:18:43 CET. This check did
+not reach the remaining preflight gates. Counters stayed at 0/0, there
+were no trial logs or STOP file, and Ente was running and all pools
+were healthy. The timer and guards were left unchanged. The 05:25
+check should verify the actual outcome; the 25-minute repeat remains
+unarmed.
+
 The 05:25 check may arm `s2idle-meter-1` only once it verifies all five
 dry returns, one normal `s2idle` return at the 120 s RTC interval,
 successful cleanup, `deep` restored, an empty RTC alarm, a healthy
@@ -495,6 +508,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 10:29 | `gpu-meter-1` | 25-minute awake D3cold comparison, no suspend | about 1 h 12 min | completed and restored to D0 at 10:54:29 | about 17 W from 10:30 to 10:50 |
 | Nov 19 18:20 | `gpu-off-1` scheduling check | read-only timer and baseline checks | about 9 h 4 min | timer correct; preflight passed; zero requests | |
 | Nov 19 18:40 | `gpu-off-1` | five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 25 min at S3 request | dry 5/5; real request at 18:42:05.623 did not return | 15 W; owner rebooted |
+| Nov 20 04:40 | `s2idle-aged-1` scheduling check | read-only timer and baseline checks | about 9 h 8 min | timer correct; preflight refused on generation mismatch; zero requests | |
 | Nov 20 05:00 | `s2idle-aged-1` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm | 9 h 27 min at planned trigger | pending | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
