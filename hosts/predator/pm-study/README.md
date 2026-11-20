@@ -487,8 +487,27 @@ Predator was still on the pinned generation 193 boot, but the active
 system and profile pointed to generation 202, registered at 19:34 CET.
 The system pin already failed, so the launcher was not invoked, even
 in `check` mode. Ente was running and all pools were healthy. The
-timer and guards were left unchanged, no suspend was requested, and
-the existing 20:25 results check will verify what happened at 20:00.
+timer and guards were left unchanged at the precheck, and no suspend
+was requested.
+
+The owner then asked to reset the test and reboot if needed. At
+19:47:34 CET, the old timer was stopped before its 20:00 trigger. The
+service had never started, the counters were 0/0, and no trial logs
+existed. The old 20:25 results check was disabled. This was a
+cancellation, not a hang.
+
+The default boot entry was the signed generation 202 UKI with its PCR
+signature companion. The pool GUIDs and five ZFS mounts matched the
+previous records. Before rebooting, those identities were saved in
+`/home/mirsella/dev/scratch/predator-suspend/preboot-20261120-generation202/`.
+One owner-authorized reboot was requested at 19:47:34 CET. No
+configuration was deployed.
+
+The owner found Predator powered off and turned it back on. As of
+20:05 CET, neither SSH path could reach it and the Pi saw no reply on
+the LAN. This occurred before any sleep request. The replacement
+`s2idle-aged-3` and its checks remain unarmed until the new boot,
+matching system links, storage, services and boot audit are verified.
 
 The repeat requires five normal dry returns and one normal `s2idle`
 return at the 120 s RTC interval. It also requires successful cleanup,
@@ -510,12 +529,12 @@ the anchor; `check` and `run` take just the anchor. Runtime guards pin counters 
 nine hours awake since the anchor. No stage may start at or after
 22:15 CET or before 00:30 CET, so the 25-minute run has time to finish
 before backups. The conditional 15:00 CET slot on November 20 was
-not scheduled. After a verified `s2idle-aged-2` pass, aim for November
-21 at 06:00 CET, or a later safe slot if the trial and its precheck
-cannot both clear the nine-hour minimum. Verify the new one-shot timer
-and schedule its checks. The repeat remains unarmed until the short
-trial passes. Compare only complete five-minute meter bins within
-the logged sleep interval, not the transition bins.
+not scheduled. After a verified short trial pass, choose a safe slot
+that lets the trial and its precheck both clear the nine-hour minimum
+after resume. Verify the new one-shot timer and schedule its checks.
+The repeat remains unarmed until the short trial passes. Compare only
+complete five-minute meter bins within the logged sleep interval, not
+the transition bins.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -567,7 +586,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 20 04:40 | `s2idle-aged-1` scheduling check | read-only timer and baseline checks | about 9 h 8 min | timer correct; preflight refused on generation mismatch; zero requests | |
 | Nov 20 05:00 | `s2idle-aged-1` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm | 9 h 27 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
 | Nov 20 19:40 | `s2idle-aged-2` scheduling check | read-only timer and baseline inspection | about 9 h 11 min | timer correct; generation mismatch; launcher not invoked | booted 193; active/profile 202 |
-| Nov 20 20:00 | `s2idle-aged-2` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 193 | 9 h 31 min at planned trigger | pending | |
+| Nov 20 20:00 | `s2idle-aged-2` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 193 | 9 h 31 min at planned trigger | cancelled at 19:47; zero requests | generation mismatch |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
