@@ -1,8 +1,9 @@
 use anyhow::{Context, Result, ensure};
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use std::{
     env,
-    ffi::CString,
+    ffi::{CString, OsStr, OsString},
     fmt::Write,
     fs,
     os::unix::fs::{PermissionsExt, symlink},
@@ -15,12 +16,7 @@ use std::{
 struct Config {
     claude_installer: PathBuf,
     claude_version: String,
-    codex_installer: PathBuf,
-    opencode_installer: PathBuf,
-    opencode_version: String,
-    t3_installer: PathBuf,
-    t3_version: String,
-    desktop_image: PathBuf,
+    curl: PathBuf,
     nix_store: PathBuf,
     shell: PathBuf,
     installer_path: String,
@@ -62,11 +58,6 @@ fn native_version(program: &Path, root: &Path) -> Result<Option<String>> {
 }
 
 /// Keep any existing standalone installation, regardless of its version.
-///
-/// The native tools update themselves (OpenCode, Codex and Claude Code
-/// directly, T3 through T3 Code). Home Manager must only seed a missing or
-/// dangling installation; otherwise a switch could replace a newer
-/// self-updated version with the pinned seed.
 fn ensure_native(
     program: &Path,
     root: &Path,
@@ -85,23 +76,19 @@ fn install(
     config: &Config,
     home: &Path,
     installer: &Path,
-    vars: &[(&str, &str)],
-    args: &[&str],
+    configure: impl FnOnce(&mut Command),
 ) -> Result<()> {
-    let status = Command::new(&config.shell)
+    let path = env::join_paths(
+        std::iter::once(home.join(".local/bin")).chain(env::split_paths(&config.installer_path)),
+    )?;
+    let mut command = Command::new(&config.shell);
+    command
         .arg(installer)
-        .args(args)
         .env("HOME", home)
-        .env(
-            "PATH",
-            format!(
-                "{}:{}",
-                home.join(".local/bin").display(),
-                config.installer_path
-            ),
-        )
-        .envs(vars.iter().copied())
-        .stdin(Stdio::null())
+        .env("PATH", path)
+        .stdin(Stdio::null());
+    configure(&mut command);
+    let status = command
         .status()
         .with_context(|| format!("start {}", installer.display()))?;
     ensure!(status.success(), "{} exited {status}", installer.display());
@@ -130,7 +117,188 @@ fn link(source: &Path, destination: &Path) -> Result<()> {
         .with_context(|| format!("install link {}", destination.display()))
 }
 
-fn seed_desktop(source: &Path, destination: &Path) -> Result<()> {
+fn occupied(path: &Path) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error).with_context(|| format!("stat {}", path.display())),
+    }
+}
+
+fn has_release(versions: &Path, executables: &[&str]) -> Result<bool> {
+    let entries = match fs::read_dir(versions) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error).with_context(|| format!("list {}", versions.display())),
+    };
+    for entry in entries {
+        let entry = entry?;
+        if !entry.file_type()?.is_dir() {
+            continue;
+        }
+        let release = entry.path();
+        for executable in executables {
+            if occupied(&release.join(executable))? {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+#[derive(Clone, Copy)]
+enum Cli {
+    OpenCode,
+    Codex,
+    T3,
+}
+
+const OPENCODE_BINARY: &str = ".opencode/bin/opencode";
+const CODEX_STANDALONE: &str = ".codex/packages/standalone";
+const T3_LAUNCHER: &str = ".local/bin/t3";
+const T3_UNIT: &str = ".config/systemd/user/t3code.service";
+
+fn seed_cli(home: &Path, cli: Cli, install: impl FnOnce(&Path) -> Result<()>) -> Result<bool> {
+    let (name, launcher) = match cli {
+        Cli::OpenCode => ("OpenCode", ".local/bin/opencode"),
+        Cli::Codex => ("Codex", ".local/bin/codex"),
+        Cli::T3 => ("T3", T3_LAUNCHER),
+    };
+    let launcher = home.join(launcher);
+    if occupied(&launcher)? {
+        eprintln!("agent-tools: leaving existing {name} launcher untouched");
+        return Ok(false);
+    }
+    let installed = match cli {
+        Cli::OpenCode => occupied(&home.join(OPENCODE_BINARY))?,
+        Cli::Codex => {
+            let standalone = home.join(CODEX_STANDALONE);
+            occupied(&standalone.join("current"))?
+                || has_release(&standalone.join("releases"), &["codex", "bin/codex"])?
+        }
+        Cli::T3 => {
+            occupied(&home.join(T3_UNIT))?
+                || occupied(&home.join(".t3/bin/t3"))?
+                || occupied(&home.join(".t3/runtime/service-state.json"))?
+                || has_release(&home.join(".t3/runtime/versions"), &["t3"])?
+        }
+    };
+    if installed {
+        eprintln!(
+            "agent-tools: {name} is already installed but {} is missing; use its installer to restore the launcher",
+            launcher.display()
+        );
+        return Ok(false);
+    }
+    eprintln!("agent-tools: installing {name} from its official installer");
+    install(&launcher)?;
+    ensure!(
+        launcher.try_exists()?,
+        "{name} installer did not create {}",
+        launcher.display()
+    );
+    Ok(true)
+}
+
+fn fetch(curl: &Path, url: &str) -> Command {
+    let mut command = Command::new(curl);
+    command
+        .args([
+            "--disable",
+            "--globoff",
+            "--fail",
+            "--silent",
+            "--show-error",
+            "--location",
+            "--proto",
+            "=https",
+            "--proto-redir",
+            "=https",
+            "--connect-timeout",
+            "15",
+            "--max-time",
+            "300",
+            "--retry",
+            "2",
+            "--retry-max-time",
+            "300",
+        ])
+        .arg("--url")
+        .arg(url);
+    command
+}
+
+fn download(curl: &Path, url: &str, destination: &Path) -> Result<()> {
+    crate::util::command_output(fetch(curl, url).arg("--output").arg(destination))
+        .with_context(|| format!("download {url}"))?;
+    Ok(())
+}
+
+fn install_online(
+    config: &Config,
+    home: &Path,
+    url: &str,
+    configure: impl FnOnce(&mut Command),
+) -> Result<()> {
+    let installer = tempfile::NamedTempFile::new()?;
+    download(&config.curl, url, installer.path())?;
+    install(config, home, installer.path(), configure)
+        .with_context(|| format!("run installer from {url}"))
+}
+
+#[derive(Deserialize)]
+struct T3Release {
+    tag_name: String,
+    assets: Vec<T3Asset>,
+}
+
+#[derive(Deserialize)]
+struct T3Asset {
+    name: String,
+    browser_download_url: String,
+    digest: Option<String>,
+}
+
+fn latest_desktop(releases: &[T3Release]) -> Result<&T3Asset> {
+    releases
+        .iter()
+        .find(|release| release.tag_name.contains("-nightly."))
+        .context("T3 did not publish a nightly in its recent releases")?
+        .assets
+        .iter()
+        .find(|asset| asset.name.ends_with("-x86_64.AppImage"))
+        .context("the latest T3 nightly has no x86_64 AppImage")
+}
+
+fn download_desktop(curl: &Path, destination: &Path) -> Result<()> {
+    let releases: Vec<T3Release> =
+        serde_json::from_slice(&crate::util::command_output(&mut fetch(
+            curl,
+            "https://api.github.com/repos/pingdotgg/t3code/releases?per_page=20",
+        ))?)?;
+    let asset = latest_desktop(&releases)?;
+    let expected = asset
+        .digest
+        .as_deref()
+        .and_then(|digest| digest.strip_prefix("sha256:"))
+        .context("the latest T3 AppImage has no SHA-256 digest")?;
+    ensure!(
+        asset
+            .browser_download_url
+            .starts_with("https://github.com/pingdotgg/t3code/releases/download/"),
+        "unexpected T3 AppImage download URL"
+    );
+    download(curl, &asset.browser_download_url, destination)?;
+    let mut hash = Sha256::new();
+    std::io::copy(&mut fs::File::open(destination)?, &mut hash)?;
+    ensure!(
+        format!("{:x}", hash.finalize()) == expected,
+        "T3 AppImage SHA-256 mismatch"
+    );
+    Ok(())
+}
+
+fn seed_desktop(destination: &Path, download: impl FnOnce(&Path) -> Result<()>) -> Result<()> {
     match fs::symlink_metadata(destination) {
         Ok(metadata) => {
             ensure!(
@@ -159,8 +327,8 @@ fn seed_desktop(source: &Path, destination: &Path) -> Result<()> {
     }
     let parent = destination.parent().context("desktop path has no parent")?;
     fs::create_dir_all(parent)?;
-    let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
-    std::io::copy(&mut fs::File::open(source)?, temporary.as_file_mut())?;
+    let temporary = tempfile::NamedTempFile::new_in(parent)?;
+    download(temporary.path())?;
     temporary
         .as_file()
         .set_permissions(fs::Permissions::from_mode(0o755))?;
@@ -215,10 +383,6 @@ pub fn bootstrap(package: &Path) -> Result<()> {
     let config: Config = serde_json::from_str(&crate::util::read(
         package.join("share/agent-tools/config.json"),
     )?)?;
-    ensure!(
-        config.t3_version.contains("-nightly."),
-        "T3's bootstrap release must be nightly"
-    );
     let home = home()?;
     let state = state_dir(&home);
     fs::create_dir_all(&state)?;
@@ -232,78 +396,64 @@ pub fn bootstrap(package: &Path) -> Result<()> {
     let bin = home.join(".local/bin");
     fs::create_dir_all(&bin)?;
 
-    let opencode_root = home.join(".opencode/bin");
-    let opencode = opencode_root.join("opencode");
-    let opencode_version = ensure_native(&opencode, &opencode_root, "OpenCode", || {
-        eprintln!("agent-tools: installing official standalone OpenCode v2");
-        install(
+    seed_cli(&home, Cli::OpenCode, |launcher| {
+        install_online(
             &config,
             &home,
-            &config.opencode_installer,
-            &[],
-            &["--version", &config.opencode_version, "--no-modify-path"],
-        )
+            "https://opencode.ai/v2/install",
+            |command| {
+                command.env_remove("VERSION").arg("--no-modify-path");
+            },
+        )?;
+        let opencode = home.join(OPENCODE_BINARY);
+        ensure!(
+            opencode.is_file(),
+            "OpenCode installer did not create {}",
+            opencode.display()
+        );
+        symlink(&opencode, launcher).with_context(|| format!("create {}", launcher.display()))
     })?;
-    link(&opencode, &bin.join("opencode"))?;
-    eprintln!("agent-tools: OpenCode {opencode_version}");
 
-    let codex = bin.join("codex");
-    let codex_home = home.join(".codex");
-    let codex_releases = codex_home.join("packages/standalone/releases");
-    let codex_version = ensure_native(&codex, &codex_releases, "Codex", || {
-        eprintln!("agent-tools: installing official standalone Codex (latest stable)");
-        install(
+    seed_cli(&home, Cli::Codex, |_| {
+        install_online(
             &config,
             &home,
-            &config.codex_installer,
-            &[
-                ("CODEX_RELEASE", "latest"),
-                ("CODEX_NON_INTERACTIVE", "true"),
-                ("CODEX_HOME", crate::util::path(&codex_home)?),
-                ("CODEX_INSTALL_DIR", crate::util::path(&bin)?),
-            ],
-            &[],
+            "https://chatgpt.com/codex/install.sh",
+            |command| {
+                command
+                    .env("CODEX_RELEASE", "latest")
+                    .env("CODEX_NON_INTERACTIVE", "true")
+                    .env("CODEX_INSTALL_DAEMON_ONLY", "0")
+                    .env("CODEX_HOME", home.join(".codex"))
+                    .env("CODEX_INSTALL_DIR", &bin);
+            },
         )
     })?;
-    eprintln!("agent-tools: {codex_version}");
 
     let claude = bin.join("claude");
     let claude_root = home.join(".local/share/claude/versions");
     let claude_version = ensure_native(&claude, &claude_root, "Claude Code", || {
         eprintln!("agent-tools: installing official standalone Claude Code");
-        install(
-            &config,
-            &home,
-            &config.claude_installer,
-            &[],
-            &[&config.claude_version],
-        )
+        install(&config, &home, &config.claude_installer, |command| {
+            command.arg(&config.claude_version);
+        })
     })?;
     eprintln!("agent-tools: Claude Code {claude_version}");
 
-    let t3 = bin.join("t3");
-    let t3_home = home.join(".t3");
-    let t3_releases = t3_home.join("runtime/versions");
-    let t3_version = ensure_native(&t3, &t3_releases, "T3", || {
-        eprintln!("agent-tools: installing standalone T3 CLI (nightly)");
-        install(
-            &config,
-            &home,
-            &config.t3_installer,
-            &[
-                ("T3CODE_CHANNEL", "nightly"),
-                ("T3CODE_VERSION", &config.t3_version),
-                ("T3CODE_HOME", crate::util::path(&t3_home)?),
-                ("T3CODE_INSTALL_BIN_DIR", crate::util::path(&bin)?),
-            ],
-            &[],
-        )
+    let new_t3 = seed_cli(&home, Cli::T3, |_| {
+        install_online(&config, &home, "https://t3.codes/install.sh", |command| {
+            command
+                .env("T3CODE_CHANNEL", "nightly")
+                .env_remove("T3CODE_VERSION")
+                .env_remove("T3CODE_RELEASE_BASE_URL")
+                .env("T3CODE_HOME", home.join(".t3"))
+                .env("T3CODE_INSTALL_BIN_DIR", &bin);
+        })
     })?;
-    eprintln!("agent-tools: {t3_version}");
 
     seed_desktop(
-        &config.desktop_image,
         &home.join(".local/share/t3code/app/T3-Code-nightly.AppImage"),
+        |temporary| download_desktop(&config.curl, temporary),
     )?;
     let installed = state.join("installed");
     pin_package(&config.nix_store, &package, &installed)?;
@@ -312,23 +462,26 @@ pub fn bootstrap(package: &Path) -> Result<()> {
         "agent-tools: protected installed package at {}",
         installed.display()
     );
-    ensure_t3_service(&home)?;
+    if new_t3 {
+        install_t3_service(&home)?;
+    }
     Ok(())
 }
 
-fn ensure_t3_service(home: &Path) -> Result<()> {
-    if home.join(".config/systemd/user/t3code.service").exists() {
+fn install_t3_service(home: &Path) -> Result<()> {
+    if occupied(&home.join(T3_UNIT))? {
         return Ok(());
     }
-    let available = Command::new("systemctl")
-        .args(["--user", "show-environment"])
-        .output()?;
-    if !available.status.success() {
-        eprintln!("agent-tools: T3 service setup will finish when the user manager starts");
+    if let Err(error) =
+        crate::util::command_output(Command::new("systemctl").args(["--user", "show-environment"]))
+    {
+        eprintln!(
+            "agent-tools: user systemd unavailable ({error}); run `t3 service install` once it starts"
+        );
         return Ok(());
     }
     crate::util::command_output(
-        Command::new(home.join(".local/bin/t3"))
+        Command::new(home.join(T3_LAUNCHER))
             .args(["service", "install"])
             .stdin(Stdio::null()),
     )
@@ -337,15 +490,23 @@ fn ensure_t3_service(home: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn environment(file: &Path) -> Result<()> {
-    let home = home()?;
-    let local_bin = home.join(".local/bin");
-    let mut paths = vec![local_bin.clone()];
-    paths.extend(
-        env::split_paths(&env::var_os("PATH").context("PATH is unset")?)
-            .filter(|path| path != &local_bin),
-    );
-    let path = env::join_paths(paths)?;
+fn service_path(home: &Path, inherited: &OsStr, prefix: Option<&OsStr>) -> Result<OsString> {
+    let mut paths = vec![home.join(".local/bin")];
+    for path in prefix
+        .into_iter()
+        .chain([inherited])
+        .flat_map(env::split_paths)
+    {
+        if !paths.contains(&path) {
+            paths.push(path);
+        }
+    }
+    Ok(env::join_paths(paths)?)
+}
+
+pub fn environment(file: &Path, path_prefix: Option<&OsStr>) -> Result<()> {
+    let inherited = env::var_os("PATH").context("PATH is unset")?;
+    let path = service_path(&home()?, &inherited, path_prefix)?;
     let existing = match fs::read_to_string(file) {
         Ok(existing) => existing,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
@@ -433,9 +594,9 @@ mod tests {
             );
         }
         fs::remove_file(&program)?;
+        let error = ensure_native(&program, root.path(), "agent", || Ok(())).unwrap_err();
         assert!(
-            ensure_native(&program, root.path(), "agent", || Ok(()))
-                .unwrap_err()
+            error
                 .to_string()
                 .contains("did not select a standalone binary")
         );
@@ -443,19 +604,97 @@ mod tests {
     }
 
     #[test]
+    fn bootstrap_only_installs_when_no_launcher_or_runtime_remains() -> Result<()> {
+        for (cli, launcher, existing_paths) in [
+            (
+                Cli::OpenCode,
+                ".local/bin/opencode",
+                &[".opencode/bin/opencode"][..],
+            ),
+            (
+                Cli::Codex,
+                ".local/bin/codex",
+                &[
+                    ".codex/packages/standalone/current",
+                    ".codex/packages/standalone/releases/installed/codex",
+                    ".codex/packages/standalone/releases/installed/bin/codex",
+                ][..],
+            ),
+            (
+                Cli::T3,
+                ".local/bin/t3",
+                &[
+                    ".t3/runtime/versions/self-update/t3",
+                    ".t3/runtime/service-state.json",
+                    ".t3/bin/t3",
+                    ".config/systemd/user/t3code.service",
+                ][..],
+            ),
+        ] {
+            let scratch = scratch();
+            let home = scratch.path();
+            let launcher = home.join(launcher);
+            fs::create_dir_all(launcher.parent().unwrap())?;
+            let no_install = |_: &Path| anyhow::bail!("must not reinstall an existing CLI");
+            assert!(seed_cli(home, cli, |destination| {
+                assert_eq!(destination, launcher);
+                fs::write(destination, "launcher")?;
+                Ok(())
+            })?);
+            assert!(!seed_cli(home, cli, no_install)?);
+            assert_eq!(fs::read_to_string(&launcher)?, "launcher");
+            fs::remove_file(&launcher)?;
+            let missing = home.join("missing");
+            symlink(&missing, &launcher)?;
+            assert!(!seed_cli(home, cli, no_install)?);
+            assert_eq!(fs::read_link(&launcher)?, missing);
+            fs::remove_file(&launcher)?;
+            for existing_path in existing_paths {
+                let path = home.join(existing_path);
+                fs::create_dir_all(path.parent().unwrap())?;
+                fs::write(&path, "partial install")?;
+                assert!(!seed_cli(home, cli, no_install)?);
+                assert!(!occupied(&launcher)?);
+                fs::remove_file(path)?;
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn latest_desktop_uses_the_newest_nightly_for_this_platform() -> Result<()> {
+        let releases = serde_json::from_value::<Vec<T3Release>>(serde_json::json!([
+            {"tag_name": "v3.0.0", "assets": []},
+            {"tag_name": "v3.1.0-preview.1", "assets": []},
+            {"tag_name": "v3.0.1-nightly.20261120.3", "assets": [
+                {"name": "T3-Code-Nightly-arm64.AppImage", "browser_download_url": "arm"},
+                {"name": "T3-Code-Nightly-x86_64.AppImage", "browser_download_url": "new"}
+            ]},
+            {"tag_name": "v3.0.1-nightly.20261119.2", "assets": [
+                {"name": "T3-Code-Nightly-x86_64.AppImage", "browser_download_url": "old"}
+            ]}
+        ]))?;
+        assert_eq!(latest_desktop(&releases)?.browser_download_url, "new");
+        assert!(latest_desktop(&releases[..2]).is_err());
+        Ok(())
+    }
+
+    #[test]
     fn activation_preserves_a_self_updated_appimage() {
         let scratch = scratch();
-        let seed = scratch.path().join("seed");
         let installed = scratch.path().join("app/T3-Code-nightly.AppImage");
-        fs::write(&seed, "initial nightly").unwrap();
-        seed_desktop(&seed, &installed).unwrap();
+        seed_desktop(&installed, |file| {
+            fs::write(file, "initial nightly")?;
+            Ok(())
+        })
+        .unwrap();
         assert_eq!(fs::read_to_string(&installed).unwrap(), "initial nightly");
         assert_eq!(
             fs::metadata(&installed).unwrap().permissions().mode() & 0o777,
             0o755
         );
         fs::write(&installed, "newer nightly installed by T3").unwrap();
-        seed_desktop(&seed, &installed).unwrap();
+        seed_desktop(&installed, |_| anyhow::bail!("must not download again")).unwrap();
         assert_eq!(
             fs::read_to_string(&installed).unwrap(),
             "newer nightly installed by T3"
@@ -469,11 +708,13 @@ mod tests {
         let installed = scratch.path().join("desktop");
         fs::write(&seed, "seed").unwrap();
         symlink(&seed, &installed).unwrap();
-        assert!(seed_desktop(&seed, &installed).is_err());
+        let no_download =
+            |_: &Path| -> Result<()> { panic!("must not download over an existing AppImage") };
+        assert!(seed_desktop(&installed, no_download).is_err());
         fs::remove_file(&installed).unwrap();
         fs::write(&installed, "read only").unwrap();
         fs::set_permissions(&installed, fs::Permissions::from_mode(0o555)).unwrap();
-        assert!(seed_desktop(&seed, &installed).is_err());
+        assert!(seed_desktop(&installed, no_download).is_err());
     }
 
     #[test]
@@ -497,7 +738,7 @@ mod tests {
             .open(&installed)
             .err()
             .and_then(|error| error.raw_os_error());
-        let result = seed_desktop(&scratch.path().join("unused-seed"), &installed);
+        let result = seed_desktop(&installed, |_| anyhow::bail!("must not download again"));
         child.kill().unwrap();
         child.wait().unwrap();
         assert_eq!(write_error, Some(libc::ETXTBSY));
@@ -578,6 +819,22 @@ mod tests {
         assert_eq!(native_version(&command, &releases).unwrap(), None);
         fs::remove_file(&store).unwrap();
         assert_eq!(native_version(&command, &releases).unwrap(), None);
+    }
+
+    #[test]
+    fn service_path_prefers_writable_agents_then_platform_profiles() -> Result<()> {
+        let home = Path::new("/home/user");
+        let inherited = OsStr::new("/usr/bin:/home/user/.local/bin:/home/user/custom/bin");
+        let nixos = OsStr::new("/etc/profiles/per-user/user/bin:/run/current-system/sw/bin");
+        let arch = service_path(home, inherited, None)?;
+        assert_eq!(arch, "/home/user/.local/bin:/usr/bin:/home/user/custom/bin");
+        let path = service_path(home, inherited, Some(nixos))?;
+        assert_eq!(
+            path,
+            "/home/user/.local/bin:/etc/profiles/per-user/user/bin:/run/current-system/sw/bin:/usr/bin:/home/user/custom/bin"
+        );
+        assert_eq!(service_path(home, &path, Some(nixos))?, path);
+        Ok(())
     }
 
     #[test]

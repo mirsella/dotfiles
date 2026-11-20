@@ -114,6 +114,8 @@ enum Commands {
     },
     AgentToolsEnvironment {
         file: PathBuf,
+        #[arg(long)]
+        path_prefix: Option<std::ffi::OsString>,
     },
     ArchUki {
         config: PathBuf,
@@ -273,7 +275,9 @@ fn run() -> Result<()> {
         Commands::HexModel { hex } => hex_model::run(&hex),
         Commands::BootstrapAgentTools { package } => agent_tools::bootstrap(&package),
         Commands::AgentToolsBackups { action } => migration_backups::run(action),
-        Commands::AgentToolsEnvironment { file } => agent_tools::environment(&file),
+        Commands::AgentToolsEnvironment { file, path_prefix } => {
+            agent_tools::environment(&file, path_prefix.as_deref())
+        }
         Commands::ArchUki { config } => uki::run(&config),
         Commands::PredatorBoot { config, action } => predator_boot::run(&config, action),
         Commands::BrowserControl { config } => browser::run(&config),

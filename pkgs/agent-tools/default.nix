@@ -22,17 +22,6 @@
   isNixOS ? false,
 }:
 let
-  t3Version = "0.1.3-nightly.20261027.3754";
-  t3Revision = "d2c440312e5f39d59827ed466838a623516454d6";
-  opencodeVersion = "2.1.4";
-  opencodeInstaller = fetchurl {
-    url = "https://raw.githubusercontent.com/anomalyco/opencode/1f4d07a4a519185955ae8ab2ea3607805509e386/install";
-    hash = "sha256-vHDdMX/RLvCTUM2xZn5V4Z+eez0ol9Oht1CxZa5XnYc=";
-  };
-  codexInstaller = fetchurl {
-    url = "https://raw.githubusercontent.com/openai/codex/092d3acd6bec3e3a14bdc7e7a2810ab628ab759d/scripts/install/install.sh";
-    hash = "sha256-FQ489nVoLv6qwRWqN0et0/J4h4ltBM5tC1ZHjYtCi/Y=";
-  };
   # Anthropic publishes no versioned installer URL; this hash pins the current
   # launcher script, and the bootstrap passes claudeVersion to select the seed.
   claudeInstaller = fetchurl {
@@ -40,17 +29,8 @@ let
     hash = "sha256-OmjTQGz2dOF77RczpNzzeAXi5H2HQXcAAH1+GqdmqUQ=";
   };
   claudeVersion = "2.1.316";
-  t3Installer = fetchurl {
-    url = "https://raw.githubusercontent.com/pingdotgg/t3code/${t3Revision}/scripts/install.sh";
-    hash = "sha256-uQjscIE65dSQj2iQDzNDcCsH88oIQg+Dp/cDKUtiYtg=";
-  };
-  # Only a seed: activation never replaces an existing, self-updated AppImage.
-  desktopImage = fetchurl {
-    url = "https://github.com/pingdotgg/t3code/releases/download/v${t3Version}/T3-Code-${t3Version}-x86_64.AppImage";
-    hash = "sha512-049nZPDiC/T/eiKnS9PQmhLzlL6g6+LBRNbP3sb5OwEpgXKq1zF8CU1MKKtsqRXeE1WMBCSh1JT2g3t8Laq0GA==";
-  };
   desktopIcon = fetchurl {
-    url = "https://raw.githubusercontent.com/pingdotgg/t3code/${t3Revision}/assets/nightly/nightly-universal-1024.png";
+    url = "https://raw.githubusercontent.com/pingdotgg/t3code/d2c440312e5f39d59827ed466838a623516454d6/assets/nightly/nightly-universal-1024.png";
     hash = "sha256-flm2OUAW74PtHpRoR3aeAb821AYsXFryV3/T4igoX9k=";
   };
   desktopLauncher = writeShellScript "t3code-nightly" ''
@@ -68,32 +48,26 @@ let
     StartupWMClass=t3code
     MimeType=x-scheme-handler/t3code;
   '';
+  # The user manager can inherit a PATH without any NixOS profiles. T3
+  # and its provider updaters invoke tools like cp, curl and systemctl by name.
+  nixosServicePath = "/run/wrappers/bin:/etc/profiles/per-user/%u/bin:/run/current-system/sw/bin";
   serviceEnvironment = writeText "zz-native-agent-tools.conf" ''
     [Unit]
     Wants=sops-nix.service
     After=sops-nix.service
 
     [Service]
-    Environment=T3CODE_CHANNEL=nightly
     EnvironmentFile=-%t/t3code-service-environment.env
     # The user manager imports environment.d once at startup, before sops-nix
     # installs the runtime secrets.
     EnvironmentFile=-%h/.config/environment.d/55-secrets.conf
     # Run after any shell-environment loader and retain its other exports.
-    ExecStartPre=%h/.local/state/agent-tools/installed/bin/host-tools agent-tools-environment %t/t3code-service-environment.env
+    ExecStartPre=%h/.local/state/agent-tools/installed/bin/host-tools agent-tools-environment %t/t3code-service-environment.env${lib.optionalString isNixOS " --path-prefix ${nixosServicePath}"}
   '';
   configFile = writeText "agent-tools.json" (
     builtins.toJSON {
-      inherit
-        claudeInstaller
-        claudeVersion
-        codexInstaller
-        opencodeInstaller
-        opencodeVersion
-        t3Installer
-        t3Version
-        desktopImage
-        ;
+      inherit claudeInstaller claudeVersion;
+      curl = lib.getExe curl;
       nixStore = if isNixOS then "${nix}/bin/nix-store" else "/usr/bin/nix-store";
       shell = lib.getExe bash;
       installerPath = lib.makeBinPath [
