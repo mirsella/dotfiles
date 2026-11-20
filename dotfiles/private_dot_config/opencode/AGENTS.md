@@ -23,19 +23,8 @@
 
 ## Files and directories
 
-- Use `~/dev` for permanent projects. Keep tool-managed worktrees in their configured locations.
-- `/tmp` is RAM-backed. Keep builds, large downloads and large generated files in the scratch directory. Small tool-managed temporary files may use their normal temporary directory.
-- Where the session runs decides the scratch directory, not what the files are:
-  - In a checkout or worktree: `.scratch/` at its root, for everything the task produces. That includes clones of other repositories, downloads, captures, backups and extra Cargo target directories.
-  - In a T3 thread without a project: its working directory, `~/.t3/scratch/<thread>`.
-  - Anywhere else, including a host reached over ssh: `~/dev/scratch/<task>/`.
-- Scratch is disposable, and `.scratch/` is deleted with its worktree. Before settling, copy out only the files the user asked to keep, to `~/dev/scratch/<project>-<thread>/`, and report the path.
-- Do not set `TMPDIR` to a checkout/worktree scratch directory. Preserve tool-managed temporary environments, and never remove a temporary root while processes still use it.
-
-## Worktrees
-
-When your session, or the main thread you work for, runs in a T3 worktree (`~/.t3/worktrees/...`):
-
-- Put extra worktrees inside it: `git worktree add -b <branch> <t3 worktree>/.scratch/worktrees/<name>`. Settling the thread then deletes them.
-- Do not use `opencode.worktree_create` or `session_move`: they put worktrees outside the thread.
-- Settling deletes nested worktrees without checking for changes. Before ending a turn, commit work you want to keep to the worktree's branch, never a detached HEAD.
+- Use `~/dev` for permanent projects.
+- `/tmp` is RAM-backed: put builds, large downloads and generated files in the scratch directory.
+- Scratch directory: `.scratch/` at the root of the checkout you work in, including clones of other repositories and extra Cargo targets; in a projectless T3 thread, its working directory; otherwise `~/dev/scratch/<task>/`.
+- If the user asked to keep files, copy them to `~/dev/kept/<project>-<thread>/` before settling and report the path.
+- Do not set `TMPDIR` to a scratch directory, and never remove a temporary root while processes still use it.
