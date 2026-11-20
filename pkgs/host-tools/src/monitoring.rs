@@ -30,7 +30,7 @@ pub fn storage_event(message: &str) -> bool {
     EVENT.is_match(message)
 }
 
-fn hostname() -> Result<String> {
+pub(crate) fn hostname() -> Result<String> {
     Ok(util::read("/proc/sys/kernel/hostname")?.trim().into())
 }
 

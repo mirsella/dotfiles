@@ -1,6 +1,7 @@
 mod activity;
 mod adb;
 mod agent_tools;
+mod attention;
 mod backup;
 mod boot_keys;
 mod browser;
@@ -19,10 +20,12 @@ mod monitoring;
 mod nasa_wallpaper;
 mod opencode;
 mod predator_boot;
-mod scratch;
+mod salvage;
 mod setup;
 mod suspend;
+mod sweep;
 mod t3_activity;
+mod t3_cleanup;
 mod t3_defaults;
 mod t3_settings;
 #[cfg(test)]
@@ -30,6 +33,7 @@ mod test_support;
 #[cfg(test)]
 mod tests;
 mod theme;
+mod tree_scan;
 mod uki;
 mod util;
 mod worktree_prune;
@@ -187,12 +191,10 @@ enum Commands {
     Backup {
         config: PathBuf,
     },
-    /// Remove task scratch directories and landed OpenCode worktrees untouched for more than N days.
-    ScratchPrune {
-        #[arg(long, default_value_t = scratch::DEFAULT_MAX_AGE_DAYS)]
-        max_age_days: u64,
-        #[arg(long)]
-        dry_run: bool,
+    /// The agent workspace cleanup: list when each goes, steer it, or run it (`auto`).
+    Sweep {
+        #[command(subcommand)]
+        command: Option<sweep::Command>,
     },
     NextcloudSetup {
         config: PathBuf,
@@ -326,10 +328,7 @@ fn run() -> Result<()> {
         ),
         Commands::ZfsCapacity { config, test } => zfs_capacity::run(&config, test),
         Commands::Backup { config } => backup::run(&config),
-        Commands::ScratchPrune {
-            max_age_days,
-            dry_run,
-        } => scratch::run(max_age_days, dry_run),
+        Commands::Sweep { command } => sweep::run(command),
         Commands::NextcloudSetup { config } => setup::nextcloud(&config),
         Commands::RequireMount {
             dataset,

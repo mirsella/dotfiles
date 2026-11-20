@@ -453,7 +453,7 @@ fn json_bytes(value: &impl Serialize) -> Result<Vec<u8>> {
 }
 
 // Like T3's own project CLI, use a short-lived scoped local session and revoke it.
-struct Session {
+pub(crate) struct Session {
     base_dir: PathBuf,
     cli: PathBuf,
     origin: String,
@@ -463,12 +463,15 @@ struct Session {
 }
 
 /// Prefer the running server's own runtime CLI over a possibly stale launcher.
-fn server_cli(runtime: &Value, home: &Path, base_dir: &Path) -> PathBuf {
+fn runtime_cli(runtime: &Value, base_dir: &Path) -> Option<PathBuf> {
     runtime["serverVersion"]
         .as_str()
         .map(|version| base_dir.join("runtime/versions").join(version).join("t3"))
         .filter(|path| path.is_file())
-        .unwrap_or_else(|| home.join(".local/bin/t3"))
+}
+
+fn server_cli(runtime: &Value, home: &Path, base_dir: &Path) -> PathBuf {
+    runtime_cli(runtime, base_dir).unwrap_or_else(|| home.join(".local/bin/t3"))
 }
 
 fn cli(program: &Path, base_dir: &Path, args: &[&str]) -> Result<Vec<u8>> {
@@ -610,6 +613,15 @@ fn runtime_is_live(runtime: &Value) -> bool {
             || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM))
 }
 
+/// The running server's own CLI, or None when no T3 server runs.
+pub(crate) fn running_cli(base_dir: &Path) -> Result<Option<PathBuf>> {
+    Ok(
+        read_server_runtime(&base_dir.join("userdata/server-runtime.json"))?
+            .filter(runtime_is_live)
+            .and_then(|runtime| runtime_cli(&runtime, base_dir)),
+    )
+}
+
 fn read_server_runtime(path: &Path) -> Result<Option<Value>> {
     match fs::read(path) {
         Ok(bytes) => Ok(Some(
@@ -652,6 +664,34 @@ pub(crate) fn resolve_base_dir(home: &Path, base_dir: Option<PathBuf>) -> PathBu
 impl Session {
     fn open(home: &Path, base_dir: &Path, write: bool) -> Result<Self> {
         let runtime = server_runtime(base_dir)?;
+        ensure_cli_matches_server(&runtime, home, base_dir)?;
+        Self::issue(
+            &runtime,
+            base_dir,
+            server_cli(&runtime, home, base_dir),
+            "dotfiles-settings",
+            write,
+        )
+    }
+
+    /// A read-only session with the running server, or None when T3 is stopped.
+    pub(crate) fn open_for_cleanup(base_dir: &Path) -> Result<Option<Self>> {
+        let Some(runtime) = read_server_runtime(&base_dir.join("userdata/server-runtime.json"))?
+            .filter(runtime_is_live)
+        else {
+            return Ok(None);
+        };
+        let cli = runtime_cli(&runtime, base_dir).context("Missing running T3 server's CLI")?;
+        Self::issue(&runtime, base_dir, cli, "sweep", false).map(Some)
+    }
+
+    fn issue(
+        runtime: &Value,
+        base_dir: &Path,
+        cli_path: PathBuf,
+        label: &str,
+        write: bool,
+    ) -> Result<Self> {
         let origin = runtime["origin"]
             .as_str()
             .context("Start the T3 background server before capturing or restoring projects")?
@@ -662,8 +702,6 @@ impl Session {
                 && matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]")),
             "T3 runtime must expose a local HTTP endpoint"
         );
-        ensure_cli_matches_server(&runtime, home, base_dir)?;
-        let cli_path = server_cli(&runtime, home, base_dir);
         let mut args = vec![
             "auth",
             "session",
@@ -672,7 +710,7 @@ impl Session {
             "--ttl",
             "5m",
             "--label",
-            "dotfiles-settings",
+            label,
             "--scope",
             "orchestration:read",
         ];
@@ -693,8 +731,33 @@ impl Session {
                 "Bearer {}",
                 issued["token"].as_str().context("Missing session token")?
             ),
-            agent: util::agent(15),
+            agent: ureq::Agent::config_builder()
+                .timeout_global(Some(Duration::from_secs(15)))
+                .http_status_as_error(false)
+                .max_redirects(0)
+                .proxy(None)
+                .build()
+                .into(),
         })
+    }
+
+    pub(crate) fn shell(&self) -> Result<Value> {
+        let mut response = self
+            .agent
+            .get(format!("{}/api/orchestration/shell", self.origin))
+            .header("authorization", &self.authorization)
+            .header("x-t3-orchestration-protocol", "2")
+            .call()
+            .context("Read T3 orchestration shell")?;
+        ensure!(
+            response.status().is_success(),
+            "T3 orchestration shell returned HTTP {}",
+            response.status()
+        );
+        response
+            .body_mut()
+            .read_json()
+            .context("Parse T3 orchestration shell")
     }
 
     fn request(&self, body: Option<&Value>) -> Result<Value> {

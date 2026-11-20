@@ -66,6 +66,48 @@ The flake discovers these directories and sets hostnames automatically.
   there is no settings watcher. Apply refuses a fallback CLI whose version
   doesn't match the server because it would migrate the newer database; an
   unreadable version only warns.
+- Agent workspace cleanup has one owner: `sweep` in `pkgs/host-tools`, run
+  hourly as `sweep auto` by the `sweep` user timer (`modules/home/agent-tools.nix`).
+  After 3 idle days it removes task scratch, T3 scratch folders and worktrees and
+  OpenCode worktrees; after 7, linked worktrees under `~/dev`. Plain folders
+  among the worktrees go like scratch. Before removal it saves what Git would
+  lose: uncommitted files (up to 100 MiB, ignored files excluded) and a HEAD on
+  no ref become a local, never pushed `sweep/wip/<date>-<name>` branch committed
+  through a scratch index, and a nested clone with unpushed commits, a stash or
+  saved WIP becomes a bundle in `$XDG_DATA_HOME/sweep/bundles`. Edits already
+  on the remote default branch need no saving. `sweep wip` lists saved work and
+  how to restore it; it is dropped after 30 days (`saved.json`). Git
+  repositories under package caches (`.build`, `node_modules`, `target`,
+  `.cargo`, `.gradle`, `.pnpm-store`) are not work. Files another user owns are
+  removed through passwordless `sudo -n`. A removed worktree's branch is
+  deleted once the default branch contains it, or forgotten after 60 days
+  (`branches.json`). `git worktree lock` keeps one indefinitely. An idle
+  workspace that still cannot be saved (too many uncommitted bytes, a broken or
+  bare repository, a nested worktree outside it) raises one desktop
+  notification until it changes; `$XDG_STATE_HOME/sweep/reported.json` remembers
+  what was reported. That notification waits in a transient `sweep-attention-*`
+  unit: Copy puts the list, with links to the T3 threads bound to each
+  workspace, on the clipboard through Klipper, and Ask T3 Code starts a thread
+  in `~/dev/dotfiles` on that host's T3 server that explains each one and links
+  the threads behind it, then opens it through
+  `t3code://threads/<environment>/<thread>`. It keeps anything it cannot verify
+  and fails, with a notification, when T3's data changes shape. With no
+  arguments `sweep` lists every workspace with its branch and path from `~`,
+  when it goes or why it stays, and totals; `sweep status --json` emits typed
+  rows that Nushell's `sweep` (`dotfiles/private_dot_config/nushell/sweep.nu`)
+  turns into a sortable table; `sweep clean 1h` (or `30m`, `2d`,
+  `today`) removes everything idle that long after a confirmation; `sweep keep
+  PATH [--for 2d]` holds one back (`keep.json` next to `reported.json`). Remove
+  one by hand with `git worktree remove --force` or `rm -rf` for plain folders.
+  Runs share a lock, so a manual clean never races the timer. Idleness comes
+  from cheap signs, checked first: a workspace's own and nested directories'
+  times, Git's administrative files (HEAD, index, reflog), the T3 thread's
+  activity and OpenCode sessions; in-place file edits are not looked at. Only a
+  worktree idle and clean by those signs is walked, and the walk lists
+  directories, not files, while T3's state loads. Sizes in `sweep` are cached in
+  `sizes.json` until those signs change. T3's portable
+  `server.storageCleanup` sets only its log and browser-artifact retention; keep
+  T3's worktree rules unset so its own worktree cleanup stays off.
 - OpenCode's skill files are the canonical prompts, owned by chezmoi. Edit them
   in `~/.config/opencode/skills` and use `chezmoi re-add` to save edits. Home Manager
   links `~/.agents/skills` to that directory for Codex and Hermes, and links each

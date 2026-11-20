@@ -1,4 +1,5 @@
 use anyhow::{Context, Result, bail};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use std::{fs, path::Path, process::Command, time::Duration};
 
@@ -170,4 +171,19 @@ mod readiness_tests {
         );
         Ok(())
     }
+}
+
+/// A JSON state file, or the default when it does not exist yet.
+pub(crate) fn load_json<T: DeserializeOwned + Default>(file: &Path) -> Result<T> {
+    match fs::read(file) {
+        Ok(bytes) => serde_json::from_slice(&bytes)
+            .with_context(|| format!("parse {}; fix or delete it", file.display())),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(T::default()),
+        Err(error) => Err(error).with_context(|| format!("read {}", file.display())),
+    }
+}
+
+pub(crate) fn store_json<T: Serialize>(file: &Path, value: &T) -> Result<()> {
+    fs::create_dir_all(file.parent().context("state file without a folder")?)?;
+    atomic_write(file, &serde_json::to_vec_pretty(value)?)
 }
