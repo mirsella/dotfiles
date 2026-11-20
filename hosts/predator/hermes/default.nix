@@ -93,12 +93,15 @@ let
       "lm-studio" "lm_studio" "ollama" "local" "vllm" "llamacpp" "llama.cpp" "llama-cpp"
     ]
   );
-  aux = lib.genAttrs [ "vision" "compression" "skills_hub" "approval" "review" "mcp" "title_generation" "memory_query_rewrite" "tts_audio_tags" "voice_chat" "triage_specifier" "kanban_decomposer" "profile_describer" "goal_judge" "curator" "monitor" "background_review" "moa_reference" "moa_aggregator" ] (_: {
+  codexModel = {
     provider = "openai-codex";
-    model = "gpt-6.1-sol";
-    reasoning_effort = "high";
+    model = "gpt-6.2-sol";
     base_url = "";
     api_key = "";
+  };
+  reasoningEffort = "high";
+  aux = lib.genAttrs [ "vision" "compression" "skills_hub" "approval" "review" "mcp" "title_generation" "memory_query_rewrite" "tts_audio_tags" "voice_chat" "triage_specifier" "kanban_decomposer" "profile_describer" "goal_judge" "curator" "monitor" "background_review" "moa_reference" "moa_aggregator" ] (_: codexModel // {
+    reasoning_effort = reasoningEffort;
   });
   defaults = {
     terminal = { backend = "local"; cwd = "${state}/workspace"; };
@@ -275,10 +278,10 @@ in {
         approvals.mode = "off";
         security.allow_lazy_installs = false;
         agent.disabled_toolsets = [ "browser-unsupported" ];
-        agent.reasoning_effort = "high";
-        agent.reasoning_overrides."gpt-6.1-sol" = "high";
+        agent.reasoning_effort = reasoningEffort;
+        agent.reasoning_overrides.${codexModel.model} = reasoningEffort;
         plugins.enabled = [ "browser-policy" ];
-        model = { provider = "openai-codex"; default = "gpt-6.1-sol"; base_url = ""; api_key = ""; };
+        model = (removeAttrs codexModel [ "model" ]) // { default = codexModel.model; };
         auxiliary = aux // { openrouter_model = ""; };
         fallback_providers = [];
         custom_providers = [];

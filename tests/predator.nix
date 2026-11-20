@@ -350,15 +350,15 @@ assert lib.assertMsg (
    && server.services.hermes-agent.settings.agent.disabled_toolsets == [ "browser-unsupported" ]
    && server.services.hermes-agent.settings.plugins.enabled == [ "browser-policy" ]
    && server.services.hermes-agent.settings.model.provider == "openai-codex"
-    && server.services.hermes-agent.settings.model.default == "gpt-6.1-sol"
+    && server.services.hermes-agent.settings.model.default == "gpt-6.2-sol"
     && server.services.hermes-agent.settings.agent.reasoning_effort == "high"
-    && server.services.hermes-agent.settings.agent.reasoning_overrides."gpt-6.1-sol" == "high"
+    && server.services.hermes-agent.settings.agent.reasoning_overrides."gpt-6.2-sol" == "high"
    && server.services.hermes-agent.settings.fallback_providers == []
    && server.services.hermes-agent.settings.custom_providers == []
    && server.services.hermes-agent.settings.providers.openai-codex.enabled
    && lib.all (name: !server.services.hermes-agent.settings.providers.${name}.enabled)
      [ "openrouter" "openai" "openai-api" "opencode-go" "chatgpt" "opencode" "opencode-zen" "zen" "custom" "auto" "anthropic" ]
-    && lib.all (slot: slot.provider == "openai-codex" && slot.model == "gpt-6.1-sol" && slot.reasoning_effort == "high" && slot.api_key == "" && slot.base_url == "")
+    && lib.all (slot: slot.provider == "openai-codex" && slot.model == "gpt-6.2-sol" && slot.reasoning_effort == "high" && slot.api_key == "" && slot.base_url == "")
      (builtins.attrValues (builtins.removeAttrs server.services.hermes-agent.settings.auxiliary [ "openrouter_model" ]))
   && lib.elem "hermes-agent-setup" server.system.activationScripts.hermes-settings.deps
   && lib.hasInfix "runuser -u mirsella -g hermes-private" server.system.activationScripts.hermes-settings.text
