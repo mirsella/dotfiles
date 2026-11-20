@@ -158,8 +158,8 @@ Work through this in order. Record every run in the results table.
    needed. Pause before changing arms.
 6. Discrete GPU powered off, aged. The awake check put the unbound graphics
    function `0000:01:00.0` and its upstream port `0000:00:01.0` into D3cold
-   with `power/control=auto` on the GPU alone. The permanent setting is in
-   NixOS config but has not been activated. Before an aged GPU-off trial,
+   with `power/control=auto` on the GPU alone. The permanent NixOS rule
+   was not active during this trial. Before an aged GPU-off trial,
    verify both devices reach D3cold under the policy being tested and verify
    the rest of the baseline. Do not count S3 with the GPU still powered as
    GPU-off. `gpu-off-1` did not return even with both devices in D3cold
@@ -169,12 +169,11 @@ Work through this in order. Record every run in the results table.
 7. s2idle, aged. It returned once after 11 hours awake. Two more aged returns
    and a wall reading near 3 W would make it a usable replacement for S3.
    Wake-on-LAN did not wake s2idle on this machine; an RTC alarm has
-   brought it back. Run `s2idle-aged-1` on the unchanged generation 189
-   configuration with the same five dry cycles, GPU in D0 and one 120 s
-   RTC alarm. If it returns normally at the RTC interval and restoration
-   and health checks pass, the owner approved automatically scheduling
-   `s2idle-meter-1`, one aged repeat with a 25-minute RTC alarm. A failure
-   or incomplete result stops the queue.
+   brought it back. `s2idle-aged-1` refused before any request because
+   the booted and active generations differed. This did not test s2idle.
+   The owner approved automatically scheduling the 25-minute repeat only
+   after a verified short RTC return. That condition was not met. Pause
+   until the owner approves a new baseline that passes the boot audit.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -403,8 +402,8 @@ queued jobs; all four Ente services were running.
 
 ### `s2idle-aged-1` with RTC wake
 
-The November 20 host timer is set for 05:00 CET, 9 h 27 min after the
-19:32:56 boot. The T3 precheck is at 04:40 and the results check at 05:25.
+The November 20 host timer was set for 05:00 CET, 9 h 27 min after the
+19:32:56 boot. The T3 precheck was at 04:40 and the results check at 05:25.
 Prepared copies and hashes are in
 `/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-aged-1-20261120/`.
 Read-only `prepare` passed all guards with the projected age; `check`
@@ -432,13 +431,23 @@ boot was still generation 189, but the current system and system profile
 pointed to generation 190, registered at 00:18:43 CET. This check did
 not reach the remaining preflight gates. Counters stayed at 0/0, there
 were no trial logs or STOP file, and Ente was running and all pools
-were healthy. The timer and guards were left unchanged. The 05:25
-check should verify the actual outcome; the 25-minute repeat remains
-unarmed.
+were healthy. The timer and guards were left unchanged.
 
-The 05:25 check may arm `s2idle-meter-1` only once it verifies all five
-dry returns, one normal `s2idle` return at the 120 s RTC interval,
-successful cleanup, `deep` restored, an empty RTC alarm, a healthy
+The timer fired at 05:00:00 CET. The service exited with status 1
+after logging `system changed: /run/current-system` at 05:00:00.610802.
+It refused before taking a snapshot or running any dry or real sleep
+request. At 05:25 the same boot and generation mismatch remained, with
+no trial logs or kernel suspend messages, counters at 0/0, `pm_test`
+set to `none`, `deep` selected and no RTC alarm. The boot audit
+refused with `activated generation not booted`. All three pools were
+healthy and their GUIDs and five mounts matched the baseline. No scans
+or systemd jobs were active, and Ente was running. The completed study
+service was the only failed unit. This was a refusal, not a hang. No
+trial was replayed, and the 25-minute repeat was not armed.
+
+The repeat requires five normal dry returns and one normal `s2idle`
+return at the 120 s RTC interval. It also requires successful cleanup,
+`deep` restored, an empty RTC alarm, a healthy
 unchanged baseline and suspend counters at 6/0. A mixed or missing
 meter bin from the short run is not a blocker. Stop for a refusal,
 early return, hang, incomplete evidence or failed health check.
@@ -450,16 +459,16 @@ Verify its SHA-256 before installing. It accepts a post-resume uptime
 argument after the storage-record directory. After confirming the
 return on the expected boot, read `/proc/uptime` and round its first
 field up to a whole second. Use that reading as the conservative age
-anchor, not boot time. `prepare` takes the planned ISO timestamp after the anchor;
-`check` and `run` take just the anchor. Runtime guards pin counters at
+anchor, not boot time. `prepare` takes the planned ISO timestamp after
+the anchor; `check` and `run` take just the anchor. Runtime guards pin counters at
 6/0 before the dry cycles and 11/0 before the real request, and require
 nine hours awake since the anchor. No stage may start at or after
 22:15 CET or before 00:30 CET, so the 25-minute run has time to finish
-before backups. Aim for 15:00 CET on November 20 if that allows nine
-hours awake and time for a precheck; otherwise choose a later safe
-slot. Verify the new one-shot timer and schedule its precheck and
-results check. Compare only complete five-minute meter bins within
-the logged sleep interval, not the transition bins.
+before backups. The conditional 15:00 CET slot on November 20 was
+not scheduled. If the study resumes, allow time for a precheck after
+the nine-hour minimum, verify the new one-shot timer and schedule its
+precheck and results check. Compare only complete five-minute meter
+bins within the logged sleep interval, not the transition bins.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -509,7 +518,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 18:20 | `gpu-off-1` scheduling check | read-only timer and baseline checks | about 9 h 4 min | timer correct; preflight passed; zero requests | |
 | Nov 19 18:40 | `gpu-off-1` | five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 25 min at S3 request | dry 5/5; real request at 18:42:05.623 did not return | 15 W; owner rebooted |
 | Nov 20 04:40 | `s2idle-aged-1` scheduling check | read-only timer and baseline checks | about 9 h 8 min | timer correct; preflight refused on generation mismatch; zero requests | |
-| Nov 20 05:00 | `s2idle-aged-1` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm | 9 h 27 min at planned trigger | pending | |
+| Nov 20 05:00 | `s2idle-aged-1` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm | 9 h 27 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -779,10 +788,13 @@ later reported the nearby drop in the results table.
 ## Machine facts
 
 - After the owner's recovery, the current boot began November 19 at
-  19:32:56 (boot `805078f4-eda4-41dd-858b-99b2121a61e1`). Booted, current and
-  profile all matched generation 189:
+  19:32:56 (boot `805078f4-eda4-41dd-858b-99b2121a61e1`). All system links
+  initially matched generation 189 and the boot audit passed:
   `/nix/store/cg2x27vhsgzwb1s7djpswfsrs3qlamgz-nixos-system-predator-26.11.20261023.3ec6363`.
-  Linux remains 6.18.58. The boot audit passed.
+  At the November 20 05:25 check generation 189 was still booted, but
+  current and profile pointed to generation 190:
+  `/nix/store/jjhjpl0ahzarhr8rjzqzfpc08225vlds-nixos-system-predator-26.11.20261023.3ec6363`.
+  The audit refused on that mismatch.
 - Lid closed. The owner remembers hangs with the lid open as well.
 - Battery present and full. AC connected.
 - Discrete GPU `0000:01:00.0`: no driver, `power/control=on`, D0.
