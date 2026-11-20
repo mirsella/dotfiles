@@ -445,6 +445,12 @@ or systemd jobs were active, and Ente was running. The completed study
 service was the only failed unit. This was a refusal, not a hang. No
 trial was replayed, and the 25-minute repeat was not armed.
 
+At 10:25 CET the boot was still generation 189 and the active system
+and profile had advanced to generation 193. The audit still refused
+with `activated generation not booted`; counters remained 0/0 and no
+study timer was armed. The next trial is still the short RTC check,
+under a new label after an owner-approved boot and a passing audit.
+
 The repeat requires five normal dry returns and one normal `s2idle`
 return at the 120 s RTC interval. It also requires successful cleanup,
 `deep` restored, an empty RTC alarm, a healthy
@@ -794,7 +800,9 @@ later reported the nearby drop in the results table.
   At the November 20 05:25 check generation 189 was still booted, but
   current and profile pointed to generation 190:
   `/nix/store/jjhjpl0ahzarhr8rjzqzfpc08225vlds-nixos-system-predator-26.11.20261023.3ec6363`.
-  The audit refused on that mismatch.
+  By 10:25 current and profile pointed to generation 193:
+  `/nix/store/fszmdsgrr83igx391w6lcgbdwbqzm3ji-nixos-system-predator-26.11.20261023.3ec6363`.
+  The audit refused both times because the active generation was not booted.
 - Lid closed. The owner remembers hangs with the lid open as well.
 - Battery present and full. AC connected.
 - Discrete GPU `0000:01:00.0`: no driver, `power/control=on`, D0.
