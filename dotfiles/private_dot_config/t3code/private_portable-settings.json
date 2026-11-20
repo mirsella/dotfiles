@@ -464,8 +464,7 @@
     },
     "storageCleanup": {
       "browserArtifactsAfterDays": 8,
-      "logsAfterDays": 8,
-      "worktreeSettledAfterDays": 2
+      "logsAfterDays": 8
     },
     "textGenerationModelSelection": {
       "instanceId": "opencode",
@@ -1043,7 +1042,7 @@
     {
       "workspace_root": "~/dev/mm-lab",
       "attributes": {
-        "faviconPath": "~/dev/mm-lab/public/icon.svg",
+        "faviconPath": null,
         "projectIcon": null,
         "title": "mm-lab"
       },
@@ -1088,7 +1087,7 @@
     {
       "workspace_root": "~/dev/voxride-dashboard",
       "attributes": {
-        "faviconPath": "~/dev/voxride-dashboard/src/app/icon.svg",
+        "faviconPath": null,
         "projectIcon": null,
         "title": "voxride-dashboard"
       },
@@ -1110,7 +1109,7 @@
     {
       "workspace_root": "~/dev/wiko",
       "attributes": {
-        "faviconPath": "~/dev/wiko/assets/icon.svg",
+        "faviconPath": null,
         "projectIcon": null,
         "title": "wiko"
       },
