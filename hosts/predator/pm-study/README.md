@@ -172,8 +172,9 @@ Work through this in order. Record every run in the results table.
    brought it back. `s2idle-aged-1` refused before any request because
    the booted and active generations differed. This did not test s2idle.
    The owner approved automatically scheduling the 25-minute repeat only
-   after a verified short RTC return. That condition was not met. Pause
-   until the owner approves a new baseline that passes the boot audit.
+   after a verified short RTC return. That condition was not met.
+   After the owner approved a reboot into generation 193 and the audit
+   passed, `s2idle-aged-2` was armed for November 20 at 20:00 CET.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -451,6 +452,30 @@ with `activated generation not booted`; counters remained 0/0 and no
 study timer was armed. The next trial is still the short RTC check,
 under a new label after an owner-approved boot and a passing audit.
 
+### `s2idle-aged-2` on generation 193
+
+The owner approved a reboot into the already-installed generation 193.
+The reboot request was sent at 10:27:35 CET on November 20. Predator
+booted at 10:29:20 with boot ID `608fda18-fca9-48ad-86db-4b93809d7275`.
+All three system links matched generation 193, and the audit passed
+for all nine volumes. The three pool GUIDs and five ZFS mounts matched
+the pre-reboot records in
+`/home/mirsella/dev/scratch/predator-suspend/preboot-20261120-generation193/`.
+After startup settled, Ente was running, Nextcloud was out of
+maintenance, all pools were healthy, and no systemd jobs or failed
+units remained. The GPU and its port were active in D0 on their
+original policies. No configuration was deployed.
+
+The new timer is set for November 20 at 20:00 CET, about 9 h 31 min
+after boot. The T3 checks are at 19:40 and 20:25. The trial uses the
+same five D0 `core` dry cycles and one `s2idle` request with a 120 s
+RTC alarm. It applies no GPU or firmware changes. Read-only `prepare`
+passed against the new boot, original runner and saved storage
+records. The verified one-shot timer is nonpersistent and the direct
+service does not restart. The service had never started at arming.
+Prepared unit files, launcher and checksums are in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-aged-2-20261120/`.
+
 The repeat requires five normal dry returns and one normal `s2idle`
 return at the 120 s RTC interval. It also requires successful cleanup,
 `deep` restored, an empty RTC alarm, a healthy
@@ -471,10 +496,12 @@ the anchor; `check` and `run` take just the anchor. Runtime guards pin counters 
 nine hours awake since the anchor. No stage may start at or after
 22:15 CET or before 00:30 CET, so the 25-minute run has time to finish
 before backups. The conditional 15:00 CET slot on November 20 was
-not scheduled. If the study resumes, allow time for a precheck after
-the nine-hour minimum, verify the new one-shot timer and schedule its
-precheck and results check. Compare only complete five-minute meter
-bins within the logged sleep interval, not the transition bins.
+not scheduled. After a verified `s2idle-aged-2` pass, aim for November
+21 at 06:00 CET, or a later safe slot if the trial and its precheck
+cannot both clear the nine-hour minimum. Verify the new one-shot timer
+and schedule its checks. The repeat remains unarmed until the short
+trial passes. Compare only complete five-minute meter bins within
+the logged sleep interval, not the transition bins.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -525,6 +552,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 19 18:40 | `gpu-off-1` | five D0 core dry cycles, then one real S3 with GPU and port in D3cold and 120 s RTC alarm | 9 h 25 min at S3 request | dry 5/5; real request at 18:42:05.623 did not return | 15 W; owner rebooted |
 | Nov 20 04:40 | `s2idle-aged-1` scheduling check | read-only timer and baseline checks | about 9 h 8 min | timer correct; preflight refused on generation mismatch; zero requests | |
 | Nov 20 05:00 | `s2idle-aged-1` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm | 9 h 27 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
+| Nov 20 20:00 | `s2idle-aged-2` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 193 | 9 h 31 min at planned trigger | pending | |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
@@ -793,7 +821,7 @@ later reported the nearby drop in the results table.
 
 ## Machine facts
 
-- After the owner's recovery, the current boot began November 19 at
+- After the owner's recovery, the previous boot began November 19 at
   19:32:56 (boot `805078f4-eda4-41dd-858b-99b2121a61e1`). All system links
   initially matched generation 189 and the boot audit passed:
   `/nix/store/cg2x27vhsgzwb1s7djpswfsrs3qlamgz-nixos-system-predator-26.11.20261023.3ec6363`.
@@ -803,6 +831,9 @@ later reported the nearby drop in the results table.
   By 10:25 current and profile pointed to generation 193:
   `/nix/store/fszmdsgrr83igx391w6lcgbdwbqzm3ji-nixos-system-predator-26.11.20261023.3ec6363`.
   The audit refused both times because the active generation was not booted.
+- The current boot began November 20 at 10:29:20 CET
+  (`608fda18-fca9-48ad-86db-4b93809d7275`). Booted, current and profile
+  now all match generation 193. The boot audit passed all nine volumes.
 - Lid closed. The owner remembers hangs with the lid open as well.
 - Battery present and full. AC connected.
 - Discrete GPU `0000:01:00.0`: no driver, `power/control=on`, D0.
