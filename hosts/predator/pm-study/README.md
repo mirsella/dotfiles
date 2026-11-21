@@ -173,10 +173,11 @@ Work through this in order. Record every run in the results table.
    the booted and active generations differed. This did not test s2idle.
    `s2idle-aged-2` was cancelled before its trigger after another generation
    change. `s2idle-aged-3` also refused before any request: generation
-   205 was active while generation 202 was booted. After the
-   owner-approved reboot, `s2idle-aged-4` is armed on generation 205.
-   Keep that generation active until the trial and results check.
-   Schedule the 25-minute repeat only after a verified short RTC return.
+   205 was active while generation 202 was booted. On the audited
+   generation 205 boot, `s2idle-aged-4` returned at the expected RTC
+   interval. The 25-minute repeat is armed on the same baseline to
+   measure wall draw and check another RTC return. Keep that generation
+   active through the repeat and results check.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -579,7 +580,7 @@ ZFS mounts matched the records in
 `/home/mirsella/dev/scratch/predator-suspend/preboot-20261121-generation205/`,
 and Ente was running with no failed units or pending jobs.
 
-The nonpersistent one-shot is armed for November 21 at 19:30 CET,
+The nonpersistent one-shot was armed for November 21 at 19:30 CET,
 34,228 s after boot. The read-only precheck is at 19:10 and the results
 check is at 19:55. The trial uses the same five D0 `core` dry cycles and
 one `s2idle` request with a 120 s RTC alarm, with no GPU or firmware
@@ -596,7 +597,24 @@ The boot and all three system links still matched generation 205,
 and suspend counters were 0/0. Running only `check` with the stored
 arguments passed at 33,071 s awake, including the audit of all nine
 volumes. All pools were healthy and Ente was running. No unit or
-setting was changed and no sleep was requested.
+setting was changed and no sleep was requested at the precheck.
+
+The timer fired at 19:30. All five D0 `core` dry cycles returned
+normally in 6.6 to 8.4 s, with one success and no failures each.
+The real `s2idle` request was logged at 19:32:05.963 CET and
+returned at 19:34:08.027 CET, 122.1 s later, consistent with the
+120 s RTC alarm. The GPU policy stayed unchanged and there was no
+firmware bypass. Cleanup and the service exit succeeded.
+
+At 19:55, the boot, generation, runner, pool GUIDs and mounts still
+matched. Counters were 6/0, `deep` was selected, `pm_test` was `none`,
+and the RTC alarm was empty. Both GPU devices were active in D0.
+The audit passed for all nine volumes, all pools were healthy with no
+active scans, and Ente was running. There were no failed units, jobs
+or conflicting study timers, and no blocking inhibitors. The short
+return passed the gate for a repeat, but did not measure wall power.
+
+### `s2idle-meter-1` on generation 205
 
 The repeat requires five normal dry returns and one normal `s2idle`
 return at the 120 s RTC interval. It also requires successful cleanup,
@@ -617,13 +635,21 @@ the anchor; `check` and `run` take just the anchor. Runtime guards pin counters 
 6/0 before the dry cycles and 11/0 before the real request, and require
 nine hours awake since the anchor. No stage may start at or after
 22:15 CET or before 00:30 CET, so the 25-minute run has time to finish
-before backups. The earlier conditional slots were never armed.
-After a verified `s2idle-aged-4` pass, aim for November 22 at 05:30
-CET, or later if the trial and precheck cannot both clear nine hours
-from the post-resume anchor. The repeat is not armed yet. Verify the
-new one-shot timer before scheduling its checks. Compare only
-complete five-minute meter bins within the logged sleep interval, not
-the transition bins.
+before backups.
+
+The post-resume observation on November 21 at 19:58:05 CET was
+35,913.06 s uptime, rounded up to the anchor `35914`. Read-only
+`prepare` passed for both slots, projecting more than nine hours
+since the anchor. The nonpersistent one-shot is armed for November 22
+at 05:30 CET, with a read-only precheck at 05:10 and results at 06:15.
+The direct service has no restart and had never started. Prepared
+units, launcher and hashes are under
+`/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-meter-1-20261122/`.
+The repeat uses five D0 dry cycles and one `s2idle` request with a
+1,500 s RTC alarm, without GPU or firmware changes. Compare only
+complete five-minute meter bins within the logged sleep interval
+with adjacent complete awake bins. Do not arm another trial from
+this result check.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -679,7 +705,8 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 21 05:40 | `s2idle-aged-3` scheduling check | read-only timer and baseline inspection | about 9 h 37 min | timer correct; generation mismatch; launcher not invoked | booted 202; active/profile 205 |
 | Nov 21 06:00 | `s2idle-aged-3` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 202 | 9 h 55 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
 | Nov 21 19:10 | `s2idle-aged-4` scheduling check | read-only timer and baseline checks | 9 h 11 min | timer correct; preflight passed; zero requests | generation 205 unchanged |
-| Nov 21 19:30 | `s2idle-aged-4` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 205 | 9 h 30 min at planned trigger | pending | precheck 19:10; results 19:55 |
+| Nov 21 19:30 | `s2idle-aged-4` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 205 | about 9 h 33 min at real request | dry 5/5; real return at 19:34:08 after 122.1 s; cleanup passed, counters 6/0 | no wall-power result |
+| Nov 22 05:30 | `s2idle-meter-1` | five D0 core dry cycles, then one s2idle request with 1,500 s RTC alarm on generation 205 | about 9 h 32 min from the observation anchor at planned trigger | pending | precheck 05:10; results 06:15 |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
