@@ -96,9 +96,12 @@ The flake discovers these directories and sets hostnames automatically.
   when it goes or why it stays, and totals; `sweep status --json` emits typed
   rows that Nushell's `sweep` (`dotfiles/private_dot_config/nushell/sweep.nu`)
   turns into a sortable table; `sweep clean 1h` (or `30m`, `2d`,
-  `today`) removes everything idle that long after a confirmation; `sweep keep
-  PATH [--for 2d]` holds one back (`keep.json` next to `reported.json`). Remove
-  one by hand with `git worktree remove --force` or `rm -rf` for plain folders.
+  `today`) removes everything idle that long after a confirmation. `sweep keep
+  PATH [--for 2d]` protects a managed workspace or a file or directory inside
+  it. The hold leaves the whole workspace in place, without copying anything.
+  `sweep keep` lists holds (`keep.json` next to `reported.json`);
+  `sweep unkeep PATH` releases a hold by the original path. Remove a workspace
+  by hand with `git worktree remove --force` or `rm -rf` for plain folders.
   Runs share a lock, so a manual clean never races the timer. Idleness comes
   from cheap signs, checked first: a workspace's own and nested directories'
   times, Git's administrative files (HEAD, index, reflog), the T3 thread's

@@ -64,15 +64,19 @@ fn relative(path: &Path, home: &Path) -> String {
     }
 }
 
-/// A path as typed: relative to the current directory, or else to HOME,
-/// since `sweep` prints paths relative to HOME.
-fn locate(home: &Path, path: &Path) -> Result<PathBuf> {
-    fs::canonicalize(path)
-        .or_else(|error| match path.is_relative() {
-            true => fs::canonicalize(home.join(path)),
-            false => Err(error),
-        })
-        .with_context(|| format!("find {}", path.display()))
+/// Resolve the parent, but keep the final directory entry (not a symlink target).
+fn entry_path(path: &Path) -> Result<PathBuf> {
+    match path.file_name() {
+        Some(name) => {
+            let parent = path.parent().filter(|path| !path.as_os_str().is_empty());
+            Ok(parent.unwrap_or(Path::new(".")).canonicalize()?.join(name))
+        }
+        None => Ok(path.canonicalize()?),
+    }
+}
+
+fn input_paths(home: &Path, path: &Path) -> impl Iterator<Item = PathBuf> {
+    std::iter::once(path.to_owned()).chain(path.is_relative().then(|| home.join(path)))
 }
 
 /// What the notifications already covered.
@@ -221,9 +225,24 @@ impl Policy {
     }
 }
 
-/// Workspaces `sweep keep` holds back, with an optional end in Unix seconds.
+/// Paths `sweep keep` protects in place, with an optional end in Unix seconds.
 #[derive(Default, Serialize, Deserialize)]
 pub(crate) struct Keeps(BTreeMap<PathBuf, Option<u64>>);
+
+/// Removing a workspace would remove this path or part of its contents.
+fn overlaps(workspace: &Path, kept: &Path) -> bool {
+    kept.starts_with(workspace) || workspace.starts_with(kept)
+}
+
+/// The outermost removal unit that contains an item. A hold protects its
+/// contents too, even when sweep lists a nested workspace separately.
+fn protection_root<'a>(path: &Path, candidates: &'a [Candidate]) -> Option<&'a Path> {
+    candidates
+        .iter()
+        .map(|candidate| candidate.path.as_path())
+        .filter(|workspace| path.starts_with(workspace))
+        .min_by_key(|workspace| workspace.as_os_str().len())
+}
 
 fn unix(time: SystemTime) -> u64 {
     time.duration_since(UNIX_EPOCH)
@@ -251,15 +270,75 @@ impl Keeps {
         store_json(&dir.join("keep.json"), self)
     }
 
-    pub(crate) fn reason(&self, path: &Path, now: SystemTime) -> Option<String> {
-        match self.0.get(path)? {
-            None => Some("kept with `sweep keep`".into()),
-            Some(until) if *until > unix(now) => {
-                Some(format!("kept with `sweep keep` until {}", local(*until)))
+    fn holds<'a>(
+        &'a self,
+        candidates: &[Candidate],
+        now: SystemTime,
+    ) -> impl Fn(&Path) -> Option<String> + 'a {
+        let now = unix(now);
+        let active: Vec<_> = self
+            .0
+            .iter()
+            .filter(|(_, until)| until.is_none_or(|at| at > now))
+            .map(|(path, until)| {
+                let root = protection_root(path, candidates).unwrap_or(path);
+                (root.to_owned(), path, *until)
+            })
+            .collect();
+        move |workspace| {
+            let (_, path, until) = active
+                .iter()
+                .filter(|(root, _, _)| overlaps(workspace, root))
+                .max_by_key(|(_, _, until)| until.unwrap_or(u64::MAX))?;
+            let mut reason = "kept with `sweep keep`".to_owned();
+            if *path != workspace {
+                reason.push_str(&format!(" for {}", path.display()));
             }
-            Some(_) => None,
+            if let Some(until) = until {
+                reason.push_str(&format!(" until {}", local(*until)));
+            }
+            Some(reason)
         }
     }
+}
+
+/// Discover the removal units without loading session, process, or owner state.
+fn discover(home: &Path) -> (Vec<Candidate>, Vec<String>) {
+    let t3 = home.join(".t3");
+    let lists = [
+        (
+            "task scratch",
+            worktree_prune::folder_candidates(Kind::TaskScratch, &home.join("dev/scratch"), 1),
+        ),
+        (
+            "T3 scratch",
+            worktree_prune::folder_candidates(Kind::T3Scratch, &t3.join("scratch"), 1),
+        ),
+        (
+            "T3 worktrees",
+            worktree_prune::folder_candidates(Kind::T3Worktree, &t3.join("worktrees"), 2),
+        ),
+        (
+            "OpenCode worktrees",
+            worktree_prune::folder_candidates(
+                Kind::OpenCode,
+                &home.join(".local/share/opencode/worktree"),
+                2,
+            ),
+        ),
+        (
+            "~/dev worktrees",
+            worktree_prune::dev_candidates(&home.join("dev")),
+        ),
+    ];
+    let (mut candidates, mut failures) = (Vec::new(), Vec::new());
+    for (label, list) in lists {
+        match list {
+            Ok(found) => candidates.extend(found),
+            Err(error) => failures.push(format!("{label}: {error:#}")),
+        }
+    }
+    (candidates, failures)
 }
 
 /// One cleanup at a time: the hourly run and a manual `sweep clean` must not race.
@@ -289,13 +368,13 @@ fn cleanup(
 ) -> (Sources, Result<()>) {
     let now = SystemTime::now();
     let mut sources = Sources::list(home);
+    let held = keeps.holds(&sources.candidates, now);
     if let Some(only) = only {
         sources
             .candidates
             .retain(|candidate| only.contains(&candidate.path));
     }
     let cutoff = |kind| policy.cutoff(kind);
-    let held = |path: &Path| keeps.reason(path, now);
     let first = sources.first_pass(&cutoff, &held);
     if !dry_run && first.iter().any(|decision| matches!(decision, Ok(Ok(_)))) {
         sources.refresh();
@@ -390,15 +469,13 @@ fn classify(
     sources: &Sources,
     candidate: &Candidate,
     first: &Decision<Fingerprint>,
-    keeps: &Keeps,
+    held: bool,
     now: SystemTime,
 ) -> (When, Option<String>) {
     match first {
         Ok(Ok(checked)) => (When::Now, checked.plan()),
         Ok(Err(found)) if found.blocker => (When::Blocked(found.reason.clone()), None),
-        Ok(Err(found)) if keeps.reason(&candidate.path, now).is_some() => {
-            (When::Waiting(found.reason.clone()), None)
-        }
+        Ok(Err(found)) if held => (When::Waiting(found.reason.clone()), None),
         Ok(Err(_)) => match decide_once(sources.check(candidate, now)) {
             Ok(Ok(checked)) => (When::Later { blocker: None }, checked.plan()),
             Ok(Err(Kept {
@@ -555,54 +632,21 @@ impl Sources {
             std::thread::spawn(move || t3_cleanup::State::read(&base))
         });
         let database = home.join(".local/share/opencode/opencode.db");
-        let mut sources = Self {
-            sessions: worktree_prune::session_activity(&database)
-                .map_err(|error| format!("{error:#}")),
+        let sessions =
+            worktree_prune::session_activity(&database).map_err(|error| format!("{error:#}"));
+        let (mut candidates, failures) = discover(home);
+        // Candidates that need T3 state last, so `first_pass` checks the rest while it loads.
+        candidates.sort_by_key(|candidate| candidate.kind.needs_t3());
+        Self {
+            sessions,
             database,
             loading,
             t3: None,
             t3_error: None,
-            candidates: Vec::new(),
-            failures: Vec::new(),
+            candidates,
+            failures,
             prechecked: Default::default(),
-        };
-        let lists = [
-            (
-                "task scratch",
-                worktree_prune::folder_candidates(Kind::TaskScratch, &home.join("dev/scratch"), 1),
-            ),
-            (
-                "T3 scratch",
-                worktree_prune::folder_candidates(Kind::T3Scratch, &base.join("scratch"), 1),
-            ),
-            (
-                "T3 worktrees",
-                worktree_prune::folder_candidates(Kind::T3Worktree, &base.join("worktrees"), 2),
-            ),
-            (
-                "OpenCode worktrees",
-                worktree_prune::folder_candidates(
-                    Kind::OpenCode,
-                    &home.join(".local/share/opencode/worktree"),
-                    2,
-                ),
-            ),
-            (
-                "~/dev worktrees",
-                worktree_prune::dev_candidates(&home.join("dev")),
-            ),
-        ];
-        for (label, list) in lists {
-            match list {
-                Ok(candidates) => sources.candidates.extend(candidates),
-                Err(error) => sources.failures.push(format!("{label}: {error:#}")),
-            }
         }
-        // Candidates that need T3 state last, so `first_pass` checks the rest while it loads.
-        sources
-            .candidates
-            .sort_by_key(|candidate| candidate.kind.needs_t3());
-        sources
     }
 
     /// Check every candidate once, in parallel, sharing scans. Candidates that
@@ -626,6 +670,9 @@ impl Sources {
                     this.check(candidate, cutoff)
                 });
             let prechecks = tree_scan::parallel(late, |candidate| {
+                if held(&candidate.path).is_some() {
+                    return None;
+                }
                 let cutoff = cutoff(candidate.kind);
                 let linked = candidate.kind.linked();
                 let precheck = linked
@@ -671,9 +718,10 @@ impl Sources {
         if let Some(error) = &self.t3_error {
             // Keep everything T3 might use when its state cannot be read.
             self.failures.push(format!("T3 state: {error}"));
-            decisions.extend((split..self.candidates.len()).map(|_| {
+            decisions.extend(self.candidates[split..].iter().map(|candidate| {
                 Ok(Err(Kept {
-                    reason: "T3's state is unreadable".into(),
+                    reason: held(&candidate.path)
+                        .unwrap_or_else(|| "T3's state is unreadable".into()),
                     blocker: false,
                 }))
             }));
@@ -691,7 +739,9 @@ impl Sources {
 
     /// Every check of one candidate against `cutoff`.
     pub(crate) fn check(&self, candidate: &Candidate, cutoff: SystemTime) -> Result<Fingerprint> {
-        let Candidate { kind, path, device } = candidate;
+        let Candidate {
+            kind, path, device, ..
+        } = candidate;
         let t3 = || match (&self.t3, &self.t3_error) {
             (_, Some(error)) => bail!("T3 state is unreadable: {error}"),
             (state, None) => Ok(state.as_ref()),
@@ -791,39 +841,114 @@ impl Sources {
 
 #[derive(clap::Subcommand)]
 pub enum Command {
-    /// List every workspace: when it goes, or why it stays (the default).
+    /// List each workspace's estimated cleanup time or the reason it stays.
+    ///
+    /// This is the default when no subcommand is given. The listing shows
+    /// what the hourly timer would do under the standard retention policy.
+    /// It does not remove any workspaces. For a different idle threshold, use
+    /// `sweep clean AGE --dry-run`.
+    ///
+    /// JSON states:
+    ///   due      Eligible now.
+    ///   later    Not idle long enough yet.
+    ///   held     Not idle long enough yet, with an issue that would block cleanup.
+    ///   blocked  Idle long enough, but needs attention.
+    ///   waiting  Kept by an active owner, a lock, or a hold.
+    ///   error    Could not check the workspace.
+    #[command(verbatim_doc_comment)]
     Status {
-        /// One JSON object per workspace, for Nushell tables and scripts.
+        /// Emit a JSON array instead of the human-readable table.
+        ///
+        /// Paths are relative to HOME. Sizes are bytes and due times are
+        /// estimated RFC 3339 timestamps. Unavailable values are null.
+        /// Check stderr for discovery warnings; a listing can be incomplete.
         #[arg(long)]
         json: bool,
     },
-    /// Remove idle workspaces now: those idle longer than AGE, or than the
-    /// usual retention when AGE is omitted. Shows the list and asks first.
+    /// Preview or remove eligible idle workspaces.
     ///
-    /// AGE is a duration such as 30m, 1h, 2d, 1w or 1d12h, or `today` for
-    /// everything untouched since midnight.
+    /// With no AGE, use the same retention as the hourly timer. Supplying AGE
+    /// changes the idle threshold for this run only. Cleanup still respects
+    /// active use, Git worktree locks, and `sweep keep` holds.
+    ///
+    /// Sweep looks at workspace directory timestamps, Git activity, and agent
+    /// session activity. Editing a file in place may not reset the idle timer.
+    ///
+    /// Preview first with `sweep clean 1h --dry-run`. Otherwise, sweep shows
+    /// what it plans to remove and asks before proceeding, unless you pass
+    /// --yes. Sweep rechecks workspaces before removal.
+    ///
+    /// Git branches do not have to be merged. Sweep saves recoverable Git work
+    /// locally before removing a workspace, or leaves the workspace alone if it
+    /// cannot save that work safely. Plain scratch files and Git-ignored files
+    /// are not backed up.
+    #[command(verbatim_doc_comment)]
     Clean {
+        /// Minimum idle time, such as 30m, 2d, 1w or 1d12h. Use `today` for
+        /// workspaces idle since before local midnight.
         age: Option<String>,
-        /// Remove without asking.
+        /// Remove the eligible workspaces without prompting.
         #[arg(short, long)]
         yes: bool,
-        /// Only show what would go.
+        /// Show what would go without removing anything.
         #[arg(short = 'n', long)]
         dry_run: bool,
     },
-    /// Keep a workspace out of the cleanup; without PATH, list kept ones.
+    /// Hold a workspace in place, or list current holds.
+    ///
+    /// PATH must exist and be a managed workspace or a file or directory inside
+    /// one. A symlink hold protects the link, not its target. Holding a file or
+    /// subdirectory protects the whole workspace from both `sweep clean` and
+    /// hourly cleanup. Nothing is copied or moved.
+    ///
+    /// Run `sweep keep` with no PATH to list the held paths and their expiry.
+    /// A hold lasts until `sweep unkeep PATH` unless you pass --for. Running
+    /// `sweep keep` again for the same path replaces that hold. When a hold
+    /// expires, the next cleanup may remove the workspace if it is eligible.
+    ///
+    /// Agents should use this only when the user explicitly asks to keep an
+    /// item. Otherwise, leave temporary artifacts in scratch.
+    #[command(
+        verbatim_doc_comment,
+        after_long_help = "\
+Examples:
+  sweep keep dev/scratch/my-task/report.md --for 2d
+  sweep unkeep dev/scratch/my-task/report.md"
+    )]
     Keep {
+        /// Path to keep. Relative paths resolve from the current directory first,
+        /// then from HOME, as printed by `sweep status`.
         path: Option<PathBuf>,
-        /// Keep it only this long, such as 2d or 1w.
-        #[arg(long = "for", value_name = "DURATION")]
+        /// Time before the hold expires, such as 4h, 2d or 1w.
+        #[arg(long = "for", value_name = "DURATION", requires = "path")]
         duration: Option<String>,
     },
-    /// Let the cleanup take a kept workspace again.
-    Unkeep { path: PathBuf },
-    /// List work saved from removed workspaces, and how to get it back.
+    /// Release a hold created by `sweep keep`.
+    ///
+    /// This does not delete files or reset the idle timer. The next cleanup may
+    /// remove the workspace if it is otherwise eligible. Releasing a hold on
+    /// a workspace does not release separate holds on the files inside it.
+    /// This command does not unlock Git worktrees.
+    #[command(verbatim_doc_comment)]
+    Unkeep {
+        /// Use the original path listed by `sweep keep`, even if that file or
+        /// directory no longer exists. Relative paths can be based at HOME or
+        /// the current directory.
+        path: PathBuf,
+    },
+    /// List recoverable Git work saved during cleanup.
+    ///
+    /// Lists local Git branches and bundles saved by sweep, with commands to
+    /// recover them. It also drops expired copies after 30 days. This command
+    /// cannot recover ignored files or ordinary scratch artifacts.
+    #[command(verbatim_doc_comment)]
     Wip,
-    /// The hourly run the sweep timer starts: remove what is due, and notify
-    /// once about idle workspaces whose unsaved work holds them.
+    /// Run the same cleanup as the hourly timer, without prompting.
+    ///
+    /// Removes workspaces eligible under the standard retention policy and
+    /// reports new blockers. To preview the same policy without removing
+    /// anything, run `sweep clean --dry-run` instead.
+    #[command(verbatim_doc_comment)]
     Auto,
     /// Show one attention notification and run its buttons; `auto` starts it.
     #[command(hide = true)]
@@ -1052,11 +1177,17 @@ fn survey(home: &Path, policy: Policy, keeps: &Keeps) -> Result<Vec<Row>> {
     let _scans = tree_scan::remember();
     let mut sources = Sources::list(home);
     let cutoff = |kind| policy.cutoff(kind);
-    let held = |path: &Path| keeps.reason(path, now);
+    let held = keeps.holds(&sources.candidates, now);
     let first = sources.first_pass(&cutoff, &held);
     let checked: Vec<_> = sources.candidates.iter().zip(&first).collect();
     let whens = tree_scan::parallel(&checked, |(candidate, decision)| {
-        classify(&sources, candidate, decision, keeps, now)
+        classify(
+            &sources,
+            candidate,
+            decision,
+            held(&candidate.path).is_some(),
+            now,
+        )
     });
     let mut rows: Vec<Row> = sources
         .candidates
@@ -1126,7 +1257,7 @@ fn status(home: &Path, json: bool) -> Result<()> {
     );
     println!(
         "Retention: {AGENT_RETENTION_DAYS}d idle for agent workspaces, {DEV_RETENTION_DAYS}d for ~/dev worktrees. \
-         `sweep clean 1h` takes everything idle for an hour; `sweep keep PATH` holds one."
+         Preview with `sweep clean --dry-run`; use `sweep keep PATH` to hold the workspace containing PATH."
     );
     Ok(())
 }
@@ -1175,12 +1306,11 @@ fn clean(home: &Path, age: Option<&str>, yes: bool, dry_run: bool) -> Result<()>
 }
 
 fn keep(home: &Path, path: Option<&Path>, duration: Option<&str>) -> Result<()> {
-    let now = SystemTime::now();
     let dir = state_dir(home);
     let _lock = lock(&dir)?;
     let mut keeps = Keeps::load(&dir)?;
     let Some(path) = path else {
-        keeps.drop_expired(now);
+        keeps.drop_expired(SystemTime::now());
         if keeps.0.is_empty() {
             println!("Nothing is kept. `git worktree lock` also keeps a worktree.");
         }
@@ -1192,15 +1322,39 @@ fn keep(home: &Path, path: Option<&Path>, duration: Option<&str>) -> Result<()> 
         }
         return Ok(());
     };
-    let path = locate(home, path)?;
+    let path = input_paths(home, path)
+        .filter_map(|path| entry_path(&path).ok())
+        .find(|path| path.symlink_metadata().is_ok())
+        .with_context(|| format!("find {}", path.display()))?;
+    let (candidates, failures) = discover(home);
+    let Some(root) = protection_root(&path, &candidates) else {
+        ensure!(
+            failures.is_empty(),
+            "could not check where to hold {}:\n{}",
+            path.display(),
+            failures.join("\n")
+        );
+        bail!("{} is not in a workspace managed by sweep", path.display());
+    };
+    let now = SystemTime::now();
     let until = duration
-        .map(|text| parse_duration(text).map(|span| unix(now + span)))
+        .map(|text| {
+            let span = parse_duration(text)?;
+            ensure!(!span.is_zero(), "hold duration must be positive");
+            unix(now)
+                .checked_add(span.as_secs())
+                .filter(|&until| until <= DateTime::<chrono::Utc>::MAX_UTC.timestamp() as u64)
+                .context("hold duration too long")
+        })
         .transpose()?;
     keeps.0.insert(path.clone(), until);
     keeps.save(&dir, now)?;
     match until {
         Some(until) => println!("Keeping {} until {}.", relative(&path, home), local(until)),
         None => println!("Keeping {} until `sweep unkeep`.", relative(&path, home)),
+    }
+    if root != path {
+        println!("Holding workspace {}.", relative(root, home));
     }
     Ok(())
 }
@@ -1239,18 +1393,19 @@ fn unkeep(home: &Path, path: &Path) -> Result<()> {
     let dir = state_dir(home);
     let _lock = lock(&dir)?;
     let mut keeps = Keeps::load(&dir)?;
-    // A removed workspace can still be kept; match it as typed.
-    let path = locate(home, path).unwrap_or_else(|_| match path.is_relative() {
-        true => home.join(path),
-        false => path.to_owned(),
-    });
-    ensure!(
-        keeps.0.remove(&path).is_some(),
-        "{} is not kept with `sweep keep`",
-        path.display()
-    );
+    // A deleted file may still have a hold. Accept paths from the current
+    // directory and the paths relative to HOME that `sweep keep` lists.
+    let path = input_paths(home, path)
+        .find_map(|path| {
+            entry_path(&path)
+                .ok()
+                .into_iter()
+                .chain(std::path::absolute(path).ok())
+                .find(|path| keeps.0.remove(path).is_some())
+        })
+        .with_context(|| format!("{} is not kept with `sweep keep`", path.display()))?;
     keeps.save(&dir, SystemTime::now())?;
-    println!("The cleanup may take {} again.", relative(&path, home));
+    println!("Removed the hold on {}.", relative(&path, home));
     Ok(())
 }
 
@@ -1292,15 +1447,31 @@ mod tests {
         keeps.0.insert("/forever".into(), None);
         keeps.0.insert("/later".into(), Some(unix(now) + 3_600));
         keeps.0.insert("/expired".into(), Some(unix(now) - 1));
-        assert!(keeps.reason(Path::new("/forever"), now).is_some());
-        assert!(
-            keeps
-                .reason(Path::new("/later"), now)
-                .unwrap()
-                .contains("until")
-        );
-        assert!(keeps.reason(Path::new("/expired"), now).is_none());
-        assert!(keeps.reason(Path::new("/other"), now).is_none());
+        let held = keeps.holds(&[], now);
+        assert!(held(Path::new("/forever")).is_some());
+        assert!(held(Path::new("/later")).unwrap().contains("until"));
+        assert!(held(Path::new("/expired")).is_none());
+        assert!(held(Path::new("/other")).is_none());
+    }
+
+    #[test]
+    fn file_hold_protects_nested_removal_units() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let outer = temp.path().canonicalize()?.join("outer");
+        let nested = outer.join("nested");
+        fs::create_dir_all(&nested)?;
+        let mut candidates = worktree_prune::folder_candidates(Kind::TaskScratch, temp.path(), 1)?;
+        candidates.extend(worktree_prune::folder_candidates(
+            Kind::TaskScratch,
+            &outer,
+            1,
+        )?);
+        let keeps = Keeps(BTreeMap::from([(outer.join("report.txt"), None)]));
+        let held = keeps.holds(&candidates, SystemTime::now());
+        assert!(held(&outer).is_some());
+        assert!(held(&nested).is_some());
+        assert!(held(&outer.with_file_name("outer-other")).is_none());
+        Ok(())
     }
 
     #[test]

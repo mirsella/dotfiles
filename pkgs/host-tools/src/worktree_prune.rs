@@ -30,6 +30,7 @@ use std::{
     os::unix::{ffi::OsStrExt, fs::MetadataExt},
     path::{Path, PathBuf},
     process::Command,
+    sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -309,22 +310,28 @@ fn mount_path(field: &[u8]) -> Result<PathBuf> {
     Ok(PathBuf::from(OsStr::from_bytes(&path)))
 }
 
+fn local_mounts() -> Result<Vec<PathBuf>> {
+    let mountinfo = fs::read("/proc/self/mountinfo").context("read local mounts")?;
+    mountinfo
+        .split(|&b| b == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            let field = line
+                .split(|&b| b == b' ')
+                .nth(4)
+                .context("invalid mountinfo")?;
+            mount_path(field)
+        })
+        .collect()
+}
+
 fn check_in_use(folder: &Path) -> Result<()> {
     let paths = tree_scan::processes(process_paths)?;
     keep_unless!(
         !paths.iter().any(|path| path.starts_with(folder)),
         "a process uses it"
     );
-    let mountinfo = fs::read("/proc/self/mountinfo").context("read local mounts")?;
-    for line in mountinfo
-        .split(|&b| b == b'\n')
-        .filter(|line| !line.is_empty())
-    {
-        let field = line
-            .split(|&b| b == b' ')
-            .nth(4)
-            .context("invalid mountinfo")?;
-        let mount = mount_path(field)?;
+    for mount in local_mounts()? {
         keep_unless!(
             !mount.starts_with(folder) && folder.parent() != Some(&mount),
             "it or its parent is a mount point"
@@ -759,9 +766,31 @@ pub(crate) struct Outcome {
 }
 
 /// Remove a checked linked worktree after saving what it holds.
-pub(crate) fn remove(worktree: &Path, checked: Fingerprint, store: &Store) -> Result<Outcome> {
+fn remove(
+    worktree: &Path,
+    checked: Fingerprint,
+    store: &Store,
+    expected_common: Option<&Path>,
+) -> Result<Outcome> {
     // Run from the shared Git directory: the worktree cannot remove itself.
     let common = common_dir(worktree)?;
+    ensure!(
+        expected_common.is_none_or(|expected| expected == common),
+        "{} no longer belongs to the repository that listed it",
+        worktree.display()
+    );
+    let admin =
+        PathBuf::from(git(worktree, &["rev-parse", "--absolute-git-dir"])?).canonicalize()?;
+    let dot_git = worktree.join(".git");
+    ensure!(
+        admin.parent() == Some(common.join("worktrees").as_path())
+            && admin
+                .join(fs::read_to_string(admin.join("gitdir"))?.trim_end_matches('\n'))
+                .canonicalize()?
+                == dot_git,
+        "{} is no longer a registered linked worktree",
+        worktree.display()
+    );
     let saved = salvage::apply(worktree, &checked.saves, store)?;
     let watched = salvage::watch(worktree, &common);
     let mut command = Command::new("git");
@@ -769,9 +798,19 @@ pub(crate) fn remove(worktree: &Path, checked: Fingerprint, store: &Store) -> Re
     if checked.force {
         command.arg("--force");
     }
-    if let Err(error) = util::command_output(command.arg(worktree)) {
-        // Another user's files: delete through sudo, then let Git forget it.
-        ensure!(checked.sealed, "{error:#}");
+    let output = command.arg(worktree).env("LC_ALL", "C").output()?;
+    if !output.status.success() {
+        // Only bypass a filesystem permission failure, not a Git safety check.
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let denied = format!(
+            "error: failed to delete '{}': Permission denied",
+            worktree.display()
+        );
+        ensure!(
+            checked.sealed && stderr.trim_end() == denied,
+            "git exited {}: {stderr}",
+            output.status
+        );
         salvage::remove_tree(worktree)?;
         util::command_output(
             Command::new("git")
@@ -895,16 +934,37 @@ pub(crate) struct Candidate {
     pub(crate) kind: Kind,
     pub(crate) path: PathBuf,
     pub(crate) device: u64,
+    dev: Option<DevRegistration>,
 }
 
-pub(crate) fn remove_candidate(
-    kind: Kind,
-    path: &Path,
-    checked: Fingerprint,
-    store: &Store,
-) -> Result<Outcome> {
-    if kind.linked() && path.join(".git").is_file() {
-        remove(path, checked, store)
+#[derive(Clone, Debug)]
+struct DevRegistration {
+    root: Arc<Path>,
+    common: Arc<Path>,
+}
+
+fn remove_candidate(candidate: &Candidate, checked: Fingerprint, store: &Store) -> Result<Outcome> {
+    let Candidate {
+        kind, path, dev, ..
+    } = candidate;
+    let dot_git = path.join(".git");
+    if let Some(DevRegistration { root, common }) = dev {
+        // Losing the Git link must never turn a ~/dev worktree into scratch.
+        ensure!(
+            checked.head.is_some() && is_git_link(&dot_git),
+            "{} is no longer a linked worktree",
+            path.display()
+        );
+        ensure!(
+            !local_mounts()?
+                .iter()
+                .any(|mount| mount_below(root, mount) && path.starts_with(mount)),
+            "{} is under a mount point within ~/dev",
+            path.display()
+        );
+        remove(path, checked, store, Some(common))
+    } else if kind.linked() && dot_git.is_file() {
+        remove(path, checked, store, None)
     } else {
         remove_folder(path, checked, store)
     }
@@ -917,7 +977,12 @@ pub(crate) fn folder_candidates(kind: Kind, root: &Path, depth: usize) -> Result
     };
     Ok(folders
         .into_iter()
-        .map(|path| Candidate { kind, path, device })
+        .map(|path| Candidate {
+            kind,
+            path,
+            device,
+            dev: None,
+        })
         .collect())
 }
 
@@ -991,103 +1056,143 @@ pub(crate) fn confirm(
                     bundles: bundles.to_owned(),
                     note: note(path),
                 };
-                outcomes.push(remove_candidate(kind, path, checked, &store)?);
+                outcomes.push(remove_candidate(candidate, checked, &store)?);
                 Ok(())
             },
         );
     }
 }
 
-/// Primary checkouts up to three levels below `dev`, skipping build outputs and scratch.
-fn dev_repositories(dev: &Path) -> Result<Vec<PathBuf>> {
+fn is_git_link(dot_git: &Path) -> bool {
+    dot_git.symlink_metadata().is_ok_and(|info| info.is_file())
+}
+
+fn mount_below(root: &Path, mount: &Path) -> bool {
+    mount != root && mount.starts_with(root)
+}
+
+/// Find primary checkouts in project groups, however deeply they're nested.
+/// Stop at checkout roots: Git knows their worktrees, and their contents may be huge.
+fn dev_repositories(dev: &Path, mounts: &BTreeSet<PathBuf>) -> Result<Vec<PathBuf>> {
     let mut repositories = Vec::new();
-    let mut level = vec![dev.to_path_buf()];
-    for _ in 0..3 {
-        let mut next = Vec::new();
-        for directory in level {
-            let entries = match fs::read_dir(&directory) {
-                Ok(entries) => entries,
-                // Another user's directory cannot hold our checkouts.
-                Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => continue,
+    let mut pending = vec![dev.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        let entries = match fs::read_dir(&directory) {
+            Ok(entries) => entries,
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::NotFound
+                ) =>
+            {
+                continue;
+            }
+            Err(error) => {
+                return Err(error).with_context(|| format!("read {}", directory.display()));
+            }
+        };
+        for entry in entries {
+            let entry = entry?;
+            let name = entry.file_name();
+            let name = name.as_encoded_bytes();
+            if name.starts_with(b".")
+                || matches!(name, b"node_modules" | b"target" | b"scratch")
+                || !entry.file_type()?.is_dir()
+            {
+                continue;
+            }
+            let path = entry.path();
+            if mounts.contains(&path) {
+                continue;
+            }
+            match path.join(".git").symlink_metadata() {
+                Ok(info) if info.is_dir() => repositories.push(path),
+                // A linked worktree; its primary checkout lists it.
+                Ok(_) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    pending.push(path);
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {}
                 Err(error) => {
-                    return Err(error).with_context(|| format!("read {}", directory.display()));
-                }
-            };
-            for entry in entries {
-                let entry = entry?;
-                let name = entry.file_name();
-                // Hidden directories hold caches and tool state, not projects.
-                if !entry.file_type()?.is_dir()
-                    || name.as_encoded_bytes().starts_with(b".")
-                    || matches!(name.to_str(), Some("node_modules" | "target" | "scratch"))
-                {
-                    continue;
-                }
-                let path = entry.path();
-                match fs::symlink_metadata(path.join(".git")) {
-                    Ok(info) if info.is_dir() => repositories.push(path),
-                    // A linked worktree; its primary checkout lists it.
-                    Ok(_) => {}
-                    Err(_) => next.push(path),
+                    return Err(error)
+                        .with_context(|| format!("inspect .git in {}", path.display()));
                 }
             }
         }
-        level = next;
     }
     Ok(repositories)
 }
 
 /// Linked worktrees of `dev`'s repositories that live under `dev`, outside ~/dev/scratch.
-fn dev_worktrees(dev: &Path) -> Result<Vec<PathBuf>> {
-    let repositories = dev_repositories(dev)?;
+fn dev_worktrees(dev: &Path, mounts: &BTreeSet<PathBuf>) -> Result<BTreeMap<PathBuf, Arc<Path>>> {
+    let repositories = dev_repositories(dev, mounts)?;
     let listings = tree_scan::parallel(&repositories, |repository| {
         Ok::<_, anyhow::Error>((
-            common_dir(repository)?,
-            git(repository, &["worktree", "list", "--porcelain"])?,
+            Arc::<Path>::from(common_dir(repository)?),
+            git_bytes(repository, &["worktree", "list", "--porcelain", "-z"])?,
         ))
     });
-    let mut commons = BTreeSet::new();
-    let mut worktrees = BTreeSet::new();
+    let mut worktrees = BTreeMap::new();
+    let scratch = dev.join("scratch");
     for (repository, listing) in repositories.iter().zip(listings) {
-        let listed = match listing {
-            Ok((common, listed)) if commons.insert(common.clone()) => listed,
-            Ok(_) => continue,
+        let (common, listed) = match listing {
+            Ok(listed) => listed,
             // A broken checkout is not ours to clean up; its worktrees stay.
             Err(error) => {
-                println!("Skipped repository {}: {error:#}", repository.display());
+                eprintln!("Skipped repository {}: {error:#}", repository.display());
                 continue;
             }
         };
         // The first record is the primary checkout itself.
-        for record in listed.split("\n\n").skip(1) {
-            let Some(path) = record
-                .lines()
-                .find_map(|line| line.strip_prefix("worktree "))
-            else {
-                continue;
-            };
-            let Ok(path) = Path::new(path).canonicalize() else {
-                continue;
-            };
-            if path.starts_with(dev) && !path.starts_with(dev.join("scratch")) && path.is_dir() {
-                worktrees.insert(path);
+        for path in listed
+            .split(|&byte| byte == 0)
+            .filter_map(|field| field.strip_prefix(b"worktree "))
+            .skip(1)
+            .map(|path| Path::new(OsStr::from_bytes(path)))
+        {
+            if path.starts_with(dev)
+                && !path.starts_with(&scratch)
+                && !path.ancestors().any(|ancestor| mounts.contains(ancestor))
+                && path.canonicalize().is_ok_and(|real| real == path)
+                && is_git_link(&path.join(".git"))
+            {
+                if path.to_str().is_none() {
+                    eprintln!(
+                        "Skipped worktree {}: sweep state requires UTF-8 paths",
+                        path.display()
+                    );
+                    continue;
+                }
+                worktrees.insert(path.to_owned(), common.clone());
             }
         }
     }
-    Ok(worktrees.into_iter().collect())
+    Ok(worktrees)
 }
 
 /// Linked worktrees under `dev`.
 pub(crate) fn dev_candidates(dev: &Path) -> Result<Vec<Candidate>> {
-    if !dev.is_dir() {
-        return Ok(Vec::new());
-    }
-    dev_worktrees(dev)?
+    let root = match dev.canonicalize() {
+        Ok(root) => root,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(error).with_context(|| format!("resolve {}", dev.display())),
+    };
+    let root: Arc<Path> = root.into();
+    // Btrfs subvolumes can have different device numbers without being mounts.
+    let mounts = local_mounts()?
         .into_iter()
-        .map(|path| {
+        .filter(|mount| mount_below(&root, mount))
+        .collect();
+    dev_worktrees(&root, &mounts)?
+        .into_iter()
+        .map(|(path, common)| {
             Ok(Candidate {
                 kind: Kind::Dev,
                 device: fs::symlink_metadata(&path)?.dev(),
+                dev: Some(DevRegistration {
+                    root: root.clone(),
+                    common,
+                }),
                 path,
             })
         })
@@ -1488,21 +1593,31 @@ mod tests {
     }
 
     #[test]
-    fn dev_worktrees_go_once_idle_and_committed() -> Result<()> {
+    fn dev_worktrees_in_deep_project_groups_go_once_idle_and_committed() -> Result<()> {
         let temp = tempfile::tempdir()?;
         let base = fs::canonicalize(temp.path())?;
         let dev = base.join("dev");
-        fs::create_dir_all(dev.join("group"))?;
+        let project = dev.join("group/team/projects/project");
+        fs::create_dir_all(&project)?;
         let (_, checkout) = repository(&base)?;
-        let primary = dev.join("group/project");
+        let primary = project.join("main");
         fs::rename(&checkout, &primary)?;
-        let feature = dev.join("project-feature");
-        let locked = dev.join("project-locked");
+        let feature = project.join("feature");
+        let locked = project.join("locked");
+        let unusual = project.join("local\ncheckout");
+        let mount = project.join("mount");
+        let mounted_worktree = mount.join("group/worktree");
+        let stale = project.join("stale-registration");
+        let shallow = dev.join("project-feature");
         let elsewhere = base.join("elsewhere");
         let scratch = dev.join("scratch/task");
         for (path, branch) in [
             (&feature, "feature"),
             (&locked, "locked"),
+            (&unusual, "unusual"),
+            (&mounted_worktree, "mounted"),
+            (&stale, "stale"),
+            (&shallow, "shallow"),
             (&elsewhere, "elsewhere"),
             (&scratch, "scratch"),
         ] {
@@ -1511,6 +1626,18 @@ mod tests {
             run_git(path, &["commit", "--quiet", "--allow-empty", "-m", branch])?;
         }
         run_git(&primary, &["worktree", "lock", locked.to_str().unwrap()])?;
+        fs::remove_file(stale.join(".git"))?;
+        let plain = project.join("artifacts");
+        fs::create_dir(&plain)?;
+        assert_eq!(
+            dev_worktrees(&dev, &BTreeSet::from([mount]))?
+                .into_keys()
+                .collect::<BTreeSet<_>>(),
+            [&feature, &locked, &unusual, &shallow]
+                .into_iter()
+                .cloned()
+                .collect()
+        );
         let now = SystemTime::now();
         let max_age = Duration::from_secs(7 * 86_400);
         for path in [&base, &dev] {
@@ -1530,13 +1657,49 @@ mod tests {
             false,
             &mut Vec::new(),
         )?;
-        assert!(!feature.exists() && primary.exists());
+        for gone in [&feature, &unusual, &shallow, &mounted_worktree] {
+            assert!(!gone.exists(), "{} was kept", gone.display());
+        }
         run_git(&primary, &["rev-parse", "--verify", "feature"])?;
-        for kept in [&locked, &elsewhere, &scratch] {
+        for kept in [&primary, &locked, &plain, &stale, &elsewhere, &scratch] {
             assert!(kept.exists(), "{} was removed", kept.display());
         }
         let owners = owners.into_inner().expect("owners poisoned");
         assert!(owners.contains(&feature) && !owners.contains(&elsewhere));
+        // A separate-git-dir primary can replace a registered worktree. It
+        // has a .git file and a HEAD, but is not safe to remove as a worktree.
+        let separate = base.join("separate.git");
+        run_git(
+            &stale,
+            &[
+                "init",
+                "--quiet",
+                "--separate-git-dir",
+                separate.to_str().unwrap(),
+            ],
+        )?;
+        run_git(
+            &stale,
+            &["commit", "--quiet", "--allow-empty", "-m", "replacement"],
+        )?;
+        let checked = check_worktree(
+            &stale,
+            stale.metadata()?.dev(),
+            SystemTime::now() + max_age,
+            || Ok(()),
+            None,
+        )?;
+        let store = Store {
+            bundles: base.join("bundles"),
+            note: String::new(),
+        };
+        let error = remove(&stale, checked, &store, None).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("no longer a registered linked worktree")
+        );
+        assert!(stale.join(".git").is_file());
         Ok(())
     }
 

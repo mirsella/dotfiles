@@ -191,7 +191,34 @@ enum Commands {
     Backup {
         config: PathBuf,
     },
-    /// The agent workspace cleanup: list when each goes, steer it, or run it (`auto`).
+    /// Inspect and clean up idle agent workspaces.
+    ///
+    /// Run `sweep` with no arguments to see when each workspace is due for
+    /// cleanup or why it stays. `sweep` is the installed name for `host-tools sweep`.
+    ///
+    /// Hourly cleanup:
+    ///   3 idle days: ~/dev/scratch task folders, T3 scratch and worktrees,
+    ///                and OpenCode worktrees.
+    ///   7 idle days: Linked Git worktrees under ~/dev, including worktrees
+    ///                in nested project directories.
+    ///
+    /// Outside the managed roots, sweep leaves primary checkouts and ordinary
+    /// directories alone. A checkout's .scratch directory is not a separate
+    /// cleanup target. Workspace age alone is not enough: sweep checks active
+    /// use, locks, holds, and whether it can save Git work before removal.
+    ///
+    /// Leave temporary artifacts in scratch unless the user asks to keep
+    /// them. `sweep keep PATH` holds the containing workspace in place.
+    /// It does not make a copy.
+    #[command(
+        verbatim_doc_comment,
+        after_long_help = "\
+Examples:
+  sweep status --json                     List workspaces for scripting
+  sweep clean --dry-run                   Preview the hourly cleanup policy
+  sweep keep dev/scratch/task/out --for 2d  Hold an output for two days
+  sweep wip                               Find saved Git work"
+    )]
     Sweep {
         #[command(subcommand)]
         command: Option<sweep::Command>,
