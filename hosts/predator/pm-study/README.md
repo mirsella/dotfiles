@@ -172,9 +172,10 @@ Work through this in order. Record every run in the results table.
    brought it back. `s2idle-aged-1` refused before any request because
    the booted and active generations differed. This did not test s2idle.
    `s2idle-aged-2` was cancelled before its trigger after another generation
-   change. `s2idle-aged-3` is armed for November 21 at 06:00 CET on the
-   audited generation 202 boot. Schedule the owner-approved 25-minute
-   repeat only after a verified short RTC return.
+   change. `s2idle-aged-3` also refused before any request: generation
+   205 was active while generation 202 was booted. Pause until the
+   owner approves an audited, stable baseline. Schedule the
+   25-minute repeat only after a verified short RTC return.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -522,9 +523,9 @@ Ente was running, there were no failed units or jobs, both GPU devices
 were active in D0 with their original policies, and suspend counters
 were 0/0.
 
-The replacement one-shot is armed for November 21 at 06:00 CET
-(35,746 s after boot). The T3 precheck is at 05:40 and the results
-check is at 06:25. Use the same five D0 `core` dry cycles and one
+The replacement one-shot was armed for November 21 at 06:00 CET
+(35,746 s after boot), with checks at 05:40 and 06:25. The plan was
+the same five D0 `core` dry cycles and one
 `s2idle` request with a 120 s RTC alarm, without GPU or firmware
 changes. Read-only `prepare` passed with the new pins and projected
 age. The timer is nonpersistent, and its direct service has no restart
@@ -543,7 +544,23 @@ system and profile pointed to generation 205
 The system pin failed, so `check` was not invoked and the remaining
 launcher guards were not evaluated. Ente was running and all pools
 were healthy. The timer and guards were left unchanged; no sleep was
-requested at the precheck. The 06:25 results check remains scheduled.
+requested at the precheck.
+
+The timer fired at 06:00 CET. The service logged `system changed:
+/run/current-system` at 06:00:00.416040 and exited with status 1.
+It refused before taking a snapshot or making any dry or real sleep
+request. At 06:25 the generation mismatch remained, the one-shot
+timer was inactive, and the trial service was the only failed unit.
+There were no trial artifacts or kernel sleep messages, counters
+remained 0/0, `pm_test` was `none`, `deep` was selected, and the RTC
+alarm was empty. The runner hash matched.
+
+Ente was running. All three pools were healthy, no scans or jobs were
+active, and the pool GUIDs and five ZFS mounts matched the saved
+records. The only inhibitor was NetworkManager's normal delay.
+The boot audit refused with `activated generation not booted`.
+This was not a hang and did not test `s2idle`. Do not replay the
+trial or arm the repeat on this baseline.
 
 The repeat requires five normal dry returns and one normal `s2idle`
 return at the 120 s RTC interval. It also requires successful cleanup,
@@ -564,12 +581,12 @@ the anchor; `check` and `run` take just the anchor. Runtime guards pin counters 
 6/0 before the dry cycles and 11/0 before the real request, and require
 nine hours awake since the anchor. No stage may start at or after
 22:15 CET or before 00:30 CET, so the 25-minute run has time to finish
-before backups. The conditional 15:00 CET slot on November 20 was
-not scheduled. After a verified `s2idle-aged-3` pass, aim for November
-21 at 16:00 CET if the trial and its precheck both clear the nine-hour
-minimum from the post-resume anchor. Otherwise choose a later safe slot.
-Verify the new one-shot timer and schedule its checks.
-The repeat remains unarmed until the short trial passes. Compare only
+before backups. Neither conditional slot (November 20 at 15:00 or
+November 21 at 16:00 CET) was scheduled: neither short trial passed.
+After a future verified short trial
+pass, choose a safe slot that lets the trial and its precheck both
+clear the nine-hour minimum from the post-resume anchor. Verify the
+new one-shot timer and schedule its checks. Compare only
 complete five-minute meter bins within the logged sleep interval, not
 the transition bins.
 
@@ -625,7 +642,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 20 19:40 | `s2idle-aged-2` scheduling check | read-only timer and baseline inspection | about 9 h 11 min | timer correct; generation mismatch; launcher not invoked | booted 193; active/profile 202 |
 | Nov 20 20:00 | `s2idle-aged-2` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 193 | 9 h 31 min at planned trigger | cancelled at 19:47; zero requests | generation mismatch |
 | Nov 21 05:40 | `s2idle-aged-3` scheduling check | read-only timer and baseline inspection | about 9 h 37 min | timer correct; generation mismatch; launcher not invoked | booted 202; active/profile 205 |
-| Nov 21 06:00 | `s2idle-aged-3` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 202 | 9 h 55 min at planned trigger | pending | precheck 05:40; results 06:25 |
+| Nov 21 06:00 | `s2idle-aged-3` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 202 | 9 h 55 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
