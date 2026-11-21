@@ -185,6 +185,7 @@
     "enabled": true,
     "providers": [],
     "recording_indicator_corner": "top_right",
+    "retention": "week",
     "show_recording_indicator": true
   },
   "paste_last_hotkey": {

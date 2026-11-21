@@ -56,7 +56,6 @@
     "panelAnimationDurationMs": 0,
     "persistComposerContextStrip": true,
     "proactivePanelsEnabled": false,
-    "providerModelPreferences": {},
     "pullRequestLinksOpenInApp": true,
     "sendShortcut": "enter",
     "showSkillsInSlashMenu": true,
@@ -1042,7 +1041,7 @@
     {
       "workspace_root": "~/dev/mm-lab",
       "attributes": {
-        "faviconPath": null,
+        "faviconPath": "~/dev/mm-lab/public/icon.svg",
         "projectIcon": null,
         "title": "mm-lab"
       },
@@ -1087,7 +1086,7 @@
     {
       "workspace_root": "~/dev/voxride-dashboard",
       "attributes": {
-        "faviconPath": null,
+        "faviconPath": "~/dev/voxride-dashboard/src/app/icon.svg",
         "projectIcon": null,
         "title": "voxride-dashboard"
       },
@@ -1109,7 +1108,7 @@
     {
       "workspace_root": "~/dev/wiko",
       "attributes": {
-        "faviconPath": null,
+        "faviconPath": "~/dev/wiko/assets/icon.svg",
         "projectIcon": null,
         "title": "wiko"
       },
