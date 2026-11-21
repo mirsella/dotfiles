@@ -588,6 +588,16 @@ had never started, and suspend counters were 0/0. Prepared units,
 launcher and hashes are in
 `/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-aged-4-20261121/`.
 
+At 19:10 CET the timer was waiting for exactly 19:30 and the service
+had never started. Both unit files and the launcher matched the
+prepared copies, the checksums and pinned runner hash passed, and the
+stored command matched. There were no drop-ins, trial logs or STOP file.
+The boot and all three system links still matched generation 205,
+and suspend counters were 0/0. Running only `check` with the stored
+arguments passed at 33,071 s awake, including the audit of all nine
+volumes. All pools were healthy and Ente was running. No unit or
+setting was changed and no sleep was requested.
+
 The repeat requires five normal dry returns and one normal `s2idle`
 return at the 120 s RTC interval. It also requires successful cleanup,
 `deep` restored, an empty RTC alarm, a healthy
@@ -668,6 +678,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 20 20:00 | `s2idle-aged-2` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 193 | 9 h 31 min at planned trigger | cancelled at 19:47; zero requests | generation mismatch |
 | Nov 21 05:40 | `s2idle-aged-3` scheduling check | read-only timer and baseline inspection | about 9 h 37 min | timer correct; generation mismatch; launcher not invoked | booted 202; active/profile 205 |
 | Nov 21 06:00 | `s2idle-aged-3` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 202 | 9 h 55 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
+| Nov 21 19:10 | `s2idle-aged-4` scheduling check | read-only timer and baseline checks | 9 h 11 min | timer correct; preflight passed; zero requests | generation 205 unchanged |
 | Nov 21 19:30 | `s2idle-aged-4` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 205 | 9 h 30 min at planned trigger | pending | precheck 19:10; results 19:55 |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
