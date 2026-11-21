@@ -531,6 +531,20 @@ age. The timer is nonpersistent, and its direct service has no restart
 and had never started. Prepared units, launcher and checksums are in
 `/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-aged-3-20261121/`.
 
+At the 05:40 CET precheck, the timer was still waiting for exactly
+06:00 and the service had never started. Both loaded units and the
+launcher matched their prepared copies. The checksums, pinned runner
+hash and stored command matched, with no drop-ins, trial artifacts or
+STOP file. Suspend counters were still 0/0.
+
+The boot ID and booted generation 202 still matched, but the active
+system and profile pointed to generation 205
+(`/nix/store/40ys5vy3v2rv0nzmclwhhk07bhlzzzwc-nixos-system-predator-26.11.20261023.3ec6363`).
+The system pin failed, so `check` was not invoked and the remaining
+launcher guards were not evaluated. Ente was running and all pools
+were healthy. The timer and guards were left unchanged; no sleep was
+requested at the precheck. The 06:25 results check remains scheduled.
+
 The repeat requires five normal dry returns and one normal `s2idle`
 return at the 120 s RTC interval. It also requires successful cleanup,
 `deep` restored, an empty RTC alarm, a healthy
@@ -610,6 +624,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 20 05:00 | `s2idle-aged-1` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm | 9 h 27 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
 | Nov 20 19:40 | `s2idle-aged-2` scheduling check | read-only timer and baseline inspection | about 9 h 11 min | timer correct; generation mismatch; launcher not invoked | booted 193; active/profile 202 |
 | Nov 20 20:00 | `s2idle-aged-2` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 193 | 9 h 31 min at planned trigger | cancelled at 19:47; zero requests | generation mismatch |
+| Nov 21 05:40 | `s2idle-aged-3` scheduling check | read-only timer and baseline inspection | about 9 h 37 min | timer correct; generation mismatch; launcher not invoked | booted 202; active/profile 205 |
 | Nov 21 06:00 | `s2idle-aged-3` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 202 | 9 h 55 min at planned trigger | pending | precheck 05:40; results 06:25 |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
