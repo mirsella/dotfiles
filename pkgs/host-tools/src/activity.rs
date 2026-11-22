@@ -45,27 +45,6 @@ const OPENCODE: &[&str] = &[
     "mcp",
     "pty",
 ];
-const CHAMBER: &[&str] = &[
-    "session",
-    "project",
-    "projects",
-    "event",
-    "config",
-    "settings",
-    "provider",
-    "permission",
-    "question",
-    "file",
-    "find",
-    "vcs",
-    "command",
-    "agent",
-    "mcp",
-    "terminal",
-    "git",
-    "skills",
-    "plugins",
-];
 
 #[derive(Deserialize)]
 pub struct AccessLog<'a> {
@@ -145,12 +124,6 @@ impl AccessLog<'_> {
                             ))))
             {
                 Some("OpenCode")
-            } else if (host.eq_ignore_ascii_case("mirsella.mooo.com:4097")
-                || host.eq_ignore_ascii_case("mirsella.mooo.com:14097"))
-                && ((first == "api" && CHAMBER.contains(&second))
-                    || matches!(path, "/auth/session" | "/api/global/event"))
-            {
-                Some("OpenChamber")
             } else {
                 None
             },
@@ -280,7 +253,6 @@ pub fn upstream(connections: &str) -> Result<Option<String>> {
             "127.0.0.1:8080" => "Nextcloud",
             "127.0.0.1:2283" => "Immich",
             "192.168.1.131:4096" => "OpenCode",
-            "192.168.1.131:4097" => "OpenChamber",
             _ => continue,
         };
         if fields.next().is_none() {

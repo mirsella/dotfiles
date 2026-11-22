@@ -5,16 +5,6 @@
   pkgs,
   ...
 }:
-let
-  servicePath =
-    "PATH=%h/.local/share/cargo/bin:%h/.local/bin:"
-    + (
-      if isNixOS then
-        "%h/.nix-profile/bin:/etc/profiles/per-user/%u/bin:/run/current-system/sw/bin"
-      else
-        "%h/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/bin"
-    );
-in
 {
   imports = [
     ./arch-package-cache.nix
@@ -36,7 +26,6 @@ in
     pkgs.kache
     pkgs.idle-watchdog
     pkgs.context7-account-broker
-    pkgs.openchamber
   ]
   ++ lib.optionals isNixOS [
     pkgs.binaryen
@@ -156,7 +145,6 @@ in
           (import ../user-secrets.nix)
           // {
             telegram_env = "telegram.env";
-            openchamber_server = "openchamber/server.env";
           }
         )
       // {
@@ -166,35 +154,6 @@ in
           mode = "0600";
         };
       };
-  };
-
-  systemd.user.services.openchamber = {
-    Unit = {
-      Description = "OpenChamber web server";
-      After = [
-        "network.target"
-        "sops-nix.service"
-      ];
-      Wants = [ "sops-nix.service" ];
-      PartOf = [ "default.target" ];
-    };
-    Service = {
-      Type = "simple";
-      WorkingDirectory = "%h";
-      EnvironmentFile = [
-        config.sops.secrets.openchamber_server.path
-      ];
-      Environment = servicePath;
-      # Attach-to-14096 pins from the retired shared server; let OpenChamber manage its own OpenCode.
-      UnsetEnvironment = [
-        "OPENCODE_HOST"
-        "OPENCODE_SKIP_START"
-      ];
-      ExecStart = "${lib.getExe pkgs.openchamber} serve --host 127.0.0.1 --port 14097 --foreground";
-      Restart = "on-failure";
-      RestartSec = "2s";
-    };
-    Install.WantedBy = [ "default.target" ];
   };
 
   # nixpkgs ships ONLYOFFICE 9.4 with LanguageTool built in; Arch's 10.0 does not.

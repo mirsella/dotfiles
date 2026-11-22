@@ -37,14 +37,6 @@ fn authenticated_routes_and_public_exclusions() -> Result<()> {
             Some("OpenCode"),
         ),
         ("mirsella.mooo.com:4096", "/global/health", None),
-        ("mirsella.mooo.com:4097", "/api/config", Some("OpenChamber")),
-        (
-            "mirsella.mooo.com:14097",
-            "/auth/session",
-            Some("OpenChamber"),
-        ),
-        ("mirsella.mooo.com:4097", "/auth/passkey/status", None),
-        ("mirsella.mooo.com:4097", "/api/version", None),
         ("192.0.2.1", "/api/assets", None),
     ] {
         let mut entry = request(host, uri, 200);
@@ -212,7 +204,6 @@ fn only_caddy_backend_connections_guard_transfers() -> Result<()> {
         ("127.0.0.1:2283", "Immich"),
         ("127.0.0.1:8080", "Nextcloud"),
         ("192.168.1.131:4096", "OpenCode"),
-        ("192.168.1.131:4097", "OpenChamber"),
     ] {
         let text = format!("0 0 127.0.0.1:12345 {peer} users:((\"caddy\",pid=2,fd=3))");
         assert!(activity::upstream(&text)?.unwrap().contains(app));

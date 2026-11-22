@@ -128,11 +128,10 @@
         "opencode-extensions"
         "sleev"
       ];
-      # Their committed locks carry security overrides and postPatch pins that
+      # camofox-browser's lock carries security overrides and postPatch pins that
       # nix-update's pre-patch --generate-lockfile would discard.
-      preservedLockPackages = [ "camofox-browser" "openchamber" ];
       updateVersionFlag = name:
-        if builtins.elem name stableVersionPackages || builtins.elem name preservedLockPackages then
+        if name == "camofox-browser" || builtins.elem name stableVersionPackages then
           "--version stable"
         else if builtins.pathExists (./pkgs + "/${name}/package-lock.json") then
           "--version stable --generate-lockfile"

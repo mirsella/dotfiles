@@ -9,8 +9,8 @@ let
       hashAlgo = "sha256";
       toHashFormat = "base64";
     }}'";
-  proxyMainUi = port: ''
-    reverse_proxy https://192.168.1.131:${toString port} {
+  proxyMainOpenCode = ''
+    reverse_proxy https://192.168.1.131:4096 {
       header_up Host {hostport}
       transport http {
         tls_trust_pool file ${./main-ui-root.crt}
@@ -42,7 +42,7 @@ in
     '';
     virtualHosts = {
       "mirsella.mooo.com".extraConfig = ''
-        # HSTS covers every port; main uses a private CA on 4096/4097.
+        # HSTS covers every port; main uses a private CA on 4096.
         header >Strict-Transport-Security "max-age=0"
         encode zstd gzip
         redir /nextcloud /nextcloud/ 308
@@ -65,15 +65,10 @@ in
           }
         }
       '';
-      "https://mirsella.mooo.com:4096".extraConfig = proxyMainUi 4096;
-      "https://mirsella.mooo.com:4097".extraConfig = proxyMainUi 4097;
+      "https://mirsella.mooo.com:4096".extraConfig = proxyMainOpenCode;
       "https://mirsella.mooo.com:14096".extraConfig = ''
         bind 192.168.1.19
-        ${proxyMainUi 4096}
-      '';
-      "https://mirsella.mooo.com:14097".extraConfig = ''
-        bind 192.168.1.19
-        ${proxyMainUi 4097}
+        ${proxyMainOpenCode}
       '';
       "photos.mirsella.mooo.com".extraConfig = ''
         reverse_proxy 127.0.0.1:2283

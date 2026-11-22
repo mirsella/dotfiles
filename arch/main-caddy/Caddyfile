@@ -42,17 +42,7 @@ https://mirsella.mooo.com:4096, https://192.168.1.131:4096 {
 	reverse_proxy 127.0.0.1:14096
 }
 
-https://mirsella.mooo.com:4097, https://192.168.1.131:4097 {
-	import main-ui
-	reverse_proxy 127.0.0.1:14097
-}
-
 http://main:4096, http://localhost:4096 {
 	bind 127.0.0.1 [::1]
 	reverse_proxy 127.0.0.1:14096
-}
-
-http://main:4097, http://localhost:4097 {
-	bind 127.0.0.1 [::1]
-	reverse_proxy 127.0.0.1:14097
 }

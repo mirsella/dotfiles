@@ -233,36 +233,11 @@ assert lib.assertMsg (
   && lib.any (package: lib.getName package == "power-profiles-daemon") laptop.systemd.services.ryzenadj-laptop.path
 ) "RyzenAdj recovery must retain its cooldown across restarts and have powerprofilesctl available";
 assert lib.assertMsg (
-  lib.all
-    (
-      name:
-      !(builtins.hasAttr name server.systemd.services)
-      && !(builtins.hasAttr name server.home-manager.users.mirsella.systemd.user.services)
-    )
-    [
-      "opencode"
-      "openchamber"
-    ]
-  && lib.all (name: !(builtins.hasAttr name server.sops.secrets)) [
-    "telegram_env"
-    "opencode_server"
-    "openchamber_server"
-  ]
-  &&
-    lib.all
-      (
-        name:
-        flake.homeConfigurations.main.config.systemd.user.services.${name}
-        == flake.homeConfigurations.laptop.config.systemd.user.services.${name}
-      )
-      [ "openchamber" ]
-) "OpenChamber must share the workstation configuration; Predator must not run OpenCode or OpenChamber services";
-assert lib.assertMsg (
-  lib.hasPrefix "2." flake.packages.x86_64-linux.openchamber.version
-  && lib.all (home: lib.any (
-      package: package.outPath == flake.packages.x86_64-linux.openchamber.outPath
-    ) home.home.packages) workstationHomes
-) "Every workstation must use the flake's OpenChamber v2 package";
+  !(server.systemd.services ? opencode)
+  && !(server.home-manager.users.mirsella.systemd.user.services ? opencode)
+  && !(server.sops.secrets ? telegram_env)
+  && !(server.sops.secrets ? opencode_server)
+) "Predator must not run the OpenCode unit or install workstation service secrets";
 assert lib.assertMsg (lib.all
   (
     c:
@@ -323,18 +298,10 @@ assert lib.assertMsg
 assert lib.assertMsg
   (lib.all (
     home:
-    let
-      ui = home.systemd.user.services.openchamber;
-    in
     !(home.sops.secrets ? opencode_server)
     && !(home.systemd.user.services ? opencode)
-    && lib.hasPrefix "${lib.getExe flake.packages.x86_64-linux.openchamber} serve " (
-      builtins.head ui.Service.ExecStart
-    )
-    && ui.Service.UnsetEnvironment == [ "OPENCODE_HOST" "OPENCODE_SKIP_START" ]
-    && !(builtins.elem "opencode.service" ui.Unit.PartOf)
   ) workstationHomes)
-  "OpenChamber must run its own managed OpenCode without the retired shared server";
+  "Workstations must not configure the retired shared OpenCode server";
 assert lib.assertMsg (lib.all (
   home: lib.hasPrefix "/nix/store/" (builtins.head home.systemd.user.services.kache.Service.ExecStart)
 ) workstationHomes) "kache must run from the flake package on NixOS and Arch workstations";

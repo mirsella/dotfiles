@@ -14,12 +14,6 @@
 			tls
 		}
 	}
-	servers {{ $bindIP }}:4097 {
-		listener_wrappers {
-			http_redirect
-			tls
-		}
-	}
 {{ end -}}
 }
 
@@ -36,10 +30,6 @@
 
 (opencode) {
 	reverse_proxy 127.0.0.1:14096
-}
-
-(openchamber) {
-	reverse_proxy 127.0.0.1:14097
 }
 
 {{ if eq $host "main" -}}
@@ -62,25 +52,9 @@ https://:4096 {
 	}
 }
 
-https://:4097 {
-	bind {{ $bindIP }}
-	@public host {{ $domain }}
-	handle @public {
-		import openchamber
-	}
-	handle {
-		respond 404
-	}
-}
-
 http://{{ $host }}:4096, http://localhost:4096 {
 	bind 127.0.0.1 [::1]
 	import opencode
-}
-
-http://{{ $host }}:4097, http://localhost:4097 {
-	bind 127.0.0.1 [::1]
-	import openchamber
 }
 {{ else -}}
 http://{{ $host }}, http://{{ $host }}.local, http://localhost {
@@ -89,9 +63,5 @@ http://{{ $host }}, http://{{ $host }}.local, http://localhost {
 
 http://{{ $host }}:4096, http://{{ $host }}.local:4096, http://localhost:4096 {
 	import opencode
-}
-
-http://{{ $host }}:4097, http://{{ $host }}.local:4097, http://localhost:4097 {
-	import openchamber
 }
 {{ end -}}

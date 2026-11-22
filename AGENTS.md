@@ -211,9 +211,8 @@ Manual files outside the repo:
   storage timers and the fail2ban SSH jail are installed from
   `arch/maintenance/apply.py`. System
   Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks
-  remain manual. Remove the old `IgnorePkg = openchamber` pin when activating
-  OpenCode 2.x and OpenChamber 2.x together. The Nix daemon ignores cache settings
-  from an untrusted Home Manager user config.
+  remain manual. The Nix daemon ignores cache settings from an untrusted Home
+  Manager user config.
 - Predator: Freebox LAN IP is `192.168.1.1`; SMART runs daily short and weekly
   long tests on all six physical drives. Toshiba's earlier USB setup had repeated
   host-aborted long tests after about 10 minutes; check its adapter, cable and power

@@ -6,8 +6,8 @@ files are the tracked sources for `/etc/caddy/Caddyfile` and
 
 ## Network and services
 
-Freebox forwards TCP 4096 and 4097 directly to main. TCP 80 and 443 go to
-Predator. Main's web UIs work independently of Predator.
+The Freebox forward for TCP 4096 goes directly to main. TCP 80 and 443 go to
+Predator. Main's OpenCode proxy works independently of Predator.
 
 | Machine | Wired MAC | IPv4 address |
 | --- | --- | --- |
@@ -18,25 +18,20 @@ Both addresses have matching Freebox DHCP reservations. Predator also uses a
 manual NetworkManager address; its reservation keeps the DHCP pool from giving
 that address to another device.
 
-| UI | Public URL | Loopback backend | User unit |
-| --- | --- | --- | --- |
-| OpenCode | `https://mirsella.mooo.com:4096` | `127.0.0.1:14096` | `opencode.service` |
-| OpenChamber | `https://mirsella.mooo.com:4097` | `127.0.0.1:14097` | `openchamber.service` |
+OpenCode ingress uses `https://mirsella.mooo.com:4096`. HTTPS also works at the
+LAN IP on that port; local HTTP access uses `http://localhost:4096`.
+The proxy expects a separate OpenCode listener on `127.0.0.1:14096`.
+Home Manager no longer starts that shared server.
 
-HTTPS also works at the LAN IP on those ports. Local HTTP access uses
-`http://localhost:4096` and `http://localhost:4097`.
-
-Home Manager enables the user units and owns their credential environment files.
-User lingering lets the units start without a desktop login. Caddy runs as the
-system user `caddy`; its configuration is `root:caddy`, mode `0640`.
+Caddy runs as the system user `caddy`; its configuration is `root:caddy`, mode
+`0640`.
 
 The optional HTTP homepage uses `/srv/mirsella-home`. Its files need to be
 readable by `caddy`; directories can use mode `0755` and static files `0644`.
 
 ## Install or restore
 
-Run from the repository root on main, after applying its Home Manager
-configuration and installing the OpenCode and OpenChamber packages:
+Run from the repository root on main:
 
 ```sh
 sudo pacman -S --needed caddy &&
@@ -47,8 +42,6 @@ sudo install -o root -g caddy -m 0640 arch/main-caddy/Caddyfile /etc/caddy/Caddy
 sudo install -D -o root -g root -m 0644 arch/main-caddy/caddy.service.d/recovery.conf /etc/systemd/system/caddy.service.d/recovery.conf &&
 sudo systemctl daemon-reload &&
 sudo systemctl enable caddy NetworkManager-wait-online.service &&
-sudo loginctl enable-linger mirsella &&
-systemctl --user start opencode.service openchamber.service &&
 sudo systemctl restart caddy
 ```
 
@@ -86,12 +79,10 @@ existing valid certificates until renewal.
 
 ```sh
 systemctl is-active caddy
-systemctl --user is-active opencode.service openchamber.service
 sudo systemctl show caddy -p Restart -p RestartUSec -p StartLimitIntervalUSec -p StartLimitBurst
 sudo curl --cacert /var/lib/caddy/pki/authorities/main-ui/root.crt -I https://mirsella.mooo.com:4096/
-sudo curl --cacert /var/lib/caddy/pki/authorities/main-ui/root.crt -I https://mirsella.mooo.com:4097/
 ```
 
-OpenCode returns `401` before authentication; OpenChamber returns its unlock
-page with `200`. After the next cold boot, check the units above and
+With the backend running, OpenCode returns `401` before authentication.
+A `502` can mean the backend is not listening. After the next cold boot, check
 `journalctl -b -u caddy` to verify startup on the reserved LAN address.

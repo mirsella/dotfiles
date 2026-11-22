@@ -251,9 +251,9 @@ Electron profile directories are ignored by chezmoi. Conversations and
 attachments need a separate backup.
 T3's OpenCode provider omits `serverUrl` so T3 launches its own server
 and injects its thread-scoped MCP tools. The shared standalone service on
-port 14096 was retired and OpenChamber manages its own OpenCode. If an instance
-uses a local service, sync reads its password from `~/.config/opencode/service.json`
-into local T3 settings; the next `chezmoi apply` refreshes it after rotation.
+port 14096 was retired. If an instance uses a local service, sync reads its
+password from `~/.config/opencode/service.json` into local T3 settings; the
+next `chezmoi apply` refreshes it after rotation.
 The password stays out of portable captures and Git.
 Other endpoints keep their own credentials. GitHub device authorization and
 agent-provider logins remain device-local.
@@ -781,19 +781,15 @@ These tests use generated units and disposable files; they do not activate a sys
 The bootstrap seeds the latest OpenCode v2 on first install. T3 and the CLI
 updater own subsequent releases.
 Its service runs `~/.local/bin/opencode` on Arch and NixOS.
-OpenChamber 2.5.2 stays managed by Arch packages or this flake on NixOS; remove
-the old manual `IgnorePkg = openchamber` pin when upgrading it.
 The native service records its runtime URL, PID and generated password in
 `~/.local/state/opencode/service.json` and uses the fixed Basic username
 `opencode`; `~/.config/opencode/service.json` remains a fallback.
-OpenChamber runs its own managed `opencode serve`. The idle watchdog reads each
-server's credential from its environment or the native service state and
-monitors only `opencode serve` processes that expose the v2 API. The old SOPS
-API password entry was removed.
+The idle watchdog reads each server's credential from its environment or the
+native service state and monitors only `opencode serve` processes that expose
+the v2 API.
 
-The shared `opencode.service` on port 14096 is retired: OpenChamber no longer
-attaches to it (`UnsetEnvironment` drops the old `OPENCODE_HOST` pins) and the
-CLI and T3 use their own or the lazily started background service.
+The shared `opencode.service` on port 14096 is retired. The CLI and T3
+use their own or the lazily started background service.
 The Nushell `oc`/`occ` shortcuts use that discovery; `opencode-plugin-update`
 uses the native package updater.
 Codex's Composio headers helper and OpenCode's auth plugin reuse the existing
@@ -1060,8 +1056,8 @@ warms the USB disks, rechecks user activity, sets a 07:00 RTC alarm and requests
 deep suspend with systemd inhibitors enabled.
 
 `pkgs/host-tools/src/activity.rs` recognizes Nextcloud's response-side
-`X-User-Id` header and successful protected API requests for Immich, OpenCode
-and OpenChamber. Valid API keys and authorized shared-photo access also count.
+`X-User-Id` header and successful protected API requests for Immich and OpenCode.
+Valid API keys and authorized shared-photo access also count.
 Public pages, health checks, failed logins, scanner requests and unauthenticated
 SSH connections do not reset the quiet period. Keeping an app logged in without
 requests does not count as activity by itself.
