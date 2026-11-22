@@ -176,9 +176,9 @@ Work through this in order. Record every run in the results table.
    generation 205 boot, `s2idle-aged-4` returned at the expected RTC
    interval. The 25-minute repeat on the same baseline also returned
    at the expected RTC interval. The owner reported about 7 W during
-   the repeat. A two-hour trial is armed next. Only a normal wake,
-   healthy services and corroborating meter readings justify a
-   seven-hour overnight run.
+   the repeat. A two-hour trial is armed next. A verified wake on
+   schedule and a healthy, unchanged system qualify it for a
+   seven-hour overnight run without waiting for meter readings.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -721,9 +721,12 @@ that contains entry or return. Verify RTC timing, clean restoration,
 boot audit. A refusal, unexplained wake, hang, changed baseline or
 incomplete evidence stops the queue. Do not automatically recover.
 
-Only after that pass and a corroborating meter graph, arm one
-`s2idle-overnight-1`. Aim for November 24 at 01:30 CET, after the late
-backup and midnight maintenance window, with a 01:10 precheck and a
+After that verified pass, automatically arm one `s2idle-overnight-1`
+without waiting for meter readings. The owner reports about 15 W
+during the observed hangs and about 3 W in successful S3 or 7 W in
+successful s2idle. Record meter readings separately; they are not a
+substitute for the wake and health checks. Aim for November 24 at
+01:30 CET, after backups and midnight maintenance, with a 01:10 precheck and a
 results check at 08:50. Verify the actual timer inventory before arming.
 Both the precheck and trigger must be at least nine hours after a
 rounded-up uptime observation following the two-hour return on the
