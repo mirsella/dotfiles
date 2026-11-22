@@ -39,6 +39,7 @@ const PM_TEST: &str = "/sys/power/pm_test";
 const MEM_SLEEP: &str = "/sys/power/mem_sleep";
 const STATE: &str = "/sys/power/state";
 const ALARM: &str = "/sys/class/rtc/rtc0/wakealarm";
+const RTC_EPOCH: &str = "/sys/class/rtc/rtc0/since_epoch";
 const STATS: &str = "/sys/power/suspend_stats";
 const LOCK: &str = "/run/pm-batch.lock";
 const GPU: &str = "/sys/bus/pci/devices/0000:01:00.0";
@@ -69,6 +70,68 @@ fn read(path: &str) -> String {
 
 fn write(path: &str, value: &str) -> R<()> {
     fs::write(path, value).map_err(|e| format!("write {value:?} to {path}: {e}"))
+}
+
+fn valid_wake(mode: &str, cycles: u64, wake: u64, has_override: bool) -> bool {
+    (15..=3600).contains(&wake)
+        || (mode == "s2idle" && cycles == 1 && !has_override && matches!(wake, 7200 | 25200))
+}
+
+fn within_rtc_bounds(alarm: u64, wake: u64, before: u64, after: u64) -> bool {
+    before
+        .checked_add(wake)
+        .zip(after.checked_add(wake))
+        .is_some_and(|(min, max)| (min..=max).contains(&alarm))
+}
+
+fn rtc_value(path: &str) -> R<u64> {
+    let value = read(path);
+    value
+        .parse()
+        .map_err(|e| format!("read RTC value from {path}: {value:?}: {e}"))
+}
+
+fn arm_rtc(wake: u64) -> R<()> {
+    write(ALARM, "0")?;
+    if wake <= 3600 {
+        return write(ALARM, &format!("+{wake}"));
+    }
+    let before = rtc_value(RTC_EPOCH)?;
+    write(ALARM, &format!("+{wake}"))?;
+    let alarm = rtc_value(ALARM)?;
+    let after = rtc_value(RTC_EPOCH)?;
+    if !within_rtc_bounds(alarm, wake, before, after) {
+        return Err(format!(
+            "RTC alarm {alarm} does not match +{wake}s at {before}..{after}"
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod rtc_tests {
+    use super::{valid_wake, within_rtc_bounds};
+
+    #[test]
+    fn longer_alarms_are_only_for_one_unmodified_s2idle_cycle() {
+        assert!(valid_wake("s3", 3, 3600, true));
+        for wake in [7200, 25200] {
+            assert!(valid_wake("s2idle", 1, wake, false));
+            assert!(!valid_wake("s2idle", 1, wake, true));
+            assert!(!valid_wake("s2idle", 2, wake, false));
+            assert!(!valid_wake("s3", 1, wake, false));
+        }
+        assert!(!valid_wake("s2idle", 1, 25201, false));
+    }
+
+    #[test]
+    fn alarm_readback_must_match_delay_even_if_the_rtc_ticks_during_the_write() {
+        assert!(within_rtc_bounds(7300, 7200, 100, 101));
+        assert!(within_rtc_bounds(7301, 7200, 100, 101));
+        assert!(!within_rtc_bounds(7299, 7200, 100, 101));
+        assert!(!within_rtc_bounds(7302, 7200, 100, 101));
+        assert!(!within_rtc_bounds(1, 7200, u64::MAX, u64::MAX));
+    }
 }
 
 /// The bracketed choice in a sysfs selector such as `s2idle [deep]`.
@@ -492,8 +555,8 @@ fn run() -> R<()> {
     let cycles = number(3, 0)?;
     let wake = number(4, 30)?;
     let gap = number(5, 30)?;
-    if cycles == 0 || cycles > 500 || !(15..=3600).contains(&wake) || !(5..=7200).contains(&gap) {
-        return Err("cycles 1..=500, wake 15..=3600 s, gap 5..=7200 s".into());
+    if cycles == 0 || cycles > 500 || !(5..=7200).contains(&gap) {
+        return Err("cycles 1..=500, gap 5..=7200 s".into());
     }
     if selected(PM_TEST) != "none" {
         return Err(format!("pm_test is already {}", read(PM_TEST)));
@@ -508,6 +571,11 @@ fn run() -> R<()> {
         Some("gpu-off") if mode == "s3" && cycles == 1 => (false, true),
         Some(other) => return Err(format!("unknown or misplaced option {other}")),
     };
+    if !valid_wake(mode, cycles, wake, no_smi || gpu_off) {
+        return Err(
+            "wake 15..=3600 s; 7200 or 25200 s only for one unmodified s2idle request".into(),
+        );
+    }
     let pm_base = pm_base()?;
     // A killed `nosmi` batch leaves the bit clear, which would silently turn
     // the next control into another `nosmi` run.
@@ -615,8 +683,7 @@ fn run() -> R<()> {
         }
         let (success, fail) = (counter("success"), counter("fail"));
         if pm_test == "none" {
-            write(ALARM, "0")?;
-            write(ALARM, &format!("+{wake}"))?;
+            arm_rtc(wake)?;
         }
         let smi_armed = match smi_base {
             Some(base) => format!("{:#04x}", slp_smi(base, false)?),

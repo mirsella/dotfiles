@@ -176,13 +176,18 @@ Work through this in order. Record every run in the results table.
    generation 205 boot, `s2idle-aged-4` returned at the expected RTC
    interval. The 25-minute repeat on the same baseline also returned
    at the expected RTC interval. The owner reported about 7 W during
-   the repeat. Longer sleeps have not been tested on this baseline.
+   the repeat. A two-hour trial is armed next. Only a normal wake,
+   healthy services and corroborating meter readings justify a
+   seven-hour overnight run.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
 
-If nothing isolates the cause, the fallbacks are s2idle (step 7) or a nightly
-power-off with an RTC or Wake-on-LAN power-on, which already works here.
+If s2idle proves unreliable or uses too much power, the fallback is a
+clean shutdown and timed power-on. Wake-on-LAN has powered the machine
+on from off; RTC wake from s2idle does not establish RTC power-on from
+shutdown. Leave S3 threshold and snapshot trials paused while validating
+s2idle.
 
 ## Running a trial
 
@@ -686,6 +691,50 @@ contain entry or return. The owner reported about 7 W during the
 sleep interval but did not provide individual bins or a matched awake
 reading. No further trial was armed.
 
+### Longer s2idle trials on generation 205
+
+`s2idle-long-1` is armed for November 22 at 15:30 CET, with a read-only
+precheck at 15:10 and a results check at 17:50. It keeps the same boot,
+system, storage and original GPU and firmware settings as the successful
+25-minute trial. The post-resume snapshot measured 71,847.62 s uptime
+just after that return, rounded up to anchor `71848`. Read-only `prepare`
+passed for both slots, including the audit of all nine encrypted volumes.
+The launcher checks again at runtime that at least nine hours have
+elapsed since the anchor. It requires counters 12/0 initially and 17/0
+after five D0 `core` dry cycles. The one real request uses a 7,200 s RTC
+alarm; a normal return leaves counters 18/0. No stage may start at or
+after 20:30 CET or before 00:30 CET.
+
+Prepared units, the launcher, runner and `SHA256SUMS` are in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-long-1-20261122/`.
+The root-owned binaries in `/run/pm-s2idle-duration/` match those copies;
+the original runner is unchanged. The one-shot is nonpersistent and the
+direct service has no restart. Before sleep the extended runner reads
+back the RTC alarm to verify the requested delay. The precheck can only
+run `check`; it must not repair or replay the trial.
+
+Use the actual entry and return timestamps for the meter comparison.
+Check whether complete five-minute bins inside the sleep interval stay
+near 7 W, and compare with adjacent complete awake bins. Exclude any bin
+that contains entry or return. Verify RTC timing, clean restoration,
+`deep` selected, no RTC alarm, unchanged storage, Ente and a passing
+boot audit. A refusal, unexplained wake, hang, changed baseline or
+incomplete evidence stops the queue. Do not automatically recover.
+
+Only after that pass and a corroborating meter graph, arm one
+`s2idle-overnight-1`. Aim for November 24 at 01:30 CET, after the late
+backup and midnight maintenance window, with a 01:10 precheck and a
+results check at 08:50. Verify the actual timer inventory before arming.
+Both the precheck and trigger must be at least nine hours after a
+rounded-up uptime observation following the two-hour return on the
+same boot. The same launcher and runner require counters 18/0, then
+23/0 after five dry cycles, and use one 25,200 s RTC alarm. A normal
+return leaves 24/0. The launcher permits overnight stages only between
+01:00 and 01:59 CET. Do not arm this trial ahead of the two-hour result,
+change any permanent suspend policy, or schedule more arms after it.
+
+## Trial logs
+
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
 `enter` line with no `return` line after it. Labels cannot be reused. Creating
@@ -743,6 +792,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 21 19:30 | `s2idle-aged-4` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 205 | about 9 h 33 min at real request | dry 5/5; real return at 19:34:08 after 122.1 s; cleanup passed, counters 6/0 | no wall-power result |
 | Nov 22 05:10 | `s2idle-meter-1` scheduling check | read-only timer and baseline checks | 9 h 13 min from the observation anchor | timer correct; preflight passed; zero requests | generation 205 unchanged |
 | Nov 22 05:30 | `s2idle-meter-1` | five D0 core dry cycles, then one s2idle request with 1,500 s RTC alarm on generation 205 | about 9 h 34 min from the observation anchor at real request | dry 5/5; real return at 05:57:00 after 1,502.4 s; cleanup passed, counters 12/0 | owner reported about 7 W asleep |
+| Nov 22 15:30 | `s2idle-long-1` | five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | 9 h 33 min projected at trigger from the post-resume anchor | pending | check full meter bins across the two hours |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
