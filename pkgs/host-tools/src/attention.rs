@@ -112,6 +112,9 @@ fn show(request: &Request) -> Result<String> {
             .args([
                 "--app-name=Storage",
                 "--urgency=normal",
+                // Plasma offers Minimize (keep in history) on resident
+                // notifications with no timeout. Close still removes the entry.
+                "--hint=boolean:resident:true",
                 "--expire-time=0",
                 "--action=copy=Copy",
                 "--action=ask=Ask T3 Code",

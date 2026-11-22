@@ -86,10 +86,12 @@ The flake discovers these directories and sets hostnames automatically.
   bare repository, a nested worktree outside it) raises one desktop
   notification until it changes; `$XDG_STATE_HOME/sweep/reported.json` remembers
   what was reported. That notification waits in a transient `sweep-attention-*`
-  unit: Copy puts the list, with links to the T3 threads bound to each
-  workspace, on the clipboard through Klipper, and Ask T3 Code starts a thread
-  in `~/dev/dotfiles` on that host's T3 server that explains each one and links
-  the threads behind it, then opens it through
+  unit. In Plasma, the popup does not time out. Minimize keeps it in notification
+  history; Close removes it. Its actions work while the unit is running. Copy
+  puts the list, with links to the T3 threads bound to each workspace, on the
+  clipboard through Klipper. Ask T3 Code starts a thread in `~/dev/dotfiles` on
+  that host's T3 server that explains each one and links the threads behind it,
+  then opens it through
   `t3code://threads/<environment>/<thread>`. It keeps anything it cannot verify
   and fails, with a notification, when T3's data changes shape. With no
   arguments `sweep` lists every workspace with its branch and path from `~`,
