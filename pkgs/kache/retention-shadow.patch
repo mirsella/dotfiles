@@ -1,0 +1,550 @@
+diff --git a/crates/kache-store/src/eviction.rs b/crates/kache-store/src/eviction.rs
+index 3e4e0355..27895df8 100644
+--- a/crates/kache-store/src/eviction.rs
++++ b/crates/kache-store/src/eviction.rs
+@@ -59,6 +59,7 @@ pub fn over_eviction_trigger(physical_size: u64, max_size: u64) -> bool {
+ pub struct EntryFeatures {
+     pub key: String,
+     pub size: i64,
++    pub key_schema: i64,
+     pub hit_count: i64,
+     /// Hours since `last_accessed`. May be negative under clock skew; policies
+     /// are responsible for clamping (the previous SQL clamped at 0.01).
+@@ -344,6 +345,7 @@ mod tests {
+         EntryFeatures {
+             key: key.into(),
+             size,
++            key_schema: 0,
+             hit_count: hits,
+             idle_hours: idle,
+             content_hash: None,
+@@ -601,6 +603,7 @@ mod tests {
+                         |(i, (size, hits, idle, hash, committed, reclaim))| EntryFeatures {
+                             key: format!("k{i:02}"),
+                             size,
++                            key_schema: 0,
+                             hit_count: hits,
+                             idle_hours: idle,
+                             content_hash: hash.map(str::to_string),
+diff --git a/crates/kache-store/src/lib.rs b/crates/kache-store/src/lib.rs
+index a89e4daa..1746abc4 100644
+--- a/crates/kache-store/src/lib.rs
++++ b/crates/kache-store/src/lib.rs
+@@ -13,6 +13,7 @@ mod index_compaction;
+ pub mod link;
+ pub mod markers;
+ pub mod opcounts;
++mod retention_shadow;
+ pub mod sharing;
+ mod store;
+ #[cfg(test)]
+diff --git a/crates/kache-store/src/retention_shadow.rs b/crates/kache-store/src/retention_shadow.rs
+new file mode 100644
+index 00000000..83a274af
+--- /dev/null
++++ b/crates/kache-store/src/retention_shadow.rs
+@@ -0,0 +1,283 @@
++//! A bounded, matched-byte comparison, not an eviction policy. Start from
++//! the real victims and replace only independently reclaimable entries.
++use crate::{eviction::EntryFeatures, store::GcStats};
++use serde::Serialize;
++use std::collections::BTreeMap;
++use std::fs;
++use std::path::Path;
++use std::time::{SystemTime, UNIX_EPOCH};
++
++const MAX_PAIRS: usize = 64;
++const MAX_SWEEPS: usize = 256;
++const MIN_COST_MS: i64 = 10_000;
++const MIN_BYTES: i64 = 1 << 20;
++const RECORD_DIR: &str = "telemetry/retention-shadow-v1";
++
++fn now_ms() -> u64 {
++    SystemTime::now()
++        .duration_since(UNIX_EPOCH)
++        .unwrap_or_default()
++        .as_millis() as u64
++}
++
++fn independent_bytes(entry: &EntryFeatures) -> Option<u64> {
++    // Logical size counts every file reference. Equality excludes both shared
++    // blobs and entries that reference the same blob more than once.
++    (entry.committed && entry.size >= MIN_BYTES && entry.reclaimable_bytes == Some(entry.size))
++        .then_some(entry.size as u64)
++}
++
++#[derive(Serialize)]
++struct Victim<'a> {
++    key: &'a str,
++    indexed_bytes: u64,
++    compile_ms: i64,
++    hit_count: i64,
++    idle_hours: f64,
++}
++
++impl<'a> Victim<'a> {
++    fn new(entry: &'a EntryFeatures, indexed_bytes: u64) -> Self {
++        Self {
++            key: &entry.key,
++            indexed_bytes,
++            compile_ms: entry.compile_time_ms,
++            hit_count: entry.hit_count,
++            idle_hours: entry.idle_hours,
++        }
++    }
++}
++
++#[derive(Serialize)]
++struct Pair<'a> {
++    live: Victim<'a>,
++    shadow: Victim<'a>,
++}
++
++pub(crate) struct Trial<'a> {
++    sweep_started_ms: u64,
++    target_indexed_bytes: u64,
++    victims: Vec<(&'a EntryFeatures, u64)>,
++}
++
++#[derive(Serialize)]
++struct SweepRecord<'a> {
++    schema: u8,
++    sweep_started_ms: u64,
++    target_indexed_bytes: u64,
++    finished_ms: u64,
++    live_indexed_bytes: u64,
++    live_disk_bytes_estimate: u64,
++    live_victims: usize,
++    eligible_live: usize,
++    eligible_alternatives: usize,
++    pairs: Vec<Pair<'a>>,
++}
++
++impl<'a> Trial<'a> {
++    pub(crate) fn new(target_indexed_bytes: u64) -> Self {
++        Self {
++            sweep_started_ms: now_ms(),
++            target_indexed_bytes,
++            victims: Vec::new(),
++        }
++    }
++
++    pub(crate) fn observe(&mut self, entry: &'a EntryFeatures, freed: u64) {
++        if independent_bytes(entry) == Some(freed)
++            && entry.key_schema == i64::from(kache_format::CACHE_KEY_VERSION)
++            && entry.hit_count >= 3
++            && (0.0..=12.0).contains(&entry.idle_hours)
++            && entry.compile_time_ms >= MIN_COST_MS
++        {
++            self.victims.push((entry, freed));
++        }
++    }
++
++    pub(crate) fn finish(
++        mut self,
++        cache: &Path,
++        stats: &GcStats,
++        alternatives: impl Iterator<Item = &'a EntryFeatures>,
++    ) -> anyhow::Result<()> {
++        let finished_ms = now_ms();
++        let dir = cache.join(RECORD_DIR);
++        fs::create_dir_all(&dir)?;
++        // GC callers hold the sweep lock. Check the cap before scanning alternatives.
++        let records = fs::read_dir(&dir)?
++            .take(MAX_SWEEPS)
++            .try_fold(0, |count, entry| entry.map(|_| count + 1))?;
++        if records == MAX_SWEEPS {
++            return Ok(());
++        }
++
++        // A sweep that missed its byte target records the shortfall but no pairs.
++        let (eligible_alternatives, pairs) =
++            if stats.bytes_freed >= self.target_indexed_bytes && !self.victims.is_empty() {
++                match_alternatives(&mut self.victims, alternatives)
++            } else {
++                (0, Vec::new())
++            };
++        let record = SweepRecord {
++            schema: 1,
++            sweep_started_ms: self.sweep_started_ms,
++            target_indexed_bytes: self.target_indexed_bytes,
++            finished_ms,
++            live_indexed_bytes: stats.bytes_freed,
++            live_disk_bytes_estimate: stats.disk_bytes_reclaimed,
++            live_victims: stats.entries_evicted,
++            eligible_live: self.victims.len(),
++            eligible_alternatives,
++            pairs,
++        };
++        let path = dir.join(format!(
++            "{}-{}.json",
++            self.sweep_started_ms,
++            std::process::id()
++        ));
++        crate::atomic::atomic_replace_deferrable(&path, &serde_json::to_vec(&record)?, false)
++    }
++}
++
++fn match_alternatives<'a>(
++    victims: &mut [(&'a EntryFeatures, u64)],
++    alternatives: impl Iterator<Item = &'a EntryFeatures>,
++) -> (usize, Vec<Pair<'a>>) {
++    let mut by_size: BTreeMap<u64, Vec<&EntryFeatures>> = BTreeMap::new();
++    let mut eligible_alternatives = 0;
++    for entry in alternatives {
++        if entry.hit_count == 0
++            && entry.idle_hours >= 2.0
++            && (1..MIN_COST_MS).contains(&entry.compile_time_ms)
++            && let Some(bytes) = independent_bytes(entry)
++        {
++            eligible_alternatives += 1;
++            by_size.entry(bytes).or_default().push(entry);
++        }
++    }
++    for entries in by_size.values_mut() {
++        // Alternatives arrive in live eviction order; pop the earliest on ties.
++        entries.reverse();
++    }
++    victims.sort_unstable_by(|(a, _), (b, _)| {
++        b.compile_time_ms
++            .cmp(&a.compile_time_ms)
++            .then(a.key.cmp(&b.key))
++    });
++    let mut pairs = Vec::new();
++    for &(entry, freed) in victims.iter() {
++        // Independent blobs cannot be counted in two pairs.
++        let Some((size, entries)) = by_size.range_mut(freed..=freed + freed / 20).next() else {
++            continue;
++        };
++        let (bytes, substitute) = (*size, entries.pop().expect("nonempty size bucket"));
++        if entries.is_empty() {
++            by_size.remove(&bytes);
++        }
++        pairs.push(Pair {
++            live: Victim::new(entry, freed),
++            shadow: Victim::new(substitute, bytes),
++        });
++        if pairs.len() == MAX_PAIRS {
++            break;
++        }
++    }
++    (eligible_alternatives, pairs)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn entry(key: &str, bytes: u64, hits: i64, cost: i64) -> EntryFeatures {
++        EntryFeatures {
++            key: key.into(),
++            size: bytes as i64,
++            key_schema: i64::from(kache_format::CACHE_KEY_VERSION),
++            hit_count: hits,
++            idle_hours: 3.0,
++            content_hash: None,
++            committed: true,
++            compile_time_ms: cost,
++            reclaimable_bytes: Some(bytes as i64),
++            recently_accessed: false,
++            recently_imported: false,
++        }
++    }
++
++    #[test]
++    fn pairs_one_removal_with_one_independent_same_budget_alternative() {
++        let expensive = entry("hot", 2 << 20, 5, 30_000);
++        let second = entry("second-hot", 2 << 20, 3, 20_000);
++        let too_small = entry("smaller", (2 << 20) - 1, 0, 10);
++        let too_large = entry("larger", 3 << 20, 0, 10);
++        let unknown = entry("unknown", 2 << 20, 0, 0);
++        let mut shared = entry("shared", 2 << 20, 0, 10);
++        shared.reclaimable_bytes = Some(0);
++        let cold = entry("cold", (2 << 20) + 1024, 0, 10);
++        let (eligible, pairs) = match_alternatives(
++            &mut [(&second, 2 << 20), (&expensive, 2 << 20)],
++            [&too_small, &too_large, &unknown, &shared, &cold].into_iter(),
++        );
++        assert_eq!(eligible, 3);
++        assert_eq!(pairs.len(), 1);
++        assert_eq!(pairs[0].live.key, "hot");
++        assert_eq!(pairs[0].shadow.key, "cold");
++        assert_eq!(
++            pairs[0].shadow.indexed_bytes - pairs[0].live.indexed_bytes,
++            1024
++        );
++    }
++
++    #[test]
++    fn incomplete_sweep_keeps_evidence_but_does_not_claim_a_match() {
++        let hot = entry("hot", 2 << 20, 3, 10_000);
++        let cold = entry("cold", 2 << 20, 0, 100);
++        let mut trial = Trial::new(3 << 20);
++        trial.observe(&hot, 2 << 20);
++        let cache = tempfile::tempdir().unwrap();
++        trial
++            .finish(
++                cache.path(),
++                &GcStats {
++                    bytes_freed: 2 << 20,
++                    ..Default::default()
++                },
++                [&cold].into_iter(),
++            )
++            .unwrap();
++        let path = fs::read_dir(cache.path().join(RECORD_DIR))
++            .unwrap()
++            .next()
++            .unwrap()
++            .unwrap()
++            .path();
++        let record: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
++        assert_eq!(record["eligible_live"], 1);
++        assert_eq!(record["pairs"], serde_json::json!([]));
++    }
++
++    #[test]
++    fn full_record_directory_skips_matching_and_writes() {
++        let cache = tempfile::tempdir().unwrap();
++        let dir = cache.path().join(RECORD_DIR);
++        fs::create_dir_all(&dir).unwrap();
++        for index in 0..256 {
++            fs::write(dir.join(format!("{index}.json")), b"{}").unwrap();
++        }
++        let hot = entry("hot", 2 << 20, 3, 10_000);
++        let mut trial = Trial::new(2 << 20);
++        trial.observe(&hot, 2 << 20);
++        trial
++            .finish(
++                cache.path(),
++                &GcStats {
++                    bytes_freed: 2 << 20,
++                    ..Default::default()
++                },
++                std::iter::from_fn(|| panic!("a full recorder must not scan alternatives")),
++            )
++            .unwrap();
++        assert_eq!(fs::read_dir(dir).unwrap().count(), 256);
++    }
++}
+diff --git a/crates/kache-store/src/store.rs b/crates/kache-store/src/store.rs
+index 137cc5db..f880d66b 100644
+--- a/crates/kache-store/src/store.rs
++++ b/crates/kache-store/src/store.rs
+@@ -5287,7 +5287,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+                     EXISTS(SELECT 1 FROM entry_blobs eb2
+                             WHERE eb2.cache_key = entries.cache_key),
+                     last_accessed >= datetime('now', ?1),
+-                    COALESCE(imported_at >= unixepoch() - ?2, 0)
++                    COALESCE(imported_at >= unixepoch() - ?2, 0), key_schema
+              FROM entries",
+         )?;
+         let rows = stmt
+@@ -5310,6 +5310,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+                     Ok(crate::eviction::EntryFeatures {
+                         key: row.get(0)?,
+                         size: row.get(1)?,
++                        key_schema: row.get(11)?,
+                         hit_count: row.get(2)?,
+                         content_hash: row.get(3)?,
+                         committed: row.get(4)?,
+@@ -5393,6 +5394,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+         shadow: Option<&ShadowSelection>,
+         durable_upload_keys: &std::collections::HashSet<String>,
+         held: &std::collections::HashMap<String, u64>,
++        retention_trial: bool,
+         stop: &mut dyn FnMut() -> bool,
+     ) -> GcStats {
+         let mut stats = GcStats::default();
+@@ -5403,6 +5405,11 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+             Some((current, target)) => (current, Some(target)),
+             None => (0, None),
+         };
++        let mut trial = target
++            .map(|target| current_size.saturating_sub(target))
++            .filter(|budget| *budget != 0 && retention_trial)
++            .map(crate::retention_shadow::Trial::new);
++        let mut unvisited = order;
+         let mut evicted = std::collections::HashSet::new();
+         // The shadow's victims are stamped with the sweep's start, so the
+         // sweep's own tombstones are never older than them.
+@@ -5412,7 +5419,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+                 .ok()
+         });
+ 
+-        for key in order {
++        for (index, key) in order.iter().enumerate() {
+             if stop() {
+                 break;
+             }
+@@ -5421,6 +5428,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+             {
+                 break;
+             }
++            unvisited = &order[index + 1..];
+             if durable_upload_keys.contains(key) {
+                 stats.entries_pinned += 1;
+                 tracing::debug!(
+@@ -5470,6 +5478,9 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+                     stats.disk_bytes_reclaimed += reclaim.disk_bytes_reclaimed;
+                     stats.blobs_removed += reclaim.blobs_unlinked;
+                     current_size = current_size.saturating_sub(reclaim.freed_bytes);
++                    if let (Some(trial), Some(entry)) = (&mut trial, features) {
++                        trial.observe(entry, reclaim.freed_bytes);
++                    }
+                     // Telemetry, deliberately outside remove_entry_guarded so
+                     // the removal mechanism stays free of it (#595). Recorded
+                     // after the fact rather than in the delete transaction: a
+@@ -5511,6 +5522,16 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+             let kept = shadow_only_victims(shadow, &evicted, by_key, durable_upload_keys, held);
+             self.record_shadow_victims(shadow.policy, &swept_at, &kept);
+         }
++        if let Some(trial) = trial {
++            let alternatives = unvisited
++                .iter()
++                .filter(|key| !durable_upload_keys.contains(*key) && !held.contains_key(*key))
++                .filter_map(|key| by_key.get(key.as_str()).copied())
++                .filter(|entry| !entry.recently_accessed && !entry.recently_imported);
++            if let Err(error) = trial.finish(&self.config.cache_dir, &stats, alternatives) {
++                tracing::warn!(%error, "gc: could not save retention shadow evidence");
++            }
++        }
+         stats
+     }
+ 
+@@ -5590,6 +5611,9 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+         let by_key: std::collections::HashMap<&str, &crate::eviction::EntryFeatures> =
+             candidates.iter().map(|e| (e.key.as_str(), e)).collect();
+         let durable_upload_keys = self.durable_upload_keys()?;
++        let retention_trial = origin == SweepOrigin::Automatic
++            && probe_held_bytes
++            && std::env::var_os("KACHE_RETENTION_SHADOW").as_deref() == Some("1".as_ref());
+         let mut stats = self.apply_eviction(
+             &order,
+             &by_key,
+@@ -5598,6 +5622,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+             shadow.as_ref(),
+             &durable_upload_keys,
+             &held,
++            retention_trial,
+             stop,
+         );
+         stats.bytes_held = bytes_held;
+@@ -5756,6 +5781,7 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
+             None,
+             &durable_upload_keys,
+             &std::collections::HashMap::new(),
++            false,
+             &mut || false,
+         ))
+     }
+diff --git a/crates/kache-store/src/store/compiler_gc.rs b/crates/kache-store/src/store/compiler_gc.rs
+index 6a7bdb3a..e8bc41cb 100644
+--- a/crates/kache-store/src/store/compiler_gc.rs
++++ b/crates/kache-store/src/store/compiler_gc.rs
+@@ -79,6 +79,7 @@ impl<P: crate::ArtifactPolicy> ArtifactStore<P> {
+             None,
+             &durable_upload_keys,
+             &std::collections::HashMap::new(),
++            false,
+             &mut || false,
+         ))
+     }
+diff --git a/crates/kache-store/src/store/tests.rs b/crates/kache-store/src/store/tests.rs
+index a572ae75..e52b8b85 100644
+--- a/crates/kache-store/src/store/tests.rs
++++ b/crates/kache-store/src/store/tests.rs
+@@ -5475,6 +5475,7 @@ fn tombstones_are_pruned_by_age_and_re_eviction_resets_the_record() {
+     let features = crate::eviction::EntryFeatures {
+         key: "recent".into(),
+         size: 1,
++        key_schema: 0,
+         hit_count: 0,
+         idle_hours: 5.0,
+         content_hash: None,
+@@ -11103,6 +11104,7 @@ fn shadow_only_victims_skip_what_the_sweep_protects() {
+     let features = |key: &str| crate::eviction::EntryFeatures {
+         key: key.to_string(),
+         size: 1,
++        key_schema: 0,
+         hit_count: 0,
+         idle_hours: 1.0,
+         content_hash: None,
+@@ -11132,6 +11134,77 @@ fn shadow_only_victims_skip_what_the_sweep_protects() {
+     );
+ }
+ 
++#[test]
++fn retention_shadow_observes_without_changing_the_live_victim() {
++    let dir = tempfile::tempdir().unwrap();
++    let config = test_config(dir.path());
++    let store = Store::open(&config).unwrap();
++    let bytes = 2 << 20;
++    for (key, data) in [("hot", b'h'), ("held", b'b'), ("cold", b'c')] {
++        let path = dir.path().join(format!("{key}.rlib"));
++        fs::write(&path, vec![data; bytes]).unwrap();
++        store
++            .put(
++                key,
++                "c",
++                &["lib".into()],
++                &[],
++                "",
++                "dev",
++                &[(path.clone(), "lib.rlib".into())],
++                "",
++                "",
++            )
++            .unwrap();
++        fs::remove_file(path).unwrap();
++    }
++    store
++        .db
++        .execute(
++            "UPDATE entries SET last_accessed = datetime('now', '-3 hours'),
++             hit_count = CASE WHEN cache_key = 'hot' THEN 3 ELSE 0 END,
++             compile_time_ms = CASE WHEN cache_key = 'hot' THEN 15000 ELSE 100 END",
++            [],
++        )
++        .unwrap();
++    let candidates = store.eviction_candidates().unwrap();
++    let by_key = candidates
++        .iter()
++        .map(|entry| (entry.key.as_str(), entry))
++        .collect();
++    let stats = store.apply_eviction(
++        &["hot".into(), "held".into(), "cold".into()],
++        &by_key,
++        "size-pressure",
++        Some((3 * bytes as u64, 2 * bytes as u64)),
++        None,
++        &Default::default(),
++        &[("held".into(), bytes as u64)].into_iter().collect(),
++        true,
++        &mut || false,
++    );
++    assert_eq!(stats.entries_evicted, 1);
++    let keys: std::collections::BTreeSet<_> = store
++        .eviction_candidates()
++        .unwrap()
++        .into_iter()
++        .map(|entry| entry.key)
++        .collect();
++    assert_eq!(
++        keys,
++        ["cold".to_owned(), "held".to_owned()].into_iter().collect()
++    );
++    let evidence = fs::read_dir(config.cache_dir.join("telemetry/retention-shadow-v1"))
++        .unwrap()
++        .next()
++        .unwrap()
++        .unwrap()
++        .path();
++    let record: serde_json::Value = serde_json::from_slice(&fs::read(evidence).unwrap()).unwrap();
++    assert_eq!(record["pairs"][0]["live"]["key"], "hot");
++    assert_eq!(record["pairs"][0]["shadow"]["key"], "cold");
++}
++
+ /// kunobi-ninja/kache#608 (honest accounting): a sweep over a fully-shared
+ /// family reports the physical bytes it freed (once, when the last
+ /// reference goes), not the logical sum of the evicted entries.

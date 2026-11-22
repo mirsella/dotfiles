@@ -11,6 +11,7 @@
     })
   ];
   programs.git.settings.user.signingkey = "E53202A06B2614A4";
+  systemd.user.services.kache.Service.Environment = [ "KACHE_RETENTION_SHADOW=1" ];
 
   desktop.plasma = {
     screen = {

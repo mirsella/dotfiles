@@ -253,7 +253,7 @@ in
       ExecStart = "${lib.getExe' pkgs.kache "kache"} daemon run";
       Restart = "on-failure";
       RestartSec = "5s";
-      Environment = "KACHE_LOG=kache=info";
+      Environment = [ "KACHE_LOG=kache=info" ];
     };
     Install.WantedBy = [ "default.target" ];
   };

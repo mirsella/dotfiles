@@ -4,7 +4,7 @@
 
 `default.nix` selects upstream commit
 `3aad1a1974efcae8c8827a7200d5cf7cd270319e` with the version label
-`2.1.1+local-compile-first-20261118`. Install the frontend and `kache-engine`
+`2.1.1+local-retention-shadow-20261121`. Install the frontend and `kache-engine`
 together. Home Manager also owns the Cargo-bin aliases so a separately installed
 frontend cannot replace the managed daemon.
 
@@ -21,6 +21,16 @@ missing or rejected input predictions from a first lookup that missed. A
 verified key already gets a lookup before compiler admission. This patch does
 not change admission, key validation, or cache-key schema.
 
+`retention-shadow.patch` records a comparison during automatic size-pressure
+sweeps on `main` only. After normal GC meets its byte target, it pairs some
+expensive, recently reused victims with cheaper entries that the sweep left
+untouched. Each substitute is estimated to free between 100% and 105% of
+the victim's actual indexed bytes. The test never removes a substitute or
+changes the live policy. It records at most 64 pairs per sweep and stops
+after 256 records in `~/.cache/kache/telemetry/retention-shadow-v1`.
+Compare exact-key demand at 12 and 48 hours. Indexed bytes are not physical
+reclamation, and compile cost is not build wall time.
+
 The upstream checkout-path correctness fix uses key version 35. Expect cold
 misses when moving from the old recipe; preserve old entries for rollback.
 Remote caching stays disabled. Upstream issue #1946 still affects remote
@@ -35,9 +45,11 @@ as medians. Compiler-time sums and inferred session closure are not Cargo wall t
 `kache-observe.timer` captures read-only compressed observations twice daily in
 `~/.local/state/kache-observations`. It retains at most 60 snapshots and 512 MiB,
 including entry-to-blob mappings, live/shadow eviction observations, binary and
-daemon identity, and physical cache extents. These snapshots have gaps and cannot
-prove a counterfactual policy win. Collection uses idle I/O, low CPU priority and
-a five-minute timeout; check its journal and retained coverage during reviews.
+daemon identity, and optional physical cache extents. The observer uses idle
+I/O and low CPU priority, with an eight-minute service timeout. If the extent
+scan reaches its 45-second deadline, the index snapshot is still published.
+Check the journal and coverage during reviews; snapshots alone cannot show
+what another policy would have saved.
 
 The November qualification includes an interleaved vanilla/deployed/candidate
 warm-build comparison, real Clippy/Cranelift and Git/native-input checks, and

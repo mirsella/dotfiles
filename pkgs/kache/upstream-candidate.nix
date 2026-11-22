@@ -22,12 +22,13 @@ rustPlatform.buildRustPackage rec {
   patches = [
     ./upstream-candidate.patch
     ./compile-first-observations.patch
+    ./retention-shadow.patch
   ];
   postPatch = ''
     substituteInPlace crates/kache-ipc/src/execution/unix_client.rs \
       --replace-fail '/bin/cat' '${coreutils}/bin/cat'
   '';
-  KACHE_VERSION = "${version}+local-compile-first-20261118";
+  KACHE_VERSION = "${version}+local-retention-shadow-20261121";
   CARGO_PROFILE_RELEASE_LTO = "thin";
   nativeBuildInputs = [ pkg-config ];
   nativeCheckInputs = [ git cacert bashInteractive zsh ];
