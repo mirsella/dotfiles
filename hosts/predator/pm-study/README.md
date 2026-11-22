@@ -713,6 +713,12 @@ direct service has no restart. Before sleep the extended runner reads
 back the RTC alarm to verify the requested delay. The precheck can only
 run `check`; it must not repair or replay the trial.
 
+The 15:10 CET precheck was blocked: SSH timed out during the banner
+exchange through the alias, directly on the LAN and via the Pi. The Pi
+received ping replies from Predator. That confirmed network reachability,
+not the timer, service or baseline. No launcher command ran and no remote
+changes were made. The 17:50 results check remains scheduled.
+
 Use the actual entry and return timestamps for the meter comparison.
 Check whether complete five-minute bins inside the sleep interval stay
 near 7 W, and compare with adjacent complete awake bins. Exclude any bin
@@ -795,7 +801,8 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 21 19:30 | `s2idle-aged-4` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 205 | about 9 h 33 min at real request | dry 5/5; real return at 19:34:08 after 122.1 s; cleanup passed, counters 6/0 | no wall-power result |
 | Nov 22 05:10 | `s2idle-meter-1` scheduling check | read-only timer and baseline checks | 9 h 13 min from the observation anchor | timer correct; preflight passed; zero requests | generation 205 unchanged |
 | Nov 22 05:30 | `s2idle-meter-1` | five D0 core dry cycles, then one s2idle request with 1,500 s RTC alarm on generation 205 | about 9 h 34 min from the observation anchor at real request | dry 5/5; real return at 05:57:00 after 1,502.4 s; cleanup passed, counters 12/0 | owner reported about 7 W asleep |
-| Nov 22 15:30 | `s2idle-long-1` | five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | 9 h 33 min projected at trigger from the post-resume anchor | pending | check full meter bins across the two hours |
+| Nov 22 15:10 | `s2idle-long-1` precheck | read-only checks | not verified | SSH banner timed out; Pi ping succeeded; launcher not invoked | |
+| Nov 22 15:30 | `s2idle-long-1` | five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | 9 h 33 min projected at trigger from the post-resume anchor | pending; timer could not be reverified at precheck | check full meter bins across the two hours |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
