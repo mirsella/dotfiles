@@ -166,8 +166,7 @@ Work through this in order. Record every run in the results table.
    at the request boundary. The owner saw 15 W and rebooted. GPU-off
    reduced awake wall draw in the meter test but was not sufficient to
    prevent this hang. Skip the repeat and reversal and move to step 7.
-7. s2idle, aged. It returned once after 11 hours awake. Two more aged returns
-   and a wall reading near 3 W would make it a usable replacement for S3.
+7. s2idle, aged. It returned once after 11 hours awake.
    Wake-on-LAN did not wake s2idle on this machine; an RTC alarm has
    brought it back. `s2idle-aged-1` refused before any request because
    the booted and active generations differed. This did not test s2idle.
@@ -176,8 +175,8 @@ Work through this in order. Record every run in the results table.
    205 was active while generation 202 was booted. On the audited
    generation 205 boot, `s2idle-aged-4` returned at the expected RTC
    interval. The 25-minute repeat on the same baseline also returned
-   at the expected RTC interval. Wall-meter readings are still needed
-   to judge whether `s2idle` is a useful low-power alternative.
+   at the expected RTC interval. The owner reported about 7 W during
+   the repeat. Longer sleeps have not been tested on this baseline.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -683,8 +682,9 @@ unit, job, blocking inhibitor or study timer was active.
 For the meter comparison, use the four complete five-minute intervals
 from 05:35 to 05:55 CET. Compare them with awake intervals such as
 05:25 to 05:30 and 06:00 to 06:05. Leave out the intervals that
-contain entry or return. The wake result does not establish wall
-power. No further trial was armed.
+contain entry or return. The owner reported about 7 W during the
+sleep interval but did not provide individual bins or a matched awake
+reading. No further trial was armed.
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
@@ -742,7 +742,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 21 19:10 | `s2idle-aged-4` scheduling check | read-only timer and baseline checks | 9 h 11 min | timer correct; preflight passed; zero requests | generation 205 unchanged |
 | Nov 21 19:30 | `s2idle-aged-4` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 205 | about 9 h 33 min at real request | dry 5/5; real return at 19:34:08 after 122.1 s; cleanup passed, counters 6/0 | no wall-power result |
 | Nov 22 05:10 | `s2idle-meter-1` scheduling check | read-only timer and baseline checks | 9 h 13 min from the observation anchor | timer correct; preflight passed; zero requests | generation 205 unchanged |
-| Nov 22 05:30 | `s2idle-meter-1` | five D0 core dry cycles, then one s2idle request with 1,500 s RTC alarm on generation 205 | about 9 h 34 min from the observation anchor at real request | dry 5/5; real return at 05:57:00 after 1,502.4 s; cleanup passed, counters 12/0 | wall readings pending for 05:35 to 05:55 |
+| Nov 22 05:30 | `s2idle-meter-1` | five D0 core dry cycles, then one s2idle request with 1,500 s RTC alarm on generation 205 | about 9 h 34 min from the observation anchor at real request | dry 5/5; real return at 05:57:00 after 1,502.4 s; cleanup passed, counters 12/0 | owner reported about 7 W asleep |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
