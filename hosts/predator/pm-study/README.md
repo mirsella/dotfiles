@@ -651,6 +651,17 @@ complete five-minute meter bins within the logged sleep interval
 with adjacent complete awake bins. Do not arm another trial from
 this result check.
 
+At 05:10 CET the timer was waiting for exactly 05:30 and the service
+had never started. Both runtime units and the launcher matched the
+prepared copies. All checksums, the independently pinned launcher
+and runner hashes, and the stored command matched. There were no
+drop-ins, trial logs, STOP file, pending jobs or conflicting timers.
+Generation 205, the boot ID and counters 6/0 still matched the pins.
+The read-only `check` passed 33,158 s after the uptime anchor,
+including the audit of all nine volumes. All pools were healthy and
+Ente was running. No units or settings changed and no sleep was
+requested at the precheck.
+
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
 writes `LABEL.jsonl`, synced to disk before every request. A hang leaves an
 `enter` line with no `return` line after it. Labels cannot be reused. Creating
@@ -706,6 +717,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 21 06:00 | `s2idle-aged-3` | planned five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 202 | 9 h 55 min at trigger | launcher refused on generation mismatch; zero requests | repeat not armed |
 | Nov 21 19:10 | `s2idle-aged-4` scheduling check | read-only timer and baseline checks | 9 h 11 min | timer correct; preflight passed; zero requests | generation 205 unchanged |
 | Nov 21 19:30 | `s2idle-aged-4` | five D0 core dry cycles, then one s2idle request with 120 s RTC alarm on generation 205 | about 9 h 33 min at real request | dry 5/5; real return at 19:34:08 after 122.1 s; cleanup passed, counters 6/0 | no wall-power result |
+| Nov 22 05:10 | `s2idle-meter-1` scheduling check | read-only timer and baseline checks | 9 h 13 min from the observation anchor | timer correct; preflight passed; zero requests | generation 205 unchanged |
 | Nov 22 05:30 | `s2idle-meter-1` | five D0 core dry cycles, then one s2idle request with 1,500 s RTC alarm on generation 205 | about 9 h 32 min from the observation anchor at planned trigger | pending | precheck 05:10; results 06:15 |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
