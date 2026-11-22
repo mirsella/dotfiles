@@ -176,9 +176,10 @@ Work through this in order. Record every run in the results table.
    generation 205 boot, `s2idle-aged-4` returned at the expected RTC
    interval. The 25-minute repeat on the same baseline also returned
    at the expected RTC interval. The owner reported about 7 W during
-   the repeat. A two-hour trial is armed next. A verified wake on
-   schedule and a healthy, unchanged system qualify it for a
-   seven-hour overnight run without waiting for meter readings.
+   the repeat. The two-hour trial's result could not be verified over
+   SSH. The seven-hour overnight run remains unarmed. It requires a
+   verified wake on schedule and a healthy, unchanged system, but
+   does not require meter readings.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -693,7 +694,7 @@ reading. No further trial was armed.
 
 ### Longer s2idle trials on generation 205
 
-`s2idle-long-1` is armed for November 22 at 15:30 CET, with a read-only
+`s2idle-long-1` was armed for November 22 at 15:30 CET, with a read-only
 precheck at 15:10 and a results check at 17:50. It keeps the same boot,
 system, storage and original GPU and firmware settings as the successful
 25-minute trial. The post-resume snapshot measured 71,847.62 s uptime
@@ -718,6 +719,16 @@ exchange through the alias, directly on the LAN and via the Pi. The Pi
 received ping replies from Predator. That confirmed network reachability,
 not the timer, service or baseline. No launcher command ran and no remote
 changes were made. The 17:50 results check remains scheduled.
+
+At the results check, SSH still timed out from 17:50 through 18:00 CET
+via the alias, directly on the LAN and via the Pi. Predator answered
+the Pi's pings at both ends of that interval. The LAN Ente HTTPS
+connection also timed out, and the Pi's netconsole log had no new
+entries. The timer and service journals, sleep logs and live health
+checks were inaccessible. This does not establish whether the timer
+fired, the launcher refused, or a sleep request ran and returned.
+The outcome is unverified, not a confirmed hang. No recovery or retry
+was attempted, and no overnight timer or follow-up checks were armed.
 
 Use the actual entry and return timestamps for the meter comparison.
 Check whether complete five-minute bins inside the sleep interval stay
@@ -802,7 +813,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 22 05:10 | `s2idle-meter-1` scheduling check | read-only timer and baseline checks | 9 h 13 min from the observation anchor | timer correct; preflight passed; zero requests | generation 205 unchanged |
 | Nov 22 05:30 | `s2idle-meter-1` | five D0 core dry cycles, then one s2idle request with 1,500 s RTC alarm on generation 205 | about 9 h 34 min from the observation anchor at real request | dry 5/5; real return at 05:57:00 after 1,502.4 s; cleanup passed, counters 12/0 | owner reported about 7 W asleep |
 | Nov 22 15:10 | `s2idle-long-1` precheck | read-only checks | not verified | SSH banner timed out; Pi ping succeeded; launcher not invoked | |
-| Nov 22 15:30 | `s2idle-long-1` | five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | 9 h 33 min projected at trigger from the post-resume anchor | pending; timer could not be reverified at precheck | check full meter bins across the two hours |
+| Nov 22 15:30 | `s2idle-long-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | 9 h 33 min projected at trigger from the post-resume anchor | unverified; SSH timed out through 18:00, Pi ping succeeded; no journals or trial logs read | overnight trial not armed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
