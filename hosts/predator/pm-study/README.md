@@ -809,6 +809,16 @@ and both binaries match the saved copies and hashes in
 The timer is nonpersistent. The service is inactive, has never
 started and has no restart policy.
 
+The November 24 00:40 CET precheck passed. The live units and both
+root-owned binaries matched the saved copies and independent hashes.
+The timer still targeted 01:00 CET, with no drop-ins, and the service
+had never started. There were no trial logs, STOP flag, pending jobs
+or conflicting suspend timers. The pinned generation 206 boot and
+0/0 counters matched, both GPU devices were suspended in D3cold, and
+Ente was running. Only `check` ran, passing at 41,493 s awake,
+including the audit of all nine volumes. The timer and the 03:20
+results check were left unchanged.
+
 Use the actual entry and return timestamps for the meter comparison.
 Check whether complete five-minute bins inside the sleep interval stay
 near 7 W, and compare with adjacent complete awake bins. Exclude any bin
@@ -895,6 +905,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 22 15:10 | `s2idle-long-1` precheck | read-only checks | not verified | SSH banner timed out; Pi ping succeeded; launcher not invoked | |
 | Nov 22 15:30 (due) | `s2idle-long-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 40 min at refusal | launcher refused at 15:36:53 on failed units; zero requests | fan at full speed before owner reboot Nov 23; overnight trial not armed |
 | Nov 23 20:20 (due) | `s2idle-long-boot-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 19 min at planned trigger | cancelled at 12:29; zero requests | generation 206 active on the generation 205 boot; both T3 checks disabled |
+| Nov 24 00:40 | `s2idle-long-boot-cold-1` precheck | read-only timer and baseline checks | 41,493 s since boot | preflight passed; zero requests | generation 206 unchanged; GPU and port in D3cold |
 | Nov 24 01:00 | `s2idle-long-boot-cold-1` | five core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 206 with the existing D3cold policy | about 11 h 51 min at planned trigger | armed; outcome pending | precheck 00:40; results 03:20; overnight unarmed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
