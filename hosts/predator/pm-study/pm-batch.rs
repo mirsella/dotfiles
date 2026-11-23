@@ -3,7 +3,7 @@
 //!
 //! Build (static, on main): `rustc -O --edition 2021 -D warnings
 //!     --target x86_64-unknown-linux-musl pm-batch.rs`
-//! Run as root: `pm-batch <label> <dry|s3|s2idle> <cycles> [wake_s] [gap_s] [nosmi|gpu-off]`
+//! Run as root: `pm-batch <label> <dry|s3|s2idle> <cycles> [wake_s] [gap_s] [nosmi|gpu-off|expect-d3cold]`
 //!              `pm-batch <label> snapshot`
 //!
 //! - `dry`    : `pm_test=core`. The kernel runs the whole suspend path, waits
@@ -523,7 +523,7 @@ fn run() -> R<()> {
     let is_snapshot = args.len() == 3 && args[2] == "snapshot";
     if !is_snapshot && !(4..=7).contains(&args.len()) {
         return Err(
-            "usage: pm-batch <label> <dry|s3|s2idle> <cycles> [wake_s=30] [gap_s=30] [nosmi|gpu-off]\n       pm-batch <label> snapshot"
+            "usage: pm-batch <label> <dry|s3|s2idle> <cycles> [wake_s=30] [gap_s=30] [nosmi|gpu-off|expect-d3cold]\n       pm-batch <label> snapshot"
                 .into(),
         );
     }
@@ -565,10 +565,11 @@ fn run() -> R<()> {
         return Err(format!("a wake alarm is already armed: {}", read(ALARM)));
     }
 
-    let (no_smi, gpu_off) = match args.get(6).map(String::as_str) {
-        None => (false, false),
-        Some("nosmi") if mode != "dry" => (true, false),
-        Some("gpu-off") if mode == "s3" && cycles == 1 => (false, true),
+    let (no_smi, gpu_off, expect_d3cold) = match args.get(6).map(String::as_str) {
+        None => (false, false, false),
+        Some("nosmi") if mode != "dry" => (true, false, false),
+        Some("gpu-off") if mode == "s3" && cycles == 1 => (false, true, false),
+        Some("expect-d3cold") if mode == "s2idle" && cycles == 1 => (false, false, true),
         Some(other) => return Err(format!("unknown or misplaced option {other}")),
     };
     if !valid_wake(mode, cycles, wake, no_smi || gpu_off) {
@@ -643,6 +644,7 @@ fn run() -> R<()> {
         ("gap_s", gap.to_string()),
         ("nosmi", no_smi.to_string()),
         ("gpu_off", gpu_off.to_string()),
+        ("expect_d3cold", expect_d3cold.to_string()),
         ("smi_en_low", quote(&format!("{smi_en:#04x}"))),
         ("wall", format!("{:.3}", wall())),
         ("uptime", format!("{:.2}", uptime())),
@@ -689,7 +691,7 @@ fn run() -> R<()> {
             Some(base) => format!("{:#04x}", slp_smi(base, false)?),
             None => String::new(),
         };
-        if gpu_off {
+        if gpu_off || expect_d3cold {
             require_gpu_off()?;
         }
         log.line(&[

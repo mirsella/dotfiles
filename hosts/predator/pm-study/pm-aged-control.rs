@@ -79,8 +79,14 @@ enum Arm {
     GpuOff,
     AgedS2idle,
     S2idleMeter,
-    S2idleLong { from_boot: bool },
-    S2idleOvernight { after_boot_trial: bool },
+    S2idleLong {
+        from_boot: bool,
+        cold_gpu: bool,
+    },
+    S2idleOvernight {
+        after_boot_trial: bool,
+        cold_gpu: bool,
+    },
 }
 
 #[derive(Clone, Copy)]
@@ -97,13 +103,20 @@ impl Stage {
                 Arm::S2idleMeter
                 | Arm::S2idleOvernight {
                     after_boot_trial: true,
+                    ..
                 },
             ) => ("6", &[]),
-            (Self::Initial, Arm::S2idleLong { from_boot: false }) => ("12", &[]),
+            (
+                Self::Initial,
+                Arm::S2idleLong {
+                    from_boot: false, ..
+                },
+            ) => ("12", &[]),
             (
                 Self::Initial,
                 Arm::S2idleOvernight {
                     after_boot_trial: false,
+                    ..
                 },
             ) => ("18", &[]),
             (Self::Initial, _) => ("0", &[]),
@@ -112,15 +125,20 @@ impl Stage {
                 Arm::S2idleMeter
                 | Arm::S2idleOvernight {
                     after_boot_trial: true,
+                    ..
                 },
             ) => ("11", &["before.snapshot.txt", "dry.jsonl"]),
-            (Self::BeforeSleep, Arm::S2idleLong { from_boot: false }) => {
-                ("17", &["before.snapshot.txt", "dry.jsonl"])
-            }
+            (
+                Self::BeforeSleep,
+                Arm::S2idleLong {
+                    from_boot: false, ..
+                },
+            ) => ("17", &["before.snapshot.txt", "dry.jsonl"]),
             (
                 Self::BeforeSleep,
                 Arm::S2idleOvernight {
                     after_boot_trial: false,
+                    ..
                 },
             ) => ("23", &["before.snapshot.txt", "dry.jsonl"]),
             (
@@ -128,7 +146,9 @@ impl Stage {
                 Arm::AgedControl
                 | Arm::GpuOff
                 | Arm::AgedS2idle
-                | Arm::S2idleLong { from_boot: true },
+                | Arm::S2idleLong {
+                    from_boot: true, ..
+                },
             ) => ("5", &["before.snapshot.txt", "dry.jsonl"]),
             (Self::BeforeSleep, Arm::ShortBypass | Arm::AgedBypassProbe | Arm::GpuMeter) => {
                 ("0", &["before.snapshot.txt"])
@@ -171,18 +191,46 @@ impl Arm {
             ("gpu-off-", Self::GpuOff),
             ("s2idle-aged-", Self::AgedS2idle),
             ("s2idle-meter-", Self::S2idleMeter),
-            ("s2idle-long-", Self::S2idleLong { from_boot: false }),
-            ("s2idle-long-boot-", Self::S2idleLong { from_boot: true }),
+            (
+                "s2idle-long-",
+                Self::S2idleLong {
+                    from_boot: false,
+                    cold_gpu: false,
+                },
+            ),
+            (
+                "s2idle-long-boot-",
+                Self::S2idleLong {
+                    from_boot: true,
+                    cold_gpu: false,
+                },
+            ),
+            (
+                "s2idle-long-boot-cold-",
+                Self::S2idleLong {
+                    from_boot: true,
+                    cold_gpu: true,
+                },
+            ),
             (
                 "s2idle-overnight-",
                 Self::S2idleOvernight {
                     after_boot_trial: false,
+                    cold_gpu: false,
                 },
             ),
             (
                 "s2idle-overnight-after-boot-trial-",
                 Self::S2idleOvernight {
                     after_boot_trial: true,
+                    cold_gpu: false,
+                },
+            ),
+            (
+                "s2idle-overnight-after-boot-trial-cold-",
+                Self::S2idleOvernight {
+                    after_boot_trial: true,
+                    cold_gpu: true,
                 },
             ),
         ] {
@@ -223,13 +271,23 @@ impl Arm {
         matches!(
             self,
             Self::S2idleMeter
-                | Self::S2idleLong { from_boot: false }
+                | Self::S2idleLong {
+                    from_boot: false,
+                    ..
+                }
                 | Self::S2idleOvernight { .. }
         )
     }
 
     fn is_s2idle(&self) -> bool {
         matches!(self, Self::AgedS2idle | Self::S2idleMeter) || self.is_extended_s2idle()
+    }
+
+    fn expects_cold_gpu(&self) -> bool {
+        matches!(
+            self,
+            Self::S2idleLong { cold_gpu: true, .. } | Self::S2idleOvernight { cold_gpu: true, .. }
+        )
     }
 
     fn awake_since(&self, uptime: f64, resume_observed: Option<u64>) -> Result<f64> {
@@ -291,7 +349,13 @@ impl Arm {
             Self::GpuOff => &["s3", "1", "120", "30", "gpu-off"],
             Self::AgedS2idle => &["s2idle", "1", "120", "30"],
             Self::S2idleMeter => &["s2idle", "1", "1500", "30"],
+            Self::S2idleLong { cold_gpu: true, .. } => {
+                &["s2idle", "1", "7200", "30", "expect-d3cold"]
+            }
             Self::S2idleLong { .. } => &["s2idle", "1", "7200", "30"],
+            Self::S2idleOvernight { cold_gpu: true, .. } => {
+                &["s2idle", "1", "25200", "30", "expect-d3cold"]
+            }
             Self::S2idleOvernight { .. } => &["s2idle", "1", "25200", "30"],
             Self::GpuMeter => unreachable!("awake measurement must not call suspend"),
         }
@@ -377,7 +441,11 @@ impl Baseline<'_> {
                     sleep.split_whitespace().any(|v| v == "s2idle"),
                     "s2idle is not available",
                 )?;
-                check_gpu_d0()?;
+                if self.arm.expects_cold_gpu() {
+                    check_gpu_baseline("auto", "D3cold", "suspended")?;
+                } else {
+                    check_gpu_d0()?;
+                }
             }
         }
         if self.arm.is_extended_s2idle() {
@@ -527,6 +595,15 @@ impl Baseline<'_> {
         };
         let sleep = self.arm.sleep_args();
         let result = dry
+            .and_then(|()| {
+                if self.arm.expects_cold_gpu() {
+                    // A dry cycle can wake the upstream port. Let runtime PM
+                    // settle before rechecking the whole baseline.
+                    wait_gpu_state("D3cold", "suspended", Duration::from_secs(45))
+                } else {
+                    Ok(())
+                }
+            })
             .and_then(|()| self.preflight(Stage::BeforeSleep, None))
             .and_then(|()| {
                 if matches!(self.arm, Arm::GpuOff) {
@@ -627,14 +704,18 @@ impl Baseline<'_> {
 }
 
 fn check_gpu_d0() -> Result<()> {
+    check_gpu_baseline("on", "D0", "active")
+}
+
+fn check_gpu_baseline(policy: &str, state: &str, runtime: &str) -> Result<()> {
     check_unbound_gpu()?;
     require(
-        read(&format!("{GPU}/power/control"))?.trim() == "on"
+        read(&format!("{GPU}/power/control"))?.trim() == policy
             && read(&format!("{PORT}/power/control"))?.trim() == "auto"
             && read(&format!("{GPU}/d3cold_allowed"))?.trim() == "1"
             && read(&format!("{PORT}/d3cold_allowed"))?.trim() == "1"
-            && gpu_state("D0", "active")?,
-        "GPU and port do not match the awake D0 baseline",
+            && gpu_state(state, runtime)?,
+        format!("GPU and port do not match the awake {state} baseline"),
     )
 }
 
@@ -917,5 +998,30 @@ mod tests {
         assert_eq!(overnight.sleep_args(), ["s2idle", "1", "25200", "30"]);
         assert!(overnight.check_window(100).is_ok());
         assert!(overnight.check_window(200).is_err());
+    }
+
+    #[test]
+    fn cold_gpu_duration_arms_inherit_age_and_counters_but_check_d3cold() {
+        for (cold, ordinary, wake) in [
+            ("s2idle-long-boot-cold-1", "s2idle-long-boot-1", "7200"),
+            (
+                "s2idle-overnight-after-boot-trial-cold-1",
+                "s2idle-overnight-after-boot-trial-1",
+                "25200",
+            ),
+        ] {
+            let cold = Arm::from_label(cold).unwrap();
+            let ordinary = Arm::from_label(ordinary).unwrap();
+            for stage in [Stage::Initial, Stage::BeforeSleep] {
+                assert_eq!(stage.expected(&cold), stage.expected(&ordinary));
+            }
+            assert_eq!(cold.uses_resume_anchor(), ordinary.uses_resume_anchor());
+            assert!(cold.expects_cold_gpu());
+            assert!(!ordinary.expects_cold_gpu());
+            assert_eq!(
+                cold.sleep_args(),
+                ["s2idle", "1", wake, "30", "expect-d3cold"]
+            );
+        }
     }
 }

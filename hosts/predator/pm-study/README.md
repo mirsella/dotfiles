@@ -178,9 +178,9 @@ Work through this in order. Record every run in the results table.
    at the expected RTC interval. The owner reported about 7 W during
    the repeat. The two-hour trial refused before any sleep request.
    `s2idle-long-boot-1` was cancelled after generation 206 was activated
-   while generation 205 was still booted. The next two-hour run needs
-   a new label, an owner-approved reboot, a passing audit and nine
-   hours awake on the new baseline. The seven-hour run remains unarmed
+   while generation 205 was still booted. `s2idle-long-boot-cold-1`
+   is armed on the audited generation 206 boot, with the system's
+   existing D3cold GPU policy. The seven-hour run remains unarmed
    until a verified two-hour wake on schedule and a healthy, unchanged
    system. Meter readings are not required to advance.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
@@ -779,11 +779,35 @@ cancellation with zero requests. Both T3 checks (20:05 and 22:40) were
 disabled before running. All pools were healthy and all four Ente
 services were running. The default boot entry points to generation 206.
 
-Wait for the owner to approve a reboot before preparing a replacement.
-Verify the new boot, matching system links, storage, Ente, original GPU
-policy and nine-volume audit before arming a new two-hour label. Both
-the precheck and trial must clear nine hours on the new boot and fit
-the two-hour arm's window. Do not reuse the cancelled timer or its pins.
+The owner approved a reboot at 12:35 CET. The previous boot reached
+`System Reboot` and the journal stopped during final shutdown. Predator
+did not return to the network until the owner powered it on. Generation
+206 booted at 13:09:15 CET (`f9688ea4-fc8c-4b4c-a37f-523b09ab7094`).
+All three system links matched, all nine encrypted volumes passed the
+boot audit, and the three pool GUIDs and five ZFS mounts matched the
+records in `preboot-20261123-generation206/`. Ente was running and the
+suspend counters were 0/0.
+
+On this boot the NVIDIA GPU and its upstream port were both `auto`,
+runtime suspended and in D3cold under the installed power policy. The
+new duration labels require that state at preflight and just before
+the real request. They leave the GPU policy and the firmware handler
+alone. After the dry cycles, the launcher gives the devices up to
+45 seconds to settle before rechecking the whole baseline. This is
+a generation 206 reliability check, not a matched D0 versus D3cold
+comparison with the earlier generation 205 trials.
+
+`s2idle-long-boot-cold-1` is armed for November 24 at 01:00 CET, with
+a 00:40 read-only precheck and 03:20 results check. Nine hours after
+boot falls after the evening cutoff, so the first planned slot is
+after backups and midnight maintenance. Read-only `prepare` passed
+for both slots, projecting about 11 h 51 min awake at the trigger.
+Expect five `core` dry returns (0/0 to 5/0), then one `s2idle` request
+with a 7,200 s RTC alarm (6/0 on a normal return). Both runtime units
+and both binaries match the saved copies and hashes in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-long-boot-cold-1-20261124/`.
+The timer is nonpersistent. The service is inactive, has never
+started and has no restart policy.
 
 Use the actual entry and return timestamps for the meter comparison.
 Check whether complete five-minute bins inside the sleep interval stay
@@ -793,13 +817,14 @@ that contains entry or return. Verify RTC timing, clean restoration,
 boot audit. A refusal, unexplained wake, hang, changed baseline or
 incomplete evidence stops the queue. Do not automatically recover.
 
-After a verified pass on the replacement baseline, automatically arm one
-seven-hour run without waiting for meter readings. The owner reports about 15 W
+After a verified pass, automatically arm one
+`s2idle-overnight-after-boot-trial-cold-1` without waiting for meter
+readings. The owner reports about 15 W
 during the observed hangs and about 3 W in successful S3 or 7 W in
 successful s2idle. Record meter readings separately; they are not a
-substitute for the wake and health checks. The November 25 slot was
-tentative and is no longer planned. Choose the overnight window after
-the new two-hour result, and verify the timer inventory before arming.
+substitute for the wake and health checks. Target November 25 at
+01:30 CET, with a 01:10 precheck and 08:50 results, only if the
+actual baseline and timer inventory still allow it.
 Both the precheck and trigger must be at least nine hours after a
 rounded-up uptime observation following the two-hour return on the
 same boot. The same launcher and runner require counters 6/0, then
@@ -870,6 +895,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 22 15:10 | `s2idle-long-1` precheck | read-only checks | not verified | SSH banner timed out; Pi ping succeeded; launcher not invoked | |
 | Nov 22 15:30 (due) | `s2idle-long-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 40 min at refusal | launcher refused at 15:36:53 on failed units; zero requests | fan at full speed before owner reboot Nov 23; overnight trial not armed |
 | Nov 23 20:20 (due) | `s2idle-long-boot-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 19 min at planned trigger | cancelled at 12:29; zero requests | generation 206 active on the generation 205 boot; both T3 checks disabled |
+| Nov 24 01:00 | `s2idle-long-boot-cold-1` | five core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 206 with the existing D3cold policy | about 11 h 51 min at planned trigger | armed; outcome pending | precheck 00:40; results 03:20; overnight unarmed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
