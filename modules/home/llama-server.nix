@@ -1,4 +1,4 @@
-model:
+{ quant, hash }:
 {
   lib,
   pkgs,
@@ -7,30 +7,31 @@ model:
   ...
 }:
 let
-  contextSize = 32768;
+  alias = "inkling-2-mini-uncensored";
   host = "127.0.0.1";
   port = "8080";
   baseURL = "http://${host}:${port}";
   # Checksummed models belong to the Nix closure and are fetched before activation.
   modelFile = pkgs.fetchurl {
-    url = "https://huggingface.co/${model.repo}/resolve/${model.revision}/${model.file}";
-    hash = model.hash;
+    url = "https://huggingface.co/AtomicChat/Inkling-2-Mini-Uncensored-GGUF/resolve/40886ab636cabb4decf4998224f790b462ab048e/Inkling-2-Mini-Uncensored-AD-${quant}.gguf";
+    inherit hash;
   };
   preset = (pkgs.formats.ini { }).generate "llama-server-models.ini" {
-    ${model.alias} = {
+    ${alias} = {
       model = "${modelFile}";
       load-on-startup = false;
       device = "Vulkan0";
       # Fail visibly on insufficient GPU memory instead of spilling into CPU math.
       n-gpu-layers = "all";
       fit = "off";
-      ctx-size = contextSize;
+      ctx-size = 16384;
       parallel = 1;
       flash-attn = "on";
       cache-type-k = "q8_0";
       cache-type-v = "q8_0";
       jinja = true;
-      reasoning = "off";
+      reasoning = "on";
+      reasoning-effort = "low";
       cache-ram = 0;
       sleep-idle-seconds = 300;
     };
@@ -40,7 +41,7 @@ in
   # The router lists the model at login; only an inference request loads its weights.
   systemd.user.services.llama-server = {
     Unit = {
-      Description = "Local ${model.alias} inference (Vulkan/RADV)";
+      Description = "Local ${alias} inference (Vulkan/RADV)";
       ConditionHost = hostName;
       # Bound router restart loops; model failures are reported by the inference API.
       StartLimitIntervalSec = "5min";

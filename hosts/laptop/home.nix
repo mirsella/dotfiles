@@ -8,11 +8,8 @@
   imports = [
     ../../modules/home/workstation.nix
     (import ../../modules/home/llama-server.nix {
-      alias = "qwen3.6-35b-a3b-abliterated-v4";
-      repo = "Bahushruth/Qwen3.6-35B-A3B-abliterated-v4-GGUF";
-      revision = "b8a9ab20c8bde880621a7bab65073c0078ef33f7";
-      file = "Qwen3.6-35B-A3B-abliterated-v4-IQ3_M.gguf";
-      hash = "sha256-cKtfQv8JUt7aKfyA8ze/Sz/7PguQbAofcY2EyYF1ldo=";
+      quant = "IQ2_M";
+      hash = "sha256-/KmdSIv/XUAci8awEQxTd8dD8P+zptGcGuSjuQcfos0=";
     })
   ];
   programs.git.settings.user.signingkey = "E88ECCA3AA187BC1";
