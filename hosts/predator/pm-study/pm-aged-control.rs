@@ -79,8 +79,8 @@ enum Arm {
     GpuOff,
     AgedS2idle,
     S2idleMeter,
-    S2idleLong,
-    S2idleOvernight,
+    S2idleLong { from_boot: bool },
+    S2idleOvernight { after_boot_trial: bool },
 }
 
 #[derive(Clone, Copy)]
@@ -92,18 +92,44 @@ enum Stage {
 impl Stage {
     fn expected(self, arm: &Arm) -> (&'static str, &'static [&'static str]) {
         match (self, arm) {
-            (Self::Initial, Arm::S2idleMeter) => ("6", &[]),
-            (Self::Initial, Arm::S2idleLong) => ("12", &[]),
-            (Self::Initial, Arm::S2idleOvernight) => ("18", &[]),
+            (
+                Self::Initial,
+                Arm::S2idleMeter
+                | Arm::S2idleOvernight {
+                    after_boot_trial: true,
+                },
+            ) => ("6", &[]),
+            (Self::Initial, Arm::S2idleLong { from_boot: false }) => ("12", &[]),
+            (
+                Self::Initial,
+                Arm::S2idleOvernight {
+                    after_boot_trial: false,
+                },
+            ) => ("18", &[]),
             (Self::Initial, _) => ("0", &[]),
-            (Self::BeforeSleep, Arm::S2idleMeter) => ("11", &["before.snapshot.txt", "dry.jsonl"]),
-            (Self::BeforeSleep, Arm::S2idleLong) => ("17", &["before.snapshot.txt", "dry.jsonl"]),
-            (Self::BeforeSleep, Arm::S2idleOvernight) => {
-                ("23", &["before.snapshot.txt", "dry.jsonl"])
+            (
+                Self::BeforeSleep,
+                Arm::S2idleMeter
+                | Arm::S2idleOvernight {
+                    after_boot_trial: true,
+                },
+            ) => ("11", &["before.snapshot.txt", "dry.jsonl"]),
+            (Self::BeforeSleep, Arm::S2idleLong { from_boot: false }) => {
+                ("17", &["before.snapshot.txt", "dry.jsonl"])
             }
-            (Self::BeforeSleep, Arm::AgedControl | Arm::GpuOff | Arm::AgedS2idle) => {
-                ("5", &["before.snapshot.txt", "dry.jsonl"])
-            }
+            (
+                Self::BeforeSleep,
+                Arm::S2idleOvernight {
+                    after_boot_trial: false,
+                },
+            ) => ("23", &["before.snapshot.txt", "dry.jsonl"]),
+            (
+                Self::BeforeSleep,
+                Arm::AgedControl
+                | Arm::GpuOff
+                | Arm::AgedS2idle
+                | Arm::S2idleLong { from_boot: true },
+            ) => ("5", &["before.snapshot.txt", "dry.jsonl"]),
             (Self::BeforeSleep, Arm::ShortBypass | Arm::AgedBypassProbe | Arm::GpuMeter) => {
                 ("0", &["before.snapshot.txt"])
             }
@@ -145,8 +171,20 @@ impl Arm {
             ("gpu-off-", Self::GpuOff),
             ("s2idle-aged-", Self::AgedS2idle),
             ("s2idle-meter-", Self::S2idleMeter),
-            ("s2idle-long-", Self::S2idleLong),
-            ("s2idle-overnight-", Self::S2idleOvernight),
+            ("s2idle-long-", Self::S2idleLong { from_boot: false }),
+            ("s2idle-long-boot-", Self::S2idleLong { from_boot: true }),
+            (
+                "s2idle-overnight-",
+                Self::S2idleOvernight {
+                    after_boot_trial: false,
+                },
+            ),
+            (
+                "s2idle-overnight-after-boot-trial-",
+                Self::S2idleOvernight {
+                    after_boot_trial: true,
+                },
+            ),
         ] {
             if label
                 .strip_prefix(prefix)
@@ -165,8 +203,10 @@ impl Arm {
             | Self::GpuOff
             | Self::AgedS2idle
             | Self::S2idleMeter
-            | Self::S2idleLong
-            | Self::S2idleOvernight => require(uptime >= 32_400.0, "less than nine hours awake"),
+            | Self::S2idleLong { .. }
+            | Self::S2idleOvernight { .. } => {
+                require(uptime >= 32_400.0, "less than nine hours awake")
+            }
             Self::ShortBypass => require(
                 (0.0..14_400.0).contains(&uptime),
                 "short bypass requires less than four hours since boot",
@@ -176,15 +216,20 @@ impl Arm {
     }
 
     fn is_extended_s2idle(&self) -> bool {
-        matches!(self, Self::S2idleLong | Self::S2idleOvernight)
+        matches!(self, Self::S2idleLong { .. } | Self::S2idleOvernight { .. })
     }
 
     fn uses_resume_anchor(&self) -> bool {
-        matches!(self, Self::S2idleMeter) || self.is_extended_s2idle()
+        matches!(
+            self,
+            Self::S2idleMeter
+                | Self::S2idleLong { from_boot: false }
+                | Self::S2idleOvernight { .. }
+        )
     }
 
     fn is_s2idle(&self) -> bool {
-        matches!(self, Self::AgedS2idle) || self.uses_resume_anchor()
+        matches!(self, Self::AgedS2idle | Self::S2idleMeter) || self.is_extended_s2idle()
     }
 
     fn awake_since(&self, uptime: f64, resume_observed: Option<u64>) -> Result<f64> {
@@ -209,11 +254,11 @@ impl Arm {
                 clock < 2215,
                 "not enough time before backups for the meter run",
             ),
-            Self::S2idleLong => require(
+            Self::S2idleLong { .. } => require(
                 clock < 2030,
                 "not enough time before backups for the two-hour run",
             ),
-            Self::S2idleOvernight => require(
+            Self::S2idleOvernight { .. } => require(
                 (100..200).contains(&clock),
                 "overnight run must start between 01:00 and 01:59",
             ),
@@ -223,7 +268,7 @@ impl Arm {
 
     // prepare runs while awake; only the future precheck/launch has to be at night.
     fn check_preparation_window(&self, clock: u32, planned: Option<&str>) -> Result<()> {
-        if matches!(self, Self::S2idleOvernight) && planned.is_some() {
+        if matches!(self, Self::S2idleOvernight { .. }) && planned.is_some() {
             require(trial_window(clock), "backup exclusion window")
         } else {
             self.check_window(clock)
@@ -233,7 +278,7 @@ impl Arm {
     fn runner(&self) -> &'static str {
         match self {
             Self::GpuOff => GPU_OFF_RUNNER,
-            Self::S2idleLong | Self::S2idleOvernight => LONG_S2IDLE_RUNNER,
+            Self::S2idleLong { .. } | Self::S2idleOvernight { .. } => LONG_S2IDLE_RUNNER,
             _ => RUNNER,
         }
     }
@@ -246,8 +291,8 @@ impl Arm {
             Self::GpuOff => &["s3", "1", "120", "30", "gpu-off"],
             Self::AgedS2idle => &["s2idle", "1", "120", "30"],
             Self::S2idleMeter => &["s2idle", "1", "1500", "30"],
-            Self::S2idleLong => &["s2idle", "1", "7200", "30"],
-            Self::S2idleOvernight => &["s2idle", "1", "25200", "30"],
+            Self::S2idleLong { .. } => &["s2idle", "1", "7200", "30"],
+            Self::S2idleOvernight { .. } => &["s2idle", "1", "25200", "30"],
             Self::GpuMeter => unreachable!("awake measurement must not call suspend"),
         }
     }
@@ -476,8 +521,8 @@ impl Baseline<'_> {
             | Arm::GpuOff
             | Arm::AgedS2idle
             | Arm::S2idleMeter
-            | Arm::S2idleLong
-            | Arm::S2idleOvernight => self.batch("dry", &["dry", "5", "30", "10"]),
+            | Arm::S2idleLong { .. }
+            | Arm::S2idleOvernight { .. } => self.batch("dry", &["dry", "5", "30", "10"]),
             _ => Ok(()),
         };
         let sleep = self.arm.sleep_args();
@@ -840,5 +885,37 @@ mod tests {
         assert!(overnight
             .check_preparation_window(2300, Some("future"))
             .is_err());
+    }
+
+    #[test]
+    fn fresh_boot_retry_and_its_overnight_followup_use_their_own_pins() {
+        let long = Arm::from_label("s2idle-long-boot-1").unwrap();
+        let overnight = Arm::from_label("s2idle-overnight-after-boot-trial-1").unwrap();
+        let dry_logs = &["before.snapshot.txt", "dry.jsonl"][..];
+        assert_eq!(Stage::Initial.expected(&long), ("0", &[][..]));
+        assert_eq!(Stage::BeforeSleep.expected(&long), ("5", dry_logs));
+        assert!(long
+            .check_age(long.awake_since(32_399.0, None).unwrap())
+            .is_err());
+        assert!(long
+            .check_age(long.awake_since(32_400.0, None).unwrap())
+            .is_ok());
+        assert!(long.awake_since(100_000.0, Some(67_600)).is_err());
+        assert_eq!(long.sleep_args(), ["s2idle", "1", "7200", "30"]);
+        assert!(long.check_window(2029).is_ok());
+        assert!(long.check_window(2030).is_err());
+
+        assert_eq!(Stage::Initial.expected(&overnight), ("6", &[][..]));
+        assert_eq!(Stage::BeforeSleep.expected(&overnight), ("11", dry_logs));
+        assert!(overnight.awake_since(100_000.0, None).is_err());
+        assert!(overnight
+            .check_age(overnight.awake_since(99_999.0, Some(67_600)).unwrap())
+            .is_err());
+        assert!(overnight
+            .check_age(overnight.awake_since(100_000.0, Some(67_600)).unwrap())
+            .is_ok());
+        assert_eq!(overnight.sleep_args(), ["s2idle", "1", "25200", "30"]);
+        assert!(overnight.check_window(100).is_ok());
+        assert!(overnight.check_window(200).is_err());
     }
 }

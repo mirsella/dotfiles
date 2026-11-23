@@ -177,7 +177,7 @@ Work through this in order. Record every run in the results table.
    interval. The 25-minute repeat on the same baseline also returned
    at the expected RTC interval. The owner reported about 7 W during
    the repeat. The two-hour trial refused before any sleep request.
-   The next test is a new two-hour trial on a healthy baseline. The
+   `s2idle-long-boot-1` is armed on the new, audited boot. The
    seven-hour overnight run remains unarmed until a verified two-hour
    wake on schedule and a healthy, unchanged system. Meter readings
    are not required to advance.
@@ -748,9 +748,26 @@ The new boot began at 11:00:32 CET on November 23 with all system links
 still on generation 205. All nine volumes passed the boot audit.
 Pools were healthy, and their GUIDs and the five ZFS mounts matched
 the saved baseline. By 11:04 Ente and Hermes were running, there were
-no failed units or jobs, and suspend counters were 0/0 on the new boot.
-No new trial was armed. The old boot, counters and age anchor cannot be
-reused for either duration trial.
+no failed units or jobs, and suspend counters were 0/0 on the new boot
+(`61947ed2-60a7-4db7-896e-2f03576402a4`). The old boot, counters and
+age anchor cannot be reused.
+
+The replacement, `s2idle-long-boot-1`, is armed for November 23 at
+20:20 CET, with a read-only precheck at 20:05 and results at 22:40.
+Read-only `prepare` passed for both slots, including the audit of all
+nine volumes. It projected about 9 h 19 min of uptime at launch. This
+arm requires counters 0/0 on the pinned boot before any trial activity
+and at least nine hours since boot. It takes the same five D0 `core` dry
+cycles, then one `s2idle` request with a 7,200 s RTC alarm and no hardware
+overrides. The counters must be 5/0 before the real request and 6/0 after
+a normal return. Both launch stages must start before 20:30 CET to
+leave time before the 23:00 backup.
+
+Prepared files and hashes are in
+`/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-long-boot-1-20261123/`.
+The root-owned launcher and runner in `/run/pm-s2idle-duration/` match
+the saved copies. The nonpersistent timer is waiting for exactly 20:20
+CET. The direct service has no restart and has not started.
 
 Use the actual entry and return timestamps for the meter comparison.
 Check whether complete five-minute bins inside the sleep interval stay
@@ -760,18 +777,20 @@ that contains entry or return. Verify RTC timing, clean restoration,
 boot audit. A refusal, unexplained wake, hang, changed baseline or
 incomplete evidence stops the queue. Do not automatically recover.
 
-After that verified pass, automatically arm one `s2idle-overnight-1`
-without waiting for meter readings. The owner reports about 15 W
+After that verified pass, automatically arm one
+`s2idle-overnight-after-boot-trial-1` without waiting for meter readings.
+The owner reports about 15 W
 during the observed hangs and about 3 W in successful S3 or 7 W in
 successful s2idle. Record meter readings separately; they are not a
-substitute for the wake and health checks. Aim for November 24 at
-01:30 CET, after backups and midnight maintenance, with a 01:10 precheck and a
-results check at 08:50. Verify the actual timer inventory before arming.
+substitute for the wake and health checks. Target November 25 at
+01:30 CET, after backups and midnight maintenance, with a 01:10 precheck
+and results at 08:50. November 24 is too soon after the two-hour wake.
+Verify the actual timer inventory before arming.
 Both the precheck and trigger must be at least nine hours after a
 rounded-up uptime observation following the two-hour return on the
-same boot. The same launcher and runner require counters 18/0, then
-23/0 after five dry cycles, and use one 25,200 s RTC alarm. A normal
-return leaves 24/0. The launcher permits overnight stages only between
+same boot. The same launcher and runner require counters 6/0, then
+11/0 after five dry cycles, and use one 25,200 s RTC alarm. A normal
+return leaves 12/0. The launcher permits overnight stages only between
 01:00 and 01:59 CET. Do not arm this trial ahead of the two-hour result,
 change any permanent suspend policy, or schedule more arms after it.
 
@@ -836,6 +855,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 22 05:30 | `s2idle-meter-1` | five D0 core dry cycles, then one s2idle request with 1,500 s RTC alarm on generation 205 | about 9 h 34 min from the observation anchor at real request | dry 5/5; real return at 05:57:00 after 1,502.4 s; cleanup passed, counters 12/0 | owner reported about 7 W asleep |
 | Nov 22 15:10 | `s2idle-long-1` precheck | read-only checks | not verified | SSH banner timed out; Pi ping succeeded; launcher not invoked | |
 | Nov 22 15:30 (due) | `s2idle-long-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 40 min at refusal | launcher refused at 15:36:53 on failed units; zero requests | fan at full speed before owner reboot Nov 23; overnight trial not armed |
+| Nov 23 20:20 | `s2idle-long-boot-1` | five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on the new generation 205 boot | about 9 h 19 min at planned trigger | armed; outcome pending | precheck 20:05; results 22:40; overnight not armed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
