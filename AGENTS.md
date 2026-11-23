@@ -208,8 +208,8 @@ Manual files outside the repo:
 - Laptop uses Plasma lid defaults; Predator ignores lid-close via
   `hosts/predator/default.nix` (screen off instead of sleep).
 - Arch boxes: root-owned Nix daemon GC/cache settings, Timeshift retention,
-  storage timers and the fail2ban SSH jail are installed from
-  `arch/maintenance/apply.py`. System
+  storage timers, the fail2ban SSH jail and the `/usr/local/bin/pass-cli`
+  file-key wrapper are installed from `arch/maintenance/apply.py`. System
   Caddy (`/etc/caddy/Caddyfile`, `caddy.service`), udev rules and pacman hooks
   remain manual. The Nix daemon ignores cache settings from an untrusted Home
   Manager user config.

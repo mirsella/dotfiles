@@ -939,21 +939,32 @@ Apply `homeConfigurations.main` or `homeConfigurations.laptop` on Arch. On NixOS
 use the system rebuild command above. Update this flake to change the installation;
 do not install this toolchain with brew, npm, dotnet tool or cargo.
 
-## Predator Proton Pass login
+## Proton Pass CLI login
 
-Hermes uses the owner's normal `pass-cli` login. The CLI keeps its session in
-`~/.local/share/proton-pass-cli` and its local encryption key in the persistent
-D-Bus Secret Service. `hermes-secret-service.service` unlocks that keyring at boot
-using the SOPS-managed `hermes_keyring_password`.
+`pass-cli` keeps its local encryption key in a file next to its session
+(`PROTON_PASS_KEY_PROVIDER=fs`), under `~/.local/share/proton-pass-cli/fs`
+(`PROTON_PASS_SESSION_DIR`). It works over SSH and from services started before a
+desktop login, which a KWallet or GNOME Keyring key cannot. Predator and the laptop
+are fully encrypted; main's disk is not, so its key is readable from the disk itself.
+
+A wrapper sets both, so every caller gets them without loading a shell config:
+one-off `ssh host 'pass-cli info'` commands, T3 agents, Hermes and boot services.
+It forces the fs provider and fills in that directory unless the caller sets its
+own. On NixOS it is the Home Manager `pass-cli` package; on Arch,
+`arch/maintenance/apply.py` installs `arch/maintenance/pass-cli` as
+`/usr/local/bin/pass-cli`, which Arch's default PATH finds before the pacman
+binary in `/usr/bin`.
+Predator's `hermes-secret-service.service` still unlocks the keyring for `gh` and
+`protonmail-cli`.
 
 To authenticate or recover a revoked session, run `pass-cli login` as `mirsella`
-on Predator and open its URL in a browser. Check the login with `pass-cli info`.
+on that machine and open its URL in a browser. Check the login with `pass-cli info`.
 The session survives reboots and the CLI handles token refresh; a scheduled
 logout/login job is unnecessary.
 
-Each device has its own login session and keyring. Keep the CLI's writable session
-and database out of chezmoi and SOPS: a copied session file needs its matching
-keyring key, and refreshed credentials would diverge between devices.
+Each device has its own login session and key. Keep the CLI's writable session
+and database out of chezmoi and SOPS: refreshed credentials would diverge between
+devices.
 
 ## Predator storage
 

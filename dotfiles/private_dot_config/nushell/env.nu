@@ -35,7 +35,6 @@ if not ($cargo_bin in $env.PATH) {
 
 $env.GTRASH_HOME_TRASH_FALLBACK_COPY = "true"
 $env.COPILOT_ALLOW_ALL = "true"
-$env.PROTON_PASS_LINUX_KEYRING = "dbus"
 
 for path in ([
   $"($android_home)/platform-tools"

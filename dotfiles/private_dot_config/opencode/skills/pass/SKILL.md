@@ -4,9 +4,11 @@ description: Use Proton Pass for saved logins and TOTP codes; use mail for email
 ---
 
 Use the matching saved login automatically. Prefer extension autofill, then `pass-cli`.
-Run the CLI in the normal user environment: sanitized HOME/XDG settings can lose
-its encryption-key context and log it out. Check `pass-cli info`; if needed, start
-`pass-cli login` for the user to finish.
+On every host `pass-cli` is a wrapper that keeps the session and its file key in
+`~/.local/share/proton-pass-cli/fs`, so it works over SSH and from boot services
+without a desktop login. Never set `PROTON_PASS_KEY_PROVIDER` or
+`PROTON_PASS_SESSION_DIR` yourself. Check `pass-cli info`; if it has no session,
+start `pass-cli login` for the user to finish.
 
 - Discover: `vault list --output json`, then `item list --vault-name VAULT --output json`.
 - Read: `item view --vault-name VAULT --item-title TITLE --field password`; full JSON uses `item.content.content.Login`.

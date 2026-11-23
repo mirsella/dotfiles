@@ -414,7 +414,6 @@ assert lib.assertMsg (
   && server.systemd.services.sleev-gateway.wantedBy == [ "multi-user.target" ]
   && server.sops.secrets.hermes_keyring_password.owner == "mirsella"
   && server.sops.secrets.hermes_keyring_password.mode == "0400"
-  && server.systemd.services.hermes-agent.environment.PROTON_PASS_LINUX_KEYRING == "dbus"
   && server.systemd.services.hermes-backend.environment == server.systemd.services.hermes-agent.environment
   && !(server.sops.secrets ? hermes_pass_token)
   && !(server.systemd.services ? hermes-pass-login)

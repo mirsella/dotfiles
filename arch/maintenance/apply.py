@@ -157,6 +157,11 @@ def main() -> None:
     else:
         print("fail2ban not installed; skipping SSH brute-force jail")
 
+    if Path("/usr/bin/pass-cli").exists():
+        run("install", "-Dm755", str(SOURCE / "pass-cli"), "/usr/local/bin/pass-cli")
+    else:
+        print("pass-cli not installed; skipping its file-key wrapper")
+
     udev_changed = write_if_changed(
         Path("/etc/udev/rules.d/60-ioschedulers.rules"),
         (ROOT / "modules" / "60-ioschedulers.rules").read_text(),

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Installed as /usr/local/bin/pass-cli, which Arch's default PATH searches
+# before /usr/bin, including for SSH commands that load no shell config. Keep
+# the key next to the session so it works without an unlocked Secret Service.
+# The provider is forced: any other one would log the shared session out. An
+# explicit session directory is kept; the default ignores XDG_DATA_HOME so every
+# caller finds the same session. Matches the NixOS wrapper in
+# modules/home/nixos.nix.
+export PROTON_PASS_KEY_PROVIDER=fs
+: "${PROTON_PASS_SESSION_DIR:=$HOME/.local/share/proton-pass-cli/fs}"
+export PROTON_PASS_SESSION_DIR
+exec /usr/bin/pass-cli "$@"

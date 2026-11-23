@@ -22,12 +22,9 @@ let
       makeWrapper ${executable} "$out/bin/${name}" \
         ${lib.concatStringsSep " \\\n        " (lib.mapAttrsToList (variable: value:
           "--set ${variable} ${lib.escapeShellArg value}"
-        ) (builtins.removeAttrs ownerEnvironment [ "HOME" ]))} \
-        ${lib.optionalString (name == "pass-cli") ''
-          --set PROTON_PASS_LINUX_KEYRING dbus
-        ''}
+        ) (builtins.removeAttrs ownerEnvironment [ "HOME" ]))}
     '') {
-      pass-cli = lib.getExe pkgs.proton-pass-cli;
+      # pass-cli is the owner's Home Manager wrapper, already on PATH.
       protonmail-cli = lib.getExe pkgs.protonmail-cli;
       gh = lib.getExe pkgs.gh;
       secret-tool = lib.getExe' pkgs.libsecret "secret-tool";
@@ -157,7 +154,6 @@ let
     HOME = lib.mkForce ownerHome;
     HERMES_MANAGED = lib.mkForce "false";
     PATH = lib.mkForce "/run/wrappers/bin:${ownerHome}/.local/share/cargo/bin:/etc/profiles/per-user/${owner}/bin:/run/current-system/sw/bin:${lib.makeBinPath [ tools package pkgs.systemd ]}";
-    PROTON_PASS_LINUX_KEYRING = "dbus";
   };
   renderEnvironment = ''
     test -r ${lib.escapeShellArg config.sops.secrets.hermes_gateway_env.path}

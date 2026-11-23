@@ -1,4 +1,21 @@
 { pkgs, config, lib, ... }:
+let
+  # Keep the key in the session directory so SSH and boot services work
+  # without an unlocked Secret Service. The provider is forced: any other one
+  # would log the shared session out. An explicit session directory is kept.
+  # Arch installs the same wrapper from arch/maintenance/pass-cli.
+  proton-pass-cli = pkgs.symlinkJoin {
+    name = "proton-pass-cli-fs-${pkgs.proton-pass-cli.version}";
+    paths = [ pkgs.proton-pass-cli ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram "$out/bin/pass-cli" \
+        --set PROTON_PASS_KEY_PROVIDER fs \
+        --set-default PROTON_PASS_SESSION_DIR ${lib.escapeShellArg "${config.xdg.dataHome}/proton-pass-cli/fs"}
+    '';
+    meta.mainProgram = "pass-cli";
+  };
+in
 {
   home.sessionPath = [ "$HOME/.local/share/cargo/bin" ];
 
