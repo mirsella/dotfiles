@@ -19,9 +19,6 @@
   {{- $_ := set $servers $name $entry -}}
 {{- end -}}
 {{- $workstation := or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop") -}}
-{{- if $workstation -}}
-  {{- $_ := set $servers "exa" (dict "type" "remote" "url" "https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa" "codemode" false) -}}
-{{- end -}}
 {{- $allowedProviders := list "claude-agent" "openai" "opencode" "opencode-go" -}}
 {{- if $workstation -}}
   {{- $allowedProviders = append $allowedProviders "llama.cpp" -}}
