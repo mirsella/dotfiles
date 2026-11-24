@@ -30,6 +30,7 @@ use std::{
 /// What a walk found below a workspace.
 #[derive(Debug)]
 pub(crate) struct Scan {
+    own_git: Option<PathBuf>,
     /// Disk usage on the workspace's filesystem, when sizes were asked for.
     pub(crate) size: Option<u64>,
     /// The newest change, and where; the workspace itself counts.
@@ -37,6 +38,8 @@ pub(crate) struct Scan {
     pub(crate) newest_path: PathBuf,
     /// Directories holding a `.git` of their own: nested checkouts.
     pub(crate) checkouts: Vec<PathBuf>,
+    /// Disposable bare repositories that may own linked worktrees.
+    pub(crate) scratch_bare: Vec<PathBuf>,
     /// Other filesystems and bare repositories.
     pub(crate) problems: Vec<String>,
     /// What another user's permissions hide, such as a container's data.
@@ -50,6 +53,7 @@ struct Found {
     size: u64,
     newest: Option<(SystemTime, PathBuf)>,
     checkouts: Vec<PathBuf>,
+    scratch_bare: Vec<PathBuf>,
     problems: Vec<String>,
     unreadable: Vec<PathBuf>,
     vanished: bool,
@@ -73,6 +77,7 @@ impl Found {
             self.saw(time, || path);
         }
         self.checkouts.extend(other.checkouts);
+        self.scratch_bare.extend(other.scratch_bare);
         self.problems.extend(other.problems);
         self.unreadable.extend(other.unreadable);
         self.vanished |= other.vanished;
@@ -93,8 +98,7 @@ const CACHES: &[&[u8]] = &[
     b".pnpm-store",
 ];
 
-/// A directory waiting to be read, and whether it lies inside a `.git` or a
-/// package cache, where Git checkouts are not work.
+/// A directory waiting to be read, and whether to skip Git discovery there.
 type Job = (PathBuf, bool);
 
 struct Walk<'a> {
@@ -146,11 +150,11 @@ impl Walk<'_> {
     fn work(&self) -> Found {
         let mut found = Found::default();
         let mut stack = Vec::new();
-        while let Some((directory, inside_git)) = stack.pop().or_else(|| self.take()) {
+        while let Some((directory, skip_git)) = stack.pop().or_else(|| self.take()) {
             if self.stop.load(Ordering::Relaxed) {
                 break;
             }
-            let children = self.read(&directory, inside_git, &mut found);
+            let children = self.read(&directory, skip_git, &mut found);
             self.pending.fetch_add(children.len(), Ordering::AcqRel);
             stack.extend(children);
             if found.error.is_some()
@@ -195,7 +199,7 @@ impl Walk<'_> {
     }
 
     /// Read one directory; returns its subdirectories to walk.
-    fn read(&self, directory: &Path, inside_git: bool, found: &mut Found) -> Vec<Job> {
+    fn read(&self, directory: &Path, skip_git: bool, found: &mut Found) -> Vec<Job> {
         let mut subdirectories = Vec::new();
         let entries = match fs::read_dir(directory) {
             Ok(entries) => entries,
@@ -234,7 +238,7 @@ impl Walk<'_> {
                 continue;
             }
             let name = entry.file_name();
-            if !inside_git {
+            if !skip_git {
                 match name.to_str() {
                     Some("HEAD") if kind.is_file() => bare[0] = true,
                     Some("objects") if kind.is_dir() => bare[1] = true,
@@ -251,7 +255,7 @@ impl Walk<'_> {
                             .problems
                             .push("its .git is not a linked worktree's".into());
                     }
-                } else if !inside_git {
+                } else if !skip_git {
                     found.checkouts.push(directory.to_owned());
                 }
             }
@@ -292,17 +296,33 @@ impl Walk<'_> {
                 if is_git && !self.sizes {
                     self.note_repository(&entry.path(), found);
                 } else {
-                    let quiet = inside_git || is_git || CACHES.contains(&name.as_encoded_bytes());
-                    subdirectories.push((entry.path(), quiet));
+                    let path = entry.path();
+                    let cache = CACHES.contains(&name.as_encoded_bytes());
+                    let skip = skip_git || is_git || (cache && !self.in_scratch(&path));
+                    subdirectories.push((path, skip));
                 }
             }
         }
         if bare == [true; 3] && directory != self.root {
-            found
-                .problems
-                .push(format!("{} is a bare Git repository", directory.display()));
+            if self.in_scratch(directory) {
+                // Mirrors are disposable; their outside worktrees are not.
+                if !matches!(directory.join("worktrees").try_exists(), Ok(false)) {
+                    found.scratch_bare.push(directory.to_owned());
+                }
+            } else {
+                found
+                    .problems
+                    .push(format!("{} is a bare Git repository", directory.display()));
+            }
         }
         subdirectories
+    }
+
+    fn in_scratch(&self, path: &Path) -> bool {
+        self.own_git.is_some()
+            && path
+                .strip_prefix(self.root)
+                .is_ok_and(|relative| relative.starts_with(".scratch"))
     }
 }
 
@@ -372,12 +392,15 @@ pub(crate) fn scan(
     }
     let (newest, newest_path) = found.newest.expect("the root was recorded");
     found.checkouts.sort();
+    found.scratch_bare.sort();
     found.problems.sort();
     Ok(Scan {
+        own_git: own_git.map(Path::to_owned),
         size: sizes.then_some(found.size),
         newest,
         newest_path,
         checkouts: found.checkouts,
+        scratch_bare: found.scratch_bare,
         problems: found.problems,
         unreadable: found.unreadable,
         vanished: found.vanished,
@@ -439,7 +462,9 @@ pub(crate) fn complete(
     own_git: Option<&Path>,
     sizes: bool,
 ) -> Result<Arc<Scan>> {
-    if let Some(scan) = remembered(root).filter(|scan| scan.size.is_some() || !sizes) {
+    if let Some(scan) = remembered(root)
+        .filter(|scan| scan.own_git.as_deref() == own_git && (scan.size.is_some() || !sizes))
+    {
         return Ok(scan);
     }
     let scan = Arc::new(scan(root, device, own_git, None, sizes)?);
@@ -616,7 +641,11 @@ mod tests {
     fn scans_are_shared_only_while_remembering() -> Result<()> {
         let temp = tempfile::tempdir()?;
         let root = temp.path().join("workspace");
-        fs::create_dir(&root)?;
+        fs::create_dir_all(root.join(".scratch/clone/.git"))?;
+        let bare = root.join(".scratch/mirror");
+        fs::create_dir_all(bare.join("objects"))?;
+        fs::create_dir(bare.join("refs"))?;
+        fs::write(bare.join("HEAD"), "ref: refs/heads/main\n")?;
         let device = root.metadata()?.dev();
         let first = complete(&root, device, None, false)?;
         assert!(!Arc::ptr_eq(&first, &complete(&root, device, None, false)?));
@@ -630,6 +659,12 @@ mod tests {
         let sized = complete(&root, device, None, true)?;
         assert!(!Arc::ptr_eq(&names, &sized));
         assert!(Arc::ptr_eq(&sized, &complete(&root, device, None, false)?));
+        assert_eq!(sized.checkouts, vec![root.join(".scratch/clone")]);
+        assert_eq!(sized.problems.len(), 1, "{:?}", sized.problems);
+        // A worktree scan cannot reuse plain-folder Git discovery.
+        let with_worktree = complete(&root, device, Some(&root.join(".git")), false)?;
+        assert_eq!(with_worktree.checkouts, sized.checkouts);
+        assert!(with_worktree.problems.is_empty());
         drop(guard);
         assert!(remembered(&root).is_none());
         Ok(())

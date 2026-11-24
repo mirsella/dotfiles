@@ -278,6 +278,7 @@ fn save_wip(
     checkout: &Path,
     dirty: bool,
     note: &str,
+    discard_scratch: bool,
 ) -> Result<(String, String)> {
     let head = git(checkout, &["rev-parse", "--verify", "--quiet", "HEAD"]).ok();
     let commit = if dirty {
@@ -289,8 +290,13 @@ fn save_wip(
             Some(head) => indexed(&["read-tree", head])?,
             None => indexed(&["read-tree", "--empty"])?,
         };
-        // What `git status` lists: ignored files stay out, like build outputs.
-        indexed(&["add", "--all", "--", "."])?;
+        // A linked worktree's root .scratch is disposable even if Git
+        // would stage it. A nested checkout is still saved in full.
+        indexed(if discard_scratch {
+            &["add", "--all", "--", ".", ":(top,exclude).scratch"]
+        } else {
+            &["add", "--all", "--", "."]
+        })?;
         let tree = indexed(&["write-tree"])?;
         let message = format!(
             "WIP saved by sweep before removing {}\n\nCheckout: {}\n{note}",
@@ -336,7 +342,12 @@ fn save_wip(
 }
 
 /// Save everything `saves` lists from `workspace`; return what outlives it.
-pub(crate) fn apply(workspace: &Path, saves: &[Save], store: &Store) -> Result<Vec<Saved>> {
+pub(crate) fn apply(
+    workspace: &Path,
+    saves: &[Save],
+    store: &Store,
+    discard_scratch: bool,
+) -> Result<Vec<Saved>> {
     let at = now();
     let mut saves = saves.to_vec();
     saves.sort();
@@ -349,8 +360,14 @@ pub(crate) fn apply(workspace: &Path, saves: &[Save], store: &Store) -> Result<V
                 repo,
                 dirty,
             } => {
-                let (branch, commit) = save_wip(workspace, checkout, *dirty, &store.note)
-                    .with_context(|| format!("save {}", checkout.display()))?;
+                let (branch, commit) = save_wip(
+                    workspace,
+                    checkout,
+                    *dirty,
+                    &store.note,
+                    discard_scratch && checkout == workspace,
+                )
+                .with_context(|| format!("save {}", checkout.display()))?;
                 println!("Saved {} as branch {branch}", checkout.display());
                 // A branch in a repository that goes too travels in its bundle.
                 if !repo.starts_with(workspace) {
@@ -643,7 +660,7 @@ mod tests {
             bundles: checkout.with_file_name("bundles"),
             note: "T3 threads: none".into(),
         };
-        let saved = apply(&checkout.with_file_name("workspace"), &saves, &store)?;
+        let saved = apply(&checkout.with_file_name("workspace"), &saves, &store, false)?;
         let Place::Branch { branch, .. } = &saved[0].place else {
             panic!("expected a branch");
         };

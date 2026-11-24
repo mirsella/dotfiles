@@ -9,16 +9,11 @@
 //! Linked worktrees under ~/dev belong to no tool. They go after a longer idle
 //! period, and `git worktree lock` keeps one indefinitely.
 //!
-//! A candidate goes only when nothing committed would be lost and nothing uses
-//! it: no uncommitted changes, every commit kept by a branch, tag or
-//! remote-tracking branch that outlives the removal, no initialized submodule,
-//! not locked, no recent change, and no process, mount or recent session
-//! inside. A recent change is a directory changed by a created, renamed or
-//! deleted file, Git working in it, or a changed file Git would lose. Nested checkouts are held to the same rule; a nested
-//! clone's own branches go with it, so its commits must be on a remote. Ignored
-//! files such as build outputs are regenerable and go too. The first pass
-//! checks every candidate in parallel; a removal checks again against fresh
-//! state.
+//! A candidate goes only when nothing uses it and Git work can be preserved.
+//! That includes uncommitted changes and commits, branches or stashes that
+//! would otherwise disappear. A worktree's root `.scratch/` is disposable:
+//! its contents still count as activity but are not saved. The first pass
+//! checks every candidate in parallel; a removal checks again against fresh state.
 use crate::salvage::{self, Save, Saved, Store, Watched};
 use crate::{tree_scan, util};
 use anyhow::{Context, Result, ensure};
@@ -28,7 +23,7 @@ use std::{
     ffi::OsStr,
     fmt, fs,
     os::unix::{ffi::OsStrExt, fs::MetadataExt},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     process::Command,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -252,7 +247,7 @@ pub(crate) struct Fingerprint {
     nested: Vec<Nested>,
     /// Work to save before removal.
     saves: Vec<Save>,
-    /// Git discards local changes: saved first, or already on the default branch.
+    /// Git needs `--force` after Sweep has accounted for local changes.
     force: bool,
     /// Some files are another user's, so removal goes through sudo.
     sealed: bool,
@@ -280,12 +275,7 @@ impl Fingerprint {
                 if bundles == 1 { "" } else { "s" }
             ));
         }
-        if parts.is_empty() {
-            self.force
-                .then(|| "its uncommitted edits already match the default branch".into())
-        } else {
-            Some(format!("saves {} first", parts.join(" and ")))
-        }
+        (!parts.is_empty()).then(|| format!("saves {} first", parts.join(" and ")))
     }
 }
 
@@ -354,25 +344,17 @@ fn changes(checkout: &Path) -> Result<Vec<PathBuf>> {
             "status",
             "--porcelain=v1",
             "-z",
+            "--no-renames",
             "--untracked-files=all",
             "--ignore-submodules=none",
         ],
     )?;
-    let mut paths = Vec::new();
-    let mut records = output
+    // Renames are reported as separate paths so each is checked on its own.
+    Ok(output
         .split(|&byte| byte == 0)
-        .filter(|record| !record.is_empty());
-    while let Some(record) = records.next() {
-        let Some(path) = record.get(3..) else {
-            continue;
-        };
-        // A rename or copy names its source next.
-        if record[..2].iter().any(|code| matches!(code, b'R' | b'C')) {
-            records.next();
-        }
-        paths.push(PathBuf::from(OsStr::from_bytes(path)));
-    }
-    Ok(paths)
+        .filter_map(|record| record.get(3..))
+        .map(|path| PathBuf::from(OsStr::from_bytes(path)))
+        .collect())
 }
 
 /// One of `paths` changed since `cutoff`: work in progress, not forgotten work.
@@ -415,18 +397,55 @@ fn common_dir(checkout: &Path) -> Result<PathBuf> {
     Ok(common.canonicalize().unwrap_or(common))
 }
 
+fn admin_dir(checkout: &Path) -> Result<PathBuf> {
+    Ok(PathBuf::from(git(
+        checkout,
+        &["rev-parse", "--absolute-git-dir"],
+    )?))
+}
+
 fn locked(checkout: &Path) -> Result<bool> {
-    let admin = git(checkout, &["rev-parse", "--absolute-git-dir"])?;
-    Ok(Path::new(&admin).join("locked").exists())
+    Ok(admin_dir(checkout)?.join("locked").try_exists()?)
+}
+
+fn check_outside_worktrees(candidate: &Path, repo: &Path, separate_git_dir: bool) -> Result<()> {
+    let mut command = salvage::command(if separate_git_dir { candidate } else { repo });
+    if separate_git_dir {
+        command
+            .arg("--git-dir")
+            .arg(repo)
+            .arg("--work-tree")
+            .arg(candidate);
+    }
+    let listed = util::command_output(command.args(["worktree", "list", "--porcelain", "-z"]))
+        .map_err(|error| {
+            blocked(format!(
+                "cannot list worktrees for {}: {error:#}",
+                repo.display()
+            ))
+        })?;
+    if let Some(outside) = listed
+        .split(|&byte| byte == 0)
+        .filter_map(|field| field.strip_prefix(b"worktree "))
+        .map(|path| Path::new(OsStr::from_bytes(path)))
+        .find(|path| !path.starts_with(candidate) && !(separate_git_dir && *path == repo))
+    {
+        return Err(blocked(format!(
+            "nested {} has a worktree outside at {}",
+            repo.display(),
+            outside.display()
+        )));
+    }
+    Ok(())
 }
 
 /// Hold a checkout nested in `candidate` to the same rule as the candidate,
-/// and plan to save what it still holds. A nested checkout may be broken or
-/// foreign, so Git errors keep it.
+/// and plan to save what it still holds unless it is disposable scratch.
 fn check_nested(
     candidate: &Path,
     checkout: &Path,
     cutoff: SystemTime,
+    discard: bool,
 ) -> Result<(Nested, Vec<Save>)> {
     let name = checkout.display();
     let unreadable =
@@ -449,17 +468,36 @@ fn check_nested(
         !locked(checkout).map_err(unreadable)?,
         "nested {name} is locked"
     );
+    if let Some((_, path)) = git_activity(checkout).filter(|(time, _)| *time >= cutoff) {
+        return Err(keep(format!("{} changed recently", path.display())));
+    }
     let status = changes(checkout).map_err(unreadable)?;
     if let Some(path) = recently_changed(checkout, &status, cutoff) {
         return Err(keep(format!("{} changed recently", path.display())));
     }
     let head = git(checkout, &["rev-parse", "--verify", "--quiet", "HEAD"]).ok();
     let common = common_dir(checkout).map_err(unreadable)?;
+    let local_repo = common.starts_with(candidate);
+    if local_repo {
+        check_outside_worktrees(candidate, checkout, false)?;
+    }
+    if discard {
+        let admin = admin_dir(checkout).map_err(unreadable)?;
+        return Ok((
+            Nested {
+                path: checkout.to_owned(),
+                head,
+                // A submodule or separate Git dir is not a linked worktree.
+                survivor: (!local_repo && admin.join("commondir").is_file()).then_some(common),
+            },
+            Vec::new(),
+        ));
+    }
     let mut saves = Vec::new();
     if !status.is_empty() {
         saves.extend(salvage::plan_dirty(checkout, &status, &common).map_err(passing)?);
     }
-    if !common.starts_with(candidate) {
+    if !local_repo {
         // Its repository stays; only a HEAD on no ref would be lost.
         if saves.is_empty() && head.is_some() && kept_by(checkout).map_err(unreadable)?.is_empty() {
             saves.push(Save::Wip {
@@ -486,18 +524,6 @@ fn check_nested(
     unpushed.extend(["--not", "--remotes"]);
     let unpushed = git(checkout, &unpushed).map_err(unreadable)?;
     let stash = git(checkout, &["for-each-ref", "--count=1", "refs/stash"]).map_err(unreadable)?;
-    let listed = git(checkout, &["worktree", "list", "--porcelain"]).map_err(unreadable)?;
-    if let Some(outside) = listed
-        .lines()
-        .filter_map(|line| line.strip_prefix("worktree "))
-        .map(Path::new)
-        .find(|path| !path.starts_with(candidate))
-    {
-        return Err(blocked(format!(
-            "nested {name} has a worktree outside at {}",
-            outside.display()
-        )));
-    }
     if !saves.is_empty() || unpushed != "0" || !stash.is_empty() {
         saves.push(Save::Bundle { repo: common });
     }
@@ -569,8 +595,13 @@ pub(crate) fn inspect_tree(
     }
     let mut nested = Vec::new();
     let mut saves = Vec::new();
+    for bare in &scan.scratch_bare {
+        check_outside_worktrees(folder, bare, false)?;
+    }
+    let scratch = folder.join(".scratch");
     for checkout in &scan.checkouts {
-        let (found, save) = check_nested(folder, checkout, cutoff)?;
+        let discard = linked && checkout.starts_with(&scratch);
+        let (found, save) = check_nested(folder, checkout, cutoff, discard)?;
         nested.push(found);
         saves.extend(save);
     }
@@ -609,18 +640,55 @@ pub(crate) fn check_git(worktree: &Path, cutoff: SystemTime) -> Result<Verdict> 
 }
 
 fn check_git_unchecked(worktree: &Path, cutoff: SystemTime) -> Result<Verdict> {
-    keep_unless!(!locked(worktree)?, "locked with git worktree lock");
-    let status = changes(worktree)?;
+    let admin = admin_dir(worktree)?;
+    keep_unless!(
+        !admin.join("locked").try_exists()?,
+        "locked with git worktree lock"
+    );
+    let mut status = changes(worktree)?;
     if let Some(path) = recently_changed(worktree, &status, cutoff) {
         return Err(keep(format!("{} changed recently", path.display())));
     }
+    // Scratch changes still count for activity and may require `--force`.
+    // Even a clean gitlink under scratch makes Git require `--force`.
+    let mut force = !status.is_empty();
+    for entry in git_bytes(worktree, &["ls-files", "--stage", "-z"])?.split(|&byte| byte == 0) {
+        if !entry.starts_with(b"160000 ") {
+            continue;
+        }
+        let tab = entry
+            .iter()
+            .position(|&byte| byte == b'\t')
+            .context("gitlink has no path")?;
+        let path = Path::new(OsStr::from_bytes(&entry[tab + 1..]));
+        if path.starts_with(".scratch") {
+            force = true;
+        } else {
+            block_unless!(
+                !worktree.join(path).join(".git").try_exists()?,
+                "has initialized submodules"
+            );
+        }
+    }
+    status.retain(|path| !path.starts_with(".scratch"));
     if worktree.join(".gitmodules").exists() {
-        let modules = git(worktree, &["submodule", "status", "--recursive"])?;
+        let modules = git(
+            worktree,
+            &[
+                "submodule",
+                "status",
+                "--recursive",
+                "--",
+                ".",
+                ":(top,exclude).scratch",
+            ],
+        )?;
         block_unless!(
             modules.lines().all(|line| line.starts_with('-')),
             "has initialized submodules"
         );
     }
+    force |= check_scratch_modules(worktree, &admin)?;
     let head = git(worktree, &["rev-parse", "--verify", "HEAD"])?;
     let repo = common_dir(worktree)?;
     let mut saves = Vec::new();
@@ -636,11 +704,72 @@ fn check_git_unchecked(worktree: &Path, cutoff: SystemTime) -> Result<Verdict> {
             dirty: false,
         });
     }
-    Ok(Verdict {
-        head,
-        saves,
-        force: !status.is_empty(),
-    })
+    Ok(Verdict { head, saves, force })
+}
+
+/// Git removes the worktree's admin directory too. It can still hold
+/// submodule repositories after their gitlinks and checkouts were removed.
+fn check_scratch_modules(worktree: &Path, admin: &Path) -> Result<bool> {
+    let mut modules = vec![admin.join("modules")];
+    let mut found = false;
+    let scratch = worktree.join(".scratch");
+    while let Some(directory) = modules.pop() {
+        let info = match directory.symlink_metadata() {
+            Ok(info) => info,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error.into()),
+        };
+        block_unless!(
+            info.is_dir(),
+            "unexpected submodule metadata at {}",
+            directory.display()
+        );
+        found = true;
+        let config = directory.join("config");
+        if directory.join("HEAD").is_file() && config.is_file() {
+            let configured = util::command_output(
+                salvage::command(worktree)
+                    .args(["config", "--null", "--file"])
+                    .arg(&config)
+                    .args(["--get", "core.worktree"]),
+            )
+            .with_context(|| format!("locate the checkout for {}", directory.display()))?;
+            let path = directory.join(OsStr::from_bytes(
+                configured
+                    .strip_suffix(&[0])
+                    .context("unterminated core.worktree")?,
+            ));
+            // An old checkout may not exist to canonicalize.
+            let path = path.canonicalize().unwrap_or_else(|_| {
+                let mut resolved = PathBuf::new();
+                for component in path.components() {
+                    if component == Component::ParentDir {
+                        resolved.pop();
+                    } else {
+                        resolved.push(component);
+                    }
+                }
+                resolved
+            });
+            block_unless!(
+                path.starts_with(&scratch),
+                "has submodule metadata for {} outside root .scratch/",
+                path.display()
+            );
+            if directory.join("worktrees").try_exists()? {
+                check_outside_worktrees(worktree, &directory, true)?;
+            }
+            modules.push(directory.join("modules"));
+        } else {
+            for entry in directory.read_dir()? {
+                let entry = entry?;
+                if entry.file_type()?.is_dir() {
+                    modules.push(entry.path());
+                }
+            }
+        }
+    }
+    Ok(found)
 }
 
 /// What a worktree's check learns without its owner's state, so it can run
@@ -791,7 +920,7 @@ fn remove(
         "{} is no longer a registered linked worktree",
         worktree.display()
     );
-    let saved = salvage::apply(worktree, &checked.saves, store)?;
+    let saved = salvage::apply(worktree, &checked.saves, store, true)?;
     let watched = salvage::watch(worktree, &common);
     let mut command = Command::new("git");
     command.arg("-C").arg(&common).args(["worktree", "remove"]);
@@ -825,7 +954,7 @@ fn remove(
 
 /// Remove a checked plain folder after saving what it holds.
 pub(crate) fn remove_folder(folder: &Path, checked: Fingerprint, store: &Store) -> Result<Outcome> {
-    let saved = salvage::apply(folder, &checked.saves, store)?;
+    let saved = salvage::apply(folder, &checked.saves, store, false)?;
     salvage::remove_tree(folder)?;
     prune_nested(&checked)?;
     Ok(Outcome {
@@ -1387,7 +1516,7 @@ mod tests {
         Ok(())
     }
 
-    /// A pushed repository: `remote.git` and its clone `checkout`, ignoring `.scratch/`.
+    /// A pushed repository: `remote.git` and its clone `checkout`.
     fn repository(base: &Path) -> Result<(PathBuf, PathBuf)> {
         let remote = base.join("remote.git");
         let checkout = base.join("checkout");
@@ -1404,7 +1533,6 @@ mod tests {
             &["commit", "--quiet", "--allow-empty", "-m", "init"],
         )?;
         run_git(&checkout, &["push", "--quiet", "origin", "main"])?;
-        fs::write(checkout.join(".git/info/exclude"), ".scratch/\n")?;
         Ok((remote, checkout))
     }
 
@@ -1427,6 +1555,7 @@ mod tests {
         let temp = tempfile::tempdir()?;
         let base = fs::canonicalize(temp.path())?;
         let (remote, checkout) = repository(&base)?;
+        fs::write(checkout.join(".git/info/exclude"), "/src/.scratch/\n")?;
         let root = base.join("worktrees");
         let project = root.join("abc123");
         fs::create_dir_all(&project)?;
@@ -1450,17 +1579,19 @@ mod tests {
             &["commit", "--quiet", "--allow-empty", "-m", "orphan"],
         )?;
         let busy = add("busy", None)?;
+        let busy_scratch = busy.join(".scratch");
+        fs::create_dir(&busy_scratch)?;
         let locked = add("locked", None)?;
         run_git(&checkout, &["worktree", "lock", locked.to_str().unwrap()])?;
         // Committed nested worktrees and pushed clones go with their parent.
         let nesting = add("nesting", None)?;
-        let nested = nesting.join(".scratch/worktrees/inner");
+        let nested = nesting.join("src/.scratch/worktrees/inner");
         add_worktree(&checkout, &nested, Some("inner"))?;
         run_git(
             &nested,
             &["commit", "--quiet", "--allow-empty", "-m", "nested"],
         )?;
-        let pushed_clone = nesting.join(".scratch/clone");
+        let pushed_clone = nesting.join("src/.scratch/clone");
         run_git(
             &base,
             &[
@@ -1472,11 +1603,11 @@ mod tests {
         )?;
         // Unsaved work, nested or not, is saved before its workspace goes.
         let nested_dirty = add("nested-dirty", None)?;
-        let inner_dirty = nested_dirty.join(".scratch/worktrees/inner");
+        let inner_dirty = nested_dirty.join("src/.scratch/worktrees/inner");
         add_worktree(&checkout, &inner_dirty, None)?;
         fs::write(inner_dirty.join("wip.txt"), "wip")?;
         let unpushed = add("unpushed", None)?;
-        let clone = unpushed.join(".scratch/clone");
+        let clone = unpushed.join("src/.scratch/clone");
         run_git(
             &base,
             &[
@@ -1491,7 +1622,7 @@ mod tests {
             &["commit", "--quiet", "--allow-empty", "-m", "local"],
         )?;
         let broken = add("broken", None)?;
-        fs::create_dir_all(broken.join(".scratch/clone/.git"))?;
+        fs::create_dir_all(broken.join("src/.scratch/clone/.git"))?;
 
         let now = SystemTime::now();
         let max_age = Duration::from_secs(8 * 86_400);
@@ -1499,7 +1630,10 @@ mod tests {
         // Git's administrative files for the worktrees count as activity too.
         age(&checkout.join(".git/worktrees"), now - 2 * max_age)?;
         let recent = add("recent", None)?;
-        let mut process = Command::new("sleep").arg("30").current_dir(&busy).spawn()?;
+        let mut process = Command::new("sleep")
+            .arg("30")
+            .current_dir(&busy_scratch)
+            .spawn()?;
 
         let database = base.join("missing.db");
         let mut blocked = Vec::new();
@@ -1589,6 +1723,228 @@ mod tests {
                 .is_some_and(|watched| watched.branch == "feature")
         }));
         let _ = fs::remove_dir_all(BUNDLES.with(|dir| dir.clone()));
+        Ok(())
+    }
+
+    #[test]
+    fn linked_worktree_discards_only_its_root_scratch() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let base = fs::canonicalize(temp.path())?;
+        let (remote, checkout) = repository(&base)?;
+        run_git(&checkout, &["config", "core.excludesFile", "/dev/null"])?;
+        let worktree = base.join("worktree");
+        add_worktree(&checkout, &worktree, None)?;
+        let scratch = worktree.join(".scratch");
+        fs::create_dir(&scratch)?;
+        // Reproduce a package manager's bare mirror and a dirty reference
+        // clone, neither ignored by the outer Git repository.
+        run_git(
+            &scratch,
+            &[
+                "clone",
+                "--mirror",
+                "--quiet",
+                remote.to_str().unwrap(),
+                "mirror",
+            ],
+        )?;
+        run_git(
+            &scratch,
+            &["clone", "--quiet", remote.to_str().unwrap(), "reference"],
+        )?;
+        let reference = scratch.join("reference");
+        run_git(
+            &reference,
+            &["commit", "--quiet", "--allow-empty", "-m", "unpushed"],
+        )?;
+        fs::write(reference.join("wip.txt"), "throw away")?;
+        let tracked = scratch.join("tracked.txt");
+        fs::write(&tracked, "committed")?;
+        run_git(&worktree, &["add", ".scratch/tracked.txt"])?;
+        run_git(&worktree, &["commit", "--quiet", "-m", "track fixture"])?;
+        run_git(&worktree, &["branch", "kept"])?;
+        fs::write(&tracked, "throw away this too")?;
+
+        let now = SystemTime::now();
+        let day = Duration::from_secs(86_400);
+        let old = now - 2 * day;
+        let cutoff = now - day;
+        let device = worktree.metadata()?.dev();
+        let check = || check_worktree(&worktree, device, cutoff, || Ok(()), None);
+        age(&worktree, old)?;
+        age(&checkout.join(".git/worktrees"), old)?;
+        fs::create_dir(scratch.join("recent"))?;
+        let kept = decide_once(check())?.expect_err("recent scratch did not keep the worktree");
+        assert!(kept.reason.contains("changed recently"), "{kept:?}");
+        age(&scratch, old)?;
+        fs::write(&tracked, "recent scratch edit")?;
+        let kept =
+            decide_once(check())?.expect_err("recent scratch edit did not keep the worktree");
+        assert!(
+            kept.reason.contains("tracked.txt changed recently"),
+            "{kept:?}"
+        );
+        age(&scratch, old)?;
+        fs::write(reference.join("wip.txt"), "recent clone edit")?;
+        let kept = decide_once(check())?.expect_err("recent clone edit did not keep the worktree");
+        assert!(
+            kept.reason.contains("reference/wip.txt changed recently"),
+            "{kept:?}"
+        );
+        age(&scratch, old)?;
+        let checked = check()?;
+        assert!(checked.force, "Git sees the unignored scratch files");
+        assert!(checked.saves.is_empty(), "{:?}", checked.saves);
+
+        // Only the root `.scratch/` is disposable, and a saved WIP commit
+        // must not pick up its uncommitted changes along with real work.
+        let work = worktree.join("code/.scratch");
+        fs::create_dir_all(&work)?;
+        fs::write(work.join("wip.txt"), "save me")?;
+        age(&worktree, old)?;
+        let checked = check()?;
+        let store = Store {
+            bundles: base.join("bundles"),
+            note: String::new(),
+        };
+        let outcome = remove(&worktree, checked, &store, None)?;
+        assert!(!worktree.exists());
+        let [saved] = outcome.saved.as_slice() else {
+            panic!("expected only a WIP branch, got {:?}", outcome.saved);
+        };
+        let salvage::Place::Branch { commit, .. } = &saved.place else {
+            panic!("expected a WIP branch, got {:?}", saved.place);
+        };
+        let saved_file = |path| git(&checkout, &["show", &format!("{commit}:{path}")]);
+        assert_eq!(saved_file("code/.scratch/wip.txt")?, "save me");
+        assert_eq!(saved_file(".scratch/tracked.txt")?, "committed");
+        assert!(saved_file(".scratch/reference").is_err());
+        assert!(!store.bundles.exists());
+        Ok(())
+    }
+
+    #[test]
+    fn root_scratch_repositories_cannot_lose_worktrees_outside_the_workspace() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let base = fs::canonicalize(temp.path())?;
+        let (remote, checkout) = repository(&base)?;
+        let old = SystemTime::now() - Duration::from_secs(2 * 86_400);
+        for (kind, mode) in [("mirror", "--mirror"), ("clone", "--no-hardlinks")] {
+            let worktree = base.join(kind);
+            add_worktree(&checkout, &worktree, None)?;
+            let scratch = worktree.join(".scratch/.build");
+            fs::create_dir_all(&scratch)?;
+            run_git(
+                &scratch,
+                &["clone", mode, "--quiet", remote.to_str().unwrap(), "repo"],
+            )?;
+            let outside = base.join(format!("outside\n{kind}"));
+            add_worktree(&scratch.join("repo"), &outside, None)?;
+            age(&worktree, old)?;
+            let kept = decide_once(inspect_tree(
+                &worktree,
+                worktree.metadata()?.dev(),
+                old + Duration::from_secs(86_400),
+                true,
+            ))?
+            .expect_err("Git metadata shared with an outside checkout must stay");
+            assert!(kept.blocker && kept.reason.contains("has a worktree outside"));
+            assert!(kept.reason.contains(outside.to_str().unwrap()));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn root_scratch_submodules_can_be_removed_unless_they_own_an_outside_worktree() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let base = fs::canonicalize(temp.path())?;
+        let (remote, checkout) = repository(&base)?;
+        run_git(&checkout, &["config", "core.excludesFile", "/dev/null"])?;
+        let worktree = base.join("worktree");
+        add_worktree(&checkout, &worktree, Some("topic"))?;
+        run_git(
+            &worktree,
+            &[
+                "submodule",
+                "add",
+                "--quiet",
+                remote.to_str().unwrap(),
+                ".scratch/module",
+            ],
+        )?;
+        run_git(&worktree, &["commit", "--quiet", "-m", "track submodule"])?;
+        assert!(changes(&worktree)?.is_empty());
+        let old = SystemTime::now() - Duration::from_secs(2 * 86_400);
+        age(&worktree, old)?;
+        age(&checkout.join(".git/worktrees"), old)?;
+        let device = worktree.metadata()?.dev();
+        let cutoff = old + Duration::from_secs(86_400);
+        let check = || check_worktree(&worktree, device, cutoff, || Ok(()), None);
+        let checked = check()?;
+        assert!(checked.force);
+        assert!(checked.saves.is_empty());
+        let module = worktree.join(".scratch/module");
+        let repo = admin_dir(&module)?;
+        let outside = base.join("outside");
+        add_worktree(&module, &outside, None)?;
+        age(&checkout.join(".git/worktrees"), old)?;
+        let kept = decide_once(check())?.expect_err("the module owns an outside worktree");
+        assert!(kept.blocker && kept.reason.contains("has a worktree outside"));
+
+        // Removing the gitlink leaves the module repository in the admin directory.
+        run_git(&worktree, &["rm", "--quiet", ".scratch/module"])?;
+        run_git(&worktree, &["commit", "--quiet", "-m", "remove submodule"])?;
+        age(&worktree, old)?;
+        age(&checkout.join(".git/worktrees"), old)?;
+        let kept = decide_once(check())?.expect_err("the retired module still owns a worktree");
+        assert!(kept.blocker && kept.reason.contains("has a worktree outside"));
+        util::command_output(
+            salvage::command(&worktree)
+                .arg("--git-dir")
+                .arg(repo)
+                .arg("--work-tree")
+                .arg(&worktree)
+                .args(["worktree", "remove"])
+                .arg(&outside),
+        )?;
+        let checked = check()?;
+        assert!(checked.force && checked.saves.is_empty());
+        let store = Store {
+            bundles: base.join("bundles"),
+            note: String::new(),
+        };
+        remove(&worktree, checked, &store, None)?;
+        assert!(!worktree.exists());
+        Ok(())
+    }
+
+    #[test]
+    fn root_scratch_linked_checkout_counts_recent_detached_commits() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let base = fs::canonicalize(temp.path())?;
+        let (_, checkout) = repository(&base)?;
+        let worktree = base.join("outer");
+        add_worktree(&checkout, &worktree, None)?;
+        let nested = worktree.join(".scratch/inner");
+        add_worktree(&checkout, &nested, None)?;
+        let old = SystemTime::now() - Duration::from_secs(2 * 86_400);
+        age(&worktree, old)?;
+        age(&checkout.join(".git/worktrees"), old)?;
+        run_git(
+            &nested,
+            &["commit", "--quiet", "--allow-empty", "-m", "recent"],
+        )?;
+        let kept = decide_once(inspect_tree(
+            &worktree,
+            worktree.metadata()?.dev(),
+            old + Duration::from_secs(86_400),
+            true,
+        ))?
+        .expect_err("the recent commit should keep the worktree");
+        assert!(
+            !kept.blocker && kept.reason.contains("changed recently"),
+            "{kept:?}"
+        );
         Ok(())
     }
 

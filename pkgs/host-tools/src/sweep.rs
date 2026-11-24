@@ -880,8 +880,9 @@ pub enum Command {
     ///
     /// Git branches do not have to be merged. Sweep saves recoverable Git work
     /// locally before removing a workspace, or leaves the workspace alone if it
-    /// cannot save that work safely. Plain scratch files and Git-ignored files
-    /// are not backed up.
+    /// cannot save that work safely. A linked worktree's root `.scratch/` is
+    /// disposable, including any Git repositories inside it. Plain scratch
+    /// files and Git-ignored files are not backed up either.
     #[command(verbatim_doc_comment)]
     Clean {
         /// Minimum idle time, such as 30m, 2d, 1w or 1d12h. Use `today` for
