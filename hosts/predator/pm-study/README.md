@@ -179,10 +179,12 @@ Work through this in order. Record every run in the results table.
    the repeat. The two-hour trial refused before any sleep request.
    `s2idle-long-boot-1` was cancelled after generation 206 was activated
    while generation 205 was still booted. `s2idle-long-boot-cold-1`
-   is armed on the audited generation 206 boot, with the system's
-   existing D3cold GPU policy. The seven-hour run remains unarmed
-   until a verified two-hour wake on schedule and a healthy, unchanged
-   system. Meter readings are not required to advance.
+   refused before any request on generation 206 because the service
+   read the backup window in the wrong timezone. Fix and verify the
+   clock check in the systemd service environment before considering a
+   new two-hour label. The seven-hour run remains unarmed until a
+   verified two-hour wake on schedule and a healthy, unchanged system.
+   Meter readings are not required to advance.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -797,7 +799,7 @@ alone. After the dry cycles, the launcher gives the devices up to
 a generation 206 reliability check, not a matched D0 versus D3cold
 comparison with the earlier generation 205 trials.
 
-`s2idle-long-boot-cold-1` is armed for November 24 at 01:00 CET, with
+`s2idle-long-boot-cold-1` was armed for November 24 at 01:00 CET, with
 a 00:40 read-only precheck and 03:20 results check. Nine hours after
 boot falls after the evening cutoff, so the first planned slot is
 after backups and midnight maintenance. Read-only `prepare` passed
@@ -816,10 +818,35 @@ had never started. There were no trial logs, STOP flag, pending jobs
 or conflicting suspend timers. The pinned generation 206 boot and
 0/0 counters matched, both GPU devices were suspended in D3cold, and
 Ente was running. Only `check` ran, passing at 41,493 s awake,
-including the audit of all nine volumes. The timer and the 03:20
-results check were left unchanged.
+including the audit of all nine volumes. The timer was left unchanged.
 
-Use the actual entry and return timestamps for the meter comparison.
+At 01:00:00.884 CET the service refused with `backup exclusion window`,
+exited with status 1, and the one-shot timer deactivated.
+There were no snapshots, trial logs or kernel suspend entries or
+exits, and the counters stayed at 0/0. Neither the dry cycles nor the
+real `s2idle` request ran. This was not a hang.
+
+The launcher sets `TZ=Europe/Paris` for `date` but relies on inherited
+`TZDIR`. The SSH shell had `TZDIR=/etc/zoneinfo`; neither the loaded
+service nor the system manager specified it. A read-only reproduction
+with the host's system `date` at the trigger instant returned
+`0000 Europe +0000` without `TZDIR`, inside the excluded window. With
+`TZDIR=/etc/zoneinfo` it returned `0100 CET +0100`. The passing SSH
+precheck did not exercise the service environment.
+
+At the 03:20 results check, the prepared units and binaries still
+matched their hashes and the pinned generation 206 boot and all three
+system links matched. `deep` was selected, `pm_test` was `none`, the
+RTC alarm was empty, and `SLP_SMI_EN` was set. The GPU and port remained
+`auto`, suspended and in D3cold. The three pools were healthy with no
+scan, their GUIDs and five mounts matched, and all nine volumes passed
+the boot audit. Ente was running and Nextcloud was out of maintenance.
+There were no pending jobs, active checked maintenance units, blocking
+inhibitors or competing suspend timers. Only the concluded trial
+service was failed. No host settings or timers were changed; the
+overnight trial was not armed. There is no sleep interval to measure.
+
+For a future completed trial, use the actual entry and return timestamps.
 Check whether complete five-minute bins inside the sleep interval stay
 near 7 W, and compare with adjacent complete awake bins. Exclude any bin
 that contains entry or return. Verify RTC timing, clean restoration,
@@ -906,7 +933,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 22 15:30 (due) | `s2idle-long-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 40 min at refusal | launcher refused at 15:36:53 on failed units; zero requests | fan at full speed before owner reboot Nov 23; overnight trial not armed |
 | Nov 23 20:20 (due) | `s2idle-long-boot-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 19 min at planned trigger | cancelled at 12:29; zero requests | generation 206 active on the generation 205 boot; both T3 checks disabled |
 | Nov 24 00:40 | `s2idle-long-boot-cold-1` precheck | read-only timer and baseline checks | 41,493 s since boot | preflight passed; zero requests | generation 206 unchanged; GPU and port in D3cold |
-| Nov 24 01:00 | `s2idle-long-boot-cold-1` | five core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 206 with the existing D3cold policy | about 11 h 51 min at planned trigger | armed; outcome pending | precheck 00:40; results 03:20; overnight unarmed |
+| Nov 24 01:00 | `s2idle-long-boot-cold-1` | planned five core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 206 with the existing D3cold policy | about 11 h 51 min at trigger | refused on backup-window clock check; zero requests | no sleep interval; overnight not armed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
