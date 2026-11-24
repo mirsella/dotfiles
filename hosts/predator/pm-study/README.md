@@ -180,10 +180,11 @@ Work through this in order. Record every run in the results table.
    `s2idle-long-boot-1` was cancelled after generation 206 was activated
    while generation 205 was still booted. `s2idle-long-boot-cold-1`
    refused before any request on generation 206 because the service
-   read the backup window in the wrong timezone. Fix and verify the
-   clock check in the systemd service environment before considering a
-   new two-hour label. The seven-hour run remains unarmed until a
-   verified two-hour wake on schedule and a healthy, unchanged system.
+   read the backup window in the wrong timezone. The corrected launcher
+   passed under systemd without the login shell's timezone variables.
+   `s2idle-long-boot-cold-2` is armed for November 24 at 11:00 CET on the
+   same boot. The seven-hour run requires a verified two-hour wake on
+   schedule and a healthy, unchanged system.
    Meter readings are not required to advance.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
@@ -826,7 +827,7 @@ There were no snapshots, trial logs or kernel suspend entries or
 exits, and the counters stayed at 0/0. Neither the dry cycles nor the
 real `s2idle` request ran. This was not a hang.
 
-The launcher sets `TZ=Europe/Paris` for `date` but relies on inherited
+The refused launcher set `TZ=Europe/Paris` for `date` but relied on inherited
 `TZDIR`. The SSH shell had `TZDIR=/etc/zoneinfo`; neither the loaded
 service nor the system manager specified it. A read-only reproduction
 with the host's system `date` at the trigger instant returned
@@ -845,6 +846,31 @@ There were no pending jobs, active checked maintenance units, blocking
 inhibitors or competing suspend timers. Only the concluded trial
 service was failed. No host settings or timers were changed; the
 overnight trial was not armed. There is no sleep interval to measure.
+
+#### November 24 daytime retry
+
+The launcher now uses `/etc/zoneinfo/Europe/Paris` explicitly and
+refuses if the file cannot be read. In a clean environment on Predator,
+the absolute timezone file resolved the original trigger to 01:00 CET.
+With `TZ` and `TZDIR` stripped from its systemd service environment,
+the rebuilt launcher passed read-only `check` and `prepare`, including
+for a projected 00:40 CET slot, with all nine volumes audited. The old
+unit's refusal stays in the journal; only its failed flag was cleared.
+The original runner binary is unchanged.
+
+The nonpersistent `pm-s2idle-long-boot-cold-2.timer` is waiting for
+November 24 at 11:00 CET, with a read-only T3 precheck at 10:40 and
+results at 13:20. At arming, the trial service was inactive, had never
+started and had no drop-ins or restart policy. The retry pins the same
+generation 206 boot and storage, with 0/0 counters and the existing
+D3cold policy. It calls for five `core` dry cycles, then one `s2idle`
+request with a 7,200 s RTC alarm. No sleep was requested at arming.
+Saved units, both binaries and hashes are under
+`/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-long-boot-cold-2-20261124/`.
+The fixed launcher is in `/run/pm-s2idle-long-boot-cold-2-exec/`; it
+uses the existing runner in `/run/pm-s2idle-duration/`. Future checks
+should invoke only `check` or `prepare` through a systemd service
+without the shell's timezone variables.
 
 For a future completed trial, use the actual entry and return timestamps.
 Check whether complete five-minute bins inside the sleep interval stay
@@ -934,6 +960,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 23 20:20 (due) | `s2idle-long-boot-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 19 min at planned trigger | cancelled at 12:29; zero requests | generation 206 active on the generation 205 boot; both T3 checks disabled |
 | Nov 24 00:40 | `s2idle-long-boot-cold-1` precheck | read-only timer and baseline checks | 41,493 s since boot | preflight passed; zero requests | generation 206 unchanged; GPU and port in D3cold |
 | Nov 24 01:00 | `s2idle-long-boot-cold-1` | planned five core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 206 with the existing D3cold policy | about 11 h 51 min at trigger | refused on backup-window clock check; zero requests | no sleep interval; overnight not armed |
+| Nov 24 11:00 (due) | `s2idle-long-boot-cold-2` | same two-hour s2idle trial with the timezone fix, unchanged generation 206 and D3cold policy | about 21 h 51 min at planned trigger | armed; read-only systemd checks passed | precheck 10:40; results 13:20; overnight not armed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools

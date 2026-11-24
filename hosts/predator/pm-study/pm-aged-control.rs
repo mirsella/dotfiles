@@ -14,6 +14,7 @@ const GPU_OFF_RUNNER: &str = "/home/mirsella/dev/scratch/predator-suspend/pm-bat
 const LONG_S2IDLE_RUNNER: &str = "/run/pm-s2idle-duration/pm-batch";
 const GPU: &str = "/sys/bus/pci/devices/0000:01:00.0";
 const PORT: &str = "/sys/bus/pci/devices/0000:00:01.0";
+const STUDY_ZONEINFO: &str = "/etc/zoneinfo/Europe/Paris";
 const GPU_MEASUREMENT: Duration = Duration::from_secs(25 * 60);
 const MAINTENANCE: &[&str] = &[
     "db-backup.service",
@@ -37,10 +38,13 @@ fn require(ok: bool, why: impl Into<String>) -> Result<()> {
 
 fn command(program: &str) -> Command {
     let mut cmd = Command::new(program);
-    cmd.env("LC_ALL", "C").env("TZ", "Europe/Paris").env(
-        "PATH",
-        "/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin",
-    );
+    // A systemd service does not inherit the login shell's TZDIR.
+    cmd.env("LC_ALL", "C")
+        .env("TZ", format!(":{STUDY_ZONEINFO}"))
+        .env(
+            "PATH",
+            "/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin",
+        );
     cmd
 }
 
@@ -406,6 +410,8 @@ impl Baseline<'_> {
             .ok_or("missing uptime")?
             .parse()?;
         let awake = self.arm.awake_since(uptime, self.resume_observed)?;
+        fs::File::open(STUDY_ZONEINFO)
+            .map_err(|err| format!("cannot read trial timezone {STUDY_ZONEINFO}: {err}"))?;
         let clock: u32 = output("date", &["+%H%M"])?.trim().parse()?;
         self.arm.check_preparation_window(clock, planned)?;
         let age_at_start = if let Some(slot) = planned {
