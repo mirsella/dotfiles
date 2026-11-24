@@ -182,10 +182,10 @@ Work through this in order. Record every run in the results table.
    refused before any request on generation 206 because the service
    read the backup window in the wrong timezone. The corrected launcher
    passed under systemd without the login shell's timezone variables.
-   `s2idle-long-boot-cold-2` is armed for November 24 at 11:00 CET on the
-   same boot. The seven-hour run requires a verified two-hour wake on
-   schedule and a healthy, unchanged system.
-   Meter readings are not required to advance.
+   `s2idle-long-boot-cold-2` returned on schedule on that same boot,
+   with successful cleanup and a healthy, unchanged system. The
+   seven-hour follow-up is armed for November 25 at 01:30 CET. Meter
+   readings were not required to advance.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -858,7 +858,7 @@ for a projected 00:40 CET slot, with all nine volumes audited. The old
 unit's refusal stays in the journal; only its failed flag was cleared.
 The original runner binary is unchanged.
 
-The nonpersistent `pm-s2idle-long-boot-cold-2.timer` is waiting for
+The nonpersistent `pm-s2idle-long-boot-cold-2.timer` was armed for
 November 24 at 11:00 CET, with a read-only T3 precheck at 10:40 and
 results at 13:20. At arming, the trial service was inactive, had never
 started and had no drop-ins or restart policy. The retry pins the same
@@ -881,29 +881,58 @@ pins, 0/0 counters, D3cold GPU and port, healthy storage and all nine
 boot audits. Ente was running. The timer remained armed for 11:00 CET
 and the trial service had never started. No dry or real suspend ran.
 
-For a future completed trial, use the actual entry and return timestamps.
-Check whether complete five-minute bins inside the sleep interval stay
-near 7 W, and compare with adjacent complete awake bins. Exclude any bin
-that contains entry or return. Verify RTC timing, clean restoration,
-`deep` selected, no RTC alarm, unchanged storage, Ente and a passing
-boot audit. A refusal, unexplained wake, hang, changed baseline or
-incomplete evidence stops the queue. Do not automatically recover.
+The 11:00 CET trial passed. All five `core` dry cycles returned in
+8.6 to 10.0 s, each with one success and no failure (0/0 to 5/0).
+The runner then recorded exactly one real `s2idle` request at
+11:02:03.532 CET, with a 7,200 s RTC alarm and `expect_d3cold=true`.
+It checked both devices at the request boundary without changing
+their policy. There was no firmware bypass; `SLP_SMI_EN` was set.
+The kernel logged `s2idle` entry at 11:02:03.535 and exit at
+13:02:05.115. The runner returned at 13:02:05.115, after 7,201.6 s,
+consistent with the RTC alarm. Wake IRQ 9 alone does not identify the
+wake source. The real cycle added one success and no failure.
 
-After a verified pass, automatically arm one
-`s2idle-overnight-after-boot-trial-cold-1` without waiting for meter
-readings. The owner reports about 15 W
-during the observed hangs and about 3 W in successful S3 or 7 W in
-successful s2idle. Record meter readings separately; they are not a
-substitute for the wake and health checks. Target November 25 at
-01:30 CET, with a 01:10 precheck and 08:50 results, only if the
-actual baseline and timer inventory still allow it.
-Both the precheck and trigger must be at least nine hours after a
-rounded-up uptime observation following the two-hour return on the
-same boot. The same launcher and runner require counters 6/0, then
-11/0 after five dry cycles, and use one 25,200 s RTC alarm. A normal
-return leaves 12/0. The launcher permits overnight stages only between
-01:00 and 01:59 CET. Do not arm this trial ahead of the two-hour result,
-change any permanent suspend policy, or schedule more arms after it.
+Cleanup reported no errors, the after snapshot was written, and the
+service exited successfully. The port was still settling at D3hot
+in the immediate after snapshot. At 13:20 both devices were `auto`,
+suspended and in D3cold. Live counters were 6/0, `deep` was restored,
+`pm_test` was `none`, the RTC alarm was empty, and `SLP_SMI_EN` was set.
+Both unit files and binaries matched their saved copies and hashes.
+The same generation 206 boot and all system links matched. The three
+pools were healthy with no scan, GUIDs and five mounts matched, and all
+nine volumes passed the boot audit. Ente was running, Nextcloud was out
+of maintenance, and there were no failed units, jobs, checked active
+maintenance, blocking inhibitors or conflicting suspend timers.
+
+For the wall meter, use complete five-minute bins from 11:05 to
+13:00 CET. Complete awake bins such as 10:55 to 11:00 and 13:05 to
+13:10 are useful comparisons. Exclude bins that contain entry or
+return. The logged wake does not establish wall power.
+
+#### November 25 seven-hour follow-up
+
+The verified two-hour return qualified one automatic follow-up without
+waiting for meter readings. The same-boot after snapshot recorded
+85,969.32 s uptime at 13:02:05.145 CET, just after the logged return.
+The overnight launcher uses that uptime rounded up to `85970` as its
+age anchor. Read-only `prepare` under systemd with `TZ` and `TZDIR`
+removed passed for both slots and projected at least 43,674 s awake at
+precheck and 44,874 s at launch. The inventory showed no scheduled
+wake-capable timer or conflicting suspend or upgrade timer; backups
+and midnight maintenance were scheduled before this window.
+
+`s2idle-overnight-after-boot-trial-cold-1` is armed for November 25
+at 01:30 CET, with T3 checks at 01:10 and 08:50. The nonpersistent
+one-shot timer is waiting; the direct service is inactive, has never
+started and has no drop-ins or restart policy. Saved units, binaries
+and hashes are under
+`/home/mirsella/dev/scratch/predator-suspend/prepared-s2idle-overnight-after-boot-trial-cold-1-20261125/`.
+It uses the same fixed launcher, runner, boot, storage and D3cold
+policy: five `core` dry cycles (6/0 to 11/0), then one unmodified
+`s2idle` request with a 25,200 s RTC alarm (12/0 on normal return).
+Both stages must stay within 01:00 to 01:59 CET. The precheck is
+read-only. Do not replay, automatically recover or schedule another
+trial after the overnight result.
 
 ## Trial logs
 
@@ -970,7 +999,8 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 24 00:40 | `s2idle-long-boot-cold-1` precheck | read-only timer and baseline checks | 41,493 s since boot | preflight passed; zero requests | generation 206 unchanged; GPU and port in D3cold |
 | Nov 24 01:00 | `s2idle-long-boot-cold-1` | planned five core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 206 with the existing D3cold policy | about 11 h 51 min at trigger | refused on backup-window clock check; zero requests | no sleep interval; overnight not armed |
 | Nov 24 10:40 | `s2idle-long-boot-cold-2` precheck | read-only checks under systemd without the login timezone environment | 77,484 s since boot | passed; zero requests | 11:00 timer unchanged; Ente and pools healthy |
-| Nov 24 11:00 (due) | `s2idle-long-boot-cold-2` | same two-hour s2idle trial with the timezone fix, unchanged generation 206 and D3cold policy | about 21 h 51 min at planned trigger | armed; read-only systemd checks passed | precheck 10:40; results 13:20; overnight not armed |
+| Nov 24 11:00 | `s2idle-long-boot-cold-2` | five core dry cycles, then one s2idle/7,200 s RTC with existing D3cold policy on generation 206 | 78,767.71 s at real request | dry 5/5; real return at 13:02:05 after 7,201.6 s; clean restoration, 6/0 | Ente, storage and boot audit checked; meter readings pending |
+| Nov 25 01:30 (due) | `s2idle-overnight-after-boot-trial-cold-1` | five core dry cycles, then one s2idle/25,200 s RTC on the same D3cold baseline | about 12 h 28 min from post-resume anchor at planned trigger | armed; read-only systemd preparation passed | precheck 01:10; results 08:50; no further trial |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
