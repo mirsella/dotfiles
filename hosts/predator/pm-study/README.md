@@ -872,6 +872,15 @@ uses the existing runner in `/run/pm-s2idle-duration/`. Future checks
 should invoke only `check` or `prepare` through a systemd service
 without the shell's timezone variables.
 
+The November 24 10:40 CET precheck passed under systemd with `TZ` and
+`TZDIR` unset for the launcher. Both runtime units and both root-owned
+binaries matched the saved copies. The independent hashes and direct
+command matched, with no drop-ins, trial logs, STOP, jobs or competing
+timers. At 77,484 s since boot, `check` confirmed the generation 206
+pins, 0/0 counters, D3cold GPU and port, healthy storage and all nine
+boot audits. Ente was running. The timer remained armed for 11:00 CET
+and the trial service had never started. No dry or real suspend ran.
+
 For a future completed trial, use the actual entry and return timestamps.
 Check whether complete five-minute bins inside the sleep interval stay
 near 7 W, and compare with adjacent complete awake bins. Exclude any bin
@@ -960,6 +969,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 23 20:20 (due) | `s2idle-long-boot-1` | planned five D0 core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 205 | about 9 h 19 min at planned trigger | cancelled at 12:29; zero requests | generation 206 active on the generation 205 boot; both T3 checks disabled |
 | Nov 24 00:40 | `s2idle-long-boot-cold-1` precheck | read-only timer and baseline checks | 41,493 s since boot | preflight passed; zero requests | generation 206 unchanged; GPU and port in D3cold |
 | Nov 24 01:00 | `s2idle-long-boot-cold-1` | planned five core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 206 with the existing D3cold policy | about 11 h 51 min at trigger | refused on backup-window clock check; zero requests | no sleep interval; overnight not armed |
+| Nov 24 10:40 | `s2idle-long-boot-cold-2` precheck | read-only checks under systemd without the login timezone environment | 77,484 s since boot | passed; zero requests | 11:00 timer unchanged; Ente and pools healthy |
 | Nov 24 11:00 (due) | `s2idle-long-boot-cold-2` | same two-hour s2idle trial with the timezone fix, unchanged generation 206 and D3cold policy | about 21 h 51 min at planned trigger | armed; read-only systemd checks passed | precheck 10:40; results 13:20; overnight not armed |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
