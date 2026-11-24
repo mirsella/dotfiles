@@ -138,6 +138,10 @@
       {
         "model": "claude-agent/claude-fable-5-2[1m]",
         "provider": "opencode"
+      },
+      {
+        "model": "opencode/hy4-flash-free",
+        "provider": "opencode"
       }
     ],
     "guestSharingEnabled": true,
@@ -420,34 +424,26 @@
     "snoozePresets": [
       {
         "kind": "after",
-        "minutes": 30
-      },
-      {
-        "kind": "after",
         "minutes": 60
-      },
-      {
-        "kind": "after",
-        "minutes": 120
       },
       {
         "kind": "after",
         "minutes": 180
       },
       {
-        "day": "today",
-        "kind": "at",
-        "time": "18:00"
-      },
-      {
         "day": "tomorrow",
         "kind": "at",
-        "time": "09:00"
+        "time": "08:00"
       },
       {
         "day": "monday",
         "kind": "at",
         "time": "09:00"
+      },
+      {
+        "day": "today",
+        "kind": "at",
+        "time": "18:00"
       }
     ],
     "speechModelId": "handy-computer/cohere-transcribe-03-2026-gguf",
