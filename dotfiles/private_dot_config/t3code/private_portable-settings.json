@@ -48,8 +48,9 @@
     "inAppNotificationsEnabled": true,
     "loadBalancingEnabled": true,
     "loadBalancingWeights": {
-      "020898b6-4a15-44cb-ae04-0ef53d75919f": 100,
-      "1dcfc905-4f7e-4119-a60d-c27753b77241": 0
+      "020898b6-4a15-44cb-ae04-0ef53d75919f": 50,
+      "1dcfc905-4f7e-4119-a60d-c27753b77241": 0,
+      "e2c18a66-a4ec-4001-be1e-f9c643cb17ba": 50
     },
     "mathRenderingEnabled": true,
     "notificationMode": "notifications",
