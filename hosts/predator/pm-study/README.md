@@ -185,8 +185,8 @@ Work through this in order. Record every run in the results table.
    `s2idle-long-boot-cold-2` returned on schedule on that same boot,
    with successful cleanup and a healthy, unchanged system. The
    seven-hour follow-up also returned on schedule on generation 206.
-   The planned duration tests are complete. Overnight wall-power
-   readings are pending; no further trial is scheduled.
+   The owner reported about 7 W at the wall during that sleep. The
+   planned duration tests are complete; no further trial is scheduled.
 8. Threshold. Trials at 5, 6 and 7 hours awake. A sharp threshold points at a
    timer or counter, a gradual one at a slow drift.
 9. Arms from the snapshot differences in step 3.
@@ -971,10 +971,11 @@ four Ente services were running and Nextcloud was out of maintenance.
 There were no failed units, jobs, checked maintenance units, blocking
 inhibitors or conflicting timers. No further trial was armed.
 
-For the overnight wall draw, compare complete five-minute bins from
-01:35 to 08:30 CET with awake bins such as 01:25 to 01:30 and 08:35 to
-08:40. Exclude bins that contain entry or return. The logged wake does
-not measure watts.
+The owner reported about 7 W at the wall during the overnight sleep,
+consistent with the earlier 25-minute trial. The complete five-minute
+sleep bins run from 01:35 to 08:30 CET. Individual bin values and
+adjacent awake readings were not reported, so this is an observed
+sleep draw, not an awake-to-sleep power comparison.
 
 ## Trial logs
 
@@ -1043,7 +1044,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 24 10:40 | `s2idle-long-boot-cold-2` precheck | read-only checks under systemd without the login timezone environment | 77,484 s since boot | passed; zero requests | 11:00 timer unchanged; Ente and pools healthy |
 | Nov 24 11:00 | `s2idle-long-boot-cold-2` | five core dry cycles, then one s2idle/7,200 s RTC with existing D3cold policy on generation 206 | 78,767.71 s at real request | dry 5/5; real return at 13:02:05 after 7,201.6 s; clean restoration, 6/0 | Ente, storage and boot audit checked; meter readings pending |
 | Nov 25 01:10 | `s2idle-overnight-after-boot-trial-cold-1` precheck | read-only checks under systemd without the login timezone environment | 43,716 s since post-resume anchor | passed; zero requests | 01:30 timer unchanged; Ente and pools healthy |
-| Nov 25 01:30 | `s2idle-overnight-after-boot-trial-cold-1` | five core dry cycles, then one s2idle/25,200 s RTC on the same D3cold baseline | 44,999 s from post-resume anchor at real request | dry 5/5; real return at 08:32:07 after 25,202.0 s; clean restoration, 12/0 | Ente, storage and boot audit checked; meter readings pending; no further trial |
+| Nov 25 01:30 | `s2idle-overnight-after-boot-trial-cold-1` | five core dry cycles, then one s2idle/25,200 s RTC on the same D3cold baseline | 44,999 s from post-resume anchor at real request | dry 5/5; real return at 08:32:07 after 25,202.0 s; clean restoration, 12/0 | owner reported about 7 W asleep; Ente, storage and boot audit checked; no further trial |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
 counters both zero. Boot began around 07:33. No failed units, all three pools
