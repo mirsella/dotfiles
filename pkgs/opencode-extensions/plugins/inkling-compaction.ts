@@ -46,6 +46,11 @@ function shapeLocalRequest(event: SessionContext, kind: "context" | "generate" |
     return { ...part, text: delimited.slice(2, -2) };
   }).filter((part) => part.text.length > 0);
 
+  // Replayed instruction updates can mix old catalogs with project rules and lack source keys.
+  if (kind === "context" && event.messages.some((message) => message.role === "system")) {
+    event.system.push({ text: "Use only tools available in this request. Disregard older guidance for unavailable tools." });
+  }
+
   // Keep call IDs, attachment entries, and full stored output. Only the model sees excerpts.
   event.messages = event.messages.map((message) => {
     if (message.role === "tool") return { ...message, content: message.content.map(trimResult) };

@@ -127,7 +127,9 @@ The flake discovers these directories and sets hostnames automatically.
   unrelated changes in this shared repository, including staged Nix changes.
   Review or finish those changes before `chezmoi add`, `edit` or `re-add`.
 
-- OpenCode providers are enabled by hand: `claude-agent`, `openai`, `opencode` and `llama.cpp` (host-gated) are the ones in use, listed in the `policies` allow list. Configure any provider through sleev.ai.
+- Enable OpenCode providers explicitly in the `policies` allowlist. Keep the
+  workstation-only `llama.cpp` provider on direct loopback to Polaris, not Sleev.
+  OpenCode handles web search separately.
 - OpenCode, Codex, Claude Code and T3 use writable standalone installs
   bootstrapped by `programs.agent-tools`; activation only seeds missing installs
   and never replaces or downgrades them, and T3 can update the native agent

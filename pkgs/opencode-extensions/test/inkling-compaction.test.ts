@@ -90,3 +90,13 @@ test("summaries have no tools; cloud contexts are untouched", async () => {
   await handlers.context(cloud);
   expect(cloud).toEqual(original);
 });
+
+test("Local preserves mixed historical instructions but clarifies which tools are available", async () => {
+  const event = context();
+  const notice = { role: "system", content: [{ type: "text", text: "Use execute. Run project checks before editing." }] };
+  const withHistory = { ...event, messages: [notice, ...event.messages] };
+  await (await fixture()).context(withHistory);
+  expect(withHistory.messages[0]).toEqual(notice);
+  expect(withHistory.tools).not.toHaveProperty("execute");
+  expect(withHistory.system.at(-1)?.text).toContain("only tools available in this request");
+});
