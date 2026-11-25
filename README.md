@@ -249,12 +249,12 @@ Claude Code also auto-updates in the background, and T3's Claude provider runs
 Nix supplies the `t3code`/`t3code-nightly` launchers and desktop menu entry. On
 NixOS the launcher uses `appimage-run`; Arch runs the AppImage directly. A service
 drop-in puts `~/.local/bin` first in T3's PATH while preserving existing shell
-exports without overriding T3's temporary directory. On NixOS it also adds the
-NixOS profiles so the service can find update tools like `curl` and `cp` even
-when the user manager inherited a different PATH. Bootstrap installers also
-use their default temporary directories. T3 owns its
-background-service unit and updater state. Bootstrap sets up the service on a
-fresh CLI install if the user manager is available; otherwise run
+exports without overriding T3's temporary directory. On Arch it adds
+`~/.nix-profile/bin` if missing, after native tools. On NixOS it adds the
+NixOS profiles so tools are available even when the user manager inherited a
+different PATH. Bootstrap installers use their default temporary directories.
+T3 owns its background-service unit and updater state. Bootstrap sets up the
+service on a fresh CLI install if the user manager is available; otherwise run
 `t3 service install` to set it up later. `t3 update` repoints T3's tracked CLI
 launchers. For a noninteractive update, run `t3 update --yes` outside the T3
 service, for example in an SSH shell, to allow it to restart the server.
@@ -974,8 +974,14 @@ Frida, Android tools, binutils, Go, SQLite, ripgrep and archivers. The host-awar
 chezmoi `opencode.jsonc` template no longer registers an MCP server for reverse
 engineering; Home Manager does not generate `opencode.json`.
 
-Restart agents after a rebuild so they reload their skill lists, then ask for a
-reverse-engineering task and let the `leanrea` skill route it.
+For native pseudocode, `leanrea-decompile <binary> <function>` runs headless
+Ghidra and prints one function as C-like pseudocode. Use a qualified symbol
+name or a `0x`-prefixed Ghidra entry address to disambiguate. For Hermes bytecode
+use `hbc-decompiler <bundle> <output.js>`. Flutter's Blutter is not bundled: it
+needs a build matched to the target's Dart version.
+
+After changing the service PATH, reload the user unit configuration and restart
+T3 when its threads are idle so newly launched agents inherit it.
 
 Apply `homeConfigurations.main` or `homeConfigurations.laptop` on Arch. On NixOS,
 use the system rebuild command above. Update this flake to change the installation;

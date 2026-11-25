@@ -111,7 +111,7 @@
       customPackages = (import ./pkgs pkgs) // inputPackages pkgs;
       # nix-update follows each package's own versioning: npm lockfiles are regenerated,
       # stable releases use the stable version, and VCS packages track their branch.
-      stableVersionPackages = [ "electron-fuses" "helium" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
+      stableVersionPackages = [ "electron-fuses" "helium" "hermes-dec" "kache" "zen-browser" "opencode" "codexbar-cli" "codexbar-plasmoid" ];
       # These build from this checkout or pin their own sources; nix-update
       # cannot derive a release version for them. llama-vulkan is a symlinkJoin
       # around an override, so nix-update cannot see its llama.cpp source.
@@ -240,6 +240,29 @@
         codexbar-plasmoid = pkgs.codexbar-plasmoid;
         claude-credit-router = pkgs.claude-credit-router;
         opencode-extensions = pkgs.opencode-extensions;
+        leanrea-decompile = pkgs.runCommandCC "leanrea-decompile-test" {
+          nativeBuildInputs = [ pkgs.leanrea pkgs.binutils pkgs.hermes-dec ];
+        } ''
+          export HOME="$PWD/home"
+          mkdir "$HOME"
+          cc -x c -O0 -no-pie -o 'test binary' - <<'EOF'
+          int leanrea_sample(int n) { return n * 3 + 7; }
+          int main(void) { return leanrea_sample(4); }
+          EOF
+          leanrea-decompile 'test binary' leanrea_sample > by-name.c
+          grep -F 'return param_1 * 3 + 7;' by-name.c
+          address=$(nm 'test binary' | awk '$3 == "leanrea_sample" { print $1 }')
+          leanrea-decompile 'test binary' "0x$address" > by-address.c
+          cmp by-name.c by-address.c
+          if leanrea-decompile 'test binary' missing_function > missing.c 2> missing.log; then
+            echo 'an unknown function unexpectedly succeeded' >&2
+            exit 1
+          fi
+          test ! -s missing.c
+          grep -F 'No function found for missing_function' missing.log
+          hbc-decompiler --help
+          touch "$out"
+        '';
         hermes-browser-policy = pkgs.runCommand "hermes-browser-policy-tests" {
           nativeBuildInputs = [ self.nixosConfigurations.predator.config.services.hermes-agent.package.hermesVenv ];
         } ''

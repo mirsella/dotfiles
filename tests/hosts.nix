@@ -340,11 +340,13 @@ assert lib.assertMsg
     in
     !home.programs.opencode.enable
     && !(builtins.hasAttr "opencode/opencode.json" home.xdg.configFile)
+    && lib.elem flake.packages.x86_64-linux.leanrea home.home.packages
+    && lib.elem flake.packages.x86_64-linux.hermes-dec home.home.packages
     && lib.elem flake.packages.x86_64-linux.electron-fuses home.home.packages
     && leanreaSkill.source == "${flake.packages.x86_64-linux.leanrea}/share/leanrea"
     && leanreaSkill.recursive
   ) workstationHomes)
-  "Workstations must keep OpenCode JSONC canonical and install leanrea and electron-fuses without generating opencode.json";
+  "Workstations must keep OpenCode JSONC canonical and install leanrea, hermes-dec and electron-fuses without generating opencode.json";
 assert lib.assertMsg
   (
     lib.all (

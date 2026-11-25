@@ -492,10 +492,14 @@ fn install_t3_service(home: &Path) -> Result<()> {
 
 fn service_path(home: &Path, inherited: &OsStr, prefix: Option<&OsStr>) -> Result<OsString> {
     let mut paths = vec![home.join(".local/bin")];
+    // On Arch, keep native tools ahead of the Home Manager profile. The user
+    // manager can start without that profile even when Home Manager is active.
+    let arch_profile = prefix.is_none().then(|| home.join(".nix-profile/bin"));
     for path in prefix
         .into_iter()
         .chain([inherited])
         .flat_map(env::split_paths)
+        .chain(arch_profile)
     {
         if !paths.contains(&path) {
             paths.push(path);
@@ -827,7 +831,11 @@ mod tests {
         let inherited = OsStr::new("/usr/bin:/home/user/.local/bin:/home/user/custom/bin");
         let nixos = OsStr::new("/etc/profiles/per-user/user/bin:/run/current-system/sw/bin");
         let arch = service_path(home, inherited, None)?;
-        assert_eq!(arch, "/home/user/.local/bin:/usr/bin:/home/user/custom/bin");
+        assert_eq!(
+            arch,
+            "/home/user/.local/bin:/usr/bin:/home/user/custom/bin:/home/user/.nix-profile/bin"
+        );
+        assert_eq!(service_path(home, &arch, None)?, arch);
         let path = service_path(home, inherited, Some(nixos))?;
         assert_eq!(
             path,
