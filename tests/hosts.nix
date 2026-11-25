@@ -12,7 +12,13 @@ let
     desktops.${name}.home-manager.users.mirsella
     flake.homeConfigurations.${name}.config
   ]) (builtins.attrNames desktops);
+  hasHomeTool = name: home: lib.any (pkg: lib.getName pkg == name) home.home.packages;
+  workstationTools = [ "julia" "openjdk" "kotlin" "mermaid-cli" ];
 in
+assert lib.assertMsg (lib.all (name:
+  lib.all (hasHomeTool name) (map (host: host.home-manager.users.mirsella) (builtins.attrValues desktops))
+  && !hasHomeTool name server.home-manager.users.mirsella
+) workstationTools) "The NixOS workstation language and diagram tools must stay off Predator";
 assert lib.assertMsg (lib.all (home:
   let
     debug = home.xdg.configFile."systemd/user/plasma-plasmashell.service.d/90-shutdown-debug.conf".text;

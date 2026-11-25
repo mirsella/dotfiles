@@ -64,12 +64,9 @@ in
     hunspell
     hunspellDicts.en_US
     inxi
-    jdk21
     jq
     jujutsu
-    julia
     just
-    kotlin
     lazygit
     lazyjj
     lsd
@@ -77,7 +74,6 @@ in
     markdownlint-cli
     # mergiraf 0.19.1's test suite aborts on the current nixpkgs; install without checks.
     (mergiraf.overrideAttrs { doCheck = false; })
-    mermaid-cli
     mold
     neovim
     nodejs

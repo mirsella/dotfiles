@@ -30,6 +30,10 @@
   ++ lib.optionals isNixOS [
     pkgs.binaryen
     pkgs.gnumake
+    pkgs.jdk21
+    pkgs.julia
+    pkgs.kotlin
+    pkgs.mermaid-cli
     pkgs.ninja
     pkgs.trunk
     pkgs.wasm-pack
