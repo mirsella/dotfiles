@@ -29,6 +29,7 @@
   "plugins": [
 {{ if $workstation }}    { "package": "{file:~/.config/opencode/credit-routing/claude.path}" },
     { "package": "{file:~/.config/opencode/credit-routing/openai.path}" },
+    { "package": "{file:~/.config/opencode/inkling-compaction.path}" },
 {{ end }}    "opencode-queue@2.0.2",
     "{{ $mcp.browser.package }}@{{ $mcp.browser.version }}",
     {
@@ -78,11 +79,12 @@
           "name": "Inkling 2 Mini Uncensored (local)",
           "limit": {
             "context": {{ ternary 32768 16384 (eq .chezmoi.hostname "main") }},
-            "output": 4096
+            "output": {{ ternary 8192 4096 (eq .chezmoi.hostname "main") }}
           },
           "body": {
             "reasoning_format": "deepseek"
           },
+          "variants": [{ "id": "high", "body": { "reasoning_effort": "high" } }],
           "capabilities": {
             "tools": true,
             "input": [

@@ -100,6 +100,8 @@
         force = true;
       })
     // {
+      "opencode/inkling-compaction.path".text = "${pkgs.opencode-extensions}/share/opencode/inkling-compaction";
+
       # KMail, calendars and contacts are unused. Mask D-Bus activation too so
       # an installed PIM dependency cannot start Akonadi's private database.
       "systemd/user/akonadi_control.service" = {
