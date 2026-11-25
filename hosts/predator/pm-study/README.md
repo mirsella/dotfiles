@@ -934,6 +934,17 @@ Both stages must stay within 01:00 to 01:59 CET. The precheck is
 read-only. Do not replay, automatically recover or schedule another
 trial after the overnight result.
 
+The November 25 01:10 CET precheck passed. Both live units and both
+root-owned binaries matched the saved copies and hashes. The direct
+command and exact 01:30 trigger matched, with no drop-ins, trial
+artifacts, STOP, jobs, active checked maintenance or competing timers.
+Only `check` ran under systemd with `TZ` and `TZDIR` unset. It confirmed
+the pinned generation 206 boot and system links, 6/0 counters,
+43,716 s since the post-resume anchor, matching healthy storage and
+all nine boot audits. Ente was running, and both GPU devices remained
+`auto`, suspended and in D3cold. The timer was unchanged, the trial
+service had never started, and no dry or real sleep was requested.
+
 ## Trial logs
 
 Logs are in `/home/mirsella/dev/scratch/predator-suspend/logs/`. Each batch
@@ -1000,6 +1011,7 @@ Times are CET. "Awake" is the time since the last boot or resume.
 | Nov 24 01:00 | `s2idle-long-boot-cold-1` | planned five core dry cycles, then one s2idle request with a 7,200 s RTC alarm on generation 206 with the existing D3cold policy | about 11 h 51 min at trigger | refused on backup-window clock check; zero requests | no sleep interval; overnight not armed |
 | Nov 24 10:40 | `s2idle-long-boot-cold-2` precheck | read-only checks under systemd without the login timezone environment | 77,484 s since boot | passed; zero requests | 11:00 timer unchanged; Ente and pools healthy |
 | Nov 24 11:00 | `s2idle-long-boot-cold-2` | five core dry cycles, then one s2idle/7,200 s RTC with existing D3cold policy on generation 206 | 78,767.71 s at real request | dry 5/5; real return at 13:02:05 after 7,201.6 s; clean restoration, 6/0 | Ente, storage and boot audit checked; meter readings pending |
+| Nov 25 01:10 | `s2idle-overnight-after-boot-trial-cold-1` precheck | read-only checks under systemd without the login timezone environment | 43,716 s since post-resume anchor | passed; zero requests | 01:30 timer unchanged; Ente and pools healthy |
 | Nov 25 01:30 (due) | `s2idle-overnight-after-boot-trial-cold-1` | five core dry cycles, then one s2idle/25,200 s RTC on the same D3cold baseline | about 12 h 28 min from post-resume anchor at planned trigger | armed; read-only systemd preparation passed | precheck 01:10; results 08:50; no further trial |
 
 Prepared at November 17, 09:00: no suspend in that boot; success and fail
