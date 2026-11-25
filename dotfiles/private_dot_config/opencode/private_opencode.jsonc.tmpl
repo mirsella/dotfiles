@@ -19,7 +19,7 @@
   {{- $_ := set $servers $name $entry -}}
 {{- end -}}
 {{- $workstation := or (eq .chezmoi.hostname "main") (eq .chezmoi.hostname "laptop") -}}
-{{- $allowedProviders := list "claude-agent" "openai" "opencode" "opencode-go" -}}
+{{- $allowedProviders := list "claude-agent" "openai" "opencode" -}}
 {{- if $workstation -}}
   {{- $allowedProviders = append $allowedProviders "llama.cpp" -}}
 {{- end -}}
@@ -75,7 +75,7 @@
       },
       "models": {
         "inkling-2-mini-uncensored": {
-          "name": "Inkling 2 Mini Uncensored (local)",
+          "name": "Local",
           "limit": {
             "context": {{ ternary 32768 16384 (eq .chezmoi.hostname "main") }},
             "output": 4096
