@@ -1486,6 +1486,8 @@ mod tests {
     use std::time::Duration;
 
     fn run_git(cwd: &Path, args: &[&str]) -> Result<()> {
+        // Keep fixture commits from spawning detached maintenance in the
+        // worktree while the test checks whether another process is using it.
         util::command_output(
             Command::new("git")
                 .arg("-C")
@@ -1497,6 +1499,8 @@ mod tests {
                     "user.email=test@example.invalid",
                     "-c",
                     "protocol.file.allow=always",
+                    "-c",
+                    "maintenance.auto=false",
                 ])
                 .args(args)
                 .env("GIT_CONFIG_GLOBAL", "/dev/null")
