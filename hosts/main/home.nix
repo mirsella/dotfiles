@@ -5,6 +5,9 @@
     (import ../../modules/home/llama-server.nix {
       quant = "IQ3_S";
       hash = "sha256-I6jmeSSBtvHQ661ROZ6e4qLCvoUlsJ7Rrmc3gRFZ+JI=";
+      contextSize = 32768;
+      # Leave room for the larger KV cache on the 16 GiB GPU.
+      microBatchSize = 256;
     })
   ];
   programs.git.settings.user.signingkey = "E53202A06B2614A4";

@@ -1,4 +1,9 @@
-{ quant, hash }:
+{
+  quant,
+  hash,
+  contextSize ? 16384,
+  microBatchSize ? null,
+}:
 {
   lib,
   pkgs,
@@ -24,7 +29,7 @@ let
       # Fail visibly on insufficient GPU memory instead of spilling into CPU math.
       n-gpu-layers = "all";
       fit = "off";
-      ctx-size = 16384;
+      ctx-size = contextSize;
       parallel = 1;
       flash-attn = "on";
       cache-type-k = "q8_0";
@@ -34,7 +39,7 @@ let
       reasoning-effort = "low";
       cache-ram = 0;
       sleep-idle-seconds = 300;
-    };
+    } // lib.optionalAttrs (microBatchSize != null) { ubatch-size = microBatchSize; };
   };
 in
 {
