@@ -66,7 +66,10 @@ def refresh-autoload [name: string, output_path: path, command: closure, transfo
       do $transform $result.stdout
     }
 
-    $output | save -f $output_path
+    # An exit during refresh must leave the previous autoload file intact.
+    let pending = (mktemp --tmpdir-path ($output_path | path dirname) '.nu-autoload-XXXXXXXX')
+    $output | save -f $pending
+    mv -f $pending $output_path
     return
   }
 
@@ -79,11 +82,16 @@ def refresh-autoload [name: string, output_path: path, command: closure, transfo
 }
 
 if $nu.is-interactive {
-  job spawn {
+  # Install the fixed Atuin hooks before Nushell loads the autoload files.
+  refresh-autoload atuin ($autoload_path | path join "atuin.nu") {|| atuin init nu --disable-up-arrow } {|output|
+    $output
+    | str replace 'let ATUIN_KEYBINDING_TOKEN = $"# ' 'let ATUIN_KEYBINDING_TOKEN = $" # '
+    # Save the previous command's exit status before the next prompt can quit.
+    | str replace --regex 'job spawn \{\n[ \t]+(\^atuin history end[^\n]+)\n[ \t]+\} \| ignore' '${1} | ignore'
+    | str replace --regex 'job spawn \{(\n[ \t]+\^?atuin __internal prepare-search-index\b)' 'job spawn --auto-kill {${1}'
+  }
+  job spawn --auto-kill {
     refresh-autoload starship ($autoload_path | path join "starship.nu") {|| starship init nu }
     refresh-autoload jj ($autoload_path | path join "jj.nu") {|| jj util completion nushell }
-    refresh-autoload atuin ($autoload_path | path join "atuin.nu") {|| atuin init nu --disable-up-arrow } {|output|
-      $output | str replace 'let ATUIN_KEYBINDING_TOKEN = $"# ' 'let ATUIN_KEYBINDING_TOKEN = $" # '
-    }
   } | ignore
 }

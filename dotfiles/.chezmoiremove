@@ -66,3 +66,6 @@
 
 # The OpenCode cache-timer TUI plugin was removed.
 .config/opencode/cache-timer.json
+
+# Nushell generates Atuin's integration in its user autoload directory now.
+.local/share/nushell/vendor/autoload/atuin.nu
