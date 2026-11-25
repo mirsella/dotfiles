@@ -370,6 +370,26 @@ setting. On each signed-in host, use `t3 connect publish` to enable push
 notifications and Live Activities, and `t3 connect status` to verify it. Keep
 Connect credentials and device pairings out of the bundle.
 
+Predator's Hermes uses T3 Code's third-party MCP over T3 Connect HTTPS. Nix
+configures `t3-laptop` and `t3-main`; each needs a separate OAuth approval:
+
+```sh
+ssh -t predator '/run/current-system/sw/bin/hermes mcp login t3-laptop'
+ssh -t predator '/run/current-system/sw/bin/hermes mcp login t3-main'
+```
+
+Open the URL printed by Hermes and approve with your T3 account. If you use a
+sign-in code instead, create it on the workstation you're connecting. Select
+**Read only** unless Hermes needs to start, message, or stop T3 threads. Paste
+the final redirect URL into the SSH prompt even if the browser reports a
+localhost connection error.
+
+On Predator, verify with `hermes mcp test t3-laptop` and
+`hermes mcp test t3-main`. Use `/reload-mcp` in an existing Hermes chat to
+refresh its tools. T3 grants expire after 30 days; repeat the login to renew
+them, or revoke access under **Settings → Sharing & access** on the relevant
+T3 environment. Tokens stay in Hermes's private cache.
+
 ### Hex voice dictation
 
 `modules/home/hex.nix` starts Hex with the graphical session on main and laptop.

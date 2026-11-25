@@ -285,6 +285,15 @@ in {
         auth.adopt_external_logins = false;
         skills.external_dirs = [ "${ownerHome}/.agents/skills" "${ownerHome}/.codex/skills" ];
         skills.disabled = [ "personal-accounts" ];
+        # T3 OAuth needs HTTPS when connecting from another host.
+        mcp_servers.t3-laptop = {
+          url = "https://prod-7211ed9b8a5dfa5b.t3coderelay.com/mcp";
+          auth = "oauth";
+        };
+        mcp_servers.t3-main = {
+          url = "https://prod-33cb189fd4cf6004.t3coderelay.com/mcp";
+          auth = "oauth";
+        };
         # This is user-account access, independent of the Slack bot gateway.
         # Client credentials come from SOPS; refreshable user tokens stay in
         # Hermes's private, native MCP token cache.
