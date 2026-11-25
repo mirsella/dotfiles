@@ -165,6 +165,8 @@
           (_: directory: builtins.pathExists (directory + "/home.nix")) hostDirs
       );
       hostModules = builtins.mapAttrs (hostName: directory: {
+        # Keep the pinned Bootvine module when nixpkgs also ships one.
+        disabledModules = [ "services/system/bootvine.nix" ];
         imports = [
           ./modules/nixos/common.nix
           inputs.bootvine.nixosModules.default

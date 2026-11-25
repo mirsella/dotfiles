@@ -117,6 +117,26 @@ sudo nix-env -p /nix/var/nix/profiles/system --set "$toplevel"
 sudo "$toplevel/bin/switch-to-configuration" switch
 ```
 
+Predator's daily upgrade refreshes only `nixpkgs` against the deployed
+configuration's read-only source in the Nix store. It does not pull Git
+changes, edit `flake.lock`, or update pinned container images such as Immich.
+The timer starts checking at 04:00 local time. It waits until there are no
+logins, active SSH or web connections, active T3 work, heavy load, or running
+backups or storage maintenance. It skips the day if there is no idle slot
+before 06:00, or if root has less than 30 GiB free. The idle check gates the
+start; it does not prevent new connections during the rebuild. A successful
+switch restarts affected services without rebooting. If the refresh builds a
+new kernel or initrd, they take effect on the next manual boot.
+The upgrade pings its own Healthchecks.io check only after a successful
+switch. Until the dedicated ping URL is installed from the `nixos-upgrade`
+key in `secrets/predator-upgrade-healthchecks.yaml` (SOPS-encrypted), the job
+does not run. Set the check to a one-day period with six hours of grace
+for the idle window and build. Skipped or failed runs send no ping.
+Before a manual Predator deployment, stop `nixos-upgrade.timer` and wait
+for any queued or running `nixos-upgrade.service` to finish. Otherwise a
+build already in progress could switch the server back to its older source.
+Restart the timer after the deployment if it was active before.
+
 For the current Arch installations, use `homeConfigurations.main` or
 `homeConfigurations.laptop` with standalone Home Manager. Pacman/AUR still own
 their application binaries, except Hex and the writable agent installs below. NixOS
@@ -236,7 +256,10 @@ use their default temporary directories. T3 owns its
 background-service unit and updater state. Bootstrap sets up the service on a
 fresh CLI install if the user manager is available; otherwise run
 `t3 service install` to set it up later. `t3 update` repoints T3's tracked CLI
-launchers and restarts the service; desktop-app updates do not update
+launchers. For a noninteractive update, run `t3 update --yes` outside the T3
+service, for example in an SSH shell, to allow it to restart the server.
+If the CLI changed versions but the old server is still running, run
+`~/.local/bin/t3 service restart`. Desktop-app updates do not update
 `~/.local/bin/t3`. `t3-settings`
 runs the running server's own runtime CLI, so a stale launcher does not break
 capture or sync. Home Manager runs no settings watcher and no CLI-alignment

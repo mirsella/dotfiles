@@ -139,8 +139,14 @@ The flake discovers these directories and sets hostnames automatically.
   and services, and kache from the flake so the daemon and cargo wrapper always
   match. On NixOS, rebuild the system target, never activate a standalone
   HM profile for the same user. The standalone homes remain available for Arch.
-- Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
-  especially `flake.lock` (the weekly upgrade updates nixpkgs there). Sync only
+- Predator's daily upgrade checks for an idle host from 04:00 to 06:00
+  and requires 30 GiB free on root. It refreshes only nixpkgs from the
+  deployed source in the Nix store without writing a lock file or rebooting.
+  Before a manual deployment, stop `nixos-upgrade.timer` and wait for any
+  queued or running `nixos-upgrade.service` to finish; restore the timer
+  after the deployment if it was active before.
+  Before deploying to Predator, inspect its `~/dev/dotfiles` status and diff,
+  including any `flake.lock` edits left by the old upgrade job. Sync only
   reviewed changes; do not use whole-tree `rsync --delete` over concurrent work.
   Root cannot evaluate this checkout (a Git flake owned by another user), so
   build as `mirsella` and activate as root: `nix build` the

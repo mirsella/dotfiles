@@ -1,6 +1,5 @@
 # healthchecks.io dead-man checks: each scheduled job pings its check on a
-# successful run via systemd's OnSuccess; a missing ping means the job failed
-# or did not run, and healthchecks.io alerts on it.
+# successful run; a missing ping means the job failed or did not run.
 {
   config,
   lib,

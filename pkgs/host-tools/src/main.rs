@@ -19,6 +19,7 @@ mod monitoring;
 mod nasa_wallpaper;
 mod opencode;
 mod predator_boot;
+mod predator_upgrade;
 mod salvage;
 mod setup;
 mod sweep;
@@ -127,6 +128,12 @@ enum Commands {
         #[command(subcommand)]
         action: predator_boot::Operation,
     },
+    /// Wait for Predator's unattended upgrade window and an idle host.
+    PredatorUpgradeReady {
+        user: String,
+    },
+    /// Check the local T3 server for active work, as its owning user.
+    T3MaintenanceIdle,
     BrowserControl {
         #[arg(long)]
         config: PathBuf,
@@ -290,6 +297,8 @@ fn run() -> Result<()> {
         }
         Commands::ArchUki { config } => uki::run(&config),
         Commands::PredatorBoot { config, action } => predator_boot::run(&config, action),
+        Commands::PredatorUpgradeReady { user } => predator_upgrade::wait_until_idle(&user),
+        Commands::T3MaintenanceIdle => predator_upgrade::check_t3(),
         Commands::BrowserControl { config } => browser::run(&config),
         Commands::BrowserSecret(options) => browser_secret::run(options),
         Commands::HermesProvision {

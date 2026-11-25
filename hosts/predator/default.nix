@@ -1,7 +1,4 @@
 { config, lib, pkgs, inputs, ... }:
-let
-  flakeDir = "/home/mirsella/dev/dotfiles";
-in
 {
   imports = [
     ./boot.nix
@@ -30,7 +27,13 @@ in
     sopsFile = ../../secrets/services.yaml;
     owner = "mirsella";
     path = "${config.users.users.mirsella.home}/.config/${path}";
-  }) (import ../../modules/user-secrets.nix);
+  }) (import ../../modules/user-secrets.nix)
+  // {
+    healthchecks-nixos-upgrade = {
+      sopsFile = ../../secrets/predator-upgrade-healthchecks.yaml;
+      key = "nixos-upgrade";
+    };
+  };
 
   home-manager.users.mirsella.home.file.".local/share/cargo/config.toml".text = ''
     [build]
@@ -128,19 +131,26 @@ in
   # Swap remains inside the encrypted root filesystem.
   swapDevices = [ { device = "/swapfile"; size = 8 * 1024; } ];
 
-  # Update nixpkgs weekly; update the kernel input separately after checking ZFS compatibility.
+  # Refresh only nixpkgs from the deployed source snapshot, not a working checkout.
   system.autoUpgrade = {
     enable = true;
-    flake = "path:${flakeDir}#${config.networking.hostName}";
+    flake = "path:${inputs.self.outPath}#${config.networking.hostName}";
+    operation = "switch";
     upgrade = false;
-    flags = [ "--no-update-lock-file" ];
-    dates = "Sun 10:00";
-    randomizedDelaySec = "30min";
+    flags = [ "--update-input" "nixpkgs" "--no-write-lock-file" ];
+    dates = "04:00";
+    randomizedDelaySec = "0";
+    persistent = false;
     allowReboot = false;
   };
   systemd.services.nixos-upgrade = {
-    serviceConfig.WorkingDirectory = flakeDir;
-    serviceConfig.ExecStartPre = "${pkgs.util-linux}/bin/runuser -u mirsella -- ${config.nix.package}/bin/nix flake update nixpkgs";
+    path = [ config.systemd.package pkgs.iproute2 pkgs.util-linux config.boot.zfs.package ];
+    unitConfig.ConditionPathExists = config.sops.secrets.healthchecks-nixos-upgrade.path;
+    serviceConfig = {
+      ExecCondition = "${lib.getExe pkgs.host-tools} predator-upgrade-ready mirsella";
+      # A skipped ExecCondition must not ping Healthchecks as a success.
+      ExecStartPost = "${config.systemd.package}/bin/systemctl --no-block start healthchecks-ping@nixos-upgrade.service";
+    };
   };
   services.fstrim = {
     enable = true;

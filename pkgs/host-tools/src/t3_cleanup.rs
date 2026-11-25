@@ -301,7 +301,7 @@ fn timestamp(thread: &Value, key: &str) -> Result<Option<DateTime<Utc>>> {
 }
 
 /// Whether the thread runs, waits on something, or may still resume on its own.
-fn busy(thread: &Value, cutoff: DateTime<Utc>) -> Result<bool> {
+pub(crate) fn busy(thread: &Value, cutoff: DateTime<Utc>) -> Result<bool> {
     let status = field(thread, "status")?
         .as_str()
         .context("invalid status")?;

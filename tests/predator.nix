@@ -294,6 +294,26 @@ assert lib.assertMsg (
     [ "/srv/backup" "/srv/data/fast" "/var/lib/nextcloud/data" ]
 ) "Existing Healthchecks jobs must retain their success pings and restic must back up from mounted sources";
 assert lib.assertMsg (
+  let
+    upgrade = server.system.autoUpgrade;
+    unit = server.systemd.services.nixos-upgrade;
+    ping = server.sops.secrets.healthchecks-nixos-upgrade;
+  in
+  upgrade.enable
+  && upgrade.dates == "04:00"
+  && upgrade.operation == "switch"
+  && !upgrade.upgrade
+  && lib.take 3 upgrade.flags == [ "--update-input" "nixpkgs" "--no-write-lock-file" ]
+  && !upgrade.allowReboot
+  && !upgrade.persistent
+  && lib.hasPrefix "path:/nix/store/" upgrade.flake
+  && lib.hasInfix "predator-upgrade-ready mirsella" unit.serviceConfig.ExecCondition
+  && lib.hasSuffix "start healthchecks-ping@nixos-upgrade.service" unit.serviceConfig.ExecStartPost
+  && unit.unitConfig.ConditionPathExists == ping.path
+  && ping.path == "/run/secrets/healthchecks-nixos-upgrade"
+  && ping.key == "nixos-upgrade"
+) "Predator upgrades must wait for idle and report only a successful live switch";
+assert lib.assertMsg (
   lib.all (change:
     let updated = (flake.nixosConfigurations.predator.extendModules {
       modules = [ change ];
