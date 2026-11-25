@@ -1,0 +1,822 @@
+diff --git a/crates/kache-protocol/src/events.rs b/crates/kache-protocol/src/events.rs
+index f026f6c5..43f5bbac 100644
+--- a/crates/kache-protocol/src/events.rs
++++ b/crates/kache-protocol/src/events.rs
+@@ -109,6 +109,7 @@ pub struct BuildEvent {
+     /// 27 = recorded scheduler decisions and admission outcomes.
+     /// 28 = local hits served from the read-only store.
+     /// 29 = Rust compile-first key discovery reason.
++    /// 30 = optional caller-supplied build ID.
+     #[serde(default)]
+     pub schema: u32,
+     /// Build session this event belongs to (kunobi-ninja/kache#583 P0.5).
+@@ -120,6 +121,9 @@ pub struct BuildEvent {
+     /// session marker (never fails a build).
+     #[serde(default, skip_serializing_if = "String::is_empty")]
+     pub session_id: String,
++    /// Opaque telemetry ID, independent of inferred cache sessions.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub build_id: Option<String>,
+     /// Observed at the first lookup, including locally consumed prefetches.
+     /// Recorded in memory, then appended with this event; no extra daemon call.
+     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+@@ -591,6 +595,7 @@ impl BuildEvent {
+             root: "/work/tree".to_string(),
+             version: "0.0.0".to_string(),
+             session_id: String::new(),
++            build_id: None,
+             demands: Vec::new(),
+             result,
+             elapsed_ms,
+diff --git a/crates/kache-store/src/retention_shadow.rs b/crates/kache-store/src/retention_shadow.rs
+index 83a274af..77cc2b90 100644
+--- a/crates/kache-store/src/retention_shadow.rs
++++ b/crates/kache-store/src/retention_shadow.rs
+@@ -8,10 +8,11 @@ use std::path::Path;
+ use std::time::{SystemTime, UNIX_EPOCH};
+ 
+ const MAX_PAIRS: usize = 64;
++const MAX_SUBSTITUTES: usize = 8;
+ const MAX_SWEEPS: usize = 256;
+ const MIN_COST_MS: i64 = 10_000;
+ const MIN_BYTES: i64 = 1 << 20;
+-const RECORD_DIR: &str = "telemetry/retention-shadow-v1";
++const RECORD_DIR: &str = "telemetry/retention-shadow-v2";
+ 
+ fn now_ms() -> u64 {
+     SystemTime::now()
+@@ -51,7 +52,7 @@ impl<'a> Victim<'a> {
+ #[derive(Serialize)]
+ struct Pair<'a> {
+     live: Victim<'a>,
+-    shadow: Victim<'a>,
++    shadow: Vec<Victim<'a>>,
+ }
+ 
+ pub(crate) struct Trial<'a> {
+@@ -72,6 +73,8 @@ struct SweepRecord<'a> {
+     eligible_live: usize,
+     eligible_alternatives: usize,
+     pairs: Vec<Pair<'a>>,
++    eligible_stale_alternatives: usize,
++    stale_pairs: Vec<Pair<'a>>,
+ }
+ 
+ impl<'a> Trial<'a> {
+@@ -112,14 +115,19 @@ impl<'a> Trial<'a> {
+         }
+ 
+         // A sweep that missed its byte target records the shortfall but no pairs.
+-        let (eligible_alternatives, pairs) =
++        let (eligible_alternatives, pairs, eligible_stale_alternatives, stale_pairs) =
+             if stats.bytes_freed >= self.target_indexed_bytes && !self.victims.is_empty() {
+-                match_alternatives(&mut self.victims, alternatives)
++                let alternatives: Vec<_> = alternatives.collect();
++                let (cold, pairs) =
++                    match_alternatives(&mut self.victims, alternatives.iter().copied(), cold_key);
++                let (stale, stale_pairs) =
++                    match_alternatives(&mut self.victims, alternatives.into_iter(), stale_key);
++                (cold, pairs, stale, stale_pairs)
+             } else {
+-                (0, Vec::new())
++                (0, Vec::new(), 0, Vec::new())
+             };
+         let record = SweepRecord {
+-            schema: 1,
++            schema: 2,
+             sweep_started_ms: self.sweep_started_ms,
+             target_indexed_bytes: self.target_indexed_bytes,
+             finished_ms,
+@@ -129,6 +137,8 @@ impl<'a> Trial<'a> {
+             eligible_live: self.victims.len(),
+             eligible_alternatives,
+             pairs,
++            eligible_stale_alternatives,
++            stale_pairs,
+         };
+         let path = dir.join(format!(
+             "{}-{}.json",
+@@ -139,18 +149,25 @@ impl<'a> Trial<'a> {
+     }
+ }
+ 
++fn cold_key(entry: &EntryFeatures) -> bool {
++    entry.hit_count == 0 && entry.idle_hours >= 2.0 && (1..MIN_COST_MS).contains(&entry.compile_time_ms)
++}
++
++fn stale_key(entry: &EntryFeatures) -> bool {
++    (1..i64::from(kache_format::CACHE_KEY_VERSION)).contains(&entry.key_schema)
++        && entry.idle_hours >= 7.0 * 24.0
++        && entry.compile_time_ms > 0
++}
++
+ fn match_alternatives<'a>(
+     victims: &mut [(&'a EntryFeatures, u64)],
+     alternatives: impl Iterator<Item = &'a EntryFeatures>,
++    eligible: fn(&EntryFeatures) -> bool,
+ ) -> (usize, Vec<Pair<'a>>) {
+     let mut by_size: BTreeMap<u64, Vec<&EntryFeatures>> = BTreeMap::new();
+     let mut eligible_alternatives = 0;
+     for entry in alternatives {
+-        if entry.hit_count == 0
+-            && entry.idle_hours >= 2.0
+-            && (1..MIN_COST_MS).contains(&entry.compile_time_ms)
+-            && let Some(bytes) = independent_bytes(entry)
+-        {
++        if eligible(entry) && let Some(bytes) = independent_bytes(entry) {
+             eligible_alternatives += 1;
+             by_size.entry(bytes).or_default().push(entry);
+         }
+@@ -166,25 +183,51 @@ fn match_alternatives<'a>(
+     });
+     let mut pairs = Vec::new();
+     for &(entry, freed) in victims.iter() {
+-        // Independent blobs cannot be counted in two pairs.
+-        let Some((size, entries)) = by_size.range_mut(freed..=freed + freed / 20).next() else {
+-            continue;
+-        };
+-        let (bytes, substitute) = (*size, entries.pop().expect("nonempty size bucket"));
+-        if entries.is_empty() {
+-            by_size.remove(&bytes);
+-        }
+-        pairs.push(Pair {
+-            live: Victim::new(entry, freed),
+-            shadow: Victim::new(substitute, bytes),
+-        });
+-        if pairs.len() == MAX_PAIRS {
+-            break;
++        let group = take_group(&mut by_size, freed);
++        if !group.is_empty() {
++            pairs.push(Pair { live: Victim::new(entry, freed), shadow: group });
++            if pairs.len() == MAX_PAIRS {
++                break;
++            }
+         }
+     }
+     (eligible_alternatives, pairs)
+ }
+ 
++/// Prefer a single adequate substitute, then greedily fill the remaining
++/// budget with the largest non-overshooting item. This is a bounded search;
++/// no match does not imply no valid combination exists.
++fn take_group<'a>(
++    by_size: &mut BTreeMap<u64, Vec<&'a EntryFeatures>>,
++    freed: u64,
++) -> Vec<Victim<'a>> {
++    let mut selected = Vec::new();
++    let mut remaining = freed;
++    for _ in 0..MAX_SUBSTITUTES {
++        let size = by_size
++            .range(remaining..=remaining + freed / 20)
++            .next()
++            .or_else(|| by_size.range(..remaining).next_back())
++            .map(|(size, _)| *size);
++        let Some(size) = size else { break };
++        let bucket = by_size.get_mut(&size).expect("selected size is present");
++        let entry = bucket.pop().expect("size bucket is nonempty");
++        if bucket.is_empty() {
++            by_size.remove(&size);
++        }
++        selected.push((entry, size));
++        remaining = remaining.saturating_sub(size);
++        if remaining == 0 {
++            return selected.into_iter().map(|(e, n)| Victim::new(e, n)).collect();
++        }
++    }
++    // Failed searches must not reserve entries for later comparisons.
++    for (entry, size) in selected.into_iter().rev() {
++        by_size.entry(size).or_default().push(entry);
++    }
++    Vec::new()
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -218,17 +261,50 @@ mod tests {
+         let (eligible, pairs) = match_alternatives(
+             &mut [(&second, 2 << 20), (&expensive, 2 << 20)],
+             [&too_small, &too_large, &unknown, &shared, &cold].into_iter(),
++            cold_key,
+         );
+         assert_eq!(eligible, 3);
+         assert_eq!(pairs.len(), 1);
+         assert_eq!(pairs[0].live.key, "hot");
+-        assert_eq!(pairs[0].shadow.key, "cold");
++        assert_eq!(pairs[0].shadow[0].key, "cold");
+         assert_eq!(
+-            pairs[0].shadow.indexed_bytes - pairs[0].live.indexed_bytes,
++            pairs[0].shadow[0].indexed_bytes - pairs[0].live.indexed_bytes,
+             1024
+         );
+     }
+ 
++    #[test]
++    fn groups_smaller_candidates_without_reusing_them_or_losing_failed_choices() {
++        let hot = entry("hot", 4 << 20, 5, 30_000);
++        let too_big = entry("unmatched", 9 << 20, 5, 40_000);
++        let first = entry("first", 2 << 20, 0, 10);
++        let second = entry("second", 2 << 20, 0, 20);
++        let (_, pairs) = match_alternatives(
++            &mut [(&hot, 4 << 20), (&too_big, 9 << 20)],
++            [&first, &second].into_iter(),
++            cold_key,
++        );
++        assert_eq!(pairs.len(), 1);
++        assert_eq!(pairs[0].live.key, "hot");
++        assert_eq!(
++            pairs[0].shadow.iter().map(|v| v.key).collect::<Vec<_>>(),
++            ["first", "second"]
++        );
++    }
++
++    #[test]
++    fn stale_group_protects_recent_unknown_and_newer_schemas() {
++        let mut old = entry("old", 2 << 20, 1, 200);
++        old.key_schema -= 1;
++        assert!(!stale_key(&old));
++        old.idle_hours = 192.0;
++        assert!(stale_key(&old));
++        old.key_schema = 0;
++        assert!(!stale_key(&old));
++        old.key_schema = i64::from(kache_format::CACHE_KEY_VERSION) + 1;
++        assert!(!stale_key(&old));
++    }
++
+     #[test]
+     fn incomplete_sweep_keeps_evidence_but_does_not_claim_a_match() {
+         let hot = entry("hot", 2 << 20, 3, 10_000);
+diff --git a/crates/kache-store/src/store/tests.rs b/crates/kache-store/src/store/tests.rs
+index e52b8b85..61aee25d 100644
+--- a/crates/kache-store/src/store/tests.rs
++++ b/crates/kache-store/src/store/tests.rs
+@@ -11194,7 +11194,7 @@ fn retention_shadow_observes_without_changing_the_live_victim() {
+         keys,
+         ["cold".to_owned(), "held".to_owned()].into_iter().collect()
+     );
+-    let evidence = fs::read_dir(config.cache_dir.join("telemetry/retention-shadow-v1"))
++    let evidence = fs::read_dir(config.cache_dir.join("telemetry/retention-shadow-v2"))
+         .unwrap()
+         .next()
+         .unwrap()
+@@ -11202,7 +11202,7 @@ fn retention_shadow_observes_without_changing_the_live_victim() {
+         .path();
+     let record: serde_json::Value = serde_json::from_slice(&fs::read(evidence).unwrap()).unwrap();
+     assert_eq!(record["pairs"][0]["live"]["key"], "hot");
+-    assert_eq!(record["pairs"][0]["shadow"]["key"], "cold");
++    assert_eq!(record["pairs"][0]["shadow"][0]["key"], "cold");
+ }
+ 
+ /// kunobi-ninja/kache#608 (honest accounting): a sweep over a fully-shared
+diff --git a/src/build_script.rs b/src/build_script.rs
+index 543d0ce4..34241b2c 100644
+--- a/src/build_script.rs
++++ b/src/build_script.rs
+@@ -528,6 +528,10 @@ fn find_preserved(invoked: &Path) -> Option<PathBuf> {
+ 
+ /// Entry point for the launcher: restore or run, then exit like the script.
+ pub fn run_shim() -> i32 {
++    let _scope = crate::wrapper::InvocationWrapperScope::enter_for(
++        &crate::invocation::InvocationEnv::capture(),
++        None,
++    );
+     let Some(invoked) = std::env::var_os(SHIM_PATH_ENV).map(PathBuf::from) else {
+         eprintln!("kache: build-script launcher invoked without {SHIM_PATH_ENV}");
+         return 1;
+diff --git a/src/cli.rs b/src/cli.rs
+index 4a8062cd..559ccf44 100644
+--- a/src/cli.rs
++++ b/src/cli.rs
+@@ -626,6 +626,50 @@ fn parse_labels(labels: &[String]) -> Result<std::collections::BTreeMap<String,
+         .collect()
+ }
+ 
++/// A deliberately narrow report: no environment, command arguments, raw
++/// diagnostics, or cache keys. Roots are for local callers to group by lane.
++pub fn telemetry_build(config: &Config, id: &str, window: SinceWindow) -> Result<()> {
++    if !crate::wrapper::valid_build_id(id) {
++        return Err(crate::machine::invalid_arguments(
++            "build ID must contain exactly 32 hexadecimal digits",
++        ));
++    }
++    let events = crate::events::read_build_events_since(
++        &config.event_log_path(),
++        window.cutoff(chrono::Utc::now()),
++        id,
++    )?;
++    let matched: Vec<_> = events
++        .into_iter()
++        .map(|event| {
++            serde_json::json!({
++                "root": event.root,
++                "crate": event.rebuilt_package.as_deref().unwrap_or(&event.crate_name),
++                "result": event.result.to_string(),
++                "version": event.version,
++                "elapsed_ms": event.elapsed_ms,
++                "compile_time_ms": event.compile_time_ms,
++                "compiler_runs": event.compiler_runs,
++                "permit_wait_ms": event.permit_wait_ms,
++                "flight_wait_ms": event.flight_wait_ms,
++                "restore_ms": event.restore_ms,
++                "probe": crate::report::is_probe_passthrough(&event),
++                "build_script": event.crate_name == "build_script_run",
++                "miss_reason": event.miss_reason,
++                "compile_first": event.rustc_compile_first_reason,
++                "changed_key_groups": event.key_diff,
++                "store_error": !event.store_error.is_empty(),
++                "lookup_rejected": !event.lookup_rejection.is_empty(),
++            })
++        })
++        .collect();
++    println!(
++        "{}",
++        serde_json::json!({"schema": 1, "build_id": id, "events": matched})
++    );
++    Ok(())
++}
++
+ pub fn telemetry_write(
+     config: &Config,
+     dir: &std::path::Path,
+diff --git a/src/cli/tests.rs b/src/cli/tests.rs
+index d8c1365c..f4418dbb 100644
+--- a/src/cli/tests.rs
++++ b/src/cli/tests.rs
+@@ -6311,6 +6311,7 @@ fn build_event(
+         permit_wait_ms: 0,
+         scheduler_decisions: Vec::new(),
+         rustc_compile_first_reason: None,
++        build_id: None,
+         store_output_blobs: 0,
+         store_duplicate_blobs: 0,
+         store_new_blobs: 0,
+diff --git a/src/compiler/cc.rs b/src/compiler/cc.rs
+index dc5baece..df609c24 100644
+--- a/src/compiler/cc.rs
++++ b/src/compiler/cc.rs
+@@ -2497,6 +2497,18 @@ pub static CC_FLAGS: &[FlagSpec] = &[
+         source: "Issue #114 — Darwin deployment target.",
+         dialect: None,
+     },
++    FlagSpec {
++        matcher: Matcher::Prefix("-miphoneos-version-min="),
++        class: FlagClass::CapturedByProbe,
++        source: "Clang device deployment target captured by the resolved cc1 triple.",
++        dialect: None,
++    },
++    FlagSpec {
++        matcher: Matcher::Prefix("-mios-simulator-version-min="),
++        class: FlagClass::CapturedByProbe,
++        source: "Clang simulator deployment target captured by the resolved cc1 triple.",
++        dialect: None,
++    },
+     FlagSpec {
+         matcher: Matcher::Prefix("-fstrict-flex-arrays="),
+         class: FlagClass::CapturedByProbe,
+diff --git a/src/compiler/cc/tests.rs b/src/compiler/cc/tests.rs
+index 7fa07eac..7a6ccaa8 100644
+--- a/src/compiler/cc/tests.rs
++++ b/src/compiler/cc/tests.rs
+@@ -2311,6 +2311,8 @@ fn classifier_accepts_gecko_darwin_baseline_flags() {
+     for flag in &[
+         "-mmacosx-version-min=10.15",
+         "-mmacosx-version-min=11.0",
++        "-miphoneos-version-min=16.0",
++        "-mios-simulator-version-min=17.0",
+         "-pthread",
+         "-fstack-protector-strong",
+         "-fstrict-flex-arrays=1",
+diff --git a/src/events.rs b/src/events.rs
+index c52deb7e..b0f96b6e 100644
+--- a/src/events.rs
++++ b/src/events.rs
+@@ -327,13 +327,24 @@ pub fn read_events_and<T>(
+ /// archives them, so a rotation between the two reads can only leave its
+ /// lines out of this answer, never count them twice.
+ pub fn read_events_since(event_log_path: &Path, since: DateTime<Utc>) -> Result<Vec<BuildEvent>> {
++    let mut events = read_archived_events_since(event_log_path, since, |_| true);
++    let all = read_events(event_log_path)?;
++    events.extend(all.into_iter().filter(|e| e.ts >= since));
++    Ok(events)
++}
++
++fn read_archived_events_since(
++    event_log_path: &Path,
++    since: DateTime<Utc>,
++    matches: impl Fn(&BuildEvent) -> bool,
++) -> Vec<BuildEvent> {
+     let mut events = Vec::new();
+     for segment in archive_segments_since(event_log_path, since) {
+         let before = events.len();
+         let loaded = read_segment(&segment.path).and_then(|records| {
+             for event in records {
+                 let event = event?;
+-                if event.ts >= since {
++                if event.ts >= since && matches(&event) {
+                     events.push(event);
+                 }
+             }
+@@ -347,11 +358,52 @@ pub fn read_events_since(event_log_path: &Path, since: DateTime<Utc>) -> Result<
+             );
+         }
+     }
+-    let all = read_events(event_log_path)?;
+-    events.extend(all.into_iter().filter(|e| e.ts >= since));
++    events
++}
++
++/// Read a tagged build without holding the writer lock while scanning JSON.
++/// Rotation replaces the inode, and the recorded length excludes later appends.
++pub fn read_build_events_since(
++    path: &Path,
++    since: DateTime<Utc>,
++    id: &str,
++) -> Result<Vec<BuildEvent>> {
++    let matches = |event: &BuildEvent| event.build_id.as_deref() == Some(id);
++    let mut events = read_archived_events_since(path, since, matches);
++    let Some(log) = snapshot_event_log(path)? else {
++        return Ok(events);
++    };
++    let finder = memchr::memmem::Finder::new(id.as_bytes());
++    let mut reader = BufReader::new(log);
++    let mut line = Vec::new();
++    while reader.read_until(b'\n', &mut line)? != 0 {
++        // Kache emits build IDs as unescaped ASCII hex. JSON decoding, not the
++        // substring prefilter, decides whether the exact field matches.
++        if finder.find(&line).is_some()
++            && let Ok(event) = serde_json::from_slice::<BuildEvent>(&line)
++            && event.ts >= since
++            && matches(&event)
++        {
++            events.push(event);
++        }
++        line.clear();
++    }
+     Ok(events)
+ }
+ 
++fn snapshot_event_log(path: &Path) -> Result<Option<std::io::Take<File>>> {
++    if !path.exists() {
++        return Ok(None);
++    }
++    let lock = open_log_lock(path).context("opening event log lock")?;
++    lock.lock_shared()
++        .context("locking event log for snapshot")?;
++    let file = File::open(path).context("opening event log")?;
++    let length = file.metadata()?.len();
++    lock.unlock().context("unlocking event log snapshot")?;
++    Ok(Some(file.take(length)))
++}
++
+ /// [`compute_stats`] of [`read_events_since`], without reading again the
+ /// archived segments that lie wholly inside the window each time: their
+ /// stats are kept for recent windows (`kache monitor` asks every two
+@@ -1629,6 +1681,7 @@ mod tests {
+             permit_wait_ms: 0,
+             scheduler_decisions: Vec::new(),
+             rustc_compile_first_reason: None,
++            build_id: None,
+             store_output_blobs: 0,
+             store_duplicate_blobs: 0,
+             store_new_blobs: 0,
+@@ -2284,6 +2337,43 @@ mod tests {
+         assert_eq!(events[0].crate_name, "new");
+     }
+ 
++    #[test]
++    fn tagged_build_reads_only_exact_events_after_cutoff() {
++        let dir = tempfile::tempdir().unwrap();
++        let path = dir.path().join("events.jsonl");
++        let id = "123456789012345678901234567890ab";
++        let since = Utc::now() - chrono::Duration::minutes(1);
++        let mut old = test_event("old", EventResult::Miss, 1, 1, 1, "old");
++        old.ts = since - chrono::Duration::seconds(1);
++        old.build_id = Some(id.into());
++        log_event(&path, &old).unwrap();
++        log_event(&path, &test_event(id, EventResult::Miss, 1, 1, 1, "other")).unwrap();
++        let mut matching = test_event("matching", EventResult::LocalHit, 1, 1, 1, "hit");
++        matching.build_id = Some(id.into());
++        log_event(&path, &matching).unwrap();
++        let events = read_build_events_since(&path, since, id).unwrap();
++        assert_eq!(events.len(), 1);
++        assert_eq!(events[0].crate_name, "matching");
++    }
++
++    #[test]
++    fn live_snapshot_excludes_appends_and_survives_replacement() {
++        let dir = tempfile::tempdir().unwrap();
++        let path = dir.path().join("events.jsonl");
++        fs::write(&path, "original\n").unwrap();
++        let mut snapshot = snapshot_event_log(&path).unwrap().unwrap();
++        OpenOptions::new()
++            .append(true)
++            .open(&path)
++            .unwrap()
++            .write_all(b"later\n")
++            .unwrap();
++        crate::atomic::atomic_replace(&path, b"new log\n").unwrap();
++        let mut bytes = String::new();
++        snapshot.read_to_string(&mut bytes).unwrap();
++        assert_eq!(bytes, "original\n");
++    }
++
+     /// A rotation moves its dropped lines to the archive, so a window that
+     /// reaches past the live log still sees them, once each, while the live
+     /// log keeps only its tail.
+diff --git a/src/main.rs b/src/main.rs
+index 6f908f04..d70346b2 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -261,6 +261,12 @@ enum DaemonCommands {
+ 
+ #[derive(Subcommand)]
+ enum TelemetryCommands {
++    /// Read observed compiler events for one caller-supplied KACHE_BUILD_ID.
++    Build {
++        id: String,
++        #[arg(long, default_value = "24h")]
++        since: String,
++    },
+     /// Snapshot live cache counters into `metrics.otlp.json` + `schema_version`
+     Write {
+         /// Directory to write. Created if missing.
+@@ -1119,6 +1125,9 @@ fn run_cli(cli: Cli, readiness: Option<kunobi_daemon::readiness::channel::Notifi
+             let window = parse_since_window(&since)?;
+             cli::stats(&config, &config_provenance, window, json)
+         }
++        Some(Commands::Telemetry {
++            command: TelemetryCommands::Build { id, since },
++        }) => cli::telemetry_build(&config, &id, parse_since_window(&since)?),
+         Some(Commands::Telemetry {
+             command:
+                 TelemetryCommands::Write {
+diff --git a/src/report/tests.rs b/src/report/tests.rs
+index da731235..52e44104 100644
+--- a/src/report/tests.rs
++++ b/src/report/tests.rs
+@@ -518,6 +518,7 @@ fn test_event(
+         permit_wait_ms: 0,
+         scheduler_decisions: Vec::new(),
+         rustc_compile_first_reason: None,
++        build_id: None,
+         store_output_blobs: 0,
+         store_duplicate_blobs: 0,
+         store_new_blobs: 0,
+diff --git a/src/tui/tests.rs b/src/tui/tests.rs
+index 7d055619..f85e88c4 100644
+--- a/src/tui/tests.rs
++++ b/src/tui/tests.rs
+@@ -657,8 +657,8 @@ fn tab_bar_click_targets_match_the_drawn_labels() {
+ 
+ #[test]
+ fn too_small_terminal_says_so_instead_of_drawing_garbage() {
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+     let mut state = test_state();
+     let mut terminal = Terminal::new(TestBackend::new(40, 10)).unwrap();
+     terminal.draw(|frame| draw_ui(frame, &mut state)).unwrap();
+@@ -681,8 +681,8 @@ fn too_small_terminal_says_so_instead_of_drawing_garbage() {
+ 
+ /// Render `tab` at `width`×`height` and return the screen as lines.
+ fn rendered_lines(state: &mut AppState, tab: Tab, width: u16, height: u16) -> Vec<String> {
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+     state.active_tab = tab;
+     let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+     terminal
+@@ -1212,8 +1212,8 @@ fn rendered_tab(state: &mut AppState, tab: Tab) -> String {
+ }
+ 
+ fn rendered_tab_at(state: &mut AppState, tab: Tab, width: u16, height: u16) -> String {
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+ 
+     state.active_tab = tab;
+     let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+@@ -1375,8 +1375,8 @@ fn handle_key_filter_input_resets_affected_viewports() {
+ 
+ #[test]
+ fn draw_ui_renders_every_tab_without_panicking() {
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+ 
+     for tab in [
+         Tab::Now,
+@@ -1487,6 +1487,7 @@ fn sample_build_event(
+         permit_wait_ms: 0,
+         scheduler_decisions: Vec::new(),
+         rustc_compile_first_reason: None,
++        build_id: None,
+         store_output_blobs: 0,
+         store_duplicate_blobs: 0,
+         store_new_blobs: 0,
+@@ -1640,8 +1641,8 @@ fn store_names_the_daemon_and_now_leaves_the_version_off() {
+ #[test]
+ fn draw_ui_renders_populated_tabs_without_panicking() {
+     use events::EventResult;
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+ 
+     for tab in [Tab::Build, Tab::Store, Tab::Why, Tab::Transfer] {
+         let mut state = test_state();
+@@ -1687,8 +1688,8 @@ fn draw_ui_renders_populated_tabs_without_panicking() {
+ 
+ #[test]
+ fn draw_projects_tab_renders_populated_scan() {
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+ 
+     let mut state = test_state();
+     state.active_tab = Tab::Projects;
+@@ -1967,8 +1968,8 @@ fn fmt_window_falls_back_when_the_unit_does_not_divide() {
+ 
+ /// Render the sparkline alone into a `width`×`height` area.
+ fn rendered_sparkline(state: &AppState, width: u16, height: u16) -> String {
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+     let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+     terminal
+         .draw(|frame| draw_sparkline(frame, state, frame.area()))
+@@ -2404,8 +2405,8 @@ fn in_flight_compile_keeps_its_build_running() {
+ 
+ /// Render `tab` and return the raw buffer, for assertions on style.
+ fn rendered_buffer(state: &mut AppState, tab: Tab, width: u16, height: u16) -> Buffer {
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+     state.active_tab = tab;
+     let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+     terminal
+@@ -2859,8 +2860,8 @@ fn now_warns_only_when_the_cause_preview_omits_older_misses() {
+ 
+ #[test]
+ fn now_mouse_uses_the_rendered_rows_at_the_minimum_side_by_side_height() {
+-    use ratatui::Terminal;
+     use ratatui::backend::TestBackend;
++    use ratatui::Terminal;
+ 
+     let mut s = test_state();
+     s.active_tab = Tab::Now;
+diff --git a/src/wrapper.rs b/src/wrapper.rs
+index ea4214cd..29699e46 100644
+--- a/src/wrapper.rs
++++ b/src/wrapper.rs
+@@ -8957,6 +8957,7 @@ struct InvocationWrapperSettings {
+     progress_level: u8,
+     temp_dir: Option<PathBuf>,
+     daemon: Option<std::sync::Arc<crate::daemon::Daemon>>,
++    build_id: Option<String>,
+ }
+ 
+ /// Work left by a compile-before-key path belongs only to that invocation.
+@@ -8986,6 +8987,7 @@ impl InvocationWrapperScope {
+             progress_level: parse_progress_level(env.var("KACHE_PROGRESS").ok().as_deref()),
+             temp_dir: env.resolve(env.temp_dir()),
+             daemon,
++            build_id: env.var("KACHE_BUILD_ID").ok().filter(|id| valid_build_id(id)),
+         }))
+     }
+ 
+@@ -9005,6 +9007,10 @@ impl InvocationWrapperScope {
+     }
+ }
+ 
++pub(crate) fn valid_build_id(id: &str) -> bool {
++    id.len() == 32 && id.bytes().all(|b| b.is_ascii_hexdigit())
++}
++
+ impl Drop for InvocationWrapperScope {
+     fn drop(&mut self) {
+         INVOCATION_SETTINGS.with(|slot| slot.replace(self.settings.take()));
+@@ -9876,9 +9882,12 @@ pub(crate) fn build_event_details(config: &Config, inputs: EventInputs<'_>) -> B
+             .then(|| cache_key.to_string()),
+         rebuilt_path: rebuilt.primary,
+         rebuilt_paths: rebuilt.paths,
+-        schema: 29,
++        schema: 30,
+         demands: crate::demand::take(),
+         session_id,
++        build_id: INVOCATION_SETTINGS.with(|settings| {
++            settings.borrow().as_ref().and_then(|s| s.build_id.clone())
++        }),
+         key_ms,
+         key_hash_hits: key_hash_stats.cache_hits,
+         key_hash_misses: key_hash_stats.cache_misses,
+diff --git a/src/wrapper/tests.rs b/src/wrapper/tests.rs
+index 85033125..85c7d5fa 100644
+--- a/src/wrapper/tests.rs
++++ b/src/wrapper/tests.rs
+@@ -9312,7 +9312,7 @@ fn local_hit_demand_reaches_event_without_remote_wait() {
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     assert_eq!(events.len(), 1);
+-    assert_eq!(events[0].schema, 29);
++    assert_eq!(events[0].schema, 30);
+     assert_eq!(
+         events[0].rustc_compile_first_reason.as_deref(),
+         Some("tree-changed")
+@@ -9365,7 +9365,7 @@ fn log_event_with_store_stats_persists_timing_hash_and_store_fields() {
+     assert_eq!(event.compile_time_ms, 20);
+     assert_eq!(event.size, 30);
+     assert_eq!(event.cache_key, "cache-key");
+-    assert_eq!(event.schema, 29);
++    assert_eq!(event.schema, 30);
+     assert_eq!(event.key_ms, 40);
+     assert_eq!(event.key_hash_hits, 4);
+     assert_eq!(event.key_hash_misses, 5);
+@@ -9483,7 +9483,7 @@ fn log_event_records_the_wrapper_phase_accumulators() {
+ 
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     let event = &events[0];
+-    assert_eq!(event.schema, 29);
++    assert_eq!(event.schema, 30);
+     // Whatever other tests add is real time, far under the next band.
+     for (name, value, floor, fed) in [
+         ("startup_ms", event.startup_ms, before[0], STARTUP_MS),
+@@ -9619,7 +9619,7 @@ fn log_event_persists_same_key_lookup_rejection() {
+     let event = &events[0];
+     assert_eq!(event.result, EventResult::Miss);
+     assert_eq!(event.cache_key, "same-key");
+-    assert_eq!(event.schema, 29);
++    assert_eq!(event.schema, 30);
+     assert_eq!(
+         event.lookup_rejection,
+         "matching entry lacks dep-info required by this invocation"
+@@ -9689,7 +9689,7 @@ fn log_event_persists_verify_compare_class_on_hit() {
+             .keyed("hit-key", 0, FileHashStats::default()),
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+-    assert_eq!(events[0].schema, 29);
++    assert_eq!(events[0].schema, 30);
+     assert_eq!(events[0].result, EventResult::LocalHit);
+     assert!(
+         events[0].verify_compare.is_empty(),
+@@ -9707,7 +9707,7 @@ fn log_event_persists_verify_compare_class_on_hit() {
+     );
+     let events = crate::events::read_events(&config.event_log_path()).unwrap();
+     assert_eq!(events.len(), 2);
+-    assert_eq!(events[1].schema, 29);
++    assert_eq!(events[1].schema, 30);
+     assert_eq!(
+         events[1].verify_compare,
+         "content: libfoo.rlib (byte mismatch)"
+@@ -12607,7 +12607,7 @@ fn a_passthrough_reason_is_classified_on_the_event() {
+         EventInputs::new("/repo", "foo.c", EventResult::Passthrough, 10)
+             .passthrough_reason("unsupported|cc link mode".to_string()),
+     );
+-    assert_eq!(event.schema, 29);
++    assert_eq!(event.schema, 30);
+     assert_eq!(event.miss_reason, crate::events::MissReason::Unsupported);
+     let hit = super::build_event_details(
+         &config,
+@@ -12934,7 +12934,7 @@ fn rebuilt_event_uses_actual_outputs_for_success_even_without_store() {
+                 .store_error("cannot store".into())
+                 .rebuilt(true, &artifacts, Some("cargo-package-name".into())),
+         );
+-        assert_eq!(event.schema, 29);
++        assert_eq!(event.schema, 30);
+         assert_eq!(event.rebuilt_package.as_deref(), Some("cargo-package-name"));
+         assert_eq!(
+             event.rebuilt_fingerprint.as_deref(),
+@@ -14238,7 +14238,7 @@ fn cancelled_scheduler_waits_reach_error_events_without_spawning_compilers() {
+         assert_eq!(events.len(), 1);
+         let event = &events[0];
+         assert_eq!(event.result, EventResult::Error);
+-        assert_eq!(event.schema, 29);
++        assert_eq!(event.schema, 30);
+         assert_eq!(event.exit_code, None, "there was no compiler exit");
+         assert!(event.passthrough_reason.is_empty());
+         assert!(
+diff --git a/tests/fallback_recovery_test.rs b/tests/fallback_recovery_test.rs
+index 5353491d..1a758c67 100644
+--- a/tests/fallback_recovery_test.rs
++++ b/tests/fallback_recovery_test.rs
+@@ -158,7 +158,7 @@ fn failed_fallback_retries_once_preserving_compiler_inputs_and_events() {
+         assert!(stderr.contains("kache: warning: fallback"));
+         assert!(stderr.contains("compiling directly without fallback"));
+         let event = fixture.event();
+-        assert_eq!(event["schema"], 29);
++        assert_eq!(event["schema"], 30);
+         assert_eq!(event["exit_code"], 0);
+         assert_ne!(event["fallback"], true);
+         assert_eq!(event["fallback_attempt"]["outcome"], "failed");
+diff --git a/tests/input_prediction_test.rs b/tests/input_prediction_test.rs
+index 93bd4ceb..00da0c73 100644
+--- a/tests/input_prediction_test.rs
++++ b/tests/input_prediction_test.rs
+@@ -252,7 +252,7 @@ fn compile_first_publishes_without_a_second_compiler_admission() {
+     run_kache_rustc_as_cargo(cache.path(), out.path(), &src, true);
+     let cold = last_event(cache.path());
+     let cold_raw = last_raw_event(cache.path());
+-    assert_eq!(cold_raw["schema"], 29);
++    assert_eq!(cold_raw["schema"], 30);
+     assert_eq!(cold_raw["rustc_compile_first_reason"], "no-record");
+     assert_eq!(cold.result, "miss");
+     assert_eq!(cold.compiler_runs, 1);

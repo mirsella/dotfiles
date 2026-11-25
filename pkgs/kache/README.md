@@ -4,7 +4,7 @@
 
 `default.nix` selects upstream commit
 `3aad1a1974efcae8c8827a7200d5cf7cd270319e` with the version label
-`2.1.1+local-retention-shadow-20261121`. Install the frontend and `kache-engine`
+`2.1.1+local-case-analytics-20261125`. Install the frontend and `kache-engine`
 together. Home Manager also owns the Cargo-bin aliases so a separately installed
 frontend cannot replace the managed daemon.
 
@@ -30,6 +30,19 @@ changes the live policy. It records at most 64 pairs per sweep and stops
 after 256 records in `~/.cache/kache/telemetry/retention-shadow-v1`.
 Compare exact-key demand at 12 and 48 hours. Indexed bytes are not physical
 reclamation, and compile cost is not build wall time.
+
+`case-analytics.patch` adds schema 30's optional `KACHE_BUILD_ID` to event
+records. `kache telemetry build ID --since 2h` returns events for the exact
+32-hex-character ID in the queried store, without command arguments or raw
+diagnostics. Missing tags or separate stores mean incomplete coverage.
+It also recognizes Clang's device and simulator iOS deployment-target flags
+when the resolved compiler probe succeeds.
+
+The patch writes grouped shadow matches to `telemetry/retention-shadow-v2`.
+A group has at most eight independent substitutes totaling 100–105% of the
+live victim's indexed bytes. A separate comparison considers known older
+schemas idle for at least seven days. Both comparisons leave the live
+eviction order and its protections unchanged.
 
 The upstream checkout-path correctness fix uses key version 35. Expect cold
 misses when moving from the old recipe; preserve old entries for rollback.
