@@ -97,13 +97,12 @@ in
     firewall.allowedTCPPorts = [ 80 443 4096 14096 ];
   };
 
-  services = {
-    # Idle time and power-saving keys must not interrupt the server.
-    logind.settings.Login = {
-      IdleAction = "ignore";
-      HandleSuspendKey = "ignore";
-      HandleHibernateKey = "ignore";
-    };
+  # Keep hibernation disabled independently of the idle and key handlers.
+  systemd.sleep.settings.Sleep.AllowHibernation = false;
+  services.logind.settings.Login = {
+    IdleAction = "ignore";
+    HandleSuspendKey = "ignore";
+    HandleHibernateKey = "ignore";
   };
 
   nix.settings = {
