@@ -68,14 +68,14 @@
   "providers": {
     {{- if $workstation }}
     "llama.cpp": {
-      "name": "Local llama.cpp",
+      "name": "Local",
       "package": "@opencode/ai/providers/openai-compatible",
       "settings": {
         "baseURL": "http://127.0.0.1:8080/v1"
       },
       "models": {
         "inkling-2-mini-uncensored": {
-          "name": "Local",
+          "name": "Inkling 2 Mini Uncensored (local)",
           "limit": {
             "context": {{ ternary 32768 16384 (eq .chezmoi.hostname "main") }},
             "output": 4096
