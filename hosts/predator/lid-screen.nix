@@ -33,6 +33,4 @@ in
       SuccessExitStatus = "SIGTERM";
     };
   };
-
-  powerManagement.resumeCommands = refreshScreen;
 }

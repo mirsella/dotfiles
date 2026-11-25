@@ -1,4 +1,3 @@
-mod activity;
 mod adb;
 mod agent_tools;
 mod attention;
@@ -22,9 +21,7 @@ mod opencode;
 mod predator_boot;
 mod salvage;
 mod setup;
-mod suspend;
 mod sweep;
-mod t3_activity;
 mod t3_cleanup;
 mod t3_defaults;
 mod t3_settings;
@@ -154,13 +151,6 @@ enum Commands {
         #[command(subcommand)]
         action: hermes::Operation,
     },
-    NightSuspend {
-        #[arg(long)]
-        activity_only: bool,
-        /// Local T3 V2 database; unreadable state prevents automatic suspend.
-        #[arg(long)]
-        t3_state: Option<PathBuf>,
-    },
     StorageAlerts {
         #[arg(long)]
         test: bool,
@@ -232,7 +222,6 @@ Examples:
         directory: PathBuf,
     },
     LidScreen,
-    KeyboardOff,
     Ryzenadj {
         #[arg(long)]
         watch: bool,
@@ -269,14 +258,6 @@ Examples:
         mac: String,
         #[arg(long, default_value = "192.168.1.255:9")]
         destination: String,
-    },
-    Netconsole {
-        #[arg(long, default_value = "192.168.1.166:16666")]
-        bind: String,
-        #[arg(long, default_value = "192.168.1.19")]
-        sender: std::net::IpAddr,
-        #[arg(long)]
-        output: PathBuf,
     },
 }
 
@@ -318,10 +299,6 @@ fn run() -> Result<()> {
         } => hermes::provision(&root, &ssh_to_age, reuse_mirsellabot),
         Commands::Hermes { action } => hermes::operations(action),
         Commands::HermesConfigure { config, defaults } => hermes::configure(&config, &defaults),
-        Commands::NightSuspend {
-            activity_only,
-            t3_state,
-        } => suspend::run(activity_only, t3_state.as_deref()),
         Commands::StorageAlerts { test } => monitoring::alerts(test),
         Commands::HardwareAlerts { test } => {
             if test {
@@ -375,7 +352,6 @@ fn run() -> Result<()> {
             Ok(())
         }
         Commands::LidScreen => hardware::lid(),
-        Commands::KeyboardOff => hardware::keyboard_off(),
         Commands::Ryzenadj { watch } => hardware::ryzenadj(watch),
         Commands::AudioWatch => hardware::audio_watch(),
         Commands::NasaWallpaper => nasa_wallpaper::run(),
@@ -388,11 +364,6 @@ fn run() -> Result<()> {
         } => maintenance::btrfs(&path, notify, reclaim),
         Commands::DiskAlerts { path, test } => maintenance::disk_alerts(&path, test),
         Commands::Wol { mac, destination } => hardware::wol(&mac, &destination),
-        Commands::Netconsole {
-            bind,
-            sender,
-            output,
-        } => hardware::netconsole(&bind, sender, &output),
     }
 }
 

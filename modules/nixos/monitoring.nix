@@ -9,7 +9,7 @@ let
   ssds = builtins.attrValues physical.ssds;
   hdds = builtins.attrValues physical.hdds;
   recipient = "mirsella@protonmail.com";
-  # Sunday afternoon avoids overnight suspend and separates the HDD tests.
+  # Stagger the HDD long tests on Sunday afternoon.
   hddLongHours = {
     tank1 = "14";
     tank2 = "15";

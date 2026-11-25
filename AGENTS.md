@@ -205,8 +205,8 @@ The flake discovers these directories and sets hostnames automatically.
 
 Manual files outside the repo:
 
-- Laptop uses Plasma lid defaults; Predator ignores lid-close via
-  `hosts/predator/default.nix` (screen off instead of sleep).
+- Laptop uses Plasma lid defaults. Predator stays awake when idle;
+  `hosts/predator/lid-screen.nix` blanks only its local screen on lid close.
 - Arch boxes: root-owned Nix daemon GC/cache settings, Timeshift retention,
   storage timers, the fail2ban SSH jail and the `/usr/local/bin/pass-cli`
   file-key wrapper are installed from `arch/maintenance/apply.py`. System

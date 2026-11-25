@@ -5,9 +5,7 @@ in
 {
   imports = [
     ./boot.nix
-    ./acer-wmi.nix
     ./lid-screen.nix
-    ./pm-study.nix
     ./storage-alerts.nix
     ./trash.nix
     ./hermes
@@ -18,7 +16,6 @@ in
     ../../modules/nixos/immich.nix
     ../../modules/nixos/ente.nix
     ../../modules/nixos/backups.nix
-    ../../modules/nixos/night-suspend.nix
     ../../modules/nixos/monitoring.nix
   ];
 
@@ -26,10 +23,6 @@ in
   predator.hermes.messaging = true;
 
   nixpkgs.overlays = [ inputs.nix-cachyos-kernel.overlays.pinned ];
-
-  # Debug run: stock kernel; uncomment the two CachyOS lines to revert.
-  # boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
-  # boot.zfs.package = config.boot.kernelPackages.zfs_cachyos;
 
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
   sops.useSystemdActivation = true;
@@ -45,13 +38,12 @@ in
   '';
 
   boot = {
-    # The unused discrete GPU's nouveau suspend callback wedges before S3.
-    blacklistedKernelModules = [ "nouveau" ];
-    kernelModules = [ "ec_sys" ];
-    extraModprobeConfig = "options ec_sys write_support=1";
-    # Keep console and netconsole output alive through suspend for debugging.
-    consoleLogLevel = 7;
-    kernelParams = [ "no_console_suspend" ];
+    blacklistedKernelModules = [
+      # Leave the unused NVIDIA GPU unbound so runtime power management can turn it off.
+      "nouveau"
+      # Keep the vendor WMI driver unloaded, as on the running server.
+      "acer_wmi"
+    ];
     # Reboot after a detected CPU lockup or panic instead of waiting for a person.
     kernel.sysctl = {
       "kernel.hardlockup_panic" = 1;
@@ -62,12 +54,6 @@ in
     kernel.sysfs.devices.system.cpu.cpufreq = lib.genAttrs
       (map (id: "policy${toString id}") (lib.range 0 7))
       (_: { energy_performance_preference = "balance_power"; });
-  };
-
-  # Use ordinary suspend for the overnight idle timer.
-  systemd.sleep.settings.Sleep = {
-    AllowSuspend = true;
-    AllowHibernation = false;
   };
 
   services.udev.extraRules = ''
@@ -86,12 +72,35 @@ in
   networking = {
     # NetworkManager.conf uses the numeric enum, not nmcli's "magic" alias.
     networkmanager.connectionConfig."ethernet.wake-on-lan" = 64;
+    # Keep the deployed keyfile name and UUID so a live switch cannot leave
+    # two NetworkManager profiles for the same NIC. Caddy binds to this IP.
+    networkmanager.ensureProfiles.profiles.predator-pm-study-lan = {
+      connection = {
+        id = "predator-pm-study-lan";
+        uuid = "c4e6863b-7f76-4a4d-9a48-9937af0b5a36";
+        type = "ethernet";
+        interface-name = "enp3s0f1";
+        autoconnect = true;
+        autoconnect-priority = 100;
+      };
+      ethernet = {
+        mac-address = "98:29:a6:3a:a7:50";
+        wake-on-lan = 64;
+      };
+      ipv4 = {
+        method = "manual";
+        address1 = "192.168.1.19/24,192.168.1.1";
+        dns = "192.168.1.1;";
+      };
+      ipv6.method = "auto";
+    };
     firewall.allowedTCPPorts = [ 80 443 4096 14096 ];
   };
 
   services = {
-    # Power-saving keys must not interrupt the server.
+    # Idle time and power-saving keys must not interrupt the server.
     logind.settings.Login = {
+      IdleAction = "ignore";
       HandleSuspendKey = "ignore";
       HandleHibernateKey = "ignore";
     };
@@ -145,16 +154,6 @@ in
     restartIfChanged = false;
     wants = [ "sops-install-secrets.service" ];
     after = [ "sops-install-secrets.service" ];
-  };
-
-  # EC-owned keyboard backlight, no sysfs knob: EC RAM 0x30/0x31 read 01 when
-  # lit (Fn+F9 flips them). Zero them at boot so it stays off.
-  systemd.services.predator-kbd-backlight-off = {
-    description = "Turn off Predator keyboard backlight (EC 0x30/0x31)";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-modules-load.service" ];
-    serviceConfig.Type = "oneshot";
-    serviceConfig.ExecStart = "${pkgs.host-tools}/bin/host-tools keyboard-off";
   };
 
   system.stateVersion = "26.05";

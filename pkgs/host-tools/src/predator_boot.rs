@@ -1261,7 +1261,7 @@ mod tests {
             entry(&images, "nixos-generation-156-bbbb.efi", false),
             entry(
                 &images,
-                "nixos-generation-157-specialisation-pm-study-cccc.efi",
+                "nixos-generation-157-specialisation-example-cccc.efi",
                 false,
             ),
         ];

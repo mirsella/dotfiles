@@ -12,7 +12,7 @@ exposes the standalone Arch `homeConfigurations.<hostname>`.
 | --- | --- | --- |
 | `main` | Plasma desktop | Rust CPU/GPU fan controller and NCT6798 driver |
 | `laptop` | Plasma desktop | Framework RyzenAdj limits and Bluetooth audio watcher |
-| `predator` | Headless server | Secure Boot, encrypted storage, ZFS, server services and scheduled suspend |
+| `predator` | Always-on server | Secure Boot, encrypted storage, ZFS and server services |
 
 - `modules/nixos/common.nix` owns the shared user, networking, Nix settings and Home Manager integration.
 - `modules/nixos/desktop.nix` owns Plasma, audio, Bluetooth, power profiles and the shared encrypted root layout.
@@ -444,8 +444,7 @@ source.
 
 All NixOS host profiles enable the pinned upstream Bootvine module for the
 initrd, normal boot and shutdown. Rebuild the system profile to apply it.
-Predator keeps its existing console log level for suspend debugging, and its
-TPM policies and recovery SSH are unchanged.
+Predator's TPM policies and recovery SSH are unchanged.
 
 On main and laptop running Arch, pacman owns Bootvine and its system units:
 
@@ -1058,62 +1057,19 @@ migration snapshot manifest are saved under
 `/var/lib/storage-baselines/post-cable-20261003/` on Predator. Compare future
 readings with these values to distinguish new errors from the drive's history.
 
-## Predator overnight suspend
+## Predator power policy
 
-The timer checks every minute from 00:30 through 06:59 local time. It requires
-30 minutes without authenticated application or completed T3 turn activity,
-no logged-in SSH/local users, and no active maintenance or storage blocker. It
-warms the USB disks, rechecks user activity, sets a 07:00 RTC alarm and requests
-deep suspend with systemd inhibitors enabled.
-
-`pkgs/host-tools/src/activity.rs` recognizes Nextcloud's response-side
-`X-User-Id` header and successful protected API requests for Immich and OpenCode.
-Valid API keys and authorized shared-photo access also count.
-Public pages, health checks, failed logins, scanner requests and unauthenticated
-SSH connections do not reset the quiet period. Keeping an app logged in without
-requests does not count as activity by itself.
-
-Forwarding-only SSH connections, including T3's persistent environment tunnel,
-do not block suspend. Interactive SSH sessions and connections running commands,
-SFTP or other transfers still block it. Logind sessions in `closing` state after
-logout do not count as open logins, even if a detached server keeps their scope
-alive. The guard reads T3's local
-`~/.t3/userdata/statev2.sqlite` database read-only: unfinished turns, executions,
-tools, background tasks and queued effects block sleep. Idle provider processes
-and held turn queues do not. Missing, corrupt or incompatible T3 state fails the
-check and prevents automatic suspend; the journal records the error.
-
-This T3 guard applies to the overnight timer, not manual suspend. For detached
-jobs or commands outside T3's tracked work, explicitly hold a systemd inhibitor:
-`systemd-inhibit --what=sleep --mode=block --why="Remote job" your-command`.
-Arbitrary traffic through an SSH tunnel is not itself an activity signal.
-
-Caddy's connections to the actual app backends also block suspend while a
-transfer or event stream may be in progress. This guard is deliberately broader
-than authenticated completed requests: a request's authentication result is not
-available in the access log until it finishes. Short backend keepalives can
-therefore delay a check, but do not reset the 30-minute clock. Public listening
-sockets and local container health checks do not trigger this guard.
-
-Inspect decisions with `sudo journalctl -u night-suspend.service`. Blocked checks
-name the app, login, proxy connection or maintenance job. Run the activity-only
-diagnostic with:
-
-```sh
-sudo host-tools night-suspend --activity-only --t3-state /home/mirsella/.t3/userdata/statev2.sqlite
-cargo test --locked --manifest-path pkgs/host-tools/Cargo.toml
-```
-
-The protected API route lists need review when upgrading these applications or
-changing Caddy's hostnames and upstreams.
+Predator stays awake overnight and when idle. Closing the lid turns off its
+local display without affecting services. The unused NVIDIA GPU can power down
+independently while the server runs, and manual Wake-on-LAN remains available.
 
 ## Custom service programs
 
 `pkgs/host-tools` contains the Rust implementations of our recurring host jobs.
 Nix and systemd define their schedules, dependencies, users and permissions.
-The subcommands cover overnight suspend, storage alerts and mail, database and
-recovery backups, Beszel and Nextcloud setup, lid/backlight handling, Ryzen power
-limits, Bluetooth audio profiles, Btrfs headroom checks, Wake-on-LAN and netconsole.
+The subcommands cover storage alerts and mail, database and recovery backups,
+Beszel and Nextcloud setup, lid display control, Ryzen power limits, Bluetooth
+audio profiles, Btrfs headroom checks and manual Wake-on-LAN.
 
 Build the Nix package with `nix build .#host-tools`. A native build for Arch
 or Debian is also supported:
@@ -1128,10 +1084,7 @@ uses a custom target directory, pass its binary path as `HOST_TOOLS_BINARY` to
 `sudo`.
 
 The Arch installer copies that binary to `/usr/local/libexec/host-tools` for its
-system units. On the Pi, build for its architecture, install the binary as
-`/usr/local/bin/host-tools`, and use the units in `aux/rpi`. Replace the old cron
-entry when enabling the WoL timer; do not schedule both. Keep that timer disabled
-during RTC-only wake comparisons.
+system units.
 
 Tests for the recurring programs live in `pkgs/host-tools/src/tests.rs` and run
 as part of the Nix package build. Python remains only in manual/one-time tools

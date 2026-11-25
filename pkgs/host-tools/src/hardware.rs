@@ -1,13 +1,10 @@
 use crate::util;
 use anyhow::{Context, Result, bail, ensure};
-use chrono::Local;
 use serde_json::Value;
 use std::{
     fs::{self, OpenOptions},
-    io::{BufRead, BufReader, Write},
-    net::{IpAddr, UdpSocket},
-    os::unix::fs::{FileExt, OpenOptionsExt},
-    path::Path,
+    io::{BufRead, BufReader},
+    net::UdpSocket,
     process::{Command, Stdio},
 };
 
@@ -40,19 +37,6 @@ pub fn lid() -> Result<()> {
         "Lid {state}: console blank {blank}, framebuffer blank {}",
         fb.trim()
     );
-    Ok(())
-}
-
-pub fn keyboard_off() -> Result<()> {
-    let ec = OpenOptions::new()
-        .write(true)
-        .open("/sys/kernel/debug/ec/ec0/io")?;
-    for offset in [48, 49] {
-        ensure!(
-            ec.write_at(&[0], offset)? == 1,
-            "short EC write at {offset}"
-        );
-    }
     Ok(())
 }
 
@@ -148,33 +132,4 @@ pub fn wol(mac: &str, destination: &str) -> Result<()> {
     );
     println!("WOL sent to {mac} via {destination}");
     Ok(())
-}
-
-pub fn netconsole(bind: &str, sender: IpAddr, output: &Path) -> Result<()> {
-    let socket = UdpSocket::bind(bind)?;
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .mode(0o600)
-        .open(output)?;
-    println!(
-        "Listening on {bind}, accepting {sender}, appending {}",
-        output.display()
-    );
-    let mut packet = vec![0u8; 65536];
-    loop {
-        let (length, peer) = socket.recv_from(&mut packet)?;
-        if peer.ip() != sender {
-            continue;
-        }
-        writeln!(
-            file,
-            "[{}] UDP {peer}",
-            Local::now().to_rfc3339_opts(chrono::SecondsFormat::Micros, false)
-        )?;
-        file.write_all(&packet[..length])?;
-        if !packet[..length].ends_with(b"\n") {
-            file.write_all(b"\n")?;
-        }
-    }
 }
