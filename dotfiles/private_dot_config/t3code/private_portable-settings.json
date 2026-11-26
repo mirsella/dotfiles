@@ -139,10 +139,6 @@
       {
         "model": "claude-agent/claude-fable-5-2[1m]",
         "provider": "opencode"
-      },
-      {
-        "model": "opencode/hy4-flash-free",
-        "provider": "opencode"
       }
     ],
     "guestSharingEnabled": true,
@@ -510,6 +506,26 @@
     }
   },
   "keybindings": [
+    {
+      "command": "terminal.previous",
+      "key": "ctrl+alt+[",
+      "when": "terminalFocus && !isMac"
+    },
+    {
+      "command": "terminal.next",
+      "key": "ctrl+alt+]",
+      "when": "terminalFocus && !isMac"
+    },
+    {
+      "command": "terminal.previous",
+      "key": "cmd+shift+[",
+      "when": "terminalFocus && isMac"
+    },
+    {
+      "command": "terminal.next",
+      "key": "cmd+shift+]",
+      "when": "terminalFocus && isMac"
+    },
     {
       "command": "preview.find",
       "key": "mod+f",
@@ -1034,15 +1050,6 @@
         ],
         "defaultThreadEnvMode": "worktree"
       }
-    },
-    {
-      "workspace_root": "~/dev/mm-lab",
-      "attributes": {
-        "faviconPath": "~/dev/mm-lab/public/icon.svg",
-        "projectIcon": null,
-        "title": "mm-lab"
-      },
-      "settings": {}
     },
     {
       "workspace_root": "~/dev/mm-runtime-config",
