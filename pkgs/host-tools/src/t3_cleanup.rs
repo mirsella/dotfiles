@@ -119,8 +119,10 @@ impl Drop for State {
 
 impl State {
     pub fn read(base: &Path) -> Result<Self> {
-        // Read the shell first: a binding created in between then shows up only
-        // in the catalog, which keeps its workspace.
+        // Read the catalog first: a binding created in between then shows up
+        // in the shell and is checked, and one the catalog lists that a later
+        // shell lacks belongs to a thread T3 no longer has.
+        let catalog = read_catalog(&base.join("userdata/statev2.sqlite"))?;
         let (shell, revoking) = match Session::open_for_cleanup(base)? {
             Some(session) => {
                 let shell = session.shell();
@@ -133,7 +135,6 @@ impl State {
             }
             None => (None, None),
         };
-        let catalog = read_catalog(&base.join("userdata/statev2.sqlite"))?;
         let mut state = Self::new(base, catalog, shell)?;
         state.revoking = revoking;
         Ok(state)

@@ -823,7 +823,8 @@ pub(crate) fn check_worktree(
     };
     keep_unless!(!precheck.recent, "changed recently");
     let orphaned = owner()?;
-    let cutoff = if orphaned { orphan.min(cutoff) } else { cutoff };
+    let stricter = orphaned && orphan < cutoff;
+    let cutoff = if stricter { orphan } else { cutoff };
     if precheck.plain {
         return Ok(Fingerprint {
             orphan: orphaned,
@@ -835,9 +836,14 @@ pub(crate) fn check_worktree(
         keep_unless!(*time < cutoff, "{} changed recently", path.display());
     }
     let tree = inspect_tree(worktree, device, cutoff, true)?;
-    let verdict = precheck
-        .git
-        .context("an idle worktree has Git's verdict")??;
+    // The precheck's verdict judged in-place edits against the ordinary cutoff.
+    let verdict = if stricter {
+        check_git(worktree, cutoff)?
+    } else {
+        precheck
+            .git
+            .context("an idle worktree has Git's verdict")??
+    };
     let mut saves = tree.saves;
     saves.extend(verdict.saves);
     saves.sort();
@@ -1898,6 +1904,18 @@ mod tests {
             .expect_err("an orphan idle 2 days did not wait 3");
         assert!(kept.reason.contains("changed recently"), "{kept:?}");
         assert!(orphaned(cutoff)?.orphan);
+        // An in-place edit leaves directory times alone, so Git's verdict
+        // must use the orphan cutoff too.
+        age(&worktree, now - 4 * day)?;
+        age(&checkout.join(".git/worktrees"), now - 4 * day)?;
+        fs::File::open(&tracked)?.set_modified(old)?;
+        assert!(check().is_ok());
+        let kept = decide_once(orphaned(now - 3 * day))?
+            .expect_err("an orphan's 2-day-old edit did not keep it");
+        assert!(
+            kept.reason.contains("tracked.txt changed recently"),
+            "{kept:?}"
+        );
 
         // Only the root `.scratch/` is disposable, and a saved WIP commit
         // must not pick up its uncommitted changes along with real work.

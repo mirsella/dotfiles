@@ -509,6 +509,27 @@ fn classify(
     }
 }
 
+/// When a workspace idle since these signs goes. An owner's activity waits the
+/// kind's retention, like its check; an orphan's files wait the orphan one.
+fn due(
+    policy: Policy,
+    kind: Kind,
+    orphan: bool,
+    owner: Option<SystemTime>,
+    files: Option<SystemTime>,
+    now: SystemTime,
+) -> SystemTime {
+    let cutoff = policy.cutoff(kind);
+    let retention = |cutoff: SystemTime| now.duration_since(cutoff).unwrap_or_default();
+    let files_retention = retention(if orphan {
+        policy.orphan.min(cutoff)
+    } else {
+        cutoff
+    });
+    let by_files = files.unwrap_or(now) + files_retention;
+    owner.map_or(by_files, |time| by_files.max(time + retention(cutoff)))
+}
+
 /// Sizes from earlier runs, valid while a workspace's activity signal holds.
 #[derive(Default, Serialize, Deserialize)]
 struct Sizes(BTreeMap<PathBuf, (String, u64)>);
@@ -558,19 +579,8 @@ fn measure(
             .max();
         if matches!(row.when, When::Later { .. }) {
             let newest = scan.as_ref().map(|scan| scan.newest);
-            let idle_since = [owner, newest, own, git]
-                .into_iter()
-                .flatten()
-                .max()
-                .unwrap_or(now);
-            let cutoff = policy.cutoff(row.kind);
-            let cutoff = if row.orphan {
-                policy.orphan.min(cutoff)
-            } else {
-                cutoff
-            };
-            let retention = now.duration_since(cutoff).unwrap_or_default();
-            row.due = Some(idle_since + retention);
+            let files = [newest, own, git].into_iter().flatten().max();
+            row.due = Some(due(policy, row.kind, row.orphan, owner, files, now));
         }
         let signal = format!("{}:{}:{}", nanos(own), nanos(git), nanos(owner));
         row.size = scan.and_then(|scan| scan.size).or_else(|| {
@@ -1505,6 +1515,33 @@ mod tests {
         assert!(held(&outer).is_some());
         assert!(held(&nested).is_some());
         assert!(held(&outer.with_file_name("outer-other")).is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn orphans_wait_the_orphan_retention_except_under_a_manual_age() -> Result<()> {
+        let now = SystemTime::now();
+        let day = Duration::from_secs(86_400);
+        let standard = Policy::standard(now)?;
+        let kind = Kind::T3Scratch;
+        let files = Some(now - 4 * day);
+        // Files idle 4 days: an owned workspace is overdue, an orphan has 3 days left.
+        assert_eq!(due(standard, kind, false, None, files, now), now - day);
+        assert_eq!(due(standard, kind, true, None, files, now), now + 3 * day);
+        // A settled owner still waits only the kind's retention after its activity.
+        let files = Some(now - 6 * day);
+        let owner = Some(now - 4 * day);
+        assert_eq!(due(standard, kind, true, owner, files, now), now + day);
+        assert_eq!(
+            due(standard, kind, true, Some(now), files, now),
+            now + 3 * day
+        );
+        // `sweep clean 3d` applies its age to orphans too.
+        let manual = Policy::uniform(now - 3 * day);
+        assert_eq!(
+            due(manual, kind, true, None, Some(now - 4 * day), now),
+            now - day
+        );
         Ok(())
     }
 
