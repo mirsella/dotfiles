@@ -19,6 +19,7 @@
     "chatWidth": "comfortable",
     "composerRichTextEnabled": true,
     "confirmQuit": "hold",
+    "confirmTerminalClose": true,
     "confirmThreadArchive": false,
     "confirmThreadDelete": true,
     "confirmThreadUnpin": false,
@@ -90,6 +91,7 @@
     },
     "speechRemoveFillerWords": true,
     "speechSilenceFiltering": true,
+    "speechStreaming": true,
     "speechTranslateToEnglish": false,
     "threadDetailsItems": {
       "context": true,
