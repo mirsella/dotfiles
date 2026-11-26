@@ -294,6 +294,10 @@ assert lib.assertMsg (
     [ "/srv/backup" "/srv/data/fast" "/var/lib/nextcloud/data" ]
 ) "Existing Healthchecks jobs must retain their success pings and restic must back up from mounted sources";
 assert lib.assertMsg (
+  server.networking.resolvconf.enable
+  && builtins.elem "192.168.1.1" server.networking.nameservers
+) "Predator must register its LAN resolver without relying on NetworkManager's connection profile";
+assert lib.assertMsg (
   let
     upgrade = server.system.autoUpgrade;
     unit = server.systemd.services.nixos-upgrade;

@@ -73,6 +73,9 @@
   };
 
   networking = {
+    # NetworkManager can adopt the initrd link without applying the LAN profile.
+    # Register the router with resolvconf even in that case.
+    nameservers = [ "192.168.1.1" ];
     # NetworkManager.conf uses the numeric enum, not nmcli's "magic" alias.
     networkmanager.connectionConfig."ethernet.wake-on-lan" = 64;
     # Keep the deployed keyfile name and UUID so a live switch cannot leave
@@ -93,7 +96,6 @@
       ipv4 = {
         method = "manual";
         address1 = "192.168.1.19/24,192.168.1.1";
-        dns = "192.168.1.1;";
       };
       ipv6.method = "auto";
     };
