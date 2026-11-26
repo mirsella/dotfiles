@@ -804,11 +804,13 @@ impl Precheck {
 /// lose. Cheap signs come first and the tree walk last, only for a worktree
 /// that is idle and unowned: it visits build outputs too. Waiting reasons win
 /// over Git's verdict, so only an idle, unused worktree asks for attention.
+/// `owner` returns the cutoff the files must predate, which an owner may
+/// move earlier.
 pub(crate) fn check_worktree(
     worktree: &Path,
     device: u64,
     cutoff: SystemTime,
-    owner: impl FnOnce() -> Result<()>,
+    owner: impl FnOnce() -> Result<SystemTime>,
     precheck: Option<Precheck>,
 ) -> Result<Fingerprint> {
     let precheck = match precheck {
@@ -816,7 +818,7 @@ pub(crate) fn check_worktree(
         None => precheck_worktree(worktree, cutoff)?,
     };
     keep_unless!(!precheck.recent, "changed recently");
-    owner()?;
+    let cutoff = owner()?.min(cutoff);
     if precheck.plain {
         return inspect_tree(worktree, device, cutoff, false);
     }
@@ -1453,7 +1455,7 @@ mod tests {
                     &candidate.path,
                     candidate.device,
                     cutoff,
-                    || check_sessions(&sessions, &candidate.path, cutoff),
+                    || check_sessions(&sessions, &candidate.path, cutoff).map(|()| cutoff),
                     None,
                 )
             },
@@ -1482,7 +1484,7 @@ mod tests {
                     &candidate.path,
                     candidate.device,
                     cutoff,
-                    || owner(&candidate.path),
+                    || owner(&candidate.path).map(|()| cutoff),
                     None,
                 )
             },
@@ -1575,7 +1577,7 @@ mod tests {
                 &worktree,
                 device,
                 SystemTime::now() + Duration::from_secs(60),
-                || Ok(()),
+                || Ok(SystemTime::now() + Duration::from_secs(60)),
                 None,
             )
         };
@@ -1852,7 +1854,7 @@ mod tests {
         let old = now - 2 * day;
         let cutoff = now - day;
         let device = worktree.metadata()?.dev();
-        let check = || check_worktree(&worktree, device, cutoff, || Ok(()), None);
+        let check = || check_worktree(&worktree, device, cutoff, || Ok(cutoff), None);
         age(&worktree, old)?;
         age(&checkout.join(".git/worktrees"), old)?;
         fs::create_dir(scratch.join("recent"))?;
@@ -1966,7 +1968,7 @@ mod tests {
         age(&checkout.join(".git/worktrees"), old)?;
         let device = worktree.metadata()?.dev();
         let cutoff = old + Duration::from_secs(86_400);
-        let check = || check_worktree(&worktree, device, cutoff, || Ok(()), None);
+        let check = || check_worktree(&worktree, device, cutoff, || Ok(cutoff), None);
         let checked = check()?;
         assert!(checked.saves.is_empty());
         let module = worktree.join(".scratch/module");
@@ -2128,7 +2130,7 @@ mod tests {
             &stale,
             stale.metadata()?.dev(),
             SystemTime::now() + max_age,
-            || Ok(()),
+            || Ok(SystemTime::now() + max_age),
             None,
         )?;
         let store = Store {

@@ -765,9 +765,12 @@ impl Sources {
                     *device,
                     cutoff,
                     || {
+                        let mut required = cutoff;
                         if kind.needs_t3() {
                             match t3()? {
-                                Some(state) => state.check(path, cutoff.into(), false)?,
+                                Some(state) => {
+                                    required = state.check(path, cutoff.into(), false)?.into();
+                                }
                                 // Without ~/.t3 no T3 thread can use a ~/dev worktree.
                                 None => ensure!(*kind == Kind::Dev, "T3 state was not read"),
                             }
@@ -777,7 +780,8 @@ impl Sources {
                             .sessions
                             .as_ref()
                             .map_err(|error| anyhow::anyhow!("read OpenCode sessions: {error}"))?;
-                        worktree_prune::check_sessions(sessions, path, cutoff)
+                        worktree_prune::check_sessions(sessions, path, cutoff)?;
+                        Ok(required)
                     },
                     precheck,
                 )

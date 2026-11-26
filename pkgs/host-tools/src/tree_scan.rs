@@ -11,7 +11,7 @@
 //!
 //! While a run remembers, the threads it hands work to share one scan per
 //! workspace and one look at running processes.
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use std::io::Read;
 use std::{
     cell::RefCell,
@@ -22,8 +22,8 @@ use std::{
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc, Condvar, Mutex,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     time::SystemTime,
 };

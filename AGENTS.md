@@ -69,7 +69,8 @@ The flake discovers these directories and sets hostnames automatically.
 - Agent workspace cleanup has one owner: `sweep` in `pkgs/host-tools`, run
   hourly as `sweep auto` by the `sweep` user timer (`modules/home/agent-tools.nix`).
   After 3 idle days it removes task scratch, T3 scratch folders and worktrees and
-  OpenCode worktrees; after 7, linked worktrees under `~/dev`. Plain folders
+  OpenCode worktrees; after 7, linked worktrees under `~/dev`, T3 scratch no
+  thread uses and workspaces whose T3 thread is gone. Plain folders
   among the worktrees go like scratch. Before removal it saves what Git would
   lose: uncommitted files (up to 100 MiB, ignored files excluded) and a HEAD on
   no ref become a local, never pushed `sweep/wip/<date>-<name>` branch committed

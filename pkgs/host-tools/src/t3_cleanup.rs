@@ -42,6 +42,9 @@ const IDLE: &[&str] = &[
     "rolled_back",
 ];
 const BUSY: &[&str] = &["preparing", "queued", "starting", "running", "waiting"];
+/// Idle days before a workspace whose T3 thread cannot be found goes: no
+/// thread says whether its work settled, so only the files' age counts.
+pub(crate) const ORPHAN_DAYS: i64 = 7;
 
 #[derive(Clone, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -217,9 +220,16 @@ impl State {
 
     /// Keep `folder` while T3 needs it: a project or open provider session in
     /// it, or a thread bound at or inside it (or above it, for scratch) that is
-    /// not settled and idle since `cutoff`. Projectless scratch must belong to
-    /// such threads.
-    pub fn check(&self, folder: &Path, cutoff: DateTime<Utc>, scratch: bool) -> Result<()> {
+    /// not settled and idle since `cutoff`. Projectless scratch without a
+    /// thread, and a workspace whose thread T3 no longer lists, go only after
+    /// [`ORPHAN_DAYS`]. Returns the cutoff the folder's files must predate.
+    pub fn check(
+        &self,
+        folder: &Path,
+        cutoff: DateTime<Utc>,
+        scratch: bool,
+    ) -> Result<DateTime<Utc>> {
+        let orphan = cutoff.min(Utc::now() - chrono::Duration::days(ORPHAN_DAYS));
         let overlaps =
             |path: &Path| path.starts_with(folder) || (scratch && folder.starts_with(path));
         keep_unless!(self.cataloged, "T3 has no state database to check");
@@ -237,20 +247,25 @@ impl State {
             .filter(|binding| overlaps(&binding.raw) || overlaps(&binding.resolved))
             .collect();
         if bindings.is_empty() {
-            keep_unless!(!scratch, "no T3 thread uses it");
-            return Ok(());
+            return Ok(if scratch { orphan } else { cutoff });
         }
         let Some(threads) = &self.threads else {
             return Err(keep("T3 is not running, so its threads cannot be checked"));
         };
+        let mut required = cutoff;
         for Binding { id, raw, resolved } in bindings {
             keep_unless!(
                 raw == folder && resolved == folder,
                 "thread {id} uses a path inside or above it"
             );
-            let thread = threads
-                .get(id)
-                .ok_or_else(|| keep(format!("thread {id} is missing from the T3 shell")))?;
+            keep_unless!(
+                !self.scheduled.contains(id),
+                "an enabled T3 schedule uses thread {id}"
+            );
+            let Some(thread) = threads.get(id) else {
+                required = orphan;
+                continue;
+            };
             keep_unless!(
                 thread["worktreePath"].as_str().map(Path::new) == Some(raw.as_path()),
                 "thread {id} moved while T3 state was read"
@@ -261,13 +276,9 @@ impl State {
                     "thread {id} has a branch"
                 );
             }
-            keep_unless!(
-                !self.scheduled.contains(id),
-                "an enabled T3 schedule uses thread {id}"
-            );
             check_thread(threads, thread, cutoff).with_context(|| format!("thread {id}"))?;
         }
-        Ok(())
+        Ok(required)
     }
 }
 
@@ -414,7 +425,7 @@ impl State {
             folder.symlink_metadata()?.modified()? < cutoff,
             "changed recently"
         );
-        self.check(folder, cutoff.into(), true)?;
+        let cutoff = self.check(folder, cutoff.into(), true)?.into();
         worktree_prune::inspect_tree(folder, device, cutoff, false)
     }
 }
@@ -553,9 +564,9 @@ mod tests {
     }
 
     /// Whether a check kept the folder; any other failure fails the test.
-    fn kept(result: Result<()>) -> bool {
+    fn kept<T>(result: Result<T>) -> bool {
         match result {
-            Ok(()) => false,
+            Ok(_) => false,
             Err(error) if error.downcast_ref::<Keep>().is_some() => true,
             Err(error) => panic!("unexpected failure: {error:#}"),
         }
@@ -628,9 +639,11 @@ mod tests {
         let state = State::new(base.path(), Some(vec![]), Some(shell(threads)))?;
         assert!(kept(state.check(&folder, cutoff(), true)));
         let unknown = folder.with_file_name("unknown");
-        assert!(kept(state.check(&unknown, cutoff(), true)));
-        // Outside scratch an unbound folder is left to the Git checks.
-        assert!(!kept(state.check(&unknown, cutoff(), false)));
+        // Scratch no thread uses waits for the orphan period; outside scratch
+        // an unbound folder is left to the Git checks.
+        let late = Utc::now() - chrono::Duration::days(ORPHAN_DAYS - 1);
+        assert!(state.check(&unknown, late, true)? < late);
+        assert_eq!(state.check(&unknown, late, false)?, late);
         // With T3 stopped, a bound folder cannot be checked.
         let offline = State::new(base.path(), Some(vec![bound("a", &folder)]), None)?;
         assert!(kept(offline.check(&folder, cutoff(), false)));
@@ -646,8 +659,18 @@ mod tests {
         let (base, folder) = fixture()?;
         let live = shell(vec![thread(&folder, "a")]);
         let future = folder.join("not-created");
+        // A thread the shell no longer lists leaves only the files' age.
+        let late = Utc::now() - chrono::Duration::days(ORPHAN_DAYS - 1);
+        let catalog = vec![bound("a", &folder), bound("deleted", &folder)];
+        let state = State::new(base.path(), Some(catalog.clone()), Some(live.clone()))?;
+        assert!(state.check(&folder, late, true)? < late);
+        let mut scheduled = catalog;
+        scheduled.push(CatalogEntry::Schedule {
+            id: "deleted".into(),
+        });
+        let state = State::new(base.path(), Some(scheduled), Some(live.clone()))?;
+        assert!(kept(state.check(&folder, cutoff(), true)));
         for entry in [
-            bound("archived", &folder),
             bound("missing-child", &future),
             CatalogEntry::Project {
                 path: future.clone(),
