@@ -247,10 +247,6 @@ pub(crate) struct Fingerprint {
     nested: Vec<Nested>,
     /// Work to save before removal.
     saves: Vec<Save>,
-    /// Git needs `--force` after Sweep has accounted for local changes.
-    force: bool,
-    /// Some files are another user's, so removal goes through sudo.
-    sealed: bool,
 }
 
 impl Fingerprint {
@@ -580,7 +576,6 @@ pub(crate) fn inspect_tree(
             count => format!("{first} (and {} more)", count - 1),
         }));
     }
-    let sealed = !scan.unreadable.is_empty();
     if let Some(first) = scan.unreadable.first()
         && !salvage::root_available()
     {
@@ -614,8 +609,6 @@ pub(crate) fn inspect_tree(
         head: None,
         nested,
         saves,
-        force: false,
-        sealed,
     })
 }
 
@@ -624,7 +617,6 @@ pub(crate) fn inspect_tree(
 pub(crate) struct Verdict {
     head: String,
     saves: Vec<Save>,
-    force: bool,
 }
 
 /// What a linked worktree's removal must save, and its HEAD.
@@ -649,9 +641,8 @@ fn check_git_unchecked(worktree: &Path, cutoff: SystemTime) -> Result<Verdict> {
     if let Some(path) = recently_changed(worktree, &status, cutoff) {
         return Err(keep(format!("{} changed recently", path.display())));
     }
-    // Scratch changes still count for activity and may require `--force`.
-    // Even a clean gitlink under scratch makes Git require `--force`.
-    let mut force = !status.is_empty();
+    // Scratch changes still count for activity, but are not saved, and
+    // neither are submodules under scratch.
     for entry in git_bytes(worktree, &["ls-files", "--stage", "-z"])?.split(|&byte| byte == 0) {
         if !entry.starts_with(b"160000 ") {
             continue;
@@ -661,9 +652,7 @@ fn check_git_unchecked(worktree: &Path, cutoff: SystemTime) -> Result<Verdict> {
             .position(|&byte| byte == b'\t')
             .context("gitlink has no path")?;
         let path = Path::new(OsStr::from_bytes(&entry[tab + 1..]));
-        if path.starts_with(".scratch") {
-            force = true;
-        } else {
+        if !path.starts_with(".scratch") {
             block_unless!(
                 !worktree.join(path).join(".git").try_exists()?,
                 "has initialized submodules"
@@ -688,7 +677,7 @@ fn check_git_unchecked(worktree: &Path, cutoff: SystemTime) -> Result<Verdict> {
             "has initialized submodules"
         );
     }
-    force |= check_scratch_modules(worktree, &admin)?;
+    check_scratch_modules(worktree, &admin)?;
     let head = git(worktree, &["rev-parse", "--verify", "HEAD"])?;
     let repo = common_dir(worktree)?;
     let mut saves = Vec::new();
@@ -704,14 +693,13 @@ fn check_git_unchecked(worktree: &Path, cutoff: SystemTime) -> Result<Verdict> {
             dirty: false,
         });
     }
-    Ok(Verdict { head, saves, force })
+    Ok(Verdict { head, saves })
 }
 
 /// Git removes the worktree's admin directory too. It can still hold
 /// submodule repositories after their gitlinks and checkouts were removed.
-fn check_scratch_modules(worktree: &Path, admin: &Path) -> Result<bool> {
+fn check_scratch_modules(worktree: &Path, admin: &Path) -> Result<()> {
     let mut modules = vec![admin.join("modules")];
-    let mut found = false;
     let scratch = worktree.join(".scratch");
     while let Some(directory) = modules.pop() {
         let info = match directory.symlink_metadata() {
@@ -724,7 +712,6 @@ fn check_scratch_modules(worktree: &Path, admin: &Path) -> Result<bool> {
             "unexpected submodule metadata at {}",
             directory.display()
         );
-        found = true;
         let config = directory.join("config");
         if directory.join("HEAD").is_file() && config.is_file() {
             let configured = util::command_output(
@@ -769,7 +756,7 @@ fn check_scratch_modules(worktree: &Path, admin: &Path) -> Result<bool> {
             }
         }
     }
-    Ok(found)
+    Ok(())
 }
 
 /// What a worktree's check learns without its owner's state, so it can run
@@ -848,7 +835,6 @@ pub(crate) fn check_worktree(
     Ok(Fingerprint {
         head: Some(verdict.head),
         saves,
-        force: verdict.force,
         ..tree
     })
 }
@@ -895,13 +881,15 @@ pub(crate) struct Outcome {
 }
 
 /// Remove a checked linked worktree after saving what it holds.
+/// The reason in the `locked` file of a worktree sweep is deleting.
+const REMOVING: &str = "sweep is removing this worktree";
+
 fn remove(
     worktree: &Path,
     checked: Fingerprint,
     store: &Store,
     expected_common: Option<&Path>,
 ) -> Result<Outcome> {
-    // Run from the shared Git directory: the worktree cannot remove itself.
     let common = common_dir(worktree)?;
     ensure!(
         expected_common.is_none_or(|expected| expected == common),
@@ -911,43 +899,62 @@ fn remove(
     let admin =
         PathBuf::from(git(worktree, &["rev-parse", "--absolute-git-dir"])?).canonicalize()?;
     let dot_git = worktree.join(".git");
+    let gitdir = fs::read_to_string(admin.join("gitdir")).ok();
     ensure!(
         admin.parent() == Some(common.join("worktrees").as_path())
-            && admin
-                .join(fs::read_to_string(admin.join("gitdir"))?.trim_end_matches('\n'))
-                .canonicalize()?
-                == dot_git,
+            && gitdir.as_deref().is_some_and(|gitdir| {
+                admin
+                    .join(gitdir.trim_end_matches('\n'))
+                    .canonicalize()
+                    .is_ok_and(|target| target == dot_git)
+            }),
         "{} is no longer a registered linked worktree",
         worktree.display()
     );
     let saved = salvage::apply(worktree, &checked.saves, store, true)?;
     let watched = salvage::watch(worktree, &common);
-    let mut command = Command::new("git");
-    command.arg("-C").arg(&common).args(["worktree", "remove"]);
-    if checked.force {
-        command.arg("--force");
-    }
-    let output = command.arg(worktree).env("LC_ALL", "C").output()?;
-    if !output.status.success() {
-        // Only bypass a filesystem permission failure, not a Git safety check.
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let denied = format!(
-            "error: failed to delete '{}': Permission denied",
+    // What `git worktree remove` does, without its single-threaded delete.
+    // Sweep's own lock fails if anyone locked the worktree meanwhile. While it
+    // holds, Git neither moves the worktree nor prunes or reuses its entry, so
+    // the checks below stay true until both are gone.
+    let path = worktree.to_str().context("worktree path is not UTF-8")?;
+    git(&common, &["worktree", "lock", "--reason", REMOVING, path])
+        .with_context(|| format!("{} was locked while sweep saved it", worktree.display()))?;
+    let removed = (|| {
+        let now = fs::symlink_metadata(worktree)?;
+        ensure!(
+            (now.dev(), now.ino()) == (checked.device, checked.inode)
+                && fs::read_to_string(admin.join("gitdir")).ok() == gitdir,
+            "{} was moved or replaced while sweep saved it",
             worktree.display()
         );
-        ensure!(
-            checked.sealed && stderr.trim_end() == denied,
-            "git exited {}: {stderr}",
-            output.status
+        // Like Git, a tree inspected clean must still be clean: a late edit
+        // would otherwise go unsaved.
+        let saved_dirty = checked.saves.iter().any(
+            |save| matches!(save, Save::Wip { checkout, dirty: true, .. } if checkout == worktree),
         );
+        if !saved_dirty {
+            let mut late = changes(worktree)?;
+            late.retain(|path| !path.starts_with(".scratch"));
+            ensure!(
+                late.is_empty(),
+                "{} changed while sweep saved it",
+                worktree.display()
+            );
+        }
         salvage::remove_tree(worktree)?;
-        util::command_output(
-            Command::new("git")
-                .arg("-C")
-                .arg(&common)
-                .args(["worktree", "prune"]),
-        )?;
+        salvage::remove_tree(&admin)
+    })();
+    if removed.is_err()
+        && fs::read_to_string(admin.join("locked"))
+            .is_ok_and(|reason| reason.trim_end() == REMOVING)
+    {
+        // Release it so a later run can retry; a failed release only keeps it.
+        if let Err(error) = fs::remove_file(admin.join("locked")) {
+            eprintln!("host-tools: unlock {}: {error}", worktree.display());
+        }
     }
+    removed?;
     prune_nested(&checked)?;
     Ok(Outcome { saved, watched })
 }
@@ -1555,6 +1562,63 @@ mod tests {
     }
 
     #[test]
+    fn removal_keeps_worktrees_changed_or_locked_after_their_check() -> Result<()> {
+        let temp = tempfile::tempdir()?;
+        let base = fs::canonicalize(temp.path())?;
+        let (_remote, checkout) = repository(&base)?;
+        let worktree = base.join("worktree");
+        add_worktree(&checkout, &worktree, None)?;
+        let admin = admin_dir(&worktree)?;
+        let device = worktree.metadata()?.dev();
+        let check = || {
+            check_worktree(
+                &worktree,
+                device,
+                SystemTime::now() + Duration::from_secs(60),
+                || Ok(()),
+                None,
+            )
+        };
+        let store = Store {
+            bundles: base.join("bundles"),
+            note: String::new(),
+        };
+
+        let checked = check()?;
+        assert!(checked.saves.is_empty());
+        fs::write(worktree.join("late.txt"), "")?;
+        let error = remove(&worktree, checked, &store, None).unwrap_err();
+        assert!(error.to_string().contains("changed while sweep saved it"));
+        assert!(worktree.join("late.txt").exists() && !admin.join("locked").exists());
+        fs::remove_file(worktree.join("late.txt"))?;
+
+        let checked = check()?;
+        run_git(&checkout, &["worktree", "lock", worktree.to_str().unwrap()])?;
+        let error = remove(&worktree, checked, &store, None).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("was locked while sweep saved it")
+        );
+        assert!(worktree.exists() && admin.join("locked").exists());
+        run_git(
+            &checkout,
+            &["worktree", "unlock", worktree.to_str().unwrap()],
+        )?;
+
+        remove(&worktree, check()?, &store, None)?;
+        assert!(!worktree.exists() && !admin.exists());
+        assert_eq!(
+            git(&checkout, &["worktree", "list", "--porcelain"])?
+                .lines()
+                .filter(|line| line.starts_with("worktree "))
+                .count(),
+            1
+        );
+        Ok(())
+    }
+
+    #[test]
     fn prune_removes_only_safe_idle_worktrees() -> Result<()> {
         let temp = tempfile::tempdir()?;
         let base = fs::canonicalize(temp.path())?;
@@ -1732,10 +1796,24 @@ mod tests {
 
     #[test]
     fn linked_worktree_discards_only_its_root_scratch() -> Result<()> {
+        discards_only_root_scratch(false)
+    }
+
+    /// A global `.scratch/` ignore rule makes `git add` fail on any pathspec
+    /// that names it, even an exclude.
+    #[test]
+    fn linked_worktree_discards_its_ignored_root_scratch() -> Result<()> {
+        discards_only_root_scratch(true)
+    }
+
+    fn discards_only_root_scratch(ignored: bool) -> Result<()> {
         let temp = tempfile::tempdir()?;
         let base = fs::canonicalize(temp.path())?;
         let (remote, checkout) = repository(&base)?;
         run_git(&checkout, &["config", "core.excludesFile", "/dev/null"])?;
+        if ignored {
+            fs::write(checkout.join(".git/info/exclude"), ".scratch/\n")?;
+        }
         let worktree = base.join("worktree");
         add_worktree(&checkout, &worktree, None)?;
         let scratch = worktree.join(".scratch");
@@ -1764,7 +1842,7 @@ mod tests {
         fs::write(reference.join("wip.txt"), "throw away")?;
         let tracked = scratch.join("tracked.txt");
         fs::write(&tracked, "committed")?;
-        run_git(&worktree, &["add", ".scratch/tracked.txt"])?;
+        run_git(&worktree, &["add", "--force", ".scratch/tracked.txt"])?;
         run_git(&worktree, &["commit", "--quiet", "-m", "track fixture"])?;
         run_git(&worktree, &["branch", "kept"])?;
         fs::write(&tracked, "throw away this too")?;
@@ -1797,7 +1875,6 @@ mod tests {
         );
         age(&scratch, old)?;
         let checked = check()?;
-        assert!(checked.force, "Git sees the unignored scratch files");
         assert!(checked.saves.is_empty(), "{:?}", checked.saves);
 
         // Only the root `.scratch/` is disposable, and a saved WIP commit
@@ -1805,6 +1882,7 @@ mod tests {
         let work = worktree.join("code/.scratch");
         fs::create_dir_all(&work)?;
         fs::write(work.join("wip.txt"), "save me")?;
+        fs::write(worktree.join("code/notes.txt"), "save me too")?;
         age(&worktree, old)?;
         let checked = check()?;
         let store = Store {
@@ -1820,7 +1898,12 @@ mod tests {
             panic!("expected a WIP branch, got {:?}", saved.place);
         };
         let saved_file = |path| git(&checkout, &["show", &format!("{commit}:{path}")]);
-        assert_eq!(saved_file("code/.scratch/wip.txt")?, "save me");
+        assert_eq!(saved_file("code/notes.txt")?, "save me too");
+        // A global `.scratch/` rule ignores nested ones too, like any ignored file.
+        assert_eq!(
+            saved_file("code/.scratch/wip.txt").ok(),
+            (!ignored).then(|| "save me".into())
+        );
         assert_eq!(saved_file(".scratch/tracked.txt")?, "committed");
         assert!(saved_file(".scratch/reference").is_err());
         assert!(!store.bundles.exists());
@@ -1885,7 +1968,6 @@ mod tests {
         let cutoff = old + Duration::from_secs(86_400);
         let check = || check_worktree(&worktree, device, cutoff, || Ok(()), None);
         let checked = check()?;
-        assert!(checked.force);
         assert!(checked.saves.is_empty());
         let module = worktree.join(".scratch/module");
         let repo = admin_dir(&module)?;
@@ -1912,7 +1994,7 @@ mod tests {
                 .arg(&outside),
         )?;
         let checked = check()?;
-        assert!(checked.force && checked.saves.is_empty());
+        assert!(checked.saves.is_empty());
         let store = Store {
             bundles: base.join("bundles"),
             note: String::new(),
@@ -2101,7 +2183,7 @@ mod tests {
         fs::set_permissions(&locked, fs::Permissions::from_mode(0o700))?;
         // With passwordless sudo the folder goes through it; else it needs you.
         if salvage::root_available() {
-            assert!(result?.sealed);
+            result?;
         } else {
             let error = result
                 .err()

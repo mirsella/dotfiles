@@ -76,7 +76,9 @@ The flake discovers these directories and sets hostnames automatically.
   through a scratch index, and a nested clone with unpushed commits, a stash or
   saved WIP becomes a bundle in `$XDG_DATA_HOME/sweep/bundles`. Edits already
   on the remote default branch need no saving. `sweep wip` lists saved work and
-  how to restore it; it is dropped after 30 days (`saved.json`). Git
+  how to restore it; it is dropped after 30 days (`saved.json`). It then
+  deletes the tree in parallel under its own `git worktree lock`, keeping a
+  worktree that was locked, moved or changed since its check. Git
   repositories under package caches (`.build`, `node_modules`, `target`,
   `.cargo`, `.gradle`, `.pnpm-store`) are not work. Files another user owns are
   removed through passwordless `sudo -n`. A removed worktree's branch is
