@@ -18,6 +18,8 @@
     "notificationMode": true,
     "language": true,
     "speechLanguage": true,
+    "speechStreaming": true,
+    "confirmTerminalClose": true,
     "inAppNotificationsEnabled": true,
     "screenReaderAnnouncements": true,
     "screenReaderWindowTitle": true,
