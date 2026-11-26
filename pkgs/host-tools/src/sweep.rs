@@ -40,6 +40,9 @@ use std::{
 /// Idle days before agent workspaces and before ~/dev worktrees go.
 pub(crate) const AGENT_RETENTION_DAYS: u64 = 3;
 pub(crate) const DEV_RETENTION_DAYS: u64 = 7;
+/// Idle days before a T3 workspace no thread owns goes: no thread says
+/// whether its work settled, so only the files' age counts.
+pub(crate) const ORPHAN_RETENTION_DAYS: u64 = 7;
 /// T3 threads listed under each workspace in the attention notification.
 const THREAD_LINKS: usize = 5;
 
@@ -199,6 +202,8 @@ fn auto(home: &Path) -> Result<()> {
 pub(crate) struct Policy {
     pub(crate) agent: SystemTime,
     pub(crate) dev: SystemTime,
+    /// Also for T3 workspaces no thread owns.
+    pub(crate) orphan: SystemTime,
 }
 
 impl Policy {
@@ -206,6 +211,7 @@ impl Policy {
         Self {
             agent: cutoff,
             dev: cutoff,
+            orphan: cutoff,
         }
     }
 
@@ -221,6 +227,7 @@ impl Policy {
         Ok(Self {
             agent: cutoff(now, AGENT_RETENTION_DAYS)?,
             dev: cutoff(now, DEV_RETENTION_DAYS)?,
+            orphan: cutoff(now, ORPHAN_RETENTION_DAYS)?,
         })
     }
 }
@@ -375,7 +382,7 @@ fn cleanup(
             .retain(|candidate| only.contains(&candidate.path));
     }
     let cutoff = |kind| policy.cutoff(kind);
-    let first = sources.first_pass(&cutoff, &held);
+    let first = sources.first_pass(&cutoff, policy.orphan, &held);
     if !dry_run && first.iter().any(|decision| matches!(decision, Ok(Ok(_)))) {
         sources.refresh();
     }
@@ -386,7 +393,7 @@ fn cleanup(
         &candidates,
         first,
         &cutoff,
-        &|candidate, cutoff| sources.check(candidate, cutoff),
+        &|candidate, cutoff| sources.check(candidate, cutoff, policy.orphan),
         dry_run,
         &mut reports,
         &salvage::bundles(home),
@@ -458,26 +465,33 @@ pub(crate) struct Row {
     when: When,
     size: Option<u64>,
     due: Option<SystemTime>,
+    /// No T3 thread owns it, so it waits the orphan retention.
+    orphan: bool,
     branch: Option<String>,
     /// What removing it saves first.
     plan: Option<String>,
 }
 
-/// How the first check's verdict turns into a status. A waiting workspace
-/// is checked again as if idle long enough, for an estimate.
+/// How the first check's verdict turns into a status, with what removing
+/// it saves and whether it is orphaned. A waiting workspace is checked again
+/// as if idle long enough, for an estimate.
 fn classify(
     sources: &Sources,
     candidate: &Candidate,
     first: &Decision<Fingerprint>,
     held: bool,
     now: SystemTime,
-) -> (When, Option<String>) {
+) -> (When, Option<String>, bool) {
     match first {
-        Ok(Ok(checked)) => (When::Now, checked.plan()),
-        Ok(Err(found)) if found.blocker => (When::Blocked(found.reason.clone()), None),
-        Ok(Err(found)) if held => (When::Waiting(found.reason.clone()), None),
-        Ok(Err(_)) => match decide_once(sources.check(candidate, now)) {
-            Ok(Ok(checked)) => (When::Later { blocker: None }, checked.plan()),
+        Ok(Ok(checked)) => (When::Now, checked.plan(), checked.orphan),
+        Ok(Err(found)) if found.blocker => (When::Blocked(found.reason.clone()), None, false),
+        Ok(Err(found)) if held => (When::Waiting(found.reason.clone()), None, false),
+        Ok(Err(_)) => match decide_once(sources.check(candidate, now, now)) {
+            Ok(Ok(checked)) => (
+                When::Later { blocker: None },
+                checked.plan(),
+                checked.orphan,
+            ),
             Ok(Err(Kept {
                 reason,
                 blocker: true,
@@ -486,11 +500,12 @@ fn classify(
                     blocker: Some(reason),
                 },
                 None,
+                false,
             ),
-            Ok(Err(found)) => (When::Waiting(found.reason), None),
-            Err(error) => (When::Failed(format!("{error:#}")), None),
+            Ok(Err(found)) => (When::Waiting(found.reason), None, false),
+            Err(error) => (When::Failed(format!("{error:#}")), None, false),
         },
-        Err(error) => (When::Failed(format!("{error:#}")), None),
+        Err(error) => (When::Failed(format!("{error:#}")), None, false),
     }
 }
 
@@ -548,9 +563,13 @@ fn measure(
                 .flatten()
                 .max()
                 .unwrap_or(now);
-            let retention = now
-                .duration_since(policy.cutoff(row.kind))
-                .unwrap_or_default();
+            let cutoff = policy.cutoff(row.kind);
+            let cutoff = if row.orphan {
+                policy.orphan.min(cutoff)
+            } else {
+                cutoff
+            };
+            let retention = now.duration_since(cutoff).unwrap_or_default();
             row.due = Some(idle_since + retention);
         }
         let signal = format!("{}:{}:{}", nanos(own), nanos(git), nanos(owner));
@@ -655,6 +674,7 @@ impl Sources {
     pub(crate) fn first_pass(
         &mut self,
         cutoff: &(dyn Fn(Kind) -> SystemTime + Sync),
+        orphan: SystemTime,
         held: &(dyn Fn(&Path) -> Option<String> + Sync),
     ) -> Vec<Decision<Fingerprint>> {
         let _memory = tree_scan::remember();
@@ -667,7 +687,7 @@ impl Sources {
             let (early, late) = this.candidates.split_at(split);
             let decisions =
                 worktree_prune::first_pass(early, cutoff, held, &|candidate, cutoff| {
-                    this.check(candidate, cutoff)
+                    this.check(candidate, cutoff, orphan)
                 });
             let prechecks = tree_scan::parallel(late, |candidate| {
                 if held(&candidate.path).is_some() {
@@ -731,14 +751,20 @@ impl Sources {
                 &this.candidates[split..],
                 cutoff,
                 held,
-                &|candidate, cutoff| this.check(candidate, cutoff),
+                &|candidate, cutoff| this.check(candidate, cutoff, orphan),
             ));
         }
         decisions
     }
 
-    /// Every check of one candidate against `cutoff`.
-    pub(crate) fn check(&self, candidate: &Candidate, cutoff: SystemTime) -> Result<Fingerprint> {
+    /// Every check of one candidate against `cutoff`, and against `orphan`
+    /// too when no T3 thread owns it.
+    pub(crate) fn check(
+        &self,
+        candidate: &Candidate,
+        cutoff: SystemTime,
+        orphan: SystemTime,
+    ) -> Result<Fingerprint> {
         let Candidate {
             kind, path, device, ..
         } = candidate;
@@ -750,7 +776,7 @@ impl Sources {
             Kind::TaskScratch => worktree_prune::inspect_tree(path, *device, cutoff, false),
             Kind::T3Scratch => t3()?
                 .context("T3 state was not read")?
-                .check_scratch(path, *device, cutoff),
+                .check_scratch(path, *device, cutoff, orphan),
             Kind::T3Worktree | Kind::OpenCode | Kind::Dev => {
                 // A precheck holds only for the cutoff it was made against.
                 let precheck = self
@@ -764,12 +790,13 @@ impl Sources {
                     path,
                     *device,
                     cutoff,
+                    orphan,
                     || {
-                        let mut required = cutoff;
+                        let mut orphaned = false;
                         if kind.needs_t3() {
                             match t3()? {
                                 Some(state) => {
-                                    required = state.check(path, cutoff.into(), false)?.into();
+                                    orphaned = state.check(path, cutoff.into(), false)?
                                 }
                                 // Without ~/.t3 no T3 thread can use a ~/dev worktree.
                                 None => ensure!(*kind == Kind::Dev, "T3 state was not read"),
@@ -781,7 +808,7 @@ impl Sources {
                             .as_ref()
                             .map_err(|error| anyhow::anyhow!("read OpenCode sessions: {error}"))?;
                         worktree_prune::check_sessions(sessions, path, cutoff)?;
-                        Ok(required)
+                        Ok(orphaned)
                     },
                     precheck,
                 )
@@ -1183,7 +1210,7 @@ fn survey(home: &Path, policy: Policy, keeps: &Keeps) -> Result<Vec<Row>> {
     let mut sources = Sources::list(home);
     let cutoff = |kind| policy.cutoff(kind);
     let held = keeps.holds(&sources.candidates, now);
-    let first = sources.first_pass(&cutoff, &held);
+    let first = sources.first_pass(&cutoff, policy.orphan, &held);
     let checked: Vec<_> = sources.candidates.iter().zip(&first).collect();
     let whens = tree_scan::parallel(&checked, |(candidate, decision)| {
         classify(
@@ -1198,13 +1225,14 @@ fn survey(home: &Path, policy: Policy, keeps: &Keeps) -> Result<Vec<Row>> {
         .candidates
         .iter()
         .zip(whens)
-        .map(|(candidate, (when, plan))| Row {
+        .map(|(candidate, (when, plan, orphan))| Row {
             kind: candidate.kind,
             path: candidate.path.clone(),
             device: candidate.device,
             when,
             size: None,
             due: None,
+            orphan,
             branch: branch(&candidate.path),
             plan,
         })
@@ -1261,7 +1289,8 @@ fn status(home: &Path, json: bool) -> Result<()> {
         count(|when| matches!(when, When::Waiting(_))),
     );
     println!(
-        "Retention: {AGENT_RETENTION_DAYS}d idle for agent workspaces, {DEV_RETENTION_DAYS}d for ~/dev worktrees. \
+        "Retention: {AGENT_RETENTION_DAYS}d idle for agent workspaces, {DEV_RETENTION_DAYS}d for ~/dev worktrees, \
+         {ORPHAN_RETENTION_DAYS}d for T3 workspaces no thread owns. \
          Preview with `sweep clean --dry-run`; use `sweep keep PATH` to hold the workspace containing PATH."
     );
     Ok(())

@@ -247,6 +247,8 @@ pub(crate) struct Fingerprint {
     nested: Vec<Nested>,
     /// Work to save before removal.
     saves: Vec<Save>,
+    /// No owner is left to wait on, so it waits the orphan retention.
+    pub(crate) orphan: bool,
 }
 
 impl Fingerprint {
@@ -609,6 +611,7 @@ pub(crate) fn inspect_tree(
         head: None,
         nested,
         saves,
+        orphan: false,
     })
 }
 
@@ -804,13 +807,14 @@ impl Precheck {
 /// lose. Cheap signs come first and the tree walk last, only for a worktree
 /// that is idle and unowned: it visits build outputs too. Waiting reasons win
 /// over Git's verdict, so only an idle, unused worktree asks for attention.
-/// `owner` returns the cutoff the files must predate, which an owner may
-/// move earlier.
+/// `owner` says whether no owner is left to wait on; the files then must
+/// predate `orphan` too.
 pub(crate) fn check_worktree(
     worktree: &Path,
     device: u64,
     cutoff: SystemTime,
-    owner: impl FnOnce() -> Result<SystemTime>,
+    orphan: SystemTime,
+    owner: impl FnOnce() -> Result<bool>,
     precheck: Option<Precheck>,
 ) -> Result<Fingerprint> {
     let precheck = match precheck {
@@ -818,9 +822,13 @@ pub(crate) fn check_worktree(
         None => precheck_worktree(worktree, cutoff)?,
     };
     keep_unless!(!precheck.recent, "changed recently");
-    let cutoff = owner()?.min(cutoff);
+    let orphaned = owner()?;
+    let cutoff = if orphaned { orphan.min(cutoff) } else { cutoff };
     if precheck.plain {
-        return inspect_tree(worktree, device, cutoff, false);
+        return Ok(Fingerprint {
+            orphan: orphaned,
+            ..inspect_tree(worktree, device, cutoff, false)?
+        });
     }
     keep_unless!(!precheck.locked, "locked with git worktree lock");
     if let Some((time, path)) = &precheck.activity {
@@ -837,6 +845,7 @@ pub(crate) fn check_worktree(
     Ok(Fingerprint {
         head: Some(verdict.head),
         saves,
+        orphan: orphaned,
         ..tree
     })
 }
@@ -1455,7 +1464,8 @@ mod tests {
                     &candidate.path,
                     candidate.device,
                     cutoff,
-                    || check_sessions(&sessions, &candidate.path, cutoff).map(|()| cutoff),
+                    cutoff,
+                    || check_sessions(&sessions, &candidate.path, cutoff).map(|()| false),
                     None,
                 )
             },
@@ -1484,7 +1494,8 @@ mod tests {
                     &candidate.path,
                     candidate.device,
                     cutoff,
-                    || owner(&candidate.path).map(|()| cutoff),
+                    cutoff,
+                    || owner(&candidate.path).map(|()| false),
                     None,
                 )
             },
@@ -1577,7 +1588,8 @@ mod tests {
                 &worktree,
                 device,
                 SystemTime::now() + Duration::from_secs(60),
-                || Ok(SystemTime::now() + Duration::from_secs(60)),
+                SystemTime::now() + Duration::from_secs(60),
+                || Ok(false),
                 None,
             )
         };
@@ -1854,7 +1866,7 @@ mod tests {
         let old = now - 2 * day;
         let cutoff = now - day;
         let device = worktree.metadata()?.dev();
-        let check = || check_worktree(&worktree, device, cutoff, || Ok(cutoff), None);
+        let check = || check_worktree(&worktree, device, cutoff, cutoff, || Ok(false), None);
         age(&worktree, old)?;
         age(&checkout.join(".git/worktrees"), old)?;
         fs::create_dir(scratch.join("recent"))?;
@@ -1878,6 +1890,14 @@ mod tests {
         age(&scratch, old)?;
         let checked = check()?;
         assert!(checked.saves.is_empty(), "{:?}", checked.saves);
+        assert!(!checked.orphan);
+        // Without an owner the files must predate the orphan cutoff too.
+        let orphaned =
+            |orphan| check_worktree(&worktree, device, cutoff, orphan, || Ok(true), None);
+        let kept = decide_once(orphaned(now - 3 * day))?
+            .expect_err("an orphan idle 2 days did not wait 3");
+        assert!(kept.reason.contains("changed recently"), "{kept:?}");
+        assert!(orphaned(cutoff)?.orphan);
 
         // Only the root `.scratch/` is disposable, and a saved WIP commit
         // must not pick up its uncommitted changes along with real work.
@@ -1968,7 +1988,7 @@ mod tests {
         age(&checkout.join(".git/worktrees"), old)?;
         let device = worktree.metadata()?.dev();
         let cutoff = old + Duration::from_secs(86_400);
-        let check = || check_worktree(&worktree, device, cutoff, || Ok(cutoff), None);
+        let check = || check_worktree(&worktree, device, cutoff, cutoff, || Ok(false), None);
         let checked = check()?;
         assert!(checked.saves.is_empty());
         let module = worktree.join(".scratch/module");
@@ -2130,7 +2150,8 @@ mod tests {
             &stale,
             stale.metadata()?.dev(),
             SystemTime::now() + max_age,
-            || Ok(SystemTime::now() + max_age),
+            SystemTime::now() + max_age,
+            || Ok(false),
             None,
         )?;
         let store = Store {
