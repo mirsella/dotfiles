@@ -11,7 +11,8 @@
 //!
 //! While a run remembers, the threads it hands work to share one scan per
 //! workspace and one look at running processes.
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
+use std::io::Read;
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -21,8 +22,8 @@ use std::{
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     sync::{
-        Arc, Condvar, Mutex,
         atomic::{AtomicBool, AtomicUsize, Ordering},
+        Arc, Condvar, Mutex,
     },
     time::SystemTime,
 };
@@ -97,6 +98,17 @@ const CACHES: &[&[u8]] = &[
     b".gradle",
     b".pnpm-store",
 ];
+
+/// Whether `path` is a Cache Directory Tagging Specification tag, which caches
+/// such as Cargo's home and SwiftPM's scratch directory put at their root.
+fn cache_tag(path: &Path) -> bool {
+    const SIGNATURE: &[u8] = b"Signature: 8a477f597d28d172789f06886806bc55";
+    let mut head = [0; SIGNATURE.len()];
+    fs::File::open(path)
+        .and_then(|mut file| file.read_exact(&mut head))
+        .is_ok()
+        && head == SIGNATURE
+}
 
 /// A directory waiting to be read, and whether to skip Git discovery there.
 type Job = (PathBuf, bool);
@@ -219,6 +231,7 @@ impl Walk<'_> {
         };
         // A directory holding HEAD, objects and refs is a bare repository.
         let mut bare = [false; 3];
+        let mut tagged = false;
         for entry in entries {
             let entry = match entry {
                 Ok(entry) => entry,
@@ -243,6 +256,7 @@ impl Walk<'_> {
                     Some("HEAD") if kind.is_file() => bare[0] = true,
                     Some("objects") if kind.is_dir() => bare[1] = true,
                     Some("refs") if kind.is_dir() => bare[2] = true,
+                    Some("CACHEDIR.TAG") if kind.is_file() => tagged = cache_tag(&entry.path()),
                     _ => {}
                 }
             }
@@ -301,6 +315,11 @@ impl Walk<'_> {
                     let skip = skip_git || is_git || (cache && !self.in_scratch(&path));
                     subdirectories.push((path, skip));
                 }
+            }
+        }
+        if tagged && !self.in_scratch(directory) {
+            for (_, skip) in &mut subdirectories {
+                *skip = true;
             }
         }
         if bare == [true; 3] && directory != self.root {
@@ -545,6 +564,8 @@ mod tests {
             "node_modules/dep/.git",
             ".build/repositories/swift/objects",
             ".build/repositories/swift/refs",
+            "home/git/db/dep/objects",
+            "home/git/db/dep/refs",
         ];
         for dir in ["a/b/c", "clone/.git/objects", "bare/objects", "bare/refs"]
             .into_iter()
@@ -562,6 +583,12 @@ mod tests {
         fs::write(
             root.join(".build/repositories/swift/HEAD"),
             "ref: refs/heads/main\n",
+        )?;
+        // Any directory tagged as a cache, such as a Cargo home under scratch.
+        fs::write(root.join("home/git/db/dep/HEAD"), "ref: refs/heads/main\n")?;
+        fs::write(
+            root.join("home/CACHEDIR.TAG"),
+            "Signature: 8a477f597d28d172789f06886806bc55\n# a cache\n",
         )?;
         fs::write(root.join(".git"), "gitdir: elsewhere\n")?;
         let outside = temp.path().join("outside");
@@ -595,6 +622,14 @@ mod tests {
             ".build/repositories/swift/objects",
             ".build/repositories/swift/refs",
             ".build/repositories/swift/HEAD",
+            "home",
+            "home/CACHEDIR.TAG",
+            "home/git",
+            "home/git/db",
+            "home/git/db/dep",
+            "home/git/db/dep/objects",
+            "home/git/db/dep/refs",
+            "home/git/db/dep/HEAD",
         ] {
             all.push(root.join(entry));
         }

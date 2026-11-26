@@ -80,7 +80,8 @@ The flake discovers these directories and sets hostnames automatically.
   deletes the tree in parallel under its own `git worktree lock`, keeping a
   worktree that was locked, moved or changed since its check. Git
   repositories under package caches (`.build`, `node_modules`, `target`,
-  `.cargo`, `.gradle`, `.pnpm-store`) are not work. Files another user owns are
+  `.cargo`, `.gradle`, `.pnpm-store`, or any directory with a `CACHEDIR.TAG`)
+  are not work. Files another user owns are
   removed through passwordless `sudo -n`. A removed worktree's branch is
   deleted once the default branch contains it, or forgotten after 60 days
   (`branches.json`). `git worktree lock` keeps one indefinitely. An idle
