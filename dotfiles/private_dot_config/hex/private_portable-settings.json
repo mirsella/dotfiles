@@ -185,7 +185,7 @@
     "enabled": true,
     "providers": [],
     "recording_indicator_corner": "top_right",
-    "retention": "week",
+    "retention": "month",
     "show_recording_indicator": true
   },
   "paste_last_hotkey": {
@@ -233,14 +233,16 @@
         "TFUS code",
         "Tfue code",
         "Chiffy code",
-        "G3 Code"
+        "G3 Code",
+        "Tiffcode"
       ],
       "term": "T3 Code"
     },
     {
       "sounds_like": [
         "tiffy",
-        "TFUS"
+        "TFUS",
+        "Tiff"
       ],
       "term": "T3"
     },
@@ -252,7 +254,13 @@
       ],
       "term": "PostHog"
     },
-    "Bevy",
+    {
+      "sounds_like": [
+        "BVY",
+        "BV"
+      ],
+      "term": "Bevy"
+    },
     {
       "sounds_like": [
         "voxrite",

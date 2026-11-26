@@ -26,5 +26,4 @@
 - Use `~/dev` for permanent projects.
 - `/tmp` is RAM-backed: put builds, large downloads and generated files in the scratch directory.
 - Scratch directory: `.scratch/` at the root of the checkout you work in, including clones of other repositories and extra Cargo targets; in a projectless T3 thread, its working directory; otherwise `~/dev/scratch/<task>/`.
-- Leave temporary artifacts in scratch unless the user explicitly asks to keep them. If they name a destination, use it. Otherwise use `sweep keep PATH` and report the hold. For paths outside sweep's scope, report where they are without moving them.
 - Do not set `TMPDIR` to a scratch directory, and never remove a temporary root while processes still use it.

@@ -129,15 +129,7 @@
         "provider": "opencode"
       },
       {
-        "model": "openai/gpt-6-luna",
-        "provider": "opencode"
-      },
-      {
         "model": "claude-agent/opus",
-        "provider": "opencode"
-      },
-      {
-        "model": "claude-agent/claude-fable-5-2[1m]",
         "provider": "opencode"
       }
     ],
@@ -956,6 +948,15 @@
   ],
   "projects": [
     {
+      "workspace_root": "~/.t3/projects/sleev",
+      "attributes": {
+        "faviconPath": "~/.t3/projects/sleev/assets/icon.svg",
+        "projectIcon": null,
+        "title": "sleev"
+      },
+      "settings": {}
+    },
+    {
       "workspace_root": "~/Documents/xiaomi-mom",
       "attributes": {
         "faviconPath": null,
@@ -1050,6 +1051,15 @@
         ],
         "defaultThreadEnvMode": "worktree"
       }
+    },
+    {
+      "workspace_root": "~/dev/mm-lab",
+      "attributes": {
+        "faviconPath": null,
+        "projectIcon": null,
+        "title": "mm-lab"
+      },
+      "settings": {}
     },
     {
       "workspace_root": "~/dev/mm-runtime-config",

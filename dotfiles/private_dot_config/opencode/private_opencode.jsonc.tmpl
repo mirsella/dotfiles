@@ -78,7 +78,7 @@
         "inkling-2-mini-uncensored": {
           "name": "Inkling 2 Mini Uncensored (local)",
           "limit": {
-            "context": {{ ternary 32768 16384 (eq .chezmoi.hostname "main") }},
+            "context": {{ ternary 65536 16384 (eq .chezmoi.hostname "main") }},
             "output": {{ ternary 8192 4096 (eq .chezmoi.hostname "main") }}
           },
           "body": {
