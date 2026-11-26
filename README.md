@@ -269,9 +269,10 @@ Chezmoi stores portable T3 preferences and project registrations in
 `~/.config/t3code/portable-settings.json`. The Nix-built `t3-settings` helper
 captures fields listed in `pkgs/host-tools/src/t3-settings-allowlist.json`.
 It excludes credentials, provider environment variables, browser profiles,
-saved connections, onboarding state and window geometry. Raw `~/.t3` and
-Electron profile directories are ignored by chezmoi. Conversations and
-attachments need a separate backup.
+saved connections, microphone devices, extra tracked project folders,
+onboarding state and window geometry. Raw `~/.t3` and Electron profile
+directories are ignored by chezmoi. Conversations and attachments need a
+separate backup.
 T3's OpenCode provider omits `serverUrl` so T3 launches its own server
 and injects its thread-scoped MCP tools. The shared standalone service on
 port 14096 was retired. If an instance uses a local service, sync reads its
@@ -283,6 +284,8 @@ agent-provider logins remain device-local.
 Capture and apply report unknown field paths without printing their values.
 Add a field to the allowlist to capture it, or set its rule to `false` to
 explicitly ignore it. Known exclusions do not produce warnings.
+When a repository update adds new portable fields, rebuild the `t3-settings`
+helper before running `chezmoi apply` with the updated bundle.
 
 Capture writes a version 2 snapshot of all allowlisted persisted values,
 including explicit `false` and `null`. Apply resets omitted managed keys to

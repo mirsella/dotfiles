@@ -2346,29 +2346,22 @@ mod tests {
     }
 
     #[test]
-    fn dictation_preferences_are_portable_but_microphone_is_device_local() {
+    fn dictation_preferences_are_portable() {
         let policy = Policy::new();
-        let client = json!({
-            "speechCorrectionWord": "correct",
-            "speechCustomWords": ["OpenCode"],
-            "speechLanguage": "auto",
-            "speechPostProcessingPrompt": {"mode": "custom", "customInstructions": "Keep punctuation"},
-            "speechRemoveFillerWords": true,
-            "speechSilenceFiltering": true,
-            "speechTranslateToEnglish": false,
-            "voiceShortcutMode": "auto",
-            "voiceMicrophone": "device-specific-id"
-        });
-        let mut excluded = ExcludedFields::default();
-        let selected = policy
-            .select(&client, &policy.0["client"], "client", &mut excluded)
-            .unwrap();
-        let mut expected = client;
-        expected.as_object_mut().unwrap().remove("voiceMicrophone");
-        assert_eq!(selected, expected);
-        assert!(excluded.unknown.is_empty());
-        assert!(excluded.ignored.contains("client.voiceMicrophone"));
-        policy.validate("client", &selected).unwrap();
+        assert_portable(
+            &policy,
+            "client",
+            json!({
+                "speechCorrectionWord": "correct",
+                "speechCustomWords": ["OpenCode"],
+                "speechLanguage": "auto",
+                "speechPostProcessingPrompt": {"mode": "custom", "customInstructions": "Keep punctuation"},
+                "speechRemoveFillerWords": true,
+                "speechSilenceFiltering": true,
+                "speechTranslateToEnglish": false,
+                "voiceShortcutMode": "auto"
+            }),
+        );
         policy
             .validate(
                 "server",
@@ -2382,12 +2375,38 @@ mod tests {
     }
 
     #[test]
-    fn project_pin_and_archive_timestamps_are_device_local() {
+    fn microphone_devices_are_device_local() {
+        let policy = Policy::new();
+        let devices = json!({
+            "voiceMicrophone": "device-specific-id",
+            "voiceMicrophones": [{"kind": "device", "deviceId": "device-specific-id", "label": "USB mic"}]
+        });
+        let mut excluded = ExcludedFields::default();
+        let selected = policy
+            .select(&devices, &policy.0["client"], "client", &mut excluded)
+            .unwrap();
+        assert_eq!(selected, object());
+        assert!(excluded.unknown.is_empty());
+        assert_eq!(
+            excluded.ignored,
+            BTreeSet::from(
+                ["client.voiceMicrophone", "client.voiceMicrophones"].map(str::to_owned)
+            )
+        );
+
+        let mut client = devices.clone();
+        policy.merge_section_with("client", &mut client, &object(), true);
+        assert_eq!(client, devices);
+    }
+
+    #[test]
+    fn project_sidebar_timestamps_and_tracked_folders_are_device_local() {
         let policy = Policy::new();
         let source = json!({
             "id": "project",
             "workspaceRoot": "/home/user/repo",
             "title": "repo",
+            "trackedFolders": [{"path": "/mnt/local/extra", "name": "extra"}],
             "pinnedAt": "2026-11-04T09:00:00.000Z",
             "archivedAt": null,
             "createdAt": "2026-10-01T09:00:00.000Z",
@@ -2407,6 +2426,17 @@ mod tests {
         assert!(excluded.unknown.is_empty());
         assert!(excluded.ignored.contains("projects.project.pinnedAt"));
         assert!(excluded.ignored.contains("projects.project.archivedAt"));
+        assert!(excluded.ignored.contains("projects.project.trackedFolders"));
+        assert!(
+            policy
+                .validate(
+                    "project",
+                    &json!({"trackedFolders": source["trackedFolders"]}),
+                )
+                .unwrap_err()
+                .to_string()
+                .contains("project.trackedFolders")
+        );
     }
 
     fn assert_portable(policy: &Policy, section: &str, saved: Value) {
@@ -2498,6 +2528,27 @@ mod tests {
             ),
         ] {
             assert_portable(&policy, section, saved);
+        }
+    }
+
+    #[test]
+    fn language_accessibility_and_prompt_suggestions_are_portable() {
+        let policy = Policy::new();
+        assert_portable(
+            &policy,
+            "client",
+            json!({
+                "language": "en",
+                "screenReaderAnnouncements": "status",
+                "screenReaderWindowTitle": false
+            }),
+        );
+        for enabled in [true, false] {
+            assert_portable(
+                &policy,
+                "server",
+                json!({"promptSuggestionsEnabled": enabled}),
+            );
         }
     }
 

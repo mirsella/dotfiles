@@ -46,6 +46,7 @@
     "fontSmoothing": true,
     "glassOpacity": 80,
     "inAppNotificationsEnabled": true,
+    "language": "en",
     "loadBalancingEnabled": true,
     "loadBalancingWeights": {
       "020898b6-4a15-44cb-ae04-0ef53d75919f": 50,
@@ -58,6 +59,8 @@
     "persistComposerContextStrip": true,
     "proactivePanelsEnabled": false,
     "pullRequestLinksOpenInApp": true,
+    "screenReaderAnnouncements": "status",
+    "screenReaderWindowTitle": false,
     "sendShortcut": "enter",
     "showSkillsInSlashMenu": true,
     "sidebarProjectGroupingMode": "repository",
@@ -136,6 +139,7 @@
     "guestSharingEnabled": true,
     "idleCompaction": "beforeCacheExpires",
     "linkedEnvironmentsEnabled": true,
+    "promptSuggestionsEnabled": true,
     "providerModelPreferences": {
       "acpRegistry_opencode": {
         "hiddenModels": [
