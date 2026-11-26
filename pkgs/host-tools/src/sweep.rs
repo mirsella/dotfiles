@@ -500,7 +500,7 @@ fn classify(
                     blocker: Some(reason),
                 },
                 None,
-                false,
+                sources.orphaned(candidate, now),
             ),
             Ok(Err(found)) => (When::Waiting(found.reason), None, false),
             Err(error) => (When::Failed(format!("{error:#}")), None, false),
@@ -824,6 +824,19 @@ impl Sources {
                 )
             }
         }
+    }
+
+    /// Whether no T3 thread owns the candidate, for the estimate of one whose
+    /// check stopped at a blocker before saying. An unreadable or busy owner
+    /// counts as owned: that estimate is the shorter one.
+    fn orphaned(&self, candidate: &Candidate, now: SystemTime) -> bool {
+        let scratch = candidate.kind == Kind::T3Scratch;
+        candidate.kind.needs_t3()
+            && self.t3.as_ref().is_some_and(|state| {
+                state
+                    .check(&candidate.path, now.into(), scratch)
+                    .unwrap_or(false)
+            })
     }
 
     /// Re-read owner state right before removals.
