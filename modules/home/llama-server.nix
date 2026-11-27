@@ -3,6 +3,7 @@
   hash,
   contextSize ? 16384,
   microBatchSize ? null,
+  valueCacheType ? "q8_0",
 }:
 {
   lib,
@@ -33,7 +34,7 @@ let
       parallel = 1;
       flash-attn = "on";
       cache-type-k = "q8_0";
-      cache-type-v = "q8_0";
+      cache-type-v = valueCacheType;
       jinja = true;
       reasoning = "on";
       reasoning-effort = "low";

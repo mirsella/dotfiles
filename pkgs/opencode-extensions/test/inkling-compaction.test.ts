@@ -13,8 +13,12 @@ async function fixture() {
   return handlers;
 }
 
-function request(url = localURL) {
-  const body = JSON.stringify({ messages: [{ role: "user", content: "Summarize this." }], max_tokens: 8192 });
+function request(url = localURL, content: string | { type: "text"; text: string }[] = "Summarize this.") {
+  const body = JSON.stringify({
+    messages: [{ role: "user", content: "Keep this exact history." }, { role: "user", content }],
+    max_tokens: 8192,
+    reasoning_effort: "high",
+  });
   return new Request(url, {
     method: "POST",
     headers: { "content-type": "application/json", "content-length": String(body.length) },
@@ -22,12 +26,28 @@ function request(url = localURL) {
   });
 }
 
-test("local Inkling compaction caps reasoning without changing the prompt or output limit", async () => {
-  const original = request();
+test.each(["text", "parts"] as const)("Local compaction bounds the checkpoint with a %s prompt", async (format) => {
+  const text = "Summarize this.";
+  const part = { type: "text" as const, text };
+  const original = request(localURL, format === "text" ? text : [part]);
   const event = { kind: "compaction", model: { id: "inkling-2-mini-uncensored" }, request: original };
   await (await fixture())["http.request"](event);
   expect(event.request.headers.get("content-length")).toBeNull();
-  expect(await event.request.json()).toEqual({ ...await original.json(), reasoning_budget_tokens: 512 });
+  const before = await original.json();
+  const { messages, grammar, ...options } = await event.request.json();
+  expect(options).toEqual({ max_tokens: before.max_tokens, reasoning_effort: "low" });
+  expect(grammar).toContain("thinking? <|message_model|> <|content_text|> summary <|end_message|>");
+  expect(grammar).toContain("<|content_thinking|> [^<]{0,420} <|end_message|>");
+  expect(grammar).toContain(String.raw`"## Objective\n- " text{1,160}`);
+  expect(grammar).toContain(String.raw`"\n\n## Important Context\n- " text{1,380}`);
+  expect(messages.slice(0, -1)).toEqual(before.messages.slice(0, -1));
+  const { content } = messages.at(-1);
+  if (format === "text") {
+    expect(content).toStartWith(text);
+    expect(content).toContain("exactly one short line per section");
+  } else {
+    expect(content).toEqual([part, { type: "text", text: expect.stringContaining("exactly one short line per section") }]);
+  }
 });
 
 test("normal replies, other models and other endpoints keep the original request", async () => {

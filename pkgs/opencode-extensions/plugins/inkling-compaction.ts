@@ -8,6 +8,30 @@ const integrationInstructions = new Set(["core/codemode", "core/mcp-guidance", "
 const maxResultChars = 12_000;
 type ToolResult = Extract<SessionContext["messages"][number], { role: "tool" }>["content"][number];
 
+const checkpointSections = [
+  ["Objective", 160],
+  ["Requirements", 240],
+  ["Decisions", 240],
+  ["Work State", 380],
+  ["Next Move", 300],
+  ["Relevant Files", 260],
+  ["Important Context", 380],
+] as const;
+
+// Inkling generates its own message delimiters. Constrain those too, otherwise
+// the chat parser loses the boundary between thinking and the visible summary.
+const checkpointGrammar = [
+  "root ::= thinking? <|message_model|> <|content_text|> summary <|end_message|> <|content_model_end_sampling|>?",
+  "thinking ::= <|message_model|> <|content_thinking|> [^<]{0,420} <|end_message|>",
+  `summary ::= ${checkpointSections.map(([name, limit], index) =>
+    `${JSON.stringify(`${index ? "\n\n" : ""}## ${name}\n- `)} text{1,${limit}}`).join(" ")} "\\n"?`,
+  String.raw`text ::= [^\r\n<]`,
+].join("\n");
+const checkpointInstructions =
+  "\n\nUse exactly one short line per section, with no subsections. " +
+  "Replace the old checkpoint rather than copying it. Prioritize unresolved user requests, decisions, " +
+  "and exact references needed to resume. Write (none) for inapplicable sections.";
+
 function excerpt(text: string) {
   if (text.length <= maxResultChars) return text;
   const head = maxResultChars / 2;
@@ -74,13 +98,22 @@ export default Plugin.define({
       const url = new URL(request.url);
       if (url.origin !== "http://127.0.0.1:8080" || url.pathname !== "/v1/chat/completions") return;
 
-      // Polaris counts thinking against the same output allowance as the checkpoint.
       const body = await request.clone().json();
+      // OpenCode adds its summary instructions after the context hook runs.
+      const prompt = Array.isArray(body.messages) ? body.messages.at(-1) : undefined;
+      if (prompt?.role !== "user") throw new Error("Local Inkling compaction request has no final user prompt");
+      if (typeof prompt.content === "string") {
+        prompt.content += checkpointInstructions;
+      } else if (Array.isArray(prompt.content)) {
+        prompt.content.push({ type: "text", text: checkpointInstructions });
+      } else {
+        throw new Error("Local Inkling compaction prompt must contain text or content parts");
+      }
       const headers = new Headers(request.headers);
       headers.delete("content-length");
       event.request = new Request(request, {
         headers,
-        body: JSON.stringify({ ...body, reasoning_budget_tokens: 512 }),
+        body: JSON.stringify({ ...body, reasoning_effort: "low", grammar: checkpointGrammar }),
       });
     }, scope);
   },
