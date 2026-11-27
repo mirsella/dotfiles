@@ -1,59 +1,25 @@
-# Local Kache fixes
+# Kache packaging
 
 ## Current package
 
-`default.nix` selects upstream commit
-`3aad1a1974efcae8c8827a7200d5cf7cd270319e` with the version label
-`2.1.1+local-case-analytics-20261125`. Install the frontend and `kache-engine`
-together. Home Manager also owns the Cargo-bin aliases so a separately installed
-frontend cannot replace the managed daemon.
+`default.nix` selects upstream v2.4.0 (`b64f9a4d`), packaged as
+`2.4.0+local-build-id`. Home Manager installs matching frontend, engine, and
+Cargo-bin aliases. The previous 2.1.1 package and patches remain in Git history
+for rollback.
 
-`upstream-candidate.patch` preserves the Clippy compiler-identity fix for upstream
-issue #1944 and imports the boot-scoped tree memo fix from PR #1941,
-`a549f6fd74a750c39f99ea54378a15f1a1fead93`. Upstream supplies profile reuse,
-native/Git input tracking, per-invocation child RSS, source-revert reuse, registry
-key parity and incremental-seed diagnostics. The old workload-scheduler patch
-does not apply to this package.
+The only active local source patch is `build-id-telemetry.patch`. It records an
+optional caller-supplied `KACHE_BUILD_ID` in schema 30 event rows.
+`kache telemetry build ID --since 2h` selects the exact 32-hex-character ID from
+this store's retained events without exposing compiler arguments, cache keys,
+environment values or raw diagnostics. Missing tags and separate stores are
+coverage gaps, not misses. The patch does not change keys, lookup, scheduling
+or retention. v2.4.0 still uses key schema 35; individual upstream key recipes
+can change even when the schema stays the same.
 
-`compile-first-observations.patch` adds `rustc_compile_first_reason` to schema 29
-events. Join it to capacity-wait observations on eventual hits to distinguish
-missing or rejected input predictions from a first lookup that missed. A
-verified key already gets a lookup before compiler admission. This patch does
-not change admission, key validation, or cache-key schema.
-
-`retention-shadow.patch` records a comparison during automatic size-pressure
-sweeps on `main` only. After normal GC meets its byte target, it pairs some
-expensive, recently reused victims with cheaper entries that the sweep left
-untouched. Each substitute is estimated to free between 100% and 105% of
-the victim's actual indexed bytes. The test never removes a substitute or
-changes the live policy. It records at most 64 pairs per sweep and stops
-after 256 records in `~/.cache/kache/telemetry/retention-shadow-v1`.
-Compare exact-key demand at 12 and 48 hours. Indexed bytes are not physical
-reclamation, and compile cost is not build wall time.
-
-`case-analytics.patch` adds schema 30's optional `KACHE_BUILD_ID` to event
-records. `kache telemetry build ID --since 2h` returns events for the exact
-32-hex-character ID in the queried store, without command arguments or raw
-diagnostics. Missing tags or separate stores mean incomplete coverage.
-It also recognizes Clang's device and simulator iOS deployment-target flags
-when the resolved compiler probe succeeds.
-
-The patch writes grouped shadow matches to `telemetry/retention-shadow-v2`.
-A group has at most eight independent substitutes totaling 100–105% of the
-live victim's indexed bytes. A separate comparison considers known older
-schemas idle for at least seven days. Both comparisons leave the live
-eviction order and its protections unchanged.
-
-The upstream checkout-path correctness fix uses key version 35. Expect cold
-misses when moving from the old recipe; preserve old entries for rollback.
-Remote caching stays disabled. Upstream issue #1946 still affects remote
-C/C++ object validation.
-
-The retention and scheduler policies use upstream defaults. Keep the 150 GiB
-budget until equal-budget, matched-workload evidence supports a reduction.
-Require a substantial wall-time or physical-space gain before adopting a local
-policy. Check tail latency, failures, RSS, swap and expensive re-demand as well
-as medians. Compiler-time sums and inferred session closure are not Cargo wall time.
+Both hosts keep 150 GiB, executable caching off, and no remote. There is no
+local shadow eviction policy. Compare same-host build lanes with matched
+inputs; distinguish Cargo freshness, cache restores, compiler work and waits.
+Compiler-time sums are not build wall time.
 
 `kache-observe.timer` captures read-only compressed observations twice daily in
 `~/.local/state/kache-observations`. It retains at most 60 snapshots and 512 MiB,

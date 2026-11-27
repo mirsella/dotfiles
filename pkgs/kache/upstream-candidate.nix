@@ -11,29 +11,25 @@
 }:
 rustPlatform.buildRustPackage rec {
   pname = "kache-upstream-candidate";
-  version = "2.1.1";
+  version = "2.4.0";
   src = fetchFromGitHub {
     owner = "kunobi-ninja";
     repo = "kache";
-    rev = "3aad1a1974efcae8c8827a7200d5cf7cd270319e";
-    hash = "sha256-qCv7ierYlx9dZhea+SRMxsIRRq4LFFTzKNoiKOZ6448=";
+    rev = "b64f9a4df361e1548180b5a39cc6effa528a623f";
+    hash = "sha256-nYZXAqpcitanRuD4uKcNzjrB03wWE4x9VGoiZTVyER4=";
   };
   cargoLock.lockFile = "${src}/Cargo.lock";
-  patches = [
-    ./upstream-candidate.patch
-    ./compile-first-observations.patch
-    ./retention-shadow.patch
-    ./case-analytics.patch
-  ];
+  patches = [ ./build-id-telemetry.patch ];
   postPatch = ''
     substituteInPlace crates/kache-ipc/src/execution/unix_client.rs \
       --replace-fail '/bin/cat' '${coreutils}/bin/cat'
   '';
-  KACHE_VERSION = "${version}+local-case-analytics-20261125";
+  KACHE_VERSION = "${version}+local-build-id";
   CARGO_PROFILE_RELEASE_LTO = "thin";
   nativeBuildInputs = [ pkg-config ];
   nativeCheckInputs = [ git cacert bashInteractive zsh ];
   KACHE_TEST_SLEEP = "${coreutils}/bin/sleep";
+  RUSTC_WRAPPER = "";
   doCheck = true;
   checkType = "debug";
   checkFlags = [ "--test-threads=2" ];
@@ -52,6 +48,12 @@ rustPlatform.buildRustPackage rec {
     test -x "$out/bin/kache-engine"
     test -x "$out/bin/kache-clang-cl"
     test -x "$out/bin/kache-cl"
+    mkdir -p "$out/lib/kache"
+    for name in cc c++ gcc g++ clang clang++ cargo rustdoc; do
+      ln -s "$out/bin/kache" "$out/lib/kache/$name"
+    done
+    touch "$out/lib/kache/.kache-shims"
+    ln -s lib/kache "$out/shims"
   '';
   meta = {
     description = "Content-addressed build cache for Rust and C/C++";
