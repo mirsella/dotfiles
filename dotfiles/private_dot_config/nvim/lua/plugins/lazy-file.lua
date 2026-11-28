@@ -50,6 +50,8 @@ return {
 			return { "LazyFile" }
 		end,
 		opts = {
+			-- Prevent Mason from auto-enabling an already-installed Copilot server.
+			servers = { copilot = false },
 			inlay_hints = {
 				enabled = true,
 				exclude = {},
